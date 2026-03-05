@@ -128,8 +128,8 @@ class RollbackEngine:
         if self._metrics is not None:
             try:
                 metrics_snap = self._metrics.snapshot()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Metrics snapshot failed during rollback: %s", exc)
 
         receipt = RollbackReceipt(
             timestamp=datetime.now(timezone.utc).isoformat(),

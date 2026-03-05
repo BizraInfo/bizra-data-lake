@@ -25,6 +25,7 @@ Genesis Strict Synthesis v2.2.2
 from core.integration.constants import (
     IHSAN_WEIGHTS,
     SNR_THRESHOLD_T0_ELITE,
+    SNR_THRESHOLD_T1_HIGH,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
@@ -36,10 +37,10 @@ SDPO_MAX_ITERATIONS: int = 10
 SDPO_COMPRESSION_TARGET: float = 0.7  # 70% context compression
 SDPO_FEEDBACK_CONFIDENCE_THRESHOLD: float = 0.8
 
-# Integration alignment thresholds
+# Integration alignment thresholds — derived from constants.py
 SAPE_WISDOM_SNR: float = 0.999
-SAPE_KNOWLEDGE_SNR: float = 0.99
-SAPE_INFORMATION_SNR: float = 0.95
+SAPE_KNOWLEDGE_SNR: float = SNR_THRESHOLD_T0_ELITE  # was 0.99
+SAPE_INFORMATION_SNR: float = SNR_THRESHOLD_T1_HIGH  # was 0.95
 SAPE_DATA_SNR: float = 0.90
 
 __version__ = "1.0.0"

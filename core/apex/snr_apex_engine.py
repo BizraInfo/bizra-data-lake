@@ -49,6 +49,8 @@ from typing import (
 )
 
 from core.integration.constants import (
+    SNR_THRESHOLD_T0_ELITE,
+    SNR_THRESHOLD_T1_HIGH,
     UNIFIED_IHSAN_THRESHOLD,
 )
 
@@ -57,9 +59,9 @@ from core.integration.constants import (
 # ════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
 
-# Apex-level thresholds (higher than standard)
-APEX_SNR_TARGET: Final[float] = 0.99  # Ihsān Excellence
-APEX_SNR_FLOOR: Final[float] = 0.95  # Minimum for APEX operations
+# Apex-level thresholds — imported from constants.py
+APEX_SNR_TARGET: Final[float] = SNR_THRESHOLD_T0_ELITE  # Ihsān Excellence
+APEX_SNR_FLOOR: Final[float] = SNR_THRESHOLD_T1_HIGH  # Minimum for APEX operations
 APEX_OPTIMIZATION_MAX_ITERATIONS: Final[int] = 7
 
 logging.basicConfig(

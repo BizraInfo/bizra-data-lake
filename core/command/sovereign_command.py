@@ -38,6 +38,7 @@ from typing import Any, Final, Optional
 
 from core.integration.constants import (
     LMSTUDIO_URL,
+    SNR_THRESHOLD_T0_ELITE,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
@@ -48,7 +49,7 @@ from core.integration.constants import (
 
 IHSAN_THRESHOLD: Final[float] = UNIFIED_IHSAN_THRESHOLD
 SNR_THRESHOLD: Final[float] = UNIFIED_SNR_THRESHOLD
-SNR_TARGET: Final[float] = 0.99
+SNR_TARGET: Final[float] = SNR_THRESHOLD_T0_ELITE
 
 LM_STUDIO_URL: Final[str] = os.getenv("LM_STUDIO_URL", LMSTUDIO_URL)
 LM_STUDIO_TOKEN: Final[str] = os.getenv(

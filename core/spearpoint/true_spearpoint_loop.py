@@ -32,7 +32,11 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+from core.integration.constants import (
+    SNR_THRESHOLD_T0_ELITE,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +49,7 @@ class LoopConfig:
     """Configuration for TrueSpearpointLoop."""
 
     max_iterations: int = 20
-    target_snr: float = 0.99
+    target_snr: float = SNR_THRESHOLD_T0_ELITE
     budget_usd: float = 2_000.0
     patience: int = 5
     pareto_convergence_window: int = 3

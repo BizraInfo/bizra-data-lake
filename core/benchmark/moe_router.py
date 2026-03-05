@@ -36,6 +36,8 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Callable, Optional
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+
 logger = logging.getLogger(__name__)
 
 
@@ -331,8 +333,8 @@ class MoERouter:
         QueryComplexity.FRONTIER: ExpertTier.FRONTIER,
     }
 
-    # Ihsān threshold for routing decisions
-    IHSAN_CONFIDENCE = 0.95
+    # Ihsān threshold for routing decisions — from constants.py
+    IHSAN_CONFIDENCE = UNIFIED_IHSAN_THRESHOLD
 
     def __init__(
         self,

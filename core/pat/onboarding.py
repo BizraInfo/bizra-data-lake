@@ -20,6 +20,12 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from core.integration.constants import (
+    ADL_GINI_THRESHOLD,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
+
 from .identity_card import generate_identity_keypair
 from .minting import (
     IdentityMinter,
@@ -56,10 +62,10 @@ class NodeTemplate:
     initial_bloom: float = 0.0
     initial_impt: float = 0.0
 
-    # Constitutional gates (aligned with core/integration/constants.py)
-    ihsan_floor: float = 0.95
-    adl_gini_threshold: float = 0.35
-    snr_minimum: float = 0.85
+    # Constitutional gates — imported from core/integration/constants.py
+    ihsan_floor: float = UNIFIED_IHSAN_THRESHOLD
+    adl_gini_threshold: float = ADL_GINI_THRESHOLD
+    snr_minimum: float = UNIFIED_SNR_THRESHOLD
 
     # Action Bus channels (which are enabled at start)
     desktop_rpc_enabled: bool = True

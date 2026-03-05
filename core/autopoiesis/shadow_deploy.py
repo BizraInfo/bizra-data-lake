@@ -82,7 +82,7 @@ class TrafficMode(Enum):
 DEFAULT_SHADOW_DURATION = timedelta(hours=1)
 MIN_SAMPLE_SIZE = 30  # Minimum samples for statistical significance
 CONFIDENCE_LEVEL = 0.95  # 95% confidence interval
-IHSAN_KILL_THRESHOLD = 0.95  # Kill switch if Ihsan drops below this
+IHSAN_KILL_THRESHOLD = UNIFIED_IHSAN_THRESHOLD  # Kill switch — from constants.py
 MAX_LATENCY_DEGRADATION = 1.5  # Max 50% latency increase allowed
 MAX_ERROR_RATE_INCREASE = 0.01  # Max 1% error rate increase allowed
 

@@ -12,6 +12,7 @@ Standing on Giants: Shannon (1948) | Meyer (DbC, 1986) | Phase 60 Step 4 (assert
 
 from __future__ import annotations
 
+import functools
 import math
 from dataclasses import dataclass
 
@@ -109,6 +110,7 @@ class DualVerificationScore:
         return cls(gate_score=gate_score, pool_score=pool_score)
 
 
+@functools.lru_cache(maxsize=512)
 def compute_snr_dual(
     knowledge_gain: float,
     gate_score: float,

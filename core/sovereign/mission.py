@@ -147,8 +147,8 @@ class HDAClient:
             self._writer.close()
             try:
                 await self._writer.wait_closed()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Connection cleanup: %s", exc)
             self._writer = None
             self._reader = None
 
@@ -994,8 +994,8 @@ class MissionOrchestrator:
             return
         try:
             await self._event_bus.emit(topic, payload)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Event emit failed | topic=%s error=%s", topic, exc)
 
 
 # ── Persistent Node Signer ─────────────────────────────────────────────
@@ -1044,8 +1044,8 @@ def _load_or_create_node_signer(
                     creds.get("node_id", "unknown"),
                 )
                 return priv, pub
-        except (json.JSONDecodeError, KeyError, TypeError):
-            pass
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            logger.debug("Signer file parse error, regenerating: %s", exc)
 
     # 3. Generate new keypair and persist
     priv, pub = generate_keypair()
@@ -1067,5 +1067,5 @@ def _persist_signer(path: Path, private_hex: str, public_hex: str, source: str) 
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     try:
         path.chmod(0o600)
-    except OSError:
-        pass  # Windows/WSL may not support chmod
+    except OSError as exc:
+        logger.debug("chmod not supported on this platform: %s", exc)

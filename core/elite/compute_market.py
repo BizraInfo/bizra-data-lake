@@ -44,6 +44,7 @@ from enum import Enum
 from typing import Any, Optional
 
 from core.integration.constants import (
+    ADL_GINI_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
 )
 
@@ -59,8 +60,8 @@ DEFAULT_TAX_RATE = 0.05
 # Tax period duration (1 hour)
 TAX_PERIOD_SECONDS = 3600
 
-# Gini coefficient threshold for redistribution
-GINI_THRESHOLD = 0.35  # Aligned with constants.py ADL_GINI_THRESHOLD
+# Gini coefficient threshold for redistribution — imported from constants.py
+GINI_THRESHOLD = ADL_GINI_THRESHOLD
 
 # Maximum Gini before emergency redistribution
 GINI_EMERGENCY = 0.60
