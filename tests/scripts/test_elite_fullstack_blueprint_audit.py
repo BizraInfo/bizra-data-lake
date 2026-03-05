@@ -218,3 +218,61 @@ def test_elite_blueprint_audit_emits_snr_and_graph_of_thought(tmp_path: Path) ->
     assert "files" in node_ids
     assert "release_readiness" in node_ids
     assert report["autonomous_next_step"]["priority"] == "P0"
+
+
+def test_elite_blueprint_audit_fails_on_invalid_weight_sum(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".github/workflows/ci.yml",
+        yaml.safe_dump({"jobs": {"phase65-masterpiece-gate": {}}}, sort_keys=False),
+    )
+    _write(
+        repo / ".github/workflows/phase65-masterpiece.yml",
+        yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False),
+    )
+    _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
+    _write(
+        repo / "README.md",
+        "\n".join(["[![CI Status]", "[![Roadmap]", "## Community"]),
+    )
+    _write(repo / "ROADMAP.md", "# roadmap\n")
+    _write(repo / "COMMUNITY.md", "# community\n")
+    _seed_phase65_config(repo)
+
+    cfg = _minimal_cfg()
+    cfg["scoring"]["weights"]["thresholds"] = 0.41  # force sum > 1.0
+
+    report = audit_repo(repo, cfg)
+    assert report["gate_passed"] is False
+    assert any(
+        check["name"] == "config:weights_sum" for check in report["failed_checks"]
+    )
+
+
+def test_elite_blueprint_audit_fails_on_non_numeric_weight(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".github/workflows/ci.yml",
+        yaml.safe_dump({"jobs": {"phase65-masterpiece-gate": {}}}, sort_keys=False),
+    )
+    _write(
+        repo / ".github/workflows/phase65-masterpiece.yml",
+        yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False),
+    )
+    _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
+    _write(
+        repo / "README.md",
+        "\n".join(["[![CI Status]", "[![Roadmap]", "## Community"]),
+    )
+    _write(repo / "ROADMAP.md", "# roadmap\n")
+    _write(repo / "COMMUNITY.md", "# community\n")
+    _seed_phase65_config(repo)
+
+    cfg = _minimal_cfg()
+    cfg["scoring"]["weights"]["files"] = "high"
+
+    report = audit_repo(repo, cfg)
+    assert report["gate_passed"] is False
+    assert any(
+        check["name"] == "config:weights_numeric" for check in report["failed_checks"]
+    )

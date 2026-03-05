@@ -12,10 +12,51 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import dataclass, field
+from math import isclose
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+
+@dataclass
+class RepoReader:
+    """Repository reader with memoized filesystem access."""
+
+    root: Path
+    _exists_cache: dict[str, bool] = field(default_factory=dict)
+    _text_cache: dict[str, str] = field(default_factory=dict)
+    _yaml_cache: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    def _path(self, rel: str) -> Path:
+        return self.root / rel
+
+    def exists(self, rel: str) -> bool:
+        if rel not in self._exists_cache:
+            self._exists_cache[rel] = self._path(rel).exists()
+        return self._exists_cache[rel]
+
+    def text(self, rel: str) -> str:
+        if rel not in self._text_cache:
+            if self.exists(rel):
+                self._text_cache[rel] = self._path(rel).read_text(encoding="utf-8")
+            else:
+                self._text_cache[rel] = ""
+        return self._text_cache[rel]
+
+    def yaml(self, rel: str) -> dict[str, Any]:
+        if rel in self._yaml_cache:
+            return self._yaml_cache[rel]
+        if not self.exists(rel):
+            self._yaml_cache[rel] = {}
+            return self._yaml_cache[rel]
+        payload = yaml.safe_load(self.text(rel))
+        if isinstance(payload, dict):
+            self._yaml_cache[rel] = payload
+        else:
+            self._yaml_cache[rel] = {}
+        return self._yaml_cache[rel]
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -23,12 +64,12 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 
 
 def _check_files(
-    repo_root: Path, rel_paths: list[str]
+    reader: RepoReader, rel_paths: list[str]
 ) -> tuple[float, list[dict[str, Any]]]:
     checks: list[dict[str, Any]] = []
     passed = 0
     for rel in rel_paths:
-        exists = (repo_root / rel).exists()
+        exists = reader.exists(rel)
         checks.append(
             {
                 "name": f"file:{rel}",
@@ -43,14 +84,13 @@ def _check_files(
 
 
 def _check_jobs(
-    repo_root: Path, job_cfg: dict[str, list[str]]
+    reader: RepoReader, job_cfg: dict[str, list[str]]
 ) -> tuple[float, list[dict[str, Any]]]:
     checks: list[dict[str, Any]] = []
     total = 0
     passed = 0
     for rel_file, jobs in job_cfg.items():
-        path = repo_root / rel_file
-        if not path.exists():
+        if not reader.exists(rel_file):
             for job in jobs:
                 checks.append(
                     {
@@ -63,7 +103,7 @@ def _check_jobs(
                 total += 1
             continue
 
-        payload = _load_yaml(path)
+        payload = reader.yaml(rel_file)
         declared_jobs = set((payload.get("jobs") or {}).keys())
         for job in jobs:
             ok = job in declared_jobs
@@ -83,10 +123,9 @@ def _check_jobs(
 
 
 def _check_readme_patterns(
-    repo_root: Path, patterns: list[str]
+    reader: RepoReader, patterns: list[str]
 ) -> tuple[float, list[dict[str, Any]]]:
-    readme = repo_root / "README.md"
-    text = readme.read_text(encoding="utf-8") if readme.exists() else ""
+    text = reader.text("README.md")
     checks: list[dict[str, Any]] = []
     passed = 0
     for pattern in patterns:
@@ -105,12 +144,12 @@ def _check_readme_patterns(
 
 
 def _check_phase65_thresholds(
-    repo_root: Path,
+    reader: RepoReader,
     expected: dict[str, Any],
 ) -> tuple[float, list[dict[str, Any]]]:
-    cfg_path = repo_root / "config/phase65_masterpiece_roadmap.yaml"
+    cfg_rel = "config/phase65_masterpiece_roadmap.yaml"
     checks: list[dict[str, Any]] = []
-    if not cfg_path.exists():
+    if not reader.exists(cfg_rel):
         for key, value in expected.items():
             checks.append(
                 {
@@ -122,7 +161,7 @@ def _check_phase65_thresholds(
             )
         return 0.0, checks
 
-    payload = _load_yaml(cfg_path)
+    payload = reader.yaml(cfg_rel)
     required = (payload.get("quality_gates") or {}).get("required") or {}
     scoring = (payload.get("quality_gates") or {}).get("scoring") or {}
 
@@ -155,14 +194,14 @@ def _check_phase65_thresholds(
 
 
 def _check_pmbok_artifacts(
-    repo_root: Path, pmbok_cfg: dict[str, list[str]]
+    reader: RepoReader, pmbok_cfg: dict[str, list[str]]
 ) -> tuple[float, list[dict[str, Any]]]:
     checks: list[dict[str, Any]] = []
     total = 0
     passed = 0
     for domain, rel_paths in pmbok_cfg.items():
         for rel in rel_paths:
-            exists = (repo_root / rel).exists()
+            exists = reader.exists(rel)
             checks.append(
                 {
                     "name": f"pmbok:{domain}:{rel}",
@@ -177,14 +216,14 @@ def _check_pmbok_artifacts(
 
 
 def _check_pipeline_automation(
-    repo_root: Path, pipeline_cfg: dict[str, Any]
+    reader: RepoReader, pipeline_cfg: dict[str, Any]
 ) -> tuple[float, list[dict[str, Any]]]:
     checks: list[dict[str, Any]] = []
     total = 0
     passed = 0
 
     for rel in pipeline_cfg.get("workflows") or []:
-        exists = (repo_root / rel).exists()
+        exists = reader.exists(rel)
         checks.append(
             {
                 "name": f"pipeline:workflow:{rel}",
@@ -198,9 +237,8 @@ def _check_pipeline_automation(
 
     dep_cfg = pipeline_cfg.get("required_job_dependencies") or {}
     for rel_file, spec in dep_cfg.items():
-        path = repo_root / rel_file
         job_name = str(spec.get("job", ""))
-        if not path.exists():
+        if not reader.exists(rel_file):
             checks.append(
                 {
                     "name": f"pipeline:deps:{rel_file}:{job_name}",
@@ -212,7 +250,7 @@ def _check_pipeline_automation(
             total += 1
             continue
 
-        payload = _load_yaml(path)
+        payload = reader.yaml(rel_file)
         jobs = payload.get("jobs") or {}
         job_payload = jobs.get(job_name)
         if not isinstance(job_payload, dict):
@@ -266,8 +304,7 @@ def _check_pipeline_automation(
 
     pattern_cfg = pipeline_cfg.get("required_patterns") or {}
     for rel_file, patterns in pattern_cfg.items():
-        path = repo_root / rel_file
-        text = path.read_text(encoding="utf-8") if path.exists() else ""
+        text = reader.text(rel_file)
         for pattern in patterns or []:
             ok = pattern in text
             checks.append(
@@ -285,14 +322,14 @@ def _check_pipeline_automation(
 
 
 def _check_qa_controls(
-    repo_root: Path, qa_cfg: dict[str, Any]
+    reader: RepoReader, qa_cfg: dict[str, Any]
 ) -> tuple[float, list[dict[str, Any]]]:
     checks: list[dict[str, Any]] = []
     total = 0
     passed = 0
 
     for rel in qa_cfg.get("required_test_targets") or []:
-        exists = (repo_root / rel).exists()
+        exists = reader.exists(rel)
         checks.append(
             {
                 "name": f"qa:test:{rel}",
@@ -305,7 +342,7 @@ def _check_qa_controls(
         passed += int(exists)
 
     for rel in qa_cfg.get("required_quality_scripts") or []:
-        exists = (repo_root / rel).exists()
+        exists = reader.exists(rel)
         checks.append(
             {
                 "name": f"qa:script:{rel}",
@@ -319,7 +356,7 @@ def _check_qa_controls(
 
     min_test_files = qa_cfg.get("min_test_files")
     if isinstance(min_test_files, int) and min_test_files >= 0:
-        observed = len(list((repo_root / "tests").rglob("test_*.py")))
+        observed = len(list((reader.root / "tests").rglob("test_*.py")))
         ok = observed >= min_test_files
         checks.append(
             {
@@ -336,7 +373,7 @@ def _check_qa_controls(
 
 
 def _check_ethical_integrity(
-    repo_root: Path, ethics_cfg: dict[str, Any]
+    reader: RepoReader, ethics_cfg: dict[str, Any]
 ) -> tuple[float, list[dict[str, Any]]]:
     if not ethics_cfg:
         return 1.0, []
@@ -351,19 +388,19 @@ def _check_ethical_integrity(
         return 1.0, []
 
     rel_source = str(rel_source_raw or "core/integration/constants.py")
-    source_path = repo_root / rel_source
-    text = source_path.read_text(encoding="utf-8") if source_path.exists() else ""
+    source_exists = reader.exists(rel_source)
+    text = reader.text(rel_source)
 
     checks.append(
         {
             "name": f"ethics:source:{rel_source}",
-            "passed": source_path.exists(),
+            "passed": source_exists,
             "expected": "exists",
-            "actual": "exists" if source_path.exists() else "missing",
+            "actual": "exists" if source_exists else "missing",
         }
     )
     total += 1
-    passed += int(source_path.exists())
+    passed += int(source_exists)
 
     for invariant in required_invariants:
         ok = invariant in text
@@ -436,6 +473,97 @@ def _build_optimization_roadmap(
         )
     roadmap.sort(key=lambda item: priority_order.get(item["priority"], 99))
     return roadmap
+
+
+def _normalize_weights(raw_weights: dict[str, Any]) -> tuple[dict[str, float], list[str]]:
+    parsed: dict[str, float] = {}
+    non_numeric: list[str] = []
+    for key, value in raw_weights.items():
+        try:
+            parsed[key] = float(value)
+        except (TypeError, ValueError):
+            non_numeric.append(str(key))
+    return parsed, non_numeric
+
+
+def _check_config_integrity(
+    pmbok_domains: list[Any],
+    min_score_value: Any,
+    parsed_weights: dict[str, float],
+    non_numeric_weights: list[str],
+) -> tuple[float, list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    passed = 0
+    total = 0
+
+    pmbok_ok = len(pmbok_domains) > 0
+    checks.append(
+        {
+            "name": "config:pmbok_domains_present",
+            "passed": pmbok_ok,
+            "expected": "non-empty",
+            "actual": len(pmbok_domains),
+        }
+    )
+    passed += int(pmbok_ok)
+    total += 1
+
+    min_score_ok = False
+    min_score_actual: float | str
+    try:
+        min_score_actual = float(min_score_value)
+        min_score_ok = 0.0 <= min_score_actual <= 1.0
+    except (TypeError, ValueError):
+        min_score_actual = "invalid"
+    checks.append(
+        {
+            "name": "config:min_score_range",
+            "passed": min_score_ok,
+            "expected": "[0.0, 1.0]",
+            "actual": min_score_actual,
+        }
+    )
+    passed += int(min_score_ok)
+    total += 1
+
+    non_numeric_ok = len(non_numeric_weights) == 0
+    checks.append(
+        {
+            "name": "config:weights_numeric",
+            "passed": non_numeric_ok,
+            "expected": "all numeric",
+            "actual": "all_numeric" if non_numeric_ok else non_numeric_weights,
+        }
+    )
+    passed += int(non_numeric_ok)
+    total += 1
+
+    non_negative_ok = all(v >= 0.0 for v in parsed_weights.values())
+    checks.append(
+        {
+            "name": "config:weights_non_negative",
+            "passed": non_negative_ok,
+            "expected": ">= 0.0",
+            "actual": parsed_weights,
+        }
+    )
+    passed += int(non_negative_ok)
+    total += 1
+
+    weights_total = sum(parsed_weights.values())
+    weights_sum_ok = isclose(weights_total, 1.0, abs_tol=1e-6)
+    checks.append(
+        {
+            "name": "config:weights_sum",
+            "passed": weights_sum_ok,
+            "expected": 1.0,
+            "actual": round(weights_total, 6),
+        }
+    )
+    passed += int(weights_sum_ok)
+    total += 1
+
+    return (passed / total) if total else 1.0, checks
 
 
 def _build_snr(total_checks: int, failed_checks: int) -> dict[str, Any]:
@@ -529,37 +657,46 @@ def _derive_autonomous_next_step(
 
 
 def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
+    reader = RepoReader(repo_root)
     checks_cfg = cfg.get("checks") or {}
     scoring_cfg = cfg.get("scoring") or {}
-    weights = scoring_cfg.get("weights") or {}
+    raw_weights = scoring_cfg.get("weights") or {}
+    parsed_weights, non_numeric_weights = _normalize_weights(raw_weights)
+    pmbok_domains = cfg.get("pmbok_domains") or []
 
     wf_score, wf_checks = _check_files(
-        repo_root, (checks_cfg.get("files") or {}).get("workflows") or []
+        reader, (checks_cfg.get("files") or {}).get("workflows") or []
     )
     script_score, script_checks = _check_files(
-        repo_root, (checks_cfg.get("files") or {}).get("scripts") or []
+        reader, (checks_cfg.get("files") or {}).get("scripts") or []
     )
     doc_score, doc_checks = _check_files(
-        repo_root, (checks_cfg.get("files") or {}).get("docs") or []
+        reader, (checks_cfg.get("files") or {}).get("docs") or []
     )
     file_score = (wf_score + script_score + doc_score) / 3.0
 
-    job_score, job_checks = _check_jobs(repo_root, checks_cfg.get("jobs") or {})
+    job_score, job_checks = _check_jobs(reader, checks_cfg.get("jobs") or {})
     readme_score, readme_checks = _check_readme_patterns(
-        repo_root, (checks_cfg.get("readme") or {}).get("required_patterns") or []
+        reader, (checks_cfg.get("readme") or {}).get("required_patterns") or []
     )
     threshold_score, threshold_checks = _check_phase65_thresholds(
-        repo_root, checks_cfg.get("phase65_thresholds") or {}
+        reader, checks_cfg.get("phase65_thresholds") or {}
     )
     pmbok_score, pmbok_checks = _check_pmbok_artifacts(
-        repo_root, checks_cfg.get("pmbok_artifacts") or {}
+        reader, checks_cfg.get("pmbok_artifacts") or {}
     )
     pipeline_score, pipeline_checks = _check_pipeline_automation(
-        repo_root, checks_cfg.get("pipeline_automation") or {}
+        reader, checks_cfg.get("pipeline_automation") or {}
     )
-    qa_score, qa_checks = _check_qa_controls(repo_root, checks_cfg.get("qa") or {})
+    qa_score, qa_checks = _check_qa_controls(reader, checks_cfg.get("qa") or {})
     ethics_score, ethics_checks = _check_ethical_integrity(
-        repo_root, checks_cfg.get("ethical_integrity") or {}
+        reader, checks_cfg.get("ethical_integrity") or {}
+    )
+    config_score, config_checks = _check_config_integrity(
+        pmbok_domains=pmbok_domains,
+        min_score_value=scoring_cfg.get("min_score"),
+        parsed_weights=parsed_weights,
+        non_numeric_weights=non_numeric_weights,
     )
 
     sections = {
@@ -574,13 +711,19 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "pipeline": {"score": round(pipeline_score, 4), "checks": pipeline_checks},
         "qa": {"score": round(qa_score, 4), "checks": qa_checks},
         "ethics": {"score": round(ethics_score, 4), "checks": ethics_checks},
+        "config": {"score": round(config_score, 4), "checks": config_checks},
     }
 
     weighted_score = 0.0
     for section_name, section_payload in sections.items():
-        weighted_score += section_payload["score"] * float(weights.get(section_name, 0.0))
-    min_score = float(scoring_cfg.get("min_score", 0.0))
-    weights_total = round(sum(float(v) for v in weights.values()), 4)
+        weighted_score += section_payload["score"] * float(
+            parsed_weights.get(section_name, 0.0)
+        )
+    try:
+        min_score = float(scoring_cfg.get("min_score", 0.0))
+    except (TypeError, ValueError):
+        min_score = 1.0
+    weights_total = round(sum(parsed_weights.values()), 4)
 
     all_checks: list[dict[str, Any]] = []
     for section in sections.values():
@@ -619,7 +762,7 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "sections": sections,
         "failed_checks": failed_checks,
         "optimization_roadmap": optimization_roadmap,
-        "pmbok_domains": cfg.get("pmbok_domains") or [],
+        "pmbok_domains": pmbok_domains,
     }
 
 
