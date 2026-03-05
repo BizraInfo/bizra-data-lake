@@ -214,9 +214,7 @@ async def run_repl() -> None:
     best_backend = await get_local_first_backend()
     if best_backend == LocalBackend.NONE:
         print("WARNING: No local inference backends detected.")
-        print(
-            "Configure LM Studio, Ollama (localhost:11434), or llama.cpp"
-        )
+        print("Configure LM Studio, Ollama (localhost:11434), or llama.cpp")
     else:
         print(f"Local-first mode: Using {best_backend.value}")
 
