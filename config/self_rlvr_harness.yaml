@@ -1,0 +1,13 @@
+ihsan_threshold: 0.95
+snr_threshold: 0.90
+reward_threshold: 0.75
+compile_streak: 3
+ema_alpha: 0.30
+convergence_target: 0.85
+convergence_variance_max: 0.010
+min_temperature: 0.10
+max_temperature: 2.00
+cool_rate: 0.08
+heat_rate: 0.06
+variance_window: 5
+
