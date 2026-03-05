@@ -16,7 +16,9 @@ import sys
 
 import httpx
 
-LM_STUDIO_URL = "http://192.168.56.1:1234/v1"
+from core.integration.constants import LMSTUDIO_URL
+
+LM_STUDIO_URL = f"{LMSTUDIO_URL}/v1"
 
 MODELS = {
     "reasoning": "deepseek/deepseek-r1-0528-qwen3-8b",

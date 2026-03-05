@@ -297,7 +297,41 @@ MAX_RETRY_ATTEMPTS = 3
 
 # Primary LLM backend (env override: LMSTUDIO_URL or LMSTUDIO_HOST + LMSTUDIO_PORT)
 # Single source of truth — all core/ modules must import these instead of hardcoding.
-LMSTUDIO_HOST: str = os.getenv("LMSTUDIO_HOST", "172.22.48.1")
+#
+# WSL2 gateway IP changes between reboots — auto-detect unless env override is set.
+# Standing on Giants: Boyd (OODA observe — sense the real environment, not a cached one)
+
+
+def _detect_wsl_gateway() -> str:
+    """Auto-detect the Windows host IP from WSL2.
+
+    Priority: LMSTUDIO_HOST env var > `ip route` gateway > hardcoded fallback.
+    This runs ONCE at import time. Fast (~2ms subprocess).
+    """
+    env_host = os.getenv("LMSTUDIO_HOST")
+    if env_host:
+        return env_host
+
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["ip", "route", "show", "default"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        if result.returncode == 0 and "via" in result.stdout:
+            # "default via 172.22.48.1 dev eth0" → extract the IP
+            return result.stdout.split("via")[1].strip().split()[0]
+    except Exception:
+        pass
+
+    # Fallback: most recent known WSL gateway
+    return "172.22.48.1"
+
+
+LMSTUDIO_HOST: str = _detect_wsl_gateway()
 LMSTUDIO_PORT: str = os.getenv("LMSTUDIO_PORT", "1234")
 LMSTUDIO_URL: str = os.getenv("LMSTUDIO_URL", f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}")
 

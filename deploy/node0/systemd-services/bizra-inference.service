@@ -9,7 +9,8 @@
 # Constitutional Constraint: Ihsan >= 0.95
 #
 # Architecture:
-#   1. LM Studio (192.168.56.1:1234) - PRIMARY (RTX 4090 optimized)
+#   1. LM Studio (WSL2 gateway:1234) - PRIMARY (RTX 4090 optimized)
+#      Default gateway auto-detected; override via /etc/bizra/lmstudio.env
 #   2. Ollama (localhost:11434) - FALLBACK
 #   3. DENY - fail-closed on complete failure
 #
@@ -55,12 +56,14 @@ Environment="NVIDIA_VISIBLE_DEVICES=all"
 
 # Load from environment file
 EnvironmentFile=-/etc/bizra/inference.env
+# Override LM Studio host per-machine (set LMSTUDIO_HOST= and INFERENCE_PRIMARY=)
+EnvironmentFile=-/etc/bizra/lmstudio.env
 
 # Pre-start: Verify GPU is available
 ExecStartPre=/bin/bash -c 'nvidia-smi > /dev/null 2>&1 || (echo "GPU not available" && exit 1)'
 
-# Pre-start: Check LM Studio availability (external, non-blocking)
-ExecStartPre=/bin/bash -c 'curl -sf http://192.168.56.1:1234/v1/models > /dev/null 2>&1 && echo "LM Studio: AVAILABLE" || echo "LM Studio: UNAVAILABLE (will use Ollama)"'
+# Pre-start: Auto-detect LM Studio host if not set, then check availability
+ExecStartPre=/bin/bash -c 'LMSTUDIO_HOST="${LMSTUDIO_HOST:-$(ip route show default 2>/dev/null | awk "/via/ {print \\$3}")}" ; curl -sf "http://${LMSTUDIO_HOST:-127.0.0.1}:1234/v1/models" > /dev/null 2>&1 && echo "LM Studio ($LMSTUDIO_HOST): AVAILABLE" || echo "LM Studio ($LMSTUDIO_HOST): UNAVAILABLE (will use Ollama)"'
 
 # Start Ollama service (primary managed backend)
 ExecStart=/usr/local/bin/ollama serve

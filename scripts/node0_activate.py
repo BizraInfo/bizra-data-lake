@@ -850,15 +850,19 @@ class Node0ProactiveKernel:
     # History cap — prevents unbounded memory growth during long-running sessions
     _MAX_HISTORY = 500
 
-    # Resolve from env → constants.py → default (WSL gateway)
-    _LM_STUDIO_URL = (
-        os.getenv(
-            "LM_STUDIO_URL",
-            f"http://{os.getenv('LMSTUDIO_HOST', '172.22.48.1')}:{os.getenv('LMSTUDIO_PORT', '1234')}",
-        )
-        .rstrip("/")
-        .replace("/v1", "")
-    )  # Normalize to base URL without /v1 suffix
+    # Resolve from env → constants.py (auto-detects WSL gateway) → Ollama fallback
+    # Standing on Giants: Boyd (OODA observe — sense the real network, not a cached IP)
+    @staticmethod
+    def _resolve_lm_studio_url() -> str:
+        """Build LM Studio base URL from env or auto-detected gateway."""
+        url = os.getenv("LM_STUDIO_URL")
+        if not url:
+            from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
+
+            url = f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}"
+        return url.rstrip("/").replace("/v1", "")
+
+    _LM_STUDIO_URL: str = ""  # Resolved lazily in __init__
     _OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 
     # Mapping from LM Studio model names → Ollama equivalents
@@ -882,6 +886,8 @@ class Node0ProactiveKernel:
         self._yaml_config = _load_proactive_config()
         self.config = {**self._yaml_config, **(config or {})}
         self.token = _resolve_lm_token()
+        # Resolve LM Studio URL at runtime (auto-detects WSL gateway IP)
+        self._LM_STUDIO_URL = self._resolve_lm_studio_url()
         self.base_url = self._LM_STUDIO_URL
         self._backend_name = "lm_studio"  # or "ollama"
 
@@ -1951,7 +1957,7 @@ class Node0Orchestrator:
         try:
             async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
                 resp = await client.get(
-                    f"{Node0ProactiveKernel._LM_STUDIO_URL}/v1/models"
+                    f"{self._LM_STUDIO_URL}/v1/models"
                 )
                 if resp.status_code == 200:
                     models = resp.json().get("data", [])
@@ -2087,7 +2093,7 @@ async def cmd_status(args):
     # Check LM Studio — prefer native /api/v1/models (has loaded_instances),
     # fall back to OpenAI-compat /v1/models if native endpoint unavailable.
     try:
-        base = Node0ProactiveKernel._LM_STUDIO_URL.rstrip("/v1").rstrip("/")
+        base = Node0ProactiveKernel._resolve_lm_studio_url()
         async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
             # Try native API first (accurate loaded_instances field)
             resp = await client.get(f"{base}/api/v1/models")
@@ -2115,6 +2121,20 @@ async def cmd_status(args):
                     print(f"  LM Studio:    ✗ Error {resp.status_code}")
     except Exception as e:
         print(f"  LM Studio:    ✗ {e}")
+
+    # Auto-load always_loaded models if none are in VRAM
+    try:
+        from scripts.ensure_models_loaded import ensure_fleet_loaded, get_loaded_models
+
+        base = Node0ProactiveKernel._resolve_lm_studio_url()
+        _, currently_loaded = await get_loaded_models(base, token)
+        if not currently_loaded:
+            print("\n  ⚡ No models in VRAM — auto-loading fleet...")
+            fleet = await ensure_fleet_loaded()
+            ok = sum(1 for v in fleet.values() if v)
+            print(f"  Fleet:        {ok}/{len(fleet)} models loaded into VRAM")
+    except Exception as e:
+        logger.debug("Auto-load check: %s", e)
 
     print()
     print(f"  Token:        {'✓ Set' if token else '✗ Not set'}")

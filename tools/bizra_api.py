@@ -179,7 +179,7 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
 
 ## Backends
 
-- **LM Studio**: Primary backend at http://192.168.56.1:1234
+- **LM Studio**: Primary backend (auto-detected WSL gateway)
 - **Ollama**: Fallback backend at http://localhost:11434
 
 ## SNR Thresholds

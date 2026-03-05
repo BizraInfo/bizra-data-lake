@@ -281,7 +281,7 @@ integrations:
   # LLM Backend
   llm:
     primary: "lmstudio"
-    host: "192.168.56.1:1234"
+    host: "172.22.48.1:1234"  # WSL gateway — update if gateway IP changes
     models:
       reasoning: "deepseek-r1-distill-qwen-32b"
       agentic: "qwen2.5-32b-instruct"

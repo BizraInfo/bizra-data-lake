@@ -59,7 +59,10 @@ readonly DASHBOARD_ENDPOINT="http://localhost:5173/"
 readonly SOVEREIGN_ENDPOINT="http://localhost:8080/v1/health"
 readonly BRIDGE_HOST="127.0.0.1"
 readonly BRIDGE_PORT=9742
-readonly LMSTUDIO_ENDPOINT="http://192.168.56.1:1234/v1/models"
+# Auto-detect WSL gateway IP (LM Studio runs on Windows host)
+LMSTUDIO_HOST="${LMSTUDIO_HOST:-$(ip route show default 2>/dev/null | awk '/via/ {print $3}')}"
+readonly LMSTUDIO_HOST="${LMSTUDIO_HOST:-127.0.0.1}"
+readonly LMSTUDIO_ENDPOINT="http://${LMSTUDIO_HOST}:1234/v1/models"
 readonly OLLAMA_ENDPOINT="http://localhost:11434/api/tags"
 readonly POSTGRES_HOST="localhost"
 readonly POSTGRES_PORT=5432
@@ -264,10 +267,10 @@ check_network() {
     log INFO "Checking network..."
 
     # Check if we can reach LM Studio host
-    if ping -c 1 -W 2 192.168.56.1 &>/dev/null; then
-        log DEBUG "LM Studio host reachable"
+    if ping -c 1 -W 2 "$LMSTUDIO_HOST" &>/dev/null; then
+        log DEBUG "LM Studio host ($LMSTUDIO_HOST) reachable"
     else
-        log WARN "LM Studio host (192.168.56.1) not reachable"
+        log WARN "LM Studio host ($LMSTUDIO_HOST) not reachable"
     fi
 
     # Check localhost ports are available
@@ -574,7 +577,7 @@ print_status() {
     echo "  Dashboard:    http://localhost:5173"
     echo "  Sovereign:    http://localhost:8080"
     echo "  Bridge:       tcp://$BRIDGE_HOST:$BRIDGE_PORT"
-    echo "  LM Studio:    http://192.168.56.1:1234"
+    echo "  LM Studio:    http://${LMSTUDIO_HOST}:1234"
     echo "  Ollama:       http://localhost:11434"
     echo "  Metrics:      http://localhost:9090"
     echo ""

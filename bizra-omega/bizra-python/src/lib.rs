@@ -512,7 +512,7 @@ impl PyInferenceGateway {
     ///
     /// Args:
     ///     tier: "edge", "local", or "pool"
-    ///     host: LM Studio host (default: env LMSTUDIO_HOST or "192.168.56.1")
+    ///     host: LM Studio host (default: env LMSTUDIO_HOST or WSL gateway)
     ///     port: LM Studio port (default: env LMSTUDIO_PORT or 1234)
     fn register_lmstudio(&self, tier: &str, host: Option<&str>, port: Option<u16>) -> PyResult<()> {
         let model_tier = parse_tier(tier)?;

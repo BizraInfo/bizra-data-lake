@@ -27,7 +27,7 @@ def main():
     parser = argparse.ArgumentParser(description="BIZRA Local Runner")
     parser.add_argument("--token", help="LM Studio API token")
     parser.add_argument(
-        "--url", default="http://192.168.56.1:1234", help="LM Studio URL"
+        "--url", default=None, help="LM Studio URL (auto-detected if not set)"
     )
     parser.add_argument("--model", default="liquid/lfm2.5-1.2b", help="Model name")
 
@@ -48,6 +48,9 @@ def main():
         os.environ["LM_API_TOKEN"] = args.token
     if args.url:
         os.environ["LM_STUDIO_URL"] = args.url
+    elif "LM_STUDIO_URL" not in os.environ:
+        from core.integration.constants import LMSTUDIO_URL
+        os.environ["LM_STUDIO_URL"] = LMSTUDIO_URL
     if args.model:
         os.environ["BIZRA_MODEL"] = args.model
 
@@ -80,7 +83,9 @@ async def test_connection(args):
     """Test LM Studio connection."""
     import httpx
 
-    url = os.getenv("LM_STUDIO_URL", "http://192.168.56.1:1234")
+    from core.integration.constants import LMSTUDIO_URL
+
+    url = os.getenv("LM_STUDIO_URL", LMSTUDIO_URL)
     token = os.getenv("LM_API_TOKEN", "")
 
     print(f"Testing connection to: {url}")

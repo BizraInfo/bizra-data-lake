@@ -285,10 +285,26 @@ class AgenticCleaner:
     4. Executes the function on the full dataset in a restricted scope.
     """
 
-    def __init__(self, model_url: str = "http://192.168.56.1:1234/v1/chat/completions"):
+    def __init__(self, model_url: str = ""):
         """
         Initialize the cleaner. Defaults to local LM Studio/Ollama endpoint standard in BIZRA.
         """
+        if not model_url:
+            _lm_host = os.environ.get("LMSTUDIO_HOST", os.environ.get("LM_STUDIO_HOST", ""))
+            if not _lm_host:
+                try:
+                    with open("/proc/net/route", "r") as f:
+                        for line in f:
+                            fields = line.strip().split()
+                            if len(fields) >= 3 and fields[1] == "00000000":
+                                _lm_host = ".".join(str(int(fields[2][i:i+2], 16)) for i in (6, 4, 2, 0))
+                                break
+                except (FileNotFoundError, ValueError):
+                    pass
+                if not _lm_host:
+                    _lm_host = "127.0.0.1"
+            _lm_port = os.environ.get("LMSTUDIO_PORT", os.environ.get("LM_STUDIO_PORT", "1234"))
+            model_url = f"http://{_lm_host}:{_lm_port}/v1/chat/completions"
         self.model_url = model_url
         self.model_name = "liquid/lfm2.5-1.2b"  # Efficient model for code generation
         self.api_key = "lm-studio"

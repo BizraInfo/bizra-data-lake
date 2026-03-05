@@ -46,10 +46,12 @@ DEFAULT_LLM_MODEL_OLLAMA = "llama3.1:8b"
 DEFAULT_LLM_MODEL_LMSTUDIO = "liquid/lfm2.5-1.2b"  # Fast model for routine tasks
 DEFAULT_EMBED_MODEL = "nomic-embed-text:latest"
 
+from core.integration.constants import LMSTUDIO_URL as _LMSTUDIO_DEFAULT
+
 # Inference endpoints
 OLLAMA_INTERNAL_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 LMSTUDIO_URL = os.getenv(
-    "LMSTUDIO_URL", "http://192.168.56.1:1234"
+    "LMSTUDIO_URL", _LMSTUDIO_DEFAULT
 )  # LM Studio on host
 INFERENCE_TIMEOUT_SECONDS = 30
 

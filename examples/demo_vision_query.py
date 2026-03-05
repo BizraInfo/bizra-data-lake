@@ -9,8 +9,10 @@ import base64
 import json
 from pathlib import Path
 
+from core.integration.constants import LMSTUDIO_URL
+
 # LM Studio endpoint
-LM_STUDIO_URL = "http://192.168.56.1:1234/v1/chat/completions"
+LM_STUDIO_URL = LMSTUDIO_URL + "/v1/chat/completions"
 VISION_MODEL = "qwen/qwen3-vl-8b"
 
 def test_vision_text_query():
@@ -130,7 +132,7 @@ def check_available_models():
     
     try:
         with httpx.Client(timeout=30.0) as client:
-            response = client.get("http://192.168.56.1:1234/v1/models")
+            response = client.get(LMSTUDIO_URL + "/v1/models")
             response.raise_for_status()
             
             models = response.json().get("data", [])

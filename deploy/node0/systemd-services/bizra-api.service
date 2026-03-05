@@ -54,8 +54,13 @@ Environment="DATABASE_URL=postgres://bizra:${POSTGRES_PASSWORD}@localhost:5432/b
 Environment="REDIS_URL=redis://:${REDIS_PASSWORD}@127.0.0.1:6379"
 
 # Inference backends (fail-closed)
+# NOTE: INFERENCE_PRIMARY default assumes WSL2 gateway IP.
+# Override via /etc/bizra/secrets.env or /etc/bizra/lmstudio.env
 Environment="INFERENCE_PRIMARY=http://192.168.56.1:1234"
 Environment="INFERENCE_FALLBACK=http://localhost:11434"
+
+# Override LM Studio host per-machine
+EnvironmentFile=-/etc/bizra/lmstudio.env
 
 # Quality thresholds
 Environment="IHSAN_THRESHOLD=0.95"

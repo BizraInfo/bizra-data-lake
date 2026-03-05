@@ -5,7 +5,7 @@ BIZRA INFERENCE GATEWAY (PR1 IMPLEMENTATION)
 Embedded LLM inference with fail-closed semantics and circuit breaker resilience.
 
 Priority order (v2.2.1 - LM Studio as primary):
-1. LM Studio v1 (192.168.56.1:1234) - RTX 4090 optimized, PRIMARY
+1. LM Studio v1 (auto-detected WSL gateway:1234) - RTX 4090 optimized, PRIMARY
 2. Ollama (localhost:11434) - fallback
 3. llama.cpp (embedded) - offline/edge
 4. DENY (fail-closed)
@@ -153,7 +153,7 @@ class InferenceGateway:
           2. DENY (fail-closed)
 
         - When require_local=False (fallback-enabled mode):
-          1. LM Studio v1 (192.168.56.1:1234) - PRIMARY, RTX 4090 optimized
+          1. LM Studio v1 (WSL gateway, auto-detected) - PRIMARY, RTX 4090 optimized
           2. Configured fallbacks (ollama, lmstudio) in order
           3. llama.cpp (embedded) - offline/edge sovereign
           4. DENY (fail-closed)

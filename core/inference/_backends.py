@@ -556,7 +556,7 @@ class LMStudioBackend(InferenceBackendBase):
     """
     LM Studio v1 API backend - PRIMARY backend for BIZRA inference.
 
-    Connects to LM Studio at 192.168.56.1:1234 with native /api/v1/chat
+    Connects to LM Studio at WSL gateway (auto-detected) with native /api/v1/chat
     endpoint supporting stateful chats and MCP integration.
 
     Circuit breaker protection prevents cascading failures when LM Studio

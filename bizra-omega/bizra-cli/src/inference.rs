@@ -28,7 +28,7 @@ impl Default for LMStudioConfig {
             .or_else(|| env::var("LMSTUDIO_TOKEN").ok());
 
         Self {
-            host: "192.168.56.1".to_string(),
+            host: env::var("LMSTUDIO_HOST").unwrap_or_else(|_| "172.22.48.1".to_string()),
             port: 1234,
             timeout_secs: 120,
             api_key,
@@ -408,9 +408,11 @@ mod tests {
     #[test]
     fn test_config_default() {
         let config = LMStudioConfig::default();
-        assert_eq!(config.host, "192.168.56.1");
+        // Host comes from LMSTUDIO_HOST env or defaults to WSL gateway
+        assert!(!config.host.is_empty());
         assert_eq!(config.port, 1234);
-        assert_eq!(config.base_url(), "http://192.168.56.1:1234");
+        assert!(config.base_url().starts_with("http://"));
+        assert!(config.base_url().ends_with(":1234"));
     }
 
     #[test]

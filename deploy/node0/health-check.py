@@ -56,6 +56,23 @@ IHSAN_THRESHOLD = 0.95
 IHSAN_DEGRADED_THRESHOLD = 0.80
 SNR_THRESHOLD = 0.85
 
+# Auto-detect WSL2 gateway IP for LM Studio (runs on Windows host)
+def _detect_wsl_gateway() -> str:
+    """Detect WSL2 default gateway IP, falling back to 127.0.0.1."""
+    try:
+        result = subprocess.run(
+            ["ip", "route", "show", "default"],
+            capture_output=True, text=True, timeout=3,
+        )
+        for part in result.stdout.split():
+            if part.count(".") == 3:  # first dotted-quad after 'via'
+                return part
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        pass
+    return os.environ.get("LMSTUDIO_HOST", "127.0.0.1")
+
+LMSTUDIO_HOST = os.environ.get("LMSTUDIO_HOST") or _detect_wsl_gateway()
+
 # Service endpoints
 SERVICES = {
     "api_server": {
@@ -78,7 +95,7 @@ SERVICES = {
     },
     "lmstudio": {
         "name": "LM Studio",
-        "endpoint": "http://192.168.56.1:1234/v1/models",
+        "endpoint": f"http://{LMSTUDIO_HOST}:1234/v1/models",
         "critical": False,
         "timeout": 5,
     },

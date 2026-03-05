@@ -98,7 +98,7 @@ Python (core/)                          Rust (bizra-omega/ — 22 crates)
 - ADL Gini (justice): <= 0.35 hard gate
 
 **Inference Tiers** — Local-first with tiered fallback, configured in `bizra_config.py`:
-1. LM Studio at `192.168.56.1:1234` (primary)
+1. LM Studio at WSL gateway:1234 (auto-detected, env: LMSTUDIO_HOST)
 2. Ollama at `localhost:11434` (fallback)
 3. Cloud API (emergency fallback)
 
