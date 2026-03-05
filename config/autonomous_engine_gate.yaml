@@ -1,0 +1,52 @@
+prompt_config: "config/precision_prompt_engine.yaml"
+rlvr_config: "config/self_rlvr_harness.yaml"
+
+prompt_intent: >
+  Build a production-grade autonomous execution policy that maximizes
+  signal-to-noise ratio, preserves Ihsan constraints, and yields an
+  auditable release decision with rollback safety.
+
+prompt_context:
+  scope: "architecture+devops+qa+governance"
+  evidence:
+    - "phase65_gate_report.json"
+    - "elite_fullstack_blueprint_report.json"
+    - "self_rlvr_report.json"
+  constraints:
+    - "ihsan>=0.95"
+    - "snr>=0.90"
+    - "fail-closed-on-unsafe"
+    - "hash-chain-auditability"
+  output_contract:
+    - "actionable plan"
+    - "risk map"
+    - "rollback protocol"
+
+symbolic_neural: true
+creativity: 0.62
+rigor: 0.90
+
+episodes_profile: "high_signal"
+episodes_count: 6
+
+score_weights:
+  prompt_snr: 0.35
+  rlvr_snr: 0.30
+  qualified_rate: 0.20
+  compiled: 0.10
+  chain_valid: 0.05
+
+min_score: 0.78
+min_prompt_snr: 0.60
+min_rlvr_snr: 0.55
+min_qualified_rate: 0.60
+require_compiled: true
+require_chain_valid: true
+
+giants_protocol:
+  - "Shannon:SNR maximization"
+  - "Boyd:OODA fast loops"
+  - "Lamport:deterministic receipt ordering"
+  - "Deming:PDCA quality ratchet"
+  - "Al-Ghazali:Ihsan as hard floor"
+

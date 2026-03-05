@@ -30,6 +30,8 @@ checks:
       - "scripts/ops/phase65_blueprint_gate.py"
       - "scripts/ops/phase65_kpi_pack.py"
       - "scripts/ops/phase65_alpha_launch_packet.py"
+      - "scripts/ops/autonomous_engine_gate.py"
+      - "config/autonomous_engine_gate.yaml"
     docs:
       - "docs/specs/phase_65_lifecycle_protocol/phase_65_09_masterpiece_blueprint.md"
       - "ROADMAP.md"
@@ -91,11 +93,15 @@ checks:
         - "evidence-accumulate"
         - "phase65-masterpiece-gate"
         - "phase56-security-gate"
+        - "autonomous_engine_report.json"
+        - "autonomous_gate_passed"
   qa:
     required_test_targets:
       - "tests/scripts/test_phase65_blueprint_gate.py"
       - "tests/scripts/test_phase65_masterpiece_runner.py"
       - "tests/scripts/test_elite_fullstack_blueprint_audit.py"
+      - "tests/scripts/test_autonomous_engine_gate.py"
+      - "tests/scripts/test_self_rlvr_harness.py"
     required_quality_scripts:
       - "scripts/ci_quality_gate.py"
       - "scripts/ci_docs_quality.py"

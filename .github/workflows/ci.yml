@@ -958,6 +958,13 @@ jobs:
       blueprint_score: ${{ steps.blueprint_outputs.outputs.blueprint_score }}
       blueprint_weights_total: ${{ steps.blueprint_outputs.outputs.blueprint_weights_total }}
       blueprint_failed_checks: ${{ steps.blueprint_outputs.outputs.blueprint_failed_checks }}
+      autonomous_gate_passed: ${{ steps.autonomous_outputs.outputs.autonomous_gate_passed }}
+      autonomous_score: ${{ steps.autonomous_outputs.outputs.autonomous_score }}
+      autonomous_prompt_snr: ${{ steps.autonomous_outputs.outputs.autonomous_prompt_snr }}
+      autonomous_rlvr_snr: ${{ steps.autonomous_outputs.outputs.autonomous_rlvr_snr }}
+      autonomous_qualified_rate: ${{ steps.autonomous_outputs.outputs.autonomous_qualified_rate }}
+      autonomous_compiled: ${{ steps.autonomous_outputs.outputs.autonomous_compiled }}
+      autonomous_chain_valid: ${{ steps.autonomous_outputs.outputs.autonomous_chain_valid }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -1047,6 +1054,16 @@ jobs:
               fh.write(f"blueprint_failed_checks={len(report.get('failed_checks') or [])}\n")
           PY
 
+      - name: Run autonomous SNR/GoT engine gate
+        id: autonomous_outputs
+        run: |
+          python scripts/ops/autonomous_engine_gate.py \
+            --config config/autonomous_engine_gate.yaml \
+            --report /tmp/phase65/autonomous_engine_report.json \
+            --github-output "$GITHUB_OUTPUT"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Run self-harness quality scan
         run: |
           python scripts/self_harness_run.py \
@@ -1068,6 +1085,7 @@ jobs:
             /tmp/phase65/phase65_alpha_launch_packet.json
             /tmp/phase65/phase65_alpha_launch_packet.md
             /tmp/phase65/elite_fullstack_blueprint_report.json
+            /tmp/phase65/autonomous_engine_report.json
             /tmp/phase65/self_harness_report.json
           retention-days: 30
 
@@ -1331,6 +1349,13 @@ jobs:
               "phase65_launch_decision": "${{ needs.phase65-masterpiece-gate.outputs.launch_decision }}",
               "phase65_launch_ready": "${{ needs.phase65-masterpiece-gate.outputs.launch_ready }}",
               "phase65_packet_signed": "${{ needs.phase65-masterpiece-gate.outputs.packet_signed }}",
+              "autonomous_gate_passed": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_gate_passed }}",
+              "autonomous_score": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_score }}",
+              "autonomous_prompt_snr": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_prompt_snr }}",
+              "autonomous_rlvr_snr": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_rlvr_snr }}",
+              "autonomous_qualified_rate": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_qualified_rate }}",
+              "autonomous_compiled": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_compiled }}",
+              "autonomous_chain_valid": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_chain_valid }}",
               "phase56_security": "${{ needs.phase56-security-gate.result }}",
               "security_scan": "${{ needs.security-scan.result }}"
             },
@@ -1411,6 +1436,17 @@ jobs:
           echo "| Launch Decision | ${{ needs.phase65-masterpiece-gate.outputs.launch_decision }} | GO for activation |" >> $GITHUB_STEP_SUMMARY
           echo "| Launch Ready | ${{ needs.phase65-masterpiece-gate.outputs.launch_ready }} | true |" >> $GITHUB_STEP_SUMMARY
           echo "| Packet Signed | ${{ needs.phase65-masterpiece-gate.outputs.packet_signed }} | true |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Autonomous Engine Gate" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value | Target |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Gate Passed | ${{ needs.phase65-masterpiece-gate.outputs.autonomous_gate_passed }} | true |" >> $GITHUB_STEP_SUMMARY
+          echo "| Composite Score | ${{ needs.phase65-masterpiece-gate.outputs.autonomous_score }} | >= 0.78 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Prompt SNR | ${{ needs.phase65-masterpiece-gate.outputs.autonomous_prompt_snr }} | >= 0.60 |" >> $GITHUB_STEP_SUMMARY
+          echo "| RLVR SNR | ${{ needs.phase65-masterpiece-gate.outputs.autonomous_rlvr_snr }} | >= 0.55 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Qualified Rate | ${{ needs.phase65-masterpiece-gate.outputs.autonomous_qualified_rate }} | >= 0.60 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Compiled | ${{ needs.phase65-masterpiece-gate.outputs.autonomous_compiled }} | true |" >> $GITHUB_STEP_SUMMARY
+          echo "| Chain Valid | ${{ needs.phase65-masterpiece-gate.outputs.autonomous_chain_valid }} | true |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Elite Blueprint v2 Audit" >> $GITHUB_STEP_SUMMARY
           echo "| Metric | Value | Target |" >> $GITHUB_STEP_SUMMARY
