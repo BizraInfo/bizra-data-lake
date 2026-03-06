@@ -1,6 +1,6 @@
 # BIZRA Testing Guide
 
-Last updated: 2026-02-14
+Last updated: 2026-03-06
 
 This document defines the practical test strategy for local development and CI alignment.
 
