@@ -1,8 +1,10 @@
 # BIZRA Argo Rollouts Configuration
 # Progressive delivery with canary deployments
+# ADR-012: Canary is the canonical production strategy
 #
-# Standing on Giants: Argo Rollouts • Istio • Prometheus
+# Standing on Giants: Argo Rollouts | Prometheus | Chaos Mesh | Playwright
 # Requirement: Replace Deployment with Rollout for progressive delivery
+# SLO Gates: error-rate, P95, P99, SNR, Ihsan, chaos, E2E
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
@@ -10,8 +12,12 @@ metadata:
   namespace: bizra
   labels:
     app: bizra-elite
+    app.kubernetes.io/part-of: bizra-ecosystem
+  annotations:
+    bizra.io/adr: "ADR-012"
+    bizra.io/strategy: "canary"
 spec:
-  replicas: 3
+  replicas: 2
   revisionHistoryLimit: 5
   selector:
     matchLabels:
@@ -20,22 +26,79 @@ spec:
     metadata:
       labels:
         app: bizra-elite
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-        - name: elite
-          image: bizra-elite:latest
+        - name: bizra-elite
+          image: bizra-elite:v1.0.1
+          imagePullPolicy: Never
+          command: ["python", "-m", "core.sovereign", "serve", "--port", "8000"]
           ports:
             - containerPort: 8000
+              name: http
+          env:
+            - name: BIZRA_ENV
+              value: "production"
+            - name: IHSAN_THRESHOLD
+              value: "0.95"
+            - name: SNR_THRESHOLD
+              value: "0.85"
+            - name: DEPLOYMENT_TRACK
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['rollouts-pod-template-hash']
+            - name: PYTHONUNBUFFERED
+              value: "1"
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "250m"
+              memory: "256Mi"
+              cpu: "100m"
             limits:
-              memory: "2Gi"
-              cpu: "1000m"
+              memory: "1Gi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: false
+          livenessProbe:
+            httpGet:
+              path: /v1/health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /v1/health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
   strategy:
     canary:
-      # Canary steps
+      # Required: Argo Rollouts manages selector labels on these Services
+      canaryService: bizra-elite-canary
+      stableService: bizra-elite-stable
+
+      # ADR-012 canonical stages: 5 → 20 → 50 → 80 → 100
       steps:
         - setWeight: 5
         - pause: {duration: 2m}
@@ -46,41 +109,46 @@ spec:
         - setWeight: 80
         - pause: {duration: 2m}
 
-      # Traffic routing (requires service mesh or ingress controller)
+      # Traffic routing via Traefik TraefikService (K3s default ingress)
       trafficRouting:
-        nginx:
-          stableIngress: bizra-elite-stable
-          annotationPrefix: nginx.ingress.kubernetes.io
+        traefik:
+          weightedTraefikServiceName: bizra-elite-traffic
 
-      # Analysis for automatic promotion/rollback
+      # SLO analysis — starts at step 2 (20% weight)
       analysis:
         templates:
-          - templateName: bizra-quality-gate
+          - templateName: bizra-slo-gate
         startingStep: 2
         args:
           - name: service-name
             value: bizra-elite
 
-      # Anti-affinity with stable
+      # Anti-affinity: canary pods on different nodes from stable
       antiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
           weight: 100
 
-      # Maximum unavailable during rollout
       maxUnavailable: 0
       maxSurge: 1
 ---
-# Analysis Template for Quality Gate
+# ═══════════════════════════════════════════════════════════════════════════
+# SLO Analysis Template — Constitutional Quality Gate
+# 7 metrics: error-rate, P95, P99, SNR, Ihsan, chaos, E2E
+# ═══════════════════════════════════════════════════════════════════════════
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
-  name: bizra-quality-gate
+  name: bizra-slo-gate
   namespace: bizra
+  labels:
+    app.kubernetes.io/part-of: bizra-ecosystem
+  annotations:
+    bizra.io/adr: "ADR-012"
 spec:
   args:
     - name: service-name
   metrics:
-    # Error rate check
+    # ── Metric 1: Error Rate (5xx / total < 1%) ────────────────────
     - name: error-rate
       interval: 1m
       count: 5
@@ -94,8 +162,8 @@ spec:
             /
             sum(rate(http_requests_total{namespace="bizra",service="{{ args.service-name }}"}[5m]))
 
-    # Latency check (p95 < 500ms)
-    - name: latency
+    # ── Metric 2: P95 Latency (< 500ms) ───────────────────────────
+    - name: latency-p95
       interval: 1m
       count: 5
       successCondition: result[0] < 500
@@ -104,9 +172,25 @@ spec:
         prometheus:
           address: http://prometheus:9090
           query: |
-            histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="bizra",service="{{ args.service-name }}"}[5m])) by (le)) * 1000
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{namespace="bizra",service="{{ args.service-name }}"}[5m])) by (le)
+            ) * 1000
 
-    # SNR threshold check
+    # ── Metric 3: P99 Latency (< 1000ms) ──────────────────────────
+    - name: latency-p99
+      interval: 1m
+      count: 5
+      successCondition: result[0] < 1000
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://prometheus:9090
+          query: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{namespace="bizra",service="{{ args.service-name }}"}[5m])) by (le)
+            ) * 1000
+
+    # ── Metric 4: SNR Score (>= 0.85, constitutional) ─────────────
     - name: snr-score
       interval: 2m
       count: 3
@@ -118,7 +202,7 @@ spec:
           query: |
             bizra_snr_score{namespace="bizra",service="{{ args.service-name }}"}
 
-    # Ihsan threshold check (constitutional)
+    # ── Metric 5: Ihsan Score (>= 0.95, constitutional) ───────────
     - name: ihsan-score
       interval: 2m
       count: 3
@@ -129,29 +213,164 @@ spec:
           address: http://prometheus:9090
           query: |
             bizra_ihsan_score{namespace="bizra",service="{{ args.service-name }}"}
+
+    # ── Metric 6: Chaos Resilience (Kubernetes Job) ────────────────
+    - name: chaos-resilience
+      count: 1
+      failureLimit: 1
+      provider:
+        job:
+          spec:
+            backoffLimit: 1
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: chaos-runner
+                    image: ghcr.io/chaos-mesh/chaos-mesh:latest
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        set -e
+                        echo "=== BIZRA Chaos Canary Gate ==="
+                        echo "Injecting: pod-kill on 1 canary replica"
+
+                        # Apply chaos experiment
+                        kubectl apply -f /etc/chaos/pod-kill-canary.yaml
+
+                        # Wait for experiment to complete
+                        sleep 60
+
+                        # Verify recovery: canary pods should be back to desired count
+                        READY=$(kubectl get pods -n bizra -l app=bizra-elite \
+                          -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}' \
+                          | grep -c True)
+                        DESIRED=$(kubectl get rollout bizra-elite-rollout -n bizra \
+                          -o jsonpath='{.spec.replicas}')
+
+                        echo "Ready: $READY / Desired: $DESIRED"
+
+                        # Cleanup
+                        kubectl delete -f /etc/chaos/pod-kill-canary.yaml || true
+
+                        if [ "$READY" -ge "$DESIRED" ]; then
+                          echo "PASS: System recovered from chaos injection"
+                          exit 0
+                        else
+                          echo "FAIL: System did not recover within timeout"
+                          exit 1
+                        fi
+                    volumeMounts:
+                      - name: chaos-config
+                        mountPath: /etc/chaos
+                volumes:
+                  - name: chaos-config
+                    configMap:
+                      name: bizra-chaos-experiments
+
+    # ── Metric 7: E2E Smoke Test (Playwright Job) ─────────────────
+    # The official Playwright image has browsers pre-installed.
+    # We install @playwright/test at runtime and mount test files from ConfigMap.
+    # ConfigMap bizra-e2e-tests must be created from tests/e2e/ before first rollout.
+    - name: e2e-smoke
+      count: 1
+      failureLimit: 1
+      provider:
+        job:
+          spec:
+            backoffLimit: 1
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: playwright-runner
+                    image: mcr.microsoft.com/playwright:v1.49.0-noble
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        set -e
+                        echo "=== BIZRA E2E Canary Gate ==="
+
+                        # Set up working directory with test files from ConfigMap
+                        mkdir -p /work && cd /work
+                        cp /tests/* .
+
+                        # Install Playwright test runner (browsers already in image)
+                        npm init -y > /dev/null 2>&1
+                        npm install @playwright/test > /dev/null 2>&1
+
+                        # Run canary smoke tests against canary service
+                        npx playwright test canary-smoke.spec.ts \
+                          --reporter=list \
+                          --project=chromium
+
+                        echo "PASS: E2E smoke tests passed on canary"
+                    env:
+                      - name: BASE_URL
+                        value: "http://bizra-elite-canary.bizra.svc.cluster.local"
+                      - name: CI
+                        value: "true"
+                    volumeMounts:
+                      - name: e2e-tests
+                        mountPath: /tests
+                        readOnly: true
+                volumes:
+                  - name: e2e-tests
+                    configMap:
+                      name: bizra-e2e-tests
 ---
-# Stable Ingress for canary traffic splitting
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+# ═══════════════════════════════════════════════════════════════════════════
+# TraefikService — Weighted Round Robin for Canary Traffic Splitting
+# Argo Rollouts manages the weight field automatically at each setWeight step
+# ═══════════════════════════════════════════════════════════════════════════
+apiVersion: traefik.containo.us/v1alpha1
+kind: TraefikService
 metadata:
-  name: bizra-elite-stable
+  name: bizra-elite-traffic
   namespace: bizra
   annotations:
-    kubernetes.io/ingress.class: nginx
+    bizra.io/adr: "ADR-012"
 spec:
-  rules:
-    - host: elite.bizra.node0
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: bizra-elite-stable
-                port:
-                  number: 80
+  weighted:
+    services:
+      - name: bizra-elite-stable
+        port: 80
+      - name: bizra-elite-canary
+        port: 80
 ---
-# Services for canary
+# ═══════════════════════════════════════════════════════════════════════════
+# Chaos Mesh Experiments ConfigMap
+# ═══════════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bizra-chaos-experiments
+  namespace: bizra
+  annotations:
+    bizra.io/adr: "ADR-012"
+data:
+  pod-kill-canary.yaml: |
+    apiVersion: chaos-mesh.org/v1alpha1
+    kind: PodChaos
+    metadata:
+      name: bizra-canary-pod-kill
+      namespace: bizra
+    spec:
+      action: pod-kill
+      mode: one
+      selector:
+        namespaces:
+          - bizra
+        labelSelectors:
+          app: bizra-elite
+      duration: "30s"
+      gracePeriod: 0
+---
+# ═══════════════════════════════════════════════════════════════════════════
+# Services for canary traffic splitting
+# ═══════════════════════════════════════════════════════════════════════════
 apiVersion: v1
 kind: Service
 metadata:
@@ -175,3 +394,38 @@ spec:
   ports:
     - port: 80
       targetPort: 8000
+---
+# ═══════════════════════════════════════════════════════════════════════════
+# Traefik IngressRoute — routes through weighted TraefikService
+# Argo Rollouts adjusts TraefikService weights at each canary step
+# ═══════════════════════════════════════════════════════════════════════════
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: bizra-elite-route
+  namespace: bizra
+  annotations:
+    bizra.io/adr: "ADR-012"
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`elite.bizra.node0`)
+      kind: Rule
+      services:
+        - name: bizra-elite-traffic
+          kind: TraefikService
+      middlewares:
+        - name: bizra-security-headers
+---
+# Security headers middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: bizra-security-headers
+  namespace: bizra
+spec:
+  headers:
+    customResponseHeaders:
+      X-Frame-Options: "DENY"
+      X-Content-Type-Options: "nosniff"
