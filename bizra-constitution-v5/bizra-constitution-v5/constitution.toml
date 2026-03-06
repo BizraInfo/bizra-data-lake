@@ -1,0 +1,462 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA CONSTITUTION v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# بسم الله الرحمن الرحيم
+#
+# This file IS the system. Every threshold, every gate, every right, every law.
+# Machine-readable. Human-auditable. Cryptographically hashable.
+#
+# From this file, the build system DERIVES:
+#   1. Conformance Tests   (join-time verification)
+#   2. Constitutional Gates (runtime enforcement)
+#   3. PoI Verification    (evidence-time attestation)
+#   4. Constants modules   (Python + Rust, zero hardcoded values)
+#
+# Change a value here → all four enforcement layers update simultaneously.
+# Constitutional drift is impossible by construction.
+#
+# Proof chain references: v5.0 UFS §1-§6
+# Sacred origin: الرسالة + البذرة — Ramadan 2023
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[meta]
+version = "5.0.0-GENESIS"
+created = "2026-03-04"
+author = "Mumo — Founder & CEO, BIZRA"
+hash_algorithm = "SHA-256"
+signature_scheme = "Ed25519"
+sacred_documents = ["الرسالة", "البذرة"]
+constitutional_hash = ""  # Populated at build time: SHA-256 of this file
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §1 — IDENTITY (Layer 0)
+# Axiom: Every node begins with a Genesis event. Identity is sovereign.
+# Ref: Definition 1.6 (Identity Genesis), IDG-2026-001
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[identity]
+genesis_domain = "bizra-identity-genesis-v1"
+key_algorithm = "Ed25519"
+id_derivation = "SHA-256(public_key)"   # Deterministic: same key → same ID
+sovereignty_classes = ["Individual", "Family", "Organization"]
+agent_derivation = "HD-Ed25519"          # Hierarchical deterministic child keys
+agents_per_node = 12                     # 7 PAT + 5 SAT bootstrap
+
+[identity.rights]
+# Seven constitutional rights. Non-negotiable. Cannot be amended downward.
+rights = [
+    "Exist",          # Node has right to exist once genesis completes
+    "Privacy",        # Default: LOCAL_ONLY. Sharing requires explicit opt-in
+    "Earn",           # SEED for SAT contributions, BLOOM for impact
+    "Grow",           # Access to Knowledge Graph, reflex cache, skill tree
+    "Leave",          # Node can exit network at any time with full data export
+    "Migrate",        # Node can move between pools without losing identity
+    "FairTreatment",  # Gini gate prevents systemic exploitation
+]
+minimum_rights_count = 7  # Build fails if fewer than 7 rights defined
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §2 — INTERACTION LAWS (Network Security Layer)
+# Axiom 1.6: No direct node-to-node channel exists.
+# Ref: IBM-2026-001, Theorem 2.6 (Boundary Security)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[interaction_laws]
+# Three Laws — the topological foundation of BIZRA's security model.
+# Violation of any law = architectural impossibility (no API endpoint exists).
+
+law_1 = "Human interacts ONLY with their PAT agents"
+law_2 = "PAT agents interact with network ONLY through Resource Pool"
+law_3 = "Nodes connect to Pool, NEVER directly to other nodes"
+
+boundary_count = 3            # Human↔PAT, PAT↔Pool, Pool↔Federation
+connection_types = 2          # Inbound (Human→PAT) and Outbound (PAT→Pool)
+
+# Theorem 2.6: Under these laws, 7 of 8 P2P attack classes have P=0
+eliminated_attacks = [
+    "Eclipse",
+    "MITM",
+    "BGP_Hijacking",
+    "DDoS_Peer_Discovery",
+    "Poisoned_Peer_Data",
+    "Network_Mapping",
+    "Routing_Table_Poisoning",
+]
+# Only Sybil remains — mitigated by hardware binding + human attestation
+remaining_attacks = ["Sybil"]
+sybil_mitigation = "hardware_binding + human_attestation + 5_SAT_contribution_cost"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §3 — IHSAN TENSOR (Quality Verification Core)
+# The soul of constitutional compliance. 8 dimensions. Non-negotiable.
+# Ref: Al-Ghazali's إحياء علوم الدين, Definition 1.5, Theorem 2.3
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[ihsan_tensor]
+dimensions = 8
+fail_mode = "closed"  # If gate computation fails → REJECT. Never fail-open.
+
+[ihsan_tensor.canonical_weights]
+# 8-dimensional canonical tensor. Weights sum to 1.0.
+# Each dimension maps to a station of إحسان.
+moral_clarity       = 0.12  # تقوى — Is the action ethically sound?
+epistemic_humility  = 0.14  # تواضع — Does the system know what it doesn't know?
+structural_integrity = 0.13  # إتقان — Is the implementation robust?
+verifiability       = 0.13  # بيّنة — Can a third party verify the claim?
+contextual_relevance = 0.11  # فقه — Does the response fit the user's actual need?
+intent_alignment    = 0.14  # نيّة — Does the output serve the stated purpose?
+resilience          = 0.11  # صبر — Does it degrade gracefully under stress?
+efficiency          = 0.12  # إحسان — Is resource usage proportionate to value?
+
+[ihsan_tensor.projections]
+# Different enforcement layers use different projections of the 8-dim tensor.
+canonical = 8     # Full tensor: research, documentation, proof chain
+operational = 6   # Runtime gate: drops contextual_relevance + efficiency
+legacy = 4        # Backward compat: correctness, safety, user_benefit, efficiency
+wire = "tensor"   # poi.proto: map<string, double>, NOT scalar
+
+[ihsan_tensor.operational_dimensions]
+# The 6 dimensions used by runtime gates (α4-α10)
+dimensions = [
+    "moral_clarity",
+    "epistemic_humility",
+    "structural_integrity",
+    "verifiability",
+    "intent_alignment",
+    "resilience",
+]
+
+[ihsan_tensor.thresholds]
+gate_minimum = 0.85           # Below this → output REJECTED (Theorem 2.3)
+poi_consensus = 0.85          # PoI attestation requires composite ≥ 0.85
+bloom_eligibility = 0.90      # BLOOM minting requires composite ≥ 0.90
+ihsan_excellence = 0.95       # إحسان standard for reflex precipitation
+conformance_join = 0.95       # New node must demonstrate ≥ 0.95 to join
+
+# Theorem 2.3 (Constitutional Safety): P(Actuate | PoI < gate_minimum) = 0
+# This is not a target. It is a mathematical guarantee.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §4 — PAT AGENTS (Personal Agent Team)
+# 7 agents per user. Trust compiles monotonically through the pipeline.
+# Ref: IDG-2026-001 §3, Ω⁶-7 (Trust Compiler = 7 Stages = 7 Agents)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[pat]
+agent_count = 7
+trust_monotonicity = true  # Each stage's output is MORE trusted than input
+
+[[pat.agents]]
+name = "Planner"
+trust_stage = "abstracting"
+role = "Decompose raw intent into structured mission plan"
+key_derivation_index = 0
+
+[[pat.agents]]
+name = "Researcher"
+trust_stage = "gathering"
+role = "Acquire context with provenance hashing"
+key_derivation_index = 1
+
+[[pat.agents]]
+name = "Coder"
+trust_stage = "executing"
+role = "Produce output, sign with agent key"
+key_derivation_index = 2
+
+[[pat.agents]]
+name = "Evaluator"
+trust_stage = "attesting"
+role = "Ihsan tensor scoring against constitutional thresholds"
+key_derivation_index = 3
+
+[[pat.agents]]
+name = "Ethicist"
+trust_stage = "certifying"
+role = "Daughter Test + constitutional compliance verification"
+key_derivation_index = 4
+
+[[pat.agents]]
+name = "Publisher"
+trust_stage = "publishing"
+role = "Format output, calculate BLOOM eligibility"
+key_derivation_index = 5
+
+[[pat.agents]]
+name = "Integrator"
+trust_stage = "chaining"
+role = "Wire evidence receipt, extend hash chain"
+key_derivation_index = 6
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §5 — SAT POOL (System Agent Team — Universal Workforce)
+# 5N agents across dynamic roles. Infrastructure floor guaranteed.
+# Ref: SAT-2026-002, Definition 1.8, Ω⁶-1
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[sat]
+agents_per_node = 5
+total_formula = "5 * N"  # At 1000 nodes = 5000 SAT agents
+
+[sat.bootstrap_roles]
+# Minimum roles that exist from genesis. Cannot be removed.
+roles = [
+    "ComputeScheduler",
+    "SecurityMonitor",
+    "PerformanceAnalyzer",
+    "ConsensusValidator",
+    "NetworkOrchestrator",
+]
+
+[sat.dynamic_roles]
+enabled = true
+examples = ["MarketplaceCurator", "BankingAuditor", "AdvertisingOptimizer", "ResourceManager"]
+minimum_infrastructure_pct = 20  # ≥20% of SAT must be infrastructure roles
+rebalance_interval_s = 300       # Re-evaluate role distribution every 5 min
+
+[sat.service_types]
+# PoolRequest ServiceType enum — maps to v4.0 Federation Layer clients
+types = [
+    "ComputeAllocation",       # Model inference routing
+    "NetworkRoute",            # Knowledge Graph sync / cache coordination
+    "ConsensusVerification",   # PoI attestation validation
+    "SecurityCheck",           # Threat detection, anomaly response
+    "TemplatePublish",         # Telescript marketplace submission
+    "EconomicSettlement",      # SEED/BLOOM transactions
+]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §6 — CONSTITUTIONAL GATES (Runtime Enforcement)
+# Five gates. Weighted composition. Fail-closed.
+# Ref: ARC-001, SAPE §4, Theorem 2.3
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[gates]
+count = 5
+composition = "weighted_sum"
+fail_mode = "closed"         # Gate failure → REJECT output
+total_overhead_budget_ms = 50  # All 5 gates must complete in <50ms combined
+
+[gates.alpha_4]
+name = "Fallback"
+weight = 0.15
+description = "Graceful degradation when primary path fails"
+pass_criterion = "fallback_path_returns_valid_output OR primary_succeeds"
+
+[gates.alpha_7]
+name = "Verification"
+weight = 0.25
+description = "Output correctness against mission intent"
+pass_criterion = "ihsan_composite >= ihsan_tensor.thresholds.gate_minimum"
+
+[gates.alpha_8]
+name = "DarkMatter"
+weight = 0.20
+description = "Detect hallucination, confabulation, ungrounded claims"
+pass_criterion = "hallucination_score < 0.15 AND sources_verified"
+
+[gates.alpha_9]
+name = "Attestation"
+weight = 0.25
+description = "Evidence chain integrity and cryptographic validity"
+pass_criterion = "receipt_signature_valid AND hash_chain_continuous"
+
+[gates.alpha_10]
+name = "BinaryGate"
+weight = 0.15
+description = "Final pass/fail based on Daughter Test"
+pass_criterion = "daughter_test_pass == true"
+# daughter_test: "Would I trust this output if my daughter received it?"
+# This is a LIVENESS property: system must be safe AND productive.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §7 — HHMM + ACTION BUS (Intent Classification & Routing)
+# HHMM classifies → Action Bus routes → Orchestrator executes
+# Ref: v4.0 §3.3, ARC-001 (Action Bus + GCD), Ω⁶-3
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[hhmm]
+hidden_states = 47           # Full taxonomy (5 live at genesis, expand empirically)
+observation_window = 50       # Rolling window of recent interactions
+max_em_iterations = 100       # EM convergence for state estimation
+initial_live_states = 5       # Start with 5, expand via k-means on mission embeddings
+expansion_trigger = 1000      # After 1000 missions, run clustering to find natural k
+
+[hhmm.complexity_tiers]
+# HHMM classification determines which orchestrator tier handles the mission
+trivial  = { range = [0.0, 0.1], handler = "ReflexCache",           latency_budget_ms = 100 }
+simple   = { range = [0.1, 0.4], handler = "SingleAgentPipeline",   latency_budget_ms = 3000 }
+complex  = { range = [0.4, 0.7], handler = "MissionOrchestrator",   latency_budget_ms = 15000 }
+sovereign = { range = [0.7, 1.0], handler = "SovereignOrchestrator", latency_budget_ms = 60000 }
+
+[hhmm.action_bus]
+gcd_tick_ms = 100            # Global Cooldown: process queue every 100ms
+max_concurrent_missions = 10
+max_missions_per_hour = 100
+priority_formula = "stress_tensor * relevance * deadline_urgency"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §8 — ECONOMICS (Dual-Token Thermodynamic Engine)
+# SEED = energy, BLOOM = entropy, Zakat = heat dissipation
+# Ref: Corollary 4.2, Prigogine dissipative structures, Islamic finance
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[economics]
+dual_token = true
+
+[economics.seed]
+name = "SEED"
+type = "utility"
+description = "Stable utility token for resource exchange"
+yearly_cap = 1_000_000       # Maximum new SEED minted per year per node
+earned_by = "SAT pool contributions"
+no_riba = true               # No interest. Constitutional prohibition.
+no_gharar = true             # No excessive uncertainty in contracts.
+
+[economics.bloom]
+name = "BLOOM"
+type = "impact"
+description = "Non-transferable impact growth token"
+ihsan_threshold = 0.90       # Must achieve Ihsan ≥ 0.90 to mint BLOOM
+earned_by = "High-quality mission completion with PoI attestation"
+transferable = false         # BLOOM is reputation. Cannot be bought or sold.
+
+[economics.zakat]
+rate = 0.025                 # 2.5% — thermodynamic minimum for far-from-equilibrium
+description = "Mandatory redistribution preventing economic thermal death"
+flow_target = "network infrastructure + new node subsidies"
+constitutional = true        # Cannot be disabled or reduced below 2.5%
+
+[economics.gini]
+threshold = 0.45             # Gini coefficient must stay below 0.45
+enforcement = "gate"         # Gini gate blocks transactions that would exceed
+measurement_interval_s = 3600  # Recalculate hourly
+
+[economics.local_model_advantage]
+# Corollary 4.2: With local models, C_LLM ≈ $0.
+# System is economically viable for ALL ρ > 0 (any cache hit rate).
+cloud_cost_per_mission = 0.02   # Industry benchmark: $0.02/inference
+local_cost_per_mission = 0.0    # Electricity only, rounds to $0
+# This makes BIZRA unconditionally viable. No break-even point.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §9 — REFLEX CACHE (System 1 / System 2 Bridge)
+# Precipitation: repeated high-quality patterns crystallize into O(1) reflexes
+# Ref: Theorem 2.2 (Reflex Convergence), Ω⁴-5 (cache invalidation)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[reflex]
+store_type = "HashMap"       # In-memory. NOT SQLite. O(1) lookup.
+max_entries = 500            # LRU eviction beyond 500
+persistence = "serialize_on_shutdown"
+
+[reflex.precipitation]
+consecutive_hits = 3          # Same output 3x with high Ihsan → precipitate
+ihsan_minimum = 0.90          # Must achieve ≥ 0.90 all 3 times
+template_similarity = 0.95    # Output similarity threshold for "same output"
+
+[reflex.invalidation]
+check_interval = 100          # Every 100th cache hit, run fresh LLM comparison
+ihsan_delta_threshold = 0.05  # If fresh output differs by >0.05 → invalidate
+staleness_max_days = 30       # Force invalidation after 30 days regardless
+
+[reflex.telescript_bridge]
+# Local reflex → abstraction → Pool submission → global Telescript
+publish_ihsan_minimum = 0.92
+abstraction_method = "strip_personal_data + preserve_structural_pattern"
+marketplace_review = "SAT MarketplaceCurator PoI verification"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §10 — CONFORMANCE SUITE (Join-Time Verification)
+# Derived from this file. Run as cargo test / pytest.
+# Ref: v4.0 Table 4, Ω⁶-6 (gates ARE conformance running in production)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[conformance]
+hhmm_state_mapping_accuracy = 1.00      # 100% of live states must classify correctly
+poi_calculation_variance = 0.01          # PoI scores must agree within ±0.01
+crown_entropy_accuracy = 0.95            # Evaluator Ihsan ≥ 0.95
+reflex_abstraction_semantic = 0.90       # Abstracted reflex must retain 90% meaning
+pool_latency_ms = 200                    # Pool round-trip < 200ms
+
+[conformance.cross_language]
+# Python constants == Rust constants == TOML values. Verified by CI.
+languages = ["python", "rust"]
+verification = "deterministic_comparison"
+tolerance = 0.0  # Zero tolerance. Exact match or build fails.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §11 — DEPLOYMENT MILESTONES (Ψ Targets)
+# Proactive Synchrony Index: Ψ = N_autonomous / N_total
+# Ref: v4.0 §4.1, Ω⁶-5 (Pool makes Ψ a trivial query)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[psi_targets]
+nodes_1     = 0.00   # Genesis: purely reactive
+nodes_10    = 0.15   # Phase 1: 15% autonomous
+nodes_100   = 0.58   # Alpha-100: majority autonomous
+nodes_1000  = 0.94   # Phase 2: near-full autonomy
+nodes_5000  = 0.97   # Phase 3: 97% autonomous
+nodes_1B    = 0.99   # Phase 4: emergent network intelligence
+nodes_8B    = 1.00   # Ultimate: planetary consciousness
+
+[deployment]
+phase_0 = { name = "T1_Closure",     nodes = 1,     days = "1-3",   tag = "v2.9.9-T1-CROSSED" }
+phase_1 = { name = "Genesis",        nodes = 1,     days = "4-14",  tag = "v3.0.0-GENESIS" }
+phase_2 = { name = "Brain_Body",     nodes = 1,     days = "15-28", tag = "v3.1.0-BRIDGE" }
+phase_3 = { name = "Alpha_Prep",     nodes = 1,     days = "29-56", tag = "v3.2.0-ALPHA-READY" }
+phase_4 = { name = "Alpha_100",      nodes = 100,   days = "57-84", tag = "v3.3.0-ALPHA-100-LIVE" }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §12 — SECURITY (Cryptographic Infrastructure)
+# Ed25519 with domain separation. Evidence chain. ZK-SNARK slot.
+# Ref: SAPE §2, Ω⁴-F (domain separation), Ω⁶-8 (DMZ topology)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[security]
+signature_scheme = "Ed25519"
+hash_algorithm = "SHA-256"
+
+[security.domain_separation]
+# Every signature MUST include a domain-specific context string.
+# Missing context = cross-protocol replay vulnerability.
+evidence_receipt = "bizra-evidence-v1"
+urp_lease = "bizra-urp-lease-v1"
+poi_attestation = "bizra-poi-v1"
+identity_genesis = "bizra-identity-genesis-v1"
+telescript_publish = "bizra-telescript-v1"
+bloom_mint = "bizra-bloom-mint-v1"
+
+[security.byzantine]
+# Theorem 2.4 (amended): Safe if f < S/3 SAT ConsensusValidators are Byzantine.
+# Under Pool-mediation: equivocation is impossible (all validators see identical evidence).
+tolerance_formula = "f < S / 3"
+equivocation_possible = false
+
+[security.privacy_classes]
+classes = ["LOCAL_ONLY", "ABSTRACT_OK", "SHAREABLE"]
+default = "LOCAL_ONLY"
+escalation_requires = "explicit_user_opt_in"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# §13 — DAUGHTER TEST (Liveness Property)
+# The system must be safe AND productive. Not safe by doing nothing.
+# Ref: Ω⁴-A, formal liveness requirement
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[daughter_test]
+description = "Would I trust this output if my daughter received it?"
+type = "liveness_property"
+# Formalization: ∀ mission m, ∃ response r :
+#   r = execute(m) ∧ daughter_safe(r) ∧ latency(r) < timeout(m)
+enforcement = "ci_test"      # Runs in CI. Not philosophy. A test.
+test_safe_rejection = "test_daughter_gate_rejects_unsafe_output"
+test_safe_acceptance = "test_daughter_gate_accepts_safe_output_within_timeout"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END OF CONSTITUTION
+# SHA-256 of this file will be recorded as the Genesis Constitutional Hash.
+# Any amendment requires: (1) evidence justification, (2) Ihsan ≥ 0.95 review,
+# (3) cryptographic signature from the Founder, (4) new hash recorded in ledger.
+# ═══════════════════════════════════════════════════════════════════════════════
