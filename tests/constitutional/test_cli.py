@@ -217,6 +217,22 @@ class TestWorkCommand:
 
         assert b2 > b1
 
+    def test_multiple_works_accrue_bloom_linearly(self, initialized_node, state_dir):
+        """Each qualifying work action should add one BLOOM accrual."""
+        process_work(
+            "Implemented fixed-point arithmetic for the sovereignty kernel",
+            state_dir,
+        )
+        state1 = load_node_state(state_dir)
+        assert state1.bloom_balance == fp(0.01)
+
+        process_work(
+            "Verified BLOOM governance accrual with regression coverage",
+            state_dir,
+        )
+        state2 = load_node_state(state_dir)
+        assert state2.bloom_balance == fp(0.02)
+
 
 # ═══════════════════════════════════════════════════════════════════
 # Test: Attest Command
