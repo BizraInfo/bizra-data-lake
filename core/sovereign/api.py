@@ -585,17 +585,25 @@ class SovereignAPIServer:
         """Handle health check."""
         status = self.runtime.status()
         pat_sat_chain = status.get("pat_sat", {}).get("negotiation_receipt_chain", {})
+
+        checks = {
+            "runtime": status["state"]["running"],
+            "autonomous": status["autonomous"].get("running", False),
+            "pat_sat_receipt_chain_verified": bool(
+                pat_sat_chain.get("verified_end_to_end", False)
+            ),
+        }
+
+        # Phase 70: Bus infrastructure health
+        bus_state = getattr(self.runtime, "_bus_wiring_state", None)
+        if bus_state is not None:
+            checks["bus_infrastructure"] = getattr(bus_state, "all_ok", False)
+
         health = HealthResponse(
             status=status["health"]["status"],
             version=status["identity"]["version"],
             uptime_seconds=time.time() - self._start_time,
-            checks={
-                "runtime": status["state"]["running"],
-                "autonomous": status["autonomous"].get("running", False),
-                "pat_sat_receipt_chain_verified": bool(
-                    pat_sat_chain.get("verified_end_to_end", False)
-                ),
-            },
+            checks=checks,
         )
         return self._json_response(health.to_dict())
 
