@@ -247,3 +247,10 @@ artifacts/atlas/
 artifacts/inventory/
 filefgfgs_extracted/
 .tmp_prod_artifacts_v2/services/node_gateway/reflex_cache.sqlite
+
+# ── Large artifacts (not tracked in git) ──────────────────────
+99_ARCHIVE/
+bizra_prod_artifacts_v2/
+last update/
+BIZRA-DDAGI-OS-Atlas-v5_0_FINAL.html
+BIZRA-DDAGI-OS-Atlas-v5_0_FINAL_RESILIENT.html
