@@ -165,6 +165,11 @@ jobs:
       - name: Validate PromQL guard patterns
         run: python scripts/ci_promql_guard.py
 
+      - name: Validate API exposure contract
+        run: python scripts/ci_api_exposure_gate.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Generate Atlas alignment report
         run: |
           python scripts/atlas/atlas_gap_report.py \

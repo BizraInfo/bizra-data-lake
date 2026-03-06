@@ -42,7 +42,7 @@ All thresholds are defined in `core/integration/constants.py` as the single sour
 ### Network and API Security
 
 - **Desktop Bridge**: Localhost-only binding (`127.0.0.1:9742`), token-authenticated, nonce replay protection, rate limited (20 req/s)
-- **API Server**: Auth-gated endpoints, Prometheus metrics, HTTPS for external communication
+- **API Server**: Explicit route exposure contract in `core/sovereign/api_exposure_policy.py`; authenticated data/control endpoints, intentionally public observability/bootstrap/verifier endpoints, Prometheus metrics, HTTPS for external communication
 - **Federation**: Ed25519-signed gossip messages, Byzantine fault tolerance
 
 ### CI/CD Security
@@ -57,7 +57,7 @@ All thresholds are defined in `core/integration/constants.py` as the single sour
 
 - All secrets via environment variables (never hardcoded)
 - HTTPS for all external communication
-- Rate limiting on all API endpoints
+- Rate limiting on authenticated API data/control endpoints and bridge control surfaces; intentionally public health/metrics/verifier routes are explicitly enumerated and reviewed in CI
 - Input validation at system boundaries
 - No raw `eval()` — sandboxed `exec()` is permitted only in `core/zpk/kernel.py` and
   `tools/engines/agentic_cleaner.py`, gated by AST validation + restricted `__builtins__`
