@@ -280,7 +280,7 @@ const CharCounter = ({ current, max }) => {
   const color = ratio > 0.9
     ? '#E85D4A'
     : ratio > 0.7
-      ? '#D4A547'
+      ? '#C9A962'
       : 'rgba(255,255,255,0.2)';
   return (
     <span style={{
@@ -302,7 +302,7 @@ const StatusBadge = ({ status }) => {
   const configs = {
     sending: {
       text: 'Learning...',
-      color: '#D4A547',
+      color: '#C9A962',
       bg: 'rgba(212,165,71,0.08)',
       border: 'rgba(212,165,71,0.15)',
     },
@@ -356,10 +356,10 @@ const KindPill = ({ kind }) => {
     preference: '#A78BFA',
     goal: '#F59E42',
     expertise: '#38BDF8',
-    pattern: '#F0D68A',
+    pattern: '#E8D5A3',
     negation: '#E85D4A',
     relationship: '#5BBA6F',
-    principle: '#D4A547',
+    principle: '#C9A962',
     temporal: '#4ecdc4',
     context: '#FF6B9D',
   };
@@ -475,7 +475,7 @@ const ProgressIndicator = ({ current, total, atomCount }) => (
             background: i < current
               ? '#5BBA6F'
               : i === current
-                ? 'linear-gradient(90deg, #D4A547, #F0D68A)'
+                ? 'linear-gradient(90deg, #C9A962, #E8D5A3)'
                 : 'rgba(255,255,255,0.08)',
             transition: 'all 0.3s ease',
           }}
@@ -753,13 +753,13 @@ export default function TeachStep({ node, state, setState, onNext }) {
             width: 22,
             height: 22,
             borderRadius: 6,
-            background: 'linear-gradient(135deg, #D4A547, #8B6914)',
+            background: 'linear-gradient(135deg, #C9A962, #8B7340)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
           }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, color: '#0A0B0F' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, color: '#030810' }}>
               FO
             </span>
           </div>
@@ -807,7 +807,7 @@ export default function TeachStep({ node, state, setState, onNext }) {
               width: 28,
               height: 28,
               borderRadius: 8,
-              background: 'linear-gradient(135deg, #D4A547, #8B6914)',
+              background: 'linear-gradient(135deg, #C9A962, #8B7340)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -817,7 +817,7 @@ export default function TeachStep({ node, state, setState, onNext }) {
                 fontFamily: 'var(--mono)',
                 fontSize: 13,
                 fontWeight: 700,
-                color: '#0A0B0F',
+                color: '#030810',
               }}>
                 {currentStep + 1}
               </span>
@@ -933,14 +933,14 @@ export default function TeachStep({ node, state, setState, onNext }) {
               style={{
                 padding: '10px 28px',
                 background: currentAnswer.trim() && !submitting
-                  ? 'linear-gradient(135deg, #D4A547, #8B6914)'
+                  ? 'linear-gradient(135deg, #C9A962, #8B7340)'
                   : 'rgba(255,255,255,0.04)',
                 border: 'none',
                 borderRadius: 10,
                 fontFamily: 'var(--sans)',
                 fontSize: 13,
                 fontWeight: 600,
-                color: currentAnswer.trim() && !submitting ? '#0A0B0F' : 'rgba(255,255,255,0.15)',
+                color: currentAnswer.trim() && !submitting ? '#030810' : 'rgba(255,255,255,0.15)',
                 cursor: currentAnswer.trim() && !submitting ? 'pointer' : 'default',
                 boxShadow: currentAnswer.trim() && !submitting ? '0 4px 20px rgba(212,165,71,0.25)' : 'none',
                 transition: 'all 0.3s ease',
@@ -1015,7 +1015,7 @@ export default function TeachStep({ node, state, setState, onNext }) {
             {synthesizeStatus === 'sending' && (
               <svg width="14" height="14" viewBox="0 0 14 14" style={{ animation: 'onb-spin 1s linear infinite' }}>
                 <circle cx="7" cy="7" r="5.5" fill="none" stroke="rgba(212,165,71,0.2)" strokeWidth="1.5" />
-                <path d="M7 1.5 A5.5 5.5 0 0 1 12.5 7" fill="none" stroke="#D4A547" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M7 1.5 A5.5 5.5 0 0 1 12.5 7" fill="none" stroke="#C9A962" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             )}
             {synthesizeStatus === 'done' && (
@@ -1030,7 +1030,7 @@ export default function TeachStep({ node, state, setState, onNext }) {
                 ? '#5BBA6F'
                 : synthesizeStatus === 'error'
                   ? '#E85D4A'
-                  : '#D4A547',
+                  : '#C9A962',
               letterSpacing: 0.5,
             }}>
               {synthesizeStatus === 'idle'
@@ -1076,14 +1076,14 @@ export default function TeachStep({ node, state, setState, onNext }) {
               style={{
                 padding: '12px 36px',
                 background: synthesizeStatus !== 'sending'
-                  ? 'linear-gradient(135deg, #D4A547, #8B6914)'
+                  ? 'linear-gradient(135deg, #C9A962, #8B7340)'
                   : 'rgba(255,255,255,0.04)',
                 border: 'none',
                 borderRadius: 10,
                 fontFamily: 'var(--sans)',
                 fontSize: 14,
                 fontWeight: 600,
-                color: synthesizeStatus !== 'sending' ? '#0A0B0F' : 'rgba(255,255,255,0.15)',
+                color: synthesizeStatus !== 'sending' ? '#030810' : 'rgba(255,255,255,0.15)',
                 cursor: synthesizeStatus !== 'sending' ? 'pointer' : 'default',
                 boxShadow: synthesizeStatus !== 'sending' ? '0 4px 20px rgba(212,165,71,0.25)' : 'none',
                 transition: 'all 0.3s ease',

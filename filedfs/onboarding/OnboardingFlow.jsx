@@ -40,9 +40,9 @@ const StepIndicator = ({ currentStep, totalSteps }) => (
           height: i === currentStep ? 10 : 8,
           borderRadius: '50%',
           background: i < currentStep
-            ? '#D4A547'
+            ? '#C9A962'
             : i === currentStep
-              ? 'linear-gradient(135deg, #D4A547, #F0D68A)'
+              ? 'linear-gradient(135deg, #C9A962, #E8D5A3)'
               : 'rgba(255,255,255,0.08)',
           border: i === currentStep
             ? '2px solid rgba(212,165,71,0.4)'
@@ -113,7 +113,7 @@ const ProgressBar = ({ currentStep, totalSteps }) => {
       <div style={{
         width: `${progress}%`,
         height: '100%',
-        background: 'linear-gradient(90deg, #D4A547, #F0D68A)',
+        background: 'linear-gradient(90deg, #C9A962, #E8D5A3)',
         borderRadius: 1,
         transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
       }} />
@@ -184,7 +184,7 @@ export default function OnboardingFlow({ node, onComplete }) {
       position: 'fixed',
       inset: 0,
       zIndex: 1000,
-      background: '#0A0B0F',
+      background: '#030810',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -227,13 +227,13 @@ export default function OnboardingFlow({ node, onComplete }) {
             width: 28,
             height: 28,
             borderRadius: 8,
-            background: 'linear-gradient(135deg, #D4A547, #8B6914)',
+            background: 'linear-gradient(135deg, #C9A962, #8B7340)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 14,
             fontWeight: 700,
-            color: '#0A0B0F',
+            color: '#030810',
             fontFamily: 'var(--mono)',
           }}>
             B

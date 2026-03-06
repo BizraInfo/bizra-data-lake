@@ -16,7 +16,7 @@ import { useState, useEffect, useRef } from 'react';
 // ── Animated Loop Step ──────────────────────────────────────
 
 const LoopStep = ({ step, index, active }) => {
-  const colors = ['#D4A547', '#6B9BF7', '#5BBA6F', '#A78BFA'];
+  const colors = ['#C9A962', '#6B9BF7', '#5BBA6F', '#A78BFA'];
   const color = colors[index % 4];
 
   return (
@@ -52,7 +52,7 @@ const LoopStep = ({ step, index, active }) => {
           fontFamily: 'var(--mono)',
           fontSize: 16,
           fontWeight: 700,
-          color: active ? '#0A0B0F' : 'rgba(255,255,255,0.2)',
+          color: active ? '#030810' : 'rgba(255,255,255,0.2)',
           transition: 'color 0.6s ease',
         }}>
           {index + 1}
@@ -219,7 +219,7 @@ const FEATURES = [
   {
     title: 'Morning Briefs',
     description: 'Automated daily briefings at 08:00 — overnight alerts, priority tasks, calendar context.',
-    color: '#D4A547',
+    color: '#C9A962',
     icon: '\u{2600}', // sun
   },
   {
@@ -269,7 +269,7 @@ export default function LandingDemo({ onEnterApp }) {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#0A0B0F',
+      background: '#030810',
       color: 'rgba(255,255,255,0.85)',
       fontFamily: 'var(--sans)',
       overflowY: 'auto',
@@ -300,7 +300,7 @@ export default function LandingDemo({ onEnterApp }) {
             width: 56,
             height: 56,
             borderRadius: 16,
-            background: 'linear-gradient(135deg, #D4A547, #8B6914)',
+            background: 'linear-gradient(135deg, #C9A962, #8B7340)',
             marginBottom: 24,
             boxShadow: '0 8px 32px rgba(212,165,71,0.25)',
           }}>
@@ -308,7 +308,7 @@ export default function LandingDemo({ onEnterApp }) {
               fontFamily: 'var(--mono)',
               fontSize: 24,
               fontWeight: 700,
-              color: '#0A0B0F',
+              color: '#030810',
             }}>
               B
             </span>
@@ -401,7 +401,7 @@ export default function LandingDemo({ onEnterApp }) {
           borderTop: '1px solid rgba(255,255,255,0.04)',
           borderBottom: '1px solid rgba(255,255,255,0.04)',
         }}>
-          <StatCounter value="10" label="HDA Skills" color="#D4A547" />
+          <StatCounter value="10" label="HDA Skills" color="#C9A962" />
           <StatCounter value="3" label="PAT Agents" color="#6B9BF7" />
           <StatCounter value="4" label="Daily Missions" color="#5BBA6F" />
           <StatCounter value="100%" label="Proof Coverage" color="#A78BFA" />
@@ -468,13 +468,13 @@ export default function LandingDemo({ onEnterApp }) {
             onClick={onEnterApp}
             style={{
               padding: '14px 48px',
-              background: 'linear-gradient(135deg, #D4A547, #8B6914)',
+              background: 'linear-gradient(135deg, #C9A962, #8B7340)',
               border: 'none',
               borderRadius: 12,
               fontFamily: 'var(--sans)',
               fontSize: 16,
               fontWeight: 600,
-              color: '#0A0B0F',
+              color: '#030810',
               cursor: 'pointer',
               boxShadow: '0 8px 32px rgba(212,165,71,0.25)',
               transition: 'all 0.3s ease',
