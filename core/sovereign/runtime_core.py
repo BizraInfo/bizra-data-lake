@@ -239,6 +239,9 @@ class SovereignRuntime:
         self._omega_controller: Optional[object] = None  # OmegaLoopController
         self._bus_wiring_state: Optional[object] = None  # BusWiringState
 
+        # Phase 71: Seed Engine (DDAGI growth trajectory + self-RLVR)
+        self._seed_engine: Optional[object] = None  # SeedEngine
+
         # PERF FIX: Use deque for O(1) bounded storage
         self._query_times: Deque[float] = deque(maxlen=100)
 
@@ -607,6 +610,19 @@ class SovereignRuntime:
                 )
         except Exception as exc:
             self.logger.warning("⚠ Bus infrastructure unavailable: %s", exc)
+
+        # Phase 71: Seed Engine (DDAGI growth trajectory)
+        self._init_seed_engine()
+
+    def _init_seed_engine(self) -> None:
+        """Initialize Phase 71 Seed Potential Engine with graceful fallback."""
+        try:
+            from core.sovereign.seed_engine import create_seed_engine
+
+            self._seed_engine = create_seed_engine(runtime=self)
+            self.logger.info("✓ Seed Engine initialized")
+        except Exception as exc:
+            self.logger.warning("⚠ Seed Engine unavailable: %s", exc)
 
     async def _dispatch_equalizer_command(self, eq_cmd: object) -> None:
         """Act on an EqualizerAgent command instead of just logging it.

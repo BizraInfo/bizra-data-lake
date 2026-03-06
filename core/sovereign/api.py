@@ -578,6 +578,11 @@ class SovereignAPIServer:
             return await self._handle_token_history(params)
         elif path == "/v1/token/verify" and method == "GET":
             return await self._handle_token_verify()
+        # Seed Engine endpoints (Phase 71)
+        elif path == "/v1/seed/potential" and method == "GET":
+            return await self._handle_seed_potential()
+        elif path == "/v1/seed/episodes" and method == "GET":
+            return await self._handle_seed_episodes(params)
         else:
             return self._json_response({"error": "Not found"}, 404)
 
@@ -598,6 +603,13 @@ class SovereignAPIServer:
         bus_state = getattr(self.runtime, "_bus_wiring_state", None)
         if bus_state is not None:
             checks["bus_infrastructure"] = getattr(bus_state, "all_ok", False)
+
+        # Phase 71: Seed Engine health
+        seed_engine = getattr(self.runtime, "_seed_engine", None)
+        if seed_engine is not None:
+            seed_health = seed_engine.health()
+            checks["seed_engine"] = seed_health.get("active", False)
+            checks["seed_tier"] = seed_health.get("tier", "SEED")
 
         health = HealthResponse(
             status=status["health"]["status"],
@@ -912,6 +924,45 @@ class SovereignAPIServer:
             )
         except Exception:
             logger.exception("Token verify error")
+            return self._json_response({"error": "Internal server error"}, 500)
+
+    async def _handle_seed_potential(self) -> str:
+        """GET /v1/seed/potential — Node's growth trajectory and unlocked capacity."""
+        seed_engine = getattr(self.runtime, "_seed_engine", None)
+        if seed_engine is None:
+            return self._json_response(
+                {"error": "Seed engine not initialized"}, 503
+            )
+
+        try:
+            from dataclasses import asdict
+
+            potential = seed_engine.potential()
+            return self._json_response(asdict(potential))
+        except Exception:
+            logger.exception("Seed potential error")
+            return self._json_response({"error": "Internal server error"}, 500)
+
+    async def _handle_seed_episodes(self, params: dict[str, str]) -> str:
+        """GET /v1/seed/episodes — Recent growth episodes with receipt hashes."""
+        seed_engine = getattr(self.runtime, "_seed_engine", None)
+        if seed_engine is None:
+            return self._json_response(
+                {"error": "Seed engine not initialized"}, 503
+            )
+
+        try:
+            limit = min(int(params.get("limit", "10")), 100)
+        except (ValueError, TypeError):
+            limit = 10
+
+        try:
+            episodes = seed_engine.recent_episodes(limit=limit)
+            return self._json_response(
+                {"count": len(episodes), "episodes": episodes}
+            )
+        except Exception:
+            logger.exception("Seed episodes error")
             return self._json_response({"error": "Internal server error"}, 500)
 
     def _json_response(self, data: dict[str, Any], status: int = 200) -> str:
