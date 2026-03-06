@@ -626,6 +626,7 @@ IDENTITY_AGENTS_PER_NODE: Final[int] = 12  # PAT(7) + SAT(5)
 
 SEED_YEARLY_CAP: Final[int] = 1_000_000
 ZAKAT_RATE: Final[float] = 0.025  # 2.5% — applied at mint time
+NISAB_THRESHOLD: Final[float] = 85.0  # Minimum SEED balance for Zakat obligation
 NO_RIBA: Final[bool] = True  # Kernel invariant: zero exploitation
 NO_GHARAR: Final[bool] = True  # Kernel invariant: zero deception
 
@@ -665,6 +666,47 @@ CONFORMANCE_POOL_LATENCY_MS: Final[int] = 200
 
 PRIVACY_CLASSES: Final[list] = ["LOCAL_ONLY", "ABSTRACT_OK", "SHAREABLE"]
 PRIVACY_DEFAULT: Final[str] = "LOCAL_ONLY"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 67 — SOVEREIGN INSTANTIATION CONSTANTS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Al-Khwarizmi (780-850), Ibn Khaldun (1332-1406), Al-Ghazali (1058-1111)
+
+# Fixed-point precision (6 decimal places, integer-only arithmetic)
+FP_PRECISION: Final[int] = 1_000_000
+
+# Al-Ghazali intent pre-gate: receipts below this are discarded before scoring
+INTENT_FLOOR: Final[float] = 0.90
+
+# Khaldunian Curve thresholds (progressive minting throttle)
+GINI_HEALTHY: Final[float] = 0.30  # Full minting zone
+GINI_WARNING: Final[float] = 0.50  # Throttle zone boundary
+GINI_CRISIS: Final[float] = 0.70  # Crisis zone (1% minting)
+
+# Demurrage rate on idle balances (per tick)
+DEMURRAGE_RATE: Final[float] = 0.001
+
+# BLOOM governance token decay rate per tick
+BLOOM_DECAY: Final[float] = 0.01
+
+# Reflex cache TTL (24 hours in seconds)
+REFLEX_TTL: Final[int] = 86400
+
+# Ghazali Equity Factor bounds (newcomer advantage multiplier)
+EQUITY_FACTOR_MIN: Final[float] = 1.0
+EQUITY_FACTOR_MAX: Final[float] = 5.0
+
+# Asabiyyah social cohesion weights (attestations, votes, cooperation)
+ASABIYYAH_WEIGHTS: Final[tuple] = (0.4, 0.3, 0.3)
+
+# Asabiyyah-Gini coupling: minting multiplier range based on social cohesion
+# Phase 69 Sprint 1 — closes the Khaldunian feedback loop
+# Low asabiyyah (fragmented network) → throttle DOWN to 0.80x minting
+# High asabiyyah (cohesive network) → boost UP to 1.20x minting
+# Neutral point: asabiyyah = 0.50 → multiplier = 1.00x (no effect)
+ASABIYYAH_COUPLING_FLOOR: Final[float] = 0.80
+ASABIYYAH_COUPLING_CEIL: Final[float] = 1.20
+ASABIYYAH_NEUTRAL: Final[float] = 0.50
 
 # Constitution reference
 CONSTITUTION_VERSION: Final[str] = "5.0.0-GENESIS"

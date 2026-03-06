@@ -836,6 +836,28 @@ Examples:
 
     build_genesis_parser(subparsers)
 
+    # Sovereignty command (Phase 67 Constitutional CLI)
+    sovereignty_parser = subparsers.add_parser(
+        "sovereignty",
+        help="Constitutional sovereignty (init/work/attest/status/ledger)",
+        aliases=["sov"],
+    )
+    sov_sub = sovereignty_parser.add_subparsers(
+        dest="sov_command", help="Sovereignty action"
+    )
+    sov_init = sov_sub.add_parser("init", help="Generate keypair, sign the Covenant")
+    sov_init.add_argument("name", nargs="?", help="Node display name")
+    sov_work = sov_sub.add_parser("work", help="Do verified work, earn SEED")
+    sov_work.add_argument("description", nargs="+", help="Work description")
+    sov_attest = sov_sub.add_parser("attest", help="Vouch for another node's work")
+    sov_attest.add_argument("peer_id", help="Peer node ID to attest")
+    sov_sub.add_parser("status", help="See your sovereign state")
+    sov_ledger = sov_sub.add_parser("ledger", help="Show event ledger")
+    sov_ledger.add_argument(
+        "count", nargs="?", type=int, default=10, help="Events to show"
+    )
+    sov_sub.add_parser("reset", help="Delete node (irreversible)")
+
     # Version command
     subparsers.add_parser("version", help="Show version")
 
@@ -1009,6 +1031,31 @@ Examples:
         _handle_wallet_command()
     elif args.command == "tokens":
         _handle_tokens_command()
+    elif args.command in ("sovereignty", "sov"):
+        from core.constitutional.__main__ import (
+            cmd_attest,
+            cmd_init,
+            cmd_ledger,
+            cmd_reset,
+            cmd_status,
+            cmd_work,
+        )
+
+        sov_cmd = getattr(args, "sov_command", None)
+        if sov_cmd == "init":
+            cmd_init([args.name] if args.name else [])
+        elif sov_cmd == "work":
+            cmd_work(args.description)
+        elif sov_cmd == "attest":
+            cmd_attest([args.peer_id])
+        elif sov_cmd == "status":
+            cmd_status([])
+        elif sov_cmd == "ledger":
+            cmd_ledger([str(args.count)])
+        elif sov_cmd == "reset":
+            cmd_reset([])
+        else:
+            sovereignty_parser.print_help()
     elif args.command == "version":
         print("BIZRA Sovereign Engine v1.0.0")
         print("Codename: Genesis")
