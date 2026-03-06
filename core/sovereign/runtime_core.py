@@ -229,6 +229,16 @@ class SovereignRuntime:
         self._equalizer_agent: Optional[object] = None  # EqualizerAgent
         self._unified_model_router: Optional[object] = None  # UnifiedModelRouter
 
+        # Phase 70: Bus Infrastructure (ActionBus, TopicRegistry, Config, Capsules)
+        self._action_bus: Optional[object] = None  # ActionBus
+        self._topic_registry: Optional[object] = None  # TopicRegistry
+        self._telescript_engine: Optional[object] = None  # TeleScriptEngine
+        self._config_loader: Optional[object] = None  # ConfigLoader
+        self._capsule_registry: Optional[object] = None  # CapsuleRegistry
+        self._capsule_runtime: Optional[object] = None  # CapsuleRuntime
+        self._omega_controller: Optional[object] = None  # OmegaLoopController
+        self._bus_wiring_state: Optional[object] = None  # BusWiringState
+
         # PERF FIX: Use deque for O(1) bounded storage
         self._query_times: Deque[float] = deque(maxlen=100)
 
@@ -422,6 +432,9 @@ class SovereignRuntime:
         # Initialize sovereign event bus for cross-component pub/sub.
         self._init_event_bus()
 
+        # Initialize Phase 70 bus infrastructure (ActionBus, TopicRegistry, Config, Capsules)
+        self._init_bus_infrastructure()
+
         # Load genesis identity (persistent node_id from ceremony)
         self._load_genesis_identity()
 
@@ -560,6 +573,40 @@ class SovereignRuntime:
         except Exception as e:
             self._event_bus = None
             self.logger.warning("⚠ Sovereign EventBus unavailable: %s", e)
+
+    def _init_bus_infrastructure(self) -> None:
+        """Initialize Phase 70 bus infrastructure with graceful fallback.
+
+        Wires: TopicRegistry, TeleScript, ActionBus, ConfigLoader,
+        CapsuleRuntime, OmegaLoopController. Each component fails
+        independently — runtime continues at reduced capability.
+        """
+        try:
+            from core.bus.sovereign_wiring import wire_all
+
+            components, wiring_state = wire_all(
+                event_bus=self._event_bus,
+                state_dir=self.config.state_dir,
+            )
+
+            self._action_bus = components.get("action_bus")
+            self._topic_registry = components.get("topic_registry")
+            self._telescript_engine = components.get("telescript_engine")
+            self._config_loader = components.get("config_loader")
+            self._capsule_registry = components.get("capsule_registry")
+            self._capsule_runtime = components.get("capsule_runtime")
+            self._omega_controller = components.get("omega_controller")
+            self._bus_wiring_state = wiring_state
+
+            if wiring_state.all_ok:
+                self.logger.info("✓ Bus infrastructure fully wired (5/5)")
+            else:
+                self.logger.warning(
+                    "⚠ Bus infrastructure partially wired: %s",
+                    wiring_state.summary,
+                )
+        except Exception as exc:
+            self.logger.warning("⚠ Bus infrastructure unavailable: %s", exc)
 
     async def _dispatch_equalizer_command(self, eq_cmd: object) -> None:
         """Act on an EqualizerAgent command instead of just logging it.
