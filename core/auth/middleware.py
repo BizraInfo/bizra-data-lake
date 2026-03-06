@@ -117,14 +117,7 @@ class AuthMiddleware:
         now = time.time()
 
         if user_id not in self._buckets:
-            # Evict stale buckets when approaching limit
-            if len(self._buckets) >= self._BUCKET_MAX:
-                stale_cutoff = now - 600  # 10 min idle = stale
-                stale = [
-                    k for k, v in self._buckets.items() if v["last"] < stale_cutoff
-                ]
-                for k in stale:
-                    del self._buckets[k]
+            self._evict_buckets(now, needed_slots=1)
             self._buckets[user_id] = {"tokens": float(self._burst), "last": now}
             return True
 
@@ -137,6 +130,24 @@ class AuthMiddleware:
             bucket["tokens"] -= 1.0
             return True
         return False
+
+    def _evict_buckets(self, now: float, needed_slots: int) -> None:
+        """Keep rate-limit buckets within capacity, even when entries are fresh."""
+        if len(self._buckets) + needed_slots <= self._BUCKET_MAX:
+            return
+
+        stale_cutoff = now - 600  # 10 min idle = stale
+        stale = [k for k, v in self._buckets.items() if v["last"] < stale_cutoff]
+        for key in stale:
+            del self._buckets[key]
+
+        overflow = len(self._buckets) + needed_slots - self._BUCKET_MAX
+        if overflow <= 0:
+            return
+
+        oldest = sorted(self._buckets.items(), key=lambda item: item[1]["last"])
+        for key, _ in oldest[:overflow]:
+            del self._buckets[key]
 
     def rate_limit_remaining(self, user_id: str) -> int:
         """Get remaining rate limit tokens for a user."""

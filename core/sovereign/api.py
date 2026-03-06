@@ -64,12 +64,13 @@ def _env_truthy(var_name: str) -> bool:
 try:
     from fastapi import Request  # Module-level for PEP 563 annotation resolution
     from pydantic import BaseModel as _PydanticBaseModel
+    from pydantic import Field as _PydanticField
 
     class QueryRequestModel(_PydanticBaseModel):
         """FastAPI request model for /v1/query."""
 
         query: str
-        context: dict[str, Any] = {}
+        context: dict[str, Any] = _PydanticField(default_factory=dict)
         require_reasoning: bool = True
         require_validation: bool = True
         max_depth: int = 3
@@ -81,7 +82,7 @@ try:
         """FastAPI request model for /v1/orchestrate."""
 
         task: str
-        context: dict[str, Any] = {}
+        context: dict[str, Any] = _PydanticField(default_factory=dict)
         max_agents: int = 5
 
     class ValidateRequestModel(_PydanticBaseModel):
@@ -150,7 +151,7 @@ try:
         """Request model for /v1/cognitive/fuse — direct cognitive fusion pipeline."""
 
         query: str
-        context: dict[str, Any] = {}
+        context: dict[str, Any] = _PydanticField(default_factory=dict)
 
     # Phase 20: Spearpoint request models
     class SpearpointReproduceModel(_PydanticBaseModel):
@@ -160,7 +161,7 @@ try:
         proposed_change: str = ""
         prompt: str = ""
         response: str = ""
-        metrics: dict[str, Any] = {}
+        metrics: dict[str, Any] = _PydanticField(default_factory=dict)
 
     class SpearpointImproveModel(_PydanticBaseModel):
         """Request model for /v1/spearpoint/improve — innovation through evaluator gate."""
@@ -190,14 +191,23 @@ try:
     SpearpointReproduceModel.model_rebuild()
     SpearpointImproveModel.model_rebuild()
     SpearpointPatternModel.model_rebuild()
+    PoIReceiptVerifyModel.model_rebuild()
+    MemorySearchModel.model_rebuild()
 
 except ImportError:
     Request = None  # type: ignore[assignment,misc]
     QueryRequestModel = None  # type: ignore[assignment,misc]
     OrchestrateRequestModel = None  # type: ignore[assignment,misc]
+    ValidateRequestModel = None  # type: ignore[assignment,misc]
+    EnvelopeVerifyModel = None  # type: ignore[assignment,misc]
+    ReceiptVerifyModel = None  # type: ignore[assignment,misc]
+    AuditLogVerifyModel = None  # type: ignore[assignment,misc]
+    PoIReceiptVerifyModel = None  # type: ignore[assignment,misc]
     RegisterRequestModel = None  # type: ignore[assignment,misc]
     LoginRequestModel = None  # type: ignore[assignment,misc]
     RefreshTokenModel = None  # type: ignore[assignment,misc]
+    SELRetrieveModel = None  # type: ignore[assignment,misc]
+    MemorySearchModel = None  # type: ignore[assignment,misc]
     CognitiveFuseModel = None  # type: ignore[assignment,misc]
     SpearpointReproduceModel = None  # type: ignore[assignment,misc]
     SpearpointImproveModel = None  # type: ignore[assignment,misc]
@@ -340,11 +350,7 @@ class RateLimiter:
         now = time.time()
 
         if key not in self.buckets:
-            if len(self.buckets) >= self._max_buckets:
-                cutoff = now - 600  # 10 min idle = stale
-                stale = [k for k, v in self.buckets.items() if v["last"] < cutoff]
-                for k in stale:
-                    del self.buckets[k]
+            self._evict_buckets(now, needed_slots=1)
             self.buckets[key] = {"tokens": self.burst, "last": now}
             return True
 
@@ -363,6 +369,24 @@ class RateLimiter:
         if key not in self.buckets:
             return self.burst
         return int(self.buckets[key]["tokens"])
+
+    def _evict_buckets(self, now: float, needed_slots: int) -> None:
+        """Keep the limiter bounded even during sustained fresh-cardinality traffic."""
+        if len(self.buckets) + needed_slots <= self._max_buckets:
+            return
+
+        cutoff = now - 600  # 10 min idle = stale
+        stale = [k for k, v in self.buckets.items() if v["last"] < cutoff]
+        for key in stale:
+            del self.buckets[key]
+
+        overflow = len(self.buckets) + needed_slots - self._max_buckets
+        if overflow <= 0:
+            return
+
+        oldest = sorted(self.buckets.items(), key=lambda item: item[1]["last"])
+        for key, _ in oldest[:overflow]:
+            del self.buckets[key]
 
 
 # =============================================================================
@@ -494,8 +518,8 @@ class SovereignAPIServer:
             writer.write(resp_bytes)  # type: ignore[arg-type]
             await writer.drain()
 
-        except Exception as e:
-            logger.error(f"Connection error: {e}")
+        except Exception:
+            logger.exception("Connection error")
         finally:
             writer.close()
 
@@ -646,9 +670,9 @@ class SovereignAPIServer:
 
         except json.JSONDecodeError:
             return self._json_response({"error": "Invalid JSON"}, 400)
-        except Exception as e:
-            logger.error(f"Query error: {e}")
-            return self._json_response({"error": str(e)}, 500)
+        except Exception:
+            logger.exception("Query error")
+            return self._json_response({"error": "Internal server error"}, 500)
 
     async def _handle_sel_episodes(self) -> str:
         """Handle SEL episodes listing."""
@@ -799,8 +823,9 @@ class SovereignAPIServer:
                     "balances": balances,
                 }
             )
-        except Exception as e:
-            return self._json_response({"error": str(e)}, 500)
+        except Exception:
+            logger.exception("Token balance error")
+            return self._json_response({"error": "Internal server error"}, 500)
 
     async def _handle_token_supply(self) -> str:
         """GET /v1/token/supply"""
@@ -831,8 +856,9 @@ class SovereignAPIServer:
                     "ledger_sequence": ledger.sequence,
                 }
             )
-        except Exception as e:
-            return self._json_response({"error": str(e)}, 500)
+        except Exception:
+            logger.exception("Token supply error")
+            return self._json_response({"error": "Internal server error"}, 500)
 
     async def _handle_token_history(self, params: dict[str, str]) -> str:
         """GET /v1/token/history?account=BIZRA-00000000&limit=20"""
@@ -857,8 +883,9 @@ class SovereignAPIServer:
                     "transactions": [tx.to_dict() for tx in txns],
                 }
             )
-        except Exception as e:
-            return self._json_response({"error": str(e)}, 500)
+        except Exception:
+            logger.exception("Token history error")
+            return self._json_response({"error": "Internal server error"}, 500)
 
     async def _handle_token_verify(self) -> str:
         """GET /v1/token/verify — Verify token ledger hash chain."""
@@ -875,8 +902,9 @@ class SovereignAPIServer:
                     "ledger_sequence": ledger.sequence,
                 }
             )
-        except Exception as e:
-            return self._json_response({"error": str(e)}, 500)
+        except Exception:
+            logger.exception("Token verify error")
+            return self._json_response({"error": "Internal server error"}, 500)
 
     def _json_response(self, data: dict[str, Any], status: int = 200) -> str:
         """Build JSON HTTP response."""
@@ -1226,18 +1254,47 @@ def create_fastapi_app(runtime: Any) -> Any:
         user_id, user, auth_error = _authenticate_http_request(request)
         if auth_error is not None:
             return auth_error
+        if not body.query:
+            return JSONResponse(status_code=400, content={"error": "Query required"})
+        if len(body.query) > MAX_QUERY_LENGTH:
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"Query too long (max {MAX_QUERY_LENGTH} chars)"},
+            )
+        if len(body.context) > MAX_CONTEXT_KEYS:
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"Too many context keys (max {MAX_CONTEXT_KEYS})"},
+            )
+        if not (1 <= body.max_depth <= MAX_DEPTH_LIMIT):
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"max_depth must be 1-{MAX_DEPTH_LIMIT}"},
+            )
+        if not (1000 <= body.timeout_ms <= MAX_TIMEOUT_MS):
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"timeout_ms must be 1000-{MAX_TIMEOUT_MS}"},
+            )
         if user is not None and _user_store is not None:
             _user_store.increment_query_count(user_id)
 
-        result = await runtime.query(
-            body.query,
-            context=body.context,
-            require_reasoning=body.require_reasoning,
-            require_validation=body.require_validation,
-            max_depth=body.max_depth,
-            timeout_ms=body.timeout_ms,
-            user_id=user_id,
-        )
+        try:
+            result = await runtime.query(
+                body.query,
+                context=body.context,
+                require_reasoning=body.require_reasoning,
+                require_validation=body.require_validation,
+                max_depth=body.max_depth,
+                timeout_ms=body.timeout_ms,
+                user_id=user_id,
+            )
+        except Exception:
+            logger.exception("Query execution failed")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
 
         response: dict[str, Any] = {
             "id": result.query_id,
@@ -1340,10 +1397,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "threshold": threshold,
                 "level": body.level,
             }
-        except Exception as e:
+        except Exception:
+            logger.exception("Validation failed")
             return JSONResponse(
                 status_code=500,
-                content={"error": str(e)},
+                content={"error": "Internal server error"},
             )
 
     # ─── Verification Endpoints (True Spearpoint) ─────────────────────
@@ -1451,13 +1509,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "hash_validated": True,
                 },
             ).to_dict()
-        except Exception as e:
-            logger.error(f"Genesis verification failed: {e}")
+        except Exception:
+            logger.exception("Genesis verification failed")
             return JSONResponse(
                 status_code=500,
                 content=VerifierResponse.rejected(
                     reason_codes=["INVARIANT_FAILED"],
-                    artifacts={"detail": str(e)},
+                    artifacts={"detail": "Internal server error"},
                 ).to_dict(),
             )
 
@@ -1545,13 +1603,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "digest": digest,
                 },
             ).to_dict()
-        except Exception as e:
-            logger.error(f"Envelope verification failed: {e}")
+        except Exception:
+            logger.exception("Envelope verification failed")
             return JSONResponse(
                 status_code=500,
                 content=VerifierResponse.rejected(
                     reason_codes=["INVARIANT_FAILED"],
-                    artifacts={"detail": str(e)},
+                    artifacts={"detail": "Internal server error"},
                 ).to_dict(),
             )
 
@@ -1706,13 +1764,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 receipt_id=receipt.receipt_id,
                 artifacts=artifacts,
             ).to_dict()
-        except Exception as e:
-            logger.error(f"Receipt verification failed: {e}")
+        except Exception:
+            logger.exception("Receipt verification failed")
             return JSONResponse(
                 status_code=500,
                 content=VerifierResponse.rejected(
                     reason_codes=["INVARIANT_FAILED"],
-                    artifacts={"detail": str(e)},
+                    artifacts={"detail": "Internal server error"},
                 ).to_dict(),
             )
 
@@ -1761,13 +1819,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 receipt_id=f"audit-{len(entries):06d}",
                 artifacts=artifacts,
             ).to_dict()
-        except Exception as e:
-            logger.error(f"Audit log verification failed: {e}")
+        except Exception:
+            logger.exception("Audit log verification failed")
             return JSONResponse(
                 status_code=500,
                 content=VerifierResponse.rejected(
                     reason_codes=["INVARIANT_FAILED"],
-                    artifacts={"detail": str(e)},
+                    artifacts={"detail": "Internal server error"},
                 ).to_dict(),
             )
 
@@ -1810,13 +1868,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 reason_codes=["EVIDENCE_TAMPERED"],
                 artifacts=artifacts,
             ).to_dict()
-        except Exception as e:
-            logger.error(f"Ledger verification failed: {e}")
+        except Exception:
+            logger.exception("Ledger verification failed")
             return JSONResponse(
                 status_code=500,
                 content=VerifierResponse.rejected(
                     reason_codes=["INVARIANT_FAILED"],
-                    artifacts={"detail": str(e)},
+                    artifacts={"detail": "Internal server error"},
                 ).to_dict(),
             )
 
@@ -1877,10 +1935,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "/v1/sel/verify",
                 ],
             }
-        except Exception as e:
+        except Exception:
+            logger.exception("Signature info retrieval failed")
             return JSONResponse(
                 status_code=500,
-                content={"error": str(e)},
+                content={"error": "Internal server error"},
             )
 
     @app.post("/v1/verify/poi")
@@ -2013,13 +2072,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 artifacts=artifacts,
             ).to_dict()
 
-        except Exception as e:
-            logger.error(f"PoI receipt verification failed: {e}")
+        except Exception:
+            logger.exception("PoI receipt verification failed")
             return JSONResponse(
                 status_code=500,
                 content=VerifierResponse.rejected(
                     reason_codes=["INVARIANT_FAILED"],
-                    artifacts={"detail": str(e)},
+                    artifacts={"detail": "Internal server error"},
                 ).to_dict(),
             )
 
@@ -2091,10 +2150,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "hash_validated": True,
                 "header_only": True,
             }
-        except Exception as e:
+        except Exception:
+            logger.exception("Genesis header verification failed")
             return JSONResponse(
                 status_code=500,
-                content={"error": str(e)},
+                content={"error": "Internal server error"},
             )
 
     @app.get("/v1/gate-chain/stats")
@@ -2199,8 +2259,12 @@ def create_fastapi_app(runtime: Any) -> Any:
     # ─── Token System Endpoints ─────────────────────────────────
 
     @app.get("/v1/token/balance")
-    async def token_balance(account: str = "BIZRA-00000000"):
+    async def token_balance(request: Request, account: str = "BIZRA-00000000"):
         """Get token balances for an account."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         try:
             from core.token.ledger import TokenLedger
             from core.token.types import TokenType
@@ -2215,10 +2279,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                         "staked": bal.staked,
                     }
             return result
-        except Exception as e:
+        except Exception:
+            logger.exception("Token balance retrieval failed")
             return JSONResponse(
                 status_code=503,
-                content={"error": f"Token system unavailable: {e}"},
+                content={"error": "Service temporarily unavailable"},
             )
 
     @app.get("/v1/token/supply")
@@ -2249,10 +2314,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "ledger_valid": valid,
                 "transaction_count": count,
             }
-        except Exception as e:
+        except Exception:
+            logger.exception("Token supply retrieval failed")
             return JSONResponse(
                 status_code=503,
-                content={"error": f"Token system unavailable: {e}"},
+                content={"error": "Service temporarily unavailable"},
             )
 
     @app.get("/v1/token/verify")
@@ -2268,10 +2334,112 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "transaction_count": count,
                 "error": err,
             }
-        except Exception as e:
+        except Exception:
+            logger.exception("Token verify failed")
             return JSONResponse(
                 status_code=503,
-                content={"error": f"Token system unavailable: {e}"},
+                content={"error": "Service temporarily unavailable"},
+            )
+
+    # ═════════════════════════════════════════════════════════════
+    # /v1/constitutional/tick — 12-Step Constitutional Heartbeat
+    # Standing on Giants: Al-Khwarizmi, Nakamoto, Kahneman
+    # ═════════════════════════════════════════════════════════════
+    @app.post("/v1/constitutional/tick")
+    async def constitutional_tick(request: Request):
+        """Execute one tick of the constitutional kernel.
+
+        12 deterministic steps: intent gate → ihsan scoring → gini →
+        progressive mint → bloom accrual → bloom decay → demurrage →
+        zakat → governance → reflex cache → event log → asabiyyah.
+
+        Auth-guarded. Returns TickResult summary.
+        """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        try:
+            from core.constitutional.ticker import TickResult, process_tick
+            from core.constitutional.types import WalletState
+
+            # Gather state from runtime if available
+            _wallets = getattr(runtime, "_constitutional_wallets", [])
+            _receipts = getattr(runtime, "_constitutional_receipts", [])
+            _proposals = getattr(runtime, "_constitutional_proposals", [])
+            _event_log = getattr(runtime, "_constitutional_event_log", [])
+            _reflex_cache = getattr(runtime, "_constitutional_reflex_cache", {})
+
+            result = process_tick(
+                wallets=_wallets,
+                receipts=_receipts,
+                proposals=_proposals,
+                event_log=_event_log,
+                reflex_cache=_reflex_cache,
+            )
+
+            # Clear processed receipts (they've been consumed by the tick)
+            if hasattr(runtime, "_constitutional_receipts"):
+                runtime._constitutional_receipts = []
+
+            from core.constitutional.fixed_point import fp_float
+
+            return {
+                "status": "tick_complete",
+                "rejected": result.rejected,
+                "scored": result.scored,
+                "total_minted": fp_float(result.total_minted),
+                "zakat_pool": fp_float(result.zakat_pool),
+                "network_gini": fp_float(result.network_gini),
+                "network_asabiyyah": fp_float(result.network_asabiyyah_score),
+                "events_logged": result.events_logged,
+                "proposals_resolved": result.proposals_resolved,
+                "wallets_count": len(_wallets),
+            }
+        except ImportError:
+            logger.exception("Constitutional engine not available")
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Service temporarily unavailable"},
+            )
+        except Exception:
+            logger.exception("Constitutional tick failed")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
+
+    @app.get("/v1/constitutional/status")
+    async def constitutional_status(request: Request):
+        """Get current constitutional kernel state."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        try:
+            from core.constitutional.fixed_point import fp_float
+
+            _wallets = getattr(runtime, "_constitutional_wallets", [])
+            _event_log = getattr(runtime, "_constitutional_event_log", [])
+            _reflex_cache = getattr(runtime, "_constitutional_reflex_cache", {})
+
+            return {
+                "status": "active",
+                "wallets": len(_wallets),
+                "events": len(_event_log),
+                "reflexes": len(_reflex_cache),
+                "pending_receipts": len(
+                    getattr(runtime, "_constitutional_receipts", [])
+                ),
+                "pending_proposals": len(
+                    getattr(runtime, "_constitutional_proposals", [])
+                ),
+            }
+        except Exception:
+            logger.exception("Constitutional status unavailable")
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Service temporarily unavailable"},
             )
 
     # /v1/orchestrate — direct orchestrator task decomposition endpoint
@@ -2315,10 +2483,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "total_tasks": len(plan.tasks),
                 "tasks": tasks_out,
             }
-        except Exception as e:
+        except Exception:
+            logger.exception("Orchestration failed")
             return JSONResponse(
                 status_code=500,
-                content={"error": str(e)},
+                content={"error": "Internal server error"},
             )
 
     # ─── Spearpoint Endpoints ────────────────────────────────────────────
@@ -2350,10 +2519,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 metrics=body.metrics,
             )
             return result.to_dict()
-        except Exception as e:
+        except Exception:
+            logger.exception("Spearpoint reproduce failed")
             return JSONResponse(
                 status_code=500,
-                content={"error": str(e)},
+                content={"error": "Internal server error"},
             )
 
     @app.post("/v1/spearpoint/improve")
@@ -2376,15 +2546,20 @@ def create_fastapi_app(runtime: Any) -> Any:
                 top_k=body.top_k,
             )
             return result.to_dict()
-        except Exception as e:
+        except Exception:
+            logger.exception("Spearpoint improve failed")
             return JSONResponse(
                 status_code=500,
-                content={"error": str(e)},
+                content={"error": "Internal server error"},
             )
 
     @app.get("/v1/spearpoint/stats")
-    async def spearpoint_stats():
+    async def spearpoint_stats(request: Request):
         """Get Spearpoint Orchestrator statistics and mission history."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         orch = getattr(runtime, "_spearpoint_orchestrator", None)
         if orch is None:
             return JSONResponse(
@@ -2397,10 +2572,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "statistics": orch.get_statistics(),
                 "recent_missions": orch.get_mission_history(limit=10),
             }
-        except Exception as e:
+        except Exception:
+            logger.exception("Spearpoint stats failed")
             return JSONResponse(
                 status_code=500,
-                content={"error": str(e)},
+                content={"error": "Internal server error"},
             )
 
     @app.post("/v1/spearpoint/pattern")
@@ -2428,10 +2604,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 top_k=body.top_k,
             )
             return result.to_dict()
-        except Exception as e:
+        except Exception:
+            logger.exception("Spearpoint pattern failed")
             return JSONResponse(
                 status_code=500,
-                content={"error": str(e)},
+                content={"error": "Internal server error"},
             )
 
     # ─── WebSocket Agent-to-User Push Channel ────────────────────────────
@@ -2556,11 +2733,15 @@ def create_fastapi_app(runtime: Any) -> Any:
     # episodic memory store for audit, retrieval, and verification.
 
     @app.get("/v1/sel/episodes")
-    async def sel_episodes(limit: int = 50, offset: int = 0):
+    async def sel_episodes(request: Request, limit: int = 50, offset: int = 0):
         """list episodes from the Sovereign Experience Ledger.
 
         Returns episodes in reverse chronological order (newest first).
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         sel = getattr(runtime, "_experience_ledger", None)
         if sel is None:
             return JSONResponse(
@@ -2597,13 +2778,19 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "distillation_count": sel.distillation_count,
                 "episodes": episodes,
             }
-        except Exception as e:
-            logger.error(f"SEL episodes list failed: {e}")
-            return JSONResponse(status_code=500, content={"error": str(e)})
+        except Exception:
+            logger.exception("SEL episodes list failed")
+            return JSONResponse(
+                status_code=500, content={"error": "Internal server error"}
+            )
 
     @app.get("/v1/sel/episodes/{episode_hash}")
-    async def sel_episode_by_hash(episode_hash: str):
+    async def sel_episode_by_hash(episode_hash: str, request: Request):
         """Retrieve a single episode by its content-address hash."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         sel = getattr(runtime, "_experience_ledger", None)
         if sel is None:
             return JSONResponse(
@@ -2619,9 +2806,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                     content={"error": f"Episode not found: {episode_hash[:16]}..."},
                 )
             return ep.to_dict()
-        except Exception as e:
-            logger.error(f"SEL episode lookup failed: {e}")
-            return JSONResponse(status_code=500, content={"error": str(e)})
+        except Exception:
+            logger.exception("SEL episode lookup failed")
+            return JSONResponse(
+                status_code=500, content={"error": "Internal server error"}
+            )
 
     @app.post("/v1/sel/retrieve")
     async def sel_retrieve(body: SELRetrieveModel, request: Request):
@@ -2655,9 +2844,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "count": len(results),
                 "episodes": [ep.to_dict() for ep in results],
             }
-        except Exception as e:
-            logger.error(f"SEL retrieve failed: {e}")
-            return JSONResponse(status_code=500, content={"error": str(e)})
+        except Exception:
+            logger.exception("SEL retrieve failed")
+            return JSONResponse(
+                status_code=500, content={"error": "Internal server error"}
+            )
 
     @app.get("/v1/sel/verify")
     async def sel_verify():
@@ -2686,9 +2877,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 ),
                 "distillation_count": sel.distillation_count,
             }
-        except Exception as e:
-            logger.error(f"SEL verify failed: {e}")
-            return JSONResponse(status_code=500, content={"error": str(e)})
+        except Exception:
+            logger.exception("SEL verify failed")
+            return JSONResponse(
+                status_code=500, content={"error": "Internal server error"}
+            )
 
     # ─── AgentDB Memory Search Endpoint (V3 Unified Memory) ──────────
 
@@ -2742,13 +2935,18 @@ def create_fastapi_app(runtime: Any) -> Any:
                     for r in results
                 ],
             }
-        except Exception as e:
-            logger.error(f"AgentDB search failed: {e}")
-            return JSONResponse(status_code=500, content={"error": str(e)})
+        except Exception:
+            logger.exception("AgentDB search failed")
+            return JSONResponse(
+                status_code=500, content={"error": "Internal server error"}
+            )
 
     @app.get("/v1/memory/stats")
-    async def memory_stats():
+    async def memory_stats(request: Request):
         """Get AgentDB statistics (record counts, vector index, paths)."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         agent_db = getattr(runtime, "_agent_db", None)
         if agent_db is None:
             return JSONResponse(
@@ -2820,9 +3018,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "passes_all_gates": result.northstar_report.passes_all_gates,
                 },
             }
-        except Exception as e:
-            logger.error(f"Cognitive fusion failed: {e}")
-            return JSONResponse(status_code=500, content={"error": str(e)})
+        except Exception:
+            logger.exception("Cognitive fusion failed")
+            return JSONResponse(
+                status_code=500, content={"error": "Internal server error"}
+            )
 
     @app.get("/v1/cognitive/status")
     async def cognitive_status():
@@ -2860,11 +3060,15 @@ def create_fastapi_app(runtime: Any) -> Any:
     # ─── SJE Judgment Telemetry Endpoints (Phase A: Observation) ──────
 
     @app.get("/v1/judgment/stats")
-    async def judgment_stats():
+    async def judgment_stats(request: Request):
         """Get SJE verdict distribution and entropy.
 
         Standing on: Shannon (1948) — entropy as uncertainty measure.
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         jt = getattr(runtime, "_judgment_telemetry", None)
         if jt is None:
             return JSONResponse(
@@ -2874,12 +3078,16 @@ def create_fastapi_app(runtime: Any) -> Any:
         return jt.to_dict()
 
     @app.get("/v1/judgment/stability")
-    async def judgment_stability():
+    async def judgment_stability(request: Request):
         """Check if judgment verdicts are stable (low entropy).
 
         Stability indicates strong consensus toward one verdict.
         Standing on: Shannon (1948), Aristotle (practical wisdom).
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         jt = getattr(runtime, "_judgment_telemetry", None)
         if jt is None:
             return JSONResponse(
@@ -2921,8 +3129,12 @@ def create_fastapi_app(runtime: Any) -> Any:
 
     # ─── Proactive Suggestions Endpoint ───────────────────────────────
     @app.get("/v1/suggestions")
-    async def proactive_suggestions():
+    async def proactive_suggestions(request: Request):
         """Get proactive knowledge suggestions from living memory."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         living_memory = getattr(runtime, "_living_memory", None)
         if living_memory is None:
             return {"suggestions": [], "note": "Living memory not initialized"}
@@ -2963,8 +3175,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 ],
                 "context": retriever.get_context_summary(),
             }
-        except Exception as e:
-            return JSONResponse(status_code=500, content={"error": str(e)})
+        except Exception:
+            logger.exception("Proactive suggestions failed")
+            return JSONResponse(
+                status_code=500, content={"error": "Internal server error"}
+            )
 
     # ─── Phase 21: Auth Endpoints ────────────────────────────────────
     # Standing on: OWASP ASVS v4 (auth verification)
@@ -2988,6 +3203,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                     username=body.username,
                     email=body.email,
                     password=body.password,
+                    accept_covenant=body.accept_covenant,
                 )
                 tokens = _jwt_auth.issue_tokens(user.user_id, user.username)
                 return {
@@ -2997,6 +3213,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                         "email": user.email,
                         "api_key": user.api_key,
                         "namespace": user.namespace,
+                        "covenant_accepted": user.covenant_accepted,
                         "created_at": user.created_at,
                     },
                     "tokens": {
@@ -3008,8 +3225,8 @@ def create_fastapi_app(runtime: Any) -> Any:
                 }
             except ValueError as e:
                 return JSONResponse(status_code=409, content={"error": str(e)})
-            except Exception as e:
-                logger.error(f"Registration failed: {e}")
+            except Exception:
+                logger.exception("Registration failed")
                 return JSONResponse(
                     status_code=500, content={"error": "Registration failed"}
                 )

@@ -244,6 +244,11 @@ class JWTAuth:
             expired = [k for k, v in self._blacklist.items() if v <= now]
             for k in expired:
                 del self._blacklist[k]
+        overflow = len(self._blacklist) - self._BLACKLIST_MAX
+        if overflow > 0:
+            oldest_expiry = sorted(self._blacklist.items(), key=lambda item: item[1])
+            for key, _ in oldest_expiry[:overflow]:
+                del self._blacklist[key]
 
     # --------------------------------------------------------------------------
     # JWT ENCODING / DECODING (RFC 7519 compliant)

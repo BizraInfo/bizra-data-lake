@@ -12,18 +12,17 @@ Covers:
 
 from __future__ import annotations
 
-import os
+import base64
+import hashlib
 import sqlite3
-import tempfile
 import time
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
+from cryptography.fernet import Fernet
 
-from core.auth.jwt_auth import JWTAuth, TokenClaims, TokenPair
+from core.auth.jwt_auth import JWTAuth, TokenPair
 
 # ---------------------------------------------------------------------------
 # Import auth components
@@ -32,6 +31,8 @@ from core.auth.user_store import (
     UserRecord,
     UserStore,
     generate_api_key,
+    generate_ed25519_keypair,
+    hash_api_key,
     hash_password,
     verify_password,
 )
@@ -181,9 +182,100 @@ class TestUserStore:
         assert found is not None
         assert found.user_id == registered_user.user_id
 
+    def test_primary_api_key_stored_hashed(
+        self, store: UserStore, registered_user: UserRecord
+    ):
+        with sqlite3.connect(str(store.db_path)) as conn:
+            row = conn.execute(
+                "SELECT api_key FROM users WHERE user_id = ?",
+                (registered_user.user_id,),
+            ).fetchone()
+        assert row is not None
+        stored = row[0]
+        assert stored == hash_api_key(registered_user.api_key)
+        assert stored != registered_user.api_key
+        assert not stored.startswith("bzr_")
+
+    def test_secondary_api_key_stored_hashed(
+        self, store: UserStore, registered_user: UserRecord
+    ):
+        key = store.create_secondary_api_key(registered_user.user_id, label="ci")
+        assert key is not None
+
+        with sqlite3.connect(str(store.db_path)) as conn:
+            row = conn.execute(
+                "SELECT api_key FROM api_keys WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+                (registered_user.user_id,),
+            ).fetchone()
+        assert row is not None
+        stored = row[0]
+        assert stored == hash_api_key(key)
+        assert stored != key
+        assert store.verify_api_key(key) is not None
+
+    def test_verify_api_key_upgrades_legacy_plaintext_primary(self, store: UserStore):
+        user = store.register(
+            username="legacy_primary",
+            email="legacy_primary@bizra.ai",
+            password="password123",
+        )
+        with sqlite3.connect(str(store.db_path)) as conn:
+            conn.execute(
+                "UPDATE users SET api_key = ? WHERE user_id = ?",
+                (user.api_key, user.user_id),
+            )
+            conn.commit()
+
+        found = store.verify_api_key(user.api_key)
+        assert found is not None
+
+        with sqlite3.connect(str(store.db_path)) as conn:
+            row = conn.execute(
+                "SELECT api_key FROM users WHERE user_id = ?",
+                (user.user_id,),
+            ).fetchone()
+        assert row is not None
+        assert row[0] == hash_api_key(user.api_key)
+
+    def test_verify_api_key_upgrades_legacy_plaintext_secondary(
+        self, store: UserStore, registered_user: UserRecord
+    ):
+        key = store.create_secondary_api_key(registered_user.user_id, label="legacy-secondary")
+        assert key is not None
+
+        with sqlite3.connect(str(store.db_path)) as conn:
+            conn.execute(
+                "UPDATE api_keys SET api_key = ? WHERE user_id = ?",
+                (key, registered_user.user_id),
+            )
+            conn.commit()
+
+        found = store.verify_api_key(key)
+        assert found is not None
+        assert found.user_id == registered_user.user_id
+
+        with sqlite3.connect(str(store.db_path)) as conn:
+            row = conn.execute(
+                "SELECT api_key FROM api_keys WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+                (registered_user.user_id,),
+            ).fetchone()
+        assert row is not None
+        assert row[0] == hash_api_key(key)
+
     def test_verify_invalid_api_key(self, store: UserStore):
         found = store.verify_api_key("bzr_invalid")
         assert found is None
+
+    def test_verify_expired_secondary_api_key_rejected(
+        self, store: UserStore, registered_user: UserRecord
+    ):
+        expired_key = store.create_secondary_api_key(
+            registered_user.user_id,
+            label="expired",
+            expires_in_days=-1,
+        )
+        assert expired_key is not None
+        assert store.verify_api_key(expired_key) is None
 
     def test_count_users(self, store: UserStore):
         assert store.count_users() == 0
@@ -233,6 +325,99 @@ class TestUserStore:
         data_dir = store.get_user_data_dir(registered_user.user_id)
         assert data_dir is not None
         assert registered_user.user_id[:8] in str(data_dir)
+
+    def test_ed25519_secret_wrap_stored_as_v2(
+        self, tmp_db: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setenv("BIZRA_USERSTORE_MASTER_SECRET", "unit-test-master-secret")
+        local_store = UserStore(db_path=tmp_db)
+        user = local_store.register(
+            username="v2_user",
+            email="v2@bizra.ai",
+            password="password123",
+        )
+        with sqlite3.connect(str(tmp_db)) as conn:
+            row = conn.execute(
+                "SELECT ed25519_secret_key_enc FROM users WHERE user_id = ?",
+                (user.user_id,),
+            ).fetchone()
+        assert row is not None
+        assert row[0].startswith("fernet:v2:")
+
+    def test_legacy_ed25519_wrap_migrates_to_v2(
+        self, tmp_db: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setenv("BIZRA_USERSTORE_MASTER_SECRET", "unit-test-master-secret")
+        local_store = UserStore(db_path=tmp_db)
+        user = local_store.register(
+            username="legacy_wrap",
+            email="legacy_wrap@bizra.ai",
+            password="password123",
+        )
+
+        with sqlite3.connect(str(tmp_db)) as conn:
+            row = conn.execute(
+                "SELECT password_hash FROM users WHERE user_id = ?",
+                (user.user_id,),
+            ).fetchone()
+            assert row is not None
+            password_hash = row[0]
+
+            legacy_material = hashlib.pbkdf2_hmac(
+                "sha256",
+                password_hash.encode("utf-8"),
+                user.user_id.encode("utf-8"),
+                100_000,
+            )
+            legacy_key = base64.urlsafe_b64encode(legacy_material[:32])
+            legacy_plaintext = "ab" * 32
+            legacy_wrapped = "fernet:v1:" + Fernet(legacy_key).encrypt(
+                legacy_plaintext.encode("utf-8")
+            ).decode("utf-8")
+
+            conn.execute(
+                "UPDATE users SET ed25519_secret_key_enc = ? WHERE user_id = ?",
+                (legacy_wrapped, user.user_id),
+            )
+            conn.commit()
+
+        migrated_store = UserStore(db_path=tmp_db)
+        with sqlite3.connect(str(tmp_db)) as conn:
+            migrated = conn.execute(
+                "SELECT ed25519_secret_key_enc FROM users WHERE user_id = ?",
+                (user.user_id,),
+            ).fetchone()
+        assert migrated is not None
+        wrapped = migrated[0]
+        assert wrapped.startswith("fernet:v2:")
+        assert wrapped != legacy_wrapped
+
+        token = wrapped[len("fernet:v2:") :].encode("utf-8")
+        decrypted = Fernet(migrated_store._derive_master_wrapping_key(user.user_id)).decrypt(
+            token
+        )
+        assert decrypted.decode("utf-8") == legacy_plaintext
+
+    def test_generate_ed25519_keypair_fails_closed_without_backends(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        import builtins
+
+        original_import = builtins.__import__
+
+        def blocked_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "nacl.signing" or name.startswith(
+                "cryptography.hazmat.primitives.asymmetric.ed25519"
+            ):
+                raise ImportError("backend blocked by test")
+            if name.startswith("cryptography.hazmat.primitives.serialization"):
+                raise ImportError("backend blocked by test")
+            return original_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr(builtins, "__import__", blocked_import)
+
+        with pytest.raises(RuntimeError, match="Ed25519 backend unavailable"):
+            generate_ed25519_keypair()
 
 
 # ===========================================================================
@@ -318,6 +503,20 @@ class TestJWTAuth:
         jwt.revoke_token(pair.access_token)
         claims = jwt.verify_token(pair.access_token)
         assert claims is None
+
+    def test_blacklist_stays_bounded_when_entries_are_fresh(self, jwt: JWTAuth):
+        now = int(time.time())
+        jwt._BLACKLIST_MAX = 2
+        jwt._blacklist = {
+            "oldest": now + 10,
+            "newer": now + 20,
+        }
+
+        jwt._blacklist_add("freshest", now + 30)
+
+        assert len(jwt._blacklist) == 2
+        assert "oldest" not in jwt._blacklist
+        assert set(jwt._blacklist) == {"newer", "freshest"}
 
     def test_different_secrets_reject(self):
         jwt1 = JWTAuth(secret="secret-one-is-one-secret!!!!!!!!!")
@@ -448,6 +647,27 @@ class TestAuthMiddleware:
 
         with pytest.raises(Exception):
             await mw.authenticate(request)
+
+    def test_rate_limit_buckets_stay_bounded_when_entries_are_fresh(
+        self,
+        store: UserStore,
+        jwt: JWTAuth,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        from core.auth.middleware import AuthMiddleware
+
+        monkeypatch.setattr("core.auth.middleware.time.time", lambda: 1000.0)
+        mw = AuthMiddleware(user_store=store, jwt_auth=jwt)
+        mw._BUCKET_MAX = 2
+        mw._buckets = {
+            "oldest": {"tokens": 1.0, "last": 990.0},
+            "newer": {"tokens": 1.0, "last": 995.0},
+        }
+
+        assert mw.check_rate_limit("fresh") is True
+        assert len(mw._buckets) == 2
+        assert "oldest" not in mw._buckets
+        assert set(mw._buckets) == {"newer", "fresh"}
 
 
 # ===========================================================================
