@@ -1,0 +1,193 @@
+// BIZRA Proof-of-Impact Protocol Buffer Definition
+// ═══════════════════════════════════════════════════
+//
+// Version: 5.0.0-GENESIS
+// Breaking change from v4.x: ihsan_score (scalar) → ihsan_tensor (map)
+//
+// Proto field numbers are PERMANENT. This migration adds new fields
+// and deprecates (but does not remove) the scalar field for backward
+// compatibility during the transition period.
+//
+// Wire format alignment: constitution.toml §3 [ihsan_tensor.projections]
+//   wire = "tensor"  →  map<string, double>
+
+syntax = "proto3";
+
+package bizra.poi;
+
+option java_package = "com.bizra.poi";
+option go_package = "bizra/poi";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Core Messages
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Proof-of-Impact attestation for a completed mission.
+message PoiAttestation {
+    // Unique attestation identifier (SHA-256)
+    string attestation_id = 1;
+    
+    // Mission that generated this proof
+    string mission_id = 2;
+    
+    // Node that produced the work
+    string node_id = 3;
+    
+    // Unix timestamp (UTC)
+    double timestamp_utc = 4;
+    
+    // ── Ihsan Tensor (v5.0 — REPLACES scalar) ──
+    // Full 6-dimensional operational tensor.
+    // Keys: moral_clarity, epistemic_humility, structural_integrity,
+    //        verifiability, intent_alignment, resilience
+    // Values: [0.0, 1.0] per dimension
+    map<string, double> ihsan_tensor = 5;
+    
+    // Weighted composite (convenience field, derivable from tensor + weights)
+    double ihsan_composite = 6;
+    
+    // DEPRECATED: Use ihsan_composite instead. Kept for v4.x wire compat.
+    // Will be removed in v6.0.
+    double ihsan_score = 7 [deprecated = true];
+    
+    // ── Gate Results ──
+    GateResults gate_results = 8;
+    
+    // ── SNR ──
+    double snr_normalized = 9;
+    
+    // ── Evidence Chain ──
+    string previous_attestation_hash = 10;
+    string evidence_receipt_id = 11;
+    
+    // ── Quality Tier ──
+    QualityTier tier = 12;
+    
+    // ── Constitutional Reference ──
+    string constitution_hash = 13;
+    
+    // ── Cryptographic Signature ──
+    // Ed25519 signature over canonical serialization
+    // Domain separation: "bizra-poi-v1"
+    bytes signature = 14;
+    bytes public_key = 15;
+    
+    // ── Agent Provenance ──
+    repeated string agent_chain = 16;
+    
+    // ── Economic Impact ──
+    EconomicImpact economic = 17;
+}
+
+// Per-gate pass/fail results
+message GateResults {
+    bool alpha_4_fallback = 1;
+    bool alpha_7_verification = 2;
+    bool alpha_8_dark_matter = 3;
+    bool alpha_9_attestation = 4;
+    bool alpha_10_binary = 5;
+    
+    // Weighted composite gate score
+    double composite_score = 6;
+}
+
+// Quality classification
+enum QualityTier {
+    QUALITY_TIER_UNSPECIFIED = 0;
+    QUALITY_TIER_REJECTED = 1;      // composite < 0.85
+    QUALITY_TIER_ACCEPTABLE = 2;    // 0.85 ≤ composite < 0.90
+    QUALITY_TIER_BLOOM = 3;         // 0.90 ≤ composite < 0.95 (BLOOM eligible)
+    QUALITY_TIER_IHSAN = 4;         // composite ≥ 0.95 (إحسان excellence)
+}
+
+// Economic impact of this mission
+message EconomicImpact {
+    double seed_earned = 1;          // SEED tokens earned
+    double bloom_earned = 2;         // BLOOM impact tokens (0 if below threshold)
+    double zakat_contribution = 3;   // 2.5% redistribution
+    bool bloom_eligible = 4;         // ihsan_composite ≥ 0.90
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Pool Request/Response
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Request submitted by PAT to SAT Pool
+message PoolRequest {
+    string request_id = 1;
+    string node_id = 2;
+    ServiceType service_type = 3;
+    bytes payload = 4;              // Service-specific serialized data
+    double priority = 5;
+    int64 deadline_ms = 6;          // Max time to wait for response
+    string constitution_hash = 7;   // Requester's constitution version
+}
+
+// Response from SAT Pool
+message PoolResponse {
+    string request_id = 1;
+    string handler_id = 2;          // Which SAT agent handled this
+    ServiceType service_type = 3;
+    bytes result = 4;
+    PoolStatus status = 5;
+    double processing_ms = 6;
+    PoiAttestation attestation = 7; // Proof that work was done correctly
+}
+
+// SAT Pool service types (maps to constitution.toml §5 [sat.service_types])
+enum ServiceType {
+    SERVICE_TYPE_UNSPECIFIED = 0;
+    SERVICE_TYPE_COMPUTE_ALLOCATION = 1;
+    SERVICE_TYPE_NETWORK_ROUTE = 2;
+    SERVICE_TYPE_CONSENSUS_VERIFICATION = 3;
+    SERVICE_TYPE_SECURITY_CHECK = 4;
+    SERVICE_TYPE_TEMPLATE_PUBLISH = 5;
+    SERVICE_TYPE_ECONOMIC_SETTLEMENT = 6;
+}
+
+enum PoolStatus {
+    POOL_STATUS_UNSPECIFIED = 0;
+    POOL_STATUS_SUCCESS = 1;
+    POOL_STATUS_REJECTED = 2;       // Failed constitutional gates
+    POOL_STATUS_TIMEOUT = 3;
+    POOL_STATUS_NO_CAPACITY = 4;
+    POOL_STATUS_INVALID_CONSTITUTION = 5;  // Requester's constitution doesn't match
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Consensus Messages
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Consensus request for SAT validators
+message ConsensusRequest {
+    string attestation_id = 1;
+    PoiAttestation attestation = 2;
+    int32 required_validators = 3;  // Minimum validators needed
+}
+
+// Individual validator vote
+message ConsensusVote {
+    string attestation_id = 1;
+    string validator_id = 2;
+    bool approve = 3;
+    
+    // Validator's independent Ihsan assessment
+    map<string, double> validator_ihsan_tensor = 4;
+    double validator_ihsan_composite = 5;
+    
+    // Variance from original (must be within poi_calculation_variance)
+    double variance = 6;
+    
+    bytes signature = 7;
+}
+
+// Consensus result
+message ConsensusResult {
+    string attestation_id = 1;
+    bool approved = 2;
+    int32 votes_for = 3;
+    int32 votes_against = 4;
+    int32 total_validators = 5;
+    double mean_ihsan_composite = 6;
+    double variance = 7;            // Must be ≤ 0.01 (conformance threshold)
+}

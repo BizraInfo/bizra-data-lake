@@ -1,0 +1,3 @@
+[workspace]
+members = ["bizra-hooks", "bizra-memory", "bizra-agent"]
+resolver = "2"
