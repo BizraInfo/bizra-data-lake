@@ -112,11 +112,14 @@ preflight_checks() {
         log_warn "Ollama: Not running on localhost"
     fi
     
-    # LM Studio (check if running)
-    if curl -s http://192.168.56.1:1234/v1/models &>/dev/null 2>&1; then
-        log_info "LM Studio: Running on host"
+    # LM Studio (check if running — detect WSL gateway dynamically)
+    LMSTUDIO_HOST="${LMSTUDIO_HOST:-$(ip route show default 2>/dev/null | awk '/via/ {print $3}')}"
+    LMSTUDIO_HOST="${LMSTUDIO_HOST:-127.0.0.1}"
+    LMSTUDIO_PORT="${LMSTUDIO_PORT:-1234}"
+    if curl -s "http://${LMSTUDIO_HOST}:${LMSTUDIO_PORT}/v1/models" &>/dev/null 2>&1; then
+        log_info "LM Studio: Running on ${LMSTUDIO_HOST}:${LMSTUDIO_PORT}"
     else
-        log_warn "LM Studio: Not available"
+        log_warn "LM Studio: Not available at ${LMSTUDIO_HOST}:${LMSTUDIO_PORT}"
     fi
     
     # Check critical files

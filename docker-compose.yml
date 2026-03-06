@@ -20,6 +20,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: bizra-python-api
+    command: ["python", "-m", "core.sovereign", "serve", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
     volumes:
@@ -34,19 +35,19 @@ services:
       - BIZRA_NODE_ID=node0-genesis-dev
       - IHSAN_THRESHOLD=0.95
       - SNR_THRESHOLD=0.85
-      - REDIS_URL=redis://redis:6379
+      - BIZRA_JWT_SECRET=${BIZRA_JWT_SECRET:?Set BIZRA_JWT_SECRET in .env}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@host.docker.internal:6379
       - LLM_PRIMARY_HOST=${LLM_PRIMARY_HOST:-192.168.56.1}
       - LLM_PRIMARY_PORT=${LLM_PRIMARY_PORT:-1234}
       - LLM_FALLBACK_HOST=host.docker.internal
       - LLM_FALLBACK_PORT=11434
-    depends_on:
-      redis:
-        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD", "python", "-c", "import core; print('ok')"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v1/health"]
       interval: 30s
       timeout: 10s
-      start_period: 30s
+      start_period: 60s
       retries: 3
     restart: unless-stopped
     stop_grace_period: 30s
@@ -77,10 +78,9 @@ services:
       - BIZRA_ENV=development
       - BIZRA_NODE_ID=node0-genesis-dev
       - RUST_LOG=info,bizra=debug
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      redis:
-        condition: service_healthy
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@host.docker.internal:6379
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
       interval: 30s
@@ -151,6 +151,8 @@ services:
   # ═══════════════════════════════════════════════════════════════
   # Redis (Cache + Message Broker)
   # ═══════════════════════════════════════════════════════════════
+  # NOTE: Default config uses host Redis (bizra-unified on port 6379).
+  # Enable this profile only if no host Redis is available.
   redis:
     image: redis:7-alpine@sha256:b9f6cf0cab55fdd102fd2182deeae150457943d33439d18c6e2fc5666d3228c1
     container_name: bizra-redis
@@ -168,6 +170,8 @@ services:
     stop_grace_period: 10s
     networks:
       - bizra-net
+    profiles:
+      - standalone-redis
     deploy:
       resources:
         limits:

@@ -33,28 +33,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir ".[full]"
 
 # =============================================================================
-# Stage 2: Runtime — minimal production image with CUDA support
+# Stage 2: Runtime — minimal production image
 # =============================================================================
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS runtime
+# Genesis Boot: python:3.12-slim for fast, reliable builds.
+# CUDA variant available via Dockerfile.gpu when GPU inference needed.
+FROM python:3.12-slim-bookworm AS runtime
 
-# Prevent interactive prompts
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install Python 3.12 and runtime dependencies
+# Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.12 \
-    python3.12-venv \
     curl \
     libpq5 \
     libmagic1 \
-    poppler-utils \
-    tesseract-ocr \
-    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
-
-# Set Python 3.12 as default
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
 LABEL org.opencontainers.image.title="BIZRA Data Lake"
 LABEL org.opencontainers.image.description="Multi-modal memory system with vector embeddings"
@@ -101,5 +91,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Entry point — sovereign REPL or API server
-CMD ["python", "-m", "core.sovereign"]
+# Entry point — sovereign API server (REPL via: docker exec -it <name> python -m core.sovereign)
+CMD ["python", "-m", "core.sovereign", "serve", "--host", "0.0.0.0", "--port", "8000"]
