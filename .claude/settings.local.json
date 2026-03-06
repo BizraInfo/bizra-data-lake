@@ -193,7 +193,8 @@
       "Bash(done)",
       "Bash(for dir in */)",
       "Read(//mnt/c/BIZRA-DATA-LAKE/02_PROCESSED/text/**)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(/mnt/c/BIZRA-DATA-LAKE/.gitignore:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
