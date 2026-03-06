@@ -50,7 +50,7 @@ pytest tests/ -m integration
 | Suite | Path | Test Count | Description |
 |-------|------|------------|-------------|
 | Proof Engine | `tests/core/proof_engine/` | ~553 | Receipts, Ed25519, BLAKE3, evidence ledger, POI |
-| Sovereign Runtime | `tests/core/sovereign/` | ~270 | Runtime core, types, API, metrics, state |
+| Sovereign Runtime | `tests/core/sovereign/` | ~316 | Runtime core, types, API, metrics, seed engine, state |
 | Spearpoint | `tests/core/spearpoint/` | ~235 | RDVE, patterns, orchestrator, evaluator |
 | Bridges | `tests/core/bridges/` | ~137 | Desktop Bridge, Sci-Reasoning, Rust bridge |
 | Token System | `tests/core/token/` | ~87 | Ledger, minting, Ed25519 transactions |
