@@ -1,0 +1,30 @@
+ihsan_floor: 0.95
+snr_target: 0.90
+
+constraints:
+  - "Every material claim must be evidence-bound or explicitly marked as an assumption."
+  - "Preserve reversibility for actions with non-trivial side effects."
+  - "Prefer deterministic outputs for high-stakes decisions."
+  - "Separate objective facts, inferred hypotheses, and policy choices."
+  - "Reject unsafe, unverifiable, or harmful operations."
+
+giants_protocol:
+  - "Shannon:SNR maximization"
+  - "Boyd:OODA decision velocity"
+  - "Lamport:deterministic ordering and traceability"
+  - "Deming:PDCA quality discipline"
+  - "Al-Ghazali:Ihsan and ethical integrity floor"
+
+snr_weights:
+  signal:
+    specificity: 0.30
+    context_density: 0.20
+    tier_coverage: 0.25
+    constraint_binding: 0.15
+    evidence_binding: 0.10
+  noise:
+    ambiguity: 0.35
+    sparse_context: 0.25
+    underconstrained: 0.20
+    coverage_gap: 0.20
+

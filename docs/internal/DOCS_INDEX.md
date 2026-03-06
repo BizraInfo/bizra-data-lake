@@ -81,6 +81,15 @@ This is the master index of all documentation for **Node0 (Genesis Block)**.
 
 ---
 
+## HHMM / SPARSE TENSOR ARTIFACTS
+
+| Document | Purpose |
+| :--- | :--- |
+| [HHMM_SPARSE_TENSOR_ANALYSIS_2026-02-20.md](HHMM_SPARSE_TENSOR_ANALYSIS_2026-02-20.md) | Canonical internal markdown snapshot (values preserved exactly as authored). |
+| [HHMM_SPARSE_TENSOR_ANALYSIS_INDEX.md](HHMM_SPARSE_TENSOR_ANALYSIS_INDEX.md) | Index and governance notes for HHMM sparse tensor artifacts. |
+
+---
+
 ## RECOVERY AND TROUBLESHOOTING
 
 | Document | Purpose |

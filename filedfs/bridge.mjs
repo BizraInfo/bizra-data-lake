@@ -219,6 +219,14 @@ class BridgeServer {
   }
 
   start() {
+    // Fail-closed: refuse to start without auth configuration
+    const hasToken = (process.env.BIZRA_BRIDGE_TOKEN || "").trim().length > 0;
+    const allowAnonymous = envFlag("BIZRA_BRIDGE_ALLOW_ANONYMOUS");
+    if (!hasToken && !allowAnonymous) {
+      console.error("[bridge] FATAL: BIZRA_BRIDGE_TOKEN not set and BIZRA_BRIDGE_ALLOW_ANONYMOUS not enabled");
+      process.exit(1);
+    }
+
     // Spawn node
     this.node.spawn();
 

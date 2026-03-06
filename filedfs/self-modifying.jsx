@@ -300,9 +300,7 @@ export default function SelfModifyingAgent() {
   const [showCode, setShowCode] = useState({});
 
   const toggleCode = (level) => setShowCode(p => ({ ...p, [level]: !p[level] }));
-  const selected = selectedLevel !== null
-    ? LEVELS.find((levelConfig) => levelConfig.level === selectedLevel) ?? null
-    : null;
+  const selected = selectedLevel !== null ? LEVELS[selectedLevel] : null;
 
   return (
     <div style={{
@@ -363,17 +361,12 @@ export default function SelfModifyingAgent() {
             </div>
 
             {LEVELS.map((l) => (
-              <button
-                key={l.level}
-                type="button"
-                aria-pressed={selectedLevel === l.level}
-                aria-label={`Select level ${l.level}: ${l.name}`}
+              <div key={l.level}
                 onClick={() => setSelectedLevel(selectedLevel === l.level ? null : l.level)}
                 style={{
                   display: "flex", alignItems: "center", gap: 8,
                   padding: "8px 10px", borderRadius: 6, marginBottom: 3,
                   cursor: "pointer", transition: "all 0.15s",
-                  width: "100%", textAlign: "left", fontFamily: "inherit",
                   background: selectedLevel === l.level ? `${l.color}15` : "rgba(255,255,255,0.02)",
                   border: `1px solid ${selectedLevel === l.level ? `${l.color}40` : "rgba(255,255,255,0.05)"}`,
                 }}
@@ -394,7 +387,7 @@ export default function SelfModifyingAgent() {
                   border: `1px solid ${l.riskColor}33`,
                   fontWeight: 700, letterSpacing: 1, flexShrink: 0
                 }}>{l.risk}</div>
-              </button>
+              </div>
             ))}
 
             {/* Autonomous indicator */}
@@ -464,32 +457,23 @@ export default function SelfModifyingAgent() {
                 </div>
 
                 {/* Code */}
-                <button
-                  type="button"
-                  aria-expanded={!!showCode[selected.level]}
-                  aria-controls={`code-example-${selected.level}`}
+                <div
                   onClick={() => toggleCode(selected.level)}
                   style={{
                     cursor: "pointer", fontSize: 9, color: "#64748B", marginBottom: 4,
-                    display: "flex", alignItems: "center", gap: 4,
-                    background: "none", border: "none", padding: 0, fontFamily: "inherit"
+                    display: "flex", alignItems: "center", gap: 4
                   }}
                 >
                   <span style={{ fontSize: 10 }}>{showCode[selected.level] ? "▾" : "▸"}</span>
                   Show Rust implementation sketch
-                </button>
+                </div>
                 {showCode[selected.level] && (
-                  <pre
-                    id={`code-example-${selected.level}`}
-                    style={{
+                  <pre style={{
                     background: "#0D0D14", borderRadius: 6, padding: 10,
                     fontSize: 10, lineHeight: 1.5, overflowX: "auto",
                     border: "1px solid rgba(255,255,255,0.06)",
                     color: "#94A3B8", margin: "0 0 10px"
-                  }}
-                  >
-                    {selected.code_example}
-                  </pre>
+                  }}>{selected.code_example}</pre>
                 )}
 
                 {/* Implications */}

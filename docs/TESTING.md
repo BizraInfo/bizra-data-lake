@@ -90,7 +90,7 @@ pytest tests/ --cov=core --cov-report=term-missing
 Coverage policy is configured in `pyproject.toml`:
 
 - Branch coverage enabled
-- Current fail-under threshold: `60`
+- Current fail-under threshold: `38`
 - Target: ratcheting toward 95%
 
 ## 7. Common Failure Patterns

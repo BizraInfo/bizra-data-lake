@@ -33,9 +33,7 @@ import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws"; // npm install ws
 import { createInterface } from "node:readline";
-import { resolve, dirname, join } from "node:path";
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 // ============================================================
 // CONFIGURATION
@@ -118,9 +116,6 @@ function parseArgs() {
       case "--user":
         config.binaryArgs.push("--user", args[++i]);
         break;
-      case "--seed":
-        config.binaryArgs.push("--seed", resolve(args[++i]));
-        break;
       case "--help":
         console.log(`
 bizra-bridge — WebSocket bridge to bizra-node
@@ -132,26 +127,9 @@ Options:
   --binary <path>   Path to bizra-node binary (default: ${DEFAULT_BINARY})
   --ihsan <score>   إحسان floor for the node (0-10000)
   --user <hash>     User identity hash
-  --seed <file>     Knowledge seed file to load at startup
   --help            Show this help
         `);
         process.exit(0);
-    }
-  }
-
-  // Auto-detect genesis seed if no explicit --seed was provided
-  if (!config.binaryArgs.includes("--seed")) {
-    const __dirname = dirname(fileURLToPath(import.meta.url));
-    const seedCandidates = [
-      join(__dirname, "genesis_mumo.seed"),
-      join(__dirname, "..", "filedfs", "genesis_mumo.seed"),
-    ];
-    for (const candidate of seedCandidates) {
-      if (existsSync(candidate)) {
-        config.binaryArgs.push("--seed", candidate);
-        console.log(`[bridge] Auto-detected genesis seed: ${candidate}`);
-        break;
-      }
     }
   }
 
@@ -198,21 +176,6 @@ function jsonToProtocol(msg) {
       return "VERSION";
     case "SHUTDOWN":
       return "SHUTDOWN";
-
-    // SAP v0 protocol verbs
-    case "SAP_MEET_OPEN":
-      return `SAP_MEET_OPEN\t${escapeTab(args.profile || "sap-ads-retail-v0")}\t${escapeTab(args.initiator_role || "visitor")}\t${args.timestamp || Date.now()}`;
-    case "SAP_MESSAGE":
-      return `SAP_MESSAGE\t${escapeTab(args.session_id || "")}\t${escapeTab(args.content || "")}\t${args.timestamp || Date.now()}`;
-    case "SAP_DISCLOSURE":
-      return `SAP_DISCLOSURE\t${escapeTab(args.session_id || "")}`;
-    case "SAP_CONSENT_REQUEST":
-      return `SAP_CONSENT_REQUEST\t${escapeTab(args.session_id || "")}\t${escapeTab(JSON.stringify(args.scopes || []))}`;
-    case "SAP_CONSENT_REVOKE":
-      return `SAP_CONSENT_REVOKE\t${escapeTab(args.session_id || "")}\t${escapeTab(args.receipt_id || "")}`;
-    case "SAP_SESSION_CLOSE":
-      return `SAP_SESSION_CLOSE\t${escapeTab(args.session_id || "")}\t${args.timestamp || Date.now()}`;
-
     default:
       return null; // Unknown verb
   }
@@ -386,6 +349,15 @@ class NodeProcess {
 
 async function main() {
   const config = parseArgs();
+
+  // Fail-closed: refuse to start without auth configuration
+  const hasToken = (process.env.BIZRA_BRIDGE_TOKEN || "").trim().length > 0;
+  const allowAnonymous = envFlag("BIZRA_BRIDGE_ALLOW_ANONYMOUS");
+  if (!hasToken && !allowAnonymous) {
+    console.error("[bridge] FATAL: BIZRA_BRIDGE_TOKEN not set and BIZRA_BRIDGE_ALLOW_ANONYMOUS not enabled");
+    console.error("[bridge] Set BIZRA_BRIDGE_TOKEN=<secret> or BIZRA_BRIDGE_ALLOW_ANONYMOUS=1 to start");
+    process.exit(1);
+  }
 
   // Spawn the node
   const node = new NodeProcess(config.binary, config.binaryArgs);
