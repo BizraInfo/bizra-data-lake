@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ============================================================
 
 // Sacred geometry seed-of-life SVG pattern
-const SeedOfLife = ({ size = 120, opacity = 0.08, color = "#D4A547" }) => (
+const SeedOfLife = ({ size = 120, opacity = 0.08, color = "#C9A962" }) => (
   <svg width={size} height={size} viewBox="0 0 120 120" style={{ opacity }}>
     {[0, 60, 120, 180, 240, 300].map((angle, i) => {
       const cx = 60 + 30 * Math.cos((angle * Math.PI) / 180);
@@ -29,9 +29,9 @@ const KnowsMeGauge = ({ score, size = 180 }) => {
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#D4A547" />
-            <stop offset="50%" stopColor="#F0D68A" />
-            <stop offset="100%" stopColor="#D4A547" />
+            <stop offset="0%" stopColor="#C9A962" />
+            <stop offset="50%" stopColor="#E8D5A3" />
+            <stop offset="100%" stopColor="#C9A962" />
           </linearGradient>
         </defs>
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(212,165,71,0.08)" strokeWidth="6" />
@@ -47,7 +47,7 @@ const KnowsMeGauge = ({ score, size = 180 }) => {
         position: "absolute", inset: 0, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
       }}>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 36, fontWeight: 700, color: "#F0D68A", letterSpacing: -1 }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 36, fontWeight: 700, color: "#E8D5A3", letterSpacing: -1 }}>
           {(score * 100).toFixed(1)}
         </span>
         <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "rgba(212,165,71,0.6)", letterSpacing: 2, textTransform: "uppercase", marginTop: 2 }}>
@@ -61,7 +61,7 @@ const KnowsMeGauge = ({ score, size = 180 }) => {
 // Ihsan bar
 const IhsanBar = ({ score }) => {
   const pct = (score / 10000) * 100;
-  const color = score >= 9500 ? "#5BBA6F" : score >= 8000 ? "#D4A547" : "#E85D4A";
+  const color = score >= 9500 ? "#5BBA6F" : score >= 8000 ? "#C9A962" : "#E85D4A";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.4)", width: 50, letterSpacing: 1 }}>إحسان</span>
@@ -79,7 +79,7 @@ const IhsanBar = ({ score }) => {
 const AgentBadge = ({ name, active, vetoes }) => {
   const colors = {
     Navigator: "#6B9BF7", Scholar: "#A78BFA", Artisan: "#F59E42",
-    Guardian: "#E85D4A", Mentor: "#5BBA6F", Diplomat: "#38BDF8", Oracle: "#F0D68A"
+    Guardian: "#E85D4A", Mentor: "#5BBA6F", Diplomat: "#38BDF8", Oracle: "#E8D5A3"
   };
   return (
     <div style={{
@@ -164,7 +164,7 @@ const TraitPill = ({ label, value, confidence }) => (
       {value}
     </span>
     <div style={{ width: 20, height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
-      <div style={{ width: `${(confidence / 10000) * 100}%`, height: "100%", background: "#D4A547", borderRadius: 2 }} />
+      <div style={{ width: `${(confidence / 10000) * 100}%`, height: "100%", background: "#C9A962", borderRadius: 2 }} />
     </div>
   </div>
 );
@@ -404,7 +404,7 @@ export default function Node0Dashboard() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#0A0B0F",
+      minHeight: "100vh", background: "#030810",
       fontFamily: "'DM Sans', sans-serif", color: "rgba(255,255,255,0.88)",
       display: "flex", flexDirection: "column", position: "relative", overflow: "hidden",
     }}>
@@ -436,9 +436,9 @@ export default function Node0Dashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{
             width: 28, height: 28, borderRadius: 8,
-            background: "linear-gradient(135deg, #D4A547, #8B6914)",
+            background: "linear-gradient(135deg, #C9A962, #8B7340)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 14, fontWeight: 700, color: "#0A0B0F",
+            fontSize: 14, fontWeight: 700, color: "#030810",
             fontFamily: "'JetBrains Mono', monospace",
           }}>
             B
@@ -552,7 +552,7 @@ export default function Node0Dashboard() {
               border: "1px solid rgba(212,165,71,0.25)", borderRadius: 8,
               padding: "10px 16px", cursor: "pointer",
               fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 600,
-              color: "#D4A547", letterSpacing: 0.5,
+              color: "#C9A962", letterSpacing: 0.5,
               transition: "all 0.2s ease",
             }}
             onMouseEnter={e => { e.target.style.background = "linear-gradient(135deg, rgba(212,165,71,0.25), rgba(212,165,71,0.1))"; }}
@@ -576,7 +576,7 @@ export default function Node0Dashboard() {
                 flex: 1, display: "flex", flexDirection: "column",
                 alignItems: "center", justifyContent: "center", gap: 16, opacity: 0.4,
               }}>
-                <SeedOfLife size={80} opacity={0.3} color="#D4A547" />
+                <SeedOfLife size={80} opacity={0.3} color="#C9A962" />
                 <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "rgba(212,165,71,0.6)", letterSpacing: 2, textTransform: "uppercase" }}>
                   Node0 Ready
                 </div>
@@ -631,8 +631,8 @@ export default function Node0Dashboard() {
                 disabled={!input.trim() || !connected}
                 style={{
                   width: 36, height: 36, borderRadius: 8, border: "none",
-                  background: input.trim() ? "linear-gradient(135deg, #D4A547, #8B6914)" : "rgba(255,255,255,0.04)",
-                  color: input.trim() ? "#0A0B0F" : "rgba(255,255,255,0.15)",
+                  background: input.trim() ? "linear-gradient(135deg, #C9A962, #8B7340)" : "rgba(255,255,255,0.04)",
+                  color: input.trim() ? "#030810" : "rgba(255,255,255,0.15)",
                   cursor: input.trim() ? "pointer" : "default",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 16, fontWeight: 700, transition: "all 0.2s ease",

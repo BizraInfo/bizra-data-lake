@@ -19,9 +19,9 @@ const MiniGauge = ({ score, size = 80 }) => {
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         <defs>
           <linearGradient id="onb-ggrad" x1="0%" y1="0%" x2="100%">
-            <stop offset="0%" stopColor="#D4A547" />
-            <stop offset="50%" stopColor="#F0D68A" />
-            <stop offset="100%" stopColor="#D4A547" />
+            <stop offset="0%" stopColor="#C9A962" />
+            <stop offset="50%" stopColor="#E8D5A3" />
+            <stop offset="100%" stopColor="#C9A962" />
           </linearGradient>
         </defs>
         <circle
@@ -53,7 +53,7 @@ const MiniGauge = ({ score, size = 80 }) => {
           fontFamily: 'var(--mono)',
           fontSize: 16,
           fontWeight: 700,
-          color: '#F0D68A',
+          color: '#E8D5A3',
           letterSpacing: -0.5,
         }}>
           {(score * 100).toFixed(1)}
@@ -387,9 +387,9 @@ export default function FirstChatStep({ node, state, setState, onNext }) {
             borderRadius: 8,
             border: 'none',
             background: input.trim() && !sending
-              ? 'linear-gradient(135deg, #D4A547, #8B6914)'
+              ? 'linear-gradient(135deg, #C9A962, #8B7340)'
               : 'rgba(255,255,255,0.04)',
-            color: input.trim() && !sending ? '#0A0B0F' : 'rgba(255,255,255,0.15)',
+            color: input.trim() && !sending ? '#030810' : 'rgba(255,255,255,0.15)',
             cursor: input.trim() && !sending ? 'pointer' : 'default',
             display: 'flex',
             alignItems: 'center',
@@ -411,13 +411,13 @@ export default function FirstChatStep({ node, state, setState, onNext }) {
           style={{
             alignSelf: 'center',
             padding: '12px 32px',
-            background: 'linear-gradient(135deg, #D4A547, #8B6914)',
+            background: 'linear-gradient(135deg, #C9A962, #8B7340)',
             border: 'none',
             borderRadius: 10,
             fontFamily: 'var(--sans)',
             fontSize: 14,
             fontWeight: 600,
-            color: '#0A0B0F',
+            color: '#030810',
             cursor: 'pointer',
             boxShadow: '0 4px 20px rgba(212,165,71,0.25)',
             transition: 'all 0.3s ease',

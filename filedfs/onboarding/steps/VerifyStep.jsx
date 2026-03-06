@@ -49,7 +49,7 @@ const Checkmark = ({ visible, size = 20 }) => (
 const Spinner = ({ size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" style={{ animation: 'onb-spin 1s linear infinite' }}>
     <circle cx="10" cy="10" r="8" fill="none" stroke="rgba(212,165,71,0.15)" strokeWidth="2" />
-    <path d="M10 2 A8 8 0 0 1 18 10" fill="none" stroke="#D4A547" strokeWidth="2" strokeLinecap="round" />
+    <path d="M10 2 A8 8 0 0 1 18 10" fill="none" stroke="#C9A962" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
 
@@ -315,13 +315,13 @@ export default function VerifyStep({ node, state, setState, onNext }) {
             alignSelf: 'center',
             marginTop: 12,
             padding: '12px 36px',
-            background: 'linear-gradient(135deg, #D4A547, #8B6914)',
+            background: 'linear-gradient(135deg, #C9A962, #8B7340)',
             border: 'none',
             borderRadius: 10,
             fontFamily: 'var(--sans)',
             fontSize: 14,
             fontWeight: 600,
-            color: '#0A0B0F',
+            color: '#030810',
             cursor: 'pointer',
             boxShadow: '0 4px 20px rgba(212,165,71,0.25)',
             transition: 'all 0.3s ease',

@@ -142,7 +142,7 @@ const ProviderCard = ({ provider, selected, onSelect }) => {
             <span style={{
               fontFamily: 'var(--mono)',
               fontSize: 8,
-              color: '#D4A547',
+              color: '#C9A962',
               background: 'rgba(212,165,71,0.1)',
               border: '1px solid rgba(212,165,71,0.2)',
               borderRadius: 4,
@@ -170,7 +170,7 @@ const ProviderCard = ({ provider, selected, onSelect }) => {
         height: 18,
         borderRadius: '50%',
         border: `2px solid ${
-          isSelected ? '#D4A547' : 'rgba(255,255,255,0.1)'
+          isSelected ? '#C9A962' : 'rgba(255,255,255,0.1)'
         }`,
         display: 'flex',
         alignItems: 'center',
@@ -182,7 +182,7 @@ const ProviderCard = ({ provider, selected, onSelect }) => {
           width: 8,
           height: 8,
           borderRadius: '50%',
-          background: isSelected ? '#D4A547' : 'transparent',
+          background: isSelected ? '#C9A962' : 'transparent',
           transition: 'all 0.25s ease',
           transform: isSelected ? 'scale(1)' : 'scale(0)',
         }} />
@@ -369,14 +369,14 @@ export default function ProviderStep({ node, state, setState, onNext }) {
           marginTop: 8,
           padding: '12px 36px',
           background: canContinue
-            ? 'linear-gradient(135deg, #D4A547, #8B6914)'
+            ? 'linear-gradient(135deg, #C9A962, #8B7340)'
             : 'rgba(255,255,255,0.04)',
           border: 'none',
           borderRadius: 10,
           fontFamily: 'var(--sans)',
           fontSize: 14,
           fontWeight: 600,
-          color: canContinue ? '#0A0B0F' : 'rgba(255,255,255,0.15)',
+          color: canContinue ? '#030810' : 'rgba(255,255,255,0.15)',
           cursor: canContinue ? 'pointer' : 'default',
           boxShadow: canContinue ? '0 4px 20px rgba(212,165,71,0.25)' : 'none',
           transition: 'all 0.3s ease',
