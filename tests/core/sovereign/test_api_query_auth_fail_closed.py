@@ -10,8 +10,14 @@ import pytest
 from starlette.responses import JSONResponse
 
 from core.sovereign.api import (
+    MAX_CONTEXT_KEYS,
+    MAX_DEPTH_LIMIT,
+    MAX_QUERY_LENGTH,
+    MAX_TIMEOUT_MS,
     OrchestrateRequestModel,
     QueryRequestModel,
+    RateLimiter,
+    RegisterRequestModel,
     ReceiptVerifyModel,
     create_fastapi_app,
 )
@@ -117,6 +123,47 @@ async def test_query_allows_anonymous_only_when_opted_in(tmp_path, monkeypatch) 
 
 
 @pytest.mark.asyncio
+async def test_query_rejects_excessive_limits_even_when_anonymous_allowed(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+    runtime = _runtime(tmp_path)
+    app = create_fastapi_app(runtime)
+    endpoint = _query_endpoint(app)
+
+    too_long_query = "q" * (MAX_QUERY_LENGTH + 1)
+    resp_query = await endpoint(QueryRequestModel(query=too_long_query), _Request())
+    assert isinstance(resp_query, JSONResponse)
+    assert resp_query.status_code == 400
+
+    too_deep = await endpoint(
+        QueryRequestModel(query="hello", max_depth=MAX_DEPTH_LIMIT + 1),
+        _Request(),
+    )
+    assert isinstance(too_deep, JSONResponse)
+    assert too_deep.status_code == 400
+
+    too_many_context = await endpoint(
+        QueryRequestModel(
+            query="hello",
+            context={f"k{i}": i for i in range(MAX_CONTEXT_KEYS + 1)},
+        ),
+        _Request(),
+    )
+    assert isinstance(too_many_context, JSONResponse)
+    assert too_many_context.status_code == 400
+
+    too_slow = await endpoint(
+        QueryRequestModel(query="hello", timeout_ms=MAX_TIMEOUT_MS + 1),
+        _Request(),
+    )
+    assert isinstance(too_slow, JSONResponse)
+    assert too_slow.status_code == 400
+
+    runtime.query.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_query_returns_503_when_auth_layer_boot_fails(
     tmp_path, monkeypatch
 ) -> None:
@@ -218,6 +265,20 @@ async def test_websocket_denies_missing_credentials_by_default(
 
 
 @pytest.mark.asyncio
+async def test_memory_stats_denies_missing_credentials_by_default(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.delenv("BIZRA_AUTH_ALLOW_ANONYMOUS", raising=False)
+    runtime = _runtime(tmp_path)
+    app = create_fastapi_app(runtime)
+    endpoint = _endpoint(app, "/v1/memory/stats", method="GET")
+
+    resp = await endpoint(_Request())
+    assert isinstance(resp, JSONResponse)
+    assert resp.status_code in {401, 503}
+
+
+@pytest.mark.asyncio
 async def test_verify_receipt_rejects_tampered_signature(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
     runtime = _runtime(tmp_path)
@@ -251,3 +312,47 @@ async def test_verify_receipt_rejects_tampered_signature(tmp_path, monkeypatch) 
     assert isinstance(bad, dict)
     assert bad["decision"] == "REJECTED"
     assert "SIGNATURE_INVALID" in bad["reason_codes"]
+
+
+@pytest.mark.asyncio
+async def test_auth_register_persists_covenant_acceptance(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+    runtime = _runtime(tmp_path)
+    app = create_fastapi_app(runtime)
+    endpoint = _endpoint(app, "/v1/auth/register")
+
+    resp = await endpoint(
+        RegisterRequestModel(
+            username="covenant_user",
+            email="covenant@bizra.ai",
+            password="supersecret123",
+            accept_covenant=True,
+        )
+    )
+
+    assert isinstance(resp, dict)
+    assert resp["user"]["covenant_accepted"] is True
+
+    from core.auth.user_store import UserStore
+
+    store = UserStore(db_path=(tmp_path / "state" / "users.db"))
+    user = store.get_by_username("covenant_user")
+    assert user is not None
+    assert user.covenant_accepted is True
+
+
+def test_rate_limiter_stays_bounded_when_entries_are_fresh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("core.sovereign.api.time.time", lambda: 1000.0)
+    limiter = RateLimiter(requests_per_minute=60, burst_size=2)
+    limiter._max_buckets = 2
+    limiter.buckets = {
+        "oldest": {"tokens": 1.0, "last": 990.0},
+        "newer": {"tokens": 1.0, "last": 995.0},
+    }
+
+    assert limiter.check("fresh") is True
+    assert len(limiter.buckets) == 2
+    assert "oldest" not in limiter.buckets
+    assert set(limiter.buckets) == {"newer", "fresh"}

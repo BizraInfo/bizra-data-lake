@@ -6,7 +6,7 @@ Phase 21: Multi-User Foundation
 Handles:
 - User registration with PBKDF2-SHA256 password hashing
 - Ed25519 keypair generation per user
-- API key generation and rotation
+- API key generation and rotation (stored as hashes at rest)
 - Per-user namespace/data isolation paths
 - User lookup, verification, and lifecycle management
 
@@ -18,7 +18,7 @@ Schema Design:
         password_hash TEXT NOT NULL,     -- PBKDF2-SHA256(600K iterations)
         ed25519_public_key TEXT NOT NULL,-- hex-encoded public key
         ed25519_secret_key_enc TEXT NOT NULL, -- vault-encrypted secret key
-        api_key TEXT UNIQUE NOT NULL,    -- bearer token for API access
+        api_key TEXT UNIQUE NOT NULL,    -- sha256 digest of bearer token
         status TEXT DEFAULT 'active',   -- active | suspended | revoked
         covenant_accepted BOOLEAN DEFAULT FALSE,
         created_at TEXT NOT NULL,
@@ -62,6 +62,11 @@ PBKDF2_ITERATIONS = 600_000
 PBKDF2_HASH_NAME = "sha256"
 SALT_BYTES = 32
 API_KEY_BYTES = 32  # 256-bit API keys
+API_KEY_PREFIX = "bzr_"
+API_KEY_HASH_PREFIX = "sha256:"
+USERSTORE_MASTER_SECRET_ENV = "BIZRA_USERSTORE_MASTER_SECRET"
+LEGACY_VAULT_SECRET_ENV = "BIZRA_VAULT_SECRET"
+USERSTORE_MASTER_SECRET_FILE = ".user_store_master_secret"
 
 # User status values
 STATUS_ACTIVE = "active"
@@ -175,7 +180,19 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 def generate_api_key() -> str:
     """Generate a cryptographically random API key."""
-    return f"bzr_{secrets.token_hex(API_KEY_BYTES)}"
+    return f"{API_KEY_PREFIX}{secrets.token_hex(API_KEY_BYTES)}"
+
+
+def hash_api_key(api_key: str) -> str:
+    """
+    Hash an API key for storage.
+
+    API keys are high-entropy random tokens, so SHA-256 is sufficient for
+    one-way storage. Prefixing with an algorithm marker supports future
+    migration.
+    """
+    digest = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    return f"{API_KEY_HASH_PREFIX}{digest}"
 
 
 def generate_user_id() -> str:
@@ -223,14 +240,9 @@ def generate_ed25519_keypair() -> tuple[str, str]:
             )
             return pk_bytes.hex(), sk_bytes.hex()
         except ImportError:
-            # Last resort: use os.urandom as placeholder (NOT production-safe)
-            logger.warning(
-                "Neither PyNaCl nor cryptography available — "
-                "generating placeholder keypair (NOT PRODUCTION SAFE)"
+            raise RuntimeError(
+                "Ed25519 backend unavailable: install 'pynacl' or 'cryptography'."
             )
-            fake_sk = os.urandom(32)
-            fake_pk = os.urandom(32)
-            return fake_pk.hex(), fake_sk.hex()
 
 
 # ==============================================================================
@@ -255,6 +267,7 @@ class UserStore:
         if db_path is not None and not isinstance(db_path, Path):
             db_path = None  # Reject non-Path values (e.g. MagicMock)
         self.db_path = db_path or Path("sovereign_state/users.db")
+        self._master_secret = self._load_or_create_master_secret()
         self._ensure_schema()
 
     def _connect(self) -> sqlite3.Connection:
@@ -265,6 +278,81 @@ class UserStore:
         conn.execute("PRAGMA foreign_keys=ON")
         conn.row_factory = sqlite3.Row
         return conn
+
+    def _load_or_create_master_secret(self) -> bytes:
+        """
+        Load user-store master secret from env or local key file.
+
+        This secret is intentionally kept outside the users table so a DB-only
+        compromise cannot derive wrapped Ed25519 private keys.
+        """
+        for var_name in (USERSTORE_MASTER_SECRET_ENV, LEGACY_VAULT_SECRET_ENV):
+            value = os.environ.get(var_name, "").strip()
+            if value:
+                return value.encode("utf-8")
+
+        key_file = self.db_path.parent / USERSTORE_MASTER_SECRET_FILE
+        if key_file.exists():
+            value = key_file.read_text(encoding="utf-8").strip()
+            if value:
+                return value.encode("utf-8")
+
+        generated = secrets.token_urlsafe(48)
+        key_file.parent.mkdir(parents=True, exist_ok=True)
+        key_file.write_text(generated, encoding="utf-8")
+        try:
+            os.chmod(key_file, 0o600)
+        except OSError:
+            pass
+        logger.warning(
+            "Generated local user-store master secret at %s. "
+            "Set %s for production deployments.",
+            key_file,
+            USERSTORE_MASTER_SECRET_ENV,
+        )
+        return generated.encode("utf-8")
+
+    @staticmethod
+    def _utc_now_iso() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    @staticmethod
+    def _derive_legacy_secret_key(password_hash: str, user_id: str) -> bytes:
+        sk_key = hashlib.pbkdf2_hmac(
+            "sha256",
+            password_hash.encode("utf-8"),
+            user_id.encode("utf-8"),
+            iterations=100_000,
+        )
+        return base64.urlsafe_b64encode(sk_key[:32])
+
+    def _derive_master_wrapping_key(self, user_id: str) -> bytes:
+        material = hmac.new(
+            self._master_secret,
+            f"user-ed25519:{user_id}".encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        return base64.urlsafe_b64encode(material)
+
+    def _encrypt_secret_key_v2(self, user_id: str, secret_key_hex: str) -> str:
+        token = Fernet(self._derive_master_wrapping_key(user_id)).encrypt(
+            secret_key_hex.encode("utf-8")
+        )
+        return f"fernet:v2:{token.decode('utf-8')}"
+
+    @staticmethod
+    def _decrypt_secret_key_v1(
+        password_hash: str,
+        user_id: str,
+        encrypted_secret: str,
+    ) -> str:
+        if not encrypted_secret.startswith("fernet:v1:"):
+            raise ValueError("Unsupported v1 payload format")
+        token = encrypted_secret[len("fernet:v1:") :].encode("utf-8")
+        plaintext = Fernet(
+            UserStore._derive_legacy_secret_key(password_hash, user_id)
+        ).decrypt(token)
+        return plaintext.decode("utf-8")
 
     def _ensure_schema(self) -> None:
         """Create tables if they don't exist."""
@@ -308,7 +396,90 @@ class UserStore:
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_api_keys_key ON api_keys(api_key)"
             )
+            self._migrate_plaintext_api_keys(conn)
+            self._migrate_legacy_secret_wrapping(conn)
             conn.commit()
+
+    def _migrate_plaintext_api_keys(self, conn: sqlite3.Connection) -> None:
+        """
+        One-time migration: convert legacy plaintext API keys to hashes.
+
+        This preserves verification semantics while removing recoverable bearer
+        tokens from DB rows.
+        """
+        user_rows = conn.execute(
+            "SELECT user_id, api_key FROM users WHERE api_key NOT LIKE ?",
+            (f"{API_KEY_HASH_PREFIX}%",),
+        ).fetchall()
+        for row in user_rows:
+            plaintext = row["api_key"]
+            if not plaintext:
+                continue
+            conn.execute(
+                "UPDATE users SET api_key = ? WHERE user_id = ?",
+                (hash_api_key(plaintext), row["user_id"]),
+            )
+
+        secondary_rows = conn.execute(
+            "SELECT key_id, api_key FROM api_keys WHERE api_key NOT LIKE ?",
+            (f"{API_KEY_HASH_PREFIX}%",),
+        ).fetchall()
+        for row in secondary_rows:
+            plaintext = row["api_key"]
+            if not plaintext:
+                continue
+            conn.execute(
+                "UPDATE api_keys SET api_key = ? WHERE key_id = ?",
+                (hash_api_key(plaintext), row["key_id"]),
+            )
+
+        migrated = len(user_rows) + len(secondary_rows)
+        if migrated > 0:
+            logger.info(
+                "Migrated %d legacy plaintext API keys to hashed storage", migrated
+            )
+
+    def _migrate_legacy_secret_wrapping(self, conn: sqlite3.Connection) -> None:
+        """
+        Re-wrap legacy fernet:v1 Ed25519 secret keys with v2 master wrapping.
+
+        v1 keys are derived from DB fields and vulnerable to DB-only compromise.
+        v2 uses a master secret loaded from env/file outside the DB.
+        """
+        rows = conn.execute("""
+            SELECT user_id, password_hash, ed25519_secret_key_enc
+            FROM users
+            WHERE ed25519_secret_key_enc LIKE 'fernet:v1:%'
+            """).fetchall()
+        now = self._utc_now_iso()
+        migrated = 0
+        for row in rows:
+            try:
+                plaintext = self._decrypt_secret_key_v1(
+                    row["password_hash"],
+                    row["user_id"],
+                    row["ed25519_secret_key_enc"],
+                )
+                wrapped = self._encrypt_secret_key_v2(row["user_id"], plaintext)
+                conn.execute(
+                    """
+                    UPDATE users
+                    SET ed25519_secret_key_enc = ?, updated_at = ?
+                    WHERE user_id = ?
+                    """,
+                    (wrapped, now, row["user_id"]),
+                )
+                migrated += 1
+            except Exception as exc:
+                logger.error(
+                    "Failed to migrate legacy secret key for user %s: %s",
+                    row["user_id"][:8],
+                    exc,
+                )
+        if migrated > 0:
+            logger.info(
+                "Migrated %d legacy Ed25519 wrapped secret keys to v2", migrated
+            )
 
     # --------------------------------------------------------------------------
     # REGISTRATION
@@ -347,24 +518,15 @@ class UserStore:
             raise ValueError("Password must be at least 8 characters")
 
         # Generate identity
-        now = datetime.now(timezone.utc).isoformat()
+        now = self._utc_now_iso()
         user_id = generate_user_id()
         pwd_hash = hash_password(password)
         public_key, secret_key = generate_ed25519_keypair()
         api_key = generate_api_key()
+        api_key_hash = hash_api_key(api_key)
 
-        # Encrypt secret key at rest using HMAC-SHA256 envelope keyed by
-        # password hash (SAPE-002). This binds the key to the user's password
-        # so it cannot be used without the correct credential. Production
-        # deployments should migrate to SovereignVault (KMS-backed).
-        sk_key = hashlib.pbkdf2_hmac(
-            "sha256",
-            pwd_hash.encode(),
-            user_id.encode(),
-            iterations=100_000,
-        )
-        fernet_key = base64.urlsafe_b64encode(sk_key[:32])
-        sk_enc = "fernet:v1:" + Fernet(fernet_key).encrypt(secret_key.encode()).decode()
+        # v2 wrapping derives from master secret outside DB contents.
+        sk_enc = self._encrypt_secret_key_v2(user_id, secret_key)
 
         try:
             with self._connect() as conn:
@@ -384,7 +546,7 @@ class UserStore:
                         pwd_hash,
                         public_key,
                         sk_enc,
-                        api_key,
+                        api_key_hash,
                         STATUS_ACTIVE,
                         int(accept_covenant),
                         now,
@@ -441,7 +603,7 @@ class UserStore:
             return None
 
         # Update last login
-        now = datetime.now(timezone.utc).isoformat()
+        now = self._utc_now_iso()
         with self._connect() as conn:
             conn.execute(
                 "UPDATE users SET last_login_at = ?, updated_at = ? WHERE user_id = ?",
@@ -457,31 +619,74 @@ class UserStore:
 
         Checks both the primary user api_key and the api_keys table.
         """
+        if not api_key:
+            return None
+
+        token = api_key.strip()
+        if not token.startswith(API_KEY_PREFIX):
+            return None
+
+        presented_hash = hash_api_key(token)
+        now = self._utc_now_iso()
+
         with self._connect() as conn:
-            # Check primary API key
+            # Check primary API key, supporting legacy plaintext fallback.
             row = conn.execute(
-                "SELECT * FROM users WHERE api_key = ? AND status = ?",
-                (api_key, STATUS_ACTIVE),
+                """
+                SELECT * FROM users
+                WHERE status = ?
+                  AND api_key IN (?, ?)
+                """,
+                (STATUS_ACTIVE, presented_hash, token),
             ).fetchone()
 
             if row:
-                return self._row_to_record(row)
+                stored_key = row["api_key"] or ""
+                if stored_key.startswith(API_KEY_HASH_PREFIX):
+                    if hmac.compare_digest(stored_key, presented_hash):
+                        return self._row_to_record(row)
+                elif hmac.compare_digest(stored_key, token):
+                    conn.execute(
+                        "UPDATE users SET api_key = ?, updated_at = ? WHERE user_id = ?",
+                        (presented_hash, now, row["user_id"]),
+                    )
+                    conn.commit()
+                    return self._row_to_record(row)
 
-            # Check api_keys table (secondary keys)
+            # Check api_keys table (secondary keys), including expiry and
+            # legacy plaintext fallback for transitional compatibility.
             key_row = conn.execute(
                 """
-                SELECT u.* FROM users u
+                SELECT u.*, ak.key_id, ak.api_key AS secondary_api_key
+                FROM users u
                 JOIN api_keys ak ON u.user_id = ak.user_id
-                WHERE ak.api_key = ? AND ak.status = 'active' AND u.status = ?
+                WHERE u.status = ?
+                  AND ak.status = 'active'
+                  AND (ak.expires_at IS NULL OR ak.expires_at > ?)
+                  AND ak.api_key IN (?, ?)
                 """,
-                (api_key, STATUS_ACTIVE),
+                (STATUS_ACTIVE, now, presented_hash, token),
             ).fetchone()
 
             if key_row:
-                # Update last_used_at
+                stored_secondary = key_row["secondary_api_key"] or ""
+                if stored_secondary.startswith(API_KEY_HASH_PREFIX):
+                    is_valid = hmac.compare_digest(stored_secondary, presented_hash)
+                else:
+                    is_valid = hmac.compare_digest(stored_secondary, token)
+
+                if not is_valid:
+                    return None
+
+                if not stored_secondary.startswith(API_KEY_HASH_PREFIX):
+                    conn.execute(
+                        "UPDATE api_keys SET api_key = ? WHERE key_id = ?",
+                        (presented_hash, key_row["key_id"]),
+                    )
+
                 conn.execute(
-                    "UPDATE api_keys SET last_used_at = ? WHERE api_key = ?",
-                    (datetime.now(timezone.utc).isoformat(), api_key),
+                    "UPDATE api_keys SET last_used_at = ? WHERE key_id = ?",
+                    (now, key_row["key_id"]),
                 )
                 conn.commit()
                 return self._row_to_record(key_row)
@@ -577,12 +782,13 @@ class UserStore:
         The old key becomes invalid immediately.
         """
         new_key = generate_api_key()
-        now = datetime.now(timezone.utc).isoformat()
+        new_key_hash = hash_api_key(new_key)
+        now = self._utc_now_iso()
 
         with self._connect() as conn:
             cursor = conn.execute(
                 "UPDATE users SET api_key = ?, updated_at = ? WHERE user_id = ?",
-                (new_key, now, user_id),
+                (new_key_hash, now, user_id),
             )
             conn.commit()
             if cursor.rowcount > 0:
@@ -607,8 +813,9 @@ class UserStore:
     ) -> Optional[str]:
         """Create an additional API key for a user."""
         new_key = generate_api_key()
+        new_key_hash = hash_api_key(new_key)
         key_id = str(uuid.uuid4())[:8]
-        now = datetime.now(timezone.utc).isoformat()
+        now = self._utc_now_iso()
 
         expires_at = None
         if expires_in_days:
@@ -625,7 +832,7 @@ class UserStore:
                     INSERT INTO api_keys (key_id, user_id, api_key, label, status, created_at, expires_at)
                     VALUES (?, ?, ?, ?, 'active', ?, ?)
                     """,
-                    (key_id, user_id, new_key, label, now, expires_at),
+                    (key_id, user_id, new_key_hash, label, now, expires_at),
                 )
                 conn.commit()
                 return new_key
@@ -661,7 +868,7 @@ class UserStore:
             password_hash=row["password_hash"],
             ed25519_public_key=row["ed25519_public_key"],
             ed25519_secret_key_enc="[encrypted]",  # Never expose raw encrypted key
-            api_key=row["api_key"],
+            api_key="[redacted]",
             status=row["status"],
             covenant_accepted=bool(row["covenant_accepted"]),
             created_at=row["created_at"],
