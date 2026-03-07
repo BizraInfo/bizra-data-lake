@@ -1228,16 +1228,27 @@ def create_fastapi_app(runtime: Any) -> Any:
         all_ok = all(v == "active" for v in subsystems.values())
         status_code = 200 if all_ok else 503
 
+        result = {
+            "status": "ready" if all_ok else "not_ready",
+            "tier": "ready",
+            "critical_subsystems": subsystems,
+        }
+
+        # Phase 71: Seed Engine health
+        seed_engine = getattr(runtime, "_seed_engine", None)
+        if seed_engine is not None:
+            result["seed_engine"] = seed_engine.health()
+
+        # Phase 72: Node Value health
+        node_value_engine = getattr(runtime, "_node_value_engine", None)
+        if node_value_engine is not None:
+            result["node_value"] = node_value_engine.health()
+        else:
+            result["node_value"] = {"active": False}
+
         from starlette.responses import JSONResponse
 
-        return JSONResponse(
-            content={
-                "status": "ready" if all_ok else "not_ready",
-                "tier": "ready",
-                "critical_subsystems": subsystems,
-            },
-            status_code=status_code,
-        )
+        return JSONResponse(content=result, status_code=status_code)
 
     @app.get("/v1/health/deep")
     async def health_deep():
@@ -1265,6 +1276,12 @@ def create_fastapi_app(runtime: Any) -> Any:
         if strict_gate.get("enabled") and not strict_gate.get("passed", True):
             health_status = "unhealthy"
 
+        # Phase 71: Seed Engine health
+        seed_health = None
+        seed_engine = getattr(runtime, "_seed_engine", None)
+        if seed_engine is not None:
+            seed_health = seed_engine.health()
+
         return {
             "status": health_status,
             "tier": "deep",
@@ -1273,6 +1290,7 @@ def create_fastapi_app(runtime: Any) -> Any:
             "subsystems": subsystems,
             "stub_count": stub_count,
             "unavailable_count": unavailable_count,
+            "seed_engine": seed_health,
             "strict_gate": strict_gate,
             "pat_sat_receipt_chain": {
                 "verified_end_to_end": bool(
@@ -2401,6 +2419,180 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
 
     # ═════════════════════════════════════════════════════════════
+    # /v1/seed/* — Phase 71 Seed Potential Engine
+    # Standing on Giants: Deming (PDCA), Shannon (SNR), Al-Ghazali (Ihsan)
+    # ═════════════════════════════════════════════════════════════
+
+    @app.get("/v1/seed/potential")
+    async def seed_potential():
+        """Node's growth trajectory and unlocked capacity."""
+        seed_engine = getattr(runtime, "_seed_engine", None)
+        if seed_engine is None:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Seed engine not initialized"},
+            )
+        try:
+            from dataclasses import asdict
+
+            potential = seed_engine.potential()
+            return asdict(potential)
+        except Exception:
+            logger.exception("Seed potential error")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
+
+    @app.get("/v1/seed/episodes")
+    async def seed_episodes(limit: int = 10):
+        """Recent growth episodes with receipt hashes."""
+        seed_engine = getattr(runtime, "_seed_engine", None)
+        if seed_engine is None:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Seed engine not initialized"},
+            )
+        clamped_limit = min(max(1, limit), 100)
+        try:
+            episodes = seed_engine.recent_episodes(limit=clamped_limit)
+            return {"count": len(episodes), "episodes": episodes}
+        except Exception:
+            logger.exception("Seed episodes error")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
+
+    # ═════════════════════════════════════════════════════════════
+    # Phase 72: Node Value KPI + Human Lifecycle + Network Effect
+    # Standing on Giants: Shannon · Deming · Maslow · Metcalfe
+    # ═════════════════════════════════════════════════════════════
+
+    @app.get("/v1/node/value")
+    async def get_node_value(request: Request):
+        """Five-factor composite KPI for this sovereign node."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error:
+            return auth_error
+
+        try:
+            from core.sovereign.node_value import NodeValueEngine
+            from core.sovereign.seed_engine import SeedEngine as _SE
+
+            seed_engine = getattr(runtime, "_seed_engine", None)
+            if seed_engine is None:
+                return JSONResponse(
+                    status_code=503,
+                    content={"error": "Seed engine not initialized"},
+                )
+
+            nv_engine = getattr(runtime, "_node_value_engine", None)
+            if nv_engine is None:
+                # Lazy initialization if not wired at startup
+                nv_engine = NodeValueEngine(seed_engine)
+
+            from dataclasses import asdict
+
+            snapshot = nv_engine.compute()
+            return asdict(snapshot)
+        except Exception:
+            logger.exception("Node value computation error")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
+
+    @app.get("/v1/node/lifecycle")
+    async def get_lifecycle(request: Request):
+        """Current human lifecycle stage with progress toward next."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error:
+            return auth_error
+
+        try:
+            from core.sovereign.human_lifecycle import stage_progress
+
+            seed_engine = getattr(runtime, "_seed_engine", None)
+            if seed_engine is None:
+                return JSONResponse(
+                    status_code=503,
+                    content={"error": "Seed engine not initialized"},
+                )
+
+            pot = seed_engine.potential()
+            return stage_progress(pot.sovereignty_score)
+        except Exception:
+            logger.exception("Lifecycle computation error")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
+
+    @app.get("/v1/network/effect")
+    async def get_network_effect(request: Request, nodes: int = 1000):
+        """Project network-wide metrics for a given node count."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error:
+            return auth_error
+
+        if nodes < 1 or nodes > 10_000_000_000:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "nodes must be 1..10B"},
+            )
+
+        try:
+            from core.sovereign.network_effect import NetworkEffectEstimator
+
+            estimator = NetworkEffectEstimator()
+            projection = estimator.project(nodes)
+            return {
+                "nodes": projection.nodes,
+                "skills_available": projection.skills_available,
+                "compute_tflops": projection.compute_tflops,
+                "latency_factor": projection.latency_factor,
+                "intelligence_density": projection.intelligence_density,
+                "cost_per_node": projection.cost_per_node,
+            }
+        except Exception:
+            logger.exception("Network effect projection error")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
+
+    @app.get("/v1/network/milestones")
+    async def get_milestones(request: Request):
+        """Standard milestone projections (1 to 8B nodes)."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error:
+            return auth_error
+
+        try:
+            from core.sovereign.network_effect import NetworkEffectEstimator
+
+            estimator = NetworkEffectEstimator()
+            milestones = estimator.project_milestones()
+            return {
+                "milestones": [
+                    {
+                        "nodes": m.nodes,
+                        "skills": m.skills_available,
+                        "tflops": m.compute_tflops,
+                        "latency_factor": m.latency_factor,
+                    }
+                    for m in milestones
+                ]
+            }
+        except Exception:
+            logger.exception("Network milestones error")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
+
+    # ═════════════════════════════════════════════════════════════
     # /v1/constitutional/tick — 12-Step Constitutional Heartbeat
     # Standing on Giants: Al-Khwarizmi, Nakamoto, Kahneman
     # ═════════════════════════════════════════════════════════════
@@ -2544,6 +2736,111 @@ def create_fastapi_app(runtime: Any) -> Any:
             }
         except Exception:
             logger.exception("Orchestration failed")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
+
+    # ─── Mission Endpoint (Sprint 1 Task 1.4) ─────────────────────────────
+    # Standing on: Boyd (OODA), Al-Ghazali (Ihsan gate)
+    #
+    # POST /v1/plan — submit a mission, get receipted result
+    # This is the golden path: intent → route → execute → proof → return
+    # Blueprint Section 5, Sprint 1, Acceptance: curl /v1/plan returns receipted result
+
+    @app.post("/v1/plan")
+    async def submit_plan(request: Request):
+        """Submit a sovereign mission and receive a receipted result.
+
+        Accepts: {"description": "...", "source": "terminal"}
+        Returns: MissionResult with evidence receipt, Ihsan/SNR scores.
+
+        Auth-guarded. Two-touch: submit once, get result.
+        """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        try:
+            import secrets as _secrets
+            import time as _time
+
+            from core.sovereign.mission import (
+                DesktopContext,
+                MissionOrchestrator,
+                MissionRequest,
+            )
+
+            body = await request.json()
+            description = body.get("description", "").strip()
+            if not description:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "description is required"},
+                )
+
+            source = body.get("source", "api")
+
+            # Build mission config from Node0 ConfigMap environment
+            config = {
+                "memory_path": os.environ.get(
+                    "SEMANTIC_MEMORY_PATH", "/tmp/bizra-mission/memory"
+                ),
+                "evidence_path": os.environ.get(
+                    "EVENT_LOG_PATH", "/tmp/bizra-mission"
+                )
+                + "/evidence.jsonl",
+                "hda_port": int(os.environ.get("HDA_PORT", "9743")),
+                "workspace_root": os.environ.get("BIZRA_DATA_LAKE_ROOT", "."),
+            }
+
+            orchestrator = MissionOrchestrator(config=config)
+
+            # Inject inference gateway from runtime if available
+            gateway = getattr(runtime, "inference_gateway", None)
+            if gateway is not None:
+                orchestrator.gateway = gateway
+
+            mission_req = MissionRequest(
+                mission_id=_secrets.token_hex(8),
+                description=description,
+                context=DesktopContext(),
+                timestamp=_time.time(),
+                source=source,
+            )
+
+            result = await orchestrator.execute(mission_req)
+
+            return {
+                "status": result.status,
+                "mission_id": result.mission_id,
+                "synthesis": result.synthesis,
+                "ihsan_score": result.ihsan_score,
+                "snr_score": result.snr_score,
+                "duration_ms": round(result.duration_ms, 1),
+                "evidence_receipt_id": result.evidence_receipt_id,
+                "briefing_path": result.briefing_path,
+                "channels_executed": [
+                    {
+                        "channel": cr.channel,
+                        "success": cr.success,
+                        "duration_ms": round(cr.duration_ms, 1),
+                    }
+                    for cr in result.channels_executed
+                ],
+            }
+
+        except ImportError as exc:
+            logger.exception("Mission orchestrator not available")
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "error": "Mission engine not available",
+                    "detail": str(exc),
+                },
+            )
+        except Exception:
+            logger.exception("Mission execution failed")
             return JSONResponse(
                 status_code=500,
                 content={"error": "Internal server error"},
@@ -3357,6 +3654,124 @@ def create_fastapi_app(runtime: Any) -> Any:
     # ─── Auth Route Wiring ────────────────────────────────────────────
     # Note: /v1/query is auth-aware via single handler (SAPE-001 fix).
     # No duplicate route registration needed.
+
+    # ═════════════════════════════════════════════════════════════
+    # /v1/onboarding/* — Phase 73 Onboarding State Machine
+    # Local-first: frontend owns UX state, backend enriches with
+    # sovereign proof data and persists for cross-device sync.
+    # ═════════════════════════════════════════════════════════════
+
+    ONBOARDING_STEPS = [
+        "welcome",
+        "desire",
+        "stressor",
+        "capacity",
+        "commitment",
+        "review",
+    ]
+
+    @app.get("/v1/onboarding/state")
+    async def get_onboarding_state(request: Request):
+        """Get current onboarding progress for authenticated user."""
+        _, user_id, auth_error = _authenticate_http_request(request)
+        if auth_error:
+            return auth_error
+
+        try:
+            # Check sovereign state for persisted onboarding progress
+            state_dir = pathlib.Path("sovereign_state") / "onboarding"
+            state_file = state_dir / f"{user_id}.json"
+
+            if state_file.exists():
+                import json as _json
+
+                state = _json.loads(state_file.read_text())
+                return state
+
+            # Default: fresh onboarding
+            return {
+                "step": 0,
+                "total_steps": len(ONBOARDING_STEPS),
+                "completed": [],
+                "current": ONBOARDING_STEPS[0],
+                "profile": {},
+            }
+        except Exception:
+            logger.exception("Onboarding state error")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
+
+    @app.post("/v1/onboarding/teach")
+    async def post_onboarding_teach(request: Request):
+        """Record a TEACH step completion and advance onboarding."""
+        _, user_id, auth_error = _authenticate_http_request(request)
+        if auth_error:
+            return auth_error
+
+        try:
+            import json as _json
+
+            body = await request.json()
+            step = body.get("step", "")
+
+            if step not in ONBOARDING_STEPS:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": f"Unknown step: {step}"},
+                )
+
+            # Load or create state
+            state_dir = pathlib.Path("sovereign_state") / "onboarding"
+            state_dir.mkdir(parents=True, exist_ok=True)
+            state_file = state_dir / f"{user_id}.json"
+
+            if state_file.exists():
+                state = _json.loads(state_file.read_text())
+            else:
+                state = {
+                    "step": 0,
+                    "total_steps": len(ONBOARDING_STEPS),
+                    "completed": [],
+                    "current": ONBOARDING_STEPS[0],
+                    "profile": {},
+                }
+
+            # Record completion
+            if step not in state["completed"]:
+                state["completed"].append(step)
+
+            # Merge profile data (exclude 'step' key)
+            profile_update = {k: v for k, v in body.items() if k != "step"}
+            state["profile"].update(profile_update)
+
+            # Advance to next step
+            step_idx = ONBOARDING_STEPS.index(step)
+            next_idx = step_idx + 1
+            state["step"] = next_idx
+            next_step = (
+                ONBOARDING_STEPS[next_idx]
+                if next_idx < len(ONBOARDING_STEPS)
+                else None
+            )
+            state["current"] = next_step or "complete"
+
+            # Persist
+            state_file.write_text(_json.dumps(state, indent=2))
+
+            return {
+                "step": step,
+                "accepted": True,
+                "next_step": next_step,
+                "profile_update": profile_update,
+            }
+        except Exception:
+            logger.exception("Onboarding teach error")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
 
     import pathlib
 
