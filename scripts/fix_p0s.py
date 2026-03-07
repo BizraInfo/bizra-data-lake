@@ -12,7 +12,6 @@ import argparse
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 FIXES: list[dict[str, str]] = []
 
@@ -27,10 +26,9 @@ def report(
 ) -> None:
     FIXES.append({"id": fix_id, "status": status})
     icon = (
-        "✓" if status == "FIXED"
-        else "⊘" if status == "DRY-RUN"
-        else "→" if status == "MANUAL"
-        else "–"
+        "✓"
+        if status == "FIXED"
+        else "⊘" if status == "DRY-RUN" else "→" if status == "MANUAL" else "–"
     )
     print(f"  {icon} {fix_id}: {desc}")
     if before != after:
@@ -46,7 +44,9 @@ def fix_p0_2(execute: bool) -> None:
     text = pyproject.read_text(encoding="utf-8")
     match = re.search(r"(fail_under\s*=\s*)(\d+)", text)
     if not match:
-        report("P0-2", "Coverage gate not found", pyproject, "missing", "missing", "SKIP")
+        report(
+            "P0-2", "Coverage gate not found", pyproject, "missing", "missing", "SKIP"
+        )
         return
 
     updated = text[: match.start(2)] + "60" + text[match.end(2) :]
@@ -101,8 +101,17 @@ def fix_p0_3(execute: bool) -> None:
     if changes > 0 and execute:
         pyproject.write_text(text, encoding="utf-8")
 
-    status = "FIXED" if execute and changes > 0 else "DRY-RUN" if changes > 0 else "SKIP"
-    report("P0-3", f"Python unified ({changes} targets→3.12)", pyproject, "mixed", ">=3.12", status)
+    status = (
+        "FIXED" if execute and changes > 0 else "DRY-RUN" if changes > 0 else "SKIP"
+    )
+    report(
+        "P0-3",
+        f"Python unified ({changes} targets→3.12)",
+        pyproject,
+        "mixed",
+        ">=3.12",
+        status,
+    )
 
 
 def fix_p0_4(execute: bool) -> None:
@@ -149,11 +158,23 @@ def main() -> None:
     print(f"\n  BIZRA P0 CLOSURE — {'EXECUTE' if execute else 'DRY-RUN'}\n")
 
     overlays = ROOT / "deploy" / "k8s" / "overlays"
-    expected = [overlays / name / "kustomization.yaml" for name in ("dev", "staging", "production")]
+    expected = [
+        overlays / name / "kustomization.yaml"
+        for name in ("dev", "staging", "production")
+    ]
     if all(path.exists() for path in expected):
-        report("P0-1", "Deploy overlays present", overlays, "missing", "present", "SKIP")
+        report(
+            "P0-1", "Deploy overlays present", overlays, "missing", "present", "SKIP"
+        )
     else:
-        report("P0-1", "Deploy overlays (manual)", overlays, "missing", "needs k8s/overlays/", "MANUAL")
+        report(
+            "P0-1",
+            "Deploy overlays (manual)",
+            overlays,
+            "missing",
+            "needs k8s/overlays/",
+            "MANUAL",
+        )
 
     fix_p0_2(execute)
     fix_p0_3(execute)

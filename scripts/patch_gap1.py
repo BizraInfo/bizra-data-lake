@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Inject network_asabiyyah into core/constitutional/algorithms.py (GAP-1 fix)."""
+
 import sys
 
 TARGET = r"C:\BIZRA-DATA-LAKE\core\constitutional\algorithms.py"

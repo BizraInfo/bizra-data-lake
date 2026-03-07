@@ -181,7 +181,9 @@ try:
         """Request model for POST /v1/plan — sovereign mission submission."""
 
         description: str = _PydanticField(
-            ..., min_length=1, max_length=10000,
+            ...,
+            min_length=1,
+            max_length=10000,
             description="Natural-language mission objective.",
         )
         source: str = _PydanticField(
@@ -999,9 +1001,7 @@ class SovereignAPIServer:
         """GET /v1/seed/potential — Node's growth trajectory and unlocked capacity."""
         seed_engine = getattr(self.runtime, "_seed_engine", None)
         if seed_engine is None:
-            return self._json_response(
-                {"error": "Seed engine not initialized"}, 503
-            )
+            return self._json_response({"error": "Seed engine not initialized"}, 503)
 
         try:
             from dataclasses import asdict
@@ -1016,9 +1016,7 @@ class SovereignAPIServer:
         """GET /v1/seed/episodes — Recent growth episodes with receipt hashes."""
         seed_engine = getattr(self.runtime, "_seed_engine", None)
         if seed_engine is None:
-            return self._json_response(
-                {"error": "Seed engine not initialized"}, 503
-            )
+            return self._json_response({"error": "Seed engine not initialized"}, 503)
 
         try:
             limit = min(int(params.get("limit", "10")), 100)
@@ -1027,9 +1025,7 @@ class SovereignAPIServer:
 
         try:
             episodes = seed_engine.recent_episodes(limit=limit)
-            return self._json_response(
-                {"count": len(episodes), "episodes": episodes}
-            )
+            return self._json_response({"count": len(episodes), "episodes": episodes})
         except Exception:
             logger.exception("Seed episodes error")
             return self._json_response({"error": "Internal server error"}, 500)
@@ -1148,17 +1144,38 @@ def create_fastapi_app(runtime: Any) -> Any:
         contact={"name": "BIZRA", "url": "https://bizra.info"},
         openapi_tags=[
             {"name": "health", "description": "Health and observability probes."},
-            {"name": "auth", "description": "Authentication: register, login, refresh."},
-            {"name": "mission", "description": "Sovereign mission planning and execution."},
+            {
+                "name": "auth",
+                "description": "Authentication: register, login, refresh.",
+            },
+            {
+                "name": "mission",
+                "description": "Sovereign mission planning and execution.",
+            },
             {"name": "query", "description": "Knowledge query and reasoning."},
-            {"name": "verification", "description": "Cryptographic receipt and chain verification."},
+            {
+                "name": "verification",
+                "description": "Cryptographic receipt and chain verification.",
+            },
             {"name": "memory", "description": "Semantic memory search and stats."},
-            {"name": "economics", "description": "Token supply, balance, PoI/SAT epochs."},
-            {"name": "constitutional", "description": "Constitutional tick and status."},
-            {"name": "spearpoint", "description": "Benchmark evaluation and improvement."},
+            {
+                "name": "economics",
+                "description": "Token supply, balance, PoI/SAT epochs.",
+            },
+            {
+                "name": "constitutional",
+                "description": "Constitutional tick and status.",
+            },
+            {
+                "name": "spearpoint",
+                "description": "Benchmark evaluation and improvement.",
+            },
             {"name": "cognitive", "description": "Cognitive fusion and status."},
             {"name": "experience", "description": "SEL episodes and judgment."},
-            {"name": "sovereignty", "description": "Node value, lifecycle, network effect."},
+            {
+                "name": "sovereignty",
+                "description": "Node value, lifecycle, network effect.",
+            },
             {"name": "onboarding", "description": "User onboarding and teaching."},
         ],
     )
@@ -2521,7 +2538,9 @@ def create_fastapi_app(runtime: Any) -> Any:
     # Standing on Giants: Deming (PDCA), Shannon (SNR), Al-Ghazali (Ihsan)
     # ═════════════════════════════════════════════════════════════
 
-    @app.get("/v1/seed/potential", tags=["sovereignty"], summary="Node growth trajectory")
+    @app.get(
+        "/v1/seed/potential", tags=["sovereignty"], summary="Node growth trajectory"
+    )
     async def seed_potential():
         """Node's growth trajectory and unlocked capacity."""
         seed_engine = getattr(runtime, "_seed_engine", None)
@@ -2542,7 +2561,9 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Internal server error"},
             )
 
-    @app.get("/v1/seed/episodes", tags=["sovereignty"], summary="Recent growth episodes")
+    @app.get(
+        "/v1/seed/episodes", tags=["sovereignty"], summary="Recent growth episodes"
+    )
     async def seed_episodes(limit: int = 10):
         """Recent growth episodes with receipt hashes."""
         seed_engine = getattr(runtime, "_seed_engine", None)
@@ -2601,7 +2622,9 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Internal server error"},
             )
 
-    @app.get("/v1/node/lifecycle", tags=["sovereignty"], summary="Human lifecycle stage")
+    @app.get(
+        "/v1/node/lifecycle", tags=["sovereignty"], summary="Human lifecycle stage"
+    )
     async def get_lifecycle(request: Request):
         """Current human lifecycle stage with progress toward next."""
         _, _, auth_error = _authenticate_http_request(request)
@@ -2627,7 +2650,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Internal server error"},
             )
 
-    @app.get("/v1/network/effect", tags=["sovereignty"], summary="Metcalfe network projection")
+    @app.get(
+        "/v1/network/effect",
+        tags=["sovereignty"],
+        summary="Metcalfe network projection",
+    )
     async def get_network_effect(request: Request, nodes: int = 1000):
         """Project network-wide metrics for a given node count."""
         _, _, auth_error = _authenticate_http_request(request)
@@ -2660,7 +2687,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Internal server error"},
             )
 
-    @app.get("/v1/network/milestones", tags=["sovereignty"], summary="Milestone projections (1→8B)")
+    @app.get(
+        "/v1/network/milestones",
+        tags=["sovereignty"],
+        summary="Milestone projections (1→8B)",
+    )
     async def get_milestones(request: Request):
         """Standard milestone projections (1 to 8B nodes)."""
         _, _, auth_error = _authenticate_http_request(request)
@@ -2892,9 +2923,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "memory_path": os.environ.get(
                     "SEMANTIC_MEMORY_PATH", "/tmp/bizra-mission/memory"
                 ),
-                "evidence_path": os.environ.get(
-                    "EVENT_LOG_PATH", "/tmp/bizra-mission"
-                )
+                "evidence_path": os.environ.get("EVENT_LOG_PATH", "/tmp/bizra-mission")
                 + "/evidence.jsonl",
                 "hda_port": int(os.environ.get("HDA_PORT", "9743")),
                 "workspace_root": os.environ.get("BIZRA_DATA_LAKE_ROOT", "."),
@@ -3565,7 +3594,11 @@ def create_fastapi_app(runtime: Any) -> Any:
             ),
         }
 
-    @app.post("/v1/judgment/simulate", tags=["experience"], summary="Simulate epoch distribution")
+    @app.post(
+        "/v1/judgment/simulate",
+        tags=["experience"],
+        summary="Simulate epoch distribution",
+    )
     async def judgment_simulate(body: EpochSimulateModel, request: Request):
         """Simulate proportional epoch distribution (no tokens emitted).
 
@@ -3853,9 +3886,7 @@ def create_fastapi_app(runtime: Any) -> Any:
             next_idx = step_idx + 1
             state["step"] = next_idx
             next_step = (
-                ONBOARDING_STEPS[next_idx]
-                if next_idx < len(ONBOARDING_STEPS)
-                else None
+                ONBOARDING_STEPS[next_idx] if next_idx < len(ONBOARDING_STEPS) else None
             )
             state["current"] = next_step or "complete"
 

@@ -25,7 +25,13 @@ from core.constitutional.declaration import (
 )
 from core.constitutional.fixed_point import FP_ZERO, fp, fp_div, fp_float
 from core.constitutional.ticker import process_tick
-from core.constitutional.types import ActionReceipt, Event, Proposal, Reflex, WalletState
+from core.constitutional.types import (
+    ActionReceipt,
+    Event,
+    Proposal,
+    Reflex,
+    WalletState,
+)
 
 DEFAULT_START_TIME_MS = 1_741_392_000_000
 MILESTONE_DAYS = (1, 30, 90, 180, 365)
@@ -266,7 +272,9 @@ class SovereignNetworkSimulation:
                 k=1,
             )[0]
             intent, efficiency, impact, reproducibility = self._quality_scores(quality)
-            action_type = action_types[(day + ordinal + self.config.seed) % len(action_types)]
+            action_type = action_types[
+                (day + ordinal + self.config.seed) % len(action_types)
+            ]
             receipt_id = self._digest(
                 f"receipt:{self.config.seed}:{day}:{ordinal}:{wallet.node_id.hex()}"
             )
@@ -335,7 +343,9 @@ class SovereignNetworkSimulation:
             if attester.node_id == attestee.node_id:
                 continue
             if attester.ihsan_history:
-                avg = sum(attester.ihsan_history[-10:]) // len(attester.ihsan_history[-10:])
+                avg = sum(attester.ihsan_history[-10:]) // len(
+                    attester.ihsan_history[-10:]
+                )
                 if avg < IHSAN_FLOOR:
                     continue
             if receipt_by_actor.get(attestee.node_id) is None:

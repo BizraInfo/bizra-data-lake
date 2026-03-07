@@ -27,7 +27,6 @@ from core.integration.constants import (
     HUMAN_STAGE_THRESHOLDS,
 )
 
-
 # ---------------------------------------------------------------------------
 # Human Growth Stage dataclass
 # ---------------------------------------------------------------------------
@@ -80,15 +79,14 @@ class HumanStage:
 # Build STAGES list from constants.py thresholds
 # ---------------------------------------------------------------------------
 
+
 def _build_stages() -> list[HumanStage]:
     """Construct stage list from centralized constants."""
     stages: list[HumanStage] = []
     order = HUMAN_STAGE_ORDER
     for i, name in enumerate(order):
         score_low = HUMAN_STAGE_THRESHOLDS[name]
-        score_high = (
-            HUMAN_STAGE_THRESHOLDS[order[i + 1]] if i + 1 < len(order) else 1.0
-        )
+        score_high = HUMAN_STAGE_THRESHOLDS[order[i + 1]] if i + 1 < len(order) else 1.0
         desc, unlock = _STAGE_DESCRIPTIONS.get(
             name, ("Unknown stage.", "Unknown condition")
         )
@@ -126,6 +124,7 @@ AGENT_TIER_MAP = {
 # ---------------------------------------------------------------------------
 # Pure functions
 # ---------------------------------------------------------------------------
+
 
 def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
     return max(lo, min(hi, value))

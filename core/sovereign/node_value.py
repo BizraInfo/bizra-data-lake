@@ -34,7 +34,6 @@ from core.integration.constants import (
 )
 from core.sovereign.human_lifecycle import human_stage
 
-
 # ---------------------------------------------------------------------------
 # Snapshot dataclass — all factors bounded [0, 1]
 # ---------------------------------------------------------------------------
@@ -97,9 +96,7 @@ class NodeValueEngine:
 
         # Factor 4: Compounding (normalized 0-1 via asymptotic curve)
         age_days = max(1.0, float(self._days_since_genesis()))
-        time_factor = 1.0 - math.exp(
-            -age_days / NODE_VALUE_COMPOUNDING_REFERENCE_DAYS
-        )
+        time_factor = 1.0 - math.exp(-age_days / NODE_VALUE_COMPOUNDING_REFERENCE_DAYS)
         streak_factor = min(pot.streak / NODE_VALUE_STREAK_REFERENCE, 1.0)
         compounding = time_factor * (0.7 + 0.3 * streak_factor)
 
@@ -112,7 +109,7 @@ class NodeValueEngine:
             product = 1.0
             for f in factors:
                 product *= f
-            composite = product ** 0.2
+            composite = product**0.2
         else:
             composite = 0.0
 

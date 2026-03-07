@@ -70,7 +70,11 @@ class APIRoutePolicyReport:
 
     @property
     def ok(self) -> bool:
-        return not self.missing_policy and not self.stale_policy and not self.duplicate_routes
+        return (
+            not self.missing_policy
+            and not self.stale_policy
+            and not self.duplicate_routes
+        )
 
     def format_issues(self) -> str:
         lines: list[str] = []

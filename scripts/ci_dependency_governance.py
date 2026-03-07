@@ -23,7 +23,9 @@ from typing import Iterable
 try:
     from packaging.requirements import Requirement
 except ImportError as exc:  # pragma: no cover - packaging should exist in CI/dev
-    raise RuntimeError("packaging is required for dependency governance checks") from exc
+    raise RuntimeError(
+        "packaging is required for dependency governance checks"
+    ) from exc
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -126,9 +128,7 @@ def _finalize_lock_entry(
     issues: list[str],
 ) -> None:
     if current_name is not None and current_hashes == 0:
-        issues.append(
-            f"requirements.lock entry '{current_name}' is not hash-pinned"
-        )
+        issues.append(f"requirements.lock entry '{current_name}' is not hash-pinned")
 
 
 def parse_lock_pins(lock_path: Path, issues: list[str]) -> dict[str, str]:

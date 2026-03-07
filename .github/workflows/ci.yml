@@ -150,7 +150,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install jsonschema
+          pip install jsonschema fastapi pydantic starlette httpx cryptography PyNaCl PyJWT
 
       - name: Validate schemas and fixtures
         run: python tools/validate_schemas.py --strict

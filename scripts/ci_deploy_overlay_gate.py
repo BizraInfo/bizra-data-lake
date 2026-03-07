@@ -10,7 +10,6 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEPLOY_WORKFLOW = ROOT / ".github" / "workflows" / "deploy.yml"
 
@@ -82,9 +81,7 @@ def validate_deploy_overlay_governance(
 
         kustomization_text = kustomization.read_text(encoding="utf-8")
         if "../../base" not in kustomization_text:
-            issues.append(
-                f"overlay '{overlay_name}' must inherit from ../../base"
-            )
+            issues.append(f"overlay '{overlay_name}' must inherit from ../../base")
         for image_name in REQUIRED_IMAGES:
             if image_name not in kustomization_text:
                 issues.append(
