@@ -1,0 +1,2152 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BIZRA Sovereign API",
+    "summary": "Constitutional sovereign engine for decentralized agentic intelligence.",
+    "description": "59-route REST + WebSocket API surface for the BIZRA sovereign runtime.\n\n**Route categories:**\n- **23 Public** \u2014 health, metrics, verification, token supply\n- **3 Bootstrap** \u2014 auth registration, login, refresh\n- **33 Authenticated** \u2014 query, mission, memory, orchestration\n\n**Constitutional thresholds:**\n- Ihsan (excellence): >= 0.95\n- SNR (signal quality): >= 0.85\n- ADL Gini (justice): <= 0.35\n\n**Golden path:** `POST /v1/plan` \u2014 submit mission, receive receipted result.",
+    "contact": {
+      "name": "BIZRA",
+      "url": "https://bizra.info/"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "1.3.0"
+  },
+  "paths": {
+    "/v1/health/live": {
+      "get": {
+        "summary": "Health Live",
+        "description": "Liveness probe \u2014 O(1), <5ms. Returns 200 if process is alive.",
+        "operationId": "health_live_v1_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/health/ready": {
+      "get": {
+        "summary": "Health Ready",
+        "description": "Readiness probe \u2014 3 critical checks, <50ms.",
+        "operationId": "health_ready_v1_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/health/deep": {
+      "get": {
+        "summary": "Health Deep",
+        "description": "Deep health \u2014 full 11-subsystem audit, <500ms. For startup probes.",
+        "operationId": "health_deep_v1_health_deep_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "description": "Backward-compatible alias \u2014 delegates to readiness check.",
+        "operationId": "health_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/status": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Runtime status snapshot",
+        "operationId": "status_v1_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Prometheus metrics",
+        "operationId": "metrics_v1_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/query": {
+      "post": {
+        "tags": [
+          "query"
+        ],
+        "summary": "Submit knowledge query",
+        "description": "Query endpoint \u2014 auth-aware when auth layer is available.\n\nSecurity: single handler prevents route-shadowing bypass (SAPE-001).\nDefault behavior is fail-closed for missing/invalid auth.\nAnonymous access requires explicit BIZRA_AUTH_ALLOW_ANONYMOUS opt-in.",
+        "operationId": "query_v1_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequestModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/validate": {
+      "post": {
+        "summary": "Validate",
+        "description": "Validate content quality using the sovereign SNR and Ihs\u0101n engines.\n\nReturns quality scores without executing a full query pipeline.\nUseful for TUI/CLI post-hoc validation of generated content.",
+        "operationId": "validate_v1_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateRequestModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verify/genesis": {
+      "post": {
+        "summary": "Verify Genesis",
+        "description": "Verify Node0 genesis identity hash chain.\n\nReturns uniform VerifierResponse with genesis artifacts.\nStanding on: Lamport (event ordering), Bernstein (Ed25519).",
+        "operationId": "verify_genesis_v1_verify_genesis_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verify/envelope": {
+      "post": {
+        "summary": "Verify Envelope",
+        "description": "Verify a PCI envelope signature, freshness, and replay protection.\n\nReturns uniform VerifierResponse with check details in artifacts.\nStanding on: Bernstein (Ed25519), Lamport (replay protection).",
+        "operationId": "verify_envelope_v1_verify_envelope_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvelopeVerifyModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verify/receipt": {
+      "post": {
+        "summary": "Verify Receipt",
+        "description": "Verify a signed execution receipt.\n\nReturns uniform VerifierResponse with quality metrics in artifacts.",
+        "operationId": "verify_receipt_v1_verify_receipt_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptVerifyModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verify/audit-log": {
+      "post": {
+        "summary": "Verify Audit Log",
+        "description": "Verify tamper-evident audit log integrity.\n\nReturns uniform VerifierResponse with chain analysis in artifacts.\nStanding on: Merkle (1979) \u2014 hash chain integrity.",
+        "operationId": "verify_audit_log_v1_verify_audit_log_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditLogVerifyModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verify/ledger": {
+      "post": {
+        "summary": "Verify Evidence Ledger",
+        "description": "Verify integrity of the Evidence Ledger hash chain.\n\nReturns uniform VerifierResponse with chain metrics in artifacts.\nStanding on: Merkle (1979) \u2014 hash chain tamper detection.",
+        "operationId": "verify_evidence_ledger_v1_verify_ledger_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artifacts/graph/{query_id}": {
+      "get": {
+        "summary": "Get Graph Artifact",
+        "description": "Retrieve a Graph-of-Thoughts artifact by query ID.\n\nReturns the schema-compliant reasoning graph artifact produced\nduring query processing. The artifact includes nodes, edges,\nroots, graph_hash, and config \u2014 matching reasoning_graph.schema.json.\n\nStanding on: Besta (GoT, 2024) \u2014 graph artifacts as first-class,\nMerkle (1979) \u2014 content-addressed integrity.",
+        "operationId": "get_graph_artifact_v1_artifacts_graph__query_id__get",
+        "parameters": [
+          {
+            "name": "query_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Query Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verify/signature": {
+      "get": {
+        "summary": "Verify Signature Info",
+        "description": "Return the node's public key for independent verification.\n\nExternal verifiers can use this to verify any signed artifact\n(receipts, envelopes, attestations) produced by this node.",
+        "operationId": "verify_signature_info_v1_verify_signature_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verify/poi": {
+      "post": {
+        "summary": "Verify Poi Receipt",
+        "description": "Verify a signed Proof-of-Impact receipt.\n\nValidates structure, reason code, score bounds, config digest,\nand Ed25519 signature if signer key is available.\n\nStanding on: Nakamoto (PoW verification), Bernstein (Ed25519).",
+        "operationId": "verify_poi_receipt_v1_verify_poi_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PoIReceiptVerifyModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verify/genesis/header": {
+      "get": {
+        "summary": "Verify Genesis Header",
+        "description": "Lightweight genesis verification \u2014 hashes and signature only.\n\nReturns minimal verification data for bandwidth-constrained clients\n(mobile, edge nodes) without full agent lists or governance details.\n\nStanding on: Merkle (1979) \u2014 header-only verification.",
+        "operationId": "verify_genesis_header_v1_verify_genesis_header_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/gate-chain/stats": {
+      "get": {
+        "summary": "Gate Chain Stats",
+        "description": "Get GateChain evaluation statistics.\n\nReturns pass/fail rates, failure distribution by gate,\nand average SNR across evaluations.\n\nStanding on: Lamport (fail-closed), BIZRA Spearpoint (6-gate chain).",
+        "operationId": "gate_chain_stats_v1_gate_chain_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/poi/stats": {
+      "get": {
+        "summary": "Poi Stats",
+        "description": "Get Proof-of-Impact engine statistics.\n\nStanding on: Nakamoto (PoW), Page & Brin (PageRank), Gini (inequality).",
+        "operationId": "poi_stats_v1_poi_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/poi/epoch": {
+      "post": {
+        "summary": "Poi Epoch",
+        "description": "Run a full PoI computation epoch.\n\nComputes composite PoI scores for all contributors,\nruns Gini analysis, and applies SAT rebalancing if needed.",
+        "operationId": "poi_epoch_v1_poi_epoch_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/poi/contributor/{contributor_id}": {
+      "get": {
+        "summary": "Poi Contributor",
+        "description": "Get the most recent PoI for a specific contributor.",
+        "operationId": "poi_contributor_v1_poi_contributor__contributor_id__get",
+        "parameters": [
+          {
+            "name": "contributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Contributor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sat/stats": {
+      "get": {
+        "summary": "Sat Stats",
+        "description": "Get SAT Controller statistics.\n\nReturns Gini coefficient, rebalancing history, credit distribution.\nStanding on: Ostrom (commons governance), Gini (inequality).",
+        "operationId": "sat_stats_v1_sat_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sat/epoch": {
+      "post": {
+        "summary": "Sat Epoch",
+        "description": "Finalize a PoI epoch via SAT Controller.\n\nComputes PoI scores, distributes tokens, checks Gini,\nand triggers rebalancing if inequality exceeds threshold.",
+        "operationId": "sat_epoch_v1_sat_epoch_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/token/balance": {
+      "get": {
+        "summary": "Token Balance",
+        "description": "Get token balances for an account.",
+        "operationId": "token_balance_v1_token_balance_get",
+        "parameters": [
+          {
+            "name": "account",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "BIZRA-00000000",
+              "title": "Account"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/token/supply": {
+      "get": {
+        "summary": "Token Supply",
+        "description": "Get total token supply across all types.",
+        "operationId": "token_supply_v1_token_supply_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/token/verify": {
+      "get": {
+        "summary": "Token Verify",
+        "description": "Verify token ledger hash chain integrity.",
+        "operationId": "token_verify_v1_token_verify_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/seed/potential": {
+      "get": {
+        "tags": [
+          "sovereignty"
+        ],
+        "summary": "Node growth trajectory",
+        "description": "Node's growth trajectory and unlocked capacity.",
+        "operationId": "seed_potential_v1_seed_potential_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/seed/episodes": {
+      "get": {
+        "tags": [
+          "sovereignty"
+        ],
+        "summary": "Recent growth episodes",
+        "description": "Recent growth episodes with receipt hashes.",
+        "operationId": "seed_episodes_v1_seed_episodes_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/node/value": {
+      "get": {
+        "tags": [
+          "sovereignty"
+        ],
+        "summary": "Five-factor node KPI",
+        "description": "Five-factor composite KPI for this sovereign node.",
+        "operationId": "get_node_value_v1_node_value_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/node/lifecycle": {
+      "get": {
+        "tags": [
+          "sovereignty"
+        ],
+        "summary": "Human lifecycle stage",
+        "description": "Current human lifecycle stage with progress toward next.",
+        "operationId": "get_lifecycle_v1_node_lifecycle_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/network/effect": {
+      "get": {
+        "tags": [
+          "sovereignty"
+        ],
+        "summary": "Metcalfe network projection",
+        "description": "Project network-wide metrics for a given node count.",
+        "operationId": "get_network_effect_v1_network_effect_get",
+        "parameters": [
+          {
+            "name": "nodes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "title": "Nodes"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/network/milestones": {
+      "get": {
+        "tags": [
+          "sovereignty"
+        ],
+        "summary": "Milestone projections (1\u21928B)",
+        "description": "Standard milestone projections (1 to 8B nodes).",
+        "operationId": "get_milestones_v1_network_milestones_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/constitutional/tick": {
+      "post": {
+        "summary": "Constitutional Tick",
+        "description": "Execute one tick of the constitutional kernel.\n\n12 deterministic steps: intent gate \u2192 ihsan scoring \u2192 gini \u2192\nprogressive mint \u2192 bloom accrual \u2192 bloom decay \u2192 demurrage \u2192\nzakat \u2192 governance \u2192 reflex cache \u2192 event log \u2192 asabiyyah.\n\nAuth-guarded. Returns TickResult summary.",
+        "operationId": "constitutional_tick_v1_constitutional_tick_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/constitutional/status": {
+      "get": {
+        "summary": "Constitutional Status",
+        "description": "Get current constitutional kernel state.",
+        "operationId": "constitutional_status_v1_constitutional_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/orchestrate": {
+      "post": {
+        "summary": "Orchestrate",
+        "description": "Decompose a complex task through the orchestrator's agent swarm.",
+        "operationId": "orchestrate_v1_orchestrate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrchestrateRequestModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plan": {
+      "post": {
+        "tags": [
+          "mission"
+        ],
+        "summary": "Submit a sovereign mission",
+        "description": "Golden path endpoint. Accepts a mission description, routes through MissionOrchestrator (OODA loop), and returns a receipted result with Ihsan/SNR scores and per-channel execution breakdown.",
+        "operationId": "submit_plan_v1_plan_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissionPlanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty or missing description"
+          },
+          "503": {
+            "description": "Mission engine not available"
+          }
+        }
+      }
+    },
+    "/v1/spearpoint/reproduce": {
+      "post": {
+        "summary": "Spearpoint Reproduce",
+        "description": "Evaluate/verify a claim through the Spearpoint evaluator gate.",
+        "operationId": "spearpoint_reproduce_v1_spearpoint_reproduce_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpearpointReproduceModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/spearpoint/improve": {
+      "post": {
+        "summary": "Spearpoint Improve",
+        "description": "Generate and evaluate improvement hypotheses through the evaluator gate.",
+        "operationId": "spearpoint_improve_v1_spearpoint_improve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpearpointImproveModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/spearpoint/stats": {
+      "get": {
+        "summary": "Spearpoint Stats",
+        "description": "Get Spearpoint Orchestrator statistics and mission history.",
+        "operationId": "spearpoint_stats_v1_spearpoint_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/spearpoint/pattern": {
+      "post": {
+        "summary": "Spearpoint Pattern",
+        "description": "Pattern-aware research using Sci-Reasoning thinking patterns.\n\nRoutes to SpearpointOrchestrator.research_pattern() which uses the\n15 cognitive moves from Li et al. (2025) to seed hypothesis generation.",
+        "operationId": "spearpoint_pattern_v1_spearpoint_pattern_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpearpointPatternModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sel/episodes": {
+      "get": {
+        "summary": "Sel Episodes",
+        "description": "list episodes from the Sovereign Experience Ledger.\n\nReturns episodes in reverse chronological order (newest first).",
+        "operationId": "sel_episodes_v1_sel_episodes_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sel/episodes/{episode_hash}": {
+      "get": {
+        "summary": "Sel Episode By Hash",
+        "description": "Retrieve a single episode by its content-address hash.",
+        "operationId": "sel_episode_by_hash_v1_sel_episodes__episode_hash__get",
+        "parameters": [
+          {
+            "name": "episode_hash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Episode Hash"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sel/retrieve": {
+      "post": {
+        "summary": "Sel Retrieve",
+        "description": "Retrieve episodes using RIR (Recency-Importance-Relevance) algorithm.\n\nReturns top_k most relevant episodes for the given query text.\nStanding on: Park et al. (2023) \u2014 generative agent retrieval.",
+        "operationId": "sel_retrieve_v1_sel_retrieve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SELRetrieveModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sel/verify": {
+      "get": {
+        "summary": "Sel Verify",
+        "description": "Verify the Experience Ledger hash-chain integrity.\n\nReturns chain validity status and diagnostics.\nStanding on: Merkle (1979) \u2014 hash chain tamper detection.",
+        "operationId": "sel_verify_v1_sel_verify_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/memory/search": {
+      "post": {
+        "summary": "Memory Search",
+        "description": "Hybrid memory search using AgentDB (HNSW + FTS5 + score fusion).\n\nReturns top_k most relevant memory records for the given query.\nStanding on: Malkov & Yashunin (2016) \u2014 HNSW; Robertson (2009) \u2014 BM25.",
+        "operationId": "memory_search_v1_memory_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemorySearchModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/memory/stats": {
+      "get": {
+        "summary": "Memory Stats",
+        "description": "Get AgentDB statistics (record counts, vector index, paths).",
+        "operationId": "memory_stats_v1_memory_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cognitive/fuse": {
+      "post": {
+        "summary": "Cognitive Fuse",
+        "description": "Run a query through the full Cognitive Fusion pipeline.\n\n4-stage pipeline: MoE Route \u2192 HRM Reason \u2192 HyperGraph RAG \u2192 NorthStar Gate.\nReturns complexity classification, HRM reasoning, RAG context, and quality scores.\nStanding on: Vaswani (MoE) + Simon (hierarchy) + Shannon (SNR) + Besta (GoT).",
+        "operationId": "cognitive_fuse_v1_cognitive_fuse_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CognitiveFuseModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cognitive/status": {
+      "get": {
+        "summary": "Cognitive Status",
+        "description": "Get Cognitive Fusion subsystem availability.\n\nReports which of the 4 subsystems (MoE, HRM, RAG, NorthStar) are wired.",
+        "operationId": "cognitive_status_v1_cognitive_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/judgment/stats": {
+      "get": {
+        "summary": "Judgment Stats",
+        "description": "Get SJE verdict distribution and entropy.\n\nStanding on: Shannon (1948) \u2014 entropy as uncertainty measure.",
+        "operationId": "judgment_stats_v1_judgment_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/judgment/stability": {
+      "get": {
+        "summary": "Judgment Stability",
+        "description": "Check if judgment verdicts are stable (low entropy).\n\nStability indicates strong consensus toward one verdict.\nStanding on: Shannon (1948), Aristotle (practical wisdom).",
+        "operationId": "judgment_stability_v1_judgment_stability_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/judgment/simulate": {
+      "post": {
+        "tags": [
+          "experience"
+        ],
+        "summary": "Simulate epoch distribution",
+        "description": "Simulate proportional epoch distribution (no tokens emitted).\n\nPure mathematical rehearsal for genesis economy modeling.",
+        "operationId": "judgment_simulate_v1_judgment_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EpochSimulateModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/suggestions": {
+      "get": {
+        "summary": "Proactive Suggestions",
+        "description": "Get proactive knowledge suggestions from living memory.",
+        "operationId": "proactive_suggestions_v1_suggestions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "summary": "Auth Register",
+        "description": "Register a new user. Returns user profile + JWT tokens.",
+        "operationId": "auth_register_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequestModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "summary": "Auth Login",
+        "description": "Authenticate and return JWT tokens.",
+        "operationId": "auth_login_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "summary": "Auth Refresh",
+        "description": "Refresh an access token using a valid refresh token.",
+        "operationId": "auth_refresh_v1_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "summary": "Auth Me",
+        "description": "Return current user profile. Requires JWT or API key.",
+        "operationId": "auth_me_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/onboarding/state": {
+      "get": {
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Onboarding progress",
+        "description": "Get current onboarding progress for authenticated user.",
+        "operationId": "get_onboarding_state_v1_onboarding_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/onboarding/teach": {
+      "post": {
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Submit teach step",
+        "description": "Record a TEACH step completion and advance onboarding.",
+        "operationId": "post_onboarding_teach_v1_onboarding_teach_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuditLogVerifyModel": {
+        "properties": {
+          "entries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "title": "AuditLogVerifyModel",
+        "description": "FastAPI request model for /v1/verify/audit-log."
+      },
+      "ChannelResult": {
+        "properties": {
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "duration_ms": {
+            "type": "number",
+            "title": "Duration Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channel",
+          "success",
+          "duration_ms"
+        ],
+        "title": "ChannelResult",
+        "description": "Per-channel execution result within a mission."
+      },
+      "CognitiveFuseModel": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "CognitiveFuseModel",
+        "description": "Request model for /v1/cognitive/fuse \u2014 direct cognitive fusion pipeline."
+      },
+      "EnvelopeVerifyModel": {
+        "properties": {
+          "envelope": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Envelope"
+          }
+        },
+        "type": "object",
+        "required": [
+          "envelope"
+        ],
+        "title": "EnvelopeVerifyModel",
+        "description": "FastAPI request model for /v1/verify/envelope."
+      },
+      "EpochSimulateModel": {
+        "properties": {
+          "impacts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Impacts"
+          },
+          "epoch_cap": {
+            "type": "integer",
+            "title": "Epoch Cap",
+            "default": 1000
+          }
+        },
+        "type": "object",
+        "title": "EpochSimulateModel",
+        "description": "Request model for /v1/judgment/simulate \u2014 proportional epoch distribution."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoginRequestModel": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginRequestModel",
+        "description": "Login request."
+      },
+      "MemorySearchModel": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "top_k": {
+            "type": "integer",
+            "title": "Top K",
+            "default": 10
+          },
+          "min_score": {
+            "type": "number",
+            "title": "Min Score",
+            "default": 0.1
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "MemorySearchModel",
+        "description": "Request model for /v1/memory/search \u2014 AgentDB hybrid search."
+      },
+      "MissionPlanResponse": {
+        "properties": {
+          "mission_id": {
+            "type": "string",
+            "title": "Mission Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "COMPLETE | PARTIAL | FAILED"
+          },
+          "synthesis": {
+            "type": "string",
+            "title": "Synthesis"
+          },
+          "ihsan_score": {
+            "type": "number",
+            "title": "Ihsan Score",
+            "description": "Ihsan excellence score (0.0\u20131.0, gate at 0.95)."
+          },
+          "snr_score": {
+            "type": "number",
+            "title": "Snr Score",
+            "description": "Signal-to-noise ratio (0.0\u20131.0, minimum 0.85)."
+          },
+          "duration_ms": {
+            "type": "number",
+            "title": "Duration Ms"
+          },
+          "evidence_receipt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Receipt Id"
+          },
+          "channels_executed": {
+            "items": {
+              "$ref": "#/components/schemas/ChannelResult"
+            },
+            "type": "array",
+            "title": "Channels Executed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mission_id",
+          "status",
+          "synthesis",
+          "ihsan_score",
+          "snr_score",
+          "duration_ms"
+        ],
+        "title": "MissionPlanResponse",
+        "description": "Response model for POST /v1/plan \u2014 receipted mission result."
+      },
+      "OrchestrateRequestModel": {
+        "properties": {
+          "task": {
+            "type": "string",
+            "title": "Task"
+          },
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context"
+          },
+          "max_agents": {
+            "type": "integer",
+            "title": "Max Agents",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "task"
+        ],
+        "title": "OrchestrateRequestModel",
+        "description": "FastAPI request model for /v1/orchestrate."
+      },
+      "PoIReceiptVerifyModel": {
+        "properties": {
+          "receipt": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Receipt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt"
+        ],
+        "title": "PoIReceiptVerifyModel",
+        "description": "FastAPI request model for /v1/verify/poi."
+      },
+      "QueryRequestModel": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context"
+          },
+          "require_reasoning": {
+            "type": "boolean",
+            "title": "Require Reasoning",
+            "default": true
+          },
+          "require_validation": {
+            "type": "boolean",
+            "title": "Require Validation",
+            "default": true
+          },
+          "max_depth": {
+            "type": "integer",
+            "title": "Max Depth",
+            "default": 3
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "title": "Timeout Ms",
+            "default": 300000
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "QueryRequestModel",
+        "description": "FastAPI request model for /v1/query."
+      },
+      "ReceiptVerifyModel": {
+        "properties": {
+          "receipt": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Receipt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt"
+        ],
+        "title": "ReceiptVerifyModel",
+        "description": "FastAPI request model for /v1/verify/receipt."
+      },
+      "RefreshTokenModel": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshTokenModel",
+        "description": "Token refresh request."
+      },
+      "RegisterRequestModel": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "accept_covenant": {
+            "type": "boolean",
+            "title": "Accept Covenant",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "email",
+          "password"
+        ],
+        "title": "RegisterRequestModel",
+        "description": "Registration request."
+      },
+      "SELRetrieveModel": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "top_k": {
+            "type": "integer",
+            "title": "Top K",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SELRetrieveModel",
+        "description": "Request model for /v1/sel/retrieve \u2014 RIR-based episode retrieval."
+      },
+      "SpearpointImproveModel": {
+        "properties": {
+          "observation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observation"
+          },
+          "top_k": {
+            "type": "integer",
+            "title": "Top K",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "title": "SpearpointImproveModel",
+        "description": "Request model for /v1/spearpoint/improve \u2014 innovation through evaluator gate."
+      },
+      "SpearpointPatternModel": {
+        "properties": {
+          "pattern_id": {
+            "type": "string",
+            "title": "Pattern Id"
+          },
+          "claim_context": {
+            "type": "string",
+            "title": "Claim Context",
+            "default": ""
+          },
+          "top_k": {
+            "type": "integer",
+            "title": "Top K",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "required": [
+          "pattern_id"
+        ],
+        "title": "SpearpointPatternModel",
+        "description": "Request model for /v1/spearpoint/pattern \u2014 pattern-aware research via Sci-Reasoning."
+      },
+      "SpearpointReproduceModel": {
+        "properties": {
+          "claim": {
+            "type": "string",
+            "title": "Claim"
+          },
+          "proposed_change": {
+            "type": "string",
+            "title": "Proposed Change",
+            "default": ""
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "default": ""
+          },
+          "response": {
+            "type": "string",
+            "title": "Response",
+            "default": ""
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "claim"
+        ],
+        "title": "SpearpointReproduceModel",
+        "description": "Request model for /v1/spearpoint/reproduce \u2014 evaluation-first verification."
+      },
+      "ValidateRequestModel": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "task": {
+            "type": "string",
+            "title": "Task"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level",
+            "default": "standard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content",
+          "task"
+        ],
+        "title": "ValidateRequestModel",
+        "description": "FastAPI request model for /v1/validate."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Health and observability probes."
+    },
+    {
+      "name": "auth",
+      "description": "Authentication: register, login, refresh."
+    },
+    {
+      "name": "mission",
+      "description": "Sovereign mission planning and execution."
+    },
+    {
+      "name": "query",
+      "description": "Knowledge query and reasoning."
+    },
+    {
+      "name": "verification",
+      "description": "Cryptographic receipt and chain verification."
+    },
+    {
+      "name": "memory",
+      "description": "Semantic memory search and stats."
+    },
+    {
+      "name": "economics",
+      "description": "Token supply, balance, PoI/SAT epochs."
+    },
+    {
+      "name": "constitutional",
+      "description": "Constitutional tick and status."
+    },
+    {
+      "name": "spearpoint",
+      "description": "Benchmark evaluation and improvement."
+    },
+    {
+      "name": "cognitive",
+      "description": "Cognitive fusion and status."
+    },
+    {
+      "name": "experience",
+      "description": "SEL episodes and judgment."
+    },
+    {
+      "name": "sovereignty",
+      "description": "Node value, lifecycle, network effect."
+    },
+    {
+      "name": "onboarding",
+      "description": "User onboarding and teaching."
+    }
+  ]
+}

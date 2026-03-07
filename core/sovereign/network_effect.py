@@ -102,9 +102,7 @@ class NetworkEffectEstimator:
             intelligence_density = 1.0
 
         # Cost per node: decreases with shared infrastructure
-        cost_per_node = 1.0 / (
-            1.0 + EST_COST_DECAY_RATE * math.log(max(1, n_nodes))
-        )
+        cost_per_node = 1.0 / (1.0 + EST_COST_DECAY_RATE * math.log(max(1, n_nodes)))
 
         return NetworkProjection(
             nodes=n_nodes,

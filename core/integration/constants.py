@@ -761,8 +761,13 @@ HUMAN_STAGE_THRESHOLDS: Final[dict] = {
 }
 
 HUMAN_STAGE_ORDER: Final[list] = [
-    "Seed", "Node", "Apprentice", "Builder",
-    "Verifier", "Mentor", "Catalyst",
+    "Seed",
+    "Node",
+    "Apprentice",
+    "Builder",
+    "Verifier",
+    "Mentor",
+    "Catalyst",
 ]
 
 # ═══════════════════════════════════════════════════════════════════════════════
