@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.proof_engine.canonical import blake3_digest, canonical_bytes
 
 # =============================================================================
@@ -172,7 +173,7 @@ class PoIConfig:
 
     # Stage 1: Contribution thresholds
     snr_quality_min: float = 0.85
-    ihsan_quality_min: float = 0.90
+    ihsan_quality_min: float = UNIFIED_IHSAN_THRESHOLD  # 0.95 — constitutional
 
     # Stage 2: PageRank parameters
     pagerank_damping: float = 0.85

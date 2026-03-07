@@ -206,6 +206,12 @@ These thresholds are defined in [`core/integration/constants.py`](core/integrati
 | [Spearpoint (RDVE)](docs/SPEARPOINT.md) | Autonomous research engine, 15 thinking patterns |
 | [DevOps Blueprint](docs/DEVOPS_BLUEPRINT.md) | CI/CD pipeline, K8s deployment, rollback |
 | [Elite Full-Stack Blueprint](docs/ELITE_FULLSTACK_BLUEPRINT.md) | PMBOK + DevOps + CI/CD + QA executable baseline |
+| [Enterprise Implementation Blueprint](docs/ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md) | architecture, roadmap, compliance, release model |
+| [The Constitutional Seed](docs/CONSTITUTIONAL_SEED.md) | formal narrative root for the Three Facts, three epochs, and kernel invariants |
+| [Front-End Master Spec](docs/FRONTEND_MASTER_SPEC.md) | public web, onboarding wizard, daily dashboard, contributor client, operator split |
+| [Quality Assurance Strategy](docs/QUALITY_ASSURANCE_STRATEGY.md) | testing hierarchy, quality gates, performance/security verification |
+| [Risk Management Plan](docs/RISK_MANAGEMENT_PLAN.md) | risk register, mitigation, contingency ownership |
+| [Tool and Technology Matrix](docs/TOOL_TECHNOLOGY_MATRIX.md) | recommended stack, versions, and licensing notes |
 | [Constitution](docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | Immutable constitutional rules |
 | [Security Policy](SECURITY.md) | Vulnerability reporting and security architecture |
 | [Contributing Guide](CONTRIBUTING.md) | How to contribute |

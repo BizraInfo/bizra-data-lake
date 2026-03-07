@@ -59,6 +59,22 @@ VIRTUAL_ENV=/mnt/c/BIZRA-DATA-LAKE/.venv-linux maturin develop --release
 RUSTFLAGS="-C target-cpu=native" cargo build --profile omega
 ```
 
+### Frontend (frontend/)
+
+```bash
+cd frontend
+npm install                        # Install deps (Node >= 20)
+npm run dev                        # Vite dev server
+npm run build                      # tsc -b + vite build
+npm run typecheck                  # tsc --noEmit
+npm run lint                       # ESLint (zero warnings enforced)
+npm run test                       # Vitest (single run)
+npm run test:watch                 # Vitest (watch mode)
+npm run ci                         # Full gate: typecheck + lint + test + build
+```
+
+React 18 + TypeScript + Vite. Phase state machine (trust→splash→genesis→teach→assembly→dashboard). Dashboard has 6 tabs: cmd, char, skill, quest, comm, prog. Design tokens in `frontend/src/tokens.ts` (synced with `constants.py`).
+
 ## Architecture
 
 ### Python (`core/`) and Rust (`bizra-omega/`) Mirror
@@ -186,6 +202,14 @@ Key deps: `ed25519-dalek` (crypto), `tokio` (async), `blake3` (hashing+rayon), `
 Release profile: fat LTO, single codegen unit, `panic = "abort"`, `strip = true`. Z3 is required: `sudo apt install libz3-dev`.
 
 **Note:** `native/` is deprecated. All Rust development happens in `bizra-omega/`.
+
+## Claude Rules (`.claude/rules/`)
+
+Path-scoped rules are auto-loaded by Claude Code:
+- `security.md` — all files: no hardcoded secrets, validate external input, use env vars
+- `python-code.md` — `*.py`, `core/**`: PEP 8/484, Google-style docstrings, specific exceptions only
+- `typescript-code.md` — `*.ts`/`*.tsx`: strict mode, no `any`, functional components, Vitest
+- `sovereign-engine.md` — `core/sovereign/**`, `core/iaas/**`, `core/personaplex/**`: Ihsan SNR >= 0.95, provenance on every inference, Graph-of-Thoughts branching
 
 ## Lint Quirks
 
