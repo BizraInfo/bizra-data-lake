@@ -728,6 +728,55 @@ ROLLBACK_SNR_DROP_THRESHOLD: Final[float] = 0.15  # 15% drop from baseline
 ROLLBACK_LATENCY_DELTA_THRESHOLD: Final[float] = 0.30  # 30% p95 regression
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SEED ENGINE THRESHOLDS — Phase 72
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Deming (PDCA) · Kahneman (System 1/2) · Shannon (SNR)
+#
+# Three distinct gates in the growth pipeline:
+#   1. Constitutional acceptance (I-1): UNIFIED_IHSAN_THRESHOLD (0.95)
+#   2. Episode qualification: SNR + Ihsan + reward composite
+#   3. Reward minimum: composite reward floor for meaningful growth
+
+SEED_REWARD_QUALIFICATION: Final[float] = 0.75
+SEED_QUALIFICATION_RATE_VERIFIER: Final[float] = 0.75
+SEED_QUALIFICATION_RATE_APPRENTICE: Final[float] = 0.50
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HUMAN LIFECYCLE STAGES — Phase 72
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Maslow (1943) · Kohlberg (1958) · Al-Ghazali (1095)
+#
+# Seven stages of human growth, parallel to agent skill tree.
+# Both earned through verified work. Both gated by quality.
+
+HUMAN_STAGE_THRESHOLDS: Final[dict] = {
+    "Seed": 0.00,
+    "Node": 0.10,
+    "Apprentice": 0.20,
+    "Builder": 0.35,
+    "Verifier": 0.55,
+    "Mentor": 0.70,
+    "Catalyst": 0.85,
+}
+
+HUMAN_STAGE_ORDER: Final[list] = [
+    "Seed", "Node", "Apprentice", "Builder",
+    "Verifier", "Mentor", "Catalyst",
+]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NODE VALUE NORMALIZATION — Phase 72
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Shannon (bounded information) · Deming (SPC control limits)
+#
+# Each factor normalized [0, 1]. Composite = geometric mean.
+
+NODE_VALUE_ACTIVATION_REFERENCE: Final[float] = 5.0
+NODE_VALUE_COMPOUNDING_REFERENCE_DAYS: Final[int] = 365
+NODE_VALUE_STREAK_REFERENCE: Final[int] = 10
+
+
 def validate_cross_repo_consistency() -> dict:
     """
     Validate threshold consistency across repositories.

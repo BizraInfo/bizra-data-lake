@@ -718,6 +718,8 @@ Examples:
   python -m core.sovereign genesis --identity-genesis --pat-7 --sat-5  # Bootstrap node
   python -m core.sovereign hunter scan 0x...        # Scan contract for vulns
   python -m core.sovereign hunter report scan.json  # Generate Immunefi report
+  python -m core.sovereign agent                     # Start terminal agent shell
+  python -m core.sovereign agent components --json  # Show built-in agent defaults
         """,
     )
 
@@ -858,6 +860,11 @@ Examples:
     )
     sov_sub.add_parser("reset", help="Delete node (irreversible)")
 
+    # Terminal agent command
+    from .agent_cli import build_agent_parser
+
+    build_agent_parser(subparsers)
+
     # Version command
     subparsers.add_parser("version", help="Show version")
 
@@ -893,6 +900,10 @@ Examples:
         run_dashboard(args.node_dir, args.json)
     elif args.command == "impact":
         run_impact(args.node_dir, args.json)
+    elif args.command == "agent":
+        from .agent_cli import dispatch_agent_command
+
+        sys.exit(dispatch_agent_command(args))
     elif args.command == "gateway":
         from ..pat.gateway import run_telegram_gateway
 

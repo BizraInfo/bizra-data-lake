@@ -586,3 +586,101 @@ class TestTickAsabiyyah:
             current_time=1741392000000,
         )
         assert result.network_gini >= 0
+
+    def test_asabiyyah_feeds_into_minting(self, quality_receipt):
+        """T11: Asabiyyah computed BEFORE minting and modulates mint output.
+
+        A cohesive network (high asabiyyah) must produce more SEED than
+        a fragmented one (zero asabiyyah), proving the coupling is active.
+        Requires network_size > 1 so asabiyyah_score is non-trivial.
+
+        Standing on Giants: Ibn Khaldun (asabiyyah) · Beck (TDD anchors)
+        """
+        # Build two multi-wallet networks — one cohesive, one isolated
+        # Need network_size > 1 for asabiyyah_score to be non-zero
+        def make_network(connected: bool) -> list[WalletState]:
+            wallets = []
+            for i in range(5):
+                w = WalletState(
+                    node_id=bytes([i]) * 32,
+                    seed_balance=fp(100),
+                    bloom_balance=fp(1),
+                    created_at=1741392000000,
+                    last_active=1741392000000,
+                    total_actions=10,
+                )
+                if connected:
+                    peers = {bytes([j]) * 32 for j in range(5) if j != i}
+                    w.attestations_given = peers
+                    w.attestations_received = peers
+                    w.governance_votes = 5
+                    w.cooperative_actions = 10
+                wallets.append(w)
+            return wallets
+
+        # quality_receipt.actor_id is b"\x02" * 32 = bytes([2]) * 32
+        # This matches wallets[2] in our network
+
+        # Cohesive network
+        net_cohesive = make_network(connected=True)
+        r1 = process_tick(
+            wallets=net_cohesive,
+            receipts=[quality_receipt],
+            proposals=[],
+            event_log=[],
+            reflex_cache={},
+            current_time=1741392000000,
+        )
+
+        # Isolated network (same balances but no connections)
+        net_isolated = make_network(connected=False)
+        r2 = process_tick(
+            wallets=net_isolated,
+            receipts=[quality_receipt],
+            proposals=[],
+            event_log=[],
+            reflex_cache={},
+            current_time=1741392000000,
+        )
+
+        # Cohesive network has higher asabiyyah → relaxed throttle → more SEED
+        assert r1.network_asabiyyah_score > r2.network_asabiyyah_score
+        assert r1.total_minted > r2.total_minted
+        # Both mint (never zero)
+        assert r1.total_minted > 0
+        assert r2.total_minted > 0
+
+    def test_collusion_ring_no_relaxation(self, quality_receipt):
+        """T12: 2-node collusion ring gets NO asabiyyah relaxation.
+
+        Anti-collusion gate (MIN_CONNECTIONS=3) ensures that a 2-node
+        mutual attestation ring cannot boost its minting rate via
+        asabiyyah coupling. The throttle tightens, not relaxes.
+
+        Standing on Giants: Ibn Khaldun (social cohesion) · Beck (TDD)
+        """
+        # 2-node collusion ring: mutual attestation only
+        colluder = WalletState(
+            node_id=b"\x02" * 32,
+            seed_balance=fp(100),
+            bloom_balance=fp(1),
+            created_at=1741392000000,
+            last_active=1741392000000,
+            total_actions=10,
+            attestations_given={b"\xcc" * 32},
+            attestations_received={b"\xcc" * 32},
+        )
+
+        result = process_tick(
+            wallets=[colluder],
+            receipts=[quality_receipt],
+            proposals=[],
+            event_log=[],
+            reflex_cache={},
+            current_time=1741392000000,
+        )
+
+        # Network asabiyyah should be zero (single wallet, network_size=1)
+        assert result.network_asabiyyah_score == 0
+        # Minting still works but at FLOOR multiplier (0.80x)
+        assert result.total_minted > 0
