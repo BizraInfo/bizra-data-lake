@@ -176,6 +176,63 @@ try:
         claim_context: str = ""
         top_k: int = 3
 
+    # Sprint 1→2 Bridge: Mission endpoint models (typed contracts for frontend codegen)
+    class MissionPlanRequest(_PydanticBaseModel):
+        """Request model for POST /v1/plan — sovereign mission submission."""
+
+        description: str = _PydanticField(
+            ..., min_length=1, max_length=10000,
+            description="Natural-language mission objective.",
+        )
+        source: str = _PydanticField(
+            default="api",
+            description="Caller identity: 'terminal', 'api', 'test', 'ahk'.",
+        )
+
+    class ChannelResult(_PydanticBaseModel):
+        """Per-channel execution result within a mission."""
+
+        channel: str
+        success: bool
+        duration_ms: float
+
+    class MissionPlanResponse(_PydanticBaseModel):
+        """Response model for POST /v1/plan — receipted mission result."""
+
+        mission_id: str
+        status: str = _PydanticField(
+            description="COMPLETE | PARTIAL | FAILED",
+        )
+        synthesis: str
+        ihsan_score: float = _PydanticField(
+            description="Ihsan excellence score (0.0–1.0, gate at 0.95).",
+        )
+        snr_score: float = _PydanticField(
+            description="Signal-to-noise ratio (0.0–1.0, minimum 0.85).",
+        )
+        duration_ms: float
+        evidence_receipt_id: Optional[str] = None
+        channels_executed: list[ChannelResult] = _PydanticField(default_factory=list)
+
+    class OnboardingTeachRequest(_PydanticBaseModel):
+        """Request model for POST /v1/onboarding/teach — user preference teaching."""
+
+        topic: str
+        content: str
+        preference_type: str = "general"
+
+    class JudgmentSimulateRequest(_PydanticBaseModel):
+        """Request model for POST /v1/judgment/simulate — epoch distribution sim."""
+
+        scenario: str = "default"
+        epochs: int = _PydanticField(default=10, ge=1, le=100)
+
+    class EpochSimulateModel(_PydanticBaseModel):
+        """Request model for /v1/judgment/simulate — proportional epoch distribution."""
+
+        impacts: list[dict[str, Any]] = _PydanticField(default_factory=list)
+        epoch_cap: int = 1000
+
     # Rebuild models to resolve forward refs from `from __future__ import annotations`
     QueryRequestModel.model_rebuild()
     OrchestrateRequestModel.model_rebuild()
@@ -193,6 +250,12 @@ try:
     SpearpointPatternModel.model_rebuild()
     PoIReceiptVerifyModel.model_rebuild()
     MemorySearchModel.model_rebuild()
+    MissionPlanRequest.model_rebuild()
+    ChannelResult.model_rebuild()
+    MissionPlanResponse.model_rebuild()
+    OnboardingTeachRequest.model_rebuild()
+    JudgmentSimulateRequest.model_rebuild()
+    EpochSimulateModel.model_rebuild()
 
 except ImportError:
     Request = None  # type: ignore[assignment,misc]
@@ -212,6 +275,12 @@ except ImportError:
     SpearpointReproduceModel = None  # type: ignore[assignment,misc]
     SpearpointImproveModel = None  # type: ignore[assignment,misc]
     SpearpointPatternModel = None  # type: ignore[assignment,misc]
+    MissionPlanRequest = None  # type: ignore[assignment,misc]
+    ChannelResult = None  # type: ignore[assignment,misc]
+    MissionPlanResponse = None  # type: ignore[assignment,misc]
+    OnboardingTeachRequest = None  # type: ignore[assignment,misc]
+    JudgmentSimulateRequest = None  # type: ignore[assignment,misc]
+    EpochSimulateModel = None  # type: ignore[assignment,misc]
 
 # =============================================================================
 # SECURITY LIMITS
@@ -1058,11 +1127,40 @@ def create_fastapi_app(runtime: Any) -> Any:
         _auth_available = False
 
     app = FastAPI(
-        title="Sovereign API",
-        description="BIZRA Sovereign Engine REST API",
-        version="1.2.0",
+        title="BIZRA Sovereign API",
+        summary="Constitutional sovereign engine for decentralized agentic intelligence.",
+        description=(
+            "59-route REST + WebSocket API surface for the BIZRA sovereign runtime.\n\n"
+            "**Route categories:**\n"
+            "- **23 Public** — health, metrics, verification, token supply\n"
+            "- **3 Bootstrap** — auth registration, login, refresh\n"
+            "- **33 Authenticated** — query, mission, memory, orchestration\n\n"
+            "**Constitutional thresholds:**\n"
+            "- Ihsan (excellence): >= 0.95\n"
+            "- SNR (signal quality): >= 0.85\n"
+            "- ADL Gini (justice): <= 0.35\n\n"
+            "**Golden path:** `POST /v1/plan` — submit mission, receive receipted result."
+        ),
+        version="1.3.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        license_info={"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
+        contact={"name": "BIZRA", "url": "https://bizra.info"},
+        openapi_tags=[
+            {"name": "health", "description": "Health and observability probes."},
+            {"name": "auth", "description": "Authentication: register, login, refresh."},
+            {"name": "mission", "description": "Sovereign mission planning and execution."},
+            {"name": "query", "description": "Knowledge query and reasoning."},
+            {"name": "verification", "description": "Cryptographic receipt and chain verification."},
+            {"name": "memory", "description": "Semantic memory search and stats."},
+            {"name": "economics", "description": "Token supply, balance, PoI/SAT epochs."},
+            {"name": "constitutional", "description": "Constitutional tick and status."},
+            {"name": "spearpoint", "description": "Benchmark evaluation and improvement."},
+            {"name": "cognitive", "description": "Cognitive fusion and status."},
+            {"name": "experience", "description": "SEL episodes and judgment."},
+            {"name": "sovereignty", "description": "Node value, lifecycle, network effect."},
+            {"name": "onboarding", "description": "User onboarding and teaching."},
+        ],
     )
 
     # CORS — Phase 23: environment-aware origin restriction
@@ -1306,21 +1404,21 @@ def create_fastapi_app(runtime: Any) -> Any:
             },
         }
 
-    @app.get("/v1/health")
+    @app.get("/v1/health", tags=["health"])
     async def health():
         """Backward-compatible alias — delegates to readiness check."""
         return await health_ready()
 
-    @app.get("/v1/status")
+    @app.get("/v1/status", tags=["health"], summary="Runtime status snapshot")
     async def status():
         return runtime.status()
 
-    @app.get("/v1/metrics")
+    @app.get("/v1/metrics", tags=["health"], summary="Prometheus metrics")
     async def metrics():
         m = runtime.metrics
         return PlainTextResponse(m.to_prometheus(include_help=False))
 
-    @app.post("/v1/query")
+    @app.post("/v1/query", tags=["query"], summary="Submit knowledge query")
     async def query(body: QueryRequestModel, request: Request):
         """Query endpoint — auth-aware when auth layer is available.
 
@@ -2423,7 +2521,7 @@ def create_fastapi_app(runtime: Any) -> Any:
     # Standing on Giants: Deming (PDCA), Shannon (SNR), Al-Ghazali (Ihsan)
     # ═════════════════════════════════════════════════════════════
 
-    @app.get("/v1/seed/potential")
+    @app.get("/v1/seed/potential", tags=["sovereignty"], summary="Node growth trajectory")
     async def seed_potential():
         """Node's growth trajectory and unlocked capacity."""
         seed_engine = getattr(runtime, "_seed_engine", None)
@@ -2444,7 +2542,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Internal server error"},
             )
 
-    @app.get("/v1/seed/episodes")
+    @app.get("/v1/seed/episodes", tags=["sovereignty"], summary="Recent growth episodes")
     async def seed_episodes(limit: int = 10):
         """Recent growth episodes with receipt hashes."""
         seed_engine = getattr(runtime, "_seed_engine", None)
@@ -2469,7 +2567,7 @@ def create_fastapi_app(runtime: Any) -> Any:
     # Standing on Giants: Shannon · Deming · Maslow · Metcalfe
     # ═════════════════════════════════════════════════════════════
 
-    @app.get("/v1/node/value")
+    @app.get("/v1/node/value", tags=["sovereignty"], summary="Five-factor node KPI")
     async def get_node_value(request: Request):
         """Five-factor composite KPI for this sovereign node."""
         _, _, auth_error = _authenticate_http_request(request)
@@ -2503,7 +2601,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Internal server error"},
             )
 
-    @app.get("/v1/node/lifecycle")
+    @app.get("/v1/node/lifecycle", tags=["sovereignty"], summary="Human lifecycle stage")
     async def get_lifecycle(request: Request):
         """Current human lifecycle stage with progress toward next."""
         _, _, auth_error = _authenticate_http_request(request)
@@ -2529,7 +2627,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Internal server error"},
             )
 
-    @app.get("/v1/network/effect")
+    @app.get("/v1/network/effect", tags=["sovereignty"], summary="Metcalfe network projection")
     async def get_network_effect(request: Request, nodes: int = 1000):
         """Project network-wide metrics for a given node count."""
         _, _, auth_error = _authenticate_http_request(request)
@@ -2562,7 +2660,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Internal server error"},
             )
 
-    @app.get("/v1/network/milestones")
+    @app.get("/v1/network/milestones", tags=["sovereignty"], summary="Milestone projections (1→8B)")
     async def get_milestones(request: Request):
         """Standard milestone projections (1 to 8B nodes)."""
         _, _, auth_error = _authenticate_http_request(request)
@@ -2748,15 +2846,23 @@ def create_fastapi_app(runtime: Any) -> Any:
     # This is the golden path: intent → route → execute → proof → return
     # Blueprint Section 5, Sprint 1, Acceptance: curl /v1/plan returns receipted result
 
-    @app.post("/v1/plan")
+    @app.post(
+        "/v1/plan",
+        response_model=MissionPlanResponse,
+        tags=["mission"],
+        summary="Submit a sovereign mission",
+        description=(
+            "Golden path endpoint. Accepts a mission description, routes through "
+            "MissionOrchestrator (OODA loop), and returns a receipted result with "
+            "Ihsan/SNR scores and per-channel execution breakdown."
+        ),
+        responses={
+            400: {"description": "Empty or missing description"},
+            503: {"description": "Mission engine not available"},
+        },
+    )
     async def submit_plan(request: Request):
-        """Submit a sovereign mission and receive a receipted result.
-
-        Accepts: {"description": "...", "source": "terminal"}
-        Returns: MissionResult with evidence receipt, Ihsan/SNR scores.
-
-        Auth-guarded. Two-touch: submit once, get result.
-        """
+        """Submit a sovereign mission and receive a receipted result."""
         _, _, auth_error = _authenticate_http_request(request)
         if auth_error is not None:
             return auth_error
@@ -3459,11 +3565,7 @@ def create_fastapi_app(runtime: Any) -> Any:
             ),
         }
 
-    class EpochSimulateModel(_PydanticBaseModel):
-        impacts: list = []
-        epoch_cap: int = 1000
-
-    @app.post("/v1/judgment/simulate")
+    @app.post("/v1/judgment/simulate", tags=["experience"], summary="Simulate epoch distribution")
     async def judgment_simulate(body: EpochSimulateModel, request: Request):
         """Simulate proportional epoch distribution (no tokens emitted).
 
@@ -3670,7 +3772,7 @@ def create_fastapi_app(runtime: Any) -> Any:
         "review",
     ]
 
-    @app.get("/v1/onboarding/state")
+    @app.get("/v1/onboarding/state", tags=["onboarding"], summary="Onboarding progress")
     async def get_onboarding_state(request: Request):
         """Get current onboarding progress for authenticated user."""
         _, user_id, auth_error = _authenticate_http_request(request)
@@ -3703,7 +3805,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Internal server error"},
             )
 
-    @app.post("/v1/onboarding/teach")
+    @app.post("/v1/onboarding/teach", tags=["onboarding"], summary="Submit teach step")
     async def post_onboarding_teach(request: Request):
         """Record a TEACH step completion and advance onboarding."""
         _, user_id, auth_error = _authenticate_http_request(request)

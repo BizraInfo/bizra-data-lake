@@ -1,6 +1,12 @@
 # BIZRA Documentation Portal
 
-Last updated: 2026-02-23
+Last updated: 2026-03-07
+
+## API Surface (v1.3.0)
+
+59 routes across 13 domains. OpenAPI docs at `/docs`, ReDoc at `/redoc`.
+21 Pydantic schema models with typed request/response contracts.
+Golden path: `POST /v1/plan` — sovereign mission with receipted result.
 
 This is the canonical entry point for BIZRA system documentation.
 Use this file first, then follow the role-based reading paths below.
