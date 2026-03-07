@@ -39,6 +39,8 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 4. [Threat Model](THREAT-MODEL-V3.md)
 5. [Security Architecture](SECURITY-ARCHITECTURE.md)
 6. [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md)
+7. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
+8. [Risk Management Plan](RISK_MANAGEMENT_PLAN.md)
 
 ### 3. Security / Compliance Reviewer
 
@@ -49,6 +51,8 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 5. [Ihsan Compliance Matrix](IHSAN_COMPLIANCE_MATRIX.md)
 6. [Strategic Risks](STRATEGIC_RISKS_v1.0.md)
 7. [CVE Remediation Plan](CVE-REMEDIATION-PLAN.md)
+8. [Risk Management Plan](RISK_MANAGEMENT_PLAN.md)
+9. [Self-Evaluation Report](SELF_EVALUATION_REPORT.md)
 
 ### 4. Contributor (Code + Process)
 
@@ -60,20 +64,35 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 ### 5. Investor / Business Stakeholder
 
 1. [Project Handover](PROJECT_HANDOVER.md) — complete overview with metrics
-2. [Genesis Story](../00_GENESIS/BIZRA_COMPLETE_STORY_AUTHORITATIVE.md) — the full narrative
-3. [Technical Brief](BIZRA_TECHNICAL_BRIEF_INVESTORS.md)
-4. [Strategy Deck](BIZRA_STRATEGY_DECK_2026.md)
-5. [Evidence Pack](EVIDENCE_PACK_A_PLUS.md)
-6. [Ecosystem Map](BIZRA-ECOSYSTEM-MAP.md)
+2. [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md)
+3. [The Constitutional Seed](CONSTITUTIONAL_SEED.md)
+4. [Genesis Story](../00_GENESIS/BIZRA_COMPLETE_STORY_AUTHORITATIVE.md) — the full narrative
+5. [Technical Brief](BIZRA_TECHNICAL_BRIEF_INVESTORS.md)
+6. [Strategy Deck](BIZRA_STRATEGY_DECK_2026.md)
+7. [Evidence Pack](EVIDENCE_PACK_A_PLUS.md)
+8. [Ecosystem Map](BIZRA-ECOSYSTEM-MAP.md)
 
 ### 6. System Designer / Architect
 
 1. [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md)
-2. [Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md)
-3. [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md)
-4. [Rust Integration](RUST_INTEGRATION.md)
-5. [Integration Contracts](INTEGRATION_CONTRACTS.md)
-6. [Spearpoint (RDVE)](SPEARPOINT.md)
+2. [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md)
+3. [The Constitutional Seed](CONSTITUTIONAL_SEED.md)
+4. [Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md)
+5. [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md)
+6. [Rust Integration](RUST_INTEGRATION.md)
+7. [Integration Contracts](INTEGRATION_CONTRACTS.md)
+8. [Spearpoint (RDVE)](SPEARPOINT.md)
+9. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
+10. [Tool and Technology Matrix](TOOL_TECHNOLOGY_MATRIX.md)
+11. [Quality Assurance Strategy](QUALITY_ASSURANCE_STRATEGY.md)
+
+### 7. Product / Frontend
+
+1. [Front-End Master Spec](FRONTEND_MASTER_SPEC.md)
+2. [Website Plan](WEBSITE_PLAN.md)
+3. [Phase 43: Onboarding Polish](specs/phase_43_onboarding_polish.md)
+4. [Phase 45: Daily Loop Dashboard](specs/phase_45_daily_loop_dashboard.md)
+5. [Node0 Operations Dashboard](node0_operations_dashboard.html)
 
 ## System Documentation Map
 
@@ -81,10 +100,16 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 |---|---|---|
 | Node0 standalone lifecycle | [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md) | `scripts/node0_standalone.py`, `scripts/node0_activate.py`, `core/sovereign/mission.py` |
 | Runtime architecture | [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md) | `core/sovereign/`, `core/integration/constants.py` |
+| Public sovereignty narrative | [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md) | `00_CONSTITUTION/DECLARATION.md`, `docs/DECLARATION_OF_DIGITAL_SOVEREIGNTY.md`, `scripts/ops/declaration_hash_manifest.py` |
+| Constitutional narrative root | [The Constitutional Seed](CONSTITUTIONAL_SEED.md) | `docs/CONSTITUTIONAL_SEED.md`, `filedfs/ConstitutionalSeedPage.jsx` |
 | Canonical cognitive flow | [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md) | `core/pci/`, `core/reasoning/`, `core/sovereign/`, `core/bridges/` |
 | API contracts | [Integration Contracts](INTEGRATION_CONTRACTS.md) | `core/sovereign/api.py`, `bizra-omega/bizra-api/` |
 | Security model | [Threat Model](THREAT-MODEL-V3.md) | `core/pci/`, `core/sovereign/model_license_gate.py` |
 | Operations | [Operations Runbook](OPERATIONS_RUNBOOK.md) | `deploy/`, `.github/workflows/`, `scripts/` |
+| Enterprise blueprint | [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md) | `.github/workflows/`, `deploy/`, `core/`, `bizra-omega/` |
+| Quality assurance | [Quality Assurance Strategy](QUALITY_ASSURANCE_STRATEGY.md) | `tests/`, `.github/workflows/ci.yml`, `.github/workflows/tests.yml`, `.github/workflows/performance.yml` |
+| Program risk | [Risk Management Plan](RISK_MANAGEMENT_PLAN.md) | `docs/THREAT-MODEL-V3.md`, `.github/workflows/deploy.yml`, `deploy/` |
+| Tool matrix | [Tool and Technology Matrix](TOOL_TECHNOLOGY_MATRIX.md) | `pyproject.toml`, `deploy/`, `.github/workflows/` |
 | Testing | [Testing Guide](TESTING.md) | `tests/`, `pyproject.toml`, `bizra-omega/tests/` |
 | Governance / constitution | [DDAGI Constitution](DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | `core/integration/constants.py`, gate engines |
 | Desktop bridge | [Desktop Bridge](DESKTOP_BRIDGE.md) | `core/bridges/desktop_bridge.py`, `bin/bizra_bridge.ahk` |
@@ -93,6 +118,7 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 | SAPE Dashboard | [Phase 20.1 Spec](specs/phase20_sape_sovereign_dashboard.md) | `static/sovereign_analysis.html` |
 | Rust integration | [Rust Integration](RUST_INTEGRATION.md) | `bizra-omega/bizra-python/`, PyO3 bindings |
 | CI/CD pipeline | [DevOps Blueprint](DEVOPS_BLUEPRINT.md) | `.github/workflows/`, `deploy/` |
+| Front-end product contract | [Front-End Master Spec](FRONTEND_MASTER_SPEC.md) | `filedfs/onboarding/`, `filedfs/bizra-dashboard.jsx`, `filedfs/node0-dashboard.jsx`, `docs/node0_operations_dashboard.html` |
 | Secure coding | [Secure Patterns](SECURE-PATTERNS.md) | `core/pci/`, `core/proof_engine/` |
 | Token system | [Token System](TOKEN_SYSTEM.md) | `core/token/ledger.py`, `core/token/mint.py` |
 | Smart File Management | [Smart File Management](SMART_FILE_MANAGEMENT.md) | `core/skills/`, `tests/core/skills/` |
