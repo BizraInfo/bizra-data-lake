@@ -29,6 +29,7 @@ from core.constitutional.cli import (
     process_work,
 )
 from core.constitutional.fixed_point import fp_float
+from core.constitutional.simulation import render_simulation_report, run_simulation
 
 # ═══════════════════════════════════════════════════════════════════
 # Constants
@@ -214,6 +215,28 @@ def cmd_reset(args: list[str]) -> None:
     print(f"  {GREEN}✓{RESET} Node reset.\n")
 
 
+def cmd_simulate(args: list[str]) -> None:
+    json_output = "--json" in args
+    positional = [arg for arg in args if arg != "--json"]
+
+    try:
+        days = int(positional[0]) if len(positional) >= 1 else 548
+        nodes = int(positional[1]) if len(positional) >= 2 else 100
+        seed = int(positional[2]) if len(positional) >= 3 else 42
+    except ValueError:
+        print(f"\n  {RED}Usage: simulate [days] [nodes] [seed] [--json]{RESET}\n")
+        return
+
+    report = run_simulation(num_nodes=nodes, days=days, seed=seed)
+    if json_output:
+        print(report.to_json())
+        return
+
+    print()
+    print(render_simulation_report(report))
+    print()
+
+
 # ═══════════════════════════════════════════════════════════════════
 # Main
 # ═══════════════════════════════════════════════════════════════════
@@ -225,6 +248,7 @@ COMMANDS = {
     "status": cmd_status,
     "ledger": cmd_ledger,
     "reset": cmd_reset,
+    "simulate": cmd_simulate,
 }
 
 
@@ -238,6 +262,7 @@ def main() -> None:
   {BOLD}python -m core.constitutional work{RESET}    "description"
   {BOLD}python -m core.constitutional attest{RESET}  <peer_id>
   {BOLD}python -m core.constitutional status{RESET}
+  {BOLD}python -m core.constitutional simulate{RESET} [days] [nodes] [seed]
 
   {DIM}Additional:{RESET}
   {BOLD}python -m core.constitutional ledger{RESET}  [n]

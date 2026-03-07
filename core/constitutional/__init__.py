@@ -176,6 +176,7 @@ from core.constitutional.algorithms import (
     accrue_bloom,
     append_event,
     apply_demurrage,
+    asabiyyah_adjustment,
     asabiyyah_score,
     backing_ratio,
     compile_reflex,
@@ -230,6 +231,7 @@ __all__ += [
     "append_event",
     "verify_event_chain",
     # A15: Asabiyyah
+    "asabiyyah_adjustment",
     "asabiyyah_score",
     "network_asabiyyah",
 ]
@@ -302,6 +304,27 @@ __all__ += [
     "get_status",
     "save_node_state",
     "load_node_state",
+]
+
+# ═══════════════════════════════════════════════════════════════════
+# Phase 67: Sovereign Network Simulation
+# ═══════════════════════════════════════════════════════════════════
+from core.constitutional.simulation import (
+    SimulationConfig,
+    SimulationMilestone,
+    SimulationReport,
+    SovereignNetworkSimulation,
+    render_simulation_report,
+    run_simulation,
+)
+
+__all__ += [
+    "SimulationConfig",
+    "SimulationMilestone",
+    "SimulationReport",
+    "SovereignNetworkSimulation",
+    "run_simulation",
+    "render_simulation_report",
 ]
 
 __version__ = "2.0.0"
