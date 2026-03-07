@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bizra-ingress
+  namespace: bizra
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+spec:
+  tls:
+    - hosts:
+        - api.dev.bizra.node0
+        - elite.dev.bizra.node0
+      secretName: bizra-dev-tls
+  rules:
+    - host: api.dev.bizra.node0
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizra-omega
+                port:
+                  number: 80
+    - host: elite.dev.bizra.node0
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizra-elite
+                port:
+                  number: 80

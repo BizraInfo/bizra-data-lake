@@ -70,6 +70,26 @@ spec:
       port: 7654
       protocol: TCP
 ---
+# Frontend Service (DDAGI OS)
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-frontend
+  namespace: bizra
+  labels:
+    app: bizra-frontend
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: frontend
+spec:
+  selector:
+    app: bizra-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+---
 # Quality Gate Service
 apiVersion: v1
 kind: Service

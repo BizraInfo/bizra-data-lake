@@ -1,0 +1,209 @@
+# BIZRA SLO Dashboard — Grafana ConfigMap
+# Closes CMMI L4 gap: quantitative management with SLO dashboards
+# Constitutional thresholds visualized as Grafana panels
+# Standing on Giants: Grafana Labs (2014), Google SRE (2016)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bizra-slo-dashboard
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+    grafana_dashboard: "1"
+data:
+  bizra-slo.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": false,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "title": "Ihsan Composite Score",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "orange", "value": 0.90 },
+                  { "color": "green", "value": 0.95 }
+                ]
+              },
+              "min": 0, "max": 1,
+              "unit": "percentunit"
+            }
+          },
+          "targets": [{
+            "expr": "bizra_ihsan_composite",
+            "legendFormat": "Ihsan"
+          }]
+        },
+        {
+          "title": "SNR Score",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "orange", "value": 0.80 },
+                  { "color": "green", "value": 0.85 }
+                ]
+              },
+              "min": 0, "max": 1,
+              "unit": "percentunit"
+            }
+          },
+          "targets": [{
+            "expr": "bizra_snr_score",
+            "legendFormat": "SNR"
+          }]
+        },
+        {
+          "title": "Gini Coefficient (Adl)",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "orange", "value": 0.30 },
+                  { "color": "red", "value": 0.35 }
+                ]
+              },
+              "min": 0, "max": 1,
+              "unit": "percentunit"
+            }
+          },
+          "targets": [{
+            "expr": "bizra_gini_coefficient",
+            "legendFormat": "Gini"
+          }]
+        },
+        {
+          "title": "API p99 Latency",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "orange", "value": 150 },
+                  { "color": "red", "value": 200 }
+                ]
+              },
+              "unit": "ms"
+            }
+          },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(bizra_http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "legendFormat": "p99"
+          }]
+        },
+        {
+          "title": "Error Rate (5xx)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 0.01 }
+                ]
+              },
+              "unit": "percentunit"
+            }
+          },
+          "targets": [{
+            "expr": "sum(rate(bizra_http_responses_total{status=~\"5..\"}[5m])) / sum(rate(bizra_http_responses_total[5m]))",
+            "legendFormat": "Error Rate"
+          }]
+        },
+        {
+          "title": "Myelination (Reflex Cache Hit Rate)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "orange", "value": null },
+                  { "color": "green", "value": 0.50 }
+                ]
+              },
+              "unit": "percentunit"
+            }
+          },
+          "targets": [{
+            "expr": "bizra_reflex_cache_hits_total / (bizra_reflex_cache_hits_total + bizra_reflex_cache_misses_total)",
+            "legendFormat": "Cache Hit Rate"
+          }]
+        },
+        {
+          "title": "SLO Burn Rate (Ihsan)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "1 - (bizra_ihsan_composite / 0.95)",
+              "legendFormat": "Error budget consumption (1h)"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "orange", "value": 0.50 },
+                  { "color": "red", "value": 1.0 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Constitutional SLO Summary",
+          "type": "table",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            { "expr": "bizra_ihsan_composite", "legendFormat": "Ihsan", "format": "table", "instant": true },
+            { "expr": "bizra_snr_score", "legendFormat": "SNR", "format": "table", "instant": true },
+            { "expr": "bizra_gini_coefficient", "legendFormat": "Gini", "format": "table", "instant": true },
+            { "expr": "histogram_quantile(0.99, sum(rate(bizra_http_request_duration_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p99 (ms)", "format": "table", "instant": true }
+          ]
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "tags": ["bizra", "slo", "constitutional"],
+      "templating": { "list": [] },
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "timezone": "utc",
+      "title": "BIZRA Constitutional SLO Dashboard",
+      "uid": "bizra-slo-constitutional",
+      "version": 1
+    }

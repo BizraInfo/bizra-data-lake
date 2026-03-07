@@ -1,0 +1,8 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bizra-omega-hpa
+  namespace: bizra
+spec:
+  minReplicas: 1
+  maxReplicas: 3

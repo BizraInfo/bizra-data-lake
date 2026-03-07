@@ -1,0 +1,106 @@
+# BIZRA Node0 Terminal Runtime Configuration
+# Sovereign mission terminal for single-user runtime
+# Standing on Giants: Unix (1969), Plan 9 (1992), Kubernetes (2014)
+#
+# Architecture: 6-layer sovereign runtime
+#   L0: Identity | L1: Event Spine | L2: Bounded Cognition
+#   L3: Agent Runtime | L4: Kinetic | L5: Memory | L6: Terminal
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bizra-node0-config
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: node0
+data:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Layer 0: Sovereign Identity
+  # ═══════════════════════════════════════════════════════════════════════════
+  SIGNER_ALGORITHM: "Ed25519"
+  SIGNER_STATE_PATH: "/app/data/sovereign_state/mission_signer.json"
+  COVENANT_HASH_ALGORITHM: "blake3"
+  NODE_TIER_DEFAULT: "SEED"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Layer 1: Event Truth Spine
+  # ═══════════════════════════════════════════════════════════════════════════
+  EVENT_BUS_SHARDS: "8"
+  EVENT_LOG_PATH: "/app/data/event_log"
+  EVENT_LOG_MAX_SIZE_MB: "256"
+  EVENT_REPLAY_ENABLED: "true"
+  PROOF_CHAIN_ALGORITHM: "blake3"
+  RECEIPT_RETENTION_DAYS: "365"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Layer 2: Bounded Cognition
+  # ═══════════════════════════════════════════════════════════════════════════
+  BOUNDED_ESTIMATION_TIMEOUT_MS: "500"
+  REFLEX_CANDIDATE_THRESHOLD: "0.85"
+  NOVELTY_ESTIMATION_ENABLED: "true"
+  COGNITIVE_BUDGET_TOKENS: "8192"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Layer 3: Agent Runtime (PAT/SAT)
+  # ═══════════════════════════════════════════════════════════════════════════
+  PAT_AGENTS_PER_USER: "7"
+  SAT_AGENTS_PER_USER: "5"
+  MISSION_PLANNER_MODEL: "qwen2.5:7b"
+  MISSION_CRITIC_MODEL: "qwen2.5:7b"
+  MISSION_MAX_STEPS: "50"
+  MISSION_TIMEOUT_SECONDS: "300"
+  TWO_TOUCH_MODE: "true"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Layer 4: Kinetic (ActionBus)
+  # ═══════════════════════════════════════════════════════════════════════════
+  ACTION_BUS_ENABLED: "true"
+  TELESCRIPT_POLICY_PATH: "/app/data/telescript_policies"
+  HDA_ENABLED: "false"
+  HDA_PORT: "9743"
+  BRIDGE_PORT: "9742"
+  BRIDGE_HOST: "127.0.0.1"
+  MCP_ENABLED: "true"
+  A2A_ENABLED: "false"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Layer 5: Memory
+  # ═══════════════════════════════════════════════════════════════════════════
+  SEMANTIC_MEMORY_PATH: "/app/data/memory/semantic"
+  EPISODIC_MEMORY_PATH: "/app/data/memory/episodic"
+  PROCEDURAL_MEMORY_PATH: "/app/data/memory/procedural"
+  EPISODIC_MAX_EVENTS: "1000"
+  MORNING_BRIEFING_ENABLED: "true"
+  REFLEX_COMPILATION_MIN_SUCCESSES: "5"
+  REFLEX_COMPILATION_MIN_CONFIDENCE: "0.90"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Layer 6: Terminal Experience
+  # ═══════════════════════════════════════════════════════════════════════════
+  TERMINAL_VIEWS: "briefing,mission,receipts,wallet,memory,skills,health"
+  TERMINAL_REFRESH_INTERVAL_MS: "1000"
+  TERMINAL_GREETING_ENABLED: "true"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Safety States (surfaced in terminal)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SAFE | REQUIRES_CONFIRMATION | CONSTITUTIONAL_VETO
+  # PERMISSION_BLOCKED | VERIFICATION_FAILED
+  # OFFLINE_SIMULATION | LIVE_BACKEND_DATA
+  CONSTITUTIONAL_VETO_ENABLED: "true"
+  FAIL_CLOSED: "true"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Sovereignty Tiers
+  # ═══════════════════════════════════════════════════════════════════════════
+  TIER_SEED_MAX: "0.25"
+  TIER_SPROUT_MAX: "0.50"
+  TIER_TREE_MAX: "0.75"
+  TIER_FOREST_MIN: "0.75"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Performance Targets
+  # ═══════════════════════════════════════════════════════════════════════════
+  REFLEX_ROUTE_TIMEOUT_MS: "200"
+  PLANNED_ROUTE_TIMEOUT_MS: "5000"
+  MISSION_STREAM_ENABLED: "true"

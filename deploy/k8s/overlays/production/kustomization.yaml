@@ -1,40 +1,37 @@
-# BIZRA Production Overlay
-# Configuration for production environment
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
-namespace: bizra
-
-commonLabels:
-  environment: production
-
-commonAnnotations:
-  bizra.io/quality-gate: "constitutional"
-  bizra.io/ihsan-threshold: "0.95"
 
 resources:
   - ../../base
   - monitoring.yaml
 
+namespace: bizra
+
+labels:
+  - pairs:
+      environment: production
+    includeSelectors: false
+
+commonAnnotations:
+  bizra.io/quality-gate: "constitutional"
+  bizra.io/ihsan-threshold: "0.95"
+
+images:
+  - name: bizra-elite
+    newName: ghcr.io/bizra/bizra-data-lake/elite
+    newTag: elite-placeholder
+  - name: bizra-omega
+    newName: ghcr.io/bizra/bizra-data-lake/omega
+    newTag: omega-placeholder
+  - name: bizra-mcp
+    newName: ghcr.io/bizra/bizra-data-lake/mcp
+    newTag: mcp-placeholder
+
 patches:
-  # Production replicas
-  - patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 3
-    target:
+  - target:
       kind: Deployment
       name: bizra-elite
-  - patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 3
-    target:
-      kind: Deployment
-      name: bizra-omega
-
-  # Production resource limits
-  - patch: |-
+    patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
         value: 1Gi
@@ -47,48 +44,23 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/cpu
         value: 2000m
-    target:
-      kind: Deployment
-      name: bizra-elite
-
-  # Production HPA settings
-  - patch: |-
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: bizra-elite-hpa
+    patch: |-
       - op: replace
         path: /spec/minReplicas
         value: 3
       - op: replace
         path: /spec/maxReplicas
         value: 15
-    target:
+  - target:
       kind: HorizontalPodAutoscaler
-      name: bizra-elite-hpa
-  - patch: |-
+      name: bizra-omega-hpa
+    patch: |-
       - op: replace
         path: /spec/minReplicas
         value: 3
       - op: replace
         path: /spec/maxReplicas
         value: 20
-    target:
-      kind: HorizontalPodAutoscaler
-      name: bizra-omega-hpa
-
-configMapGenerator:
-  - name: bizra-production-config
-    behavior: merge
-    literals:
-      - BIZRA_ENV=production
-      - RUST_LOG=bizra_api=info,bizra_core=info,tower_http=info
-      - IHSAN_THRESHOLD=0.95
-      - SNR_THRESHOLD_T0_ELITE=0.98
-      - SNR_THRESHOLD_T1_HIGH=0.95
-      - FAIL_CLOSED=true
-      - ENABLE_PROFILING=false
-
-images:
-  - name: bizra-elite
-    newName: ghcr.io/bizra/bizra-data-lake/elite
-    newTag: v9.0.0  # Pin to release version — never use 'latest' in production
-  - name: bizra-omega
-    newName: ghcr.io/bizra/bizra-data-lake/omega
-    newTag: v9.0.0  # Updated by deploy.yml kustomization-patch at deploy time

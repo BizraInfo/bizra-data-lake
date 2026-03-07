@@ -429,3 +429,7 @@ spec:
     customResponseHeaders:
       X-Frame-Options: "DENY"
       X-Content-Type-Options: "nosniff"
+      Strict-Transport-Security: "max-age=63072000; includeSubDomains; preload"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+      Permissions-Policy: "camera=(), microphone=(), geolocation=(), payment=()"
+      Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.bizra.ai wss://api.bizra.ai; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
