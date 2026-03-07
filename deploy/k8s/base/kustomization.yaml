@@ -5,25 +5,30 @@ kind: Kustomization
 
 namespace: bizra
 
-commonLabels:
-  app.kubernetes.io/name: bizra
-  app.kubernetes.io/part-of: bizra-ecosystem
-  app.kubernetes.io/managed-by: kustomize
+labels:
+  - pairs:
+      app.kubernetes.io/name: bizra
+      app.kubernetes.io/part-of: bizra-ecosystem
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
 
 resources:
   - namespace.yaml
   - configmap.yaml
+  - configmap-node0.yaml
   - secrets.yaml
   - rbac.yaml
   - storage.yaml
   - deployment-elite.yaml
   - deployment-omega.yaml
   - deployment-mcp.yaml
+  - deployment-frontend.yaml
   - services.yaml
   - services-mcp.yaml
   - ingress.yaml
   - hpa.yaml
   - networkpolicy.yaml
+  - grafana-slo-dashboard.yaml
 
 images:
   # IMPORTANT: Override newTag at deploy time via:
@@ -37,6 +42,9 @@ images:
     newTag: "${GIT_SHA:-v1.0.0}"
   - name: bizra-mcp
     newName: ghcr.io/bizra/bizra-data-lake/mcp
+    newTag: "${GIT_SHA:-v1.0.0}"
+  - name: bizra-frontend
+    newName: ghcr.io/bizra/bizra-data-lake/frontend
     newTag: "${GIT_SHA:-v1.0.0}"
 
 configMapGenerator:

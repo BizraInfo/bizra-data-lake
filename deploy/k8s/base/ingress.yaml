@@ -28,6 +28,7 @@ spec:
     - hosts:
         - api.bizra.node0
         - elite.bizra.node0
+        - app.bizra.node0
       secretName: bizra-tls
   rules:
     # Omega API (Rust)
@@ -50,6 +51,17 @@ spec:
             backend:
               service:
                 name: bizra-elite
+                port:
+                  number: 80
+    # Frontend (DDAGI OS)
+    - host: app.bizra.node0
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizra-frontend
                 port:
                   number: 80
 ---

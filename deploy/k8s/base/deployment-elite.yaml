@@ -55,6 +55,8 @@ spec:
                 name: bizra-config
             - configMapRef:
                 name: bizra-python-config
+            - configMapRef:
+                name: bizra-node0-config
           env:
             - name: BIZRA_ENV
               valueFrom:

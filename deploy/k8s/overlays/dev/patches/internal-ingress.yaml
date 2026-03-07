@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bizra-internal-ingress
+  namespace: bizra
+spec:
+  rules:
+    - host: quality-gate.dev.bizra.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizra-quality-gate
+                port:
+                  number: 8095
