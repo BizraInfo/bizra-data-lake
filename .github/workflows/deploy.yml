@@ -55,6 +55,7 @@ jobs:
     outputs:
       python-image: ${{ steps.meta-python.outputs.tags }}
       rust-image: ${{ steps.meta-rust.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -143,6 +144,53 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Extract metadata (MCP)
+        id: meta-mcp
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/mcp
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=
+
+      - name: Build and push MCP image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25  # v5
+        with:
+          context: .
+          file: deploy/Dockerfile.mcp
+          push: true
+          tags: ${{ steps.meta-mcp.outputs.tags }}
+          labels: ${{ steps.meta-mcp.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Frontend (DDAGI OS) Image
+      - name: Extract metadata (Frontend)
+        id: meta-frontend
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25  # v5
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_SHA=${{ github.sha }}
+
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 2: Deploy to Staging
   # ═══════════════════════════════════════════════════════════════════════════
@@ -214,19 +262,14 @@ jobs:
 
       - name: Update Kubernetes manifests
         run: |
-          # Update image tags in kustomization or helm values
-          cd deploy/k8s/overlays/staging
+          sed -i \
+            -e 's/newTag: elite-placeholder/newTag: ${{ needs.build-push.outputs.version }}/' \
+            -e 's/newTag: omega-placeholder/newTag: ${{ needs.build-push.outputs.version }}/' \
+            -e 's/newTag: mcp-placeholder/newTag: ${{ needs.build-push.outputs.version }}/' \
+            -e 's/newTag: frontend-placeholder/newTag: ${{ needs.build-push.outputs.version }}/' \
+            deploy/k8s/overlays/staging/kustomization.yaml
 
-          # Update image references
-          cat > kustomization-patch.yaml << EOF
-          images:
-            - name: bizra-elite
-              newName: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/elite
-              newTag: ${{ needs.build-push.outputs.version }}
-            - name: bizra-omega
-              newName: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/omega
-              newTag: ${{ needs.build-push.outputs.version }}
-          EOF
+          kubectl kustomize deploy/k8s/overlays/staging >/tmp/staging-rendered.yaml
 
       - name: Deploy to Staging
         run: |
@@ -236,12 +279,14 @@ jobs:
           # Wait for rollout
           kubectl rollout status deployment/bizra-elite -n bizra-staging --timeout=300s
           kubectl rollout status deployment/bizra-omega -n bizra-staging --timeout=300s
+          kubectl rollout status deployment/bizra-frontend -n bizra-staging --timeout=120s
 
       - name: Verify Staging Deployment
         run: |
           # Health check
           kubectl wait --for=condition=ready pod -l app=bizra-elite -n bizra-staging --timeout=120s
           kubectl wait --for=condition=ready pod -l app=bizra-omega -n bizra-staging --timeout=120s
+          kubectl wait --for=condition=ready pod -l app=bizra-frontend -n bizra-staging --timeout=60s
 
           # Get service endpoint
           STAGING_URL=$(kubectl get ingress -n bizra-staging -o jsonpath='{.items[0].spec.rules[0].host}')
@@ -259,67 +304,37 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
-      - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+      - name: Install kubectl
+        uses: azure/setup-kubectl@901a10e89ea615cf61f57ac05cecdf23e7de06d8  # v3
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          version: 'latest'
 
-      - name: Install test dependencies
+      - name: Configure kubectl
         run: |
-          pip install httpx pytest
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
 
       - name: Run Smoke Tests
         run: |
-          python << 'EOF'
-          import httpx
-          import sys
-          import time
+          set -euo pipefail
 
-          STAGING_URL = "https://staging.bizra.node0"
-          MAX_RETRIES = 5
-          RETRY_DELAY = 10
+          kubectl -n bizra-staging port-forward svc/bizra-elite 18080:80 >/tmp/bizra-elite-pf.log 2>&1 &
+          PF_ELITE=$!
+          kubectl -n bizra-staging port-forward svc/bizra-omega 13001:80 >/tmp/bizra-omega-pf.log 2>&1 &
+          PF_OMEGA=$!
 
-          tests = [
-              ("Health Check", f"{STAGING_URL}/api/v1/health"),
-              ("Version Check", f"{STAGING_URL}/api/v1/version"),
-              ("Quality Gate Status", f"{STAGING_URL}/api/v1/quality/status"),
-          ]
+          cleanup() {
+            kill "$PF_ELITE" "$PF_OMEGA" 2>/dev/null || true
+          }
+          trap cleanup EXIT
 
-          print("=" * 60)
-          print("STAGING SMOKE TESTS")
-          print("=" * 60)
+          sleep 10
 
-          all_passed = True
-
-          for test_name, url in tests:
-              print(f"\n[TEST] {test_name}: {url}")
-
-              for attempt in range(MAX_RETRIES):
-                  try:
-                      response = httpx.get(url, timeout=30.0, follow_redirects=True)
-                      if response.status_code == 200:
-                          print(f"  [PASS] Status: {response.status_code}")
-                          break
-                      else:
-                          print(f"  [WARN] Status: {response.status_code}, attempt {attempt + 1}/{MAX_RETRIES}")
-                  except Exception as e:
-                      print(f"  [WARN] Error: {e}, attempt {attempt + 1}/{MAX_RETRIES}")
-
-                  if attempt < MAX_RETRIES - 1:
-                      time.sleep(RETRY_DELAY)
-              else:
-                  print(f"  [FAIL] All retries exhausted")
-                  all_passed = False
-
-          print("\n" + "=" * 60)
-          if all_passed:
-              print("ALL SMOKE TESTS PASSED")
-          else:
-              print("SOME SMOKE TESTS FAILED")
-              sys.exit(1)
-          EOF
-        env:
-          STAGING_URL: https://staging.bizra.node0
+          curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:18080/v1/health
+          curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:18080/v1/status
+          curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:13001/api/v1/health
+          curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:13001/api/v1/status
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 4: Quality Gate Validation (Production Gate)
@@ -420,6 +435,13 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: Install Argo Rollouts plugin
+        run: |
+          curl -sLO https://github.com/argoproj/argo-rollouts/releases/download/v1.7.2/kubectl-argo-rollouts-linux-amd64
+          chmod +x kubectl-argo-rollouts-linux-amd64
+          sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+          kubectl argo rollouts version
+
       - name: Pre-deployment Backup
         run: |
           # Backup current deployment state
@@ -437,56 +459,50 @@ jobs:
           path: backup/
           retention-days: 30
 
-      - name: Deploy to Production (Canary)
+      - name: Deploy to Production (Argo Rollout Canary — ADR-012)
         run: |
-          # Start with canary deployment (10% traffic)
-          cd deploy/k8s/overlays/production
+          VERSION="${{ needs.build-push.outputs.version }}"
 
-          # Update image tags
-          cat > kustomization-patch.yaml << EOF
-          images:
-            - name: bizra-elite
-              newName: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/elite
-              newTag: ${{ needs.build-push.outputs.version }}
-            - name: bizra-omega
-              newName: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/omega
-              newTag: ${{ needs.build-push.outputs.version }}
-          EOF
+          # Inject immutable image tags into production overlay
+          sed -i \
+            -e "s/newTag: elite-placeholder/newTag: ${VERSION}/" \
+            -e "s/newTag: omega-placeholder/newTag: ${VERSION}/" \
+            -e "s/newTag: mcp-placeholder/newTag: ${VERSION}/" \
+            -e "s/newTag: frontend-placeholder/newTag: ${VERSION}/" \
+            deploy/k8s/overlays/production/kustomization.yaml
 
-          # Apply canary deployment
-          kubectl apply -k . --dry-run=server
-          kubectl apply -k .
+          # Render and validate before applying
+          kubectl kustomize deploy/k8s/overlays/production >/tmp/production-rendered.yaml
+          kubectl apply -k deploy/k8s/overlays/production --dry-run=server
 
-          # Wait for canary pods
-          kubectl rollout status deployment/bizra-elite-canary -n bizra --timeout=300s || true
+          # Apply base resources (services, configmaps, HPA, NetworkPolicy)
+          kubectl apply -k deploy/k8s/overlays/production
 
-      - name: Canary Health Check
-        run: |
-          # Monitor canary for 2 minutes
-          echo "Monitoring canary deployment..."
-          sleep 120
+          # Update the Argo Rollout image (triggers canary progression)
+          # ADR-012: 5% → 20% → 50% → 80% → 100% with SLO analysis at each step
+          kubectl argo rollouts set image bizra-elite-rollout \
+            bizra-elite=ghcr.io/${{ github.repository }}/elite:${VERSION} \
+            -n bizra
 
-          # Check canary health
-          CANARY_HEALTHY=$(kubectl get pods -n bizra -l app=bizra-elite-canary \
-            -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}')
-
-          if [[ "$CANARY_HEALTHY" != "True" ]]; then
-            echo "Canary unhealthy, initiating rollback..."
-            kubectl rollout undo deployment/bizra-elite-canary -n bizra
-            exit 1
-          fi
-
-          echo "Canary healthy, proceeding with full rollout..."
-
-      - name: Full Production Rollout
-        run: |
-          # Scale down canary, scale up production
-          kubectl scale deployment/bizra-elite-canary -n bizra --replicas=0
-          kubectl scale deployment/bizra-elite -n bizra --replicas=3
-
-          # Wait for rollout
-          kubectl rollout status deployment/bizra-elite -n bizra --timeout=600s
+          # Wait for rollout to reach stable (Argo manages the canary lifecycle)
           kubectl rollout status deployment/bizra-omega -n bizra --timeout=600s
+
+      - name: Argo Rollout Canary Monitoring
+        run: |
+          # Monitor Argo Rollout canary progression
+          echo "=== Argo Rollout Canary Status ==="
+          kubectl argo rollouts status bizra-elite-rollout -n bizra --timeout 900s || {
+            PHASE=$(kubectl argo rollouts status bizra-elite-rollout -n bizra 2>/dev/null | head -1)
+            echo "::error::Argo Rollout failed at phase: ${PHASE}"
+
+            # Abort the rollout (auto-reverts to stable)
+            kubectl argo rollouts abort bizra-elite-rollout -n bizra
+            echo "Rollout aborted — stable revision preserved."
+            exit 1
+          }
+
+          echo "=== Canary promoted to stable ==="
+          kubectl argo rollouts get rollout bizra-elite-rollout -n bizra --no-color
 
       - name: Verify Production Deployment
         run: |
@@ -508,17 +524,39 @@ jobs:
     timeout-minutes: 5
     needs: [deploy-production]
     steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@901a10e89ea615cf61f57ac05cecdf23e7de06d8  # v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
       - name: Production Health Check
         run: |
-          # Wait for DNS propagation
-          sleep 30
+          set -euo pipefail
 
-          # Health check
-          curl -f https://api.bizra.node0/api/v1/health || exit 1
+          kubectl -n bizra port-forward svc/bizra-elite 18080:80 >/tmp/bizra-elite-prod-pf.log 2>&1 &
+          PF_ELITE=$!
+          kubectl -n bizra port-forward svc/bizra-omega 13001:80 >/tmp/bizra-omega-prod-pf.log 2>&1 &
+          PF_OMEGA=$!
 
-          # Version check
-          VERSION=$(curl -s https://api.bizra.node0/api/v1/version | jq -r '.version')
-          echo "Deployed version: $VERSION"
+          cleanup() {
+            kill "$PF_ELITE" "$PF_OMEGA" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          sleep 10
+
+          curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:18080/v1/health
+          curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:18080/v1/status
+          curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:13001/api/v1/health
+          curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:13001/api/v1/status
 
       - name: Notify Success
         run: |
@@ -534,27 +572,43 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && failure() }}
     needs: [deploy-production]
     steps:
-      - name: Configure kubectl
+      - name: Install kubectl + Argo Rollouts plugin
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
+          curl -sLO https://github.com/argoproj/argo-rollouts/releases/download/v1.7.2/kubectl-argo-rollouts-linux-amd64
+          chmod +x kubectl-argo-rollouts-linux-amd64
+          sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
 
-      - name: Execute Rollback
+      - name: Execute Rollback (Argo Rollout + Omega Deployment)
         run: |
           echo "Initiating rollback..."
 
-          # Rollback deployments
-          kubectl rollout undo deployment/bizra-elite -n bizra
+          # Argo Rollout: undo promotes previous stable revision
+          kubectl argo rollouts undo bizra-elite-rollout -n bizra 2>/dev/null || \
+            kubectl rollout undo deployment/bizra-elite -n bizra
+
+          # Standard Deployment rollback for Omega
           kubectl rollout undo deployment/bizra-omega -n bizra
 
-          # Wait for rollback
-          kubectl rollout status deployment/bizra-elite -n bizra --timeout=300s
+          # Wait for rollback completion
+          kubectl argo rollouts status bizra-elite-rollout -n bizra --timeout 300s 2>/dev/null || \
+            kubectl rollout status deployment/bizra-elite -n bizra --timeout=300s
           kubectl rollout status deployment/bizra-omega -n bizra --timeout=300s
 
           echo "Rollback complete!"
 
       - name: Verify Rollback
         run: |
-          kubectl get pods -n bizra
-          curl -f https://api.bizra.node0/api/v1/health
+          echo "=== Pod Status ==="
+          kubectl get pods -n bizra -o wide
+
+          echo "=== Argo Rollout Status ==="
+          kubectl argo rollouts get rollout bizra-elite-rollout -n bizra --no-color 2>/dev/null || true
+
+          echo "=== Health Check ==="
+          kubectl -n bizra port-forward svc/bizra-elite 18080:80 >/dev/null 2>&1 &
+          PF=$!; trap "kill $PF 2>/dev/null || true" EXIT; sleep 5
+          curl --fail --retry 3 --retry-delay 2 http://127.0.0.1:18080/v1/health
+          echo "Rollback verified — production healthy."
