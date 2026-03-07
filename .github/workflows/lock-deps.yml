@@ -35,6 +35,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Validate source dependency contract
+        run: python scripts/ci_dependency_governance.py --skip-lock
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Generate hash-pinned lock file
         run: |
           uv pip compile pyproject.toml \
@@ -49,6 +54,11 @@ jobs:
       - name: Verify lock file installs cleanly
         run: |
           uv pip install --dry-run --require-hashes -r requirements.lock
+
+      - name: Validate generated dependency contract
+        run: python scripts/ci_dependency_governance.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Commit if changed
         run: |
