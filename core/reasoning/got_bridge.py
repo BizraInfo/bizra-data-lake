@@ -99,6 +99,15 @@ class GoTBridge:
         self._convergence_snr = convergence_snr
         self._max_depth = max_depth
 
+        # P1: Degradation transparency
+        from core.protocols.degradation import DegradationEmitter
+
+        emitter = DegradationEmitter("GoTBridge")
+        emitter.check("search_engine", search_engine)
+        emitter.check("got_engine", got_engine)
+        self._degradation_event = emitter.emit()
+        self._degraded = self._degradation_event is not None
+
     # ------------------------------------------------------------------
     # Lazy GoT engine import (avoids circular imports at module load)
     # ------------------------------------------------------------------

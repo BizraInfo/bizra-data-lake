@@ -68,8 +68,8 @@ pub const ZAKAT_RATE: Decimal = Decimal::from_parts(25, 0, 0, false, 3); // 0.02
 /// Node must hold this much before Zakat is obligatory
 pub const NISAB_THRESHOLD: u64 = 1_000_000; // 1M tokens
 
-/// Harberger tax rate: Annual self-assessed tax on resources (7%)
-pub const HARBERGER_TAX_RATE: Decimal = Decimal::from_parts(7, 0, 0, false, 2); // 0.07
+/// Harberger tax rate: Annual self-assessed tax on resources (5%)
+pub const HARBERGER_TAX_RATE: Decimal = Decimal::from_parts(5, 0, 0, false, 2); // 0.05
 
 /// Minimum self-assessment multiplier to prevent undervaluation
 pub const MIN_ASSESSMENT_MULTIPLIER: Decimal = Decimal::from_parts(5, 0, 0, false, 1); // 0.5
@@ -1750,7 +1750,7 @@ mod tests {
         // Verify constants are properly defined
         assert!(IHSAN_THRESHOLD >= Decimal::from_str("0.95").unwrap());
         assert_eq!(ZAKAT_RATE, Decimal::from_str("0.025").unwrap());
-        assert_eq!(HARBERGER_TAX_RATE, Decimal::from_str("0.07").unwrap());
+        assert_eq!(HARBERGER_TAX_RATE, Decimal::from_str("0.05").unwrap());
         assert_eq!(PAT_SIZE, 7);
         assert_eq!(SAT_SIZE, 5);
         assert_eq!(SAT_SIZE_FULL49, 49);

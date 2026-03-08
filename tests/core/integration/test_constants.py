@@ -244,7 +244,7 @@ class TestADLConstants:
 
     def test_harberger_tax_rate(self):
         assert 0.0 < ADL_HARBERGER_TAX_RATE < 1.0
-        assert ADL_HARBERGER_TAX_RATE == 0.07
+        assert ADL_HARBERGER_TAX_RATE == 0.05
 
     def test_minimum_holding(self):
         assert ADL_MINIMUM_HOLDING > 0.0

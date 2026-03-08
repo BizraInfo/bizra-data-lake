@@ -91,6 +91,7 @@ class BicameralResult:
     candidates_generated: int
     candidates_verified: int
     reasoning_path: list[dict[str, Any]] = field(default_factory=list)
+    degraded: bool = False  # P1: True when engine started with missing Protocol args
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -123,10 +124,21 @@ class BicameralReasoningEngine:
             "consensus_hits": 0,
             "fallbacks": 0,
         }
+
+        # P1: Degradation transparency
+        from core.protocols.degradation import DegradationEmitter
+
+        emitter = DegradationEmitter("BicameralReasoningEngine")
+        emitter.check("local_endpoint", local_endpoint)
+        emitter.check("api_client", api_client)
+        self._degradation_event = emitter.emit()
+        self._degraded = self._degradation_event is not None
+
         logger.info(
-            "BicameralEngine init | local=%s api=%s",
+            "BicameralEngine init | local=%s api=%s degraded=%s",
             local_endpoint is not None,
             api_client is not None,
+            self._degraded,
         )
 
     @property
@@ -223,7 +235,7 @@ class BicameralReasoningEngine:
         )
 
         if not candidates:
-            return BicameralResult("[NO CANDIDATES]", 0.0, 0, 0, path)
+            return BicameralResult("[NO CANDIDATES]", 0.0, 0, 0, path, degraded=self._degraded)
 
         # Phase 2: Verify (Left Hemisphere)
         criteria = context.get("criteria", {"correctness": True})
@@ -271,7 +283,8 @@ class BicameralReasoningEngine:
             score,
         )
         return BicameralResult(
-            best_c.content, score, len(candidates), len(verified), path
+            best_c.content, score, len(candidates), len(verified), path,
+            degraded=self._degraded,
         )
 
     def _select_best(

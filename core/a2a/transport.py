@@ -204,8 +204,10 @@ class UDPTransport(A2ATransport):
                         response = await self.transport_ref.on_message(msg)
                         if response and self.udp_transport:
                             self.udp_transport.sendto(response.to_bytes(), addr)
-                except Exception as e:
+                except (ValueError, UnicodeDecodeError, OSError) as e:
                     print(f"⚠️ UDP message error: {e}")
+                except Exception as e:
+                    print(f"⚠️ Unexpected UDP error: {type(e).__name__}: {e}")
 
         self._transport, self._protocol = await loop.create_datagram_endpoint(  # type: ignore[assignment]
             lambda: A2AProtocol(self), local_addr=(host, port)
@@ -229,8 +231,11 @@ class UDPTransport(A2ATransport):
             data = msg.to_bytes()
             self._transport.sendto(data, (host, int(port)))
             return True
-        except Exception as e:
+        except (OSError, ValueError) as e:
             print(f"⚠️ UDP send error: {e}")
+            return False
+        except Exception as e:
+            print(f"⚠️ Unexpected UDP send error: {type(e).__name__}: {e}")
             return False
 
     async def broadcast(self, msg: A2AMessage) -> int:

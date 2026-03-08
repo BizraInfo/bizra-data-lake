@@ -329,6 +329,12 @@ class TokenLedger:
             return f"Amount must be positive, got {tx.amount}"
 
         if tx.op == TokenOp.TRANSFER:
+            # Soulbound tokens — reject transfer on principle before any balance check
+            if tx.token_type == TokenType.IMPT:
+                return "IMPT tokens are non-transferable (soulbound)"
+            if tx.token_type == TokenType.BLOOM:
+                return "BLOOM tokens are non-transferable (soulbound governance)"
+
             if not tx.from_account:
                 return "Transfer requires from_account"
             if not tx.to_account:
@@ -369,10 +375,6 @@ class TokenLedger:
             bal = self.get_balance(tx.from_account, tx.token_type)
             if bal.staked < tx.amount:
                 return f"Insufficient staked balance: {bal.staked:.4f}"
-
-        # IMPT is non-transferable
-        if tx.token_type == TokenType.IMPT and tx.op == TokenOp.TRANSFER:
-            return "IMPT tokens are non-transferable (soulbound)"
 
         # ADL Gini gate — reject transactions that push inequality beyond threshold
         # Only applies to SEED (economic token). GENESIS_MINT and ZAKAT are exempt.

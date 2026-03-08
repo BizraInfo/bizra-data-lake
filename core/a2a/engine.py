@@ -323,8 +323,10 @@ class A2AEngine:
                 task.mark_completed(result)
             else:
                 task.mark_failed("No task handler registered")
-        except Exception as e:
+        except (TypeError, ValueError, RuntimeError, asyncio.TimeoutError) as e:
             task.mark_failed(str(e))
+        except Exception as e:
+            task.mark_failed(f"{type(e).__name__}: {e}")
 
         # Send result via transport layer
         result_msg = self.create_message(
@@ -342,8 +344,10 @@ class A2AEngine:
             try:
                 await self._transport.send(result_msg, requester_id)
                 print(f"📤 Task {task.task_id} result sent to {requester_id}")
-            except Exception as e:
+            except (OSError, asyncio.TimeoutError) as e:
                 print(f"⚠️ Failed to send result for {task.task_id}: {e}")
+            except Exception as e:
+                print(f"⚠️ Unexpected error sending result for {task.task_id}: {type(e).__name__}: {e}")
         else:
             print(
                 f"📤 Task {task.task_id} completed: {task.status.value} (no transport)"

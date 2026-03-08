@@ -92,6 +92,9 @@ jobs:
       - name: "SEC-002: Secret hygiene gate (YAML/scripts)"
         run: python scripts/ci_secret_scan.py
 
+      - name: "SEC-003: Exception specificity gate (boundary modules)"
+        run: python scripts/ci_exception_audit.py --scan-dirs core/agentic core/a2a core/bus --baseline 20
+
   lint-rust:
     name: Lint Rust
     runs-on: ubuntu-24.04
@@ -874,6 +877,34 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: "PHASE77-001: API contract regression gate (44 endpoint + shape contract tests)"
+        id: phase77
+        run: |
+          echo "## Phase 77: API Contract Gate" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          pytest tests/core/sovereign/test_endpoint_responses.py \
+            tests/core/sovereign/test_api_exposure_policy.py \
+            -v --tb=short --timeout=60 \
+            2>&1 | tee /tmp/phase77-output.log
+          exit_code=${PIPESTATUS[0]}
+          passed=$(grep -c ' PASSED' /tmp/phase77-output.log || echo "0")
+          failed=$(grep -c ' FAILED' /tmp/phase77-output.log || echo "0")
+          echo "phase77_passed=${passed}" >> "$GITHUB_OUTPUT"
+          echo "phase77_failed=${failed}" >> "$GITHUB_OUTPUT"
+          echo "| Check | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Passed | ${passed} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Failed | ${failed} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$exit_code" -ne 0 ]; then
+            echo "::error::Phase 77 API contract regression — ${failed} endpoint(s) broken"
+            echo "> **FAIL**: ${failed} endpoint contract(s) violated" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "> **PASS**: All ${passed} endpoint contracts verified" >> $GITHUB_STEP_SUMMARY
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: "RDVE-001: RDVE skill registration + invocation smoke test"
         run: |
           python << 'RDVE_EOF'
@@ -1077,6 +1108,7 @@ jobs:
           echo "| RDVE Skill | - | Invoke Smoke | PASS |" >> $GITHUB_STEP_SUMMARY
           echo "| Smart Files | - | Scan Smoke | PASS |" >> $GITHUB_STEP_SUMMARY
           echo "| SAPE v1.∞ Gap Closure | 8 modules | 93 tests | PASS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Phase 77 API Contract | ${{ steps.phase77.outputs.phase77_passed }} passed | ${{ steps.phase77.outputs.phase77_failed }} failed | ${{ steps.phase77.outputs.phase77_failed == '0' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Token Ledger | - | Chain Valid | ${{ steps.token_verify.outputs.token_status || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -1414,7 +1446,7 @@ jobs:
     timeout-minutes: 10
     needs: [build-python-image, build-rust-image]
     if: ${{ needs.build-python-image.result == 'success' && needs.build-rust-image.result == 'success' }}
-    continue-on-error: true  # Soft-gated until Sprint 3 hardens
+    # Hard-gated: Contract §12 item 3 — container signing blocks lock
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -1459,7 +1491,7 @@ jobs:
     timeout-minutes: 15
     needs: [build-python-image, build-rust-image]
     if: ${{ needs.build-python-image.result == 'success' && needs.build-rust-image.result == 'success' }}
-    continue-on-error: true  # Soft-gated until Sprint 3 hardens
+    # Hard-gated: Contract §12 item 4 — SBOM generation blocks lock
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -1484,7 +1516,7 @@ jobs:
 
       - name: Vulnerability scan (grype)
         run: |
-          grype sbom:elite-sbom.spdx.json --fail-on critical -o table | tee grype-report.txt || true
+          grype sbom:elite-sbom.spdx.json --fail-on critical -o table | tee grype-report.txt
           echo "## Gate 11: SBOM + Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           head -30 grype-report.txt >> $GITHUB_STEP_SUMMARY
@@ -1697,6 +1729,7 @@ jobs:
               "autonomous_qualified_rate": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_qualified_rate }}",
               "autonomous_compiled": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_compiled }}",
               "autonomous_chain_valid": "${{ needs.phase65-masterpiece-gate.outputs.autonomous_chain_valid }}",
+              "phase77_api_contract": "${{ needs.quality-gates.result }}",
               "phase56_security": "${{ needs.phase56-security-gate.result }}",
               "security_scan": "${{ needs.security-scan.result }}",
               "lint_frontend": "${{ needs.lint-frontend.result }}",
@@ -1719,7 +1752,9 @@ jobs:
                  [ "${{ needs.phase65-masterpiece-gate.result }}" = "success" ] && \
                  [ "${{ needs.phase56-security-gate.result }}" = "success" ] && \
                  [ "${{ needs.security-scan.result }}" = "success" ] && \
-                 [ "${{ needs.build-frontend.result }}" = "success" ]; then
+                 [ "${{ needs.build-frontend.result }}" = "success" ] && \
+                 [ "${{ needs.container-signing.result }}" = "success" ] && \
+                 [ "${{ needs.sbom-generation.result }}" = "success" ]; then
                 echo "true"
               else
                 echo "false"

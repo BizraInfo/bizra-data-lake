@@ -22,7 +22,7 @@ Mathematical Foundation:
 - Threshold = 0.35: Moderate inequality, prevents plutocracy
 
 Harberger Tax Mechanism:
-- All holdings are taxed at a continuous rate (default 7% annually)
+- All holdings are taxed at a continuous rate (default 5% annually)
 - Tax proceeds flow to Universal Basic Compute (UBC) pool
 - UBC distributes equally to all active nodes
 - This creates a natural redistribution pressure toward equality
@@ -45,8 +45,8 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 # Harberger tax rate (annual, applied continuously)
-# 7% — aligned with core/integration/constants.py ADL_HARBERGER_TAX_RATE
-HARBERGER_TAX_RATE: float = 0.07
+# 5% — aligned with core/integration/constants.py ADL_HARBERGER_TAX_RATE
+HARBERGER_TAX_RATE: float = 0.05
 
 # Minimum holding to be considered a participant
 # Prevents dust attacks and ensures meaningful participation
@@ -342,7 +342,7 @@ class AdlInvariant:
 
         Args:
             gini_threshold: Maximum allowed Gini coefficient (default 0.35)
-            tax_rate: Annual Harberger tax rate (default 0.07 = 7%)
+            tax_rate: Annual Harberger tax rate (default 0.05 = 5%)
         """
         if not 0.0 <= gini_threshold <= 1.0:
             raise ValueError(f"Gini threshold must be in [0, 1], got {gini_threshold}")
