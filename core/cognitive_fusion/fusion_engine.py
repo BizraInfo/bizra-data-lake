@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
 from core.cognitive_fusion.complexity_adapter import ComplexityAdapter
 from core.integration.constants import (
+    GOT_MAX_DEPTH,
     SNR_THRESHOLD_T0_ELITE,
     STRICT_IHSAN_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
@@ -192,11 +193,13 @@ class CognitiveFusionEngine:
         hrm_engine: Optional[HRMEngineProtocol] = None,
         hypergraph_rag: Optional[RAGFusionProtocol] = None,
         northstar_engine: Optional[NorthStarProtocol] = None,
+        frontier_mode: bool = False,
     ) -> None:
         self._moe_router = moe_router
         self._hrm_engine = hrm_engine
         self._hypergraph_rag = hypergraph_rag
         self._northstar_engine = northstar_engine
+        self._frontier_mode = frontier_mode
         self._adapter = ComplexityAdapter()
 
         # P1: Degradation transparency — never silent failure
@@ -249,11 +252,29 @@ class CognitiveFusionEngine:
         expert_tier = self._adapter.level_to_tier(target_level)
         routing.expert_tier = expert_tier
 
-        # Stage 3 -- HRM Cycle
-        hrm_result = self._run_hrm(target_level, query, ctx)
+        # P4: FRONTIER tier activation — deeper exploration + stricter gate
+        is_frontier = (
+            self._frontier_mode and routing.complexity_class == "FRONTIER"
+        )
+        if is_frontier:
+            required_snr = SNR_THRESHOLD_T0_ELITE  # 0.98
+            logger.info(
+                "FRONTIER tier activated — SNR gate raised to %.2f, "
+                "GoT depth doubled, cross-domain RAG enabled",
+                required_snr,
+            )
 
-        # Stage 4 -- HyperGraph RAG Retrieval
+        # Stage 3 -- HRM Cycle (FRONTIER doubles max_depth via context)
+        hrm_ctx = {**ctx}
+        if is_frontier:
+            hrm_ctx["got_max_depth"] = GOT_MAX_DEPTH * 2
+            hrm_ctx["frontier_mode"] = True
+        hrm_result = self._run_hrm(target_level, query, hrm_ctx)
+
+        # Stage 4 -- HyperGraph RAG Retrieval (FRONTIER uses cross-domain)
         depth = self._retrieval_depth(routing.complexity_class)
+        if is_frontier:
+            depth = max(depth, 50)  # ensure deep cross-domain retrieval
         retrieval = self._retrieve(query, query_embedding, depth)
 
         # Stage 5 -- NorthStar Gate
@@ -263,6 +284,7 @@ class CognitiveFusionEngine:
             "target_level": target_level,
             "hrm_snr": hrm_result.compound_snr,
             "retrieval_count": len(retrieval),
+            "frontier_mode": is_frontier,
             **ctx,
         }
         northstar_report = self._gate(ns_observation)
@@ -276,16 +298,25 @@ class CognitiveFusionEngine:
             and ihsan_score >= UNIFIED_IHSAN_THRESHOLD
         )
 
+        # P4: Emit SYNTHESIS consciousness event for FRONTIER queries
+        domains_crossed = len(set(
+            r.get("domain", "unknown") if isinstance(r, dict) else "unknown"
+            for r in retrieval
+        )) if is_frontier and retrieval else 0
+
         elapsed = time.monotonic() - t0
         logger.debug(
             "CognitiveFusion completed in %.3fs — "
-            "complexity=%s  level=%s  snr=%.3f  ihsan=%.3f  gate=%s",
+            "complexity=%s  level=%s  snr=%.3f  ihsan=%.3f  gate=%s"
+            "%s",
             elapsed,
             routing.complexity_class,
             target_level,
             snr_score,
             ihsan_score,
             passes,
+            f"  frontier=True  domains_crossed={domains_crossed}"
+            if is_frontier else "",
         )
 
         return FusionResult(
