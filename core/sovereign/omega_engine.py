@@ -291,12 +291,12 @@ class AdlInvariant:
 
     GINI_THRESHOLD: float = ADL_GINI_THRESHOLD
     GINI_EMERGENCY: float = 0.60
-    HARBERGER_TAX_RATE: float = 0.07  # 7% annual — aligned with constants.py
+    HARBERGER_TAX_RATE: float = 0.05  # 5% annual — aligned with constants.py
 
     def __init__(
         self,
         gini_threshold: float = 0.35,
-        harberger_rate: float = 0.07,
+        harberger_rate: float = 0.05,
         on_violation: Optional[Callable[[AdlViolation], None]] = None,
     ):
         """

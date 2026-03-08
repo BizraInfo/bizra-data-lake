@@ -65,7 +65,7 @@ class TestAdlInvariantConfig:
         assert config.omega_default == 0.01
         assert config.omega_max == 0.05
         assert config.bias_epsilon == 0.01
-        assert config.harberger_rate == 0.07
+        assert config.harberger_rate == 0.05
 
     def test_custom_values(self):
         """Custom configuration values should be accepted."""

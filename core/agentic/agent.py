@@ -259,9 +259,12 @@ Respond with YES if all conditions are met, NO otherwise."""
                         confidence=0.8,
                     )
                     return False
-            except Exception as e:
+            except (TypeError, ValueError, RuntimeError) as e:
                 logger.warning(f"Constitutional check failed: {e}")
                 # Fail-closed: don't allow if can't verify
+                return False
+            except Exception as e:
+                logger.error(f"Unexpected error in constitutional check: {e}")
                 return False
 
         return True
@@ -306,7 +309,7 @@ Respond with YES if all conditions are met, NO otherwise."""
 
             return True, result
 
-        except Exception as e:
+        except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:
             duration = (time.time() - start) * 1000
             self._actions.append(
                 AgentAction(
@@ -314,6 +317,19 @@ Respond with YES if all conditions are met, NO otherwise."""
                     input=tool_input,
                     success=False,
                     error=str(e),
+                    duration_ms=duration,
+                )
+            )
+            return False, str(e)
+        except Exception as e:
+            duration = (time.time() - start) * 1000
+            logger.error(f"Unexpected error in tool '{tool_name}': {type(e).__name__}: {e}")
+            self._actions.append(
+                AgentAction(
+                    tool=tool_name,
+                    input=tool_input,
+                    success=False,
+                    error=f"{type(e).__name__}: {e}",
                     duration_ms=duration,
                 )
             )
@@ -399,7 +415,7 @@ Respond with YES if all conditions are met, NO otherwise."""
 
             return True
 
-        except Exception as e:
+        except (RuntimeError, asyncio.TimeoutError, asyncio.CancelledError) as e:
             task.status = TaskStatus.FAILED
             task.error = str(e)
             task.completed_at = datetime.now(timezone.utc)
@@ -408,6 +424,22 @@ Respond with YES if all conditions are met, NO otherwise."""
                 f"Task failed: {e}",
                 "reflection",
                 confidence=0.5,
+            )
+
+            self.state = AgentState.ERROR
+            self._total_tasks += 1
+
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error in task '{task.name}': {type(e).__name__}: {e}")
+            task.status = TaskStatus.FAILED
+            task.error = f"{type(e).__name__}: {e}"
+            task.completed_at = datetime.now(timezone.utc)
+
+            self._add_thought(
+                f"Task failed unexpectedly: {type(e).__name__}: {e}",
+                "reflection",
+                confidence=0.3,
             )
 
             self.state = AgentState.ERROR
@@ -474,8 +506,11 @@ class SimpleAgent(AutonomousAgent):
             try:
                 result = self.llm_fn(f"Complete this task: {task_desc}")
                 return True, result
-            except Exception as e:
+            except (TypeError, ValueError, RuntimeError, OSError) as e:
                 return False, str(e)
+            except Exception as e:
+                logger.error(f"Unexpected error in LLM call: {type(e).__name__}: {e}")
+                return False, f"{type(e).__name__}: {e}"
 
         elif action in self._tools:
             return await self._use_tool(action, step.get("input", {}))

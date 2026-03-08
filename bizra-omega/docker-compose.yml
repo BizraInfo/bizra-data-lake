@@ -71,7 +71,7 @@ services:
     environment:
       - RUST_LOG=bizra_resourcepool=info
       - BIZRA_ZAKAT_RATE=0.025
-      - BIZRA_HARBERGER_TAX_RATE=0.07
+      - BIZRA_HARBERGER_TAX_RATE=0.05
     env_file:
       - .env
     depends_on:

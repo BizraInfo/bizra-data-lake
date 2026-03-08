@@ -64,7 +64,7 @@
     "snr_t1_high": 0.95,
     "snr_t0_elite": 0.98,
     "adl_gini_max": 0.35,
-    "harberger_tax_rate": 0.07,
+    "harberger_tax_rate": 0.05,
     "adl_gini_min_accounts": 5
   },
 
@@ -151,7 +151,7 @@
         "checks": {
           "ihsan_gate": {"actor_score": 0.97, "threshold": 0.95, "passed": true},
           "adl_gini": {"current_gini": 0.28, "threshold": 0.35, "passed": true},
-          "harberger_tax": {"rate": 0.07, "tax_amount": 0.84, "paid": true},
+          "harberger_tax": {"rate": 0.05, "tax_amount": 0.60, "paid": true},
           "capacity_available": {"requested": 4.0, "available": 6.2, "passed": true}
         },
         "all_constraints_passed": true,
@@ -300,13 +300,13 @@
         "settlement_type": "mudarabah",
         "total_payment": 10.5,
         "distribution": {
-          "marcus_provider": 8.82,
+          "marcus_provider": 9.03,
           "sarah_requester_refund": 0.0,
           "resource_pool_fee": 0.735,
-          "harberger_tax_ubc": 0.735,
+          "harberger_tax_ubc": 0.525,
           "zakat_pool": 0.21
         },
-        "distribution_formula": "provider=84%, pool_fee=7%, harberger=7%, zakat=2%",
+        "distribution_formula": "provider=86%, pool_fee=7%, harberger=5%, zakat=2%",
         "post_settlement_gini": 0.29,
         "adl_constraint_met": true
       },

@@ -1126,8 +1126,8 @@ class TestAdlGiniGate:
         receipt = ledger.record_transaction(tx)
         assert receipt.success is True
 
-    def test_bloom_transfer_exempt_from_gini(self, tmp_path: Path) -> None:
-        """BLOOM (governance) transfers are not subject to the Gini gate."""
+    def test_bloom_transfer_rejected_soulbound(self, tmp_path: Path) -> None:
+        """BLOOM is soulbound governance — transfers are always rejected."""
         ledger = make_ledger(tmp_path)
         # Mint BLOOM tokens
         tx_mint = TransactionEntry(
@@ -1138,7 +1138,7 @@ class TestAdlGiniGate:
         )
         ledger.record_transaction(tx_mint)
 
-        # Transfer BLOOM — not gated by Gini
+        # Transfer BLOOM — rejected (soulbound)
         tx = TransactionEntry(
             op=TokenOp.TRANSFER,
             token_type=TokenType.BLOOM,
@@ -1147,7 +1147,8 @@ class TestAdlGiniGate:
             amount=50_000.0,
         )
         receipt = ledger.record_transaction(tx)
-        assert receipt.success is True
+        assert receipt.success is False
+        assert "soulbound" in receipt.error.lower()
 
     def test_gini_with_few_accounts_passes(self, tmp_path: Path) -> None:
         """Gini gate skipped during bootstrap (fewer than ADL_GINI_MIN_ACCOUNTS)."""
@@ -1251,7 +1252,7 @@ class TestHarbergerTax:
         assert abs(ubc_after_second - 190.0) < 0.01  # 100 + 90
 
     def test_default_rate_from_constants(self, tmp_path: Path) -> None:
-        """Default rate uses ADL_HARBERGER_TAX_RATE from constants.py (0.07)."""
+        """Default rate uses ADL_HARBERGER_TAX_RATE from constants.py (0.05)."""
         from core.integration.constants import ADL_HARBERGER_TAX_RATE
 
         ledger = make_ledger(tmp_path)

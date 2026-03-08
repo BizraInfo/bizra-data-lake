@@ -137,6 +137,7 @@ class FusionResult:
     snr_score: float
     ihsan_score: float
     passes_gate: bool
+    degraded: bool = False  # P1: True when engine started with missing Protocol args
 
     @property
     def is_elite(self) -> bool:
@@ -197,6 +198,17 @@ class CognitiveFusionEngine:
         self._hypergraph_rag = hypergraph_rag
         self._northstar_engine = northstar_engine
         self._adapter = ComplexityAdapter()
+
+        # P1: Degradation transparency — never silent failure
+        from core.protocols.degradation import DegradationEmitter
+
+        emitter = DegradationEmitter("CognitiveFusionEngine")
+        emitter.check("moe_router", moe_router)
+        emitter.check("hrm_engine", hrm_engine)
+        emitter.check("hypergraph_rag", hypergraph_rag)
+        emitter.check("northstar_engine", northstar_engine)
+        self._degradation_event = emitter.emit()
+        self._degraded = self._degradation_event is not None
 
         logger.info(
             "CognitiveFusionEngine initialised — "
@@ -285,6 +297,7 @@ class CognitiveFusionEngine:
             snr_score=snr_score,
             ihsan_score=ihsan_score,
             passes_gate=passes,
+            degraded=self._degraded,
         )
 
     # -- static helpers --------------------------------------------------------

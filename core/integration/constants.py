@@ -244,8 +244,9 @@ ADL_GINI_THRESHOLD: Final[float] = 0.35
 
 # Harberger tax rate (annual, applied continuously)
 # Flows to Universal Basic Compute (UBC) pool
-# Aligned with Rust bizra-resourcepool HARBERGER_TAX_RATE = 0.07
-ADL_HARBERGER_TAX_RATE: Final[float] = 0.07
+# Aligned with Rust bizra-resourcepool HARBERGER_TAX_RATE = 0.05
+# Constitutional: 5% annual — discourages idle hoarding, not punitive
+ADL_HARBERGER_TAX_RATE: Final[float] = 0.05
 
 # Minimum holding to be considered a participant
 # Prevents dust attacks and ensures meaningful participation
