@@ -3,7 +3,7 @@
 **Last Updated:** 2026-03-09
 **Status:** ACTIVE — Single canonical location
 **Location:** `docs/specs/` (all specs consolidated here)
-**Files:** 348 | **LOC:** ~111K | **TDD Anchors:** 162+
+**Files:** 350 | **LOC:** ~113K | **TDD Anchors:** 207+
 **Implementation Gradient:** Phases 0-43 ~100%, 44-58 ~80%, 59-66 ~60%, 67 ~92%, 68 ~0%
 
 ---
@@ -60,14 +60,21 @@ docs/specs/
 
 ---
 
-## Backlog: 20 Unbuilt Specs
+## Backlog: 22 Unbuilt Specs
 
-### P0 — Constitutional Gaps (Phase 67)
+### P0 — Constitutional Gaps (Phase 67) + MOE Engine
 
 | # | Spec | Lines | Code Target | Dependency |
 |---|------|-------|-------------|------------|
 | 67.03a | `phase_67_sovereign_instantiation/67_03a_asabiyyah_gini_coupling.md` | 311 | `core/constitutional/asabiyyah.py` | ADL Gini from constants.py |
 | 67.05 | `phase_67_sovereign_instantiation/67_05_akis_pipeline.md` | 342 | `core/akis/` | Living memory, inference |
+| **68.07** | **`phase_68_bus_architecture/phase_68_07_moe_engine.md`** | **350** | **`core/living_model/moe_engine.py`** | **ReflexCompiler, constants.py** |
+
+### P0 — Season Archive Integration
+
+| # | Spec | Lines | Code Target |
+|---|------|-------|-------------|
+| **80.00** | **`phase_80_season_integration.md`** | **280** | **48 files → codebase (11 code, 9 TSX, 10 docs, 5 plans, 3 installers)** |
 
 ### P1 — Nervous System (Phase 68, 0% built)
 
