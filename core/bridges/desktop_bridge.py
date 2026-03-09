@@ -280,13 +280,13 @@ class DesktopBridge:
                 await writer.drain()
         except (ConnectionResetError, asyncio.IncompleteReadError):
             pass
-        except Exception:
-            logger.exception("Unexpected error in client handler")
+        except (OSError, RuntimeError, ValueError) as exc:
+            logger.exception("Unexpected error in client handler: %s", type(exc).__name__)
         finally:
             try:
                 writer.close()
                 await writer.wait_closed()
-            except Exception:
+            except OSError:
                 pass
             logger.debug(f"Client disconnected: {peer}")
 
@@ -475,7 +475,7 @@ class DesktopBridge:
                     else:
                         result["receipt"] = receipt
             return _ok(req_id, result)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — RPC boundary: must not crash server
             logger.exception(f"Handler error for '{method}'")
             receipt = self._emit_receipt(
                 method=method,
@@ -525,7 +525,7 @@ class DesktopBridge:
                         await hook.function(data)
                     else:
                         hook.function(data)
-                except Exception:
+                except (RuntimeError, TypeError, ValueError, AttributeError):
                     logger.debug(
                         f"DESKTOP_INVOKE hook '{hook.name}' failed", exc_info=True
                     )
@@ -561,7 +561,7 @@ class DesktopBridge:
             )
             score = gate.validate(ctx, declared_intent=operation)
             return score.to_dict()
-        except Exception as exc:
+        except (ImportError, RuntimeError, ValueError, AttributeError) as exc:
             logger.warning(f"FATE validation failed: {exc}")
             return {"passed": False, "overall": 0.0, "error": str(exc)}
 
@@ -600,7 +600,7 @@ class DesktopBridge:
         if self._rust_gate_chain is None:
             try:
                 self._rust_gate_chain = GateChain()
-            except Exception:
+            except (RuntimeError, OSError):
                 pass
         return self._rust_gate_chain
 
@@ -611,7 +611,7 @@ class DesktopBridge:
         if self._rust_constitution is None:
             try:
                 self._rust_constitution = Constitution()
-            except Exception:
+            except (RuntimeError, OSError):
                 pass
         return self._rust_constitution
 
@@ -629,7 +629,7 @@ class DesktopBridge:
             }
             all_passed = all(passed for _, passed, _ in results)
             return {"gates": gates, "passed": all_passed, "engine": "rust"}
-        except Exception as exc:
+        except (RuntimeError, OSError, ValueError) as exc:
             logger.warning(f"Rust gate verification failed: {exc}")
             return {}
 
@@ -639,7 +639,7 @@ class DesktopBridge:
             return None
         try:
             return domain_separated_digest(content.encode())
-        except Exception:
+        except (RuntimeError, TypeError, ValueError):
             return None
 
     async def _check_rust_guardian(self, content: str, source: str) -> dict[str, Any]:
@@ -715,7 +715,7 @@ class DesktopBridge:
                 "reason": reason,
                 "mode": mode,
             }
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError) as exc:
             if mode == "required":
                 return {
                     "allowed": False,
@@ -733,9 +733,8 @@ class DesktopBridge:
                 try:
                     writer.close()
                     await writer.wait_closed()
-                except Exception:
+                except OSError:
                     pass
-
     # -- method handlers -----------------------------------------------------
 
     async def _handle_ping(self, params: Any) -> dict[str, Any]:
@@ -758,7 +757,7 @@ class DesktopBridge:
             try:
                 gw_health = await gateway.health()
                 gw_health["available"] = True
-            except Exception as exc:
+            except (OSError, ConnectionError, TimeoutError, RuntimeError) as exc:
                 logger.warning(f"Gateway health check failed: {exc}")
                 gw_health = {"available": False, "error": "Health check failed"}
 
@@ -841,7 +840,7 @@ class DesktopBridge:
                 "rust_gates": rust_gates or None,
                 "content_hash": self._blake3_digest(result.content),
             }
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError) as exc:
             logger.warning(f"sovereign_query failed: {exc}")
             latency_ms = round((time.monotonic() - start) * 1000, 2)
             return {
@@ -950,7 +949,7 @@ class DesktopBridge:
         try:
             browser = BrowserMCPClient(mode=browser_mode)
             research = await browser.research(query)
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, ImportError, RuntimeError) as exc:
             browser_duration_ms = round((time.monotonic() - browser_start) * 1000, 2)
             browser_error = {
                 "error": "Browser research failed",
@@ -1203,7 +1202,7 @@ class DesktopBridge:
             response = result.to_dict()
             response["receipt"] = receipt
             return response
-        except Exception as exc:
+        except (RuntimeError, ValueError, TypeError, KeyError, OSError) as exc:
             logger.warning(f"invoke_skill '{skill_name}' failed: {exc}")
             duration = (time.monotonic() - start) * 1000
             receipt = self._emit_receipt(
@@ -1316,7 +1315,7 @@ class DesktopBridge:
                     force=False,
                 )
             return response
-        except Exception as exc:
+        except (RuntimeError, KeyError, AttributeError, TypeError) as exc:
             return {"error": str(exc), "skills": []}
 
     async def _handle_get_receipt(self, params: Any) -> dict[str, Any]:
@@ -1952,7 +1951,7 @@ class DesktopBridge:
 
                 register_rdve_skill(self._skill_router)
                 logger.info("RDVE skill auto-registered on bridge SkillRouter")
-            except Exception as exc:
+            except (ImportError, RuntimeError, AttributeError) as exc:
                 logger.debug(f"RDVE skill registration skipped: {exc}")
 
             # Auto-register Smart Files skill (best-effort)
@@ -1961,7 +1960,7 @@ class DesktopBridge:
 
                 register_smart_files(self._skill_router)
                 logger.info("Smart Files skill auto-registered on bridge SkillRouter")
-            except Exception as exc:
+            except (ImportError, RuntimeError, AttributeError) as exc:
                 logger.debug(f"Smart Files registration skipped: {exc}")
 
             return self._skill_router
@@ -2008,7 +2007,7 @@ class DesktopBridge:
                 trajectory_credit=trajectory_credit,
             )
             return {"receipt_id": receipt["receipt_id"], "status": receipt["status"]}
-        except Exception as exc:
+        except (RuntimeError, KeyError, TypeError, ValueError, OSError) as exc:
             logger.warning(f"Receipt emission failed: {exc}")
             return None
 
@@ -2037,7 +2036,7 @@ class DesktopBridge:
         """
         try:
             return resolve_origin_snapshot(GENESIS_STATE_DIR, self._node_role)
-        except Exception as exc:
+        except (FileNotFoundError, ValueError, RuntimeError, OSError) as exc:
             logger.debug(f"Origin identity resolution failed: {exc}")
             return self._default_origin_snapshot()
 
@@ -2179,7 +2178,7 @@ async def _boot_mission_handler(bridge: DesktopBridge) -> None:
 
         bridge.register_method("execute_mission", _handle_execute_mission)
         logger.info("MissionOrchestrator registered on execute_mission")
-    except Exception as e:
+    except (ImportError, RuntimeError, AttributeError) as e:
         logger.warning("MissionOrchestrator boot failed (non-fatal): %s", e)
 
 
