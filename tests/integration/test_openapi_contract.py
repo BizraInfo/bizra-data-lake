@@ -147,7 +147,7 @@ def test_openapi_path_count_is_59(tmp_path: Path, monkeypatch) -> None:
     schema = app.openapi()
 
     path_count = len(schema["paths"])
-    assert path_count == 62, (
-        f"Route count changed: expected 62, got {path_count}. "
+    assert path_count == 63, (
+        f"Route count changed: expected 63, got {path_count}. "
         "Update this test and regenerate frontend/api-types.ts."
     )

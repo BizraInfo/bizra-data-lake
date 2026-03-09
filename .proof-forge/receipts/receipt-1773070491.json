@@ -1,0 +1,122 @@
+{
+  "id": "receipt-1773070491",
+  "timestamp": "2026-03-09T15:34:51.981744+00:00",
+  "description": "Week 1 Genesis Sprint: ReflexCompiler + System-1 fast path. 15 commits pushed (1a1d568->eb8d420). O(1) cache with precipitation, thread-safe init, bounded candidates. 62->63 route governance.",
+  "previous_hash": "5aa9996c2e878adcd06dc97db984e80516320d7ebdf01fbfdfb65cb66ed70cf2",
+  "chain_hash": "fdbaf29961a20eccc934aa5cbbcf8cb85359fa1b58fbdb6a3b6fdc8e70011641",
+  "chain_position": 2,
+  "confidence": 4,
+  "confidence_label": "Strong",
+  "git_ref": "eb8d420",
+  "artifacts": [
+    {
+      "path": "core/sovereign/reflex_compiler.py",
+      "sha256": "e20b1040e3a600817537d4eae8b28344996c37a2da56638754df634d4aa4cce8",
+      "size": 17594
+    },
+    {
+      "path": "core/sovereign/api.py",
+      "sha256": "d75e2d6f83fe5b3c7d1cfac1271d632fb9cf8348f0e4a767f90c10f436f74546",
+      "size": 204812
+    },
+    {
+      "path": "core/sovereign/api_exposure_policy.py",
+      "sha256": "d2e107c01bbf70715b9f4feef8c058ff215510b2b80c161eb64534e9f2fbbefd",
+      "size": 9889
+    },
+    {
+      "path": "tests/core/sovereign/test_reflex_compiler.py",
+      "sha256": "5a1fa221991917ec0d86e8bc7a2b4f3c654f6c315e7c6aaca90da24776540867",
+      "size": 21540
+    },
+    {
+      "path": "tests/integration/test_plan_endpoint.py",
+      "sha256": "e4116cb0b74287277ca90a8f30b45109bb7e0179632e0e54c5aa293bdad6c7ee",
+      "size": 9024
+    },
+    {
+      "path": "tests/integration/test_openapi_contract.py",
+      "sha256": "7460a9d60438fd297918fb283977c8b689604b1a75fb0f36bb03a8a9a216514c",
+      "size": 4806
+    },
+    {
+      "path": "tests/core/sovereign/test_api_exposure_policy.py",
+      "sha256": "bd532d507d70ba73abf21a22b6fefef07fbdb4df8f258ef212cb22d73d355cf0",
+      "size": 3262
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "8288de5f7808df5a51160263ab9b60e353ee2362befbd4eb6a6bcb29ae1f3340",
+      "size": 85951
+    },
+    {
+      "path": ".github/workflows/deploy.yml",
+      "sha256": "8bdae618effb1d8b6ee6d7510523039489ef1fa5e418f130fa3d8f63d70fa89f",
+      "size": 32417
+    },
+    {
+      "path": "docs/TESTING.md",
+      "sha256": "d58eff3b0de5d81ee6061db7ce1cb473ddae21289922f6e629d143e2cb62983b",
+      "size": 5407
+    },
+    {
+      "path": "bizra_test.py",
+      "sha256": "11a5f0ff918e17e8582ab8d2f8c5a6dcd74f00b0bc8144c9edee7e404f60e765",
+      "size": 15611
+    },
+    {
+      "path": "tests/conftest.py",
+      "sha256": "3498739027ed06a4c44728eb6e3408d8de117db78abd05e0019a7885634f52c6",
+      "size": 4450
+    }
+  ],
+  "artifact_count": 12,
+  "verification": {
+    "type": "automated_test",
+    "framework": "pytest",
+    "total": 57,
+    "passed": 57,
+    "failed": 0,
+    "skipped": 0,
+    "duration_s": 56.19,
+    "broader_suite": {
+      "total": 3759,
+      "passed": 3759,
+      "failed": 0,
+      "skipped": 1,
+      "duration_s": 1632.61
+    },
+    "suites": [
+      {
+        "name": "test_reflex_compiler",
+        "tests": 43,
+        "passed": 43
+      },
+      {
+        "name": "test_plan_endpoint",
+        "tests": 7,
+        "passed": 7
+      },
+      {
+        "name": "test_openapi_contract",
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "name": "test_api_exposure_policy",
+        "tests": 3,
+        "passed": 3
+      }
+    ]
+  },
+  "key_metrics": {
+    "targeted_tests": 57,
+    "sovereign_tests": 3759,
+    "new_tests_added": 45,
+    "routes_governed": 63,
+    "commits_pushed": 15,
+    "files_changed": 12,
+    "reflex_compiler_loc": 477,
+    "api_loc_added": 852
+  }
+}
