@@ -61,13 +61,13 @@ logger = logging.getLogger("sovereign.runtime")
 # Elite version — single source of truth (deferred import to avoid circular deps)
 try:
     from core.elite import ELITE_VERSION as _ELITE_VERSION
-except Exception:
+except ImportError:
     _ELITE_VERSION = "1.2.0"
 
 # PERF: Module-level import eliminates 0.5ms deferred import per cache key computation
 try:
     from core.proof_engine.canonical import hex_digest as _hex_digest
-except Exception:
+except ImportError:
     import hashlib as _hashlib
 
     def _hex_digest(data: bytes) -> str:  # type: ignore[misc]
@@ -481,7 +481,7 @@ class SovereignRuntime:
             self.logger.info(
                 "IhsanFloor watchdog initialized (floor=0.90, max_failures=3)"
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError) as e:
             self.logger.warning(f"IhsanFloor watchdog init failed: {e}")
 
         # Initialize 6-Gate Chain (fail-closed execution pipeline)
@@ -552,7 +552,7 @@ class SovereignRuntime:
                 "EqualizerAgent initialized (ihsan_target=%.2f)",
                 self.config.ihsan_threshold,
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning("EqualizerAgent init skipped: %s", e)
 
         # Unified Model Router — auto-failover LM Studio / Ollama
@@ -563,7 +563,7 @@ class SovereignRuntime:
             self.logger.info(
                 "UnifiedModelRouter registered (deferred init on first query)"
             )
-        except Exception as e:
+        except (ImportError, RuntimeError, AttributeError, TypeError, ValueError) as e:
             self.logger.warning("UnifiedModelRouter init skipped: %s", e)
 
     def _init_event_bus(self) -> None:
@@ -573,7 +573,7 @@ class SovereignRuntime:
 
             self._event_bus = get_event_bus()
             self.logger.info("✓ Sovereign EventBus initialized")
-        except Exception as e:
+        except (ImportError, RuntimeError, AttributeError) as e:
             self._event_bus = None
             self.logger.warning("⚠ Sovereign EventBus unavailable: %s", e)
 
@@ -608,7 +608,7 @@ class SovereignRuntime:
                     "⚠ Bus infrastructure partially wired: %s",
                     wiring_state.summary,
                 )
-        except Exception as exc:
+        except (ImportError, RuntimeError, AttributeError, TypeError, ValueError) as exc:
             self.logger.warning("⚠ Bus infrastructure unavailable: %s", exc)
 
         # Phase 71: Seed Engine (DDAGI growth trajectory)
@@ -621,7 +621,7 @@ class SovereignRuntime:
 
             self._seed_engine = create_seed_engine(runtime=self)
             self.logger.info("✓ Seed Engine initialized")
-        except Exception as exc:
+        except (ImportError, RuntimeError, AttributeError, TypeError, ValueError) as exc:
             self.logger.warning("⚠ Seed Engine unavailable: %s", exc)
 
     async def _dispatch_equalizer_command(self, eq_cmd: object) -> None:
@@ -661,7 +661,7 @@ class SovereignRuntime:
                 self.logger.info(
                     "Equalizer RESUME: recovery detected, resuming normal ops"
                 )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary handler
             self.logger.debug("Equalizer dispatch error: %s", e)
 
     @staticmethod
@@ -741,7 +741,7 @@ class SovereignRuntime:
                 f"Evidence Ledger initialized: {ledger_path} "
                 f"(seq={self._evidence_ledger.sequence})"
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"Evidence Ledger init failed (non-fatal): {e}")
             self._evidence_ledger = None
 
@@ -759,7 +759,7 @@ class SovereignRuntime:
 
             self._experience_ledger = SovereignExperienceLedger()
             self.logger.info("Sovereign Experience Ledger initialized")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.debug(f"Experience Ledger init skipped (non-fatal): {e}")
             self._experience_ledger = None
 
@@ -776,7 +776,7 @@ class SovereignRuntime:
 
             self._judgment_telemetry = JudgmentTelemetry()
             self.logger.info("Judgment Telemetry (SJE Phase A) initialized")
-        except Exception as e:
+        except (ImportError, RuntimeError, AttributeError, TypeError, ValueError) as e:
             self.logger.debug(f"Judgment Telemetry init skipped (non-fatal): {e}")
             self._judgment_telemetry = None
 
@@ -808,7 +808,7 @@ class SovereignRuntime:
                 verdict = JudgmentVerdict.NEUTRAL
 
             self._judgment_telemetry.observe(verdict)
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as e:
             self.logger.debug(f"SJE observe skipped (non-fatal): {e}")
 
     def _commit_experience_episode(
@@ -870,7 +870,7 @@ class SovereignRuntime:
                 snr_ok=result.snr_ok,
                 response_summary=response_summary,
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError) as e:
             self.logger.debug(f"SEL commit skipped (non-fatal): {e}")
 
     def _init_node_signer(self) -> None:
@@ -887,7 +887,7 @@ class SovereignRuntime:
                 f"Node0 Ed25519 signer initialized: "
                 f"{self._node_signer.public_key_hex[:16]}..."
             )
-        except Exception as e:
+        except (ImportError, RuntimeError, ValueError, OSError) as e:
             self.logger.warning(
                 f"Ed25519 signer init failed, falling back to HMAC: {e}"
             )
@@ -915,7 +915,7 @@ class SovereignRuntime:
             self.logger.info(
                 f"GateChain initialized: " f"{[g.name for g in self._gate_chain.gates]}"
             )
-        except Exception as e:
+        except (ImportError, RuntimeError, ValueError, OSError) as e:
             # CRITICAL-1 FIX (Saltzer & Schroeder 1975): Fail-CLOSED, not fail-OPEN.
             # When GateChain can't initialize, ALL queries must be rejected,
             # not silently bypassed. Previously set self._gate_chain = None
@@ -1002,7 +1002,7 @@ class SovereignRuntime:
                 z3_gate = Z3FATEGate()
                 z3_proof = z3_gate.generate_proof(z3_action_ctx)
                 z3_sat = z3_proof.satisfiable
-            except Exception as z3_err:
+            except (RuntimeError, ValueError, OSError) as z3_err:
                 # Z3 unavailable — degrade to conservative fallback module (α4).
                 # Richer than the inline _conservative_fallback_check: returns
                 # FallbackVerdict with reason codes, action type gating, and
@@ -1067,7 +1067,7 @@ class SovereignRuntime:
             result.claim_tags = {"gate_chain": "measured"}
             return result
 
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError) as e:
             # CRITICAL-2 FIX (Saltzer & Schroeder 1975): Fail-CLOSED on gate errors.
             # Previously returned None (pass-through), allowing queries to bypass
             # ALL constitutional gates on ANY exception.
@@ -1155,7 +1155,7 @@ class SovereignRuntime:
                 )
             # Clear trace after emission
             self._last_snr_trace = None
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"Receipt emission failed (non-fatal): {e}")
 
     @staticmethod
@@ -1214,7 +1214,7 @@ class SovereignRuntime:
                     decision,
                     receipt_ref,
                 )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"Memory receipt feedback skipped (non-fatal): {e}")
 
     def _schedule_receipt_memory_feedback(
@@ -1223,7 +1223,7 @@ class SovereignRuntime:
         """Schedule non-blocking SEL SENSE feedback wiring."""
         try:
             asyncio.ensure_future(self._apply_receipt_memory_feedback(result, query))
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(
                 f"Failed to schedule receipt memory feedback (non-fatal): {e}"
             )
@@ -1259,7 +1259,7 @@ class SovereignRuntime:
                 timestamp=datetime.now(),
             )
             self._poi_orchestrator.register_contribution(metadata)
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             # CRITICAL-10 FIX: PoI failures must be VISIBLE, not silent.
             self.logger.warning(f"PoI contribution registration failed: {e}")
 
@@ -1300,7 +1300,7 @@ class SovereignRuntime:
                     emotional_weight=max(result.snr_score, 0.5),
                 )
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.debug(f"Memory encoding skipped (non-fatal): {e}")
 
     def _store_graph_artifact(self, query_id: str, graph_hash: Optional[str]) -> None:
@@ -1324,7 +1324,7 @@ class SovereignRuntime:
             if len(self._graph_artifacts) > 100:
                 oldest = next(iter(self._graph_artifacts))
                 del self._graph_artifacts[oldest]
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"Graph artifact storage failed (non-fatal): {e}")
 
     def get_graph_artifact(self, query_id: str) -> Optional[dict[str, Any]]:
@@ -1366,7 +1366,7 @@ class SovereignRuntime:
                 config=config,
             )
             self.logger.info("SAT Controller initialized")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"PoI Engine init failed (non-fatal): {e}")
             self._poi_orchestrator = None
             self._sat_controller = None
@@ -1602,7 +1602,7 @@ class SovereignRuntime:
 
         try:
             from core.zpk import ZeroPointKernel, ZPKPolicy
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             raise RuntimeError(f"ZPK preflight unavailable: {e}") from e
 
         allowed_versions = (
@@ -1622,7 +1622,7 @@ class SovereignRuntime:
                 from .event_bus import get_event_bus
 
                 event_bus = get_event_bus()
-            except Exception as e:
+            except (ImportError, RuntimeError, AttributeError) as e:
                 self.logger.warning("ZPK event bus unavailable: %s", e)
 
         zpk = ZeroPointKernel(
@@ -1701,7 +1701,7 @@ class SovereignRuntime:
         except ImportError as e:
             self._orchestrator = None
             self.logger.warning(f"⚠ SovereignOrchestrator unavailable: {e}")
-        except Exception as e:
+        except (RuntimeError, AttributeError, TypeError, ValueError) as e:
             self._orchestrator = None
             self.logger.warning(f"⚠ SovereignOrchestrator init failed: {e}")
 
@@ -1732,7 +1732,7 @@ class SovereignRuntime:
                     from .event_bus import get_event_bus
 
                     event_bus = get_event_bus()
-                except Exception as event_err:
+                except (ImportError, RuntimeError, AttributeError) as event_err:
                     self.logger.warning("⚠ PEK event bus unavailable: %s", event_err)
 
             pek_config = ProactiveExecutionKernelConfig(
@@ -1767,7 +1767,7 @@ class SovereignRuntime:
                 if Z3_AVAILABLE:
                     self._pek.set_fate_gate(Z3FATEGate())
                     self.logger.info("✓ PEK FATE gate enabled (Z3)")
-            except Exception as fate_err:
+            except (RuntimeError, ValueError, OSError) as fate_err:
                 self.logger.warning(f"⚠ PEK FATE gate unavailable: {fate_err}")
 
             await self._pek.start()
@@ -1781,7 +1781,7 @@ class SovereignRuntime:
                 self._pek.set_evidence_ledger(self._evidence_ledger)
 
             self.logger.info("✓ ProactiveExecutionKernel started")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self._pek = None
             self.logger.warning(f"⚠ ProactiveExecutionKernel init failed: {e}")
 
@@ -1824,7 +1824,7 @@ class SovereignRuntime:
                 self.logger.info("✓ LivingMemory connected to auto-save")
             except ImportError:
                 self.logger.warning("⚠ LivingMemory unavailable")
-            except Exception as e:
+            except (RuntimeError, AttributeError, TypeError, ValueError) as e:
                 self.logger.warning(f"⚠ LivingMemory init failed: {e}")
 
             # Initialize AgentDB (V3 unified memory with HNSW indexing)
@@ -1866,7 +1866,7 @@ class SovereignRuntime:
                     try:
                         self._agent_db.set_embedding_fn(self._embedding_service.embed)
                         self.logger.debug("AgentDB embedding function wired (early)")
-                    except Exception as emb_err:
+                    except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as emb_err:
                         self.logger.debug(f"AgentDB embedding fn not wired: {emb_err}")
 
                 # V3 Migration Orchestrator: import from all legacy sources
@@ -1882,12 +1882,12 @@ class SovereignRuntime:
                             f"AgentDB migration: {result.total_imported} records "
                             f"imported ({result.total_errors} errors)"
                         )
-                except Exception as mig_err:
+                except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as mig_err:
                     self.logger.debug(f"AgentDB migration skipped: {mig_err}")
 
             except ImportError:
                 self.logger.warning("⚠ AgentDB unavailable (core.memory not installed)")
-            except Exception as e:
+            except (RuntimeError, AttributeError, TypeError, ValueError) as e:
                 self.logger.warning(f"⚠ AgentDB init failed: {e}")
 
             # Start auto-save background loop
@@ -1895,7 +1895,7 @@ class SovereignRuntime:
                 await self._memory_coordinator.start_auto_save()
                 self.logger.info("✓ MemoryCoordinator auto-save active")
 
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"⚠ MemoryCoordinator init failed: {e}")
 
     def _init_cognitive_fusion(self) -> None:
@@ -1915,7 +1915,7 @@ class SovereignRuntime:
             self.logger.info("✓ HyperGraphStore initialized")
         except ImportError:
             self.logger.warning("⚠ HyperGraphStore unavailable")
-        except Exception as e:
+        except (RuntimeError, AttributeError, TypeError, ValueError) as e:
             self.logger.warning(f"⚠ HyperGraphStore init failed: {e}")
 
         # 2. Cognitive Fusion Engine (requires HyperGraph + AgentDB)
@@ -1937,7 +1937,7 @@ class SovereignRuntime:
                 self.logger.info("✓ CognitiveFusionEngine initialized")
             except ImportError:
                 self.logger.warning("⚠ CognitiveFusionEngine unavailable")
-            except Exception as e:
+            except (RuntimeError, AttributeError, TypeError, ValueError) as e:
                 self.logger.warning(f"⚠ CognitiveFusionEngine init failed: {e}")
         else:
             self.logger.info("○ CognitiveFusionEngine disabled by config")
@@ -1963,7 +1963,7 @@ class SovereignRuntime:
                 )
             except ImportError:
                 self.logger.warning("⚠ MemorySynthesizer unavailable")
-            except Exception as e:
+            except (RuntimeError, AttributeError, TypeError, ValueError) as e:
                 self.logger.warning(f"⚠ MemorySynthesizer init failed: {e}")
         else:
             self.logger.info("○ MemorySynthesizer disabled by config")
@@ -1995,13 +1995,13 @@ class SovereignRuntime:
                     self.logger.info(
                         "AgentDB embedding function wired via EmbeddingService"
                     )
-                except Exception as wire_err:
+                except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as wire_err:
                     self.logger.debug(
                         f"AgentDB embedding fn late-wire failed: {wire_err}"
                     )
         except ImportError:
             self.logger.warning("⚠ EmbeddingService unavailable")
-        except Exception as e:
+        except (RuntimeError, AttributeError, TypeError, ValueError) as e:
             self.logger.warning(f"⚠ EmbeddingService init failed: {e}")
 
         # 2. NTU Fusion Adapter
@@ -2013,7 +2013,7 @@ class SovereignRuntime:
             self.logger.info("✓ NTUFusionAdapter initialized")
         except ImportError:
             self.logger.warning("⚠ NTUFusionAdapter unavailable (numpy required)")
-        except Exception as e:
+        except (RuntimeError, AttributeError, TypeError, ValueError) as e:
             self.logger.warning(f"⚠ NTUFusionAdapter init failed: {e}")
 
     def _init_ecosystem_subsystems(self) -> None:
@@ -2034,7 +2034,7 @@ class SovereignRuntime:
                 self.logger.info(f"✓ HRM initialized ({num_levels} levels)")
             except ImportError:
                 self.logger.warning("⚠ HRM unavailable")
-            except Exception as e:
+            except (RuntimeError, AttributeError, TypeError, ValueError) as e:
                 self.logger.warning(f"⚠ HRM init failed: {e}")
         else:
             self.logger.info("○ HRM disabled by config")
@@ -2048,7 +2048,7 @@ class SovereignRuntime:
                 self.logger.info("✓ NorthStar Engine initialized")
             except ImportError:
                 self.logger.warning("⚠ NorthStar unavailable")
-            except Exception as e:
+            except (RuntimeError, AttributeError, TypeError, ValueError) as e:
                 self.logger.warning(f"⚠ NorthStar init failed: {e}")
         else:
             self.logger.info("○ NorthStar disabled by config")
@@ -2063,7 +2063,7 @@ class SovereignRuntime:
                 self.logger.info(f"✓ GuildRegistry initialized ({guild_count} guilds)")
             except ImportError:
                 self.logger.warning("⚠ GuildRegistry unavailable")
-            except Exception as e:
+            except (RuntimeError, AttributeError, TypeError, ValueError) as e:
                 self.logger.warning(f"⚠ GuildRegistry init failed: {e}")
         else:
             self.logger.info("○ GuildRegistry disabled by config")
@@ -2078,7 +2078,7 @@ class SovereignRuntime:
                 self.logger.info(f"✓ QuestEngine initialized ({quest_count} quests)")
             except ImportError:
                 self.logger.warning("⚠ QuestEngine unavailable")
-            except Exception as e:
+            except (RuntimeError, AttributeError, TypeError, ValueError) as e:
                 self.logger.warning(f"⚠ QuestEngine init failed: {e}")
         else:
             self.logger.info("○ QuestEngine disabled by config")
@@ -2108,7 +2108,7 @@ class SovereignRuntime:
             )
         except ImportError:
             self.logger.warning("⚠ RDVE Engine unavailable (missing dependencies)")
-        except Exception as e:
+        except (RuntimeError, AttributeError, TypeError, ValueError) as e:
             self.logger.warning(f"⚠ RDVE Engine init failed: {e}")
 
     def _init_impact_tracker(self) -> None:
@@ -2136,7 +2136,7 @@ class SovereignRuntime:
             )
         except ImportError:
             self.logger.warning("⚠ ImpactTracker unavailable")
-        except Exception as e:
+        except (RuntimeError, AttributeError, TypeError, ValueError) as e:
             self.logger.warning(f"⚠ ImpactTracker init failed: {e}")
 
     def _init_spearpoint_pipeline(self) -> None:
@@ -2166,7 +2166,7 @@ class SovereignRuntime:
                 snr_trace_ref=self._snr_trace_slot,
             )
             self.logger.info("SpearPoint Pipeline (cockpit) initialized")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"SpearPoint Pipeline init failed (non-fatal): {e}")
             self._spearpoint = None
 
@@ -2196,7 +2196,7 @@ class SovereignRuntime:
                 f"Spearpoint Orchestrator initialized "
                 f"(ihsan={config.ihsan_threshold}, snr={config.snr_threshold})"
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"Spearpoint Orchestrator init failed (non-fatal): {e}")
             self._spearpoint_orchestrator = None
 
@@ -2207,7 +2207,7 @@ class SovereignRuntime:
         try:
             progress = self._impact_tracker.get_progress()
             return progress.to_dict()
-        except Exception:
+        except (RuntimeError, ValueError, TypeError, OSError):
             return {}
 
     def _record_query_impact(self, result: "SovereignResult") -> None:
@@ -2246,7 +2246,7 @@ class SovereignRuntime:
                     "ihsan_score": result.ihsan_score,
                 },
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             # CRITICAL-10 FIX: Impact failures must be VISIBLE, not silent.
             self.logger.warning(f"Impact recording failed: {e}")
 
@@ -2308,7 +2308,7 @@ class SovereignRuntime:
                     RestorePriority.SAFETY,
                 )
                 self.logger.debug("Registered PEK state provider")
-            except Exception:
+            except (ImportError, RuntimeError, AttributeError, TypeError, ValueError):
                 self.logger.warning(
                     "Failed to register PEK state provider", exc_info=True
                 )
@@ -2392,14 +2392,14 @@ class SovereignRuntime:
         if self._pek and hasattr(self._pek, "stop"):
             try:
                 await self._pek.stop()
-            except Exception:
+            except (RuntimeError, ValueError, TypeError, AttributeError, OSError):
                 self.logger.debug("PEK stop failed during shutdown", exc_info=True)
 
         # Save user context (conversation history + profile)
         if self._user_context:
             try:
                 self._user_context.save()
-            except Exception:
+            except (OSError, RuntimeError, ValueError):
                 self.logger.warning(
                     "Failed to save user context during shutdown", exc_info=True
                 )
@@ -2408,7 +2408,7 @@ class SovereignRuntime:
         if self._impact_tracker and hasattr(self._impact_tracker, "flush"):
             try:
                 self._impact_tracker.flush()
-            except Exception:
+            except (RuntimeError, ValueError, TypeError, OSError):
                 self.logger.warning(
                     "Failed to flush impact tracker during shutdown", exc_info=True
                 )
@@ -2499,7 +2499,7 @@ class SovereignRuntime:
                         )
                         # Act on equalizer command via event bus
                         await self._dispatch_equalizer_command(eq_cmd)
-                except Exception as eq_err:
+                except (ImportError, RuntimeError, AttributeError) as eq_err:
                     self.logger.debug("Equalizer observe error: %s", eq_err)
 
             return result
@@ -2513,7 +2513,7 @@ class SovereignRuntime:
                 error=f"Query timeout after {query.timeout}s",
                 user_id=query.user_id,
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as e:
             duration_ms = (time.perf_counter() - start_time) * 1000
             self.metrics.update_query_stats(False, duration_ms)
             self.logger.error(f"Query error: {e}")
@@ -2650,7 +2650,7 @@ class SovereignRuntime:
 
             return result
 
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as e:
             self.logger.warning(
                 f"Orchestrator path failed ({e}), falling back to direct pipeline"
             )
@@ -2939,7 +2939,7 @@ class SovereignRuntime:
                                 f"Embedding quality gate failed: {gate_result.reason}"
                             )
                             embedding = None
-                except Exception as e:
+                except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as e:
                     self.logger.debug(f"Embedding generation failed: {e}")
 
             # Fallback: zero vector (degraded — RAG retrieval will be empty)
@@ -2951,7 +2951,7 @@ class SovereignRuntime:
             if self._ntu_adapter is not None:
                 try:
                     context = self._ntu_adapter.enrich_context(context)  # type: ignore[union-attr]
-                except Exception as e:
+                except (ImportError, RuntimeError, AttributeError, TypeError, ValueError) as e:
                     self.logger.debug(f"NTU enrichment skipped: {e}")
 
             # Step 3: Run fusion pipeline
@@ -2960,7 +2960,7 @@ class SovereignRuntime:
                 query_embedding=embedding,
                 context=context,
             )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as e:
             self.logger.warning(f"Cognitive fusion skipped: {e}")
             return None
 
@@ -3072,7 +3072,7 @@ class SovereignRuntime:
                     self.logger.debug(
                         f"RAG: retrieved {len(memories)} memories for query"
                     )
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, OSError) as e:
                 self.logger.warning(f"Memory retrieval failed: {e}")
                 # Fall back to working context
                 memory_context = living_memory.get_working_context(max_entries=5)
@@ -3114,7 +3114,7 @@ class SovereignRuntime:
                     answer = getattr(inference_result, "content", str(inference_result))
                     model_used = getattr(inference_result, "model", "unknown")
                     return answer, model_used
-            except Exception as e:
+            except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError) as e:
                 self.logger.warning(f"Gateway inference failed: {e}")
 
         # FAIL-LOUD: Tag as NO_LLM so pipeline can reject/degrade gracefully
@@ -3179,7 +3179,7 @@ class SovereignRuntime:
 
             # Store the last SNR trace for receipt embedding
             self._last_snr_trace = authoritative
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.debug(f"SNREngine v1 scoring skipped: {e}")
 
         self.metrics.current_snr_score = snr_score
@@ -3225,7 +3225,7 @@ class SovereignRuntime:
                     query_text=query.text,
                     context=context,
                 )
-            except Exception as ihsan_computer_err:
+            except (RuntimeError, ValueError, TypeError) as ihsan_computer_err:
                 self.logger.debug(
                     "IhsanComputer unavailable, using legacy component projection: %s",
                     ihsan_computer_err,
@@ -3286,7 +3286,7 @@ class SovereignRuntime:
                         reason_codes = ihsan_gate_result.setdefault("reason_codes", [])
                         if "THERMODYNAMIC_GATE_REJECTED" not in reason_codes:
                             reason_codes.append("THERMODYNAMIC_GATE_REJECTED")
-                except Exception as thermal_gate_err:
+                except (RuntimeError, ValueError, TypeError) as thermal_gate_err:
                     self.logger.debug(
                         "Thermodynamic gate unavailable, continuing without it: %s",
                         thermal_gate_err,
@@ -3300,7 +3300,7 @@ class SovereignRuntime:
                         "IHSAN_FLOOR BREACH: System entering DEGRADED mode — "
                         f"{self._ihsan_watchdog.consecutive_failures} consecutive failures"
                     )
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError) as e:
             self.logger.debug(f"IhsanGate v1 evaluation skipped: {e}")
 
         # Phase 2: Omega engine — deep ihsan evaluation (enriches gate result)
@@ -3318,7 +3318,7 @@ class SovereignRuntime:
                     # Blend: IhsanGate is authoritative (70%), Omega enriches (30%)
                     ihsan_score = 0.7 * ihsan_score + 0.3 * omega_score
                     guardian_verdict = "IHSAN_GATE+OMEGA"
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError) as e:
                 self.logger.warning(f"Omega Ihsan evaluation failed: {e}")
 
         # Phase 3: Guardian Council — multi-perspective validation
@@ -3473,7 +3473,7 @@ class SovereignRuntime:
                     status["chain_error_count"] = len(chain_errors)
                 else:
                     status["chain_error_count"] = 0
-            except Exception as exc:
+            except (RuntimeError, AttributeError, TypeError) as exc:
                 status["chain_valid"] = False
                 status["chain_error"] = str(exc)
 
@@ -3483,7 +3483,7 @@ class SovereignRuntime:
 
         try:
             entries = entries_fn()
-        except Exception as exc:
+        except (RuntimeError, AttributeError, TypeError) as exc:
             status["chain_error"] = str(exc)
             return status
 
@@ -3559,7 +3559,7 @@ class SovereignRuntime:
                 _get_status = getattr(self._omega, "get_status", None)
                 if _get_status is not None:
                     omega_status.update(_get_status() or {})
-            except Exception:
+            except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError):
                 omega_status["connected"] = True
 
         # Always ensure version is present
@@ -3617,7 +3617,7 @@ class SovereignRuntime:
                     "total_bloom": self._impact_tracker.total_bloom,
                     "achievements": len(self._impact_tracker.achievements),
                 }
-            except Exception:
+            except (RuntimeError, ValueError, TypeError, OSError):
                 self.logger.debug("Failed to collect sovereignty info", exc_info=True)
 
         return {
@@ -3725,7 +3725,7 @@ class SovereignRuntime:
 
             self.logger.debug("Checkpoint saved")
 
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError) as e:
             self.logger.warning(f"Checkpoint failed: {e}")
 
 
