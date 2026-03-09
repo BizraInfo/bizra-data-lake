@@ -51,6 +51,7 @@ _LAZY_MODULES = {
     "PipelineStage": (".opportunity_pipeline", "PipelineStage"),
     "ProactiveSovereignEntity": (".proactive_integration", "ProactiveSovereignEntity"),
     "ProactiveTeam": (".proactive_team", "ProactiveTeam"),
+    "LearningLoopOrchestrator": (".learning_loop", "LearningLoopOrchestrator"),
 }
 
 
@@ -89,4 +90,6 @@ __all__ = [
     "MuraqabahSensorHub",
     # Predictive
     "PredictiveMonitor",
+    # Learning Loop
+    "LearningLoopOrchestrator",
 ]

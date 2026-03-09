@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from core.living_memory.core import LivingMemoryCore
     from core.living_memory.healing import MemoryHealer
     from core.living_memory.proactive import ProactiveRetriever
+    from core.orchestration.learning_loop import LearningLoopOrchestrator
     from core.pat.bridge import PATBridge
 
 from core.integration.constants import (
@@ -148,6 +149,7 @@ class LivingEcosystem:
         self._proactive_retriever: Optional["ProactiveRetriever"] = None
         self._orchestrator: Optional["AgentOrchestrator"] = None
         self._autopoietic_loop: Optional["AutopoieticLoop"] = None
+        self._learning_loop: Optional["LearningLoopOrchestrator"] = None
         self._pat_bridge: Optional["PATBridge"] = None
 
         # Background tasks
@@ -210,7 +212,7 @@ class LivingEcosystem:
         if self._orchestrator is not None:
             await self._orchestrator.initialize()
 
-        # Initialize Autopoietic Loop
+        # Initialize Autopoietic Loop + Learning Loop Bridge
         if self.config.enable_evolution:
             try:
                 from core.autopoiesis.loop import AutopoiesisConfig, AutopoieticLoop
@@ -219,7 +221,30 @@ class LivingEcosystem:
                     ihsan_threshold=self.config.ihsan_threshold,
                     snr_threshold=self.config.snr_threshold,
                 )
-                self._autopoietic_loop = AutopoieticLoop(config=autopoiesis_config)
+
+                # Wire closed-loop learning: Autopoiesis → SDPO → Reflex
+                on_integration_cb = None
+                try:
+                    from core.orchestration.learning_loop import (
+                        LearningLoopOrchestrator,
+                    )
+
+                    self._learning_loop = LearningLoopOrchestrator()
+                    on_integration_cb = self._learning_loop.on_candidate
+                    logger.info(
+                        "LearningLoopOrchestrator wired — "
+                        "closed_loop_enabled=%s",
+                        self._learning_loop.enabled,
+                    )
+                except ImportError as e:
+                    logger.warning(
+                        "LearningLoopOrchestrator not available: %s", e
+                    )
+
+                self._autopoietic_loop = AutopoieticLoop(
+                    config=autopoiesis_config,
+                    on_integration=on_integration_cb,
+                )
             except ImportError as e:
                 logger.warning(f"Autopoiesis not available: {e}")
 
@@ -361,7 +386,7 @@ class LivingEcosystem:
         self.state = EcosystemState.RUNNING
 
     async def _run_evolution(self) -> None:
-        """Run evolution cycle."""
+        """Run evolution cycle, then trigger learning loop if wired."""
         if not self._autopoietic_loop:
             return
 
@@ -373,6 +398,14 @@ class LivingEcosystem:
         except Exception as e:
             logger.error(f"Evolution cycle failed: {e}")
             self._health.evolution_health = 0.5
+
+        # Closed-loop learning: train SDPO and compile reflexes
+        if self._learning_loop and self._learning_loop.enabled:
+            try:
+                await self._learning_loop.run_training_cycle()
+                self._learning_loop.run_compilation_cycle()
+            except Exception as e:
+                logger.warning("Learning loop cycle error: %s", e)
 
         self.state = EcosystemState.RUNNING
 
@@ -549,6 +582,9 @@ Respond helpfully, drawing on your knowledge and proactive suggestions."""
 
         if self._pat_bridge:
             status["pat"] = self._pat_bridge.get_status()
+
+        if self._learning_loop:
+            status["learning_loop"] = self._learning_loop.get_status()
 
         return status
 

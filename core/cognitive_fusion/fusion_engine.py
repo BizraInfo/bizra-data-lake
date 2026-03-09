@@ -149,6 +149,11 @@ class FusionResult:
         )
 
     @property
+    def is_frontier(self) -> bool:
+        """True when the query was routed to FRONTIER tier."""
+        return self.routing.complexity_class == "FRONTIER"
+
+    @property
     def expert_tier(self) -> str:
         """The expert tier selected by the MoE router."""
         return self.routing.expert_tier
@@ -221,6 +226,13 @@ class CognitiveFusionEngine:
             hypergraph_rag is not None,
             northstar_engine is not None,
         )
+
+    # -- public properties -----------------------------------------------------
+
+    @property
+    def frontier_mode(self) -> bool:
+        """Whether FRONTIER tier reasoning is enabled."""
+        return self._frontier_mode
 
     # -- public API ------------------------------------------------------------
 
