@@ -141,8 +141,15 @@ class TestTokenSystemSmoke:
 class TestEvidenceChainSmoke:
     """Verify evidence ledger append + verify cycle."""
 
-    def test_evidence_append_and_verify(self, tmp_path):
+    def test_evidence_append_and_verify(self, tmp_path, monkeypatch):
         """Append an entry and verify the chain."""
+        # Isolate from ambient receipt-signing env vars: Pillar 1 runtime
+        # boots _load_env_vars() which loads PUBLIC from sovereign_state/.env
+        # while PRIVATE may come from a different key pair in the shell env,
+        # causing a key-mismatch ValueError inside _attach_optional_signature.
+        monkeypatch.delenv("BIZRA_RECEIPT_PRIVATE_KEY_HEX", raising=False)
+        monkeypatch.delenv("BIZRA_RECEIPT_PUBLIC_KEY_HEX", raising=False)
+
         from core.proof_engine.evidence_ledger import EvidenceLedger, emit_receipt
 
         ledger = EvidenceLedger(path=tmp_path / "smoke_evidence.jsonl")
