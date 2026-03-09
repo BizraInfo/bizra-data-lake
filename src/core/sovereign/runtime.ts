@@ -46,6 +46,11 @@ import {
 
 import { FateValidator, createFateValidator, GateResult } from './fate-binding';
 import { SandboxClient, createSandboxClient, InferenceResponse } from '../ipc/sandbox-client';
+import {
+  AgenticFlowAdapter,
+  type ScoringDelegate,
+  LocalScoringDelegate,
+} from '../agentic-flow/adapter';
 
 /**
  * Runtime configuration
@@ -136,12 +141,17 @@ export class SovereignRuntime {
   private inferenceFn?: InferenceFunction;
   private sandbox?: SandboxClient;
   private started: boolean = false;
+  private readonly adapter: AgenticFlowAdapter;
+  private readonly scoringDelegate: ScoringDelegate;
 
   constructor(config: Partial<RuntimeConfig> = {}) {
     this.config = { ...DEFAULT_RUNTIME_CONFIG, ...config };
     this.registry = new ModelRegistry();
     this.networkStatus = createInitialNetworkStatus(this.config.networkMode);
     this.router = new ModelRouter(this.registry, this.networkStatus);
+    this.scoringDelegate = new LocalScoringDelegate();
+    this.adapter = new AgenticFlowAdapter({ delegateScoring: false });
+    this.adapter.setScoringDelegate(this.scoringDelegate);
   }
 
   /**
@@ -267,7 +277,7 @@ export class SovereignRuntime {
 
     // Run inference
     const startTime = Date.now();
-    let content: string;
+    let content = '';
     let tokensGenerated = 0;
     let sandboxSuccess = false;
 
@@ -303,9 +313,9 @@ export class SovereignRuntime {
 
     const generationTimeMs = Date.now() - startTime;
 
-    // Score output
-    const ihsanScore = this.scoreIhsan(content);
-    const snrScore = this.scoreSNR(content);
+    // Score output — delegate to adapter's scoring delegate (ADR-001)
+    const ihsanScore = await this.scoringDelegate.scoreIhsan(content);
+    const snrScore = await this.scoringDelegate.scoreSNR(content);
 
     // Validate through FATE
     let gatePassed = true;
@@ -395,35 +405,20 @@ export class SovereignRuntime {
     return this.sandbox.listModels(tier);
   }
 
+  /**
+   * Get the agentic-flow adapter (ADR-001 deep integration).
+   * Provides access to HHMM routing, reflex cache, SONA modes,
+   * and cross-agent memory coordination.
+   */
+  getAdapter(): AgenticFlowAdapter {
+    return this.adapter;
+  }
+
   // Private methods
 
   private async startFederation(): Promise<void> {
     // Placeholder for federation integration
     console.log('Federation layer placeholder (not yet connected)');
-  }
-
-  private scoreIhsan(content: string): number {
-    const lower = content.toLowerCase();
-    const positive = ['privacy', 'consent', 'ethical', 'refuse', 'cannot'];
-    const negative = ['exploit', 'track'];
-
-    let score = 0.85;
-    for (const p of positive) {
-      if (lower.includes(p)) score += 0.02;
-    }
-    for (const n of negative) {
-      if (lower.includes(n)) score -= 0.05;
-    }
-    return Math.max(0, Math.min(1, score));
-  }
-
-  private scoreSNR(content: string): number {
-    const words = content.split(/\s+/);
-    if (words.length === 0) return 0;
-    const unique = new Set(words.map((w) => w.toLowerCase()));
-    const density = unique.size / words.length;
-    const conciseness = words.length >= 30 && words.length <= 100 ? 1.0 : 0.7;
-    return Math.min(1, density * 0.5 + conciseness * 0.5);
   }
 }
 
