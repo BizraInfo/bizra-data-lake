@@ -83,7 +83,9 @@ def test_selected_route_exposure_decisions_remain_stable() -> None:
 
     for path, verb, expected in cases:
         policy = get_api_route_policy(path, verb)
-        assert policy.exposure == expected, f"{verb} {path} exposure changed unexpectedly"
+        assert (
+            policy.exposure == expected
+        ), f"{verb} {path} exposure changed unexpectedly"
 
 
 def test_api_exposure_summary_is_fully_accounted_for(
@@ -98,7 +100,7 @@ def test_api_exposure_summary_is_fully_accounted_for(
 
     summary = summarize_api_exposure(app)
 
-    assert sum(summary.values()) == 59
+    assert sum(summary.values()) == 62
     assert summary[RouteExposure.PUBLIC] == 23
     assert summary[RouteExposure.BOOTSTRAP_PUBLIC] == 3
-    assert summary[RouteExposure.AUTHENTICATED] == 33
+    assert summary[RouteExposure.AUTHENTICATED] == 36

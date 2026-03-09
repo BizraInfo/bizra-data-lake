@@ -315,7 +315,7 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
-      - name: Run Smoke Tests
+      - name: Run Smoke Tests (Health + Status)
         run: |
           set -euo pipefail
 
@@ -335,6 +335,70 @@ jobs:
           curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:18080/v1/status
           curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:13001/api/v1/health
           curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:13001/api/v1/status
+
+      - name: "PHASE77: API contract smoke (Terminal v1 endpoints)"
+        run: |
+          set -euo pipefail
+
+          kubectl -n bizra-staging port-forward svc/bizra-elite 18080:80 >/tmp/bizra-elite-pf.log 2>&1 &
+          PF_ELITE=$!
+          trap "kill $PF_ELITE 2>/dev/null || true" EXIT
+          sleep 5
+
+          BASE="http://127.0.0.1:18080"
+          PASSED=0
+          FAILED=0
+
+          check_endpoint() {
+            local method=$1 path=$2 expected_status=$3
+            local actual
+            actual=$(curl -s -o /dev/null -w "%{http_code}" -X "$method" "$BASE$path" 2>/dev/null || echo "000")
+            if echo "$expected_status" | grep -qw "$actual"; then
+              echo "  [PASS] $method $path -> $actual"
+              PASSED=$((PASSED + 1))
+            else
+              echo "  [FAIL] $method $path -> $actual (expected: $expected_status)"
+              FAILED=$((FAILED + 1))
+            fi
+          }
+
+          echo "=== Phase 77: Terminal v1 Public Endpoint Contract ==="
+          check_endpoint GET "/v1/health" "200 500"
+          check_endpoint GET "/v1/status" "200"
+          check_endpoint GET "/v1/cognitive/status" "200"
+          check_endpoint GET "/v1/token/supply" "200"
+          check_endpoint GET "/v1/metrics" "200"
+          check_endpoint GET "/v1/sat/stats" "200"
+
+          echo ""
+          echo "=== Phase 77: Auth Fail-Closed Contract ==="
+          # Authenticated endpoints MUST return 401/403/503 without auth token
+          check_endpoint GET "/v1/seed/potential" "401 403 503"
+          check_endpoint GET "/v1/seed/episodes" "401 403 503"
+          check_endpoint GET "/v1/node/value" "401 403 503"
+          check_endpoint GET "/v1/node/lifecycle" "401 403 503"
+          check_endpoint GET "/v1/network/effect" "401 403 503"
+          check_endpoint GET "/v1/token/balance" "401 403 503"
+          check_endpoint GET "/v1/memory/stats" "401 403 503"
+          check_endpoint GET "/v1/onboarding/state" "401 403 503"
+          check_endpoint GET "/v1/reflex/status" "401 403 503"
+
+          echo ""
+          echo "=== Phase 77: Verify Endpoints (public POST) ==="
+          check_endpoint POST "/v1/verify/genesis" "200 422"
+
+          echo ""
+          echo "Phase 77 smoke: ${PASSED} passed, ${FAILED} failed"
+          echo "## Phase 77: API Contract Smoke" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Passed | ${PASSED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Failed | ${FAILED} |" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::Phase 77 API contract smoke failed: ${FAILED} endpoint(s) broken in deployed container"
+            exit 1
+          fi
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 4: Quality Gate Validation (Production Gate)
@@ -360,6 +424,20 @@ jobs:
           pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -e ".[dev]"
+
+      - name: Verify CI Quality Gates Passed
+        run: |
+          echo "Checking CI workflow status for commit ${{ github.sha }}..."
+          CI_STATUS=$(gh run list --commit ${{ github.sha }} --workflow ci.yml --json conclusion --jq '.[0].conclusion // "pending"' 2>/dev/null || echo "unknown")
+          echo "CI workflow conclusion: $CI_STATUS"
+          if [ "$CI_STATUS" != "success" ]; then
+            echo "::error::CI quality gates have not passed for this commit (status: $CI_STATUS)."
+            echo "::error::Production deployment requires CI to be green."
+            exit 1
+          fi
+          echo "CI quality gates verified."
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Production Quality Gate
         id: gate
@@ -553,13 +631,37 @@ jobs:
 
           sleep 10
 
+          echo "=== Core Health ==="
           curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:18080/v1/health
           curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:18080/v1/status
           curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:13001/api/v1/health
           curl --fail --retry 5 --retry-delay 3 http://127.0.0.1:13001/api/v1/status
 
+          echo ""
+          echo "=== Phase 77: Production Contract Spot-Check ==="
+          # Public endpoints must respond (200)
+          curl --fail --retry 3 --retry-delay 2 http://127.0.0.1:18080/v1/cognitive/status
+          curl --fail --retry 3 --retry-delay 2 http://127.0.0.1:18080/v1/token/supply
+          curl --fail --retry 3 --retry-delay 2 http://127.0.0.1:18080/v1/sat/stats
+
+          # Auth endpoints must NOT return 200 without credentials (fail-closed)
+          AUTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:18080/v1/seed/potential)
+          if [ "$AUTH_STATUS" = "200" ]; then
+            echo "::error::SECURITY: /v1/seed/potential returned 200 without auth — fail-open vulnerability!"
+            exit 1
+          fi
+          echo "Auth fail-closed verified (seed/potential returned $AUTH_STATUS without auth)"
+
       - name: Notify Success
         run: |
+          echo "## Production Deployment Verified" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Core health | PASS |" >> $GITHUB_STEP_SUMMARY
+          echo "| API contract (public) | PASS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Auth fail-closed | PASS |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "Production deployment verified successfully!"
 
   # ═══════════════════════════════════════════════════════════════════════════

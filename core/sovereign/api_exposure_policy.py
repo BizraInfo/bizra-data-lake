@@ -203,6 +203,9 @@ API_ROUTE_POLICIES: tuple[APIRoutePolicy, ...] = (
         "/v1/network/effect",
         "/v1/network/milestones",
         "/v1/onboarding/state",
+        "/v1/terminal/state",
+        "/v1/terminal/briefing",
+        "/v1/reflex/status",
     ),
     *_policies(
         "WEBSOCKET",
