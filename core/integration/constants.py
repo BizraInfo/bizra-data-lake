@@ -686,6 +686,18 @@ GATE_FAIL_MODE: Final[str] = "closed"
 GATE_OVERHEAD_BUDGET_MS: Final[int] = 50
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# MOE ENGINE — Phase 68.07
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: docs/specs/phase_68_bus_architecture/phase_68_07_moe_engine.md
+# Standing on: Shazeer (2017) sparsely-gated MOE, top-K routing
+
+MOE_EXPERT_COUNT: Final[int] = 5
+MOE_TOP_K: Final[int] = 2  # experts activated per query
+MOE_FALLBACK_EXPERT: Final[str] = "pat_r"  # reasoning is default
+MOE_MIN_CONFIDENCE: Final[float] = 0.1  # below this, expert is skipped
+MOE_SYNTHESIS_STRATEGY: Final[str] = "weighted"  # "weighted" | "best_of"
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # REFLEX CACHE — v5.0.0-GENESIS
 # ═══════════════════════════════════════════════════════════════════════════════
 # Source: constitution.toml §9 [reflex]
