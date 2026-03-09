@@ -125,11 +125,12 @@ const ProgressBar = ({ currentStep, totalSteps }) => {
 // MAIN COMPONENT
 // ============================================================
 
-export default function OnboardingFlow({ node, onComplete }) {
+export default function OnboardingFlow({ node, initialEmail = '', onComplete }) {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
   const [transitioning, setTransitioning] = useState(false);
   const [onboardingState, setOnboardingState] = useState({
+    contactEmail: initialEmail,
     provider: 'local',
     model: '',
     apiKey: '',
@@ -149,6 +150,18 @@ export default function OnboardingFlow({ node, onComplete }) {
     },
     firstChatComplete: false,
   });
+
+  useEffect(() => {
+    if (!initialEmail) {
+      return;
+    }
+
+    setOnboardingState((prev) => (
+      prev.contactEmail === initialEmail
+        ? prev
+        : { ...prev, contactEmail: initialEmail }
+    ));
+  }, [initialEmail]);
 
   const goNext = useCallback(() => {
     if (step >= TOTAL_STEPS - 1) return;

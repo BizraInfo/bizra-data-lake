@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from core.bus.action_bus import ActionBus, FATEResult, _GENESIS_HASH
+from core.bus.action_bus import _GENESIS_HASH, ActionBus, FATEResult
 from core.bus.channels import ChannelResult
 from core.bus.telescript import Capability, TeleScriptEngine, TeleScriptPolicy
 from core.bus.types import ActionBudget, ActionEnvelope, ActionStatus

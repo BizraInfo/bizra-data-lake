@@ -26,10 +26,10 @@ from core.constitutional.algorithms import (
     NISAB_THRESHOLD,
     TICK_INTERVAL,
     accrue_bloom,
+    append_event,
     apply_demurrage,
     asabiyyah_adjustment,
     asabiyyah_score,
-    append_event,
     backing_ratio,
     compile_reflex,
     compute_gini,
@@ -61,7 +61,6 @@ from core.constitutional.types import (
     Proposal,
     WalletState,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════
 # A1: Intent Gate
@@ -120,7 +119,9 @@ class TestA1IhsanScore:
         self, quality_receipt: ActionReceipt
     ) -> None:
         score = ihsan_score(quality_receipt)
-        assert score >= IHSAN_FLOOR  # 0.25*0.98 + 0.25*0.96 + 0.30*0.97 + 0.20*0.95 = 0.966
+        assert (
+            score >= IHSAN_FLOOR
+        )  # 0.25*0.98 + 0.25*0.96 + 0.30*0.97 + 0.20*0.95 = 0.966
 
     def test_score_in_range_zero_to_one(self, quality_receipt: ActionReceipt) -> None:
         score = ihsan_score(quality_receipt)
@@ -171,9 +172,7 @@ class TestA2SeedMinter:
         minted = mint_seed(quality_receipt, ihsan)
         assert minted > 0
 
-    def test_zero_mint_below_threshold(
-        self, low_intent_receipt: ActionReceipt
-    ) -> None:
+    def test_zero_mint_below_threshold(self, low_intent_receipt: ActionReceipt) -> None:
         minted = mint_seed(low_intent_receipt, fp(0.50))
         assert minted == FP_ZERO
 
@@ -305,9 +304,7 @@ class TestA4GiniEnforcer:
         factor = ghazali_equity_factor(newcomer_wallet, fp(1000))
         assert factor == fp(5.0)  # EQUITY_FACTOR_MAX
 
-    def test_ghazali_equity_wealthy_standard(
-        self, wealthy_wallet: WalletState
-    ) -> None:
+    def test_ghazali_equity_wealthy_standard(self, wealthy_wallet: WalletState) -> None:
         """Wealthy node at mean gets standard rate."""
         factor = ghazali_equity_factor(wealthy_wallet, fp(1000))
         assert factor == FP_ONE
@@ -726,7 +723,9 @@ class TestDeterminism:
     ) -> None:
         _, ihsan = full_ihsan_check(quality_receipt)
         results = [
-            progressive_mint(quality_receipt, ihsan, newcomer_wallet, fp(0.20), fp(1000))
+            progressive_mint(
+                quality_receipt, ihsan, newcomer_wallet, fp(0.20), fp(1000)
+            )
             for _ in range(100)
         ]
         assert all(r == results[0] for r in results)

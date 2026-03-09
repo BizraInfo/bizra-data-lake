@@ -2,11 +2,13 @@
 
 Last updated: 2026-03-07
 
-## API Surface (v1.3.0)
+## API Surface (v1.4.0)
 
-59 routes across 13 domains. OpenAPI docs at `/docs`, ReDoc at `/redoc`.
+61 routes across 14 domains. OpenAPI docs at `/docs`, ReDoc at `/redoc`.
 21 Pydantic schema models with typed request/response contracts.
 Golden path: `POST /v1/plan` — sovereign mission with receipted result.
+Constitutional heartbeat: background tick every 60s (configurable via `BIZRA_TICK_INTERVAL_S`).
+Auth guard: `BIZRA_AUTH_ALLOW_ANONYMOUS` blocked in production (`BIZRA_ENV=production`).
 
 This is the canonical entry point for BIZRA system documentation.
 Use this file first, then follow the role-based reading paths below.

@@ -128,13 +128,15 @@ class TestConstantsAlignment:
 
     def test_gini_thresholds_aligned(self) -> None:
         """Gini zone boundaries match SSoT."""
-        from core.constitutional.algorithms import GINI_CRISIS, GINI_HEALTHY, GINI_WARNING
-        from core.constitutional.fixed_point import fp
-        from core.integration.constants import (
-            GINI_CRISIS as CRISIS_FLOAT,
-            GINI_HEALTHY as HEALTHY_FLOAT,
-            GINI_WARNING as WARNING_FLOAT,
+        from core.constitutional.algorithms import (
+            GINI_CRISIS,
+            GINI_HEALTHY,
+            GINI_WARNING,
         )
+        from core.constitutional.fixed_point import fp
+        from core.integration.constants import GINI_CRISIS as CRISIS_FLOAT
+        from core.integration.constants import GINI_HEALTHY as HEALTHY_FLOAT
+        from core.integration.constants import GINI_WARNING as WARNING_FLOAT
 
         assert GINI_HEALTHY == fp(HEALTHY_FLOAT)
         assert GINI_WARNING == fp(WARNING_FLOAT)

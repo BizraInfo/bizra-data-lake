@@ -164,13 +164,31 @@ class SovereignVault:
                 ) from e
 
     def _save_index(self):
-        """Save vault index."""
+        """Save vault index (atomic write — crash-safe)."""
+        import os
+        import tempfile
+
         data = {
             "version": VAULT_VERSION,
             "entries": [e.to_dict() for e in self._entries.values()],
         }
-        with open(self._index_path, "w") as f:
-            json.dump(data, f, indent=2)
+        content = json.dumps(data, indent=2)
+        fd, tmp = tempfile.mkstemp(dir=self._index_path.parent, suffix=".tmp")
+        closed = False
+        try:
+            os.write(fd, content.encode("utf-8"))
+            os.fsync(fd)
+            os.close(fd)
+            closed = True
+            os.replace(tmp, str(self._index_path))
+        except BaseException:
+            if not closed:
+                os.close(fd)
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
 
     def set_master_secret(self, secret: str):
         """Set the master secret for encryption/decryption."""
@@ -394,7 +412,8 @@ if __name__ == "__main__":
     _demo_path = "./test_vault"
     try:
         # Create vault with test secret
-        vault = SovereignVault(vault_path=_demo_path, master_secret="test_secret_123")
+        _demo_secret = secrets.token_urlsafe(32)
+        vault = SovereignVault(vault_path=_demo_path, master_secret=_demo_secret)
 
         # Store some data
         print("\n[1] Storing encrypted data...")

@@ -577,10 +577,29 @@ class MemoryConnector(SubsystemConnector):
         return False
 
     async def flush(self) -> None:
-        """Persist all session memory to disk."""
+        """Persist all session memory to disk (atomic write)."""
+        import os
+        import tempfile
+
         state_file = self.state_dir / "session_memory.json"
         try:
-            state_file.write_text(json.dumps(self._session_memory, default=str))
+            content = json.dumps(self._session_memory, default=str)
+            fd, tmp = tempfile.mkstemp(dir=state_file.parent, suffix=".tmp")
+            closed = False
+            try:
+                os.write(fd, content.encode("utf-8"))
+                os.fsync(fd)
+                os.close(fd)
+                closed = True
+                os.replace(tmp, str(state_file))
+            except BaseException:
+                if not closed:
+                    os.close(fd)
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+                raise
         except Exception as e:
             logger.error(f"Memory flush failed: {e}")
 
@@ -594,12 +613,31 @@ class MemoryConnector(SubsystemConnector):
                 logger.error(f"Memory load failed: {e}")
 
     async def _persist(self, key: str, value: Any) -> None:
-        """Persist single key to disk (BLAKE3, SEC-001)."""
+        """Persist single key to disk (BLAKE3, SEC-001, atomic write)."""
+        import os
+        import tempfile
+
         from core.proof_engine.canonical import hex_digest
 
         key_file = self.state_dir / f"mem_{hex_digest(key.encode())[:16]}.json"
         try:
-            key_file.write_text(json.dumps({"key": key, "value": value}, default=str))
+            content = json.dumps({"key": key, "value": value}, default=str)
+            fd, tmp = tempfile.mkstemp(dir=key_file.parent, suffix=".tmp")
+            closed = False
+            try:
+                os.write(fd, content.encode("utf-8"))
+                os.fsync(fd)
+                os.close(fd)
+                closed = True
+                os.replace(tmp, str(key_file))
+            except BaseException:
+                if not closed:
+                    os.close(fd)
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+                raise
         except Exception as e:
             logger.error(f"Persist failed for {key}: {e}")
 

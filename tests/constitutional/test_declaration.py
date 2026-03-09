@@ -28,7 +28,6 @@ from core.constitutional.declaration import (
 from core.constitutional.fixed_point import fp
 from core.constitutional.types import Event
 
-
 # ═══════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════

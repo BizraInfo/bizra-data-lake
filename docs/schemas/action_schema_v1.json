@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/action/v1",
+  "title": "BIZRA Action Schema v1",
+  "description": "Canonical action taxonomy for the ActionBus. Every action must declare tier, scope, reversibility, verification, and fallback. No untyped side effects.",
+  "version": "1.0.0",
+  "locked": "2026-03-07",
+
+  "definitions": {
+    "action_declaration": {
+      "type": "object",
+      "required": ["action_type", "category", "required_tier", "permission_scope", "reversible", "verification_strategy", "fallback"],
+      "properties": {
+        "action_type": { "type": "string", "description": "Unique action identifier" },
+        "category": { "enum": ["local", "external", "meta"], "description": "Action category" },
+        "required_tier": { "enum": ["novice", "adept", "expert", "master"], "description": "Minimum skill tier" },
+        "permission_scope": { "type": "string", "description": "Telescript permission required" },
+        "reversible": { "type": "boolean", "description": "Can this action be undone?" },
+        "verification_strategy": { "enum": ["uia_diff", "hash_compare", "semantic_check", "none"], "description": "How to verify the action succeeded" },
+        "fallback": { "type": "string", "description": "What to do on failure" },
+        "proof_output": { "type": "boolean", "description": "Does this action produce a PoI receipt?" }
+      }
+    }
+  },
+
+  "actions": {
+    "local": {
+      "description": "Actions on the local device — HDA/AHK territory",
+      "items": [
+        {
+          "action_type": "file.read",
+          "category": "local",
+          "required_tier": "novice",
+          "permission_scope": "telescript:path:read",
+          "reversible": true,
+          "verification_strategy": "hash_compare",
+          "fallback": "report_error",
+          "proof_output": true,
+          "description": "Read file contents within permitted paths"
+        },
+        {
+          "action_type": "file.write",
+          "category": "local",
+          "required_tier": "adept",
+          "permission_scope": "telescript:path:write",
+          "reversible": true,
+          "verification_strategy": "hash_compare",
+          "fallback": "rollback_to_backup",
+          "proof_output": true,
+          "description": "Write file contents (backup created first)"
+        },
+        {
+          "action_type": "file.move",
+          "category": "local",
+          "required_tier": "adept",
+          "permission_scope": "telescript:path:write",
+          "reversible": true,
+          "verification_strategy": "uia_diff",
+          "fallback": "rollback_move",
+          "proof_output": true,
+          "description": "Move/rename file or directory"
+        },
+        {
+          "action_type": "clipboard.read",
+          "category": "local",
+          "required_tier": "novice",
+          "permission_scope": "telescript:clipboard:read",
+          "reversible": true,
+          "verification_strategy": "none",
+          "fallback": "report_error",
+          "proof_output": false,
+          "description": "Read clipboard contents"
+        },
+        {
+          "action_type": "clipboard.write",
+          "category": "local",
+          "required_tier": "novice",
+          "permission_scope": "telescript:clipboard:write",
+          "reversible": true,
+          "verification_strategy": "hash_compare",
+          "fallback": "restore_clipboard",
+          "proof_output": false,
+          "description": "Write to clipboard"
+        },
+        {
+          "action_type": "window.activate",
+          "category": "local",
+          "required_tier": "novice",
+          "permission_scope": "telescript:window:control",
+          "reversible": false,
+          "verification_strategy": "uia_diff",
+          "fallback": "report_error",
+          "proof_output": false,
+          "description": "Activate/focus a window"
+        },
+        {
+          "action_type": "process.spawn_sandboxed",
+          "category": "local",
+          "required_tier": "expert",
+          "permission_scope": "telescript:process:sandboxed",
+          "reversible": false,
+          "verification_strategy": "semantic_check",
+          "fallback": "kill_process",
+          "proof_output": true,
+          "description": "Spawn a sandboxed process"
+        },
+        {
+          "action_type": "process.spawn_unsandboxed",
+          "category": "local",
+          "required_tier": "master",
+          "permission_scope": "telescript:process:unsandboxed",
+          "reversible": false,
+          "verification_strategy": "semantic_check",
+          "fallback": "kill_process",
+          "proof_output": true,
+          "description": "Spawn an unsandboxed process (MASTER tier only)"
+        },
+        {
+          "action_type": "script.execute_local",
+          "category": "local",
+          "required_tier": "expert",
+          "permission_scope": "telescript:script:local",
+          "reversible": false,
+          "verification_strategy": "hash_compare",
+          "fallback": "report_error",
+          "proof_output": true,
+          "description": "Execute a local script (AHK, Python, etc.)"
+        }
+      ]
+    },
+
+    "external": {
+      "description": "Actions crossing network boundaries",
+      "items": [
+        {
+          "action_type": "api.request",
+          "category": "external",
+          "required_tier": "expert",
+          "permission_scope": "telescript:network:api",
+          "reversible": false,
+          "verification_strategy": "semantic_check",
+          "fallback": "retry_with_backoff",
+          "proof_output": true,
+          "description": "Make an API request to an external service"
+        },
+        {
+          "action_type": "mcp.invoke",
+          "category": "external",
+          "required_tier": "adept",
+          "permission_scope": "telescript:mcp:tool",
+          "reversible": false,
+          "verification_strategy": "semantic_check",
+          "fallback": "report_error",
+          "proof_output": true,
+          "description": "Invoke an MCP tool"
+        },
+        {
+          "action_type": "browser.task",
+          "category": "external",
+          "required_tier": "expert",
+          "permission_scope": "telescript:browser:navigate",
+          "reversible": false,
+          "verification_strategy": "uia_diff",
+          "fallback": "close_tab",
+          "proof_output": true,
+          "description": "Execute a browser automation task"
+        },
+        {
+          "action_type": "a2a.message",
+          "category": "external",
+          "required_tier": "expert",
+          "permission_scope": "telescript:network:a2a",
+          "reversible": false,
+          "verification_strategy": "hash_compare",
+          "fallback": "queue_for_retry",
+          "proof_output": true,
+          "description": "Send agent-to-agent message"
+        },
+        {
+          "action_type": "marketplace.publish",
+          "category": "external",
+          "required_tier": "master",
+          "permission_scope": "telescript:marketplace:publish",
+          "reversible": true,
+          "verification_strategy": "hash_compare",
+          "fallback": "delist",
+          "proof_output": true,
+          "description": "Publish a SkillNFT to the reflex marketplace"
+        }
+      ]
+    },
+
+    "meta": {
+      "description": "Internal system actions — memory, proof, reflexes",
+      "items": [
+        {
+          "action_type": "memory.update",
+          "category": "meta",
+          "required_tier": "novice",
+          "permission_scope": "internal",
+          "reversible": true,
+          "verification_strategy": "hash_compare",
+          "fallback": "rollback_memory",
+          "proof_output": false,
+          "description": "Update memory store (semantic, episodic, or procedural)"
+        },
+        {
+          "action_type": "proof.generate",
+          "category": "meta",
+          "required_tier": "novice",
+          "permission_scope": "internal",
+          "reversible": false,
+          "verification_strategy": "hash_compare",
+          "fallback": "report_error",
+          "proof_output": true,
+          "description": "Generate a PoI receipt"
+        },
+        {
+          "action_type": "reflex.compile",
+          "category": "meta",
+          "required_tier": "novice",
+          "permission_scope": "internal",
+          "reversible": true,
+          "verification_strategy": "hash_compare",
+          "fallback": "defer_compilation",
+          "proof_output": true,
+          "description": "Compile a reflex pattern into System-1 cache"
+        },
+        {
+          "action_type": "reflex.prune",
+          "category": "meta",
+          "required_tier": "novice",
+          "permission_scope": "internal",
+          "reversible": false,
+          "verification_strategy": "none",
+          "fallback": "report_error",
+          "proof_output": false,
+          "description": "Remove a decayed or unused reflex"
+        },
+        {
+          "action_type": "rollback.execute",
+          "category": "meta",
+          "required_tier": "novice",
+          "permission_scope": "internal",
+          "reversible": false,
+          "verification_strategy": "hash_compare",
+          "fallback": "escalate_to_human",
+          "proof_output": true,
+          "description": "Execute a rollback of a failed action or mission"
+        },
+        {
+          "action_type": "self_check.run",
+          "category": "meta",
+          "required_tier": "novice",
+          "permission_scope": "internal",
+          "reversible": true,
+          "verification_strategy": "semantic_check",
+          "fallback": "report_anomaly",
+          "proof_output": false,
+          "description": "Run constitutional self-check"
+        }
+      ]
+    }
+  },
+
+  "tier_progression": {
+    "novice":  { "min_actions": 0,    "min_ihsan": 0.00, "examples": ["file.read", "clipboard", "memory.update", "reflex.compile"] },
+    "adept":   { "min_actions": 10,   "min_ihsan": 0.85, "examples": ["file.write", "file.move", "mcp.invoke"] },
+    "expert":  { "min_actions": 100,  "min_ihsan": 0.90, "examples": ["api.request", "browser.task", "process.spawn_sandboxed"] },
+    "master":  { "min_actions": 1000, "min_ihsan": 0.95, "examples": ["process.spawn_unsandboxed", "marketplace.publish"] }
+  },
+
+  "gate_pipeline": {
+    "description": "Every action passes through three gates in order",
+    "gates": [
+      { "name": "TeleScript", "checks": "Permission boundary — is this action in the permit list?" },
+      { "name": "SkillTier", "checks": "Capability progression — has the actor earned this tier?" },
+      { "name": "FATE", "checks": "Constitutional — does this action violate any invariant?" }
+    ]
+  }
+}

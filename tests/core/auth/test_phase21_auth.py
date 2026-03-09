@@ -240,7 +240,9 @@ class TestUserStore:
     def test_verify_api_key_upgrades_legacy_plaintext_secondary(
         self, store: UserStore, registered_user: UserRecord
     ):
-        key = store.create_secondary_api_key(registered_user.user_id, label="legacy-secondary")
+        key = store.create_secondary_api_key(
+            registered_user.user_id, label="legacy-secondary"
+        )
         assert key is not None
 
         with sqlite3.connect(str(store.db_path)) as conn:
@@ -393,9 +395,9 @@ class TestUserStore:
         assert wrapped != legacy_wrapped
 
         token = wrapped[len("fernet:v2:") :].encode("utf-8")
-        decrypted = Fernet(migrated_store._derive_master_wrapping_key(user.user_id)).decrypt(
-            token
-        )
+        decrypted = Fernet(
+            migrated_store._derive_master_wrapping_key(user.user_id)
+        ).decrypt(token)
         assert decrypted.decode("utf-8") == legacy_plaintext
 
     def test_generate_ed25519_keypair_fails_closed_without_backends(

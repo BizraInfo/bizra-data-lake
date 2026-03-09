@@ -261,6 +261,25 @@ export default function VerifyStep({ node, state, setState, onNext }) {
         }}>
           Checking that your node is running and healthy.
         </p>
+        {state?.contactEmail && (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            marginTop: 10,
+            padding: '5px 10px',
+            background: 'rgba(212,165,71,0.08)',
+            border: '1px solid rgba(212,165,71,0.15)',
+            borderRadius: 999,
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            color: 'rgba(212,165,71,0.7)',
+            letterSpacing: 0.4,
+          }}>
+            <span>Genesis contact:</span>
+            <span style={{ color: 'rgba(255,255,255,0.65)' }}>{state.contactEmail}</span>
+          </div>
+        )}
       </div>
 
       {/* Checklist */}

@@ -5,8 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 
-from core.sovereign.agent_cli import AgentKernel, build_agent_parser
-from core.sovereign.agent_cli import dispatch_agent_command
+from core.sovereign.agent_cli import (
+    AgentKernel,
+    build_agent_parser,
+    dispatch_agent_command,
+)
 
 
 def _parse(argv: list[str]) -> argparse.Namespace:
@@ -73,7 +76,10 @@ def test_agent_plan_routes_to_expected_subagents_and_tools() -> None:
         "mcp.attach_server",
         "mcp.call_tool",
     }
-    assert "Semantic, episodic, and procedural memory remain mounted as default context." in plan.rationale
+    assert (
+        "Semantic, episodic, and procedural memory remain mounted as default context."
+        in plan.rationale
+    )
 
 
 def test_agent_parser_defaults_to_chat_mode() -> None:

@@ -14,8 +14,10 @@ import asyncio
 import inspect
 import json
 import logging
+import os
 import signal
 import socket
+import tempfile
 import threading
 import time
 from dataclasses import dataclass, field
@@ -732,11 +734,31 @@ class ZeroPointKernel:
             rollback_used=rollback_used,
         )
 
+    @staticmethod
+    def _atomic_write(target: "Path", content: str) -> None:
+        """Crash-safe write: tempfile + fsync + os.replace."""
+        target.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=target.parent, suffix=".tmp")
+        closed = False
+        try:
+            os.write(fd, content.encode("utf-8"))
+            os.fsync(fd)
+            os.close(fd)
+            closed = True
+            os.replace(tmp, str(target))
+        except BaseException:
+            if not closed:
+                os.close(fd)
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
+
     def _persist_last_known_good(self, artifact: WorkerArtifact) -> None:
         """Persist last-known-good worker for fetch-failure rollback."""
-        self._lkg_manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        self._lkg_worker_path.parent.mkdir(parents=True, exist_ok=True)
-        self._lkg_manifest_path.write_text(
+        self._atomic_write(
+            self._lkg_manifest_path,
             json.dumps(
                 {
                     "version": artifact.version,
@@ -749,9 +771,8 @@ class ZeroPointKernel:
                 ensure_ascii=True,
                 sort_keys=True,
             ),
-            encoding="utf-8",
         )
-        self._lkg_worker_path.write_text(artifact.worker_code, encoding="utf-8")
+        self._atomic_write(self._lkg_worker_path, artifact.worker_code)
 
     def _load_last_known_good(self) -> Optional[WorkerArtifact]:
         """Load last-known-good worker artifact if available."""
@@ -784,8 +805,8 @@ class ZeroPointKernel:
             return str(data["private_key_hex"]), str(data["public_key_hex"])
 
         private_key_hex, public_key_hex = generate_keypair()
-        self._identity_path.parent.mkdir(parents=True, exist_ok=True)
-        self._identity_path.write_text(
+        self._atomic_write(
+            self._identity_path,
             json.dumps(
                 {
                     "private_key_hex": private_key_hex,
@@ -794,7 +815,6 @@ class ZeroPointKernel:
                 ensure_ascii=True,
                 sort_keys=True,
             ),
-            encoding="utf-8",
         )
         return private_key_hex, public_key_hex
 

@@ -75,4 +75,3 @@ def test_autonomous_engine_gate_output_contract(tmp_path: Path) -> None:
     # Report is JSON serializable for artifact publishing.
     encoded = json.dumps(report)
     assert encoded
-

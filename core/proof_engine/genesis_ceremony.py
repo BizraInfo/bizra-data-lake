@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -365,24 +366,42 @@ def write_ceremony(result: CeremonyResult, output_dir: Path) -> Path:
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    genesis_path = output_dir / "node0_genesis.json"
-    genesis_path.write_text(
+    # Atomic write: write to temp file then os.replace() to final path.
+    # Crash between writes cannot produce partial genesis state.
+    import tempfile
+
+    def _atomic_write(target: Path, content: str) -> None:
+        fd, tmp = tempfile.mkstemp(dir=target.parent, suffix=".tmp")
+        closed = False
+        try:
+            os.write(fd, content.encode("utf-8"))
+            os.fsync(fd)
+            os.close(fd)
+            closed = True
+            os.replace(tmp, str(target))
+        except BaseException:
+            if not closed:
+                os.close(fd)
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
+
+    _atomic_write(
+        output_dir / "node0_genesis.json",
         json.dumps(result.genesis_json, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
     )
-
-    hash_path = output_dir / "genesis_hash.txt"
-    hash_path.write_text(result.genesis_hash + "\n", encoding="utf-8")
-
-    pat_path = output_dir / "pat_roster.txt"
-    pat_path.write_text(result.pat_roster, encoding="utf-8")
-
-    sat_path = output_dir / "sat_roster.txt"
-    sat_path.write_text(result.sat_roster, encoding="utf-8")
+    _atomic_write(
+        output_dir / "genesis_hash.txt",
+        result.genesis_hash + "\n",
+    )
+    _atomic_write(output_dir / "pat_roster.txt", result.pat_roster)
+    _atomic_write(output_dir / "sat_roster.txt", result.sat_roster)
 
     result.output_dir = output_dir
     logger.info(
-        f"Genesis ceremony complete: {genesis_path} "
+        f"Genesis ceremony complete: {output_dir / 'node0_genesis.json'} "
         f"(hash: {result.genesis_hash[:16]}...)"
     )
 

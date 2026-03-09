@@ -11,7 +11,6 @@ import pathlib
 
 import pytest
 
-
 # ── Test 1: No local Gini threshold definitions ───────────────────
 
 
@@ -42,9 +41,7 @@ def test_no_local_gini_threshold_definitions():
             if isinstance(node, ast.Assign):
                 targets = [t for t in node.targets if isinstance(t, ast.Name)]
                 value = node.value
-            elif isinstance(node, ast.AnnAssign) and isinstance(
-                node.target, ast.Name
-            ):
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
                 targets = [node.target]
                 value = node.value
             else:
@@ -117,9 +114,7 @@ def test_no_local_snr_target_definitions():
             if isinstance(node, ast.Assign):
                 targets = [t for t in node.targets if isinstance(t, ast.Name)]
                 value = node.value
-            elif isinstance(node, ast.AnnAssign) and isinstance(
-                node.target, ast.Name
-            ):
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
                 targets = [node.target]
                 value = node.value
             else:

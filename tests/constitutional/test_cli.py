@@ -33,7 +33,6 @@ from core.constitutional.cli import (
 )
 from core.constitutional.fixed_point import fp, fp_float
 
-
 # ═══════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════
@@ -186,7 +185,10 @@ class TestWorkCommand:
 
     def test_work_appends_ledger_event(self, initialized_node, state_dir):
         """Each work action must append to the ledger."""
-        process_work("Wrote and tested the intent gate implementation for Al-Ghazali filter", state_dir)
+        process_work(
+            "Wrote and tested the intent gate implementation for Al-Ghazali filter",
+            state_dir,
+        )
         ledger = (state_dir / "ledger.jsonl").read_text().strip().split("\n")
         # genesis + 1 action
         assert len(ledger) == 2
@@ -196,7 +198,10 @@ class TestWorkCommand:
 
     def test_work_records_ihsan_history(self, initialized_node, state_dir):
         """Work must append the ihsan score to history."""
-        process_work("Implemented and verified BLOOM accrual algorithm with streak bonus", state_dir)
+        process_work(
+            "Implemented and verified BLOOM accrual algorithm with streak bonus",
+            state_dir,
+        )
         state = load_node_state(state_dir)
         assert len(state.ihsan_history) == 1
 
@@ -207,11 +212,15 @@ class TestWorkCommand:
 
     def test_multiple_works_accumulate(self, initialized_node, state_dir):
         """Multiple work submissions accumulate SEED."""
-        process_work("Wrote and tested fixed-point arithmetic module with 35 tests", state_dir)
+        process_work(
+            "Wrote and tested fixed-point arithmetic module with 35 tests", state_dir
+        )
         state1 = load_node_state(state_dir)
         b1 = state1.seed_balance
 
-        process_work("Wrote and tested constitutional types module with dataclasses", state_dir)
+        process_work(
+            "Wrote and tested constitutional types module with dataclasses", state_dir
+        )
         state2 = load_node_state(state_dir)
         b2 = state2.seed_balance
 
@@ -322,7 +331,10 @@ class TestStatusCommand:
 
     def test_status_reflects_work(self, initialized_node, state_dir):
         """After work, status must show updated balance."""
-        process_work("Implemented and tested the Zakat purification engine with nisab threshold", state_dir)
+        process_work(
+            "Implemented and tested the Zakat purification engine with nisab threshold",
+            state_dir,
+        )
         result = get_status(state_dir)
         assert result.seed_balance > 0
         assert result.total_actions == 1
@@ -340,7 +352,10 @@ class TestStatusCommand:
 
     def test_status_after_attest(self, initialized_node, state_dir):
         """After attestation, status must show updated social metrics."""
-        process_work("Built and verified the complete sovereignty stack with all algorithms", state_dir)
+        process_work(
+            "Built and verified the complete sovereignty stack with all algorithms",
+            state_dir,
+        )
         attest_peer("peer_xyz", state_dir)
         result = get_status(state_dir)
         assert result.attestations_given == 1

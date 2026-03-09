@@ -52,7 +52,7 @@ class TopicDef:
 
 
 # ═══════════════════════════════════════════════════════════════
-# Canonical Topic Registry — 38 topics across 8 tiers
+# Canonical Topic Registry — 44 topics across 8 tiers
 # ═══════════════════════════════════════════════════════════════
 
 TOPIC_REGISTRY: dict[str, TopicDef] = {
@@ -119,6 +119,10 @@ TOPIC_REGISTRY: dict[str, TopicDef] = {
     "mission.executed": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
     "mission.verified": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
     "mission.failed": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
+    "mission.started": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
+    "mission.decomposed": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
+    "mission.completed": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
+    "mission.system_ready": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
     # Tier 7: Omega
     "omega.started": TopicDef(tier=TopicTier.OMEGA, schema="omega_v1"),
     "omega.iteration": TopicDef(tier=TopicTier.OMEGA, schema="omega_v1"),

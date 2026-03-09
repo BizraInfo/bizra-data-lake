@@ -116,9 +116,7 @@ class TestMilestones:
         expected = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 8_000_000_000]
         assert [m.nodes for m in milestones] == expected
 
-    def test_milestones_are_monotonic_compute(
-        self, estimator: NetworkEffectEstimator
-    ):
+    def test_milestones_are_monotonic_compute(self, estimator: NetworkEffectEstimator):
         milestones = estimator.project_milestones()
         computes = [m.compute_tflops for m in milestones]
         assert computes == sorted(computes)

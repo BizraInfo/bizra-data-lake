@@ -1,0 +1,22 @@
+# BIZRA Frontend — Docker Build Exclusions
+# Keep the image lean: only ship source + package manifests to the builder stage
+
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Dev / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Tests (not needed in production image)
+tests/
+vitest.config.ts
+eslint.config.js
+
+# Docs / meta
+*.md
+LICENSE

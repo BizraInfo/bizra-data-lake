@@ -23,7 +23,6 @@ from starlette.responses import JSONResponse
 
 from core.sovereign.api import create_fastapi_app
 
-
 # ═══════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════
@@ -143,9 +142,7 @@ class TestSELEpisodesAuth:
         assert resp.status_code in {401, 503}
 
     @pytest.mark.asyncio
-    async def test_sel_episodes_hash_requires_auth(
-        self, tmp_path, monkeypatch
-    ) -> None:
+    async def test_sel_episodes_hash_requires_auth(self, tmp_path, monkeypatch) -> None:
         """GET /v1/sel/episodes/{hash} must reject unauthenticated requests."""
         monkeypatch.delenv("BIZRA_AUTH_ALLOW_ANONYMOUS", raising=False)
         runtime = _runtime(tmp_path)
@@ -167,9 +164,7 @@ class TestTelemetryAuth:
     """Verify stats/judgment/suggestions endpoints require auth."""
 
     @pytest.mark.asyncio
-    async def test_spearpoint_stats_requires_auth(
-        self, tmp_path, monkeypatch
-    ) -> None:
+    async def test_spearpoint_stats_requires_auth(self, tmp_path, monkeypatch) -> None:
         """GET /v1/spearpoint/stats must reject unauthenticated requests."""
         monkeypatch.delenv("BIZRA_AUTH_ALLOW_ANONYMOUS", raising=False)
         runtime = _runtime(tmp_path)
@@ -182,9 +177,7 @@ class TestTelemetryAuth:
         assert resp.status_code in {401, 503}
 
     @pytest.mark.asyncio
-    async def test_judgment_stats_requires_auth(
-        self, tmp_path, monkeypatch
-    ) -> None:
+    async def test_judgment_stats_requires_auth(self, tmp_path, monkeypatch) -> None:
         """GET /v1/judgment/stats must reject unauthenticated requests."""
         monkeypatch.delenv("BIZRA_AUTH_ALLOW_ANONYMOUS", raising=False)
         runtime = _runtime(tmp_path)
@@ -206,9 +199,7 @@ class TestErrorSanitization:
     """Verify API errors don't leak internal details."""
 
     @pytest.mark.asyncio
-    async def test_api_error_no_internal_details(
-        self, tmp_path, monkeypatch
-    ) -> None:
+    async def test_api_error_no_internal_details(self, tmp_path, monkeypatch) -> None:
         """500 errors must not include exception message text."""
         monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
         runtime = _runtime(tmp_path)

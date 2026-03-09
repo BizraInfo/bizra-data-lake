@@ -47,7 +47,6 @@ from core.constitutional.fixed_point import (
 )
 from core.constitutional.types import ActionReceipt, WalletState
 
-
 # ═══════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════
@@ -490,9 +489,9 @@ class TestT8DeathSpiralPrevention:
             minted = progressive_mint(receipt, ihsan, wallet, gini, mean)
             balance = fp_add(balance, minted)
 
-        assert fp_float(balance) > 50, (
-            f"After 100 rounds, balance should exceed 50 SEED, got {fp_float(balance):.2f}"
-        )
+        assert (
+            fp_float(balance) > 50
+        ), f"After 100 rounds, balance should exceed 50 SEED, got {fp_float(balance):.2f}"
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -521,7 +520,9 @@ class TestT9NewcomerMultiplier:
         # Newcomer: fp(EQUITY_FACTOR_MAX) = fp(5.0)
         # Rich: FP_ONE (at or above mean)
         ratio = fp_float(fp_div(eq_new, eq_rich)) if eq_rich > 0 else 999
-        assert 4.5 < ratio < 5.5, f"Newcomer multiplier {ratio:.2f}x outside expected range"
+        assert (
+            4.5 < ratio < 5.5
+        ), f"Newcomer multiplier {ratio:.2f}x outside expected range"
 
     def test_equity_at_zero_is_max(self) -> None:
         """Zero balance gives maximum equity factor = EQUITY_FACTOR_MAX."""

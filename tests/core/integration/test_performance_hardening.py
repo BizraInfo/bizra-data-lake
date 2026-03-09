@@ -11,7 +11,6 @@ import time
 
 import pytest
 
-
 # ── Test 1: SNR dual verification is cached ───────────────────────
 
 
@@ -25,9 +24,9 @@ def test_snr_dual_compute_is_cached():
     from core.iaas.snr_dual_verification import compute_snr_dual
 
     # Check it has lru_cache
-    assert hasattr(compute_snr_dual, "cache_info"), (
-        "compute_snr_dual should use @lru_cache"
-    )
+    assert hasattr(
+        compute_snr_dual, "cache_info"
+    ), "compute_snr_dual should use @lru_cache"
 
     compute_snr_dual.cache_clear()
 
@@ -56,9 +55,9 @@ def test_snr_cache_info_attribute():
     """
     from core.iaas.snr_dual_verification import compute_snr_dual
 
-    assert hasattr(compute_snr_dual, "cache_info"), (
-        "compute_snr_dual must have cache_info attribute (apply @functools.lru_cache)"
-    )
-    assert hasattr(compute_snr_dual, "cache_clear"), (
-        "compute_snr_dual must have cache_clear attribute"
-    )
+    assert hasattr(
+        compute_snr_dual, "cache_info"
+    ), "compute_snr_dual must have cache_info attribute (apply @functools.lru_cache)"
+    assert hasattr(
+        compute_snr_dual, "cache_clear"
+    ), "compute_snr_dual must have cache_clear attribute"

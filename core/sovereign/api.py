@@ -652,9 +652,10 @@ class SovereignAPIServer:
     ) -> str:
         """Route request to handler."""
         self._request_count += 1
+        allow_anonymous_vitals = path == "/v1/metrics/vitals" and method == "POST"
 
         # Check API key if configured
-        if self.api_keys:
+        if self.api_keys and not allow_anonymous_vitals:
             api_key = headers.get("x-api-key", "")
             if api_key not in self.api_keys:
                 return self._json_response({"error": "Unauthorized"}, 401)
@@ -671,6 +672,8 @@ class SovereignAPIServer:
             return await self._handle_status()
         elif path == "/v1/metrics" and method == "GET":
             return await self._handle_metrics()
+        elif path == "/v1/metrics/vitals" and method == "POST":
+            return await self._handle_metrics_vitals(body)
         elif path == "/v1/query" and method == "POST":
             return await self._handle_query(body)
         elif path == "/v1/sel/episodes" and method == "GET":
@@ -750,6 +753,54 @@ class SovereignAPIServer:
             metrics.to_prometheus(include_help=True),
             content_type="text/plain",
         )
+
+    @staticmethod
+    def _validate_metrics_vitals_payload(data: Any) -> dict[str, Any] | None:
+        """Validate Web Vitals beacon payloads from the frontend."""
+        if not isinstance(data, dict):
+            return None
+
+        name = data.get("name")
+        rating = data.get("rating")
+        try:
+            value = float(data.get("value"))
+        except (TypeError, ValueError):
+            return None
+
+        if not isinstance(name, str) or not name:
+            return None
+        if rating not in {"good", "needs-improvement", "poor"}:
+            return None
+
+        return {"name": name, "value": value, "rating": rating}
+
+    @classmethod
+    def _accept_metrics_vitals(cls, data: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        """Normalize and acknowledge a Web Vitals payload."""
+        payload = cls._validate_metrics_vitals_payload(data)
+        if payload is None:
+            return None, {"error": "Invalid vitals payload"}
+
+        logger.debug(
+            "Web vitals beacon accepted: %s=%s (%s)",
+            payload["name"],
+            payload["value"],
+            payload["rating"],
+        )
+        return payload, None
+
+    async def _handle_metrics_vitals(self, body: bytes) -> str:
+        """Accept frontend Web Vitals beacons."""
+        try:
+            data = json.loads(body.decode("utf-8")) if body else {}
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return self._json_response({"error": "Invalid vitals payload"}, 400)
+
+        payload, error = self._accept_metrics_vitals(data)
+        if error is not None:
+            return self._json_response(error, 400)
+
+        return self._json_response({"status": "accepted", "metric": payload["name"]})
 
     async def _handle_query(self, body: bytes) -> str:
         """Handle query request with input validation."""
@@ -1727,6 +1778,13 @@ def create_fastapi_app(runtime: Any) -> Any:
     async def metrics():
         m = runtime.metrics
         return PlainTextResponse(m.to_prometheus(include_help=False))
+
+    @app.post("/v1/metrics/vitals", tags=["health"], summary="Web Vitals beacon")
+    async def metrics_vitals(payload: dict[str, Any]):
+        normalized, error = SovereignAPIServer._accept_metrics_vitals(payload)
+        if error is not None:
+            return JSONResponse(status_code=400, content=error)
+        return {"status": "accepted", "metric": normalized["name"]}
 
     @app.post("/v1/query", tags=["query"], summary="Submit knowledge query")
     async def query(body: QueryRequestModel, request: Request):

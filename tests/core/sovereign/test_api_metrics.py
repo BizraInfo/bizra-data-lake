@@ -1,5 +1,6 @@
 """Regression tests for Sovereign API metrics endpoints."""
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -57,6 +58,25 @@ async def test_async_server_metrics_uses_runtime_metrics_fields() -> None:
     assert body == runtime.metrics.to_prometheus(include_help=True)
 
 
+@pytest.mark.asyncio
+async def test_async_server_accepts_vitals_beacons_without_api_key() -> None:
+    runtime = _runtime_with_metrics()
+    server = SovereignAPIServer(runtime, api_keys={"secret-key"})
+
+    resp = await server._route(
+        "POST",
+        "/v1/metrics/vitals",
+        headers={},
+        body=json.dumps(
+            {"name": "LCP", "value": 1875.12, "rating": "good"}
+        ).encode("utf-8"),
+    )
+    body = resp.split("\r\n\r\n", 1)[1] if "\r\n\r\n" in resp else resp
+
+    assert resp.startswith("HTTP/1.1 200")
+    assert json.loads(body) == {"status": "accepted", "metric": "LCP"}
+
+
 def test_fastapi_metrics_uses_runtime_metrics_fields() -> None:
     runtime = _runtime_with_metrics()
     app = create_fastapi_app(runtime)
@@ -65,6 +85,20 @@ def test_fastapi_metrics_uses_runtime_metrics_fields() -> None:
     resp = client.get("/v1/metrics")
     assert resp.status_code == 200
     assert resp.text == runtime.metrics.to_prometheus(include_help=False)
+
+
+def test_fastapi_accepts_vitals_beacon_payload() -> None:
+    runtime = _runtime_with_metrics()
+    app = create_fastapi_app(runtime)
+    client = TestClient(app)
+
+    resp = client.post(
+        "/v1/metrics/vitals",
+        json={"name": "CLS", "value": 0.08, "rating": "good"},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "accepted", "metric": "CLS"}
 
 
 def test_fastapi_health_exposes_pat_sat_receipt_chain_summary() -> None:

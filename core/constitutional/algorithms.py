@@ -45,11 +45,13 @@ from core.integration.constants import (
     ASABIYYAH_NEUTRAL,
     EQUITY_FACTOR_MAX,
     EQUITY_FACTOR_MIN,
-    GINI_CRISIS as GINI_CRISIS_FLOAT,
-    GINI_HEALTHY as GINI_HEALTHY_FLOAT,
-    GINI_WARNING as GINI_WARNING_FLOAT,
-    INTENT_FLOOR as INTENT_FLOOR_FLOAT,
-    NISAB_THRESHOLD as NISAB_FLOAT,
+)
+from core.integration.constants import GINI_CRISIS as GINI_CRISIS_FLOAT
+from core.integration.constants import GINI_HEALTHY as GINI_HEALTHY_FLOAT
+from core.integration.constants import GINI_WARNING as GINI_WARNING_FLOAT
+from core.integration.constants import INTENT_FLOOR as INTENT_FLOOR_FLOAT
+from core.integration.constants import NISAB_THRESHOLD as NISAB_FLOAT
+from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     ZAKAT_RATE,
 )

@@ -218,7 +218,25 @@ class RollbackEngine:
     def _persist_receipt(self, receipt: RollbackReceipt) -> None:
         filename = f"rollback_{receipt.timestamp.replace(':', '-')}.json"
         path = self._receipt_dir / filename
-        path.write_text(json.dumps(asdict(receipt), indent=2, default=str))
+        import tempfile
+
+        content = json.dumps(asdict(receipt), indent=2, default=str)
+        fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+        closed = False
+        try:
+            os.write(fd, content.encode("utf-8"))
+            os.fsync(fd)
+            os.close(fd)
+            closed = True
+            os.replace(tmp, str(path))
+        except BaseException:
+            if not closed:
+                os.close(fd)
+            try:
+                os.unlink(tmp)
+            except OSError as _unlink_err:
+                logger.debug("Could not remove temp file %s: %s", tmp, _unlink_err)
+            raise
         logger.info("Rollback receipt: %s", path)
 
     # ------------------------------------------------------------------

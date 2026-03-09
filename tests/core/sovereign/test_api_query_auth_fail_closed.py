@@ -17,8 +17,8 @@ from core.sovereign.api import (
     OrchestrateRequestModel,
     QueryRequestModel,
     RateLimiter,
-    RegisterRequestModel,
     ReceiptVerifyModel,
+    RegisterRequestModel,
     create_fastapi_app,
 )
 
@@ -315,7 +315,9 @@ async def test_verify_receipt_rejects_tampered_signature(tmp_path, monkeypatch) 
 
 
 @pytest.mark.asyncio
-async def test_auth_register_persists_covenant_acceptance(tmp_path, monkeypatch) -> None:
+async def test_auth_register_persists_covenant_acceptance(
+    tmp_path, monkeypatch
+) -> None:
     monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
     runtime = _runtime(tmp_path)
     app = create_fastapi_app(runtime)

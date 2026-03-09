@@ -1,0 +1,176 @@
+{
+  "framework": "BIZRA Unified Mastery Framework",
+  "version": "1.0",
+  "date": "2026-03-09",
+  "north_star": {
+    "snr_target": 0.95,
+    "ihsan_target": 0.95,
+    "adl_gini_max": 0.35,
+    "coverage_floor_policy": "ratchet_only"
+  },
+  "program": {
+    "name": "Unified Execution and Governance Spine",
+    "objective": "Make architecture, delivery, learning, and ethics operate as one fail-closed system.",
+    "scorecard": [
+      "snr_composite",
+      "ihsan_compliance_rate",
+      "coverage_floor",
+      "broad_exception_count",
+      "bridge_test_coverage",
+      "p95_latency_critical_paths",
+      "security_critical_findings",
+      "stale_canonical_docs",
+      "release_readiness_score",
+      "provenance_completeness"
+    ]
+  },
+  "waves": [
+    {
+      "id": "wave_0",
+      "name": "Foundation Closure",
+      "items": [
+        {
+          "priority": "P0",
+          "title": "Close learning loop",
+          "owner": "Forge",
+          "co_owners": ["Judge", "Crown"],
+          "success_gate": "candidate_to_batch_to_receipt_to_reflex_path_passes_end_to_end",
+          "risk_reduction": "high",
+          "snr_gain": 0.05
+        },
+        {
+          "priority": "P1",
+          "title": "Enforce degradation semantics",
+          "owner": "Forge",
+          "co_owners": ["Judge"],
+          "success_gate": "degraded_outputs_explicitly_marked_and_evented",
+          "risk_reduction": "medium",
+          "snr_gain": 0.02
+        },
+        {
+          "priority": "P2",
+          "title": "Boundary exception hardening",
+          "owner": "Sentinel",
+          "co_owners": ["Forge", "Judge"],
+          "success_gate": "broad_exception_count_reduced_on_edge_modules",
+          "risk_reduction": "high",
+          "snr_gain": 0.02
+        },
+        {
+          "priority": "P3",
+          "title": "Single quality spine in CI",
+          "owner": "JARVIS",
+          "co_owners": ["Judge", "Herald"],
+          "success_gate": "ratchet_trend_gates_summary_changelog_flow_runs_in_one_path",
+          "risk_reduction": "medium",
+          "snr_gain": 0.015
+        },
+        {
+          "priority": "P4",
+          "title": "Versioned test lock workflow",
+          "owner": "Judge",
+          "co_owners": ["Forge"],
+          "success_gate": "t0_to_t4_policy_and_lock_receipts_stable",
+          "risk_reduction": "medium",
+          "snr_gain": 0.015
+        }
+      ]
+    },
+    {
+      "id": "wave_1",
+      "name": "Platform Hardening",
+      "items": [
+        {
+          "priority": "P5",
+          "title": "Cross-language constant synchronization",
+          "owner": "Atlas",
+          "co_owners": ["Judge"],
+          "success_gate": "python_rust_constant_sync_verified_in_ci"
+        },
+        {
+          "priority": "P6",
+          "title": "Performance budgets by layer",
+          "owner": "Conductor",
+          "co_owners": ["Judge", "Forge"],
+          "success_gate": "p95_memory_and_throughput_budgets_enforced"
+        },
+        {
+          "priority": "P7",
+          "title": "Secrets and dependency audit tightening",
+          "owner": "Sentinel",
+          "co_owners": ["Crown"],
+          "success_gate": "zero_critical_security_findings"
+        },
+        {
+          "priority": "P8",
+          "title": "API and orchestration contract verification",
+          "owner": "Judge",
+          "co_owners": ["Forge"],
+          "success_gate": "boundary_contracts_tested_and_versioned"
+        },
+        {
+          "priority": "P9",
+          "title": "Documentation canon reduction",
+          "owner": "Herald",
+          "co_owners": ["Atlas"],
+          "success_gate": "canonical_doc_stack_declared_and_aligned"
+        }
+      ]
+    },
+    {
+      "id": "wave_2",
+      "name": "Capability Amplification",
+      "items": [
+        {
+          "priority": "P10",
+          "title": "Activate or retire dormant frontier paths",
+          "owner": "Atlas",
+          "co_owners": ["Forge", "Judge"],
+          "success_gate": "frontier_path_used_or_retired_with_evidence"
+        },
+        {
+          "priority": "P11",
+          "title": "SAPE-driven portfolio automation",
+          "owner": "Oracle",
+          "co_owners": ["Atlas"],
+          "success_gate": "roadmap_scoring_automated"
+        },
+        {
+          "priority": "P12",
+          "title": "Multi-node proof and federation evidence",
+          "owner": "Ambassador",
+          "co_owners": ["Ledger"],
+          "success_gate": "signed_distributed_receipts_verified"
+        },
+        {
+          "priority": "P13",
+          "title": "Operator cockpit",
+          "owner": "JARVIS",
+          "co_owners": ["Herald", "Conductor"],
+          "success_gate": "one_dashboard_for_quality_security_perf_ethics"
+        }
+      ]
+    }
+  ],
+  "cadence": {
+    "weekly": [
+      "review_scorecard_deltas",
+      "review_security_and_exception_hotspots",
+      "review_performance_budget_drift",
+      "review_documentation_mismatches",
+      "select_next_bridge_or_boundary_package"
+    ],
+    "sprint": [
+      "ship_one_compounding_capability_change",
+      "retire_one_hidden_risk_category",
+      "ratchet_one_quality_threshold_upward",
+      "publish_one_evidence_backed_program_summary"
+    ],
+    "release_candidate": [
+      "run_genesis_grade_verification_stack",
+      "validate_constitutional_sync_and_justice_state",
+      "confirm_rollback_posture",
+      "sign_and_archive_release_proof_package"
+    ]
+  }
+}
