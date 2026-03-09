@@ -77,15 +77,22 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True)
-def _isolate_receipt_key_env(monkeypatch):
-    """Prevent key env pollution between tests that mutate receipt signing env."""
-    key = "BIZRA_RECEIPT_PUBLIC_KEY_HEX"
-    original = os.environ.get(key)
+def _isolate_receipt_key_env():
+    """Prevent key env pollution between tests that mutate receipt signing env.
+
+    SovereignRuntime._load_env_vars() sets BIZRA_RECEIPT_PUBLIC_KEY_HEX from
+    sovereign_state/.env via os.environ directly.  We snapshot BOTH receipt keys
+    before each test and restore them afterward using os.environ (not monkeypatch)
+    to avoid teardown-ordering issues where monkeypatch undoes our cleanup.
+    """
+    keys = ("BIZRA_RECEIPT_PUBLIC_KEY_HEX", "BIZRA_RECEIPT_PRIVATE_KEY_HEX")
+    saved = {k: os.environ.get(k) for k in keys}
     yield
-    if original is None:
-        monkeypatch.delenv(key, raising=False)
-    else:
-        monkeypatch.setenv(key, original)
+    for k in keys:
+        if saved[k] is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = saved[k]
 
 
 @pytest.fixture(autouse=True)
