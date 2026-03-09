@@ -741,7 +741,7 @@ class SovereignRuntime:
                 f"Evidence Ledger initialized: {ledger_path} "
                 f"(seq={self._evidence_ledger.sequence})"
             )
-        except (RuntimeError, ValueError, TypeError, OSError) as e:
+        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"Evidence Ledger init failed (non-fatal): {e}")
             self._evidence_ledger = None
 
@@ -759,7 +759,7 @@ class SovereignRuntime:
 
             self._experience_ledger = SovereignExperienceLedger()
             self.logger.info("Sovereign Experience Ledger initialized")
-        except (RuntimeError, ValueError, TypeError, OSError) as e:
+        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.debug(f"Experience Ledger init skipped (non-fatal): {e}")
             self._experience_ledger = None
 
@@ -1067,7 +1067,7 @@ class SovereignRuntime:
             result.claim_tags = {"gate_chain": "measured"}
             return result
 
-        except (RuntimeError, ValueError, TypeError) as e:
+        except (ImportError, AttributeError, RuntimeError, ValueError, TypeError) as e:
             # CRITICAL-2 FIX (Saltzer & Schroeder 1975): Fail-CLOSED on gate errors.
             # Previously returned None (pass-through), allowing queries to bypass
             # ALL constitutional gates on ANY exception.
@@ -1366,7 +1366,7 @@ class SovereignRuntime:
                 config=config,
             )
             self.logger.info("SAT Controller initialized")
-        except (RuntimeError, ValueError, TypeError, OSError) as e:
+        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"PoI Engine init failed (non-fatal): {e}")
             self._poi_orchestrator = None
             self._sat_controller = None
@@ -3179,7 +3179,7 @@ class SovereignRuntime:
 
             # Store the last SNR trace for receipt embedding
             self._last_snr_trace = authoritative
-        except (RuntimeError, ValueError, TypeError, OSError) as e:
+        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.debug(f"SNREngine v1 scoring skipped: {e}")
 
         self.metrics.current_snr_score = snr_score
@@ -3225,7 +3225,7 @@ class SovereignRuntime:
                     query_text=query.text,
                     context=context,
                 )
-            except (RuntimeError, ValueError, TypeError) as ihsan_computer_err:
+            except (ImportError, RuntimeError, ValueError, TypeError) as ihsan_computer_err:
                 self.logger.debug(
                     "IhsanComputer unavailable, using legacy component projection: %s",
                     ihsan_computer_err,
@@ -3286,7 +3286,7 @@ class SovereignRuntime:
                         reason_codes = ihsan_gate_result.setdefault("reason_codes", [])
                         if "THERMODYNAMIC_GATE_REJECTED" not in reason_codes:
                             reason_codes.append("THERMODYNAMIC_GATE_REJECTED")
-                except (RuntimeError, ValueError, TypeError) as thermal_gate_err:
+                except (ImportError, RuntimeError, ValueError, TypeError) as thermal_gate_err:
                     self.logger.debug(
                         "Thermodynamic gate unavailable, continuing without it: %s",
                         thermal_gate_err,
@@ -3300,7 +3300,7 @@ class SovereignRuntime:
                         "IHSAN_FLOOR BREACH: System entering DEGRADED mode — "
                         f"{self._ihsan_watchdog.consecutive_failures} consecutive failures"
                     )
-        except (RuntimeError, ValueError, TypeError) as e:
+        except (ImportError, RuntimeError, ValueError, TypeError) as e:
             self.logger.debug(f"IhsanGate v1 evaluation skipped: {e}")
 
         # Phase 2: Omega engine — deep ihsan evaluation (enriches gate result)
