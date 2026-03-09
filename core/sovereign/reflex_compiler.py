@@ -29,19 +29,56 @@ import threading
 import time
 from collections import OrderedDict
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Dict, List, Optional, Protocol
 
 from core.integration.constants import (
+    IHSAN_THRESHOLD,  # noqa: F401 — re-exported for dependents
     REFLEX_INVALIDATION_DELTA,
     REFLEX_INVALIDATION_INTERVAL,
     REFLEX_MAX_ENTRIES,
     REFLEX_PRECIPITATION_HITS,
     REFLEX_PRECIPITATION_IHSAN,
     REFLEX_STALENESS_DAYS,
+    SNR_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROTOCOLS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class HHMMEngine(Protocol):
+    """Interface for HHMM state prediction (Spine §3, Helix 1)."""
+
+    def predict_state(
+        self, description: str, context: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Predict macro-state from mission description.
+
+        Returns one of ~47 latent states (e.g., "EMAIL_COMPOSE",
+        "CODE_REVIEW", "DOCUMENT_ANALYSIS").
+        """
+        ...
+
+    def update_transitions(
+        self, description: str, state: str, ihsan: float
+    ) -> None:
+        """Update transition probabilities from observed mission."""
+        ...
+
+
+class EvidenceRecorder(Protocol):
+    """Interface for evidence chain recording (Spine §8.1)."""
+
+    def record_reflex_event(self, event_type: str, data: Dict[str, Any]) -> str:
+        """Record a reflex event and return receipt hash."""
+        ...
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -65,6 +102,7 @@ class ReflexEntry:
     last_validated_at: float = 0.0
     validation_hits_since: int = 0
     stale: bool = False
+    source: str = "local"
 
     def age_days(self) -> float:
         return (time.time() - self.created_at) / 86400
@@ -78,6 +116,16 @@ class ReflexEntry:
         if self.age_days() > REFLEX_STALENESS_DAYS:
             return True
         return False
+
+    @property
+    def confidence(self) -> float:
+        """Confidence decays with time (BLOOM-style), grows with hits."""
+        if self.created_at <= 0:
+            return self.ihsan_composite
+        age_months = (time.time() - self.created_at) / (86400 * 30)
+        decay = 0.98 ** age_months  # Monthly decay factor
+        hit_bonus = min(0.1, self.hit_count * 0.005)
+        return min(1.0, self.ihsan_composite * decay + hit_bonus)
 
 
 @dataclass
@@ -108,6 +156,98 @@ class PrecipitationCandidate:
         return max(self.observations, key=lambda o: o.get("ihsan_composite", 0.0))
 
 
+class ReflexStatus(Enum):
+    """Lifecycle status for reflex entries."""
+
+    ACTIVE = "active"
+    STALE = "stale"
+    EVICTED = "evicted"
+    SUPERSEDED = "superseded"
+
+
+@dataclass(frozen=True)
+class ReflexKey:
+    """Hierarchical hash key: HHMM macro-state + mission hash.
+
+    HHMM reduces search space from 2^256 to ~47 macro-states × 2^64 per-state.
+    """
+
+    macro_state: str
+    mission_hash: str
+
+    @classmethod
+    def from_mission(
+        cls, description: str, macro_state: Optional[str] = None
+    ) -> ReflexKey:
+        mission_hash = hashlib.sha256(
+            description.lower().strip().encode("utf-8")
+        ).hexdigest()[:16]
+        return cls(
+            macro_state=macro_state or "UNKNOWN",
+            mission_hash=mission_hash,
+        )
+
+    @property
+    def composite_key(self) -> str:
+        return f"{self.macro_state}::{self.mission_hash}"
+
+
+@dataclass
+class ObservationWindow:
+    """Tracks repeated patterns waiting for precipitation.
+
+    Like a supersaturated solution — observations accumulate until
+    the pattern crystallizes into a reflex.
+    """
+
+    scores: List[float] = field(default_factory=list)
+    plans: List[Dict[str, Any]] = field(default_factory=list)
+    timestamps: List[float] = field(default_factory=list)
+
+    @property
+    def count(self) -> int:
+        return len(self.scores)
+
+    @property
+    def avg_ihsan(self) -> float:
+        return sum(self.scores) / len(self.scores) if self.scores else 0.0
+
+    @property
+    def recent_avg(self) -> float:
+        recent = self.scores[-REFLEX_PRECIPITATION_HITS:]
+        return sum(recent) / len(recent) if recent else 0.0
+
+    @property
+    def ready_to_precipitate(self) -> bool:
+        if self.count < REFLEX_PRECIPITATION_HITS:
+            return False
+        return self.recent_avg >= REFLEX_PRECIPITATION_IHSAN
+
+    @property
+    def best_plan(self) -> Optional[Dict[str, Any]]:
+        if not self.scores:
+            return None
+        best_idx = max(range(len(self.scores)), key=lambda i: self.scores[i])
+        return self.plans[best_idx]
+
+    def add(self, ihsan: float, plan: Dict[str, Any]) -> None:
+        self.scores.append(ihsan)
+        self.plans.append(plan)
+        self.timestamps.append(time.time())
+
+
+@dataclass
+class PrecipitationEvent:
+    """Record of a reflex compilation event — evidence for the chain."""
+
+    key: ReflexKey
+    avg_ihsan: float
+    observation_count: int
+    compiled_at: str
+    evidence_hash: str
+    source: str = "local"
+
+
 @dataclass
 class CacheStats:
     """Runtime statistics for the reflex cache."""
@@ -118,9 +258,18 @@ class CacheStats:
     precipitations: int = 0
     invalidations: int = 0
     evictions: int = 0
+    revalidations: int = 0
+    forest_imports: int = 0
 
     @property
     def hit_rate(self) -> float:
+        if self.total_lookups == 0:
+            return 0.0
+        return self.cache_hits / self.total_lookups
+
+    @property
+    def s1_fraction(self) -> float:
+        """Fraction of lookups served from System-1 cache."""
         if self.total_lookups == 0:
             return 0.0
         return self.cache_hits / self.total_lookups
@@ -134,6 +283,8 @@ class CacheStats:
             "precipitations": self.precipitations,
             "invalidations": self.invalidations,
             "evictions": self.evictions,
+            "revalidations": self.revalidations,
+            "forest_imports": self.forest_imports,
         }
 
 
@@ -182,6 +333,9 @@ class ReflexCompiler:
         self,
         max_entries: int = REFLEX_MAX_ENTRIES,
         persistence_path: Optional[Path] = None,
+        hhmm_engine: Optional[HHMMEngine] = None,
+        evidence_recorder: Optional[EvidenceRecorder] = None,
+        on_precipitation: Optional[Callable[[PrecipitationEvent], None]] = None,
     ) -> None:
         self._cache: OrderedDict[str, ReflexEntry] = OrderedDict()
         self._candidates: OrderedDict[str, PrecipitationCandidate] = OrderedDict()
@@ -190,25 +344,53 @@ class ReflexCompiler:
         self._max_entries = max_entries
         self._max_candidates = max_entries * 2
         self._persistence_path = persistence_path
+        self._hhmm = hhmm_engine
+        self._evidence = evidence_recorder
+        self._on_precipitation = on_precipitation
+        self._precipitation_log: List[PrecipitationEvent] = []
 
         if persistence_path and persistence_path.exists():
             self._load_from_disk()
 
     # ── Core Operations ──────────────────────────────────────────────────────
 
-    def lookup(self, input_text: str) -> Optional[ReflexEntry]:
+    def lookup(
+        self, input_text: str, *, macro_state: Optional[str] = None
+    ) -> Optional[ReflexEntry]:
         """
         O(1) cache lookup. Returns entry if found and not stale.
+
+        If an HHMM engine is configured, uses hierarchical key prediction
+        before falling back to simple hash. Applies confidence gate
+        (SNR_THRESHOLD) to filter decayed entries.
 
         Returns:
             ReflexEntry if cache hit, None if miss.
         """
         pattern_hash = self._hash_input(input_text)
 
+        # Enhanced path: HHMM hierarchical key
+        composite_key: Optional[str] = None
+        if self._hhmm:
+            if macro_state is None:
+                macro_state = self._hhmm.predict_state(input_text)
+            rkey = ReflexKey.from_mission(input_text, macro_state)
+            composite_key = rkey.composite_key
+
         with self._lock:
             self._stats.total_lookups += 1
 
-            entry = self._cache.get(pattern_hash)
+            # Try HHMM composite key first, then fall back to simple hash
+            entry: Optional[ReflexEntry] = None
+            cache_key = pattern_hash
+            if composite_key is not None:
+                entry = self._cache.get(composite_key)
+                if entry is not None:
+                    cache_key = composite_key
+            if entry is None:
+                entry = self._cache.get(pattern_hash)
+                cache_key = pattern_hash
+
             if entry is None:
                 self._stats.cache_misses += 1
                 return None
@@ -217,8 +399,13 @@ class ReflexCompiler:
                 self._stats.cache_misses += 1
                 return None
 
+            # Confidence gate: skip entries below SNR threshold
+            if entry.confidence < SNR_THRESHOLD:
+                self._stats.cache_misses += 1
+                return None
+
             # LRU: move to end
-            self._cache.move_to_end(pattern_hash)
+            self._cache.move_to_end(cache_key)
 
             # Update hit stats
             entry.hit_count += 1
@@ -401,6 +588,31 @@ class ReflexCompiler:
         self._stats.precipitations += 1
         del self._candidates[candidate.pattern_hash]
 
+        # Record precipitation event for evidence trail
+        evidence_data = {
+            "key": candidate.pattern_hash,
+            "ihsan": entry.ihsan_composite,
+            "observations": entry.precipitation_count,
+        }
+        evidence_hash = hashlib.blake2b(
+            json.dumps(evidence_data, sort_keys=True).encode(),
+            digest_size=32,
+        ).hexdigest()
+        event = PrecipitationEvent(
+            key=ReflexKey.from_mission(candidate.input_template),
+            avg_ihsan=entry.ihsan_composite,
+            observation_count=entry.precipitation_count,
+            compiled_at=datetime.now(timezone.utc).isoformat(),
+            evidence_hash=evidence_hash,
+        )
+        self._precipitation_log.append(event)
+
+        if self._evidence:
+            self._evidence.record_reflex_event("PRECIPITATION", asdict(event))
+
+        if self._on_precipitation:
+            self._on_precipitation(event)
+
         logger.info(
             "Precipitated reflex %s (ihsan=%.3f, observations=%d)",
             candidate.pattern_hash[:12],
@@ -417,6 +629,176 @@ class ReflexCompiler:
         """Normalize and hash input for pattern matching."""
         normalized = " ".join(input_text.lower().split())
         return hashlib.sha256(normalized.encode()).hexdigest()
+
+    # ── Forest Protocol (Cross-node reflex sharing) ──────────────────────────
+
+    def import_forest_reflex(
+        self,
+        key_str: str,
+        plan: str,
+        ihsan: float,
+        source: str,
+        confidence: float = 1.0,
+    ) -> bool:
+        """Import a reflex from another node via gossip protocol.
+
+        Constitutional gate: only import if Ihsan >= precipitation threshold
+        and confidence >= SNR threshold. Does not overwrite local reflexes
+        with higher quality.
+
+        Returns:
+            True if imported, False if rejected.
+        """
+        if ihsan < REFLEX_PRECIPITATION_IHSAN:
+            logger.info(
+                "Forest reflex rejected: Ihsan %.3f < %.3f",
+                ihsan,
+                REFLEX_PRECIPITATION_IHSAN,
+            )
+            return False
+        if confidence < SNR_THRESHOLD:
+            logger.info(
+                "Forest reflex rejected: confidence %.3f < %.3f",
+                confidence,
+                SNR_THRESHOLD,
+            )
+            return False
+
+        with self._lock:
+            existing = self._cache.get(key_str)
+            if existing and existing.ihsan_composite >= ihsan:
+                return False
+
+            # LRU eviction if at capacity
+            while len(self._cache) >= self._max_entries:
+                self._cache.popitem(last=False)
+                self._stats.evictions += 1
+
+            entry = ReflexEntry(
+                pattern_hash=key_str,
+                input_template="",
+                output_template=plan,
+                ihsan_composite=ihsan,
+                created_at=time.time(),
+                last_hit_at=time.time(),
+                last_validated_at=time.time(),
+                source=source,
+            )
+
+            self._cache[key_str] = entry
+            self._stats.forest_imports += 1
+
+            logger.info(
+                "Forest import: %s from %s (ihsan=%.3f)",
+                key_str[:12],
+                source[:12],
+                ihsan,
+            )
+
+            return True
+
+    def export_for_gossip(
+        self,
+        min_ihsan: float = REFLEX_PRECIPITATION_IHSAN,
+        max_entries: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """Export high-quality local reflexes for forest gossip protocol.
+
+        Only exports abstract patterns — raw data stays sovereign.
+        Spine §7.3: patterns propagate, data stays local.
+        """
+        with self._lock:
+            exportable: List[Dict[str, Any]] = []
+            for key_str, entry in self._cache.items():
+                if len(exportable) >= max_entries:
+                    break
+                if (
+                    entry.source == "local"
+                    and entry.ihsan_composite >= min_ihsan
+                    and not entry.stale
+                    and entry.hit_count >= 2
+                ):
+                    exportable.append({
+                        "key": key_str,
+                        "plan_abstract": self._abstract_plan(
+                            entry.output_template
+                        ),
+                        "ihsan": entry.ihsan_composite,
+                        "hit_count": entry.hit_count,
+                        "confidence": round(entry.confidence, 4),
+                    })
+            return exportable
+
+    def revalidate(self, key_str: str, new_ihsan: float) -> bool:
+        """Revalidate a stale reflex with a fresh Ihsan score.
+
+        Called during Helix 3 (evolutionary cycle) when a stale reflex
+        is re-executed via System-2 and scored. Resets TTL on success,
+        evicts on quality degradation.
+
+        Returns:
+            True if entry revalidated successfully, False otherwise.
+        """
+        with self._lock:
+            entry = self._cache.get(key_str)
+            if entry is None:
+                return False
+
+            if new_ihsan >= REFLEX_PRECIPITATION_IHSAN:
+                entry.ihsan_composite = new_ihsan
+                entry.last_validated_at = time.time()
+                entry.created_at = time.time()  # Reset TTL
+                entry.stale = False
+                entry.validation_hits_since = 0
+                self._stats.revalidations += 1
+                logger.info(
+                    "Reflex revalidated: %s (ihsan=%.3f)",
+                    key_str[:12],
+                    new_ihsan,
+                )
+                return True
+
+            # Quality degraded — evict
+            del self._cache[key_str]
+            self._stats.evictions += 1
+            logger.info(
+                "Reflex evicted (quality degraded): %s (ihsan=%.3f)",
+                key_str[:12],
+                new_ihsan,
+            )
+            return False
+
+    def get_top_reflexes(self, n: int = 10) -> List[Dict[str, Any]]:
+        """Return top N reflexes by hit count for observability."""
+        with self._lock:
+            sorted_entries = sorted(
+                self._cache.items(),
+                key=lambda kv: kv[1].hit_count,
+                reverse=True,
+            )[:n]
+            return [
+                {
+                    "key": key_str,
+                    "ihsan": entry.ihsan_composite,
+                    "hits": entry.hit_count,
+                    "confidence": round(entry.confidence, 4),
+                    "precipitation_count": entry.precipitation_count,
+                    "source": entry.source,
+                    "stale": entry.stale,
+                }
+                for key_str, entry in sorted_entries
+            ]
+
+    @staticmethod
+    def _abstract_plan(plan: str) -> str:
+        """Strip personal data from a plan for gossip export.
+
+        Sovereignty-preserving: the pattern structure propagates,
+        but personal content stays local.
+        """
+        if len(plan) > 200:
+            return plan[:200] + "..."
+        return plan
 
     # ── Persistence ──────────────────────────────────────────────────────────
 
@@ -496,6 +878,7 @@ class ReflexCompiler:
                 "size": len(self._cache),
                 "candidates": len(self._candidates),
                 "max_entries": self._max_entries,
+                "s1_fraction": round(self._stats.s1_fraction, 4),
                 **self._stats.as_dict(),
             }
 

@@ -42,6 +42,7 @@ _SUBPACKAGES = frozenset(
         "benchmark",
         "bounty",
         "bridges",
+        "bus",
         "cognitive_fusion",
         "command",
         "constitutional",

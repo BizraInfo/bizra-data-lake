@@ -1,17 +1,18 @@
 /**
- * Wallet hook — bridges backend token ledger with offline NodeState.
+ * useWallet v2 — Race-condition hardened wallet hook.
  *
- * Data flow:
- *   1. Try backend APIs: tokenBalance, tokenSupply, seedPotential
- *   2. On failure: derive from local NodeState (offline simulation)
- *   3. Merge both into a single WalletState for the UI
+ * Fixes identified in post-sprint review:
+ * 1. WebSocket receipt arriving during polling → stale overwrite
+ * 2. Offline fallback overwriting fresh live state
+ * 3. Visibility-change refresh colliding with manual refresh
+ * 4. Partial backend failures producing mixed-state UI
  *
- * Polling: every 30s when tab is visible, pauses when hidden.
- * Circuit breaker: inherits from ApiClient (5 failures → open → 30s cooldown).
+ * Solution: monotonic version counter. Every fetch increments version.
+ * Only the highest-version result is accepted. Stale responses are dropped.
  *
  * Standing on Giants:
- *   Nakamoto (2008) — verifiable token supply
- *   Al-Ghazali (1111) — zakat as constitutional redistribution
+ *   Lamport (1978) — logical clocks for ordering concurrent events
+ *   Nakamoto (2008) — longest chain wins (highest version wins)
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -20,23 +21,14 @@ import { THRESHOLDS } from '../tokens';
 import type { NodeState } from '../types';
 
 export interface WalletState {
-  /** SEED balance (liquid). */
   seed: number;
-  /** BLOOM balance (soulbound governance). */
   bloom: number;
-  /** Locked SEED (staking). */
   lockedSeed: number;
-  /** Cumulative zakat contributed (2.5% of gross). */
   zakatContributed: number;
-  /** Network-wide total SEED minted. */
   totalSeed: number;
-  /** Network-wide total BLOOM minted. */
   totalBloom: number;
-  /** Circulating supply. */
   circulating: number;
-  /** Supply cap utilization (0-1). */
   supplyCapUtilization: number;
-  /** Seed potential factors from backend. */
   factors: {
     sovereignty: number;
     activation: number;
@@ -44,17 +36,22 @@ export interface WalletState {
     compounding: number;
     synergy: number;
   };
-  /** Whether data came from backend (true) or offline fallback (false). */
   live: boolean;
-  /** Last successful fetch timestamp. */
   lastSync: number | null;
-  /** Loading state for initial fetch. */
   loading: boolean;
+  /** Monotonic version — prevents stale overwrites */
+  version: number;
+  /** Fetch status for partial failure detection */
+  fetchStatus: {
+    balance: 'ok' | 'error' | 'pending';
+    supply: 'ok' | 'error' | 'pending';
+    potential: 'ok' | 'error' | 'pending';
+  };
 }
 
 const POLL_INTERVAL_MS = 30_000;
 
-function deriveOffline(ns: NodeState): WalletState {
+function deriveOffline(ns: NodeState, version: number): WalletState {
   const grossSeed = ns.seed / (1 - THRESHOLDS.ZAKAT_RATE);
   return {
     seed: ns.seed,
@@ -75,17 +72,55 @@ function deriveOffline(ns: NodeState): WalletState {
     live: false,
     lastSync: null,
     loading: false,
+    version,
+    fetchStatus: { balance: 'error', supply: 'error', potential: 'error' },
   };
 }
 
 export function useWallet(nodeState: NodeState) {
-  const [wallet, setWallet] = useState<WalletState>(() => deriveOffline(nodeState));
+  const [wallet, setWallet] = useState<WalletState>(() => deriveOffline(nodeState, 0));
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
+  /**
+   * Monotonic version counter — Lamport clock for fetch ordering.
+   * 
+   * Every fetchWallet call increments this. When the response arrives,
+   * it checks: is my version >= the current wallet version?
+   * If not, a newer fetch already landed — discard this result.
+   *
+   * This prevents:
+   * - Slow poll response overwriting fast WebSocket-triggered refresh
+   * - Visibility-change refresh racing with manual refresh
+   * - Offline fallback overwriting a live result that arrived between
+   *   the fetch start and the fallback trigger
+   */
+  const versionRef = useRef(0);
+
+  /**
+   * In-flight guard — prevents concurrent fetches from stacking.
+   * Only one fetch can be in-flight at a time.
+   */
+  const inFlightRef = useRef(false);
+
   const fetchWallet = useCallback(async () => {
+    // Guard: if a fetch is already in-flight, skip this one.
+    // This prevents visibility-change + poll + WebSocket all triggering
+    // simultaneous fetches that race each other.
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
+    const myVersion = ++versionRef.current;
+
+    const fetchStatus: WalletState['fetchStatus'] = {
+      balance: 'pending',
+      supply: 'pending',
+      potential: 'pending',
+    };
+
     try {
-      const [balance, supply, potential] = await Promise.all([
+      // Fetch all three independently — partial success is handled
+      const results = await Promise.allSettled([
         api.tokenBalance(),
         api.tokenSupply(),
         api.seedPotential(),
@@ -93,30 +128,70 @@ export function useWallet(nodeState: NodeState) {
 
       if (!mountedRef.current) return;
 
-      const grossSeed = balance.seed / (1 - THRESHOLDS.ZAKAT_RATE);
+      // Version check: has a newer fetch already landed?
+      if (myVersion < versionRef.current) {
+        // A newer fetch was initiated while we were waiting.
+        // Discard this result — the newer one will win.
+        return;
+      }
 
-      setWallet({
-        seed: balance.seed,
-        bloom: balance.bloom,
-        lockedSeed: balance.locked_seed,
-        zakatContributed: +(grossSeed * THRESHOLDS.ZAKAT_RATE).toFixed(4),
-        totalSeed: supply.total_seed,
-        totalBloom: supply.total_bloom,
-        circulating: supply.circulating,
-        supplyCapUtilization: supply.total_seed / THRESHOLDS.SEED_SUPPLY_CAP_PER_YEAR,
-        factors: potential.factors,
-        live: true,
-        lastSync: Date.now(),
-        loading: false,
-      });
+      const [balanceResult, supplyResult, potentialResult] = results;
+
+      // Track partial failures
+      const balance = balanceResult.status === 'fulfilled' ? balanceResult.value : null;
+      const supply = supplyResult.status === 'fulfilled' ? supplyResult.value : null;
+      const potential = potentialResult.status === 'fulfilled' ? potentialResult.value : null;
+
+      fetchStatus.balance = balance ? 'ok' : 'error';
+      fetchStatus.supply = supply ? 'ok' : 'error';
+      fetchStatus.potential = potential ? 'ok' : 'error';
+
+      const anySuccess = balance || supply || potential;
+
+      if (!anySuccess) {
+        // Total failure — fall back to offline, but only if no live state exists
+        setWallet(prev => {
+          // CRITICAL: Do not overwrite live state with offline fallback
+          // if we already have live data from a recent successful fetch.
+          if (prev.live && prev.lastSync && (Date.now() - prev.lastSync) < POLL_INTERVAL_MS * 2) {
+            // Recent live data exists — keep it, just mark the fetch status
+            return { ...prev, fetchStatus };
+          }
+          return { ...deriveOffline(nodeState, myVersion), fetchStatus };
+        });
+      } else {
+        // Partial or full success — merge what we got
+        setWallet(prev => {
+          const grossSeed = (balance?.seed ?? prev.seed) / (1 - THRESHOLDS.ZAKAT_RATE);
+
+          return {
+            seed: balance?.seed ?? prev.seed,
+            bloom: balance?.bloom ?? prev.bloom,
+            lockedSeed: balance?.locked_seed ?? prev.lockedSeed,
+            zakatContributed: +(grossSeed * THRESHOLDS.ZAKAT_RATE).toFixed(4),
+            totalSeed: supply?.total_seed ?? prev.totalSeed,
+            totalBloom: supply?.total_bloom ?? prev.totalBloom,
+            circulating: supply?.circulating ?? prev.circulating,
+            supplyCapUtilization: (supply?.total_seed ?? prev.totalSeed) / THRESHOLDS.SEED_SUPPLY_CAP_PER_YEAR,
+            factors: potential?.factors ?? prev.factors,
+            live: true,
+            lastSync: Date.now(),
+            loading: false,
+            version: myVersion,
+            fetchStatus,
+          };
+        });
+      }
     } catch {
-      // Offline fallback — derive from local NodeState
-      if (!mountedRef.current) return;
-      setWallet(prev => ({
-        ...deriveOffline(nodeState),
-        lastSync: prev.lastSync, // preserve last known sync time
-      }));
+      // Shouldn't reach here (allSettled doesn't throw), but safety net
+      if (mountedRef.current && myVersion >= versionRef.current) {
+        setWallet(prev => {
+          if (prev.live) return { ...prev, fetchStatus };
+          return { ...deriveOffline(nodeState, myVersion), fetchStatus };
+        });
+      }
     } finally {
+      inFlightRef.current = false;
       if (mountedRef.current) setLoading(false);
     }
   }, [nodeState]);
@@ -137,7 +212,7 @@ export function useWallet(nodeState: NodeState) {
     const handleVisibility = () => {
       clearInterval(timer);
       if (document.visibilityState === 'visible') {
-        fetchWallet(); // immediate refresh on return
+        fetchWallet();
         startPolling();
       }
     };
@@ -156,11 +231,11 @@ export function useWallet(nodeState: NodeState) {
     return () => { mountedRef.current = false; };
   }, []);
 
-  // Keep offline state fresh when nodeState changes and we're not live
+  // Keep offline state fresh when nodeState changes and we're NOT live
   useEffect(() => {
     if (!wallet.live) {
       setWallet(prev => ({
-        ...deriveOffline(nodeState),
+        ...deriveOffline(nodeState, prev.version),
         lastSync: prev.lastSync,
       }));
     }
