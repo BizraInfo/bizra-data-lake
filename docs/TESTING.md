@@ -1,6 +1,6 @@
 # BIZRA Testing Guide
 
-Last updated: 2026-03-06
+Last updated: 2026-03-09
 
 This document defines the practical test strategy for local development and CI alignment.
 
@@ -50,12 +50,12 @@ pytest tests/ -m integration
 | Suite | Path | Test Count | Description |
 |-------|------|------------|-------------|
 | Proof Engine | `tests/core/proof_engine/` | ~553 | Receipts, Ed25519, BLAKE3, evidence ledger, POI |
-| Sovereign Runtime | `tests/core/sovereign/` | ~316 | Runtime core, types, API, metrics, seed engine, state |
+| Sovereign Runtime | `tests/core/sovereign/` | ~3,759 | Runtime core, types, API, metrics, seed engine, reflex compiler, state |
 | Spearpoint | `tests/core/spearpoint/` | ~235 | RDVE, patterns, orchestrator, evaluator |
-| Bridges | `tests/core/bridges/` | ~137 | Desktop Bridge, Sci-Reasoning, Rust bridge |
+| Bridges | `tests/core/bridges/` | ~209 | Desktop Bridge, Sci-Reasoning, Rust bridge, memory flush |
 | Token System | `tests/core/token/` | ~87 | Ledger, minting, Ed25519 transactions |
 | Skills | `tests/core/skills/` | ~83 | Skill router, Smart File Management |
-| Integration | `tests/integration/` | ~322 | Cross-module, E2E, seven-layer stack |
+| Integration | `tests/integration/` | ~327 | Cross-module, E2E, seven-layer stack, tick queue |
 
 ### Running Specific Suites
 
@@ -151,7 +151,27 @@ Local run:
 python scripts/ci_docs_quality.py
 ```
 
-## 10. Test Design Principles
+## 10. Reflex Compiler (System-1 Cache)
+
+The `ReflexCompiler` provides O(1) pattern caching for the `/v1/plan` endpoint:
+
+```bash
+# Unit tests (43 tests)
+pytest tests/core/sovereign/test_reflex_compiler.py -v
+
+# Integration tests (System-1 fast path + precipitation recording)
+pytest tests/integration/test_plan_endpoint.py -v
+```
+
+Key behaviors tested:
+- Precipitation: K=3 consecutive high-Ihsan observations crystallize a reflex
+- LRU eviction: Cache bounded to `REFLEX_MAX_ENTRIES` (500)
+- Candidate eviction: Precipitation candidates bounded to 1000
+- Invalidation: Stale reflexes rejected on lookup
+- Thread safety: All operations protected by `threading.Lock`
+- Persistence: JSON save/load with corrupt-file resilience
+
+## 11. Test Design Principles
 
 - Test externally visible contracts, not internal implementation details.
 - Add regression tests for every bug fix that touched runtime/API/security contracts.
