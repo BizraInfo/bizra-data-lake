@@ -184,10 +184,11 @@ class ReflexCompiler:
         persistence_path: Optional[Path] = None,
     ) -> None:
         self._cache: OrderedDict[str, ReflexEntry] = OrderedDict()
-        self._candidates: dict[str, PrecipitationCandidate] = {}
+        self._candidates: OrderedDict[str, PrecipitationCandidate] = OrderedDict()
         self._lock = threading.Lock()
         self._stats = CacheStats()
         self._max_entries = max_entries
+        self._max_candidates = max_entries * 2
         self._persistence_path = persistence_path
 
         if persistence_path and persistence_path.exists():
@@ -256,6 +257,9 @@ class ReflexCompiler:
 
         with self._lock:
             if pattern_hash not in self._candidates:
+                # Evict oldest candidate if at capacity
+                while len(self._candidates) >= self._max_candidates:
+                    self._candidates.popitem(last=False)
                 self._candidates[pattern_hash] = PrecipitationCandidate(
                     pattern_hash=pattern_hash,
                     input_template=input_text,
@@ -342,7 +346,7 @@ class ReflexCompiler:
         with self._lock:
             # Evict LRU if at capacity
             while len(self._cache) >= self._max_entries:
-                evicted_hash, _ = self._cache.popitem(last=False)
+                self._cache.popitem(last=False)
                 self._stats.evictions += 1
 
             entry = ReflexEntry(
@@ -373,7 +377,8 @@ class ReflexCompiler:
     def _precipitate(self, candidate: PrecipitationCandidate) -> ReflexEntry:
         """Crystallize a precipitation candidate into a reflex entry."""
         best = candidate.best_output()
-        assert best is not None  # guaranteed by ready_to_precipitate check
+        if best is None:
+            raise RuntimeError("Cannot precipitate: no observations available")
 
         entry = ReflexEntry(
             pattern_hash=candidate.pattern_hash,

@@ -44,6 +44,7 @@ import asyncio
 import json
 import logging
 import os
+import threading
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -54,6 +55,7 @@ logger = logging.getLogger("sovereign.api")
 
 # Module-level ReflexCompiler singleton (lazy-initialized in /v1/plan)
 _reflex_compiler: Any = None
+_reflex_compiler_lock = threading.Lock()
 
 
 def _env_truthy(var_name: str) -> bool:
@@ -3234,19 +3236,22 @@ def create_fastapi_app(runtime: Any) -> Any:
             # Kahneman S1: if this pattern is cached with high Ihsan,
             # return O(1) cached response instead of full pipeline.
             try:
+                from core.integration.constants import REFLEX_PRECIPITATION_HITS
                 from core.sovereign.reflex_compiler import ReflexCompiler
 
                 global _reflex_compiler  # noqa: PLW0603
-                if "_reflex_compiler" not in globals() or _reflex_compiler is None:
-                    _persistence = os.environ.get(
-                        "REFLEX_PERSISTENCE_PATH",
-                        "/tmp/bizra-mission/reflexes.json",
-                    )
-                    from pathlib import Path
+                if _reflex_compiler is None:
+                    with _reflex_compiler_lock:
+                        if _reflex_compiler is None:  # double-check under lock
+                            _persistence = os.environ.get(
+                                "REFLEX_PERSISTENCE_PATH",
+                                "/tmp/bizra-mission/reflexes.json",
+                            )
+                            from pathlib import Path
 
-                    _reflex_compiler = ReflexCompiler(
-                        persistence_path=Path(_persistence),
-                    )
+                            _reflex_compiler = ReflexCompiler(
+                                persistence_path=Path(_persistence),
+                            )
 
                 reflex_entry = _reflex_compiler.lookup(description)
                 if reflex_entry and not reflex_entry.needs_validation():
@@ -3275,7 +3280,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                             "compiled": True,
                             "near_compile": False,
                             "compile_count": reflex_entry.precipitation_count,
-                            "threshold": 3,
+                            "threshold": REFLEX_PRECIPITATION_HITS,
                         },
                         "memory_delta": {"episodic": 0, "semantic": 0, "procedural": 0},
                         "hash_chain_ref": reflex_entry.pattern_hash,
