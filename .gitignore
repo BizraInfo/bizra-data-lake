@@ -275,3 +275,6 @@ BIZRA-Proof-Canon-v1.0.docx
 BIZRA-Proof-Canon-v1.1.docx
 BIZRA-Evidence-Delta-v1.0-to-v1.1.md
 BIZRA-Sprint2-4-Execution-Playbook-v1.1.md
+
+# Canon binaries should live under docs/canon, not terminal/
+terminal/*.docx
