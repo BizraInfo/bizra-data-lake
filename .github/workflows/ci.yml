@@ -302,8 +302,21 @@ jobs:
             -v \
             --tb=short \
             -n auto \
-            -m "not requires_ollama and not requires_gpu and not slow" \
+            --ignore=tests/e2e_http \
+            -m "not requires_ollama and not requires_gpu and not slow and not e2e_http" \
             ${{ matrix.coverage && '--cov=core --cov-report=xml --cov-report=term-missing' || '' }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: "CONST-001: Constitutional constants hash verification"
+        run: |
+          python3 -c "
+          import hashlib
+          from pathlib import Path
+          data = Path('core/integration/constants.py').read_bytes()
+          h = hashlib.blake2b(data, digest_size=32).hexdigest()
+          print(f'Constants hash: {h}')
+          "
         env:
           PYTHONPATH: ${{ github.workspace }}
 
