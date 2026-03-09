@@ -35,7 +35,9 @@
       "Bash(xargs:*)",
       "Bash(sort:*)",
       "Bash(gh api:*)",
-      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch:*)"
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch:*)",
+      "Bash(git push:*)",
+      "Bash(mkdir:*)"
     ]
   }
 }
