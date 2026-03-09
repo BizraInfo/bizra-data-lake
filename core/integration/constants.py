@@ -346,54 +346,75 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:
 # ═══════════════════════════════════════════════════════════════════════════════
 # NODE0 MODEL FLEET — Agent-to-Model Routing (§1 The Living Organism)
 # ═══════════════════════════════════════════════════════════════════════════════
-# Each PAT/SAT agent maps to a local model. Env vars override defaults.
-# SAT-S, SAT-L, SAT-C, SAT-A are pure-code (no LLM needed).
-# PAT-E (P5 Ethicist) and SAT-O (S2 Oracle) are frozen constitutional gates.
+# 12 agents per node: 7 PAT (user's personal team) + 5 SAT (system gates).
+#
+# 7 PAT — Personal Agentic Team (owned by user, loyal to user):
+#   P1 Planner    — Strategic decomposition, goal breakdown
+#   P2 Researcher — Knowledge retrieval, domain learning
+#   P3 Coder      — Executable actions (Telescript generation)
+#   P4 Evaluator  — Testing, simulation, outcome scoring
+#   P5 Ethicist   — Ihsan scoring, constitutional alignment (frozen gate)
+#   P6 Publisher   — Communication, formatting, user-facing output
+#   P7 Integrator (DEMA) — Synthesis, team coordination, voice persona
+#
+# 5 SAT — System Agentic Team (owned by BIZRA URP, system-wide):
+#   S1 Sentinel   — Real-time threat detection (pure-code, no LLM)
+#   S2 Oracle     — Constitutional reasoning, Shura consensus
+#   S3 Ledger     — Evidence chain, proof-carrying inference (pure-code)
+#   S4 Conductor  — Event bus routing, agent orchestration (pure-code)
+#   S5 Ambassador — Federation gossip, inter-node protocol (pure-code)
 #
 # Ollama defaults (always available). When LM Studio is reachable,
 # load_fleet_from_yaml() overrides with config/local_models.yaml IDs.
+# Vision and embedding are shared capabilities, not agents — routed via task type.
 _OLLAMA_FLEET_DEFAULTS: Dict[str, str] = {
-    "PAT-R": "deepseek-r1:14b",
-    "PAT-K": "qwen2.5:3b",
-    "PAT-S": "mistral:latest",       # 7B — Ollama fallback for coding (LM Studio: agentflow-7b)
-    "PAT-C": "phi3:mini",
-    "PAT-V": "moondream:1.8b",
-    "PAT-M": "nomic-embed-text:latest",
-    "PAT-VOICE": "deephat-v1-7b",    # NVIDIA PersonaPlex 7B — voice agent (HF: nvidia/personaplex-7b-v1)
-    "DEMA": "deephat-v1-7b",             # P7 Nexus persona — user-facing voice via PersonaPlex 7B
-    "SAT-O": "phi3:mini",
-    "default": "phi3:mini",
+    # 7 PAT agents
+    "P1-Planner": "deepseek-r1:14b",        # Deep reasoning for strategic planning
+    "P2-Researcher": "qwen2.5:3b",          # Knowledge + multilingual
+    "P3-Coder": "mistral:latest",            # 7B code generation (LM Studio: agentflow-7b)
+    "P4-Evaluator": "phi3:mini",             # Fast evaluation + scoring
+    "P5-Ethicist": "frozen",                 # Constitutional gate — no LLM, pure Ihsan logic
+    "P6-Publisher": "phi3:mini",             # Communication formatting
+    "P7-DEMA": "deephat-v1-7b",             # Integrator + voice (NVIDIA PersonaPlex 7B)
+    # 5 SAT agents
+    "S1-Sentinel": "pure-code",              # Threat detection — no LLM needed
+    "S2-Oracle": "phi3:mini",                # Constitutional reasoning (lightweight)
+    "S3-Ledger": "pure-code",                # Evidence chain — no LLM needed
+    "S4-Conductor": "pure-code",             # Event routing — no LLM needed
+    "S5-Ambassador": "pure-code",            # Federation — no LLM needed
+    # Shared capabilities (not agents — routed by task type)
+    "vision": "moondream:1.8b",              # Visual analysis capability
+    "embedding": "nomic-embed-text:latest",  # Vector embedding capability
+    "default": "phi3:mini",                  # Fallback for unrouted queries
 }
 
-# PAT agent ID → local_models.yaml pat_agents role name
-# PAT agent ID → local_models.yaml lookup key.
+# Agent ID → local_models.yaml lookup key.
 # Checked against pat_agents first, then models[] directly.
-# When a pat_agents role maps to a model too small for the task,
-# the key here points to the models[] entry instead.
 PAT_ROLE_MAP: Dict[str, str] = {
-    "PAT-R": "researcher",     # pat_agents → reasoning (deepseek 8B)
-    "PAT-K": "thinking",       # models[] direct — knowledge needs explicit CoT
-    "PAT-S": "planning",       # pat_agents → planning (agentflow 7B, better for code than liquid 1.2B)
-    "PAT-C": "coordinator",    # pat_agents → planning (agentflow 7B)
-    "PAT-V": "vision_large",   # models[] direct — qwen VL 8B
-    "PAT-M": "embedding",      # models[] direct — nomic embed
-    "PAT-VOICE": "voice",      # personaplex/engine.py — nvidia/personaplex-7b-v1
-    "DEMA": "voice",            # P7 Nexus — user-facing persona via PersonaPlex voice
-    "SAT-O": "guardian",       # pat_agents → reasoning (deepseek 8B)
-    "default": "fast",         # models[] direct — liquid 1.2B
+    "P1-Planner": "strategist",      # pat_agents → planning (agentflow 7B)
+    "P2-Researcher": "researcher",   # pat_agents → reasoning (deepseek 8B)
+    "P3-Coder": "planning",          # pat_agents → planning (agentflow 7B)
+    "P4-Evaluator": "analyst",       # pat_agents → reasoning (deepseek 8B)
+    "P5-Ethicist": "frozen",         # No YAML lookup — constitutional gate
+    "P6-Publisher": "coordinator",   # pat_agents → planning (agentflow 7B)
+    "P7-DEMA": "voice",              # personaplex/engine.py — nvidia/personaplex-7b-v1
+    "S2-Oracle": "guardian",         # pat_agents → reasoning (deepseek 8B)
+    "vision": "vision_large",        # models[] direct — qwen VL 8B
+    "embedding": "embedding",        # models[] direct — nomic embed
+    "default": "fast",               # models[] direct — liquid 1.2B
 }
 
 # Env-var overrides applied on top of the loaded fleet
 _ENV_OVERRIDES: Dict[str, str] = {
-    "PAT-R": "BIZRA_MODEL_REASONING",
-    "PAT-K": "BIZRA_MODEL_KNOWLEDGE",
-    "PAT-S": "BIZRA_MODEL_CODER",
-    "PAT-C": "BIZRA_MODEL_COMM",
-    "PAT-V": "BIZRA_MODEL_VISION",
-    "PAT-M": "BIZRA_MODEL_EMBED",
-    "PAT-VOICE": "BIZRA_MODEL_VOICE",
-    "DEMA": "BIZRA_MODEL_DEMA",
-    "SAT-O": "BIZRA_MODEL_ORACLE",
+    "P1-Planner": "BIZRA_MODEL_PLANNER",
+    "P2-Researcher": "BIZRA_MODEL_RESEARCHER",
+    "P3-Coder": "BIZRA_MODEL_CODER",
+    "P4-Evaluator": "BIZRA_MODEL_EVALUATOR",
+    "P6-Publisher": "BIZRA_MODEL_PUBLISHER",
+    "P7-DEMA": "BIZRA_MODEL_DEMA",
+    "S2-Oracle": "BIZRA_MODEL_ORACLE",
+    "vision": "BIZRA_MODEL_VISION",
+    "embedding": "BIZRA_MODEL_EMBED",
     "default": "BIZRA_MODEL_DEFAULT",
 }
 

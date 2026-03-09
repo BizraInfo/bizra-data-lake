@@ -88,18 +88,22 @@
 ### Week 2 (March 10-16): MOE Engine + Asabiyyah
 
 **Deliverables:**
-1. `core/living_model/moe_engine.py` — 5-expert routing engine
+1. `core/living_model/moe_engine.py` — 5-expert routing engine (spec 68.07)
    - Expert-R (Reasoning), Expert-K (Knowledge), Expert-S (Skills)
    - Expert-G (Governance), Expert-V (Verification)
    - Router: input → expert selection → synthesis
 2. `core/constitutional/asabiyyah.py` — Asabiyyah-Gini coupling (spec 67.03a)
-3. Coverage ratchet: 64.57% → 66%+
+3. ReflexCompiler HHMM upgrade — merge `my complete season/reflex_compiler.py` (+181 LOC)
+4. `core/bus/subscribers.py` — 12 EventBus subscribers from season archive
+5. Coverage ratchet: 64.57% → 66%+
+
+**Specs:** `phase_68_07_moe_engine.md`, `phase_80_season_integration.md`
 
 **CI Changes:**
 - Bump `fail_under` from 38 to 62 in `pyproject.toml`
 
 **Quality Gate:**
-- 45+ new tests for MOE + Asabiyyah
+- 45+ new tests for MOE + Asabiyyah + subscribers
 - Proof Forge receipt #3
 
 ### Week 3 (March 17-23): ActionBus + OmegaLoop

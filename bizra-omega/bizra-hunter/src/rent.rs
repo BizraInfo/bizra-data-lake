@@ -60,7 +60,7 @@ impl HarbergerRent {
             next_id: std::sync::atomic::AtomicU32::new(1),
             base_rate,
             grace_period,
-            tax_rate: 1000, // 10%
+            tax_rate: 500, // 5% annual — aligned with Python ADL_HARBERGER_TAX_RATE
         }
     }
 

@@ -32,17 +32,17 @@ import hashlib
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Set
 
 from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
+    SNR_THRESHOLD_T0_ELITE,
     UNIFIED_SNR_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
 
 # Reflex compilation thresholds (from constitutional tick Step 11)
-REFLEX_IHSAN_THRESHOLD = 0.98  # Stricter than production 0.95
+REFLEX_IHSAN_THRESHOLD = SNR_THRESHOLD_T0_ELITE  # 0.98 — stricter than production 0.95
 REFLEX_REPRODUCIBILITY_THRESHOLD = 0.90  # Must reproduce results consistently
 REFLEX_MIN_OBSERVATIONS = 5  # Minimum training appearances
 REFLEX_IMPACT_FLOOR = 0.01  # Impact must be > 0 (anti-gaming)

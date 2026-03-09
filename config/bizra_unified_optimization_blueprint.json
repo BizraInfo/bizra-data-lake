@@ -1,0 +1,189 @@
+{
+  "program": {
+    "id": "bizra_unified_optimization_blueprint",
+    "name": "BIZRA Unified Optimization Blueprint",
+    "version": "1.0.0",
+    "date": "2026-03-09",
+    "status": "active",
+    "objective": "Turn multi-lens analysis into one actionable program that closes the gap between constitutional design and runtime truth."
+  },
+  "evidence_base": {
+    "docs": [
+      "docs/GENESIS_EXECUTION_FRAMEWORK.md",
+      "docs/plans/GENESIS_CLOSURE_SPRINT_v1.md",
+      "docs/GENESIS_ROADMAP.md",
+      "docs/MASTER_MULTI_LENS_AUDIT_2026-03-03.md",
+      "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+      "docs/specs/UNIFIED_SPEC_INDEX.md"
+    ],
+    "code": [
+      "core/sovereign/api.py",
+      "core/sovereign/mission.py",
+      "core/sovereign/runtime_core.py",
+      "core/proof_engine/",
+      "core/bus/",
+      "tests/"
+    ]
+  },
+  "north_star": {
+    "ihsan_min": 0.95,
+    "snr_min": 0.85,
+    "adl_gini_max": 0.35,
+    "auth_fail_closed_required": true,
+    "receipt_provenance_required": true,
+    "docs_canonical_required": true
+  },
+  "control_model": {
+    "pmbok": [
+      "scope",
+      "schedule",
+      "quality",
+      "risk",
+      "communications",
+      "resources",
+      "stakeholders"
+    ],
+    "devops": [
+      "thin_slice_delivery",
+      "ci_cd_gates",
+      "rollback_rehearsal",
+      "operational_observability"
+    ],
+    "sape": [
+      "signal",
+      "abstraction",
+      "probe",
+      "elevation"
+    ]
+  },
+  "workstreams": [
+    {
+      "id": "ws1",
+      "name": "constitutional_runtime_closure",
+      "priority": "P0",
+      "focus": [
+        "content_derived_ihsan",
+        "constitutional_reason_codes",
+        "authoritative_live_path"
+      ]
+    },
+    {
+      "id": "ws2",
+      "name": "nervous_system_completion",
+      "priority": "P0",
+      "focus": [
+        "action_event_contracts",
+        "12_subscriber_layer",
+        "runtime_wiring",
+        "event_causality_tests"
+      ]
+    },
+    {
+      "id": "ws3",
+      "name": "inference_provenance_and_model_governance",
+      "priority": "P0",
+      "focus": [
+        "backend_model_latency_capture",
+        "fallback_reason_capture",
+        "receipt_level_provenance"
+      ]
+    },
+    {
+      "id": "ws4",
+      "name": "reflex_and_performance_excellence",
+      "priority": "P1",
+      "focus": [
+        "reflex_compiler_upgrade",
+        "plan_hit_miss_telemetry",
+        "latency_budget_enforcement"
+      ]
+    },
+    {
+      "id": "ws5",
+      "name": "ci_cd_evidence_and_release_integrity",
+      "priority": "P0",
+      "focus": [
+        "closure_gate_in_ci",
+        "standalone_smoke",
+        "proof_pack_generation",
+        "rollback_posture"
+      ]
+    },
+    {
+      "id": "ws6",
+      "name": "documentation_canon_and_operator_clarity",
+      "priority": "P1",
+      "focus": [
+        "portal_alignment",
+        "execution_spine_alignment",
+        "doc_to_code_traceability"
+      ]
+    }
+  ],
+  "roadmap": {
+    "priority_0": [
+      "contract_locking",
+      "subscriber_wiring",
+      "inference_provenance",
+      "authoritative_ihsan"
+    ],
+    "priority_1": [
+      "reflex_compiler_upgrade",
+      "performance_telemetry",
+      "bounded_fast_path"
+    ],
+    "priority_2": [
+      "ci_cd_closure_gate",
+      "release_proof_pack",
+      "rollback_rehearsal"
+    ],
+    "priority_3": [
+      "moe_expansion",
+      "federation_fabric",
+      "multi_node_proof",
+      "crown_perception"
+    ]
+  },
+  "risk_cascades": [
+    {
+      "risk": "ihsan_injected_in_authoritative_path",
+      "cascade": "ethical_truth_becomes_unverifiable",
+      "control": "compute_from_content_and_evidence"
+    },
+    {
+      "risk": "subscribers_unwired",
+      "cascade": "event_bus_becomes_observational_noise",
+      "control": "wire_12_handlers_and_test_reachability"
+    },
+    {
+      "risk": "inference_provenance_absent",
+      "cascade": "backend_drift_becomes_invisible",
+      "control": "attach_backend_model_and_fallback_to_receipts"
+    },
+    {
+      "risk": "reflex_partial_only",
+      "cascade": "latency_and_repeat_work_remain_high",
+      "control": "upgrade_and_surface_hit_telemetry"
+    },
+    {
+      "risk": "ci_without_closure_gate",
+      "cascade": "local_demos_diverge_from_protected_branch_truth",
+      "control": "add_closure_pack_to_ci"
+    }
+  ],
+  "definition_of_done": [
+    "signed_receipt_chain_from_request_to_response",
+    "all_12_subscribers_wired_and_integration_tested",
+    "ihsan_computed_from_content_on_authoritative_path",
+    "reflex_hit_path_visible_on_v1_plan",
+    "one_real_seed_request_emits_replayable_proof_artifact"
+  ],
+  "immediate_next_move": {
+    "order": [
+      "lock_action_event_contracts",
+      "implement_core_bus_subscribers_py",
+      "wire_subscribers_into_runtime_boot"
+    ],
+    "reason": "This is the shortest path from architectural intent to operational closure."
+  }
+}

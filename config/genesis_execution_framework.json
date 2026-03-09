@@ -1,0 +1,342 @@
+{
+  "program": {
+    "id": "genesis_execution_framework",
+    "name": "BIZRA Genesis Execution Framework",
+    "version": "1.0.0",
+    "date": "2026-03-09",
+    "status": "active",
+    "objective": "Convert roadmap, audit, quality, and ethical findings into one fail-closed delivery program."
+  },
+  "grounding": {
+    "docs": [
+      "docs/GENESIS_ROADMAP.md",
+      "docs/MASTER_MULTI_LENS_AUDIT_2026-03-03.md",
+      "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+      "docs/QUALITY_MANAGEMENT_GUIDE.md",
+      "docs/specs/UNIFIED_SPEC_INDEX.md",
+      "config/mastery_framework_roadmap.json"
+    ],
+    "snapshot": {
+      "as_of": "2026-03-09",
+      "spec_files": 348,
+      "unbuilt_specs": 20,
+      "phase_67_gap_count": 2,
+      "phase_68_built_percent": 0,
+      "governed_routes": 63,
+      "sovereign_runtime_tests": 3759,
+      "coverage_policy": "ratchet_only"
+    }
+  },
+  "north_star": {
+    "ihsan_min": 0.95,
+    "snr_min": 0.85,
+    "adl_gini_max": 0.35,
+    "auth_fail_closed_required": true,
+    "release_proof_required": true,
+    "quality_floor_policy": "ratchet_only",
+    "canonical_spec_root": "docs/specs/"
+  },
+  "sape_control_plane": {
+    "signal": [
+      "boundary_truth",
+      "auth_and_deploy_fail_closed",
+      "shared_persistence_before_scale",
+      "docs_and_contract_parity"
+    ],
+    "abstraction_layers": [
+      "system1_reflex",
+      "system2_constitutional",
+      "system3_graph_of_thoughts_expert_routing"
+    ],
+    "probe_targets": [
+      "negative_auth_paths",
+      "rollback_and_failover",
+      "multi_worker_consistency",
+      "prompt_attack_paths",
+      "route_documentation_parity"
+    ],
+    "elevation_path": [
+      "intent",
+      "expert_routing",
+      "synthesis",
+      "constitutional_verification",
+      "receipt",
+      "optional_reflex_compile"
+    ]
+  },
+  "workstreams": [
+    {
+      "id": "ws1",
+      "priority": "P0",
+      "name": "boundary_hardening_and_architectural_closure",
+      "deliverables": [
+        "api_surface_convergence_or_parity_tests",
+        "fail_closed_deploy_gates",
+        "auth_required_for_mutating_routes",
+        "phase67_asabiyyah_gini_coupling"
+      ],
+      "acceptance_gates": [
+        "no_documented_route_surprise_404",
+        "unauthenticated_mutations_rejected",
+        "deploy_bypass_flags_removed_or_blocked",
+        "phase67_economic_regression_tests_green"
+      ]
+    },
+    {
+      "id": "ws2",
+      "priority": "P0",
+      "name": "nervous_system_foundation",
+      "deliverables": [
+        "topic_registry",
+        "telescript",
+        "action_bus",
+        "omega_loop",
+        "config_system",
+        "capsule_runtime"
+      ],
+      "acceptance_gates": [
+        "phase68_no_longer_spec_only",
+        "canonical_action_receipts_emitted",
+        "topic_events_validated",
+        "iteration_success_or_failure_is_receipted"
+      ]
+    },
+    {
+      "id": "ws3",
+      "priority": "P1",
+      "name": "performance_and_reliability",
+      "deliverables": [
+        "native_filesystem_test_runner",
+        "critical_path_performance_budgets",
+        "cheap_health_endpoints",
+        "bounded_system1_cache"
+      ],
+      "acceptance_gates": [
+        "performance_budgets_measured_in_ci",
+        "health_paths_do_not_scan_full_integrity_state",
+        "cache_invalidations_are_tested"
+      ]
+    },
+    {
+      "id": "ws4",
+      "priority": "P0",
+      "name": "ci_cd_and_evidence_automation",
+      "deliverables": [
+        "coverage_ratchet_raise",
+        "negative_auth_and_contract_tests",
+        "release_proof_pack_generation",
+        "rollback_rehearsal"
+      ],
+      "acceptance_gates": [
+        "protected_branch_ci_blocks_on_security_contract_and_evidence_failures",
+        "coverage_floor_only_moves_up",
+        "every_release_candidate_has_a_proof_pack"
+      ]
+    },
+    {
+      "id": "ws5",
+      "priority": "P1",
+      "name": "documentation_canon_and_knowledge_hygiene",
+      "deliverables": [
+        "docs_portal_canonical_links",
+        "spec_index_alignment",
+        "doc_to_code_parity_enforcement"
+      ],
+      "acceptance_gates": [
+        "docs_readme_links_resolve",
+        "structural_repo_changes_update_docs_in_same_change",
+        "canonical_docs_reference_executable_artifacts"
+      ]
+    },
+    {
+      "id": "ws6",
+      "priority": "P0",
+      "name": "ethical_integrity_and_justice_instrumentation",
+      "deliverables": [
+        "ethical_threshold_imports_from_constants",
+        "signed_or_hash_linked_decision_evidence",
+        "release_block_on_constitutional_violation"
+      ],
+      "acceptance_gates": [
+        "ihsan_snr_and_adl_thresholds_machine_enforced",
+        "major_decisions_receipted",
+        "no_release_with_open_constitutional_failures"
+      ]
+    }
+  ],
+  "waves": [
+    {
+      "id": "wave0",
+      "name": "stop_the_drift",
+      "window": "0-72h",
+      "focus": [
+        "docs_portal_drift",
+        "fail_open_auth_and_deploy_paths",
+        "serving_api_truth",
+        "honest_ci_baselines"
+      ],
+      "exit_criteria": [
+        "docs_portal_canonical",
+        "mutating_routes_fail_closed",
+        "route_and_documentation_parity_enforced"
+      ]
+    },
+    {
+      "id": "wave1",
+      "name": "constitutional_closure",
+      "window": "week_2",
+      "focus": [
+        "phase67_asabiyyah_gini",
+        "bounded_multi_expert_reasoning_router",
+        "next_proof_receipt"
+      ],
+      "exit_criteria": [
+        "phase67_gap_count_reduced",
+        "new_reasoning_path_budgeted_and_receipted"
+      ]
+    },
+    {
+      "id": "wave2",
+      "name": "nervous_system_foundation",
+      "window": "weeks_3_4",
+      "focus": [
+        "topic_registry",
+        "telescript",
+        "action_bus",
+        "omega_loop",
+        "config_system"
+      ],
+      "exit_criteria": [
+        "phase68_has_live_implementations",
+        "canonical_action_pipeline_exists"
+      ]
+    },
+    {
+      "id": "wave3",
+      "name": "runtime_and_operator_closure",
+      "window": "weeks_5_6",
+      "focus": [
+        "akis",
+        "capsule_runtime",
+        "shared_persistence",
+        "chaos_and_rollback_verification",
+        "operator_release_pack"
+      ],
+      "exit_criteria": [
+        "multi_worker_consistency_proven",
+        "operator_runbooks_match_runtime"
+      ]
+    },
+    {
+      "id": "wave4",
+      "name": "genesis_gate",
+      "window": "release_window",
+      "focus": [
+        "full_release_verification",
+        "canary_validation",
+        "rollback_readiness",
+        "artifact_provenance"
+      ],
+      "exit_criteria": [
+        "proof_pack_signed",
+        "canary_and_rollback_verified",
+        "release_claim_evidence_backed"
+      ]
+    }
+  ],
+  "ci_cd_gates": {
+    "pre_merge": [
+      "targeted_tests_for_touched_domains",
+      "docs_parity_for_behavior_or_contract_change",
+      "negative_auth_tests_for_new_mutations",
+      "no_new_critical_security_findings"
+    ],
+    "protected_main": [
+      "coverage_ratchet_evaluation",
+      "contract_and_smoke_verification",
+      "release_relevant_paths_emit_evidence",
+      "performance_budget_checks"
+    ],
+    "release_candidate": [
+      "changelog_and_release_readiness_report",
+      "proof_pack_generation",
+      "rollback_rehearsal",
+      "staging_smoke_and_policy_checks"
+    ],
+    "production": [
+      "canary_verification",
+      "constitutional_thresholds_green",
+      "rollback_available",
+      "artifact_provenance_recorded"
+    ]
+  },
+  "risks": [
+    {
+      "id": "rk1",
+      "name": "dual_api_drift",
+      "impact": "features land on inactive surface and silently disappear",
+      "mitigation": "retire one surface or enforce parity tests"
+    },
+    {
+      "id": "rk2",
+      "name": "fail_open_boundaries",
+      "impact": "trust claims collapse under deployment pressure",
+      "mitigation": "remove permissive toggles and block on auth or evidence gaps"
+    },
+    {
+      "id": "rk3",
+      "name": "multi_worker_state_divergence",
+      "impact": "distributed claims become inconsistent",
+      "mitigation": "shared persistence before scale out"
+    },
+    {
+      "id": "rk4",
+      "name": "ci_signal_dilution",
+      "impact": "green builds stop meaning anything",
+      "mitigation": "replace soft warnings with blocking controls on protected paths"
+    },
+    {
+      "id": "rk5",
+      "name": "docs_drift_after_structural_change",
+      "impact": "operators and contributors follow dead paths",
+      "mitigation": "update docs portal and spec index in same change set"
+    },
+    {
+      "id": "rk6",
+      "name": "llm_novelty_without_receipts",
+      "impact": "impressive output becomes unverifiable risk",
+      "mitigation": "budgeted expert routing plus constitutional verification and receipts"
+    }
+  ],
+  "cadence": {
+    "daily": [
+      "review_wave_blockers",
+      "review_open_risks",
+      "check_doc_and_contract_drift"
+    ],
+    "weekly": [
+      "select_one_compounding_capability_change",
+      "retire_one_boundary_risk",
+      "ratchet_one_quality_threshold",
+      "publish_one_evidence_backed_program_summary"
+    ],
+    "release": [
+      "run_release_verification_stack",
+      "validate_constitutional_state",
+      "confirm_rollback_posture",
+      "sign_and_archive_proof_pack"
+    ]
+  },
+  "next_actions": [
+    "make_the_active_api_surface_explicit_and_guard_it_with_parity_tests",
+    "implement_phase67_asabiyyah_gini_coupling",
+    "raise_coverage_enforcement_to_the_highest_honest_floor_then_ratchet",
+    "add_negative_auth_tests_for_mutating_boundary_routes",
+    "spec_and_build_a_bounded_multi_expert_reasoning_router",
+    "implement_topic_registry_telescript_and_action_bus_before_higher_loop_logic",
+    "move_expensive_integrity_work_out_of_liveness_paths",
+    "replace_process_local_shared_state_where_distributed_reliability_is_claimed",
+    "generate_proof_packs_on_release_candidates_and_tags",
+    "keep_docs_portal_and_spec_index_canonical_after_every_structural_change"
+  ]
+}

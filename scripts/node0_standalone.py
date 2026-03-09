@@ -648,18 +648,26 @@ except ImportError:
 
 # Agent → model routing map — single source of truth in constants.py
 # Supports Ollama defaults + LM Studio overrides + env var overrides
+# 12 agents: 7 PAT (user) + 5 SAT (system) + shared capabilities
 try:
     from core.integration.constants import NODE0_MODEL_FLEET
 except ImportError:
     # Fallback for standalone execution without core on sys.path
     NODE0_MODEL_FLEET: dict[str, str] = {  # type: ignore[no-redef]
-        "PAT-R": os.environ.get("BIZRA_MODEL_REASONING", "deepseek-r1:14b"),
-        "PAT-K": os.environ.get("BIZRA_MODEL_KNOWLEDGE", "qwen2.5:3b"),
-        "PAT-S": os.environ.get("BIZRA_MODEL_CODER", "qwen2.5-coder:7b"),
-        "PAT-C": os.environ.get("BIZRA_MODEL_COMM", "phi3:mini"),
-        "PAT-V": os.environ.get("BIZRA_MODEL_VISION", "moondream:1.8b"),
-        "PAT-M": os.environ.get("BIZRA_MODEL_EMBED", "nomic-embed-text:latest"),
-        "SAT-O": os.environ.get("BIZRA_MODEL_ORACLE", "phi3:mini"),
+        "P1-Planner": os.environ.get("BIZRA_MODEL_PLANNER", "deepseek-r1:14b"),
+        "P2-Researcher": os.environ.get("BIZRA_MODEL_RESEARCHER", "qwen2.5:3b"),
+        "P3-Coder": os.environ.get("BIZRA_MODEL_CODER", "mistral:latest"),
+        "P4-Evaluator": os.environ.get("BIZRA_MODEL_EVALUATOR", "phi3:mini"),
+        "P5-Ethicist": "frozen",
+        "P6-Publisher": os.environ.get("BIZRA_MODEL_PUBLISHER", "phi3:mini"),
+        "P7-DEMA": os.environ.get("BIZRA_MODEL_DEMA", "deephat-v1-7b"),
+        "S1-Sentinel": "pure-code",
+        "S2-Oracle": os.environ.get("BIZRA_MODEL_ORACLE", "phi3:mini"),
+        "S3-Ledger": "pure-code",
+        "S4-Conductor": "pure-code",
+        "S5-Ambassador": "pure-code",
+        "vision": os.environ.get("BIZRA_MODEL_VISION", "moondream:1.8b"),
+        "embedding": os.environ.get("BIZRA_MODEL_EMBED", "nomic-embed-text:latest"),
         "default": os.environ.get("BIZRA_MODEL_DEFAULT", "phi3:mini"),
     }
 
@@ -750,69 +758,99 @@ def create_app(
 
     @app.get("/v1/agents")
     async def list_agents() -> dict[str, Any]:
-        """List the 12-agent organism with model assignments."""
+        """List the 12-agent organism: 7 PAT (user's team) + 5 SAT (system gates)."""
         pat = [
             {
-                "id": "PAT-R",
-                "name": "Reasoning",
-                "model": NODE0_MODEL_FLEET["PAT-R"],
+                "id": "P1-Planner",
+                "name": "Planner",
+                "role": "Strategic decomposition, goal breakdown",
+                "model": NODE0_MODEL_FLEET.get("P1-Planner", "deepseek-r1:14b"),
                 "type": "neural",
+                "mode": "System 2",
             },
             {
-                "id": "PAT-K",
-                "name": "Knowledge",
-                "model": NODE0_MODEL_FLEET["PAT-K"],
+                "id": "P2-Researcher",
+                "name": "Researcher",
+                "role": "Knowledge retrieval, domain learning",
+                "model": NODE0_MODEL_FLEET.get("P2-Researcher", "qwen2.5:3b"),
                 "type": "neural",
+                "mode": "System 2",
             },
             {
-                "id": "PAT-S",
-                "name": "Skills/Code",
-                "model": NODE0_MODEL_FLEET["PAT-S"],
+                "id": "P3-Coder",
+                "name": "Coder",
+                "role": "Executable actions, Telescript generation",
+                "model": NODE0_MODEL_FLEET.get("P3-Coder", "mistral:latest"),
                 "type": "neural",
+                "mode": "System 2",
             },
             {
-                "id": "PAT-C",
-                "name": "Communication",
-                "model": NODE0_MODEL_FLEET["PAT-C"],
+                "id": "P4-Evaluator",
+                "name": "Evaluator",
+                "role": "Testing, simulation, outcome scoring",
+                "model": NODE0_MODEL_FLEET.get("P4-Evaluator", "phi3:mini"),
                 "type": "neural",
+                "mode": "System 2",
             },
             {
-                "id": "PAT-V",
-                "name": "Vision",
-                "model": NODE0_MODEL_FLEET["PAT-V"],
-                "type": "neural",
-            },
-            {
-                "id": "PAT-M",
-                "name": "Memory/Embed",
-                "model": NODE0_MODEL_FLEET["PAT-M"],
-                "type": "neural",
-            },
-            {
-                "id": "PAT-E",
-                "name": "Ethicist (P5)",
+                "id": "P5-Ethicist",
+                "name": "Ethicist",
+                "role": "Ihsan scoring, constitutional alignment",
                 "model": "frozen",
                 "type": "constitutional",
+                "mode": "System 2",
+            },
+            {
+                "id": "P6-Publisher",
+                "name": "Publisher",
+                "role": "Communication, formatting, user-facing output",
+                "model": NODE0_MODEL_FLEET.get("P6-Publisher", "phi3:mini"),
+                "type": "neural",
+                "mode": "System 1",
+            },
+            {
+                "id": "P7-DEMA",
+                "name": "DEMA (Integrator)",
+                "role": "Synthesis, team coordination, voice persona",
+                "model": NODE0_MODEL_FLEET.get("P7-DEMA", "deephat-v1-7b"),
+                "type": "neural",
+                "mode": "System 2",
+                "persona": "Daughter Test personified",
             },
         ]
         sat = [
-            {"id": "SAT-S", "name": "Sentinel", "model": "pure-code", "type": "gate"},
             {
-                "id": "SAT-O",
-                "name": "Oracle (S2)",
-                "model": NODE0_MODEL_FLEET["SAT-O"],
+                "id": "S1-Sentinel",
+                "name": "Sentinel",
+                "role": "Real-time threat detection",
+                "model": "pure-code",
                 "type": "gate",
             },
-            {"id": "SAT-L", "name": "Ledger", "model": "pure-code", "type": "gate"},
             {
-                "id": "SAT-C",
+                "id": "S2-Oracle",
+                "name": "Oracle",
+                "role": "Constitutional reasoning, Shura consensus",
+                "model": NODE0_MODEL_FLEET.get("S2-Oracle", "phi3:mini"),
+                "type": "gate",
+            },
+            {
+                "id": "S3-Ledger",
+                "name": "Ledger",
+                "role": "Evidence chain, proof-carrying inference",
+                "model": "pure-code",
+                "type": "gate",
+            },
+            {
+                "id": "S4-Conductor",
                 "name": "Conductor",
+                "role": "Event bus routing, agent orchestration",
                 "model": "pure-code",
                 "type": "router",
             },
             {
-                "id": "SAT-A",
+                "id": "S5-Ambassador",
                 "name": "Ambassador",
+                "role": "Federation gossip, inter-node protocol",
                 "model": "pure-code",
                 "type": "federation",
             },

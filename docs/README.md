@@ -1,12 +1,12 @@
 # BIZRA Documentation Portal
 
-Last updated: 2026-03-07
+Last updated: 2026-03-09
 
 ## API Surface (v1.4.0)
 
 61 routes across 14 domains. OpenAPI docs at `/docs`, ReDoc at `/redoc`.
 21 Pydantic schema models with typed request/response contracts.
-Golden path: `POST /v1/plan` — sovereign mission with receipted result.
+Golden path: `POST /v1/plan` - sovereign mission with receipted result.
 Constitutional heartbeat: background tick every 60s (configurable via `BIZRA_TICK_INTERVAL_S`).
 Auth guard: `BIZRA_AUTH_ALLOW_ANONYMOUS` blocked in production (`BIZRA_ENV=production`).
 
@@ -16,6 +16,12 @@ Use this file first, then follow the role-based reading paths below.
 ## Project Handover
 
 **Start here for a complete project overview:** [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md)
+
+**Current execution program:** [GENESIS_EXECUTION_FRAMEWORK.md](GENESIS_EXECUTION_FRAMEWORK.md)
+
+**Unified optimization blueprint:** [plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
+
+**Immediate closure program:** [plans/GENESIS_CLOSURE_SPRINT_v1.md](plans/GENESIS_CLOSURE_SPRINT_v1.md)
 
 The handover document covers: identity, architecture, metrics (582K lines, 7,907 tests), timeline (Ramadan 2023 to present), security posture, economic model, roadmap, and full documentation index. It references the authoritative genesis documents in `00_GENESIS/`.
 
@@ -29,26 +35,32 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 
 ### 0. Full Project Handover (any audience)
 
-1. [Project Handover](PROJECT_HANDOVER.md) — single document covering everything
+1. [Project Handover](PROJECT_HANDOVER.md) - single document covering everything
 
 ### 1. New Engineer (30-60 minutes)
 
-1. [Project Handover](PROJECT_HANDOVER.md) — start here
-2. [Quick Start](QUICK-START.md)
-3. [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md)
-4. [Integration Contracts](INTEGRATION_CONTRACTS.md)
-5. [Testing Guide](TESTING.md)
+1. [Project Handover](PROJECT_HANDOVER.md) - start here
+2. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
+3. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
+4. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
+5. [Quick Start](QUICK-START.md)
+6. [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md)
+7. [Integration Contracts](INTEGRATION_CONTRACTS.md)
+8. [Testing Guide](TESTING.md)
 
 ### 2. Operator / SRE
 
 1. [Operations Runbook](OPERATIONS_RUNBOOK.md)
-2. [DevOps Blueprint](DEVOPS_BLUEPRINT.md)
-3. [Desktop Bridge](DESKTOP_BRIDGE.md)
-4. [Threat Model](THREAT-MODEL-V3.md)
-5. [Security Architecture](SECURITY-ARCHITECTURE.md)
-6. [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md)
-7. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
-8. [Risk Management Plan](RISK_MANAGEMENT_PLAN.md)
+2. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
+3. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
+4. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
+5. [DevOps Blueprint](DEVOPS_BLUEPRINT.md)
+6. [Desktop Bridge](DESKTOP_BRIDGE.md)
+7. [Threat Model](THREAT-MODEL-V3.md)
+8. [Security Architecture](SECURITY-ARCHITECTURE.md)
+9. [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md)
+10. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
+11. [Risk Management Plan](RISK_MANAGEMENT_PLAN.md)
 
 ### 3. Security / Compliance Reviewer
 
@@ -71,10 +83,10 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 
 ### 5. Investor / Business Stakeholder
 
-1. [Project Handover](PROJECT_HANDOVER.md) — complete overview with metrics
+1. [Project Handover](PROJECT_HANDOVER.md) - complete overview with metrics
 2. [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md)
 3. [The Constitutional Seed](CONSTITUTIONAL_SEED.md)
-4. [Genesis Story](../00_GENESIS/BIZRA_COMPLETE_STORY_AUTHORITATIVE.md) — the full narrative
+4. [Genesis Story](../00_GENESIS/BIZRA_COMPLETE_STORY_AUTHORITATIVE.md) - the full narrative
 5. [Technical Brief](BIZRA_TECHNICAL_BRIEF_INVESTORS.md)
 6. [Strategy Deck](BIZRA_STRATEGY_DECK_2026.md)
 7. [Evidence Pack](EVIDENCE_PACK_A_PLUS.md)
@@ -83,16 +95,19 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 ### 6. System Designer / Architect
 
 1. [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md)
-2. [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md)
-3. [The Constitutional Seed](CONSTITUTIONAL_SEED.md)
-4. [Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md)
-5. [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md)
-6. [Rust Integration](RUST_INTEGRATION.md)
-7. [Integration Contracts](INTEGRATION_CONTRACTS.md)
-8. [Spearpoint (RDVE)](SPEARPOINT.md)
-9. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
-10. [Tool and Technology Matrix](TOOL_TECHNOLOGY_MATRIX.md)
-11. [Quality Assurance Strategy](QUALITY_ASSURANCE_STRATEGY.md)
+2. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
+3. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
+4. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
+5. [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md)
+6. [The Constitutional Seed](CONSTITUTIONAL_SEED.md)
+7. [Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md)
+8. [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md)
+9. [Rust Integration](RUST_INTEGRATION.md)
+10. [Integration Contracts](INTEGRATION_CONTRACTS.md)
+11. [Spearpoint (RDVE)](SPEARPOINT.md)
+12. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
+13. [Tool and Technology Matrix](TOOL_TECHNOLOGY_MATRIX.md)
+14. [Quality Assurance Strategy](QUALITY_ASSURANCE_STRATEGY.md)
 
 ### 7. Product / Frontend
 
@@ -106,6 +121,9 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 
 | Domain | Primary Doc | Source of Truth in Code |
 |---|---|---|
+| Genesis execution program | [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md) | `config/genesis_execution_framework.json`, `.github/workflows/`, `core/`, `frontend/`, `scripts/` |
+| Unified optimization blueprint | [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md) | `config/bizra_unified_optimization_blueprint.json`, `docs/plans/GENESIS_CLOSURE_SPRINT_v1.md`, `core/`, `tests/` |
+| Closure implementation plan | [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md) | `core/bus/`, `core/proof_engine/`, `core/sovereign/`, `tests/`, `scripts/` |
 | Node0 standalone lifecycle | [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md) | `scripts/node0_standalone.py`, `scripts/node0_activate.py`, `core/sovereign/mission.py` |
 | Runtime architecture | [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md) | `core/sovereign/`, `core/integration/constants.py` |
 | Public sovereignty narrative | [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md) | `00_CONSTITUTION/DECLARATION.md`, `docs/DECLARATION_OF_DIGITAL_SOVEREIGNTY.md`, `scripts/ops/declaration_hash_manifest.py` |
@@ -134,22 +152,22 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 | Ihsan compliance | [Ihsan Compliance Matrix](IHSAN_COMPLIANCE_MATRIX.md) | `core/integration/constants.py` |
 | Project handover | [Project Handover](PROJECT_HANDOVER.md) | Complete project overview |
 | Genesis narrative | [Complete Story](../00_GENESIS/BIZRA_COMPLETE_STORY_AUTHORITATIVE.md) | Authoritative history |
-| RLM integration | [Phase 50 Overview](../specs/phase-50-rlm-sovereign-cognition/00_overview.md) | `core/inference/rlm_bridge.py` (planned) |
-| Token incentive RL | [Phase 50.3 Spec](../specs/phase-50-rlm-sovereign-cognition/03_token_incentive_rl.md) | `core/token/rl_rewards.py` (planned) |
-| Voice pipeline | [Phase 50.4 Spec](../specs/phase-50-rlm-sovereign-cognition/04_personaplex_voice_pipeline.md) | `core/voice/` (planned) |
+| RLM integration | [Phase 50 Overview](specs/_experimental/phase-50-rlm-sovereign-cognition/00_overview.md) | `core/inference/rlm_bridge.py` (planned) |
+| Token incentive RL | [Phase 50.3 Spec](specs/_experimental/phase-50-rlm-sovereign-cognition/03_token_incentive_rl.md) | `core/token/rl_rewards.py` (planned) |
+| Voice pipeline | [Phase 50.4 Spec](specs/_experimental/phase-50-rlm-sovereign-cognition/04_personaplex_voice_pipeline.md) | `core/voice/` (planned) |
 | PersonaPlex | [PersonaPlex Integration](PERSONAPLEX_INTEGRATION.md) | `personaplex/` |
 
 ## Specifications
 
 | Spec | Status |
 |------|--------|
-| [Phase 50: RLM Sovereign Cognition](../specs/phase-50-rlm-sovereign-cognition/00_overview.md) | Specified (active) |
-| [Phase 49: Refinement Consolidation](../specs/phase-49-refinement-consolidation/01_current_state.md) | Specified |
-| [Phase 48: Rust Workspace Unification](../specs/phase-48-rust-workspace-unification/01_current_state_inventory.md) | Specified |
-| [Phase 47: Cognitive Resonance](../specs/phase-47-cognitive-resonance-activation/00_overview.md) | Specified |
-| [Phase 45: Distributed Cognitive Scaling](../specs/phase-45-distributed-cognitive-scaling/00_overview_distributed_cognitive_scaling.md) | Specified |
-| [Phase 43: Node0 Identity Awakening](../specs/phase-43-node0-identity-awakening/00_overview.md) | Specified |
-| [Phase 42: SNR Unification](../specs/phase-42-snr-unification/00_overview.md) | Specified |
+| [Phase 50: RLM Sovereign Cognition](specs/_experimental/phase-50-rlm-sovereign-cognition/00_overview.md) | Specified (active) |
+| [Phase 49: Refinement Consolidation](specs/_experimental/phase-49-refinement-consolidation/01_current_state.md) | Specified |
+| [Phase 48: Rust Workspace Unification](specs/_experimental/phase-48-rust-workspace-unification/01_current_state_inventory.md) | Specified |
+| [Phase 47: Cognitive Resonance](specs/_experimental/phase-47-cognitive-resonance-activation/00_overview.md) | Specified |
+| [Phase 45: Distributed Cognitive Scaling](specs/_experimental/phase-45-distributed-cognitive-scaling/00_overview_distributed_cognitive_scaling.md) | Specified |
+| [Phase 43: Node0 Identity Awakening](specs/_experimental/phase-43-node0-identity-awakening/00_overview.md) | Specified |
+| [Phase 42: SNR Unification](specs/_experimental/phase-42-snr-unification/00_overview.md) | Specified |
 | [True Spearpoint v9](specs/true_spearpoint_v9/phase_00_overview.md) | Active |
 | [Phase 20.1: SAPE Dashboard](specs/phase20_sape_sovereign_dashboard.md) | Implemented |
 | [Phase 20: RDVE Actuator Layer](specs/phase20_rdve_actuator_layer.md) | Implemented |

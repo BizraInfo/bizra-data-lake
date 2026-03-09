@@ -217,13 +217,13 @@ def test_create_app_query_accepts_json_body(
 
     response = client.post(
         "/v1/query",
-        json={"prompt": "What is 2+2?", "model": "PAT-C", "max_tokens": 16},
+        json={"prompt": "What is 2+2?", "model": "P6-Publisher", "max_tokens": 16},
     )
 
     assert response.status_code == 200
     body = response.json()
-    # PAT-C resolves through NODE0_MODEL_FLEET (YAML → Ollama fallback)
+    # P6-Publisher resolves through NODE0_MODEL_FLEET (YAML → Ollama fallback)
     from scripts.node0_standalone import NODE0_MODEL_FLEET as _fleet
 
-    assert body["model"] == _fleet["PAT-C"]
+    assert body["model"] == _fleet["P6-Publisher"]
     assert body["response"] == "4"
