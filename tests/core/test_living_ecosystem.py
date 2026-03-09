@@ -600,3 +600,70 @@ class TestLivingEcosystemIntegration:
         # Check health
         report = healer.get_health_report()
         assert report["health_score"] > 0.5
+
+
+# ============================================================================
+# LEARNING LOOP WIRING TESTS
+# ============================================================================
+
+
+class TestLearningLoopWiring:
+    """Tests that LearningLoopOrchestrator is correctly wired into LivingEcosystem."""
+
+    @pytest.mark.asyncio
+    async def test_learning_loop_initialized_on_evolution_enable(self, tmp_path):
+        """When evolution is enabled, learning loop should be wired."""
+        from core.living_ecosystem import EcosystemConfig, LivingEcosystem
+
+        config = EcosystemConfig(
+            data_path=tmp_path / "eco",
+            enable_evolution=True,
+            enable_proactive=False,
+            enable_pat=False,
+        )
+        eco = LivingEcosystem(config=config)
+        await eco.initialize()
+
+        assert eco._learning_loop is not None
+        assert eco._autopoietic_loop is not None
+        # Verify the callback is wired (bound methods: check __func__ + __self__)
+        cb = eco._autopoietic_loop.on_integration
+        assert cb is not None
+        assert cb.__func__ is eco._learning_loop.on_candidate.__func__
+        assert cb.__self__ is eco._learning_loop
+
+    @pytest.mark.asyncio
+    async def test_learning_loop_in_status(self, tmp_path):
+        """Learning loop status should appear in ecosystem status."""
+        from core.living_ecosystem import EcosystemConfig, LivingEcosystem
+
+        config = EcosystemConfig(
+            data_path=tmp_path / "eco",
+            enable_evolution=True,
+            enable_proactive=False,
+            enable_pat=False,
+        )
+        eco = LivingEcosystem(config=config)
+        await eco.initialize()
+
+        status = eco.get_status()
+        assert "learning_loop" in status
+        assert "enabled" in status["learning_loop"]
+
+    @pytest.mark.asyncio
+    async def test_no_learning_loop_when_evolution_disabled(self, tmp_path):
+        """When evolution is disabled, no learning loop."""
+        from core.living_ecosystem import EcosystemConfig, LivingEcosystem
+
+        config = EcosystemConfig(
+            data_path=tmp_path / "eco",
+            enable_evolution=False,
+            enable_proactive=False,
+            enable_pat=False,
+        )
+        eco = LivingEcosystem(config=config)
+        await eco.initialize()
+
+        assert eco._learning_loop is None
+        status = eco.get_status()
+        assert "learning_loop" not in status
