@@ -1891,9 +1891,11 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
         except (RuntimeError, TimeoutError, ValueError) as exc:
             logger.warning("Query error (specific): %s", exc)
+            # SEC: Never leak raw exception text to client (OWASP A09)
+            error_type = type(exc).__name__
             return JSONResponse(
                 status_code=500,
-                content={"error": str(exc) or "Operation failed"},
+                content={"error": f"Query failed ({error_type})"},
             )
         except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Query execution failed")

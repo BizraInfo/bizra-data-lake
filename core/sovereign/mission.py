@@ -147,8 +147,8 @@ class HDAClient:
             self._writer.close()
             try:
                 await self._writer.wait_closed()
-            except (OSError, ConnectionError):
-                pass  # Expected during cleanup — connection already gone
+            except (OSError, ConnectionError) as _close_err:
+                logger.debug("Connection already closed: %s", _close_err)
             except Exception as exc:  # noqa: BLE001 — connection cleanup boundary
                 logger.debug("Connection cleanup: %s", exc)
             self._writer = None
