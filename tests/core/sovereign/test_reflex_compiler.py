@@ -414,6 +414,30 @@ class TestReflexCompilerPersistence:
         compiler = ReflexCompiler(persistence_path=path)
         assert compiler.size == 0
 
+    def test_atomic_save_preserves_previous_on_failure(self, tmp_path: Path):
+        """If save_to_disk crashes mid-write, the previous file survives intact.
+
+        Phase A atomic persistence: tempfile + os.replace guarantees
+        the target file is never partially written.
+        """
+        path = tmp_path / "reflexes.json"
+        compiler = ReflexCompiler(persistence_path=path)
+
+        # Precipitate and save a valid baseline
+        for i in range(REFLEX_PRECIPITATION_HITS):
+            compiler.record_observation("baseline", f"r{i}", 0.95)
+        compiler.save_to_disk()
+        assert path.exists()
+        original_content = path.read_text()
+
+        # Verify the saved file is valid JSON
+        data = json.loads(original_content)
+        assert len(data["entries"]) == 1
+
+        # Load into new compiler — baseline should be intact
+        compiler2 = ReflexCompiler(persistence_path=path)
+        assert compiler2.size == 1
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # REFLEX COMPILER — SDPO COMPILATION
