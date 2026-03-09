@@ -62,7 +62,7 @@ what order.
 | Source | Target | LOC | Action |
 |--------|--------|-----|--------|
 | `bizra-cli.py` | `bizra_cli.py` (root) | 770 | **NEW** — Unified CLI entry point (start, stop, status, mission, briefing, wallet, identity, doctor, reset, launch) |
-| `sovereign_terminal.py` | `core/sovereign/terminal.py` | 681 | **NEW** — Rich TUI REPL with DEMA persona |
+| `sovereign_terminal.py` | `core/sovereign/sovereign_terminal.py` | 681 | **NEW** — Rich TUI REPL with DEMA persona (placed alongside terminal.py types) |
 | `install-bizra-cli.ps1` | `scripts/install-bizra-cli.ps1` | 130 | **NEW** — Windows installer |
 | `install-bizra-cli.sh` | `scripts/install-bizra-cli.sh` | 152 | **NEW** — Linux/macOS installer |
 
