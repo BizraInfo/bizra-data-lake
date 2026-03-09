@@ -26,6 +26,8 @@
 | Priority | Item | Spec | Impact | Week |
 |----------|------|------|--------|------|
 | **P0** | MOE Engine (5 experts) | 68.07 ✅ SHIPPED | Enables multi-expert reasoning | W2 |
+| **P0** | MOE Bridge (Ollama dispatch) | ✅ SHIPPED | Expert→Model live wiring | W2 |
+| **P0** | CLI Installer | ✅ SHIPPED | `bizra` command from any terminal | W2 |
 | **P0** | Asabiyyah-Gini coupling | 67.03a | Closes constitutional gap | W2 |
 | **P1** | ActionBus | 68.01 | Event-driven nervous system | W3 |
 | **P1** | OmegaLoop | 68.02 | Proof-based iteration | W3 |

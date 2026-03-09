@@ -18,7 +18,18 @@ set -e
 
 BIZRA_HOME="$HOME/.bizra"
 BIZRA_BIN="$BIZRA_HOME/bin"
-CLI_SOURCE="$(cd "$(dirname "$0")" && pwd)/bizra-cli.py"
+# Try both naming conventions (underscore is canonical)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [ -f "$REPO_ROOT/bizra_cli.py" ]; then
+    CLI_SOURCE="$REPO_ROOT/bizra_cli.py"
+elif [ -f "$SCRIPT_DIR/bizra_cli.py" ]; then
+    CLI_SOURCE="$SCRIPT_DIR/bizra_cli.py"
+elif [ -f "$SCRIPT_DIR/bizra-cli.py" ]; then
+    CLI_SOURCE="$SCRIPT_DIR/bizra-cli.py"
+else
+    CLI_SOURCE=""
+fi
 
 echo ""
 echo "╔══════════════════════════════════════════════════╗"
@@ -32,11 +43,12 @@ echo "→ Creating BIZRA directories..."
 mkdir -p "$BIZRA_HOME"/{bin,sovereign_state,logs,models}
 
 # Step 2: Copy CLI
-if [ -f "$CLI_SOURCE" ]; then
+if [ -n "$CLI_SOURCE" ] && [ -f "$CLI_SOURCE" ]; then
     cp "$CLI_SOURCE" "$BIZRA_HOME/bin/bizra_cli.py"
     echo "  ✓ CLI installed to $BIZRA_HOME/bin/bizra_cli.py"
 else
-    echo "  ✗ Cannot find bizra-cli.py. Run this script from the same directory."
+    echo "  ✗ Cannot find bizra_cli.py in repo root or scripts/."
+    echo "    Expected: $REPO_ROOT/bizra_cli.py"
     exit 1
 fi
 
