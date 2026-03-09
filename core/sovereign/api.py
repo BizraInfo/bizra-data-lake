@@ -637,7 +637,10 @@ class SovereignAPIServer:
             writer.write(resp_bytes)  # type: ignore[arg-type]
             await writer.drain()
 
-        except Exception:
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Decode error (specific): %s", exc)
+            return self._json_response({"error": str(exc) or "Operation failed"}, 500)
+        except Exception:  # noqa: BLE001 — review needed
             logger.exception("Connection error")
         finally:
             writer.close()
@@ -860,7 +863,7 @@ class SovereignAPIServer:
 
         except json.JSONDecodeError:
             return self._json_response({"error": "Invalid JSON"}, 400)
-        except Exception:
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Query error")
             return self._json_response({"error": "Internal server error"}, 500)
 
@@ -1013,7 +1016,10 @@ class SovereignAPIServer:
                     "balances": balances,
                 }
             )
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            logger.warning("Token operation error (specific): %s", exc)
+            return self._json_response({"error": str(exc) or "Operation failed"}, 500)
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Token balance error")
             return self._json_response({"error": "Internal server error"}, 500)
 
@@ -1046,7 +1052,10 @@ class SovereignAPIServer:
                     "ledger_sequence": ledger.sequence,
                 }
             )
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            logger.warning("Token operation error (specific): %s", exc)
+            return self._json_response({"error": str(exc) or "Operation failed"}, 500)
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Token supply error")
             return self._json_response({"error": "Internal server error"}, 500)
 
@@ -1073,7 +1082,10 @@ class SovereignAPIServer:
                     "transactions": [tx.to_dict() for tx in txns],
                 }
             )
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            logger.warning("Token operation error (specific): %s", exc)
+            return self._json_response({"error": str(exc) or "Operation failed"}, 500)
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Token history error")
             return self._json_response({"error": "Internal server error"}, 500)
 
@@ -1092,7 +1104,10 @@ class SovereignAPIServer:
                     "ledger_sequence": ledger.sequence,
                 }
             )
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            logger.warning("Token operation error (specific): %s", exc)
+            return self._json_response({"error": str(exc) or "Operation failed"}, 500)
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Token verify error")
             return self._json_response({"error": "Internal server error"}, 500)
 
@@ -1107,7 +1122,10 @@ class SovereignAPIServer:
 
             potential = seed_engine.potential()
             return self._json_response(asdict(potential))
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return self._json_response({"error": str(exc) or "Operation failed"}, 500)
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Seed potential error")
             return self._json_response({"error": "Internal server error"}, 500)
 
@@ -1125,7 +1143,10 @@ class SovereignAPIServer:
         try:
             episodes = seed_engine.recent_episodes(limit=limit)
             return self._json_response({"count": len(episodes), "episodes": episodes})
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return self._json_response({"error": str(exc) or "Operation failed"}, 500)
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Seed episodes error")
             return self._json_response({"error": "Internal server error"}, 500)
 
@@ -1210,7 +1231,13 @@ def create_fastapi_app(runtime: Any) -> Any:
         init_auth_middleware(_auth_middleware)
         _auth_available = True
         logger.info("Phase 21: Auth layer initialized (UserStore + JWT + Middleware)")
-    except Exception as e:
+    except (ValueError, KeyError, PermissionError) as exc:
+        logger.warning("Auth init error (specific): %s", exc)
+        _user_store = None  # type: ignore[assignment]
+        _jwt_auth = None  # type: ignore[assignment]
+        _auth_middleware = None  # type: ignore[assignment]
+        _auth_available = False
+    except Exception as e:  # noqa: BLE001 — review needed
         logger.error(
             "SECURITY: Auth layer failed to initialize: %s. "
             "Protected endpoints will deny requests until auth is restored.",
@@ -1242,7 +1269,13 @@ def create_fastapi_app(runtime: Any) -> Any:
 
             bus = get_event_bus()
             await bus.emit(topic=topic, payload=payload, source=source)
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — review needed
             logger.debug("EventBus emit failed for topic=%s", topic, exc_info=True)
 
     async def _emit_tick_events(result: Any, reflex_cache: dict[bytes, Any]) -> None:
@@ -1360,7 +1393,7 @@ def create_fastapi_app(runtime: Any) -> Any:
             except asyncio.CancelledError:
                 logger.info("Constitutional heartbeat stopped")
                 return
-            except Exception:
+            except Exception:  # noqa: BLE001 — review needed
                 logger.exception("Constitutional tick error (will retry next interval)")
 
     from contextlib import asynccontextmanager
@@ -1470,7 +1503,13 @@ def create_fastapi_app(runtime: Any) -> Any:
         if _auth_available and _auth_middleware is not None:
             try:
                 user = _auth_middleware.authenticate_request(request)
-            except Exception as e:
+            except (ValueError, KeyError, PermissionError) as exc:
+                logger.warning("Auth error (specific): %s", exc)
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": str(exc) or "Operation failed"},
+                )
+            except Exception as e:  # noqa: BLE001 — review needed
                 if not allow_anonymous:
                     return (
                         "",
@@ -1531,7 +1570,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     authorization=ws.headers.get("authorization"),
                     api_key=ws.headers.get("x-api-key"),
                 )
-            except Exception:
+            except (ValueError, KeyError, PermissionError) as exc:
+                logger.warning("Auth error (specific): %s", exc)
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": str(exc) or "Operation failed"},
+                )
+            except Exception:  # noqa: BLE001 — review needed
                 user = None
 
             if user is None and not allow_anonymous:
@@ -1607,7 +1652,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     )
                 )
             )
-        except Exception:
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Verification error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — review needed
             # Never block mission return for tick wiring failure
             logger.debug("Tick bridge emission failed", exc_info=True)
 
@@ -1756,7 +1807,13 @@ def create_fastapi_app(runtime: Any) -> Any:
         if _reflex_compiler is not None:
             try:
                 base["reflex_compiler"] = _reflex_compiler.get_status()
-            except Exception:
+            except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                logger.warning("Read error (specific): %s", exc)
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": str(exc) or "Operation failed"},
+                )
+            except Exception:  # noqa: BLE001 — review needed
                 pass
         return base
 
@@ -1832,7 +1889,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 timeout_ms=body.timeout_ms,
                 user_id=user_id,
             )
-        except Exception:
+        except (RuntimeError, TimeoutError, ValueError) as exc:
+            logger.warning("Query error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Query execution failed")
             return JSONResponse(
                 status_code=500,
@@ -1893,7 +1956,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                         if hasattr(snr_result, "score")
                         else float(snr_result or 0)
                     )
-                except Exception:
+                except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                    logger.warning("Read error (specific): %s", exc)
+                    return JSONResponse(
+                        status_code=500,
+                        content={"error": str(exc) or "Operation failed"},
+                    )
+                except Exception:  # noqa: BLE001 — review needed
                     snr_score = 0.0
 
             # Use the runtime's constitutional validation for Ihsān scoring
@@ -1906,7 +1975,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                         ihsan_score = ihsan_result[0]
                     else:
                         ihsan_score = float(ihsan_result or 0)
-                except Exception:
+                except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                    logger.warning("Read error (specific): %s", exc)
+                    return JSONResponse(
+                        status_code=500,
+                        content={"error": str(exc) or "Operation failed"},
+                    )
+                except Exception:  # noqa: BLE001 — review needed
                     ihsan_score = 0.0
 
             # Fallback: run a lightweight query with validation if engines unavailable
@@ -1940,7 +2015,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "threshold": threshold,
                 "level": body.level,
             }
-        except Exception:
+        except (RuntimeError, TimeoutError, ValueError) as exc:
+            logger.warning("Query error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Validation failed")
             return JSONResponse(
                 status_code=500,
@@ -2052,7 +2133,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "hash_validated": True,
                 },
             ).to_dict()
-        except Exception:
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Verification error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Genesis verification failed")
             return JSONResponse(
                 status_code=500,
@@ -2146,7 +2233,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "digest": digest,
                 },
             ).to_dict()
-        except Exception:
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Verification error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Envelope verification failed")
             return JSONResponse(
                 status_code=500,
@@ -2307,7 +2400,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 receipt_id=receipt.receipt_id,
                 artifacts=artifacts,
             ).to_dict()
-        except Exception:
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Verification error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Receipt verification failed")
             return JSONResponse(
                 status_code=500,
@@ -2362,7 +2461,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 receipt_id=f"audit-{len(entries):06d}",
                 artifacts=artifacts,
             ).to_dict()
-        except Exception:
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Verification error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Audit log verification failed")
             return JSONResponse(
                 status_code=500,
@@ -2411,7 +2516,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 reason_codes=["EVIDENCE_TAMPERED"],
                 artifacts=artifacts,
             ).to_dict()
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            logger.warning("Token operation error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Ledger verification failed")
             return JSONResponse(
                 status_code=500,
@@ -2478,7 +2589,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "/v1/sel/verify",
                 ],
             }
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Signature info retrieval failed")
             return JSONResponse(
                 status_code=500,
@@ -2615,7 +2732,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 artifacts=artifacts,
             ).to_dict()
 
-        except Exception:
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Verification error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("PoI receipt verification failed")
             return JSONResponse(
                 status_code=500,
@@ -2693,7 +2816,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "hash_validated": True,
                 "header_only": True,
             }
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Genesis header verification failed")
             return JSONResponse(
                 status_code=500,
@@ -2822,7 +2951,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                         "staked": bal.staked,
                     }
             return result
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            logger.warning("Token operation error (specific): %s", exc)
+            return JSONResponse(
+                status_code=503,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Token balance retrieval failed")
             return JSONResponse(
                 status_code=503,
@@ -2857,7 +2992,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "ledger_valid": valid,
                 "transaction_count": count,
             }
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            logger.warning("Token operation error (specific): %s", exc)
+            return JSONResponse(
+                status_code=503,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Token supply retrieval failed")
             return JSONResponse(
                 status_code=503,
@@ -2877,7 +3018,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "transaction_count": count,
                 "error": err,
             }
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            logger.warning("Token operation error (specific): %s", exc)
+            return JSONResponse(
+                status_code=503,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Token verify failed")
             return JSONResponse(
                 status_code=503,
@@ -2908,7 +3055,13 @@ def create_fastapi_app(runtime: Any) -> Any:
 
             potential = seed_engine.potential()
             return asdict(potential)
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Seed potential error")
             return JSONResponse(
                 status_code=500,
@@ -2933,7 +3086,13 @@ def create_fastapi_app(runtime: Any) -> Any:
         try:
             episodes = seed_engine.recent_episodes(limit=clamped_limit)
             return {"count": len(episodes), "episodes": episodes}
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Seed episodes error")
             return JSONResponse(
                 status_code=500,
@@ -2972,7 +3131,13 @@ def create_fastapi_app(runtime: Any) -> Any:
 
             snapshot = nv_engine.compute()
             return asdict(snapshot)
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Node value computation error")
             return JSONResponse(
                 status_code=500,
@@ -3000,7 +3165,13 @@ def create_fastapi_app(runtime: Any) -> Any:
 
             pot = seed_engine.potential()
             return stage_progress(pot.sovereignty_score)
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Lifecycle computation error")
             return JSONResponse(
                 status_code=500,
@@ -3037,7 +3208,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "intelligence_density": projection.intelligence_density,
                 "cost_per_node": projection.cost_per_node,
             }
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Network effect projection error")
             return JSONResponse(
                 status_code=500,
@@ -3071,7 +3248,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     for m in milestones
                 ]
             }
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Network milestones error")
             return JSONResponse(
                 status_code=500,
@@ -3139,7 +3322,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 status_code=503,
                 content={"error": "Service temporarily unavailable"},
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Constitutional tick failed")
             return JSONResponse(
                 status_code=500,
@@ -3187,7 +3370,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "last_tick_timestamp": _last_tick_ts,
                 "tick_interval_s": _tick_interval,
             }
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=503,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Constitutional status unavailable")
             return JSONResponse(
                 status_code=503,
@@ -3235,7 +3424,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "total_tasks": len(plan.tasks),
                 "tasks": tasks_out,
             }
-        except Exception:
+        except (RuntimeError, ValueError) as exc:
+            logger.warning("Orchestration error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Orchestration failed")
             return JSONResponse(
                 status_code=500,
@@ -3348,7 +3543,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                     }
             except ImportError:
                 logger.debug("ReflexCompiler not available, using System-2 only")
-            except Exception:
+            except Exception:  # noqa: BLE001 — review needed
                 logger.debug("Reflex lookup failed, falling through to System-2", exc_info=True)
 
             # Build mission config from Node0 ConfigMap environment
@@ -3402,7 +3597,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                         output_text=result.synthesis or "",
                         ihsan_composite=result.ihsan_score or 0.0,
                     )
-            except Exception:
+            except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                logger.warning("Read error (specific): %s", exc)
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": str(exc) or "Operation failed"},
+                )
+            except Exception:  # noqa: BLE001 — review needed
                 logger.debug("Reflex observation recording failed", exc_info=True)
 
             # ── Terminal State Wiring (P2a fix) ──────────────────
@@ -3426,7 +3627,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                     _ctrl.fail()
                 else:
                     _ctrl.complete()
-            except (ImportError, Exception):
+            except (ImportError, Exception):  # noqa: BLE001 — API boundary
                 logger.debug("Terminal state wiring unavailable", exc_info=True)
 
             # ── Mission Lifecycle: Executed ──────────────────────
@@ -3524,7 +3725,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "detail": str(exc),
                 },
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Mission execution failed")
             return JSONResponse(
                 status_code=500,
@@ -3560,7 +3761,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 metrics=body.metrics,
             )
             return result.to_dict()
-        except Exception:
+        except (RuntimeError, ValueError) as exc:
+            logger.warning("Orchestration error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Spearpoint reproduce failed")
             return JSONResponse(
                 status_code=500,
@@ -3587,7 +3794,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 top_k=body.top_k,
             )
             return result.to_dict()
-        except Exception:
+        except (RuntimeError, ValueError) as exc:
+            logger.warning("Orchestration error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Spearpoint improve failed")
             return JSONResponse(
                 status_code=500,
@@ -3613,7 +3826,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "statistics": orch.get_statistics(),
                 "recent_missions": orch.get_mission_history(limit=10),
             }
-        except Exception:
+        except (RuntimeError, ValueError) as exc:
+            logger.warning("Orchestration error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Spearpoint stats failed")
             return JSONResponse(
                 status_code=500,
@@ -3645,7 +3864,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 top_k=body.top_k,
             )
             return result.to_dict()
-        except Exception:
+        except (RuntimeError, ValueError) as exc:
+            logger.warning("Orchestration error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Spearpoint pattern failed")
             return JSONResponse(
                 status_code=500,
@@ -3743,7 +3968,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                             }
                         )
 
-            except (WebSocketDisconnect, Exception):
+            except (WebSocketDisconnect, Exception):  # noqa: BLE001 — WS boundary
                 pass
             finally:
                 _ws_clients.discard(ws)
@@ -3757,7 +3982,13 @@ def create_fastapi_app(runtime: Any) -> Any:
             try:
                 await ws.send_json(message)
                 sent += 1
-            except Exception:
+            except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                logger.warning("Read error (specific): %s", exc)
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": str(exc) or "Operation failed"},
+                )
+            except Exception:  # noqa: BLE001 — review needed
                 disconnected.add(ws)
         _ws_clients -= disconnected
         return sent
@@ -3819,7 +4050,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "distillation_count": sel.distillation_count,
                 "episodes": episodes,
             }
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("SEL episodes list failed")
             return JSONResponse(
                 status_code=500, content={"error": "Internal server error"}
@@ -3847,7 +4084,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     content={"error": f"Episode not found: {episode_hash[:16]}..."},
                 )
             return ep.to_dict()
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("SEL episode lookup failed")
             return JSONResponse(
                 status_code=500, content={"error": "Internal server error"}
@@ -3885,7 +4128,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "count": len(results),
                 "episodes": [ep.to_dict() for ep in results],
             }
-        except Exception:
+        except (RuntimeError, TimeoutError, ValueError) as exc:
+            logger.warning("Query error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("SEL retrieve failed")
             return JSONResponse(
                 status_code=500, content={"error": "Internal server error"}
@@ -3918,7 +4167,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 ),
                 "distillation_count": sel.distillation_count,
             }
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            logger.warning("Token operation error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("SEL verify failed")
             return JSONResponse(
                 status_code=500, content={"error": "Internal server error"}
@@ -3976,7 +4231,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     for r in results
                 ],
             }
-        except Exception:
+        except (RuntimeError, TimeoutError, ValueError) as exc:
+            logger.warning("Query error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("AgentDB search failed")
             return JSONResponse(
                 status_code=500, content={"error": "Internal server error"}
@@ -4059,7 +4320,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "passes_all_gates": result.northstar_report.passes_all_gates,
                 },
             }
-        except Exception:
+        except (RuntimeError, TimeoutError, ValueError) as exc:
+            logger.warning("Query error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Cognitive fusion failed")
             return JSONResponse(
                 status_code=500, content={"error": "Internal server error"}
@@ -4216,7 +4483,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 ],
                 "context": retriever.get_context_summary(),
             }
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Proactive suggestions failed")
             return JSONResponse(
                 status_code=500, content={"error": "Internal server error"}
@@ -4266,7 +4539,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 }
             except ValueError as e:
                 return JSONResponse(status_code=409, content={"error": str(e)})
-            except Exception:
+            except Exception:  # noqa: BLE001 — API boundary
                 logger.exception("Registration failed")
                 return JSONResponse(
                     status_code=500, content={"error": "Registration failed"}
@@ -4331,7 +4604,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "created_at": user.created_at,
                     "query_count": user.query_count,
                 }
-            except Exception:
+            except (ValueError, KeyError, PermissionError) as exc:
+                logger.warning("Auth error (specific): %s", exc)
+                return JSONResponse(
+                    status_code=401,
+                    content={"error": str(exc) or "Operation failed"},
+                )
+            except Exception:  # noqa: BLE001 — review needed
                 return JSONResponse(
                     status_code=401, content={"error": "Authentication required"}
                 )
@@ -4381,7 +4660,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "current": ONBOARDING_STEPS[0],
                 "profile": {},
             }
-        except Exception:
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Decode error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Onboarding state error")
             return JSONResponse(
                 status_code=500,
@@ -4449,7 +4734,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "next_step": next_step,
                 "profile_update": profile_update,
             }
-        except Exception:
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Decode error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
             logger.exception("Onboarding teach error")
             return JSONResponse(
                 status_code=500,
