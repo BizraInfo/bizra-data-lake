@@ -100,7 +100,7 @@ def test_api_exposure_summary_is_fully_accounted_for(
 
     summary = summarize_api_exposure(app)
 
-    assert sum(summary.values()) == 62
-    assert summary[RouteExposure.PUBLIC] == 23
+    assert sum(summary.values()) == 63
+    assert summary[RouteExposure.PUBLIC] == 24
     assert summary[RouteExposure.BOOTSTRAP_PUBLIC] == 3
     assert summary[RouteExposure.AUTHENTICATED] == 36

@@ -136,6 +136,13 @@ API_ROUTE_POLICIES: tuple[APIRoutePolicy, ...] = (
         "/v1/verify/poi",
     ),
     *_policies(
+        "POST",
+        RouteExposure.PUBLIC,
+        True,
+        "Web Vitals beacon accepts anonymous performance telemetry from the frontend dashboard.",
+        "/v1/metrics/vitals",
+    ),
+    *_policies(
         "GET",
         RouteExposure.PUBLIC,
         False,

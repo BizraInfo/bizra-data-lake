@@ -178,3 +178,9 @@ Key behaviors tested:
 - Prefer deterministic fixtures and explicit assertions over snapshot noise.
 - Use `tmp_path` for filesystem tests (Smart Files, receipt storage).
 - Keep individual test timeout under 60 seconds (configured in `pyproject.toml`).
+
+## 12. Route Governance
+
+API route count is tracked in `core/sovereign/api_exposure_policy.py` and enforced
+by `test_api_exposure_policy.py`. Current count: **63 routes** (24 public, 3 bootstrap,
+36 authenticated). Adding a new endpoint requires updating the policy and both contract tests.
