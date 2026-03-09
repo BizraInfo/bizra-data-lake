@@ -1,6 +1,6 @@
 # Genesis Roadmap: v0.80.0 → v1.0.0-GENESIS
 
-**Last Updated:** 2026-03-09 | **Author:** SPARC Orchestrator
+**Last Updated:** 2026-03-10 | **Author:** SPARC Orchestrator
 **Framework:** PMBOK x DevOps x Constitutional Gates x Ihsan
 
 ---
@@ -9,8 +9,8 @@
 
 | Metric | Value | Evidence |
 |--------|-------|----------|
-| Commits shipped | 18 on origin/main | `75d0dd7` |
-| Tests | 3,759 sovereign GREEN | Proof Forge receipt #2 |
+| Commits shipped | 21 on origin/main | `9464d2d` |
+| Tests | 3,800+ sovereign GREEN | Proof Forge receipt #2 |
 | Coverage | 64.57% (floor: 38%) | v0.80.0 lock |
 | Routes governed | 63 (24 public, 36 auth, 3 bootstrap) | API exposure policy |
 | Specs | 348 files in `docs/specs/`, 20 unbuilt | UNIFIED_SPEC_INDEX.md |
@@ -25,7 +25,7 @@
 
 | Priority | Item | Spec | Impact | Week |
 |----------|------|------|--------|------|
-| **P0** | MOE Engine (5 experts) | NEW — needs spec | Enables multi-expert reasoning | W2 |
+| **P0** | MOE Engine (5 experts) | 68.07 ✅ SHIPPED | Enables multi-expert reasoning | W2 |
 | **P0** | Asabiyyah-Gini coupling | 67.03a | Closes constitutional gap | W2 |
 | **P1** | ActionBus | 68.01 | Event-driven nervous system | W3 |
 | **P1** | OmegaLoop | 68.02 | Proof-based iteration | W3 |
