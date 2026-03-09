@@ -147,7 +147,9 @@ class HDAClient:
             self._writer.close()
             try:
                 await self._writer.wait_closed()
-            except Exception as exc:
+            except (OSError, ConnectionError):
+                pass  # Expected during cleanup — connection already gone
+            except Exception as exc:  # noqa: BLE001 — connection cleanup boundary
                 logger.debug("Connection cleanup: %s", exc)
             self._writer = None
             self._reader = None
@@ -200,7 +202,11 @@ class MissionOrchestrator:
 
             self._memory = LivingMemoryCore(storage_path=self._memory_path)
             await self._memory.initialize()
-        except Exception as exc:
+        except (ImportError, ModuleNotFoundError) as exc:
+            logger.warning("LivingMemory not available: %s", exc)
+        except (OSError, RuntimeError, ValueError) as exc:
+            logger.warning("LivingMemory init failed (continuing without): %s", exc)
+        except Exception as exc:  # noqa: BLE001 — optional subsystem init
             logger.warning("LivingMemory init failed (continuing without): %s", exc)
 
         # Initialize EvidenceLedger
@@ -210,7 +216,11 @@ class MissionOrchestrator:
             self._evidence_ledger = EvidenceLedger(
                 path=self._evidence_path, validate_on_append=False
             )
-        except Exception as exc:
+        except (ImportError, ModuleNotFoundError) as exc:
+            logger.warning("EvidenceLedger not available: %s", exc)
+        except (OSError, ValueError) as exc:
+            logger.warning("EvidenceLedger init failed (continuing without): %s", exc)
+        except Exception as exc:  # noqa: BLE001 — optional subsystem init
             logger.warning("EvidenceLedger init failed (continuing without): %s", exc)
 
         # Initialize SNR engine
@@ -218,7 +228,11 @@ class MissionOrchestrator:
             from core.apex.snr_apex_engine import SNRApexEngine
 
             self._snr_engine = SNRApexEngine()
-        except Exception as exc:
+        except (ImportError, ModuleNotFoundError) as exc:
+            logger.warning("SNRApexEngine not available: %s", exc)
+        except (RuntimeError, ValueError) as exc:
+            logger.warning("SNRApexEngine init failed (continuing without): %s", exc)
+        except Exception as exc:  # noqa: BLE001 — optional subsystem init
             logger.warning("SNRApexEngine init failed (continuing without): %s", exc)
 
         # Initialize ChannelDispatcher
@@ -226,7 +240,13 @@ class MissionOrchestrator:
             from core.bridges.channel_dispatcher import ChannelDispatcher
 
             self._dispatcher = ChannelDispatcher()
-        except Exception as exc:
+        except (ImportError, ModuleNotFoundError) as exc:
+            logger.warning("ChannelDispatcher not available: %s", exc)
+        except (RuntimeError, OSError, ValueError) as exc:
+            logger.warning(
+                "ChannelDispatcher init failed (continuing without): %s", exc
+            )
+        except Exception as exc:  # noqa: BLE001 — optional subsystem init
             logger.warning(
                 "ChannelDispatcher init failed (continuing without): %s", exc
             )
@@ -236,7 +256,11 @@ class MissionOrchestrator:
             from core.sovereign.event_bus import get_event_bus
 
             self._event_bus = get_event_bus()
-        except Exception as exc:
+        except (ImportError, ModuleNotFoundError) as exc:
+            logger.warning("EventBus not available: %s", exc)
+        except (RuntimeError, ValueError) as exc:
+            logger.warning("EventBus init failed (continuing without): %s", exc)
+        except Exception as exc:  # noqa: BLE001 — optional subsystem init
             logger.warning("EventBus init failed (continuing without): %s", exc)
 
         # Initialize InferenceGateway (Ollama/LM Studio) — guarded by env var
@@ -255,7 +279,11 @@ class MissionOrchestrator:
                     logger.info(
                         "InferenceGateway: no backends available (template mode)"
                     )
-            except Exception as exc:
+            except (ImportError, ModuleNotFoundError) as exc:
+                logger.warning("InferenceGateway not available: %s", exc)
+            except (OSError, RuntimeError, ValueError) as exc:
+                logger.warning("InferenceGateway init failed (template mode): %s", exc)
+            except Exception as exc:  # noqa: BLE001 — optional subsystem init
                 logger.warning("InferenceGateway init failed (template mode): %s", exc)
 
             # O3: Warm model pool — pre-load model weights to eliminate cold start
@@ -276,7 +304,9 @@ class MissionOrchestrator:
             self._signer_private_hex, self._signer_public_hex = (
                 _load_or_create_node_signer(self._config)
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError) as exc:
+            logger.warning("Node signer init failed (crypto/fs): %s", exc)
+        except Exception as exc:  # noqa: BLE001 — signer init boundary
             logger.warning("Node signer init failed: %s", exc)
 
         self._initialized = True
@@ -300,7 +330,10 @@ class MissionOrchestrator:
                 # Check if Ollama is reachable
                 try:
                     await client.get(f"{ollama_url}/api/tags")
-                except Exception:
+                except (OSError, ConnectionError) as exc:
+                    logger.info("Ollama not reachable — skipping warmup: %s", exc)
+                    return
+                except Exception:  # noqa: BLE001 — network probe boundary
                     logger.info("Ollama not reachable — skipping warmup")
                     return
 
@@ -333,7 +366,11 @@ class MissionOrchestrator:
                     logger.info("Model warm (%.0fms)", warmup_ms)
                 else:
                     logger.warning("Warmup got status %d", resp.status_code)
-        except Exception as exc:
+        except ImportError as exc:
+            logger.info("httpx not available — warmup skipped: %s", exc)
+        except (OSError, ConnectionError, asyncio.TimeoutError) as exc:
+            logger.info("Model warmup skipped (network): %s", exc)
+        except Exception as exc:  # noqa: BLE001 — warmup boundary
             logger.info("Model warmup skipped: %s", exc)
 
     async def execute(self, request: MissionRequest) -> MissionResult:
@@ -514,7 +551,17 @@ class MissionOrchestrator:
                         duration_ms=(time.monotonic() - start) * 1000,
                     )
                 )
-            except Exception as exc:
+            except (RuntimeError, ValueError, OSError, asyncio.TimeoutError) as exc:
+                results.append(
+                    ChannelResult(
+                        channel=channel_name,
+                        success=False,
+                        data={},
+                        duration_ms=(time.monotonic() - start) * 1000,
+                        error=str(exc)[:500],
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001 — channel execution boundary
                 results.append(
                     ChannelResult(
                         channel=channel_name,
@@ -558,7 +605,9 @@ class MissionOrchestrator:
                     "active_window": result.get("active_window", "unknown"),
                     "hda_connected": True,
                 }
-            except Exception as exc:
+            except (OSError, ConnectionError, asyncio.TimeoutError) as exc:
+                logger.warning("HDA get_context failed (connection): %s", exc)
+            except Exception as exc:  # noqa: BLE001 — HDA boundary
                 logger.warning("HDA get_context failed: %s", exc)
 
         local_fs = self._execute_local_filesystem(subtask, request)
@@ -742,7 +791,11 @@ class MissionOrchestrator:
                     logger.info("Ollama synthesis complete (%d chars)", len(content))
                     return content
                 logger.warning("Ollama returned empty content — trying gateway")
-        except Exception as exc:
+        except ImportError:
+            logger.info("httpx not available — skipping Ollama synthesis")
+        except (OSError, ConnectionError, asyncio.TimeoutError) as exc:
+            logger.warning("Ollama synthesis failed (network): %s — trying gateway", exc)
+        except Exception as exc:  # noqa: BLE001 — LLM synthesis boundary
             logger.warning("Ollama synthesis failed: %s — trying gateway", exc)
 
         # 2. Gateway (LM Studio GPU + Ollama fallback chain)
@@ -765,7 +818,9 @@ class MissionOrchestrator:
                 logger.warning("Gateway returned empty content — falling through")
             except asyncio.TimeoutError:
                 logger.warning("Gateway synthesis timed out (%.0fs)", gateway_timeout)
-            except Exception as exc:
+            except (RuntimeError, ValueError, OSError) as exc:
+                logger.warning("Gateway synthesis failed (known): %s", exc)
+            except Exception as exc:  # noqa: BLE001 — gateway synthesis boundary
                 logger.warning("Gateway synthesis failed: %s", exc)
 
         # 3. Template (always available, no LLM needed)
@@ -892,7 +947,10 @@ class MissionOrchestrator:
             ihsan_score = 0.95 if analysis.ihsan_achieved else 0.80
 
             return ihsan_score, snr_normalized
-        except Exception as exc:
+        except (AttributeError, TypeError, ValueError) as exc:
+            logger.warning("SNR scoring failed (data): %s", exc)
+            return 0.80, 0.75
+        except Exception as exc:  # noqa: BLE001 — SNR scoring boundary
             logger.warning("SNR scoring failed: %s", exc)
             # Fail-honest: scoring failure → below threshold → PARTIAL
             return 0.80, 0.75
@@ -914,7 +972,10 @@ class MissionOrchestrator:
         try:
             filepath.write_text(synthesis, encoding="utf-8")
             return str(filepath)
-        except Exception as exc:
+        except (OSError, PermissionError) as exc:
+            logger.warning("Failed to write briefing (filesystem): %s", exc)
+            return None
+        except Exception as exc:  # noqa: BLE001 — file write boundary
             logger.warning("Failed to write briefing: %s", exc)
             return None
 
@@ -951,7 +1012,9 @@ class MissionOrchestrator:
                 signer_private_key_hex=self._signer_private_hex,
                 signer_public_key_hex=self._signer_public_hex,
             )
-        except Exception as exc:
+        except (ImportError, ValueError, OSError) as exc:
+            logger.warning("Evidence emission failed (known): %s", exc)
+        except Exception as exc:  # noqa: BLE001 — evidence emission boundary
             logger.warning("Evidence emission failed: %s", exc)
 
         return receipt_id
@@ -970,7 +1033,10 @@ class MissionOrchestrator:
                 importance=0.8,
             )
             return entry.id if entry else ""
-        except Exception as exc:
+        except (ImportError, RuntimeError, ValueError, OSError) as exc:
+            logger.warning("Memory storage failed (known): %s", exc)
+            return ""
+        except Exception as exc:  # noqa: BLE001 — memory storage boundary
             logger.warning("Memory storage failed: %s", exc)
             return ""
 
@@ -985,7 +1051,10 @@ class MissionOrchestrator:
                 top_k=3,
                 min_score=0.3,
             )
-        except Exception as exc:
+        except (RuntimeError, ValueError, OSError) as exc:
+            logger.warning("Memory retrieval failed (known): %s", exc)
+            return []
+        except Exception as exc:  # noqa: BLE001 — memory retrieval boundary
             logger.warning("Memory retrieval failed: %s", exc)
             return []
 
@@ -994,7 +1063,9 @@ class MissionOrchestrator:
             return
         try:
             await self._event_bus.emit(topic, payload)
-        except Exception as exc:
+        except (RuntimeError, ValueError) as exc:
+            logger.warning("Event emit failed (known) | topic=%s error=%s", topic, exc)
+        except Exception as exc:  # noqa: BLE001 — event bus boundary
             logger.warning("Event emit failed | topic=%s error=%s", topic, exc)
 
 
