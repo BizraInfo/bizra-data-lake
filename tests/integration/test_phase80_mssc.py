@@ -12,7 +12,7 @@ If these pass, the 42-file / 14.7K LOC integration is structurally sound.
 
 from __future__ import annotations
 
-import pytest
+import pytest  # noqa: F401 — required by pytest runner
 
 
 # ═══════════════════════════════════════════════════════════════════
