@@ -622,40 +622,63 @@ async def _cmd_task(args: argparse.Namespace) -> int:
     return 0 if result.get("status") in {"COMPLETE", "PARTIAL"} else 1
 
 
-async def _cmd_serve(args: argparse.Namespace) -> int:
-    manager = Node0StandaloneManager()
+# ═══════════════════════════════════════════════════════════════════════════════
+# API models and fleet config (module-level for FastAPI body resolution)
+# ═══════════════════════════════════════════════════════════════════════════════
+try:
+    from pydantic import BaseModel as _BaseModel
 
+    class _ActivateReq(_BaseModel):
+        architect: str = "MoMo"
+        strict: bool = False
+
+    class _TaskReq(_BaseModel):
+        description: str
+        source: str = "node0_standalone_api"
+        browser_mode: str = "mock"
+
+    class _QueryReq(_BaseModel):
+        prompt: str
+        model: str = ""
+        max_tokens: int = 1024
+        temperature: float = 0.3
+
+except ImportError:
+    pass  # pydantic unavailable — _cmd_serve will catch it
+
+# Agent → model routing map — single source of truth in constants.py
+# Supports Ollama defaults + LM Studio overrides + env var overrides
+try:
+    from core.integration.constants import NODE0_MODEL_FLEET
+except ImportError:
+    # Fallback for standalone execution without core on sys.path
+    NODE0_MODEL_FLEET: dict[str, str] = {  # type: ignore[no-redef]
+        "PAT-R": os.environ.get("BIZRA_MODEL_REASONING", "deepseek-r1:14b"),
+        "PAT-K": os.environ.get("BIZRA_MODEL_KNOWLEDGE", "qwen2.5:3b"),
+        "PAT-S": os.environ.get("BIZRA_MODEL_CODER", "qwen2.5-coder:7b"),
+        "PAT-C": os.environ.get("BIZRA_MODEL_COMM", "phi3:mini"),
+        "PAT-V": os.environ.get("BIZRA_MODEL_VISION", "moondream:1.8b"),
+        "PAT-M": os.environ.get("BIZRA_MODEL_EMBED", "nomic-embed-text:latest"),
+        "SAT-O": os.environ.get("BIZRA_MODEL_ORACLE", "phi3:mini"),
+        "default": os.environ.get("BIZRA_MODEL_DEFAULT", "phi3:mini"),
+    }
+
+
+def create_app(
+    manager: "Node0StandaloneManager", api_key: str = ""
+) -> Any:
+    """Build the standalone FastAPI app for live serving and tests."""
     try:
-        import uvicorn
         from fastapi import FastAPI, Header, HTTPException
-        from pydantic import BaseModel
     except ImportError as exc:
         raise SystemExit(f"Missing API dependencies: {exc}")
 
-    api_key = (
-        os.environ.get("BIZRA_NODE0_API_KEY") or os.environ.get("BIZRA_API_KEY") or ""
-    )
     api_key = api_key.strip()
-    if args.host not in {"127.0.0.1", "localhost"} and not api_key:
-        raise SystemExit(
-            "Refusing non-loopback host without API key. "
-            "Set BIZRA_NODE0_API_KEY (or BIZRA_API_KEY)."
-        )
-
     app = FastAPI(
         title="BIZRA Node0 Standalone",
         version="1.0.0",
         description="Single-node lifecycle API (activate, health, task)",
     )
-
-    class ActivateReq(BaseModel):
-        architect: str = "MoMo"
-        strict: bool = False
-
-    class TaskReq(BaseModel):
-        description: str
-        source: str = "node0_standalone_api"
-        browser_mode: str = "mock"
 
     def _require_api_key(x_api_key: str | None) -> None:
         if not api_key:
@@ -667,18 +690,22 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
     async def root() -> dict[str, Any]:
         return {
             "name": "BIZRA Node0 Standalone API",
+            "version": "1.1.0",
             "endpoints": [
-                "GET /health",
+                "GET  /health",
+                "GET  /v1/models",
+                "GET  /v1/agents",
+                "POST /v1/query",
                 "POST /activate",
                 "POST /task",
-                "GET /assets",
-                "GET /lifecycle",
+                "GET  /assets",
+                "GET  /lifecycle",
             ],
         }
 
     @app.post("/activate")
     async def activate(
-        req: ActivateReq, x_api_key: str | None = Header(default=None)
+        req: _ActivateReq, x_api_key: str | None = Header(default=None)
     ) -> dict[str, Any]:
         _require_api_key(x_api_key)
         return manager.activate(architect=req.architect, strict=req.strict)
@@ -693,13 +720,153 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
         return manager.assets()
 
     @app.get("/lifecycle")
-    async def lifecycle(x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    async def lifecycle(
+        x_api_key: str | None = Header(default=None),
+    ) -> dict[str, Any]:
         _require_api_key(x_api_key)
         return manager.lifecycle()
 
+    @app.get("/v1/models")
+    async def list_models() -> dict[str, Any]:
+        """List available local models and agent-to-model routing."""
+        ollama_models: list[str] = []
+        try:
+            import httpx
+
+            ollama_url = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{ollama_url}/api/tags")
+                resp.raise_for_status()
+                ollama_models = [
+                    m["name"] for m in resp.json().get("models", [])
+                ]
+        except Exception:  # noqa: BLE001 - best-effort model listing
+            pass
+        return {
+            "ollama_models": ollama_models,
+            "agent_routing": NODE0_MODEL_FLEET,
+            "ollama_url": os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434"),
+        }
+
+    @app.get("/v1/agents")
+    async def list_agents() -> dict[str, Any]:
+        """List the 12-agent organism with model assignments."""
+        pat = [
+            {
+                "id": "PAT-R",
+                "name": "Reasoning",
+                "model": NODE0_MODEL_FLEET["PAT-R"],
+                "type": "neural",
+            },
+            {
+                "id": "PAT-K",
+                "name": "Knowledge",
+                "model": NODE0_MODEL_FLEET["PAT-K"],
+                "type": "neural",
+            },
+            {
+                "id": "PAT-S",
+                "name": "Skills/Code",
+                "model": NODE0_MODEL_FLEET["PAT-S"],
+                "type": "neural",
+            },
+            {
+                "id": "PAT-C",
+                "name": "Communication",
+                "model": NODE0_MODEL_FLEET["PAT-C"],
+                "type": "neural",
+            },
+            {
+                "id": "PAT-V",
+                "name": "Vision",
+                "model": NODE0_MODEL_FLEET["PAT-V"],
+                "type": "neural",
+            },
+            {
+                "id": "PAT-M",
+                "name": "Memory/Embed",
+                "model": NODE0_MODEL_FLEET["PAT-M"],
+                "type": "neural",
+            },
+            {
+                "id": "PAT-E",
+                "name": "Ethicist (P5)",
+                "model": "frozen",
+                "type": "constitutional",
+            },
+        ]
+        sat = [
+            {"id": "SAT-S", "name": "Sentinel", "model": "pure-code", "type": "gate"},
+            {
+                "id": "SAT-O",
+                "name": "Oracle (S2)",
+                "model": NODE0_MODEL_FLEET["SAT-O"],
+                "type": "gate",
+            },
+            {"id": "SAT-L", "name": "Ledger", "model": "pure-code", "type": "gate"},
+            {
+                "id": "SAT-C",
+                "name": "Conductor",
+                "model": "pure-code",
+                "type": "router",
+            },
+            {
+                "id": "SAT-A",
+                "name": "Ambassador",
+                "model": "pure-code",
+                "type": "federation",
+            },
+        ]
+        return {"pat": pat, "sat": sat, "total": len(pat) + len(sat)}
+
+    @app.post("/v1/query")
+    async def query_llm(
+        req: _QueryReq, x_api_key: str | None = Header(default=None)
+    ) -> dict[str, Any]:
+        """Direct LLM query via Ollama - routes to model by agent role or explicit name."""
+        _require_api_key(x_api_key)
+        if not req.prompt.strip():
+            raise HTTPException(status_code=400, detail="prompt is required")
+
+        model = req.model or NODE0_MODEL_FLEET["default"]
+        if model in NODE0_MODEL_FLEET:
+            model = NODE0_MODEL_FLEET[model]
+
+        try:
+            import httpx
+
+            ollama_url = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+            t0 = time.time()
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                resp = await client.post(
+                    f"{ollama_url}/api/generate",
+                    json={
+                        "model": model,
+                        "prompt": req.prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": req.temperature,
+                            "num_predict": req.max_tokens,
+                        },
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+            latency_ms = (time.time() - t0) * 1000
+            return {
+                "model": model,
+                "response": data.get("response", ""),
+                "eval_count": data.get("eval_count", 0),
+                "latency_ms": round(latency_ms, 1),
+            }
+        except ImportError:
+            raise HTTPException(status_code=503, detail="httpx not installed")
+        except Exception as exc:  # noqa: BLE001 - query boundary
+            raise HTTPException(status_code=502, detail=f"LLM query failed: {exc}")
+
     @app.post("/task")
     async def task(
-        req: TaskReq, x_api_key: str | None = Header(default=None)
+        req: _TaskReq, x_api_key: str | None = Header(default=None)
     ) -> dict[str, Any]:
         _require_api_key(x_api_key)
         if not req.description.strip():
@@ -710,6 +877,28 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
             browser_mode=req.browser_mode,
         )
 
+    return app
+
+
+async def _cmd_serve(args: argparse.Namespace) -> int:
+    manager = Node0StandaloneManager()
+
+    try:
+        import uvicorn
+    except ImportError as exc:
+        raise SystemExit(f"Missing API dependencies: {exc}")
+
+    api_key = (
+        os.environ.get("BIZRA_NODE0_API_KEY") or os.environ.get("BIZRA_API_KEY") or ""
+    )
+    api_key = api_key.strip()
+    if args.host not in {"127.0.0.1", "localhost"} and not api_key:
+        raise SystemExit(
+            "Refusing non-loopback host without API key. "
+            "Set BIZRA_NODE0_API_KEY (or BIZRA_API_KEY)."
+        )
+
+    app = create_app(manager, api_key=api_key)
     config = uvicorn.Config(app, host=args.host, port=args.port, log_level="info")
     server = uvicorn.Server(config)
     await server.serve()

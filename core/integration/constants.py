@@ -40,7 +40,7 @@ Standing on Giants: Shannon • Lamport • Vaswani • Anthropic • Al-Ghazali
 
 import os
 from pathlib import Path
-from typing import Final
+from typing import Dict, Final
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # AUTO-LOAD .env — Ensures LM Studio token (and all secrets) are available
@@ -248,6 +248,10 @@ ADL_GINI_THRESHOLD: Final[float] = 0.35
 # Constitutional: 5% annual — discourages idle hoarding, not punitive
 ADL_HARBERGER_TAX_RATE: Final[float] = 0.05
 
+# Emergency Gini threshold — system-wide freeze if exceeded
+# Aligned with Rust bizra-core/omega.rs ADL_GINI_EMERGENCY = 0.60
+ADL_GINI_EMERGENCY: Final[float] = 0.60
+
 # Minimum holding to be considered a participant
 # Prevents dust attacks and ensures meaningful participation
 ADL_MINIMUM_HOLDING: Final[float] = 1e-9
@@ -338,6 +342,115 @@ LMSTUDIO_URL: str = os.getenv("LMSTUDIO_URL", f"http://{LMSTUDIO_HOST}:{LMSTUDIO
 
 # Fallback LLM backend (env override: OLLAMA_URL or OLLAMA_HOST)
 OLLAMA_URL = os.getenv("OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434"))
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NODE0 MODEL FLEET — Agent-to-Model Routing (§1 The Living Organism)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Each PAT/SAT agent maps to a local model. Env vars override defaults.
+# SAT-S, SAT-L, SAT-C, SAT-A are pure-code (no LLM needed).
+# PAT-E (P5 Ethicist) and SAT-O (S2 Oracle) are frozen constitutional gates.
+#
+# Ollama defaults (always available). When LM Studio is reachable,
+# load_fleet_from_yaml() overrides with config/local_models.yaml IDs.
+_OLLAMA_FLEET_DEFAULTS: Dict[str, str] = {
+    "PAT-R": "deepseek-r1:14b",
+    "PAT-K": "qwen2.5:3b",
+    "PAT-S": "mistral:latest",       # 7B — Ollama fallback for coding (LM Studio: agentflow-7b)
+    "PAT-C": "phi3:mini",
+    "PAT-V": "moondream:1.8b",
+    "PAT-M": "nomic-embed-text:latest",
+    "PAT-VOICE": "deephat-v1-7b",    # NVIDIA PersonaPlex 7B — voice agent (HF: nvidia/personaplex-7b-v1)
+    "DEMA": "deephat-v1-7b",             # P7 Nexus persona — user-facing voice via PersonaPlex 7B
+    "SAT-O": "phi3:mini",
+    "default": "phi3:mini",
+}
+
+# PAT agent ID → local_models.yaml pat_agents role name
+# PAT agent ID → local_models.yaml lookup key.
+# Checked against pat_agents first, then models[] directly.
+# When a pat_agents role maps to a model too small for the task,
+# the key here points to the models[] entry instead.
+PAT_ROLE_MAP: Dict[str, str] = {
+    "PAT-R": "researcher",     # pat_agents → reasoning (deepseek 8B)
+    "PAT-K": "thinking",       # models[] direct — knowledge needs explicit CoT
+    "PAT-S": "planning",       # pat_agents → planning (agentflow 7B, better for code than liquid 1.2B)
+    "PAT-C": "coordinator",    # pat_agents → planning (agentflow 7B)
+    "PAT-V": "vision_large",   # models[] direct — qwen VL 8B
+    "PAT-M": "embedding",      # models[] direct — nomic embed
+    "PAT-VOICE": "voice",      # personaplex/engine.py — nvidia/personaplex-7b-v1
+    "DEMA": "voice",            # P7 Nexus — user-facing persona via PersonaPlex voice
+    "SAT-O": "guardian",       # pat_agents → reasoning (deepseek 8B)
+    "default": "fast",         # models[] direct — liquid 1.2B
+}
+
+# Env-var overrides applied on top of the loaded fleet
+_ENV_OVERRIDES: Dict[str, str] = {
+    "PAT-R": "BIZRA_MODEL_REASONING",
+    "PAT-K": "BIZRA_MODEL_KNOWLEDGE",
+    "PAT-S": "BIZRA_MODEL_CODER",
+    "PAT-C": "BIZRA_MODEL_COMM",
+    "PAT-V": "BIZRA_MODEL_VISION",
+    "PAT-M": "BIZRA_MODEL_EMBED",
+    "PAT-VOICE": "BIZRA_MODEL_VOICE",
+    "DEMA": "BIZRA_MODEL_DEMA",
+    "SAT-O": "BIZRA_MODEL_ORACLE",
+    "default": "BIZRA_MODEL_DEFAULT",
+}
+
+
+def load_fleet_from_yaml(
+    yaml_path: str = "",
+) -> Dict[str, str]:
+    """Build NODE0_MODEL_FLEET, preferring config/local_models.yaml when present.
+
+    Resolution order per agent:
+        1. Environment variable (BIZRA_MODEL_*)  — highest priority
+        2. config/local_models.yaml (LM Studio)  — if file exists
+        3. Ollama defaults                        — always available
+    """
+    fleet: Dict[str, str] = dict(_OLLAMA_FLEET_DEFAULTS)
+
+    # Try loading YAML config
+    if not yaml_path:
+        yaml_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "config",
+            "local_models.yaml",
+        )
+    try:
+        import yaml  # type: ignore[import-untyped]
+
+        with open(yaml_path, "r") as fh:
+            cfg = yaml.safe_load(fh) or {}
+        models = cfg.get("models", {})
+        pat_agents = cfg.get("pat_agents", {})
+
+        for agent_id, role in PAT_ROLE_MAP.items():
+            # First check pat_agents mapping (role → model key)
+            model_key = pat_agents.get(role, role)
+            model_def = models.get(model_key, {})
+            if isinstance(model_def, dict) and "id" in model_def:
+                fleet[agent_id] = model_def["id"]
+            elif isinstance(model_def, str) and model_def in models:
+                # pat_agents value is a model key reference
+                resolved = models[model_def]
+                if isinstance(resolved, dict) and "id" in resolved:
+                    fleet[agent_id] = resolved["id"]
+    except FileNotFoundError:
+        pass  # No YAML config — Ollama defaults used
+    except Exception:  # noqa: BLE001
+        pass  # Malformed YAML — fall back safely to Ollama defaults
+
+    # Env overrides always win
+    for agent_id, env_key in _ENV_OVERRIDES.items():
+        val = os.getenv(env_key)
+        if val:
+            fleet[agent_id] = val
+
+    return fleet
+
+
+NODE0_MODEL_FLEET: Dict[str, str] = load_fleet_from_yaml()
 
 # Model directory (unified path)
 MODEL_DIR = os.getenv("BIZRA_MODELS_DIR", "/mnt/c/BIZRA-DATA-LAKE/models")
