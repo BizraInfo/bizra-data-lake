@@ -178,6 +178,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Validate docs-truth (README vs constants.py)
+        run: python scripts/ci_docs_truth_gate.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Validate deploy overlays
         run: python scripts/ci_deploy_overlay_gate.py
         env:

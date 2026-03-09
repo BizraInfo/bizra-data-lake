@@ -57,6 +57,17 @@ rules:
       - "except\\s*:\\s*pass"
     recommendation: "Catch specific exceptions and log context-rich diagnostics."
 
+  - id: broad_exception_catch
+    category: runtime_resilience
+    severity: low
+    description: "Broad 'except Exception' catches hide root cause; prefer specific types"
+    file_globs: ["*.py"]
+    patterns:
+      - "except\\s+Exception\\s*(as\\s+\\w+)?\\s*:"
+    exclude_patterns:
+      - "except\\s+Exception\\s*:\\s*pass"
+    recommendation: "Replace with specific exception types (e.g. OSError, ValueError, RuntimeError)."
+
   - id: unbounded_recursive_scan
     category: performance
     severity: medium
