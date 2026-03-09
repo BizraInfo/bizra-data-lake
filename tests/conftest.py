@@ -69,6 +69,7 @@ def pytest_configure(config):
         "markers", "requires_real_data: marks tests that need real parquet/index data"
     )
     config.addinivalue_line("markers", "requires_network: marks tests that need internet")
+    config.addinivalue_line("markers", "e2e_http: marks tests that need running API server")
     # BIZRA test tiers (Lock Once. Run Delta. Ship Fast.)
     config.addinivalue_line("markers", "smoke: T0 — runs on every save (< 30 sec)")
     config.addinivalue_line("markers", "contract: T2 — runs on merge to main (< 5 min)")
