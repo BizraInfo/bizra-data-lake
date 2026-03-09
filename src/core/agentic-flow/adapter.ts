@@ -25,6 +25,13 @@ import { ReflexCache, selectHelix } from './reflex-cache';
 import { SONAManager, type SONASnapshot } from './sona';
 import { AgentRouter, type RouteResult } from './agent-router';
 import { MemoryCoordinator, type SearchResult, type MemoryConfig } from './memory-coordinator';
+import {
+  ReasoningBank,
+  type ReasoningBankConfig,
+  type Trajectory,
+  type TrajectoryStep,
+  type DistillationResult,
+} from './reasoning-bank';
 
 // ────────────────────────────────────────────────────────────
 // Adapter Configuration
@@ -37,6 +44,8 @@ export interface AdapterConfig {
   readonly reflexCacheSize: number;
   /** Memory coordinator config */
   readonly memoryConfig: Partial<MemoryConfig>;
+  /** ReasoningBank config (Helix 3 learning) */
+  readonly reasoningBankConfig: Partial<ReasoningBankConfig>;
   /** Whether to delegate scoring to Python (true) or use local scoring (false) */
   readonly delegateScoring: boolean;
   /** IPC bridge endpoint (for Python delegation) */
@@ -47,6 +56,7 @@ const DEFAULT_ADAPTER_CONFIG: AdapterConfig = {
   sonaMode: SONAMode.BALANCED,
   reflexCacheSize: 8192,
   memoryConfig: {},
+  reasoningBankConfig: {},
   delegateScoring: true,
   ipcEndpoint: 'stdio',
 };
@@ -104,6 +114,7 @@ export interface MissionResult {
   readonly route: RouteResult;
   readonly reflexHit: boolean;
   readonly sonaSnapshot: SONASnapshot;
+  readonly trajectory: Trajectory;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -144,6 +155,7 @@ export class AgenticFlowAdapter {
   readonly sona: SONAManager;
   readonly router: AgentRouter;
   readonly memory: MemoryCoordinator;
+  readonly reasoningBank: ReasoningBank;
   private readonly config: AdapterConfig;
   private scorer: ScoringDelegate;
   private started = false;
@@ -155,6 +167,7 @@ export class AgenticFlowAdapter {
     this.sona = new SONAManager(this.config.sonaMode);
     this.router = new AgentRouter();
     this.memory = new MemoryCoordinator(this.config.memoryConfig);
+    this.reasoningBank = new ReasoningBank(this.config.reasoningBankConfig);
     this.scorer = new LocalScoringDelegate();
   }
 
@@ -173,8 +186,13 @@ export class AgenticFlowAdapter {
 
     // Start Helix 3 evolutionary heartbeat
     this.sona.startHeartbeat(() => {
-      // Evolutionary tick: could trigger reflex precipitation review,
-      // LoRA delta sync, HHMM transition updates
+      // Helix 3 evolutionary tick:
+      // 1. Distill trajectories into patterns
+      // 2. Precipitate high-confidence patterns to reflex cache
+      for (const domain of this.reasoningBank.getDomains()) {
+        this.reasoningBank.distill(domain);
+      }
+      this.reasoningBank.precipitateToCache(this.reflexCache);
     });
 
     this.started = true;
@@ -260,7 +278,19 @@ export class AgenticFlowAdapter {
       timestamp: receipt.timestamp,
     });
 
-    // Step 7: Attempt reflex precipitation (Helix 3)
+    // Step 7: Record trajectory in ReasoningBank (Helix 3 learning)
+    const steps: TrajectoryStep[] = agentIds.map((id) => ({
+      agentId: id,
+      action: reflexHit ? 'reflex-hit' : 'deliberate',
+      result: content,
+      durationMs: elapsedMs / agentIds.length,
+      helix: reflexHit ? Helix.REACTIVE : Helix.DELIBERATIVE,
+    }));
+
+    const domain = route.macroState;
+    const trajectory = this.reasoningBank.recordTrajectory(receipt, description, steps, domain);
+
+    // Step 8: Attempt reflex precipitation (Helix 3)
     if (!reflexHit && ihsanScore >= CONSTITUTIONAL.PRECIPITATION_IHSAN) {
       this.reflexCache.recordCandidate(description, agentIds, ihsanScore, content);
     }
@@ -274,6 +304,7 @@ export class AgenticFlowAdapter {
       route,
       reflexHit,
       sonaSnapshot: this.sona.snapshot(),
+      trajectory,
     };
   }
 
@@ -282,6 +313,20 @@ export class AgenticFlowAdapter {
    */
   searchMemory(queryEmbedding: Float32Array, topK: number = 5): SearchResult[] {
     return this.memory.searchSimilar(queryEmbedding, topK);
+  }
+
+  /**
+   * Judge a proposed mission against prior trajectories.
+   */
+  judgeMission(description: string, domain: string): ReturnType<ReasoningBank['judgeTrajectory']> {
+    return this.reasoningBank.judgeTrajectory(description, domain);
+  }
+
+  /**
+   * Trigger manual distillation for a domain (normally runs on Helix 3 heartbeat).
+   */
+  distillDomain(domain: string): DistillationResult {
+    return this.reasoningBank.distill(domain);
   }
 
   /**

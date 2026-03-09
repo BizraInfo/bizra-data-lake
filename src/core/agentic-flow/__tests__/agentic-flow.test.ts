@@ -38,6 +38,11 @@ import {
 } from '../adapter';
 
 import {
+  ReasoningBank,
+  type SeedPattern,
+} from '../reasoning-bank';
+
+import {
   PATAgent,
   SATAgent,
   Helix,
@@ -490,3 +495,380 @@ describe('LocalScoringDelegate', () => {
     assert.ok(score >= 0 && score <= 1, `Score ${score} not in [0,1]`);
   });
 });
+
+// ────────────────────────────────────────────────────────────
+// ReasoningBank — Trajectory Tracking
+// ────────────────────────────────────────────────────────────
+
+describe('ReasoningBank — Trajectory Tracking', () => {
+  let bank: ReasoningBank;
+
+  beforeEach(() => {
+    bank = new ReasoningBank();
+  });
+
+  it('records a trajectory and classifies outcome', () => {
+    const receipt = makeReceipt(0.90, 0.88);
+    const traj = bank.recordTrajectory(receipt, 'optimize database queries', [], 'backend');
+    assert.equal(traj.outcome, 'success');
+    assert.equal(traj.domain, 'backend');
+    assert.equal(bank.getTrajectoryCount(), 1);
+  });
+
+  it('classifies low-score trajectory as failure', () => {
+    const receipt = makeReceipt(0.40, 0.30);
+    const traj = bank.recordTrajectory(receipt, 'bad mission', [], 'testing');
+    assert.equal(traj.outcome, 'failure');
+  });
+
+  it('classifies partial outcome for mixed scores', () => {
+    const receipt = makeReceipt(0.75, 0.60);
+    const traj = bank.recordTrajectory(receipt, 'partial mission', [], 'testing');
+    assert.equal(traj.outcome, 'partial');
+  });
+
+  it('auto-creates experience pattern for successful trajectories', () => {
+    const receipt = makeReceipt(0.92, 0.90);
+    bank.recordTrajectory(receipt, 'successful mission', [], 'coding');
+    const patterns = bank.getPatterns('coding', 'experience');
+    assert.equal(patterns.length, 1);
+    assert.ok(patterns[0]!.confidence >= 0.90);
+  });
+
+  it('does not create pattern for failed trajectories', () => {
+    const receipt = makeReceipt(0.40, 0.30);
+    bank.recordTrajectory(receipt, 'failed mission', [], 'coding');
+    const patterns = bank.getPatterns('coding', 'experience');
+    assert.equal(patterns.length, 0);
+  });
+
+  it('evicts oldest trajectory when at capacity', () => {
+    const config = { maxTrajectoriesPerDomain: 3 };
+    const small = new ReasoningBank(config);
+
+    for (let i = 0; i < 5; i++) {
+      const r = makeReceipt(0.92, 0.90);
+      small.recordTrajectory(r, `mission ${i}`, [], 'test');
+    }
+
+    const trajectories = small.getTrajectories('test');
+    assert.equal(trajectories.length, 3);
+  });
+
+  it('retrieves trajectories by domain', () => {
+    bank.recordTrajectory(makeReceipt(0.92, 0.90), 'backend task', [], 'backend');
+    bank.recordTrajectory(makeReceipt(0.92, 0.90), 'frontend task', [], 'frontend');
+
+    assert.equal(bank.getTrajectories('backend').length, 1);
+    assert.equal(bank.getTrajectories('frontend').length, 1);
+    assert.equal(bank.getTrajectories('unknown').length, 0);
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// ReasoningBank — Verdict Judgment
+// ────────────────────────────────────────────────────────────
+
+describe('ReasoningBank — Verdict Judgment', () => {
+  let bank: ReasoningBank;
+
+  beforeEach(() => {
+    bank = new ReasoningBank({ verdictSuccessThreshold: 2, verdictSimilarityThreshold: 0.4 });
+  });
+
+  it('returns needs_review for empty domain', () => {
+    const verdict = bank.judgeTrajectory('optimize queries', 'empty-domain');
+    assert.equal(verdict.level, 'needs_review');
+    assert.equal(verdict.similarPatterns, 0);
+  });
+
+  it('returns likely_success with sufficient similar patterns', () => {
+    // Create 3 similar successful patterns
+    for (let i = 0; i < 3; i++) {
+      bank.recordTrajectory(
+        makeReceipt(0.95, 0.92),
+        'optimize database queries for better performance',
+        [],
+        'backend',
+      );
+    }
+
+    const verdict = bank.judgeTrajectory('optimize database queries', 'backend');
+    assert.equal(verdict.level, 'likely_success');
+    assert.ok(verdict.successfulMatches >= 2);
+  });
+
+  it('returns likely_failure with no successful matches', () => {
+    // Insert patterns that don't match
+    bank.insertPattern({
+      id: 'unrelated-1',
+      type: 'experience',
+      domain: 'backend',
+      description: 'completely different topic about weather',
+      confidence: 0.90,
+      usageCount: 5,
+      successCount: 0,
+      createdAt: Date.now(),
+      lastUsed: Date.now(),
+      data: '{}',
+    });
+
+    const verdict = bank.judgeTrajectory('optimize database queries', 'backend');
+    assert.equal(verdict.level, 'likely_failure');
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// ReasoningBank — Memory Distillation
+// ────────────────────────────────────────────────────────────
+
+describe('ReasoningBank — Memory Distillation', () => {
+  let bank: ReasoningBank;
+
+  beforeEach(() => {
+    bank = new ReasoningBank();
+  });
+
+  it('returns empty result for unknown domain', () => {
+    const result = bank.distill('unknown');
+    assert.equal(result.outputPatterns, 0);
+    assert.equal(result.successRate, 0);
+  });
+
+  it('distills similar experience patterns into distilled pattern', () => {
+    // Create multiple similar successful trajectories
+    for (let i = 0; i < 4; i++) {
+      bank.recordTrajectory(
+        makeReceipt(0.93, 0.91),
+        'optimize database queries with indexing',
+        [],
+        'db-optimization',
+      );
+    }
+
+    const result = bank.distill('db-optimization');
+    assert.ok(result.outputPatterns >= 1, `Expected >=1 distilled patterns, got ${result.outputPatterns}`);
+
+    const distilled = bank.getPatterns('db-optimization', 'distilled');
+    const principles = bank.getPatterns('db-optimization', 'principle');
+    assert.ok(distilled.length + principles.length >= 1);
+  });
+
+  it('tracks precipitation candidates', () => {
+    for (let i = 0; i < 5; i++) {
+      bank.recordTrajectory(
+        makeReceipt(0.96, 0.94),
+        'deploy microservice to kubernetes cluster',
+        [],
+        'deployment',
+      );
+    }
+
+    const result = bank.distill('deployment');
+    assert.ok(result.precipitationCandidates >= 0);
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// ReasoningBank — Reflex Precipitation
+// ────────────────────────────────────────────────────────────
+
+describe('ReasoningBank — Reflex Precipitation', () => {
+  let bank: ReasoningBank;
+  let cache: ReflexCache;
+
+  beforeEach(() => {
+    bank = new ReasoningBank({ precipitationRepeats: 2 });
+    cache = new ReflexCache();
+  });
+
+  it('precipitates high-confidence distilled patterns to cache', () => {
+    // Insert a distilled pattern with high confidence and usage
+    bank.insertPattern({
+      id: 'distilled-1',
+      type: 'distilled',
+      domain: 'testing',
+      description: 'run comprehensive test suite before deployment',
+      confidence: 0.95,
+      usageCount: 5,
+      successCount: 5,
+      createdAt: Date.now(),
+      lastUsed: Date.now(),
+      data: JSON.stringify({ agents: [PATAgent.CODER, PATAgent.EVALUATOR] }),
+    });
+
+    const precipitated = bank.precipitateToCache(cache);
+    assert.ok(precipitated >= 1, `Expected >=1 precipitation, got ${precipitated}`);
+    assert.ok(cache.totalSize >= 1);
+  });
+
+  it('does not precipitate low-confidence patterns', () => {
+    bank.insertPattern({
+      id: 'weak-1',
+      type: 'distilled',
+      domain: 'testing',
+      description: 'weak pattern',
+      confidence: 0.50,
+      usageCount: 1,
+      successCount: 0,
+      createdAt: Date.now(),
+      lastUsed: Date.now(),
+      data: '{}',
+    });
+
+    const precipitated = bank.precipitateToCache(cache);
+    assert.equal(precipitated, 0);
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// ReasoningBank — Seed Pattern Import
+// ────────────────────────────────────────────────────────────
+
+describe('ReasoningBank — Seed Import', () => {
+  it('imports seed patterns from JSON format', () => {
+    const bank = new ReasoningBank();
+    const seeds: SeedPattern[] = [
+      {
+        text: 'IhsanGate Enforcement Pattern: Transform quality gate from monitoring to enforcement.',
+        metadata: {
+          domain: 'security-architecture',
+          task: 'ihsan-gate-enforcement',
+          outcome: 'success',
+          confidence: 0.95,
+          tests_added: 9,
+          giants: ['Al-Ghazali', 'Lyapunov'],
+        },
+      },
+      {
+        text: 'Domain-Separated Signatures: Always prefix signing payloads with a domain string.',
+        metadata: {
+          domain: 'cryptographic-patterns',
+          pattern_type: 'distilled',
+          confidence: 0.98,
+          giants: ['Lamport', 'BLAKE3'],
+        },
+      },
+    ];
+
+    const imported = bank.importSeedPatterns(seeds);
+    assert.equal(imported, 2);
+    assert.equal(bank.getPatternCount(), 2);
+
+    const secPatterns = bank.getPatterns('security-architecture');
+    assert.equal(secPatterns.length, 1);
+    assert.equal(secPatterns[0]!.confidence, 0.95);
+
+    const cryptoPatterns = bank.getPatterns('cryptographic-patterns');
+    assert.equal(cryptoPatterns.length, 1);
+    assert.equal(cryptoPatterns[0]!.type, 'distilled');
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// ReasoningBank — Stats
+// ────────────────────────────────────────────────────────────
+
+describe('ReasoningBank — Stats', () => {
+  it('reports comprehensive stats across domains', () => {
+    const bank = new ReasoningBank();
+
+    bank.recordTrajectory(makeReceipt(0.93, 0.90), 'backend task', [], 'backend');
+    bank.recordTrajectory(makeReceipt(0.91, 0.88), 'frontend task', [], 'frontend');
+    bank.recordTrajectory(makeReceipt(0.40, 0.30), 'failed task', [], 'backend');
+
+    const stats = bank.getStats();
+    assert.equal(stats.totalTrajectories, 3);
+    assert.ok(stats.domains >= 2);
+    assert.ok(stats.totalPatterns >= 2); // Auto-created from successful trajectories
+  });
+
+  it('clears all data', () => {
+    const bank = new ReasoningBank();
+    bank.recordTrajectory(makeReceipt(0.93, 0.90), 'task', [], 'test');
+    bank.clear();
+    assert.equal(bank.getTrajectoryCount(), 0);
+    assert.equal(bank.getPatternCount(), 0);
+  });
+
+  it('returns domain list', () => {
+    const bank = new ReasoningBank();
+    bank.recordTrajectory(makeReceipt(0.93, 0.90), 'task', [], 'alpha');
+    bank.recordTrajectory(makeReceipt(0.93, 0.90), 'task', [], 'beta');
+    const domains = bank.getDomains();
+    assert.ok(domains.includes('alpha'));
+    assert.ok(domains.includes('beta'));
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// Adapter + ReasoningBank Integration
+// ────────────────────────────────────────────────────────────
+
+describe('AgenticFlowAdapter + ReasoningBank', () => {
+  let adapter: AgenticFlowAdapter;
+
+  beforeEach(async () => {
+    adapter = new AgenticFlowAdapter();
+    await adapter.start();
+  });
+
+  afterEach(async () => {
+    await adapter.stop();
+  });
+
+  it('records trajectory automatically on executeMission', async () => {
+    const result = await adapter.executeMission('plan the architecture');
+    assert.ok(result.trajectory);
+    assert.equal(result.trajectory.missionId, result.receipt.missionId);
+    assert.ok(adapter.reasoningBank.getTrajectoryCount() >= 1);
+  });
+
+  it('exposes judgeMission through adapter', async () => {
+    // Build up some history
+    await adapter.executeMission('implement user authentication');
+    await adapter.executeMission('implement user authentication module');
+
+    const verdict = adapter.judgeMission('implement user authentication', 'coding');
+    assert.ok(['likely_success', 'needs_review', 'likely_failure'].includes(verdict.level));
+  });
+
+  it('exposes distillDomain through adapter', async () => {
+    for (let i = 0; i < 4; i++) {
+      await adapter.executeMission('refactor authentication service');
+    }
+
+    const domain = (await adapter.executeMission('refactor auth')).trajectory.domain;
+    const result = adapter.distillDomain(domain);
+    assert.equal(result.domain, domain);
+  });
+
+  it('trajectory contains agent IDs from routing', async () => {
+    const result = await adapter.executeMission('write unit tests for the parser');
+    assert.ok(result.trajectory.agents.length > 0);
+    assert.ok(result.trajectory.steps.length > 0);
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// Test Helpers
+// ────────────────────────────────────────────────────────────
+
+let receiptSeq = 0;
+
+function makeReceipt(ihsan: number, snr: number) {
+  const id = `test-${++receiptSeq}`;
+  return {
+    missionId: id,
+    description: 'test mission',
+    ihsanScore: ihsan,
+    snrScore: snr,
+    agentIds: [PATAgent.CODER] as const,
+    helix: Helix.DELIBERATIVE as const,
+    timestamp: Date.now(),
+    receiptHash: id,
+    prevHash: '0000',
+    elapsedMs: 10,
+    seedMinted: ihsan >= CONSTITUTIONAL.IHSAN_MINIMUM,
+  };
+}

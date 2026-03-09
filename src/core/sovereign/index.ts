@@ -100,6 +100,7 @@ export {
   SONAManager,
   AgentRouter,
   MemoryCoordinator,
+  ReasoningBank,
   PATAgent,
   SATAgent,
   Helix,

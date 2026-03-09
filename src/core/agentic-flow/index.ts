@@ -75,3 +75,21 @@ export {
   type ScoringDelegate,
   LocalScoringDelegate,
 } from './adapter';
+
+// ReasoningBank (Helix 3 learning)
+export {
+  ReasoningBank,
+  type ReasoningBankConfig,
+  type Trajectory,
+  type TrajectoryStep,
+  type TrajectoryOutcome,
+  type Pattern,
+  type PatternType,
+  type Verdict,
+  type VerdictLevel,
+  type DistillationResult,
+  type SeedPattern,
+  type SeedPatternMetadata,
+  type ReasoningBankStats,
+  type DomainStats,
+} from './reasoning-bank';
