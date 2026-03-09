@@ -421,7 +421,12 @@ class ReflexCompiler:
     # ── Persistence ──────────────────────────────────────────────────────────
 
     def save_to_disk(self) -> None:
-        """Serialize cache to disk for shutdown persistence."""
+        """Serialize cache to disk for shutdown persistence.
+
+        Uses atomic write (tempfile + os.replace) to prevent corruption
+        if the process crashes mid-write. Same pattern as genesis_ceremony.
+        Standing on Giants: Lamport (1978) — durable state transitions.
+        """
         if self._persistence_path is None:
             return
 
@@ -432,8 +437,27 @@ class ReflexCompiler:
                 "saved_at": time.time(),
             }
 
+        import os
+        import tempfile
+
         self._persistence_path.parent.mkdir(parents=True, exist_ok=True)
-        self._persistence_path.write_text(json.dumps(data, indent=2))
+        content = json.dumps(data, indent=2)
+        fd, tmp_path = tempfile.mkstemp(
+            dir=self._persistence_path.parent, suffix=".tmp"
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, str(self._persistence_path))
+        except BaseException:
+            # Clean up temp file on any failure
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
         logger.info("Saved %d reflexes to %s", len(self._cache), self._persistence_path)
 
     def _load_from_disk(self) -> None:

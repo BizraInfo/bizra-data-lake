@@ -705,3 +705,58 @@ class TestSerialization:
         )
         line = entry.to_jsonl()
         assert "\n" not in line
+
+
+# =============================================================================
+# CRASH RECOVERY — Phase A atomic persistence hardening
+# Standing on Giants: Lamport (1978) — durable causal ordering
+# =============================================================================
+
+
+class TestCrashRecovery:
+    """Verify ledger resilience to crash-interrupted writes."""
+
+    def test_resume_survives_partial_trailing_line(self, ledger_path):
+        """A crash mid-write leaves a partial JSONL line; resume should skip it."""
+        ledger = EvidenceLedger(ledger_path, validate_on_append=False)
+        ledger.append(_minimal_receipt("r1"))
+        ledger.append(_minimal_receipt("r2"))
+
+        # Simulate crash: append garbage (partial JSON) to the file
+        with open(ledger_path, "a") as f:
+            f.write('{"seq":3,"receipt":{"receipt_id":"r3')  # truncated mid-write
+
+        # Re-open: should recover to seq=2, truncating the garbage
+        ledger2 = EvidenceLedger(ledger_path, validate_on_append=False)
+        assert ledger2.sequence == 2
+        assert ledger2.last_hash == ledger.last_hash
+
+    def test_resume_survives_empty_trailing_lines(self, ledger_path):
+        """Trailing blank lines (e.g., from double-newline) are harmless."""
+        ledger = EvidenceLedger(ledger_path, validate_on_append=False)
+        ledger.append(_minimal_receipt("r1"))
+
+        with open(ledger_path, "a") as f:
+            f.write("\n\n\n")
+
+        ledger2 = EvidenceLedger(ledger_path, validate_on_append=False)
+        assert ledger2.sequence == 1
+
+    def test_append_after_crash_recovery_continues_chain(self, ledger_path):
+        """After recovering from a corrupt tail, new appends chain correctly."""
+        ledger = EvidenceLedger(ledger_path, validate_on_append=False)
+        e1 = ledger.append(_minimal_receipt("r1"))
+
+        # Simulate crash garbage
+        with open(ledger_path, "a") as f:
+            f.write("CORRUPT_LINE\n")
+
+        # Recover and continue
+        ledger2 = EvidenceLedger(ledger_path, validate_on_append=False)
+        e2 = ledger2.append(_minimal_receipt("r2"))
+        assert e2.sequence == 2
+        assert e2.prev_hash == e1.entry_hash
+
+        # Chain should be valid
+        ok, errors = ledger2.verify_chain()
+        assert ok, errors

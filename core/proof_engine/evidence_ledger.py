@@ -162,15 +162,41 @@ class EvidenceLedger:
             self._resume()
 
     def _resume(self) -> None:
-        """Resume sequence and chain state from existing ledger file."""
+        """Resume sequence and chain state from existing ledger file.
+
+        Handles corrupt/partial trailing lines from crash-interrupted writes
+        by skipping unparseable lines and truncating the file to the last
+        valid entry boundary.
+        """
+        last_valid_pos = 0
         with open(self._path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
+            while True:
+                line = f.readline()
                 if not line:
+                    break
+                stripped = line.strip()
+                if not stripped:
                     continue
-                entry = LedgerEntry.from_jsonl(line)
-                self._sequence = entry.sequence
-                self._last_hash = entry.entry_hash
+                try:
+                    entry = LedgerEntry.from_jsonl(stripped)
+                    self._sequence = entry.sequence
+                    self._last_hash = entry.entry_hash
+                    last_valid_pos = f.tell()
+                except (json.JSONDecodeError, KeyError, UnicodeDecodeError) as exc:
+                    logger.warning(
+                        "Corrupt ledger line at pos %d (crash recovery): %s",
+                        f.tell(),
+                        exc,
+                    )
+        # Truncate any trailing garbage from a crash-interrupted write
+        file_size = self._path.stat().st_size
+        if last_valid_pos > 0 and last_valid_pos < file_size:
+            logger.warning(
+                "Truncating %d bytes of corrupt trailing data from ledger",
+                file_size - last_valid_pos,
+            )
+            with open(self._path, "r+b") as f:
+                f.truncate(last_valid_pos)
 
     def _resume_tail(self) -> None:
         """Resume seq+hash from the last line only — O(1) disk seek.
@@ -291,10 +317,16 @@ class EvidenceLedger:
                     timestamp=ts,
                 )
 
-                # Append to file
+                # Append to file — flush + fsync for crash durability.
+                # Standing on Giants: Lamport (1978) — durable causal ordering.
+                # If the process crashes after write but before fsync, the OS
+                # may not have flushed to disk. Worst case: partial last line,
+                # which _resume/_resume_tail already handle gracefully.
                 self._path.parent.mkdir(parents=True, exist_ok=True)
                 with open(self._path, "a", encoding="utf-8") as f:
                     f.write(entry.to_jsonl() + "\n")
+                    f.flush()
+                    os.fsync(f.fileno())
 
                 self._last_hash = entry_hash
                 return entry
