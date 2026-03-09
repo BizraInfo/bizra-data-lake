@@ -26,6 +26,9 @@ images:
   - name: bizra-mcp
     newName: ghcr.io/bizra/bizra-data-lake/mcp
     newTag: mcp-placeholder
+  - name: bizra-frontend
+    newName: ghcr.io/bizra/bizra-data-lake/frontend
+    newTag: frontend-placeholder
 
 patches:
   - target:

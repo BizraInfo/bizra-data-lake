@@ -176,6 +176,43 @@ def _env_truthy(var_name: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+# ── Anonymous Auth Guard ──────────────────────────────────────────────
+# BIZRA_AUTH_ALLOW_ANONYMOUS is a dev-only convenience.  In production
+# environments (BIZRA_ENV=production) it is forcibly ignored so that a
+# single env-var misconfiguration cannot expose all 59+ routes.
+
+_ANON_AUTH_WARNED = False
+
+
+def _anonymous_auth_allowed() -> bool:
+    """Check if anonymous auth is allowed, with production safety guard."""
+    global _ANON_AUTH_WARNED  # noqa: PLW0603
+
+    if not _env_truthy("BIZRA_AUTH_ALLOW_ANONYMOUS"):
+        return False
+
+    env = os.environ.get("BIZRA_ENV", "").strip().lower()
+    if env == "production":
+        if not _ANON_AUTH_WARNED:
+            _ANON_AUTH_WARNED = True
+            logger.critical(
+                "BIZRA_AUTH_ALLOW_ANONYMOUS is set but BIZRA_ENV=production — "
+                "anonymous auth BLOCKED. Remove BIZRA_AUTH_ALLOW_ANONYMOUS or "
+                "change BIZRA_ENV to enable anonymous access."
+            )
+        return False
+
+    if not _ANON_AUTH_WARNED:
+        _ANON_AUTH_WARNED = True
+        logger.warning(
+            "BIZRA_AUTH_ALLOW_ANONYMOUS is enabled (env=%s). "
+            "All routes accept unauthenticated requests. "
+            "This MUST NOT be used in production.",
+            env or "unset",
+        )
+    return True
+
+
 def _raise_http_exception(
     *,
     status_code: int,
@@ -207,10 +244,7 @@ async def get_current_user(
     For raw asyncio server, call authenticate() directly.
     """
     if _global_middleware is None:
-        if _env_truthy("BIZRA_AUTH_ALLOW_ANONYMOUS"):
-            logger.warning(
-                "Auth disabled via BIZRA_AUTH_ALLOW_ANONYMOUS — anonymous access allowed"
-            )
+        if _anonymous_auth_allowed():
             return None
 
         logger.error("Auth middleware not initialized and anonymous mode is disabled")

@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 import time
 import asyncio
+import os
 
 # === EFFECT DEFINITIONS ===
 
@@ -255,7 +256,7 @@ async def demo():
     # Valid request
     effects = [
         LogEffect(name="log", message="Incoming request", level="info"),
-        AuthEffect(name="auth", token="bizra_secret_123", required_roles=["admin"]),
+        AuthEffect(name="auth", token=os.environ.get("BIZRA_DEMO_TOKEN", "demo-placeholder"), required_roles=["admin"]),
         RateLimitEffect(name="rate", key="api", limit=10, window_seconds=60),
         IhsanEffect(
             name="ihsan",

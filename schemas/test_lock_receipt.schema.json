@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.info/schemas/test_lock_receipt.schema.json",
+  "title": "BIZRA Test Lock Receipt",
+  "description": "Immutable proof that a versioned test baseline passed and was locked.",
+  "type": "object",
+  "required": [
+    "version",
+    "git_commit",
+    "git_tag",
+    "timestamp",
+    "total_tests",
+    "passed",
+    "failed",
+    "skipped",
+    "duration_seconds",
+    "coverage_percent",
+    "coverage_floor",
+    "ihsan_score",
+    "snr_score",
+    "constants_hash",
+    "genesis_gate_passed",
+    "node_id",
+    "prev_lock_hash",
+    "lock_hash"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "git_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,64}$"
+    },
+    "git_tag": {
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "total_tests": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "skipped": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duration_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "coverage_percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "coverage_floor": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "ihsan_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "snr_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "constants_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32,128}$|^MISSING$"
+    },
+    "genesis_gate_passed": {
+      "type": "boolean"
+    },
+    "node_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signature": {
+      "type": "string"
+    },
+    "prev_lock_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lock_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32,128}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "failed": { "const": 0 }
+        },
+        "required": ["failed"]
+      },
+      "then": {
+        "properties": {
+          "passed": {
+            "const": { "$data": "/total_tests" }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -7,8 +7,12 @@ import json
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from .mcp_disclosure import MCPProgressiveDisclosure, SkillContext, SkillIndex
-from .mcp_disclosure import create_mcp_disclosure
+from .mcp_disclosure import (
+    MCPProgressiveDisclosure,
+    SkillContext,
+    SkillIndex,
+    create_mcp_disclosure,
+)
 from .runtime_engines.giants_registry import get_giants_registry
 
 _GIANTS_REGISTERED = False
@@ -324,7 +328,10 @@ class AgentKernel:
                     skill_id="repo_search",
                     description="Locate symbols, files, and high-impact call paths before editing.",
                     parameters={"module_path": "core.sovereign.agent_cli"},
-                    examples=["find auth middleware", "search where rate limiter is used"],
+                    examples=[
+                        "find auth middleware",
+                        "search where rate limiter is used",
+                    ],
                     dependencies=["search.ripgrep", "workspace.read"],
                 ),
             ),
@@ -366,7 +373,10 @@ class AgentKernel:
                     skill_id="change_planning",
                     description="Translate vague goals into bounded implementation steps and checks.",
                     parameters={"module_path": "core.sovereign.agent_cli"},
-                    examples=["plan a terminal agent", "design route policy enforcement"],
+                    examples=[
+                        "plan a terminal agent",
+                        "design route policy enforcement",
+                    ],
                     dependencies=["workspace.read", "git.status"],
                 ),
             ),
@@ -481,7 +491,8 @@ class AgentKernel:
     def plan(self, task: str) -> AgentTaskPlan:
         normalized = task.lower()
         skill_matches = [
-            skill.skill_id for skill in self._skills.discover_skills(task, max_results=4)
+            skill.skill_id
+            for skill in self._skills.discover_skills(task, max_results=4)
         ]
 
         if not skill_matches:
@@ -514,7 +525,9 @@ class AgentKernel:
             recommended_skills=skill_matches,
             recommended_subagents=subagents,
             recommended_tools=tools,
-            active_hooks=[spec.hook_id for spec in self._hooks if spec.enabled_by_default],
+            active_hooks=[
+                spec.hook_id for spec in self._hooks if spec.enabled_by_default
+            ],
             active_plugins=[
                 spec.plugin_id for spec in self._plugins if spec.enabled_by_default
             ],
@@ -581,7 +594,9 @@ HELP_TEXT = """Commands:
 """
 
 
-def build_agent_parser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
+def build_agent_parser(
+    subparsers: argparse._SubParsersAction,
+) -> argparse.ArgumentParser:
     """Attach the `bizra agent` parser to the main CLI."""
     agent_parser = subparsers.add_parser(
         "agent",
@@ -692,13 +707,10 @@ def _render_text_manifest(payload: dict[str, Any]) -> str:
     lines = ["BIZRA Agent Default Components"]
     counts = payload["component_counts"]
     lines.append(
-        "Counts: "
-        + ", ".join(f"{name}={value}" for name, value in counts.items())
+        "Counts: " + ", ".join(f"{name}={value}" for name, value in counts.items())
     )
     lines.append("Hooks: " + ", ".join(item["hook_id"] for item in payload["hooks"]))
-    lines.append(
-        "Skills: " + ", ".join(item["skill_id"] for item in payload["skills"])
-    )
+    lines.append("Skills: " + ", ".join(item["skill_id"] for item in payload["skills"]))
     lines.append(
         "Subagents: " + ", ".join(item["agent_id"] for item in payload["subagents"])
     )
@@ -706,7 +718,8 @@ def _render_text_manifest(payload: dict[str, Any]) -> str:
         "Plugins: " + ", ".join(item["plugin_id"] for item in payload["plugins"])
     )
     lines.append(
-        "MCP servers: " + ", ".join(item["server_id"] for item in payload["mcp_servers"])
+        "MCP servers: "
+        + ", ".join(item["server_id"] for item in payload["mcp_servers"])
     )
     lines.append(
         "Memory: " + ", ".join(item["layer_id"] for item in payload["memory_layers"])

@@ -254,3 +254,24 @@ bizra_prod_artifacts_v2/
 last update/
 BIZRA-DDAGI-OS-Atlas-v5_0_FINAL.html
 BIZRA-DDAGI-OS-Atlas-v5_0_FINAL_RESILIENT.html
+
+# Local review / draft workspaces
+tmp_review_probe*/
+.spearpoint/
+*.tsbuildinfo
+BIZRA Front end final choese/
+files with update/
+my complete season/
+BIZRA_DDAGI_OS_Deployable/
+bizra-ddagi-os-frontend/
+bizra-public/
+BIZRA_DDAGI_OS_Complete.jsx
+BIZRA_DDAGI_OS_Redesign.html
+BIZRA_Production_Frontend.tsx
+BIZRA_SovereignOS.jsx
+BIZRA-Elite-Engineering-Blueprint.docx
+BIZRA-Identity-Canon-v1.0.docx
+BIZRA-Proof-Canon-v1.0.docx
+BIZRA-Proof-Canon-v1.1.docx
+BIZRA-Evidence-Delta-v1.0-to-v1.1.md
+BIZRA-Sprint2-4-Execution-Playbook-v1.1.md

@@ -1,0 +1,49 @@
+{
+  "name": "@bizra/ddagi-os",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/ --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "analyze": "vite-bundle-visualizer",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/chai": "^5.2.3",
+    "@types/node": "^25.3.5",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0",
+    "vite-bundle-visualizer": "^1.2.1",
+    "vitest": "^2.1.8",
+    "web-vitals": "^4.2.4"
+  },
+  "browserslist": [
+    ">0.5%",
+    "not dead",
+    "not op_mini all"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -22,7 +22,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ── Fixture: Isolated workspace ──────────────────────────────────────────
 
 
@@ -241,6 +240,6 @@ def test_golden_path_spine(workspace):
     if evidence_file.exists():
         content = evidence_file.read_text()
         receipt_id = mission_result.evidence_receipt_id
-        assert receipt_id in content, (
-            f"Receipt {receipt_id} must appear in evidence ledger"
-        )
+        assert (
+            receipt_id in content
+        ), f"Receipt {receipt_id} must appear in evidence ledger"

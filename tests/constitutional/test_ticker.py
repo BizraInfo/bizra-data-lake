@@ -24,7 +24,6 @@ from core.constitutional.types import (
     WalletState,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════
@@ -596,6 +595,7 @@ class TestTickAsabiyyah:
 
         Standing on Giants: Ibn Khaldun (asabiyyah) · Beck (TDD anchors)
         """
+
         # Build two multi-wallet networks — one cohesive, one isolated
         # Need network_size > 1 for asabiyyah_score to be non-zero
         def make_network(connected: bool) -> list[WalletState]:

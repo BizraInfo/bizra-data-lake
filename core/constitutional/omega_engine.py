@@ -77,8 +77,8 @@ from typing import (
 import numpy as np
 
 # Import unified thresholds from authoritative source
+from core.integration.constants import ADL_GINI_THRESHOLD as _ADL_GINI_THRESHOLD
 from core.integration.constants import (
-    ADL_GINI_THRESHOLD as _ADL_GINI_THRESHOLD,
     IHSAN_WEIGHTS,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,

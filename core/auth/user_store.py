@@ -299,11 +299,27 @@ class UserStore:
 
         generated = secrets.token_urlsafe(48)
         key_file.parent.mkdir(parents=True, exist_ok=True)
-        key_file.write_text(generated, encoding="utf-8")
+        # Atomic write: temp file + rename to prevent partial secret on crash
+        import tempfile
+
+        fd, tmp = tempfile.mkstemp(dir=key_file.parent, suffix=".tmp")
+        fd_closed = False
         try:
-            os.chmod(key_file, 0o600)
-        except OSError:
-            pass
+            os.write(fd, generated.encode("utf-8"))
+            if hasattr(os, "fchmod"):
+                os.fchmod(fd, 0o600)
+            os.fsync(fd)
+            os.close(fd)
+            fd_closed = True
+            os.replace(tmp, str(key_file))
+        except BaseException:
+            if not fd_closed:
+                os.close(fd)
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
         logger.warning(
             "Generated local user-store master secret at %s. "
             "Set %s for production deployments.",

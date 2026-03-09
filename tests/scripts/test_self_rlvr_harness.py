@@ -104,4 +104,3 @@ def test_self_rlvr_harness_config_loader(tmp_path: Path) -> None:
     assert cfg.ema_alpha == 0.25
     assert cfg.convergence_target == 0.80
     assert cfg.reward_threshold == 0.70
-

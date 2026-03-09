@@ -1,0 +1,238 @@
+# BIZRA Quality Management Pipeline
+# Ratchets coverage, tracks quality trends, validates release readiness.
+#
+# Standing on Giants:
+# - Deming (PDCA quality cycle, 1950)
+# - Shewhart (control charts, 1924)
+# - PMI/PMBOK 7th Ed (Quality Management, 2021)
+#
+# Architecture:
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ RATCHET → TREND → READINESS → CHANGELOG → EVIDENCE                     │
+# └──────────────────────────────────────────────────────────────────────────┘
+
+name: Quality Management
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      apply_ratchet:
+        description: 'Apply coverage ratchet (bump floor)'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.12'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write  # For PR comments
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STAGE 1: Coverage Ratchet
+  # ═══════════════════════════════════════════════════════════════════════════
+  coverage-ratchet:
+    name: "📈 Coverage Ratchet"
+    runs-on: ubuntu-latest
+    outputs:
+      actual_coverage: ${{ steps.ratchet.outputs.actual_coverage }}
+      current_floor: ${{ steps.ratchet.outputs.current_floor }}
+      ratcheted: ${{ steps.ratchet.outputs.ratcheted }}
+      new_floor: ${{ steps.ratchet.outputs.new_floor }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov coverage[toml]
+          pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
+
+      - name: Run Python tests with coverage
+        run: |
+          python -m pytest tests/ \
+            --cov=core --cov-report=xml:coverage.xml --cov-report=term-missing \
+            -m "not requires_ollama and not requires_gpu and not slow" \
+            --timeout=60 -q || true
+
+      - name: Run Ratchet Check
+        id: ratchet
+        run: |
+          OUTPUT=$(python scripts/ci_coverage_ratchet.py \
+            --coverage-xml coverage.xml \
+            --pyproject pyproject.toml \
+            --json)
+          echo "$OUTPUT"
+          echo "actual_coverage=$(echo "$OUTPUT" | python -c "import sys,json; print(json.load(sys.stdin)['actual_coverage'])")" >> "$GITHUB_OUTPUT"
+          echo "current_floor=$(echo "$OUTPUT" | python -c "import sys,json; print(json.load(sys.stdin)['current_floor'])")" >> "$GITHUB_OUTPUT"
+          echo "ratcheted=$(echo "$OUTPUT" | python -c "import sys,json; print(json.load(sys.stdin)['ratcheted'])")" >> "$GITHUB_OUTPUT"
+          echo "new_floor=$(echo "$OUTPUT" | python -c "import sys,json; print(json.load(sys.stdin).get('new_floor','none'))")" >> "$GITHUB_OUTPUT"
+
+      - name: Coverage Regression Gate
+        run: |
+          python scripts/ci_coverage_ratchet.py \
+            --coverage-xml coverage.xml \
+            --pyproject pyproject.toml
+
+      - name: Apply Ratchet (main only)
+        if: github.ref == 'refs/heads/main' && github.event.inputs.apply_ratchet == 'true'
+        run: |
+          python scripts/ci_coverage_ratchet.py \
+            --coverage-xml coverage.xml \
+            --pyproject pyproject.toml \
+            --apply
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 30
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STAGE 2: Quality Trend Snapshot
+  # ═══════════════════════════════════════════════════════════════════════════
+  quality-trend:
+    name: "📊 Quality Trend"
+    runs-on: ubuntu-latest
+    needs: [coverage-ratchet]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
+
+      - name: Download trend history
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4
+        with:
+          path: 04_GOLD/quality_trend.jsonl
+          key: quality-trend-${{ github.ref_name }}-${{ github.run_number }}
+          restore-keys: |
+            quality-trend-${{ github.ref_name }}-
+
+      - name: Record Quality Snapshot
+        env:
+          ACTUAL_COVERAGE: ${{ needs.coverage-ratchet.outputs.actual_coverage }}
+          CURRENT_FLOOR: ${{ needs.coverage-ratchet.outputs.current_floor }}
+        run: |
+          python -m core.devops.quality_trend record \
+            --commit-sha "${{ github.sha }}" \
+            --branch "${{ github.ref_name }}" \
+            --coverage "${ACTUAL_COVERAGE:-0}" \
+            --coverage-floor "${CURRENT_FLOOR:-38}" \
+            --ci-run-id "${{ github.run_id }}"
+
+      - name: Analyze Trend
+        run: |
+          python -m core.devops.quality_trend analyze --last 30
+
+      - name: Upload trend data
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: quality-trend
+          path: 04_GOLD/quality_trend.jsonl
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STAGE 3: PR Quality Summary
+  # ═══════════════════════════════════════════════════════════════════════════
+  pr-quality-summary:
+    name: "📋 PR Quality Summary"
+    runs-on: ubuntu-latest
+    needs: [coverage-ratchet, quality-trend]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
+
+      - name: Generate PR Summary
+        id: summary
+        env:
+          ACTUAL_COVERAGE: ${{ needs.coverage-ratchet.outputs.actual_coverage }}
+          CURRENT_FLOOR: ${{ needs.coverage-ratchet.outputs.current_floor }}
+          RATCHETED: ${{ needs.coverage-ratchet.outputs.ratcheted }}
+          NEW_FLOOR: ${{ needs.coverage-ratchet.outputs.new_floor }}
+        run: |
+          python scripts/ci_pr_quality_summary.py \
+            --coverage "${ACTUAL_COVERAGE:-0}" \
+            --floor "${CURRENT_FLOOR:-38}" \
+            --ratcheted "${RATCHETED:-False}" \
+            --new-floor "${NEW_FLOOR:-none}" \
+            --commit "${{ github.sha }}" \
+            --output /tmp/pr_summary.md
+
+      - name: Post PR Comment
+        uses: marocchino/sticky-pull-request-comment@331f8f5b4215f0445d3c07b4967662a32a2d3e31  # v2
+        with:
+          path: /tmp/pr_summary.md
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STAGE 4: Release Changelog (tag pushes only)
+  # ═══════════════════════════════════════════════════════════════════════════
+  release-changelog:
+    name: "📝 Release Changelog"
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
+
+      - name: Generate Changelog
+        run: |
+          python scripts/ci_changelog_gen.py \
+            --version "${{ github.ref_name }}" \
+            --json > /tmp/changelog.json
+
+          python scripts/ci_changelog_gen.py \
+            --version "${{ github.ref_name }}" > /tmp/changelog.md
+
+      - name: Upload changelog
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: release-changelog
+          path: |
+            /tmp/changelog.md
+            /tmp/changelog.json
+          retention-days: 365

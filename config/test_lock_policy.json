@@ -1,0 +1,45 @@
+{
+  "name": "BIZRA Versioned Test Lock Policy",
+  "version": "1.0",
+  "date": "2026-03-09",
+  "lockable_branch": "main",
+  "initial_version": "0.80.0",
+  "semver_strategy": {
+    "major": "constitutional_epoch",
+    "minor": "phase_or_sprint",
+    "patch": "lock_sequence_within_phase"
+  },
+  "t3_full_suite": {
+    "command": "python -m pytest tests/ -q --timeout=120 -m \"not slow and not requires_ollama and not requires_gpu and not requires_network and not e2e_http\" --ignore=tests/e2e_http --tb=no --cov=core --cov-report=term",
+    "excludes": [
+      "slow",
+      "requires_ollama",
+      "requires_gpu",
+      "requires_network",
+      "e2e_http"
+    ],
+    "ignores": [
+      "tests/e2e_http"
+    ]
+  },
+  "lock_conditions": {
+    "all_tests_pass": true,
+    "coverage_must_meet_or_exceed_floor": true,
+    "critical_security_findings_allowed": 0,
+    "constants_hash_review_required_on_change": true,
+    "previous_lock_required_except_genesis": true
+  },
+  "quality_thresholds": {
+    "ihsan_min": 0.95,
+    "snr_min": 0.85,
+    "adl_gini_max": 0.35
+  },
+  "artifacts": {
+    "current_lock": "sovereign_state/test_locks/current.json",
+    "lock_directory": "sovereign_state/test_locks",
+    "receipt_schema": "schemas/test_lock_receipt.schema.json",
+    "smoke_config": "sovereign_state/test_config/smoke_tests.json",
+    "contract_config": "sovereign_state/test_config/contract_tests.json",
+    "import_graph": "sovereign_state/test_config/import_graph.json"
+  }
+}

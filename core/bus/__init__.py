@@ -20,9 +20,9 @@ from core.bus.capsule import (
 )
 from core.bus.channels import ChannelExecutor, ChannelResult
 from core.bus.omega import OmegaLoopController, OmegaStatus
+from core.bus.sovereign_wiring import BusWiringState, wire_all
 from core.bus.telescript import TeleScriptEngine, TeleScriptVerdict
 from core.bus.topics import TopicRegistry, TopicTier
-from core.bus.sovereign_wiring import BusWiringState, wire_all
 from core.bus.types import ActionBudget, ActionEnvelope, ActionStatus, BusActionReceipt
 
 __all__ = [

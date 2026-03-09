@@ -81,7 +81,12 @@ def test_deploy_overlay_gate_accepts_aligned_contract(
 ) -> None:
     for overlay_name, contract in gate.OVERLAY_CONTRACT.items():
         _write(
-            tmp_path / "deploy" / "k8s" / "overlays" / overlay_name / "kustomization.yaml",
+            tmp_path
+            / "deploy"
+            / "k8s"
+            / "overlays"
+            / overlay_name
+            / "kustomization.yaml",
             _overlay_kustomization(contract["namespace"]),
         )
     _write(tmp_path / ".github" / "workflows" / "deploy.yml", _workflow_text())
@@ -124,10 +129,17 @@ def test_deploy_overlay_gate_reports_workflow_contract_drift(
 ) -> None:
     for overlay_name, contract in gate.OVERLAY_CONTRACT.items():
         _write(
-            tmp_path / "deploy" / "k8s" / "overlays" / overlay_name / "kustomization.yaml",
+            tmp_path
+            / "deploy"
+            / "k8s"
+            / "overlays"
+            / overlay_name
+            / "kustomization.yaml",
             _overlay_kustomization(contract["namespace"]),
         )
-    _write(tmp_path / ".github" / "workflows" / "deploy.yml", "deploy/k8s/overlays/staging")
+    _write(
+        tmp_path / ".github" / "workflows" / "deploy.yml", "deploy/k8s/overlays/staging"
+    )
 
     def fake_run(cmd: list[str], **_: object) -> CompletedProcess[str]:
         overlay_name = Path(cmd[-1]).name
@@ -147,4 +159,7 @@ def test_deploy_overlay_gate_reports_workflow_contract_drift(
     )
 
     assert not report.ok
-    assert any("deploy workflow is missing required contract snippet" in issue for issue in report.issues)
+    assert any(
+        "deploy workflow is missing required contract snippet" in issue
+        for issue in report.issues
+    )

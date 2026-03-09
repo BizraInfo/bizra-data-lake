@@ -1,0 +1,20 @@
+{
+  "locale": "en",
+  "component": "errors",
+  "strings": {
+    "E001_DISK_FULL": "Not enough disk space. Need {required}GB, have {available}GB.",
+    "E002_MODEL_DOWNLOAD": "Failed to download AI model. Check your internet connection.",
+    "E003_IDENTITY_GEN": "Failed to generate identity keys.",
+    "E004_HEALTH_CHECK": "Health check failed: {details}",
+    "E005_PERMISSION": "Insufficient permissions to install in {path}.",
+    "E006_GPU_INIT": "GPU initialization failed. Falling back to CPU mode.",
+    "E007_CORRUPT_MODEL": "Model file appears corrupted.  SHA-256 mismatch.",
+    "E008_NETWORK": "Network unavailable. Switching to offline mode.",
+    "E009_PROFILE_LIMIT": "Maximum number of profiles ({max}) reached.",
+    "E010_PIN_INVALID": "Invalid PIN. Please try again.",
+    "E011_ROLLBACK": "Installation failed. Rolling back changes...",
+    "E012_ROLLBACK_OK": "Rollback complete. Your system is unchanged.",
+    "E013_NO_RUNTIME": "Core runtime binary not found after install.",
+    "E014_VERSION": "Installer version mismatch. Expected {expected}, got {actual}."
+  }
+}

@@ -36,16 +36,15 @@ from core.sovereign.human_lifecycle import (
     stage_progress,
 )
 from core.sovereign.network_effect import (
+    _MODULE_CLASS,
     EST_COST_DECAY_RATE,
     EST_REFLEXES_PER_NODE,
     EST_TFLOPS_PER_NODE,
     NetworkEffectEstimator,
     NetworkProjection,
-    _MODULE_CLASS,
 )
 from core.sovereign.node_value import NodeValueEngine, NodeValueSnapshot
 from core.sovereign.seed_engine import SeedEngine
-
 
 # =========================================================================
 # Helpers

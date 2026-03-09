@@ -17,7 +17,6 @@ from core.proof_engine.poi_engine import (
     ContributionType,
     PoIConfig,
     PoIOrchestrator,
-    compute_gini,
 )
 from core.sovereign.sat_controller import (
     RebalancingEvent,
@@ -305,13 +304,15 @@ class TestSATEpochFinalization:
         orch = PoIOrchestrator(config)
         sat = SATController(poi_orchestrator=orch, config=config)
 
-        # Create unequal contributions
-        for i in range(5):
+        # Create unequal contributions — all must pass ihsan gate (0.95)
+        # Use wide SNR spread to create high Gini after credit allocation
+        snr_values = [0.86, 0.88, 0.90, 0.95, 1.00]
+        for i, snr in enumerate(snr_values):
             meta = _make_contribution(
                 f"contributor_{i}",
                 content_hash=f"trigger_test_{i}",
-                snr=0.85 + i * 0.03,
-                ihsan=0.90 + i * 0.02,
+                snr=snr,
+                ihsan=0.96,
             )
             orch.register_contribution(meta)
 
@@ -377,13 +378,13 @@ class TestPoISATPipeline:
         orch = PoIOrchestrator(config)
         sat = SATController(poi_orchestrator=orch, config=config)
 
-        # Register contributions
+        # Register contributions — all must pass ihsan gate (0.95)
         for i, name in enumerate(["alice", "bob", "carol", "dave"]):
             meta = _make_contribution(
                 name,
                 content_hash=f"pipeline_test_{name}",
                 snr=0.90 + i * 0.02,
-                ihsan=0.92 + i * 0.01,
+                ihsan=0.96,
             )
             orch.register_contribution(meta)
 
@@ -413,7 +414,7 @@ class TestPoISATPipeline:
         # Epoch 1
         meta = _make_contribution("alice", content_hash="gini_1")
         orch.register_contribution(meta)
-        result1 = sat.finalize_epoch()
+        sat.finalize_epoch()
 
         stats = sat.get_stats()
         assert "gini_coefficient" in stats

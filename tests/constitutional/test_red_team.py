@@ -36,8 +36,8 @@ from core.constitutional.algorithms import (
     MIN_CONNECTIONS,
     NISAB_THRESHOLD,
     ZAKAT_FP,
-    asabiyyah_score,
     append_event,
+    asabiyyah_score,
     compile_reflex,
     compute_gini,
     compute_zakat,
@@ -67,7 +67,6 @@ from core.constitutional.types import (
     Reflex,
     WalletState,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════
 # Helpers
@@ -269,7 +268,7 @@ class TestAttack5AsabiyyahGaming:
             attestations_given={b"\xb1" * 32, b"\xb2" * 32, b"\xb3" * 32},
             attestations_received={b"\xb1" * 32, b"\xb2" * 32, b"\xb3" * 32},
         )
-        score_small_net = asabiyyah_score(node, 4)   # 3/3 max reciprocal
+        score_small_net = asabiyyah_score(node, 4)  # 3/3 max reciprocal
         score_large_net = asabiyyah_score(node, 100)  # 3/99 max reciprocal
         # In a large network, 3-node ring has diluted impact
         assert score_large_net < score_small_net
