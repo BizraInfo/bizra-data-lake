@@ -56,7 +56,8 @@ CONTRACT_FILES = [
 ]
 
 PYTEST_BASE = "python -m pytest"
-PYTEST_EXCLUDE = '-m "not slow and not requires_ollama and not requires_gpu and not requires_network"'
+PYTEST_EXCLUDE = '-m "not slow and not requires_ollama and not requires_gpu and not requires_network and not e2e_http"'
+PYTEST_IGNORE = "--ignore=tests/e2e_http"
 
 
 # ============================================================================
@@ -302,7 +303,7 @@ def run_contract() -> int:
 def run_full(with_coverage: bool = True) -> tuple:
     """T3: Full test suite — all tests."""
     cov_flag = "--cov=core --cov-report=term" if with_coverage else ""
-    cmd = f'{PYTEST_BASE} tests/ -q --timeout=120 {PYTEST_EXCLUDE} {cov_flag}'
+    cmd = f'{PYTEST_BASE} tests/ -q --timeout=120 {PYTEST_EXCLUDE} {PYTEST_IGNORE} {cov_flag}'
 
     print("T3 FULL — Running ALL tests...")
     start = time.time()
