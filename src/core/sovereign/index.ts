@@ -92,6 +92,23 @@ export {
   printBanner as printRuntimeBanner,
 } from './runtime';
 
+// Agentic-Flow Deep Integration (ADR-001)
+export {
+  AgenticFlowAdapter,
+  createAgenticFlowAdapter,
+  ReflexCache,
+  SONAManager,
+  AgentRouter,
+  MemoryCoordinator,
+  PATAgent,
+  SATAgent,
+  Helix,
+  SONAMode,
+  HHMMMacroState,
+  CONSTITUTIONAL,
+  AGENT_MANIFEST,
+} from '../agentic-flow';
+
 /**
  * Constitutional thresholds as constants
  */
