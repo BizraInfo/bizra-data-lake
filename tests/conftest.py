@@ -68,6 +68,11 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "requires_real_data: marks tests that need real parquet/index data"
     )
+    config.addinivalue_line("markers", "requires_network: marks tests that need internet")
+    # BIZRA test tiers (Lock Once. Run Delta. Ship Fast.)
+    config.addinivalue_line("markers", "smoke: T0 — runs on every save (< 30 sec)")
+    config.addinivalue_line("markers", "contract: T2 — runs on merge to main (< 5 min)")
+    config.addinivalue_line("markers", "genesis_gate: T4 — runs on release candidate only")
 
 
 @pytest.fixture(autouse=True)
