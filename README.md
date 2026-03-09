@@ -80,7 +80,7 @@ BIZRA stands on the shoulders of giants: Shannon (information theory), Lamport (
 | `core/bridges/` | Desktop Bridge (TCP 9742), Sci-Reasoning, Rust lifecycle | Python |
 | `core/skills/` | Skill router + registry (Smart Files, RDVE, 43 skills) | Python |
 | `core/token/` | Token ledger, minting, Ed25519-signed transactions | Python |
-| `bizra-omega/` | High-performance core (14 Rust crates) | Rust |
+| `bizra-omega/` | High-performance core (22 Rust crates) | Rust |
 | `bizra-omega/bizra-core/` | Constitution, identity, FATE gates, Islamic finance | Rust |
 | `bizra-omega/bizra-federation/` | Federation protocol with gossip and signed messages | Rust |
 | `bizra-omega/bizra-cli/` | Terminal UI with real-time dashboards | Rust |
@@ -105,6 +105,7 @@ cd bizra-data-lake
 # Create a Python virtual environment
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# WSL users: use .venv-linux instead of .venv (which may be a Windows venv)
 
 # Install core dependencies
 pip install -e ".[dev]"
@@ -185,7 +186,7 @@ BIZRA enforces quality and ethics as hard constraints, not optional checks:
 |-----------|-------|---------|
 | Ihsan (Excellence) | >= 0.95 | Minimum quality for any output |
 | SNR (Signal-to-Noise) | >= 0.85 | Information quality filter |
-| ADL (Justice) Gini | <= 0.40 | Resource distribution fairness |
+| ADL (Justice) Gini | <= 0.35 | Resource distribution fairness |
 | Harm Score | <= 0.30 | Maximum allowable harm potential |
 | Confidence | >= 0.80 | Minimum inference confidence |
 
