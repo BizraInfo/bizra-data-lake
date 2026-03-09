@@ -55,9 +55,7 @@ def _runtime(state_dir: Path) -> MagicMock:
 @pytest.mark.integration
 def test_openapi_schema_version_matches_app(tmp_path: Path, monkeypatch) -> None:
     """The static OpenAPI schema version must match the live app."""
-    monkeypatch.setenv(
-        "BIZRA_USERSTORE_MASTER_SECRET", "test-openapi-contract"
-    )
+    monkeypatch.setenv("BIZRA_USERSTORE_MASTER_SECRET", "test-openapi-contract")
 
     from core.sovereign.api import create_fastapi_app
 
@@ -70,9 +68,7 @@ def test_openapi_schema_version_matches_app(tmp_path: Path, monkeypatch) -> None
 @pytest.mark.integration
 def test_openapi_schema_has_mission_models(tmp_path: Path, monkeypatch) -> None:
     """The OpenAPI schema must include typed mission models."""
-    monkeypatch.setenv(
-        "BIZRA_USERSTORE_MASTER_SECRET", "test-openapi-contract"
-    )
+    monkeypatch.setenv("BIZRA_USERSTORE_MASTER_SECRET", "test-openapi-contract")
 
     from core.sovereign.api import create_fastapi_app
 
@@ -92,16 +88,27 @@ def test_openapi_schema_has_mission_models(tmp_path: Path, monkeypatch) -> None:
         "ihsan_score",
         "snr_score",
         "duration_ms",
+        "execution_path",
+        "wallet_delta",
+        "reflex_delta",
+        "memory_delta",
+        "hash_chain_ref",
     ):
         assert field in mission_props, f"MissionPlanResponse missing field: {field}"
+
+    # Contract §8.1: sub-models must be present
+    for sub_model in (
+        "WalletDeltaResponse",
+        "ReflexDeltaResponse",
+        "MemoryDeltaResponse",
+    ):
+        assert sub_model in models, f"Missing sub-model: {sub_model}"
 
 
 @pytest.mark.integration
 def test_openapi_schema_has_all_13_tags(tmp_path: Path, monkeypatch) -> None:
     """The OpenAPI schema must include all 13 domain tags."""
-    monkeypatch.setenv(
-        "BIZRA_USERSTORE_MASTER_SECRET", "test-openapi-contract"
-    )
+    monkeypatch.setenv("BIZRA_USERSTORE_MASTER_SECRET", "test-openapi-contract")
 
     from core.sovereign.api import create_fastapi_app
 
@@ -124,15 +131,15 @@ def test_openapi_schema_has_all_13_tags(tmp_path: Path, monkeypatch) -> None:
         "sovereignty",
         "onboarding",
     }
-    assert expected_tags == tags, f"Tag drift: missing={expected_tags - tags}, extra={tags - expected_tags}"
+    assert (
+        expected_tags == tags
+    ), f"Tag drift: missing={expected_tags - tags}, extra={tags - expected_tags}"
 
 
 @pytest.mark.integration
 def test_openapi_path_count_is_59(tmp_path: Path, monkeypatch) -> None:
     """59-route contract — changes must be deliberate."""
-    monkeypatch.setenv(
-        "BIZRA_USERSTORE_MASTER_SECRET", "test-openapi-contract"
-    )
+    monkeypatch.setenv("BIZRA_USERSTORE_MASTER_SECRET", "test-openapi-contract")
 
     from core.sovereign.api import create_fastapi_app
 
@@ -140,7 +147,7 @@ def test_openapi_path_count_is_59(tmp_path: Path, monkeypatch) -> None:
     schema = app.openapi()
 
     path_count = len(schema["paths"])
-    assert path_count == 59, (
-        f"Route count changed: expected 59, got {path_count}. "
+    assert path_count == 62, (
+        f"Route count changed: expected 62, got {path_count}. "
         "Update this test and regenerate frontend/api-types.ts."
     )

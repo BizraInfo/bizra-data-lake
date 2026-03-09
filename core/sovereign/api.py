@@ -52,6 +52,9 @@ from typing import Any, Optional
 
 logger = logging.getLogger("sovereign.api")
 
+# Module-level ReflexCompiler singleton (lazy-initialized in /v1/plan)
+_reflex_compiler: Any = None
+
 
 def _env_truthy(var_name: str) -> bool:
     """Return True when an environment flag is explicitly enabled."""
@@ -198,12 +201,37 @@ try:
         success: bool
         duration_ms: float
 
+    class WalletDeltaResponse(_PydanticBaseModel):
+        """Wallet balance change from a mission (Contract §8.1)."""
+
+        seed: float = 0.0
+        bloom: float = 0.0
+
+    class ReflexDeltaResponse(_PydanticBaseModel):
+        """Reflex state change from a mission (Contract §8.1)."""
+
+        compiled: bool = False
+        near_compile: bool = False
+        compile_count: int = 0
+        threshold: int = 3
+
+    class MemoryDeltaResponse(_PydanticBaseModel):
+        """Memory state change from a mission (Contract §8.1)."""
+
+        episodic: int = 0
+        semantic: int = 0
+        procedural: int = 0
+
     class MissionPlanResponse(_PydanticBaseModel):
-        """Response model for POST /v1/plan — receipted mission result."""
+        """Response model for POST /v1/plan — receipted mission result.
+
+        Contract §8.1: All fields always present, even if zero.
+        """
 
         mission_id: str
+        receipt_id: str = ""
         status: str = _PydanticField(
-            description="COMPLETE | PARTIAL | FAILED",
+            description="COMPLETE | PARTIAL | FAILED | BLOCKED (Contract §8.1)",
         )
         synthesis: str
         ihsan_score: float = _PydanticField(
@@ -215,6 +243,24 @@ try:
         duration_ms: float
         evidence_receipt_id: Optional[str] = None
         channels_executed: list[ChannelResult] = _PydanticField(default_factory=list)
+        execution_path: str = _PydanticField(
+            default="system_2",
+            description="SYSTEM_1_CACHE_HIT | SYSTEM_2_NOVEL | MIXED",
+        )
+        wallet_delta: WalletDeltaResponse = _PydanticField(
+            default_factory=WalletDeltaResponse,
+        )
+        reflex_delta: ReflexDeltaResponse = _PydanticField(
+            default_factory=ReflexDeltaResponse,
+        )
+        memory_delta: MemoryDeltaResponse = _PydanticField(
+            default_factory=MemoryDeltaResponse,
+        )
+        hash_chain_ref: str = ""
+        action_count: int = 0
+        reflex_pattern: str = ""
+        reflex_latency_ms: float = 0.0
+        comparison_s2_avg_ms: float = 0.0
 
     class OnboardingTeachRequest(_PydanticBaseModel):
         """Request model for POST /v1/onboarding/teach — user preference teaching."""
@@ -1122,7 +1168,166 @@ def create_fastapi_app(runtime: Any) -> Any:
         _auth_middleware = None  # type: ignore[assignment]
         _auth_available = False
 
+    # ── Constitutional Heartbeat Background Task ──────────────────
+    # Phase 73: Schedule the 12-step constitutional tick as a periodic
+    # background task. This activates: minting, zakat, demurrage, Gini
+    # enforcement, reflex compilation, bloom accrual/decay, and event logging.
+    #
+    # Standing on Giants:
+    # - Nakamoto (2008): Block processing tick
+    # - Al-Khwarizmi (780-850): Deterministic procedure on schedule
+
+    _tick_interval_s = int(os.environ.get("BIZRA_TICK_INTERVAL_S", "60"))
+    _tick_task: list[Any] = []  # mutable container for background task ref
+
+    async def _emit_bus_event(
+        topic: str, payload: dict[str, Any], source: str = "heartbeat"
+    ) -> None:
+        """Emit an event to the sovereign EventBus (fire-and-forget)."""
+        try:
+            from core.sovereign.event_bus import get_event_bus
+
+            bus = get_event_bus()
+            await bus.emit(topic=topic, payload=payload, source=source)
+        except Exception:
+            logger.debug("EventBus emit failed for topic=%s", topic, exc_info=True)
+
+    async def _emit_tick_events(result: Any, reflex_cache: dict[bytes, Any]) -> None:
+        """Emit bus events for constitutional tick outcomes.
+
+        Activates topics: economy.seed_minted, economy.bloom_accrued,
+        economy.zakat, economy.asabiyyah, reflex.compiled.
+        """
+        from core.constitutional.fixed_point import fp_float
+
+        if result.total_minted > 0:
+            await _emit_bus_event(
+                "economy.seed_minted",
+                {
+                    "minted": fp_float(result.total_minted),
+                    "scored": result.scored,
+                    "rejected": result.rejected,
+                },
+            )
+        if result.scored > 0:
+            await _emit_bus_event(
+                "economy.bloom_accrued",
+                {"scored": result.scored},
+            )
+        if result.zakat_pool > 0:
+            await _emit_bus_event(
+                "economy.zakat",
+                {"zakat_pool": fp_float(result.zakat_pool)},
+            )
+        if result.network_asabiyyah_score > 0:
+            await _emit_bus_event(
+                "economy.asabiyyah",
+                {
+                    "asabiyyah": fp_float(result.network_asabiyyah_score),
+                    "gini": fp_float(result.network_gini),
+                },
+            )
+        if reflex_cache:
+            await _emit_bus_event(
+                "reflex.compiled",
+                {"count": len(reflex_cache)},
+            )
+
+        # ── CONSTITUTIONAL TIER-0: action.receipt ────────────────
+        if result.scored > 0:
+            await _emit_bus_event(
+                "action.receipt",
+                {
+                    "scored": result.scored,
+                    "rejected": result.rejected,
+                    "minted": fp_float(result.total_minted),
+                },
+                source="tick",
+            )
+
+        # ── CONSTITUTIONAL TIER-0: ihsan.breach ──────────────────
+        # Fire when receipts were rejected by the intent gate —
+        # this is the safety-critical circuit breaker.
+        if result.rejected > 0:
+            await _emit_bus_event(
+                "ihsan.breach",
+                {
+                    "rejected_count": result.rejected,
+                    "scored_count": result.scored,
+                    "severity": "warning" if result.scored > 0 else "critical",
+                },
+                source="tick",
+            )
+
+    async def _constitutional_heartbeat() -> None:
+        """Background task: run constitutional tick every interval."""
+        try:
+            from core.constitutional.ticker import process_tick
+        except ImportError:
+            logger.warning("Constitutional ticker not available — heartbeat disabled")
+            return
+
+        logger.info("Constitutional heartbeat started (interval=%ds)", _tick_interval_s)
+        while True:
+            try:
+                await asyncio.sleep(_tick_interval_s)
+
+                wallets = getattr(runtime, "_constitutional_wallets", [])
+                receipts = getattr(runtime, "_constitutional_receipts", [])
+                proposals = getattr(runtime, "_constitutional_proposals", [])
+                event_log = getattr(runtime, "_constitutional_event_log", [])
+                reflex_cache = getattr(runtime, "_constitutional_reflex_cache", {})
+
+                if not receipts and not wallets:
+                    continue  # No work to do — skip tick
+
+                result = process_tick(
+                    wallets=wallets,
+                    receipts=list(receipts),  # snapshot
+                    proposals=proposals,
+                    event_log=event_log,
+                    reflex_cache=reflex_cache,
+                )
+
+                # Clear consumed receipts
+                if hasattr(runtime, "_constitutional_receipts"):
+                    runtime._constitutional_receipts = []
+
+                # ── Emit bus events for tick outcomes ──────────
+                # Activates dead topics: economy.*, reflex.compiled
+                await _emit_tick_events(result, reflex_cache)
+
+                if result.scored > 0 or result.total_minted > 0:
+                    logger.info(
+                        "Constitutional tick: scored=%d minted=%d reflexes=%d",
+                        result.scored,
+                        result.total_minted,
+                        len(reflex_cache),
+                    )
+            except asyncio.CancelledError:
+                logger.info("Constitutional heartbeat stopped")
+                return
+            except Exception:
+                logger.exception("Constitutional tick error (will retry next interval)")
+
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def _lifespan(app_instance: Any):  # type: ignore[override]
+        """FastAPI lifespan: start/stop constitutional heartbeat."""
+        if _tick_interval_s > 0:
+            task = asyncio.create_task(_constitutional_heartbeat())
+            _tick_task.append(task)
+        yield
+        for t in _tick_task:
+            t.cancel()
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
+
     app = FastAPI(
+        lifespan=_lifespan,
         title="BIZRA Sovereign API",
         summary="Constitutional sovereign engine for decentralized agentic intelligence.",
         description=(
@@ -1205,7 +1410,9 @@ def create_fastapi_app(runtime: Any) -> Any:
         request: Request,
     ) -> tuple[str, Any | None, JSONResponse | None]:
         """Authenticate an HTTP request with fail-closed defaults."""
-        allow_anonymous = _env_truthy("BIZRA_AUTH_ALLOW_ANONYMOUS")
+        from core.auth.middleware import _anonymous_auth_allowed
+
+        allow_anonymous = _anonymous_auth_allowed()
 
         if _auth_available and _auth_middleware is not None:
             try:
@@ -1261,7 +1468,9 @@ def create_fastapi_app(runtime: Any) -> Any:
 
     async def _authorize_websocket(ws: "StarletteWS") -> tuple[str, bool]:
         """Authorize a WebSocket connection before accepting the session."""
-        allow_anonymous = _env_truthy("BIZRA_AUTH_ALLOW_ANONYMOUS")
+        from core.auth.middleware import _anonymous_auth_allowed
+
+        allow_anonymous = _anonymous_auth_allowed()
 
         if _auth_available and _auth_middleware is not None:
             try:
@@ -1287,6 +1496,67 @@ def create_fastapi_app(runtime: Any) -> Any:
             return "", False
 
         return "", True
+
+    # ── Mission → Constitutional Tick Bridge ──────────────────────────
+    #
+    # Converts completed mission results into ActionReceipts and submits
+    # them to the constitutional tick queue. This wires the reflex cache:
+    # mission → receipt → tick Step 10 → reflex compilation for ihsan ≥ 0.98.
+
+    def _submit_mission_to_tick(rt: Any, mission_result: Any) -> None:
+        """Bridge mission results into the constitutional tick queue."""
+        try:
+            import hashlib
+            import time as _time
+
+            from core.constitutional.fixed_point import fp
+            from core.constitutional.types import ActionReceipt
+
+            receipts = getattr(rt, "_constitutional_receipts", None)
+            if receipts is None:
+                return
+
+            mission_id = getattr(mission_result, "mission_id", "") or ""
+            ihsan = getattr(mission_result, "ihsan_score", 0.0) or 0.0
+            snr = getattr(mission_result, "snr_score", 0.0) or 0.0
+
+            receipt = ActionReceipt(
+                receipt_id=hashlib.blake2b(
+                    mission_id.encode(), digest_size=32
+                ).digest(),
+                actor_id=b"\x00" * 32,  # system actor
+                action_type="mission",
+                timestamp=int(_time.time() * 1000),
+                intent_score=fp(min(1.0, snr)),
+                efficiency_score=fp(min(1.0, snr)),
+                impact_score=fp(min(1.0, ihsan)),
+                reproducibility_score=fp(min(1.0, snr * 0.9)),
+                oracle_signature=b"\x00" * 64,
+                metadata_hash=hashlib.blake2b(
+                    (mission_id + str(ihsan)).encode(), digest_size=32
+                ).digest(),
+            )
+            receipts.append(receipt)
+
+            # ── Constitutional Topic Activation ──────────────────
+            # Emit action.intent (receipt queued) — TIER-0 CONSTITUTIONAL
+            asyncio.get_running_loop().call_soon(
+                lambda _mid=mission_id, _ih=ihsan, _sn=snr: asyncio.ensure_future(
+                    _emit_bus_event(
+                        "action.intent",
+                        {
+                            "mission_id": _mid,
+                            "action_type": "mission",
+                            "ihsan_score": _ih,
+                            "snr_score": _sn,
+                        },
+                        source="tick_bridge",
+                    )
+                )
+            )
+        except Exception:
+            # Never block mission return for tick wiring failure
+            logger.debug("Tick bridge emission failed", exc_info=True)
 
     # ── Health Endpoint Tiering (Phase 60 Step 3) ─────────────────────
     #
@@ -1428,7 +1698,28 @@ def create_fastapi_app(runtime: Any) -> Any:
 
     @app.get("/v1/status", tags=["health"], summary="Runtime status snapshot")
     async def status():
-        return runtime.status()
+        base = runtime.status()
+        # Enrich with ReflexCompiler telemetry when available
+        if _reflex_compiler is not None:
+            try:
+                base["reflex_compiler"] = _reflex_compiler.get_status()
+            except Exception:
+                pass
+        return base
+
+    @app.get(
+        "/v1/reflex/status",
+        tags=["reflex"],
+        summary="Reflex compiler status",
+        description="Returns System-1 cache statistics: hit rate, size, precipitations, invalidations.",
+    )
+    async def reflex_status(request: Request):
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+        if _reflex_compiler is None:
+            return {"status": "not_initialized", "size": 0}
+        return _reflex_compiler.get_status()
 
     @app.get("/v1/metrics", tags=["health"], summary="Prometheus metrics")
     async def metrics():
@@ -2541,8 +2832,11 @@ def create_fastapi_app(runtime: Any) -> Any:
     @app.get(
         "/v1/seed/potential", tags=["sovereignty"], summary="Node growth trajectory"
     )
-    async def seed_potential():
+    async def seed_potential(request: Request):
         """Node's growth trajectory and unlocked capacity."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error:
+            return auth_error
         seed_engine = getattr(runtime, "_seed_engine", None)
         if seed_engine is None:
             return JSONResponse(
@@ -2564,8 +2858,11 @@ def create_fastapi_app(runtime: Any) -> Any:
     @app.get(
         "/v1/seed/episodes", tags=["sovereignty"], summary="Recent growth episodes"
     )
-    async def seed_episodes(limit: int = 10):
+    async def seed_episodes(request: Request, limit: int = 10):
         """Recent growth episodes with receipt hashes."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error:
+            return auth_error
         seed_engine = getattr(runtime, "_seed_engine", None)
         if seed_engine is None:
             return JSONResponse(
@@ -2803,6 +3100,17 @@ def create_fastapi_app(runtime: Any) -> Any:
             _event_log = getattr(runtime, "_constitutional_event_log", [])
             _reflex_cache = getattr(runtime, "_constitutional_reflex_cache", {})
 
+            # Gini + tick metadata for Dashboard (Contract §10.1)
+            _last_tick = getattr(runtime, "_last_tick_result", None)
+            _tick_interval = getattr(runtime, "_tick_interval_s", 60)
+            _last_tick_ts = getattr(runtime, "_last_tick_timestamp", None)
+
+            gini = 0.0
+            asabiyyah = 0.0
+            if _last_tick is not None:
+                gini = fp_float(getattr(_last_tick, "network_gini", 0))
+                asabiyyah = fp_float(getattr(_last_tick, "network_asabiyyah", 0))
+
             return {
                 "status": "active",
                 "wallets": len(_wallets),
@@ -2814,6 +3122,10 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "pending_proposals": len(
                     getattr(runtime, "_constitutional_proposals", [])
                 ),
+                "network_gini": round(gini, 4),
+                "network_asabiyyah": round(asabiyyah, 4),
+                "last_tick_timestamp": _last_tick_ts,
+                "tick_interval_s": _tick_interval,
             }
         except Exception:
             logger.exception("Constitutional status unavailable")
@@ -2918,6 +3230,64 @@ def create_fastapi_app(runtime: Any) -> Any:
 
             source = body.get("source", "api")
 
+            # ── System-1 Fast Path: Reflex Cache Lookup ──────────
+            # Kahneman S1: if this pattern is cached with high Ihsan,
+            # return O(1) cached response instead of full pipeline.
+            try:
+                from core.sovereign.reflex_compiler import ReflexCompiler
+
+                global _reflex_compiler  # noqa: PLW0603
+                if "_reflex_compiler" not in globals() or _reflex_compiler is None:
+                    _persistence = os.environ.get(
+                        "REFLEX_PERSISTENCE_PATH",
+                        "/tmp/bizra-mission/reflexes.json",
+                    )
+                    from pathlib import Path
+
+                    _reflex_compiler = ReflexCompiler(
+                        persistence_path=Path(_persistence),
+                    )
+
+                reflex_entry = _reflex_compiler.lookup(description)
+                if reflex_entry and not reflex_entry.needs_validation():
+                    import secrets as _secrets
+
+                    logger.info(
+                        "System-1 cache hit for pattern %s (hits=%d, ihsan=%.3f)",
+                        reflex_entry.pattern_hash[:12],
+                        reflex_entry.hit_count,
+                        reflex_entry.ihsan_composite,
+                    )
+                    return {
+                        "status": "COMPLETED",
+                        "mission_id": _secrets.token_hex(8),
+                        "receipt_id": _secrets.token_hex(8),
+                        "evidence_receipt_id": "",
+                        "synthesis": reflex_entry.output_template,
+                        "ihsan_score": reflex_entry.ihsan_composite,
+                        "snr_score": reflex_entry.ihsan_composite,
+                        "duration_ms": 0.1,
+                        "execution_path": "system_1_reflex",
+                        "channels_executed": [],
+                        "action_count": 0,
+                        "wallet_delta": {"seed": 0.0, "bloom": 0.0},
+                        "reflex_delta": {
+                            "compiled": True,
+                            "near_compile": False,
+                            "compile_count": reflex_entry.precipitation_count,
+                            "threshold": 3,
+                        },
+                        "memory_delta": {"episodic": 0, "semantic": 0, "procedural": 0},
+                        "hash_chain_ref": reflex_entry.pattern_hash,
+                        "reflex_pattern": reflex_entry.pattern_hash[:12],
+                        "reflex_latency_ms": 0.1,
+                        "comparison_s2_avg_ms": 0.0,
+                    }
+            except ImportError:
+                logger.debug("ReflexCompiler not available, using System-2 only")
+            except Exception:
+                logger.debug("Reflex lookup failed, falling through to System-2", exc_info=True)
+
             # Build mission config from Node0 ConfigMap environment
             config = {
                 "memory_path": os.environ.get(
@@ -2944,17 +3314,121 @@ def create_fastapi_app(runtime: Any) -> Any:
                 source=source,
             )
 
+            # ── Mission Lifecycle: Created ──────────────────────
+            await _emit_bus_event(
+                "mission.created",
+                {"mission_id": mission_req.mission_id, "source": source},
+                source="mission",
+            )
+
             result = await orchestrator.execute(mission_req)
 
+            # ── Reflex Cache Wiring ──────────────────────────────
+            # Feed mission result into constitutional tick queue so
+            # Step 10 (reflex compilation) can cache excellent patterns.
+            # This closes the loop: mission → receipt → tick → reflex.
+            _submit_mission_to_tick(runtime, result)
+
+            # ── System-1 Precipitation: Record Observation ─────────
+            # After every System-2 completion, record the pattern.
+            # After K consecutive high-Ihsan observations, precipitate.
+            try:
+                if "_reflex_compiler" in globals() and _reflex_compiler is not None:
+                    _reflex_compiler.record_observation(
+                        input_text=description,
+                        output_text=result.synthesis or "",
+                        ihsan_composite=result.ihsan_score or 0.0,
+                    )
+            except Exception:
+                logger.debug("Reflex observation recording failed", exc_info=True)
+
+            # ── Terminal State Wiring (P2a fix) ──────────────────
+            # Update the session's terminal controller so
+            # /v1/terminal/state reflects the actual mission lifecycle.
+            try:
+                from core.sovereign.terminal import TerminalState as _TS
+                from core.sovereign.terminal import TerminalStateController as _TSC
+
+                _session_id = request.headers.get("X-Session-ID", "default")
+                if _session_id not in _terminal_controllers:
+                    _ctrl = _TSC()
+                    _ctrl.transition(_TS.READY)
+                    _terminal_controllers[_session_id] = _ctrl
+                _ctrl = _terminal_controllers[_session_id]
+                _ctrl.start_mission(mission_req.mission_id)
+                # Fast-forward through intermediate states for API-driven missions
+                _ctrl.transition(_TS.PERMISSION_REVIEW)
+                _ctrl.transition(_TS.EXECUTING)
+                if result.status == "FAILED":
+                    _ctrl.fail()
+                else:
+                    _ctrl.complete()
+            except (ImportError, Exception):
+                logger.debug("Terminal state wiring unavailable", exc_info=True)
+
+            # ── Mission Lifecycle: Executed ──────────────────────
+            mission_topic = (
+                "mission.executed" if result.status != "FAILED" else "mission.failed"
+            )
+            await _emit_bus_event(
+                mission_topic,
+                {
+                    "mission_id": result.mission_id,
+                    "status": result.status,
+                    "ihsan_score": result.ihsan_score,
+                    "snr_score": result.snr_score,
+                    "duration_ms": round(result.duration_ms, 1),
+                },
+                source="mission",
+            )
+
+            # Build enriched Terminal v1 receipt
+            try:
+                from core.sovereign.terminal import ChannelRecord as TChannelRecord
+                from core.sovereign.terminal import (
+                    ExecutionPath,
+                )
+                from core.sovereign.terminal import MissionReceipt as TerminalReceipt
+                from core.sovereign.terminal import (
+                    WalletDelta,
+                )
+
+                t_channels = [
+                    TChannelRecord(
+                        channel=cr.channel,
+                        success=cr.success,
+                        duration_ms=cr.duration_ms,
+                    )
+                    for cr in result.channels_executed
+                ]
+                terminal_receipt = TerminalReceipt(
+                    mission_id=result.mission_id,
+                    receipt_id=result.evidence_receipt_id or _secrets.token_hex(8),
+                    status=result.status,
+                    synthesis=result.synthesis,
+                    ihsan_score=result.ihsan_score,
+                    snr_score=result.snr_score,
+                    duration_ms=result.duration_ms,
+                    channels_executed=t_channels,
+                    action_count=len(t_channels),
+                )
+                return terminal_receipt.to_dict()
+            except ImportError:
+                pass
+
+            # Fallback: Contract §8.1 normalized dict if terminal module unavailable
+            # All required fields MUST be present even in fallback path
+            _fallback_receipt_id = result.evidence_receipt_id or _secrets.token_hex(8)
             return {
                 "status": result.status,
                 "mission_id": result.mission_id,
+                "receipt_id": _fallback_receipt_id,
+                "evidence_receipt_id": _fallback_receipt_id,
                 "synthesis": result.synthesis,
                 "ihsan_score": result.ihsan_score,
                 "snr_score": result.snr_score,
                 "duration_ms": round(result.duration_ms, 1),
-                "evidence_receipt_id": result.evidence_receipt_id,
-                "briefing_path": result.briefing_path,
+                "execution_path": "system_2",
                 "channels_executed": [
                     {
                         "channel": cr.channel,
@@ -2963,6 +3437,19 @@ def create_fastapi_app(runtime: Any) -> Any:
                     }
                     for cr in result.channels_executed
                 ],
+                "action_count": len(result.channels_executed),
+                "wallet_delta": {"seed": 0.0, "bloom": 0.0},
+                "reflex_delta": {
+                    "compiled": False,
+                    "near_compile": False,
+                    "compile_count": 0,
+                    "threshold": 3,
+                },
+                "memory_delta": {"episodic": 0, "semantic": 0, "procedural": 0},
+                "hash_chain_ref": "",
+                "reflex_pattern": "",
+                "reflex_latency_ms": 0.0,
+                "comparison_s2_avg_ms": 0.0,
             }
 
         except ImportError as exc:
@@ -3907,6 +4394,85 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
 
     import pathlib
+
+    # ─── Terminal v1 Endpoints ──────────────────────────────────────────
+    # Phase 74: Terminal spine types exposed via API.
+    # Standing on: Harel (1987) statecharts, Kahneman (2002) System-1/2.
+    # Per-app terminal controller instance (shared across requests)
+    _terminal_controllers: dict[str, Any] = {}
+
+    @app.get(
+        "/v1/terminal/state",
+        tags=["terminal"],
+        summary="Get terminal state machine status",
+    )
+    async def get_terminal_state(request: Request):
+        """Return current terminal state, execution path, and active mission."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        try:
+            from core.sovereign.terminal import TerminalStateController
+
+            session_id = request.headers.get("X-Session-ID", "default")
+            if session_id not in _terminal_controllers:
+                ctrl = TerminalStateController()
+                ctrl.transition(
+                    __import__(
+                        "core.sovereign.terminal", fromlist=["TerminalState"]
+                    ).TerminalState.READY
+                )
+                _terminal_controllers[session_id] = ctrl
+            return _terminal_controllers[session_id].to_dict()
+        except ImportError:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Terminal module not available"},
+            )
+
+    @app.get(
+        "/v1/terminal/briefing",
+        tags=["terminal"],
+        summary="Get session briefing context",
+    )
+    async def get_terminal_briefing(request: Request):
+        """Return contextual briefing for terminal session continuity."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        try:
+            from core.sovereign.terminal import BriefingContext
+
+            wallets = getattr(runtime, "_constitutional_wallets", [])
+            reflex_cache = getattr(runtime, "_constitutional_reflex_cache", {})
+
+            wallet_snap = {}
+            if wallets:
+                from core.constitutional.fixed_point import fp_float
+
+                w = wallets[0]
+                wallet_snap = {
+                    "seed": fp_float(getattr(w, "seed_balance", 0)),
+                    "bloom": fp_float(getattr(w, "bloom_balance", 0)),
+                }
+
+            near_compile = []
+            for key in list(reflex_cache.keys())[:5]:
+                near_compile.append(key.hex() if isinstance(key, bytes) else str(key))
+
+            ctx = BriefingContext(
+                active_project="bizra-data-lake",
+                near_compile_patterns=near_compile,
+                wallet_snapshot=wallet_snap,
+            )
+            return ctx.to_dict()
+        except ImportError:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Terminal module not available"},
+            )
 
     static_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "static"
     if static_dir.is_dir():
