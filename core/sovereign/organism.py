@@ -168,6 +168,10 @@ class SovereignOrganism:
         self._helix3: Any = None
         self._inference: Any = None
 
+        # CQRS EventBus with 12 subscribers (§1: "You ARE 12 agents")
+        self._cqrs_bus: Any = None
+        self._subscribers: List[Any] = []
+
         # State
         self._boot_time: float = 0.0
         self._chain_hash = "0" * 64
@@ -202,7 +206,8 @@ class SovereignOrganism:
           2. MissionPipeline → 12-agent HHMM chain
           3. wire_pipeline_to_nervous_system → connects muscles to brain
           4. wire_helix3 → connects evolutionary heartbeat
-          5. (optional) start_heartbeat → 60s tick loop
+          5. wire_all_subscribers → connects 12 CQRS bus subscribers
+          6. (optional) start_heartbeat → 60s tick loop
 
         Args:
             inference: LLM backend (Ollama, LM Studio, or EchoInference for testing)
@@ -245,15 +250,128 @@ class SovereignOrganism:
             on_heartbeat=on_heartbeat,
         )
 
-        # Step 4: Start heartbeat if requested
+        # Step 4: Wire 12 CQRS bus subscribers — the nervous system
+        org._wire_subscribers()
+
+        # Step 5: Start heartbeat if requested
         if start_heartbeat:
             await org.start_heartbeat()
 
         logger.info(
-            "Organism booted: NervousSystem + Pipeline (12 agents) + Helix3 (60s tick)"
+            "Organism booted: NervousSystem + Pipeline (12 agents) "
+            "+ Helix3 (60s tick) + %d CQRS subscribers",
+            len(org._subscribers),
         )
 
         return org
+
+    def _wire_subscribers(self) -> None:
+        """Wire the 12 CQRS EventBus subscribers — the organism's nervous system.
+
+        Uses no-op adapters for subsystems not yet initialized at this level.
+        The bus module provides hash-chained event integrity (Nakamoto, 2008)
+        and fail-closed semantics for safety subscribers (§4).
+        """
+        try:
+            from core.bus.subscribers import EventBus, wire_all_subscribers
+        except ImportError:
+            logger.warning("core.bus.subscribers not available — skipping CQRS wiring")
+            return
+
+        bus = EventBus()
+
+        # Adapters: delegate to real subsystems where available,
+        # no-op stubs where the organism doesn't yet own the dependency.
+        # These will be replaced as subsystems come online.
+        reflex = None
+        if self._nervous_system and hasattr(self._nervous_system, "_reflex"):
+            reflex = self._nervous_system._reflex
+
+        class _NoOpStore:
+            def reinforce(self, **kw: Any) -> None: pass
+            def get_success_count(self, key: str) -> int: return 0
+            def set_success_count(self, key: str, val: int) -> None: pass
+            def promote_to_semantic(self, **kw: Any) -> bool: return True
+            def record_failure_pattern(self, **kw: Any) -> None: pass
+
+        class _NoOpTeleScript:
+            def begin_execution(self, **kw: Any) -> str: return "noop"
+
+        class _NoOpSession:
+            def halt(self, **kw: Any) -> None: pass
+
+        class _NoOpAuditLog:
+            def log_violation(self, **kw: Any) -> None:
+                logger.warning("CQRS audit: %s", kw)
+
+        class _NoOpQuarantine:
+            def isolate(self, **kw: Any) -> None:
+                logger.warning("CQRS quarantine: %s", kw)
+
+        class _NoOpHealing:
+            def diagnose(self, **kw: Any) -> Any:
+                class _Plan:
+                    strategy = "retry"
+                return _Plan()
+
+        class _NoOpHHMM:
+            def classify(self, payload: Any) -> str: return "macro_general"
+
+        class _NoOpPoI:
+            total_credit: float = 0.0
+            def accumulate(self, **kw: Any) -> float:
+                self.total_credit += 0.01
+                return 0.01
+
+        class _NoOpMinter:
+            def compute_reward(self, **kw: Any) -> float: return 0.0
+            def mint_seed(self, **kw: Any) -> None: pass
+
+        class _NoOpBudget:
+            total_used: int = 0
+            def record_retrieval(self, **kw: Any) -> None:
+                self.total_used += kw.get("tokens", 0)
+
+        class _NoOpSelfModel:
+            def update_capability_map(self, **kw: Any) -> None: pass
+
+        class _NoOpCapRegistry:
+            def register(self, **kw: Any) -> None: pass
+            def count(self) -> int: return 12
+            def count_by_type(self, t: str) -> int: return 7 if t == "PAT" else 5
+            def total_capabilities(self) -> int: return 42
+            def capability_vector(self) -> List[float]: return [1.0] * 8
+
+        class _NoOpReflexCache(dict):  # type: ignore[type-arg]
+            def precipitate(self, **kw: Any) -> None: self[kw.get("action_type", "")] = kw
+
+        try:
+            self._subscribers = wire_all_subscribers(
+                bus,
+                memory_store=_NoOpStore(),
+                telescript_engine=_NoOpTeleScript(),
+                receipt_chain=[],
+                reflex_cache=reflex if reflex else _NoOpReflexCache(),
+                session_manager=_NoOpSession(),
+                audit_log=_NoOpAuditLog(),
+                quarantine_store=_NoOpQuarantine(),
+                healing_engine=_NoOpHealing(),
+                hhmm_engine=_NoOpHHMM(),
+                poi_engine=_NoOpPoI(),
+                token_minter=_NoOpMinter(),
+                context_budget=_NoOpBudget(),
+                self_model=_NoOpSelfModel(),
+                capability_registry=_NoOpCapRegistry(),
+            )
+            self._cqrs_bus = bus
+            logger.info(
+                "CQRS bus wired: %d subscribers, chain height %d",
+                len(self._subscribers), bus.chain_height,
+            )
+        except Exception as exc:  # noqa: BLE001 — bus wiring must not block boot
+            logger.warning("CQRS subscriber wiring failed (degraded): %s", exc, exc_info=True)
+            self._cqrs_bus = None
+            self._subscribers = []
 
     # ─── Mission Execution (§6 Mode 2) ───────────────────────────
 
@@ -340,6 +458,9 @@ class SovereignOrganism:
             if self._on_receipt:
                 self._on_receipt(receipt)
 
+            # Emit to CQRS bus — fires 12 subscribers
+            self._emit_cqrs_receipt(receipt)
+
             logger.info(
                 "Mission %s: %s, ihsan=%.4f, %s, %.1fms",
                 receipt.mission_id, receipt.system,
@@ -375,6 +496,44 @@ class SovereignOrganism:
                 tick_count=0,
                 frozen_agents=[],
             )
+
+    # ─── CQRS Bus Emission ──────────────────────────────────────────
+
+    def _emit_cqrs_receipt(self, receipt: OrganismReceipt) -> None:
+        """Publish a mission receipt to the CQRS bus, firing all 12 subscribers.
+
+        This is the causal bridge: organism receipt → hash-chained event log
+        → subscriber side-effects (memory reinforce, HHMM promotion, PoI credit).
+        """
+        if not self._cqrs_bus:
+            return
+
+        try:
+            from core.bus.subscribers import EventType
+
+            self._cqrs_bus.publish(EventType.ACTION_RECEIPT, {
+                "action_type": f"mission:{receipt.system}",
+                "ihsan_composite": receipt.ihsan_score,
+                "snr_score": receipt.snr_score,
+                "result_summary": receipt.output_text[:200],
+                "mission_id": receipt.mission_id,
+                "agents_activated": receipt.agents_activated,
+                "gate_passed": receipt.gate_passed,
+                "duration_ms": receipt.duration_ms,
+                "chain_hash": receipt.chain_hash,
+            })
+
+            # If Ihsān below production threshold, emit breach event
+            if not receipt.gate_passed or receipt.ihsan_score < UNIFIED_IHSAN_THRESHOLD:
+                self._cqrs_bus.publish(EventType.IHSAN_GATE_BREACHED, {
+                    "session_id": receipt.mission_id,
+                    "ihsan_composite": receipt.ihsan_score,
+                    "action_type": f"mission:{receipt.system}",
+                    "violation_dimensions": receipt.gate_reasons,
+                })
+
+        except Exception as exc:  # noqa: BLE001 — CQRS emission must not crash missions
+            logger.warning("CQRS receipt emission failed: %s", exc, exc_info=True)
 
     # ─── Evolutionary Heartbeat (§2 Helix 3) ─────────────────────
 
@@ -538,6 +697,12 @@ class SovereignOrganism:
                 "s1_hits": ns_stats.s1_hits,
                 "s2_executions": ns_stats.s2_executions,
                 "total": ns_stats.total_missions,
+            }
+        if self._cqrs_bus:
+            result["cqrs_bus"] = {
+                "subscribers_wired": len(self._subscribers),
+                "chain_height": self._cqrs_bus.chain_height,
+                "chain_valid": self._cqrs_bus.verify_chain(),
             }
         return result
 
