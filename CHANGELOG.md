@@ -27,6 +27,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   ihsan_scorer as single source of truth, replacing duplicate surface heuristics
 
 ### Changed
+- SEC-003: `mission.py` — all 20 boundary-guard `except Exception` catches now include
+  `exc_info=True` for full traceback diagnosability in production logs (30/30 tests pass)
 - Phase 20.1: SAPE Sovereign Intelligence Report dashboard (`static/sovereign_analysis.html`)
   - 7 hidden patterns (HP-01..HP-07) with SNR scoring and evidence chains
   - Interactive Graph-of-Thoughts canvas (13 nodes, 17 edges, 4 levels)
