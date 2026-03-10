@@ -339,3 +339,182 @@ class TestFullLifecycle:
         # 7. Shutdown
         asyncio.run(org.shutdown())
         assert org.health.alive is False
+
+
+# ═══════════════════════════════════════════════════════════════════
+# WAVE 1: INFERENCE PROVENANCE ON RECEIPTS
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestInferenceProvenance:
+    """Verify InferenceProvenance is captured in the mission path."""
+
+    def _make_orchestrator(self, tmp_path: Any) -> Any:
+        from core.sovereign.mission import MissionOrchestrator
+
+        config = {
+            "memory_path": str(tmp_path / "memory"),
+            "evidence_path": str(tmp_path / "evidence.jsonl"),
+            "hda_port": 59999,
+            "workspace_root": str(tmp_path),
+        }
+        return MissionOrchestrator(config)
+
+    def test_mission_result_has_provenance(self, tmp_path: Any) -> None:
+        """MissionOrchestrator.execute() must populate inference_provenance."""
+        from core.sovereign.mission import (
+            DesktopContext,
+            InferenceProvenance,
+            MissionRequest,
+            MissionResult,
+        )
+
+        orch = self._make_orchestrator(tmp_path)
+        asyncio.run(orch.initialize())
+        req = MissionRequest(
+            mission_id="prov-001",
+            description="test provenance capture",
+            context=DesktopContext(),
+            timestamp=0.0,
+        )
+        result = asyncio.run(orch.execute(req))
+        assert isinstance(result, MissionResult)
+        assert result.inference_provenance is not None
+        assert isinstance(result.inference_provenance, InferenceProvenance)
+
+    def test_provenance_backend_is_template_when_llm_disabled(self, tmp_path: Any) -> None:
+        """Without BIZRA_ENABLE_LLM, backend must be 'template'."""
+        import os
+
+        from core.sovereign.mission import DesktopContext, MissionRequest
+
+        os.environ.pop("BIZRA_ENABLE_LLM", None)
+        orch = self._make_orchestrator(tmp_path)
+        asyncio.run(orch.initialize())
+        req = MissionRequest(
+            mission_id="prov-002",
+            description="test template fallback provenance",
+            context=DesktopContext(),
+            timestamp=0.0,
+        )
+        result = asyncio.run(orch.execute(req))
+        assert result.inference_provenance is not None
+        assert result.inference_provenance.backend == "template"
+        assert result.inference_provenance.model_id == "none"
+        assert result.inference_provenance.tokens_generated == 0
+        assert "template:success" in result.inference_provenance.fallback_chain
+
+    def test_provenance_to_dict_round_trips(self) -> None:
+        """InferenceProvenance.to_dict() must produce valid JSON-serializable dict."""
+        import json
+
+        from core.sovereign.mission import InferenceProvenance
+
+        prov = InferenceProvenance(
+            backend="ollama",
+            model_id="phi3:mini",
+            fallback_chain=["lmstudio:TimeoutError", "ollama:success"],
+            latency_ms=123.456,
+            tokens_generated=42,
+        )
+        d = prov.to_dict()
+        assert d["backend"] == "ollama"
+        assert d["model_id"] == "phi3:mini"
+        assert d["latency_ms"] == 123.5  # Rounded to 1dp
+        assert d["tokens_generated"] == 42
+        json.dumps(d)  # Must not raise
+
+    def test_provenance_in_event_emission(self, tmp_path: Any) -> None:
+        """mission.completed event must include inference_provenance dict."""
+        from core.sovereign.mission import (
+            DesktopContext,
+            MissionOrchestrator,
+            MissionRequest,
+        )
+
+        emitted: List[dict] = []  # type: ignore[type-arg]
+        original_emit = MissionOrchestrator._emit
+
+        async def capture_emit(self_arg: Any, topic: str, payload: dict) -> None:  # type: ignore[type-arg]
+            emitted.append({"topic": topic, "payload": payload})
+            await original_emit(self_arg, topic, payload)
+
+        MissionOrchestrator._emit = capture_emit  # type: ignore[assignment]
+        try:
+            orch = self._make_orchestrator(tmp_path)
+            asyncio.run(orch.initialize())
+            req = MissionRequest(
+                mission_id="prov-003",
+                description="test event emission provenance",
+                context=DesktopContext(),
+                timestamp=0.0,
+            )
+            asyncio.run(orch.execute(req))
+            completed = [e for e in emitted if e["topic"] == "mission.completed"]
+            assert len(completed) == 1
+            assert "inference_provenance" in completed[0]["payload"]
+            prov = completed[0]["payload"]["inference_provenance"]
+            assert "backend" in prov
+            assert "fallback_chain" in prov
+        finally:
+            MissionOrchestrator._emit = original_emit  # type: ignore[assignment]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# WAVE 2: 12 CQRS SUBSCRIBER WIRING
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestCQRSSubscriberWiring:
+    """Verify 12 CQRS subscribers are wired into organism boot."""
+
+    def test_boot_wires_12_subscribers(self) -> None:
+        """Organism boot must wire exactly 12 CQRS subscribers."""
+        echo = EchoInference()
+        org = asyncio.run(SovereignOrganism.boot(inference=echo))
+        assert len(org._subscribers) == 12
+
+    def test_boot_creates_cqrs_bus(self) -> None:
+        """Organism boot must create a CQRS EventBus with valid chain."""
+        echo = EchoInference()
+        org = asyncio.run(SovereignOrganism.boot(inference=echo))
+        assert org._cqrs_bus is not None
+        assert org._cqrs_bus.verify_chain() is True
+
+    def test_mission_emits_to_cqrs_bus(self) -> None:
+        """A mission must publish ACTION_RECEIPT to the CQRS bus."""
+        echo = EchoInference()
+        org = asyncio.run(SovereignOrganism.boot(inference=echo))
+        initial_height = org._cqrs_bus.chain_height
+        asyncio.run(org.mission("test subscriber firing"))
+        assert org._cqrs_bus.chain_height > initial_height
+
+    def test_cqrs_chain_integrity_after_missions(self) -> None:
+        """CQRS bus chain must remain valid after multiple missions."""
+        echo = EchoInference()
+        org = asyncio.run(SovereignOrganism.boot(inference=echo))
+        for i in range(5):
+            asyncio.run(org.mission(f"mission {i}"))
+        assert org._cqrs_bus.verify_chain() is True
+        assert org._cqrs_bus.chain_height >= 5
+
+    def test_stats_include_cqrs_bus(self) -> None:
+        """Organism stats must include CQRS bus metrics."""
+        echo = EchoInference()
+        org = asyncio.run(SovereignOrganism.boot(inference=echo))
+        asyncio.run(org.mission("stats test"))
+        s = org.stats
+        assert "cqrs_bus" in s
+        assert s["cqrs_bus"]["subscribers_wired"] == 12
+        assert s["cqrs_bus"]["chain_valid"] is True
+        assert s["cqrs_bus"]["chain_height"] >= 1
+
+    def test_graceful_degradation_without_bus(self) -> None:
+        """Organism must boot and run even if CQRS wiring fails."""
+        echo = EchoInference()
+        org = asyncio.run(SovereignOrganism.boot(inference=echo))
+        # Simulate bus unavailable
+        org._cqrs_bus = None
+        receipt = asyncio.run(org.mission("no bus test"))
+        assert isinstance(receipt, OrganismReceipt)
+        assert receipt.output_text != ""

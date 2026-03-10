@@ -9,6 +9,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Wave 1 — Inference Provenance on receipts** (`core/sovereign/mission.py`)
+  - `InferenceProvenance` dataclass: backend, model_id, fallback_chain, latency_ms, tokens_generated
+  - `_synthesize()` returns `(str, InferenceProvenance)` tuple; provenance attached to MissionResult
+  - Provenance propagated to `mission.completed` events and `handle_rpc()` responses
+  - `BIZRA_OLLAMA_MODEL` env var for configurable Ollama model ID
+- **Wave 2 — 12 CQRS subscriber wiring** (`core/sovereign/organism.py`)
+  - `_wire_subscribers()` method with 12 no-op adapters for unresolved dependencies
+  - `_emit_cqrs_receipt()` publishes ACTION_RECEIPT + optional IHSAN_GATE_BREACHED to CQRS bus
+  - CQRS bus metrics (subscribers_wired, chain_height, chain_valid) in organism stats
+  - Graceful degradation: bus wiring failures do not block boot
+- 10 new integration tests: 4 provenance + 6 CQRS wiring (117/117 total pass)
 - Unified 8D Ihsān content scorer (`core/sovereign/ihsan_scorer.py`, 648 LOC)
   - 8 canonical dimensions scored by content analysis (moral_clarity, epistemic_humility,
     structural_integrity, verifiability, contextual_relevance, intent_alignment, resilience, efficiency)

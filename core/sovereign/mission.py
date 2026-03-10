@@ -67,6 +67,34 @@ class ChannelResult:
 
 
 @dataclass
+class InferenceProvenance:
+    """Records exactly how a synthesis was produced.
+
+    Receipts without provenance are forensically incomplete (§7).
+    This is part of the receipt, not a sidecar — per Spine §8-§9.
+
+    Standing on Giants:
+      - Lamport (1978): causal ordering of inference events
+      - Shannon (1948): channel identity in communication
+    """
+
+    backend: str  # "ollama" | "lmstudio" | "gateway" | "template"
+    model_id: str  # e.g., "phi3:mini", "deepseek-r1:14b"
+    fallback_chain: list[str]  # e.g., ["ollama:TimeoutError", "gateway:success"]
+    latency_ms: float  # wall-clock time for inference
+    tokens_generated: int  # output token count (0 if template)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "backend": self.backend,
+            "model_id": self.model_id,
+            "fallback_chain": self.fallback_chain,
+            "latency_ms": round(self.latency_ms, 1),
+            "tokens_generated": self.tokens_generated,
+        }
+
+
+@dataclass
 class MissionResult:
     """Complete result of a mission execution."""
 
@@ -80,6 +108,7 @@ class MissionResult:
     snr_score: float
     duration_ms: float
     memory_entry_id: str = ""
+    inference_provenance: InferenceProvenance | None = None
 
 
 # ── HDA Client ──────────────────────────────────────────────────────
@@ -409,8 +438,8 @@ class MissionOrchestrator:
         # ── Phase 3: EXECUTE (Parallel Channels) ──
         channel_results = await self._execute_channels(plan, request)
 
-        # ── Phase 4: SYNTHESIZE ──
-        synthesis = await self._synthesize(
+        # ── Phase 4: SYNTHESIZE (with provenance capture) ──
+        synthesis, provenance = await self._synthesize(
             description=request.description,
             channel_results=channel_results,
             memory_context=memory_context,
@@ -443,6 +472,7 @@ class MissionOrchestrator:
             snr_score=snr_normalized,
             duration_ms=duration_ms,
             memory_entry_id=memory_entry_id,
+            inference_provenance=provenance,
         )
 
         await self._emit(
@@ -453,6 +483,7 @@ class MissionOrchestrator:
                 "duration_ms": duration_ms,
                 "ihsan_score": ihsan_score,
                 "snr_score": snr_normalized,
+                "inference_provenance": provenance.to_dict(),
             },
         )
 
@@ -483,7 +514,7 @@ class MissionOrchestrator:
 
         result = await self.execute(request)
 
-        return {
+        rpc_response: dict[str, Any] = {
             "mission_id": result.mission_id,
             "status": result.status,
             "synthesis": result.synthesis[:2000],
@@ -501,6 +532,9 @@ class MissionOrchestrator:
                 for cr in result.channels_executed
             ],
         }
+        if result.inference_provenance:
+            rpc_response["inference_provenance"] = result.inference_provenance.to_dict()
+        return rpc_response
 
     # ── Private: Channel Execution ──────────────────────────────────
 
@@ -744,7 +778,12 @@ class MissionOrchestrator:
         description: str,
         channel_results: list[ChannelResult],
         memory_context: list[Any],
-    ) -> str:
+    ) -> tuple[str, InferenceProvenance]:
+        """Synthesize mission output and capture inference provenance.
+
+        Returns (synthesis_text, provenance) — provenance is part of the
+        receipt, not a sidecar (per Spine §8-§9).
+        """
         browser_data = next(
             (r.data for r in channel_results if r.channel == "browser" and r.success),
             None,
@@ -754,23 +793,31 @@ class MissionOrchestrator:
             None,
         )
 
-        # LLM synthesis: Gateway (GPU) → Ollama CPU → Template
+        fallback_chain: list[str] = []
+        inference_start = time.monotonic()
+
+        # LLM synthesis: Ollama direct → Gateway (GPU) → Template
         _llm_enabled = os.environ.get("BIZRA_ENABLE_LLM", "").lower() in (
             "1",
             "true",
             "yes",
         )
         if not _llm_enabled:
-            return self._template_synthesis(description, browser_data, desktop_data)
+            text = self._template_synthesis(description, browser_data, desktop_data)
+            latency = (time.monotonic() - inference_start) * 1000
+            fallback_chain.append("template:success")
+            return text, InferenceProvenance(
+                backend="template", model_id="none",
+                fallback_chain=fallback_chain,
+                latency_ms=latency, tokens_generated=0,
+            )
 
         prompt = self._build_synthesis_prompt(
             description, browser_data, desktop_data, memory_context
         )
 
         # 1. Ollama direct (fast path — phi3:mini warm, low latency on CPU)
-        # This skips the gateway's LM Studio primary (often overloaded with
-        # multiple models). Direct Ollama with a lightweight model is the
-        # fastest reliable path for synthesis.
+        ollama_model = os.environ.get("BIZRA_OLLAMA_MODEL", "phi3:mini")
         try:
             import httpx
 
@@ -779,7 +826,7 @@ class MissionOrchestrator:
                 resp = await client.post(
                     f"{ollama_url}/api/generate",
                     json={
-                        "model": "phi3:mini",
+                        "model": ollama_model,
                         "prompt": prompt,
                         "stream": False,
                         "keep_alive": "30m",
@@ -789,18 +836,28 @@ class MissionOrchestrator:
                 resp.raise_for_status()
                 content = resp.json().get("response", "")
                 if content.strip():
+                    latency = (time.monotonic() - inference_start) * 1000
                     logger.info("Ollama synthesis complete (%d chars)", len(content))
-                    return content
+                    fallback_chain.append("ollama:success")
+                    return content, InferenceProvenance(
+                        backend="ollama", model_id=ollama_model,
+                        fallback_chain=fallback_chain,
+                        latency_ms=latency,
+                        tokens_generated=len(content.split()),
+                    )
+                fallback_chain.append("ollama:empty_content")
                 logger.warning("Ollama returned empty content — trying gateway")
         except ImportError:
+            fallback_chain.append("ollama:ImportError")
             logger.info("httpx not available — skipping Ollama synthesis")
         except (OSError, ConnectionError, asyncio.TimeoutError) as exc:
+            fallback_chain.append(f"ollama:{type(exc).__name__}")
             logger.warning("Ollama synthesis failed (network): %s — trying gateway", exc)
         except Exception as exc:  # noqa: BLE001 — LLM synthesis boundary
+            fallback_chain.append(f"ollama:{type(exc).__name__}")
             logger.warning("Ollama synthesis failed: %s — trying gateway", exc, exc_info=True)
 
         # 2. Gateway (LM Studio GPU + Ollama fallback chain)
-        # Used when direct Ollama fails or returns empty.
         gateway_timeout = float(os.environ.get("BIZRA_GATEWAY_TIMEOUT", "20"))
         if self.gateway:
             try:
@@ -809,23 +866,41 @@ class MissionOrchestrator:
                     timeout=gateway_timeout,
                 )
                 if result.content.strip():
+                    latency = (time.monotonic() - inference_start) * 1000
+                    gw_backend = result.backend.value if hasattr(result.backend, "value") else str(result.backend)
                     logger.info(
                         "Gateway synthesis complete (%d chars, backend=%s, %.0fms)",
-                        len(result.content),
-                        result.backend.value,
-                        result.latency_ms,
+                        len(result.content), gw_backend, result.latency_ms,
                     )
-                    return result.content
+                    fallback_chain.append(f"gateway:{gw_backend}:success")
+                    return result.content, InferenceProvenance(
+                        backend=f"gateway:{gw_backend}",
+                        model_id=getattr(result, "model", "unknown"),
+                        fallback_chain=fallback_chain,
+                        latency_ms=latency,
+                        tokens_generated=getattr(result, "tokens_generated", len(result.content.split())),
+                    )
+                fallback_chain.append("gateway:empty_content")
                 logger.warning("Gateway returned empty content — falling through")
             except asyncio.TimeoutError:
+                fallback_chain.append("gateway:TimeoutError")
                 logger.warning("Gateway synthesis timed out (%.0fs)", gateway_timeout)
             except (RuntimeError, ValueError, OSError) as exc:
+                fallback_chain.append(f"gateway:{type(exc).__name__}")
                 logger.warning("Gateway synthesis failed (known): %s", exc)
             except Exception as exc:  # noqa: BLE001 — gateway synthesis boundary
+                fallback_chain.append(f"gateway:{type(exc).__name__}")
                 logger.warning("Gateway synthesis failed: %s", exc, exc_info=True)
 
         # 3. Template (always available, no LLM needed)
-        return self._template_synthesis(description, browser_data, desktop_data)
+        text = self._template_synthesis(description, browser_data, desktop_data)
+        latency = (time.monotonic() - inference_start) * 1000
+        fallback_chain.append("template:success")
+        return text, InferenceProvenance(
+            backend="template", model_id="none",
+            fallback_chain=fallback_chain,
+            latency_ms=latency, tokens_generated=0,
+        )
 
     def _template_synthesis(
         self,

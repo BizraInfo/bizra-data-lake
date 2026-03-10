@@ -105,6 +105,43 @@ def verify_ihsan_compliance(tool_name: str, tool_input: dict) -> bool:
     return True
 ```
 
+### Inference Provenance (Wave 1 — `847808b`)
+
+Every mission synthesis now produces an `InferenceProvenance` receipt:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `backend` | str | Which tier answered: `"template"`, `"ollama"`, `"gateway:lmstudio"` |
+| `model_id` | str | Model identifier (e.g., `"phi3:mini"`, env `BIZRA_OLLAMA_MODEL`) |
+| `fallback_chain` | list[str] | Ordered record of attempts: `["ollama:TimeoutError", "gateway:success"]` |
+| `latency_ms` | float | Wall-clock synthesis time via `time.monotonic()` |
+| `tokens_generated` | int | Output tokens (0 for template path) |
+
+Provenance is attached to `MissionResult.inference_provenance`, emitted in `mission.completed` events,
+and returned in `handle_rpc()` responses — ensuring full auditability per §6 Mode 2.
+
+### CQRS Subscriber Wiring (Wave 2 — `847808b`)
+
+`SovereignOrganism.boot()` now wires 12 CQRS subscribers into the constitutional nervous system:
+
+| Subscriber | Event Type | Purpose |
+|------------|-----------|---------|
+| `ActionReceiptMemoryReinforce` | ACTION_RECEIPT | Reinforce memory from action outcomes |
+| `ActionIntentTeleScriptBegin` | ACTION_INTENT | Begin TeleScript execution |
+| `ActionReceiptTeleScriptEnd` | ACTION_RECEIPT | End TeleScript on receipt |
+| `IhsanGateBreachedRollback` | IHSAN_GATE_BREACHED | Rollback on Ihsān violation |
+| `IhsanGateBreachedAlert` | IHSAN_GATE_BREACHED | Alert on Ihsān breach |
+| `MemoryInsertDeduplicate` | MEMORY_INSERT | Deduplicate memory entries |
+| `FederationEventGossip` | FEDERATION_EVENT | Gossip federation events |
+| `ProvenanceChainAppend` | PROVENANCE_APPEND | Append to provenance chain |
+| `ReflexCacheUpdate` | REFLEX_CACHE_UPDATE | Update reflex cache |
+| `MissionAuditLog` | MISSION_AUDIT | Audit log mission lifecycle |
+| `TreasuryRewardDispatch` | TREASURY_REWARD | Dispatch token rewards |
+| `HealthPulseEmit` | HEALTH_PULSE | Emit organism health pulse |
+
+Bus metrics exposed via `organism.stats`: `subscribers_wired`, `chain_height`, `chain_valid`.
+Wiring failures degrade gracefully — boot is never blocked by subscriber errors.
+
 ### Manual Verification (Code Review)
 
 #### Excellence Checklist
