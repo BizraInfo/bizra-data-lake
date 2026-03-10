@@ -207,7 +207,9 @@ class SDPOReflexBridge:
         self._deny_list[pattern_id] = expiry
         logger.warning(
             "Pattern %s denied until %s: %s",
-            pattern_id[:16], expiry.isoformat(), reason,
+            pattern_id[:16],
+            expiry.isoformat(),
+            reason,
         )
 
     @property

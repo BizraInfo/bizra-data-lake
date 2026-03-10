@@ -281,7 +281,9 @@ class DesktopBridge:
         except (ConnectionResetError, asyncio.IncompleteReadError):
             pass
         except (OSError, RuntimeError, ValueError) as exc:
-            logger.exception("Unexpected error in client handler: %s", type(exc).__name__)
+            logger.exception(
+                "Unexpected error in client handler: %s", type(exc).__name__
+            )
         finally:
             try:
                 writer.close()
@@ -715,7 +717,13 @@ class DesktopBridge:
                 "reason": reason,
                 "mode": mode,
             }
-        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError) as exc:
+        except (
+            OSError,
+            ConnectionError,
+            TimeoutError,
+            RuntimeError,
+            ValueError,
+        ) as exc:
             if mode == "required":
                 return {
                     "allowed": False,
@@ -735,6 +743,7 @@ class DesktopBridge:
                     await writer.wait_closed()
                 except OSError:
                     pass
+
     # -- method handlers -----------------------------------------------------
 
     async def _handle_ping(self, params: Any) -> dict[str, Any]:
@@ -840,7 +849,13 @@ class DesktopBridge:
                 "rust_gates": rust_gates or None,
                 "content_hash": self._blake3_digest(result.content),
             }
-        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError) as exc:
+        except (
+            OSError,
+            ConnectionError,
+            TimeoutError,
+            RuntimeError,
+            ValueError,
+        ) as exc:
             logger.warning(f"sovereign_query failed: {exc}")
             latency_ms = round((time.monotonic() - start) * 1000, 2)
             return {
@@ -949,7 +964,13 @@ class DesktopBridge:
         try:
             browser = BrowserMCPClient(mode=browser_mode)
             research = await browser.research(query)
-        except (OSError, ConnectionError, TimeoutError, ImportError, RuntimeError) as exc:
+        except (
+            OSError,
+            ConnectionError,
+            TimeoutError,
+            ImportError,
+            RuntimeError,
+        ) as exc:
             browser_duration_ms = round((time.monotonic() - browser_start) * 1000, 2)
             browser_error = {
                 "error": "Browser research failed",

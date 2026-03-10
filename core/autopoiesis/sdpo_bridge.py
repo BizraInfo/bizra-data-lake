@@ -169,14 +169,18 @@ class AutopoiesisSDPOBridge:
         if trace.fitness < self._min_fitness:
             logger.debug(
                 "Filtered trace %s: fitness %.3f < %.3f",
-                trace.genome_id, trace.fitness, self._min_fitness,
+                trace.genome_id,
+                trace.fitness,
+                self._min_fitness,
             )
             return False
 
         if trace.ihsan_score < self._ihsan_threshold:
             logger.debug(
                 "Filtered trace %s: ihsan %.3f < %.3f",
-                trace.genome_id, trace.ihsan_score, self._ihsan_threshold,
+                trace.genome_id,
+                trace.ihsan_score,
+                self._ihsan_threshold,
             )
             return False
 
@@ -206,7 +210,8 @@ class AutopoiesisSDPOBridge:
         if not self.ready_for_training:
             logger.info(
                 "Not enough traces for training: %d < %d",
-                len(self._traces), self._min_samples,
+                len(self._traces),
+                self._min_samples,
             )
             return None
 
@@ -250,7 +255,9 @@ class AutopoiesisSDPOBridge:
 
         logger.info(
             "Bridge flushed: %d traces → %d training samples (avg fitness: %.3f)",
-            result.traces_received, result.traces_converted, result.avg_fitness,
+            result.traces_received,
+            result.traces_converted,
+            result.avg_fitness,
         )
 
         # Clear buffer
@@ -280,6 +287,5 @@ class AutopoiesisSDPOBridge:
 
         gaps = "; ".join(trace.improvement_suggestions)
         return (
-            f"[Attempt missing: {gaps}] "
-            f"Partial output: {trace.task_output[:200]}"
+            f"[Attempt missing: {gaps}] " f"Partial output: {trace.task_output[:200]}"
         )

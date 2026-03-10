@@ -323,7 +323,9 @@ Respond with YES if all conditions are met, NO otherwise."""
             return False, str(e)
         except Exception as e:
             duration = (time.time() - start) * 1000
-            logger.error(f"Unexpected error in tool '{tool_name}': {type(e).__name__}: {e}")
+            logger.error(
+                f"Unexpected error in tool '{tool_name}': {type(e).__name__}: {e}"
+            )
             self._actions.append(
                 AgentAction(
                     tool=tool_name,
@@ -431,7 +433,9 @@ Respond with YES if all conditions are met, NO otherwise."""
 
             return False
         except Exception as e:
-            logger.error(f"Unexpected error in task '{task.name}': {type(e).__name__}: {e}")
+            logger.error(
+                f"Unexpected error in task '{task.name}': {type(e).__name__}: {e}"
+            )
             task.status = TaskStatus.FAILED
             task.error = f"{type(e).__name__}: {e}"
             task.completed_at = datetime.now(timezone.utc)

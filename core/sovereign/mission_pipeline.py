@@ -71,16 +71,17 @@ DAUGHTER_TEST_HARMFUL_PATTERNS = [
 # COMPLEXITY TIERS (HHMM Macro-States)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class ComplexityTier(str, Enum):
     """Mission complexity → agent activation level.
 
     Maps to HHMM macro-states. Higher complexity activates more agents.
     """
 
-    TRIVIAL = "trivial"      # P7 echo — factual lookup, greeting
-    SIMPLE = "simple"        # P7 → executor → P4 → P5  (3-4 agents)
-    MODERATE = "moderate"    # P7 → P1 → executor → P4 → P5 → S2  (5-6)
-    COMPLEX = "complex"      # P7 → P1 → P2 → P3 → P4 → P5 → S1 → S2 → S3  (9)
+    TRIVIAL = "trivial"  # P7 echo — factual lookup, greeting
+    SIMPLE = "simple"  # P7 → executor → P4 → P5  (3-4 agents)
+    MODERATE = "moderate"  # P7 → P1 → executor → P4 → P5 → S2  (5-6)
+    COMPLEX = "complex"  # P7 → P1 → P2 → P3 → P4 → P5 → S1 → S2 → S3  (9)
     SOVEREIGN = "sovereign"  # All 12 — full constitutional council
 
 
@@ -88,32 +89,47 @@ class ComplexityTier(str, Enum):
 # AGENT DEFINITIONS (§1 — Canonical 12)
 # ═══════════════════════════════════════════════════════════════════
 
+
 @dataclass(frozen=True)
 class AgentSpec:
     """Immutable specification of a canonical agent."""
 
-    agent_id: str        # "P1-Planner", "S3-Ledger", etc.
-    team: str            # "PAT" or "SAT"
-    role: str            # "planner", "ethicist", "sentinel", etc.
-    uses_llm: bool       # Whether this agent needs an LLM
-    is_frozen: bool      # P5/S2: doesn't learn from forest (§4)
-    pipeline_phase: str  # "intake", "plan", "execute", "evaluate", "gate", "verify", "receipt"
+    agent_id: str  # "P1-Planner", "S3-Ledger", etc.
+    team: str  # "PAT" or "SAT"
+    role: str  # "planner", "ethicist", "sentinel", etc.
+    uses_llm: bool  # Whether this agent needs an LLM
+    is_frozen: bool  # P5/S2: doesn't learn from forest (§4)
+    pipeline_phase: (
+        str  # "intake", "plan", "execute", "evaluate", "gate", "verify", "receipt"
+    )
 
 
 # The canonical 12-agent roster (§1)
 AGENT_ROSTER: Dict[str, AgentSpec] = {
     "P7-DEMA": AgentSpec("P7-DEMA", "PAT", "dema", True, False, "intake"),
     "P1-Planner": AgentSpec("P1-Planner", "PAT", "planner", True, False, "plan"),
-    "P2-Researcher": AgentSpec("P2-Researcher", "PAT", "researcher", True, False, "execute"),
+    "P2-Researcher": AgentSpec(
+        "P2-Researcher", "PAT", "researcher", True, False, "execute"
+    ),
     "P3-Coder": AgentSpec("P3-Coder", "PAT", "coder", True, False, "execute"),
-    "P4-Evaluator": AgentSpec("P4-Evaluator", "PAT", "evaluator", True, False, "evaluate"),
+    "P4-Evaluator": AgentSpec(
+        "P4-Evaluator", "PAT", "evaluator", True, False, "evaluate"
+    ),
     "P5-Ethicist": AgentSpec("P5-Ethicist", "PAT", "ethicist", False, True, "gate"),
-    "P6-Publisher": AgentSpec("P6-Publisher", "PAT", "publisher", True, False, "publish"),
-    "S1-Sentinel": AgentSpec("S1-Sentinel", "SAT", "sentinel", False, False, "security"),
+    "P6-Publisher": AgentSpec(
+        "P6-Publisher", "PAT", "publisher", True, False, "publish"
+    ),
+    "S1-Sentinel": AgentSpec(
+        "S1-Sentinel", "SAT", "sentinel", False, False, "security"
+    ),
     "S2-Oracle": AgentSpec("S2-Oracle", "SAT", "oracle", True, True, "verify"),
     "S3-Ledger": AgentSpec("S3-Ledger", "SAT", "ledger", False, False, "receipt"),
-    "S4-Conductor": AgentSpec("S4-Conductor", "SAT", "conductor", False, False, "routing"),
-    "S5-Ambassador": AgentSpec("S5-Ambassador", "SAT", "ambassador", False, False, "federation"),
+    "S4-Conductor": AgentSpec(
+        "S4-Conductor", "SAT", "conductor", False, False, "routing"
+    ),
+    "S5-Ambassador": AgentSpec(
+        "S5-Ambassador", "SAT", "ambassador", False, False, "federation"
+    ),
 }
 
 # Complexity → ordered agent chain
@@ -123,20 +139,43 @@ COMPLEXITY_CHAINS: Dict[ComplexityTier, List[str]] = {
         "P7-DEMA",
     ],
     ComplexityTier.SIMPLE: [
-        "P7-DEMA", "P3-Coder", "P4-Evaluator", "P5-Ethicist",
+        "P7-DEMA",
+        "P3-Coder",
+        "P4-Evaluator",
+        "P5-Ethicist",
     ],
     ComplexityTier.MODERATE: [
-        "P7-DEMA", "P1-Planner", "P3-Coder",
-        "P4-Evaluator", "P5-Ethicist", "S2-Oracle",
+        "P7-DEMA",
+        "P1-Planner",
+        "P3-Coder",
+        "P4-Evaluator",
+        "P5-Ethicist",
+        "S2-Oracle",
     ],
     ComplexityTier.COMPLEX: [
-        "P7-DEMA", "P1-Planner", "P2-Researcher", "P3-Coder",
-        "P4-Evaluator", "P5-Ethicist", "S1-Sentinel", "S2-Oracle", "S3-Ledger",
+        "P7-DEMA",
+        "P1-Planner",
+        "P2-Researcher",
+        "P3-Coder",
+        "P4-Evaluator",
+        "P5-Ethicist",
+        "S1-Sentinel",
+        "S2-Oracle",
+        "S3-Ledger",
     ],
     ComplexityTier.SOVEREIGN: [
-        "P7-DEMA", "P1-Planner", "P2-Researcher", "P3-Coder",
-        "P4-Evaluator", "P5-Ethicist", "P6-Publisher",
-        "S1-Sentinel", "S2-Oracle", "S3-Ledger", "S4-Conductor", "S5-Ambassador",
+        "P7-DEMA",
+        "P1-Planner",
+        "P2-Researcher",
+        "P3-Coder",
+        "P4-Evaluator",
+        "P5-Ethicist",
+        "P6-Publisher",
+        "S1-Sentinel",
+        "S2-Oracle",
+        "S3-Ledger",
+        "S4-Conductor",
+        "S5-Ambassador",
     ],
 }
 
@@ -144,6 +183,7 @@ COMPLEXITY_CHAINS: Dict[ComplexityTier, List[str]] = {
 # ═══════════════════════════════════════════════════════════════════
 # PROTOCOLS
 # ═══════════════════════════════════════════════════════════════════
+
 
 class AgentInferenceProvider(Protocol):
     """An inference backend that can be called per-agent."""
@@ -161,6 +201,7 @@ class HHMMClassifierLike(Protocol):
 # DATA TYPES
 # ═══════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class AgentTrace:
     """Record of one agent's participation in a mission pipeline.
@@ -171,14 +212,14 @@ class AgentTrace:
 
     agent_id: str
     role: str
-    phase: str                          # intake, plan, execute, evaluate, gate, verify, receipt
-    input_summary: str                  # First 200 chars of input
-    output_summary: str                 # First 200 chars of output
+    phase: str  # intake, plan, execute, evaluate, gate, verify, receipt
+    input_summary: str  # First 200 chars of input
+    output_summary: str  # First 200 chars of output
     duration_ms: float
-    is_frozen: bool                     # P5/S2: excluded from SDPO training
-    used_llm: bool                      # True for LLM agents, False for pure-code
+    is_frozen: bool  # P5/S2: excluded from SDPO training
+    used_llm: bool  # True for LLM agents, False for pure-code
     gate_passed: Optional[bool] = None  # For gate/verify agents only
-    ihsan_score: Optional[float] = None # For evaluator (P4) only
+    ihsan_score: Optional[float] = None  # For evaluator (P4) only
     metadata: Optional[Dict[str, Any]] = None
 
 
@@ -193,16 +234,16 @@ class PipelineResult:
     mission_id: str
     complexity: str
     agents_activated: int
-    agent_chain: List[str]          # Ordered list of agent IDs that fired
+    agent_chain: List[str]  # Ordered list of agent IDs that fired
     agent_traces: List[AgentTrace]  # Detailed per-agent records
-    final_output: str               # The consolidated response text
-    ihsan_composite: float          # 8D tensor composite (geometric mean)
+    final_output: str  # The consolidated response text
+    ihsan_composite: float  # 8D tensor composite (geometric mean)
     ihsan_tensor: Dict[str, float]  # Per-dimension scores
-    gate_passed: bool               # Did ALL gates (P5 + S2) pass?
-    gate_reasons: List[str]         # Reasons if any gate failed
-    evidence_hash: str              # BLAKE2b hash of pipeline execution
+    gate_passed: bool  # Did ALL gates (P5 + S2) pass?
+    gate_reasons: List[str]  # Reasons if any gate failed
+    evidence_hash: str  # BLAKE2b hash of pipeline execution
     total_duration_ms: float
-    frozen_agents: List[str]        # Which agents were frozen (for SDPO exclusion)
+    frozen_agents: List[str]  # Which agents were frozen (for SDPO exclusion)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -261,7 +302,9 @@ class HHMMComplexityClassifier:
         total_signal = code_signal + research_signal + creative_signal
 
         # Multi-domain or long → complex
-        domains_active = sum(1 for s in [code_signal, research_signal, creative_signal] if s > 0)
+        domains_active = sum(
+            1 for s in [code_signal, research_signal, creative_signal] if s > 0
+        )
         if domains_active >= 3 or word_count > 150:
             return ComplexityTier.COMPLEX
 
@@ -280,6 +323,7 @@ class HHMMComplexityClassifier:
 # ═══════════════════════════════════════════════════════════════════
 # PURE-CODE AGENT STEPS (§4 — frozen/algorithmic agents)
 # ═══════════════════════════════════════════════════════════════════
+
 
 def _ethicist_gate(ihsan_score: float, output_text: str) -> tuple:
     """P5-Ethicist: Constitutional gate (FROZEN, pure code).
@@ -394,6 +438,7 @@ def _score_ihsan_tensor(output_text: str, input_text: str = "") -> Dict[str, flo
     """
     try:
         from core.sovereign.ihsan_scorer import score_ihsan_8d
+
         tensor = score_ihsan_8d(output_text, input_text)
         return tensor.as_dict()
     except ImportError:
@@ -402,9 +447,15 @@ def _score_ihsan_tensor(output_text: str, input_text: str = "") -> Dict[str, flo
         word_count = len(words)
         has_content = min(word_count / 20.0, 1.0)
         unique_ratio = len(set(words)) / max(word_count, 1)
-        has_structure = 1.0 if any(c in output_text for c in [":", "-", "•", "\n"]) else 0.7
+        has_structure = (
+            1.0 if any(c in output_text for c in [":", "-", "•", "\n"]) else 0.7
+        )
         no_repetition = min(unique_ratio * 1.3, 1.0)
-        reasonable_length = min(word_count / 10.0, 1.0) if word_count < 500 else max(0.5, 1.0 - (word_count - 500) / 2000)
+        reasonable_length = (
+            min(word_count / 10.0, 1.0)
+            if word_count < 500
+            else max(0.5, 1.0 - (word_count - 500) / 2000)
+        )
         return {
             "moral_clarity": round(min(has_content * 0.95 + 0.05, 1.0), 4),
             "epistemic_humility": round(min(no_repetition * 0.9 + 0.1, 1.0), 4),
@@ -473,6 +524,7 @@ _AGENT_PROMPTS: Dict[str, str] = {
 # ═══════════════════════════════════════════════════════════════════
 # MISSION PIPELINE
 # ═══════════════════════════════════════════════════════════════════
+
 
 class MissionPipeline:
     """The 12-agent HHMM-routed cognitive chain.
@@ -549,7 +601,9 @@ class MissionPipeline:
             tier = HHMMComplexityClassifier().classify(mission_text)
 
         # Step 2: Build agent chain
-        chain_ids = list(COMPLEXITY_CHAINS.get(tier, COMPLEXITY_CHAINS[ComplexityTier.SIMPLE]))
+        chain_ids = list(
+            COMPLEXITY_CHAINS.get(tier, COMPLEXITY_CHAINS[ComplexityTier.SIMPLE])
+        )
         traces: List[AgentTrace] = []
         gate_reasons: List[str] = []
         current_text = mission_text
@@ -631,7 +685,9 @@ class MissionPipeline:
             elif agent_id == "S1-Sentinel":
                 passed, reasons = _sentinel_check(mission_text)
                 trace.gate_passed = passed
-                trace.output_summary = f"security={'PASS' if passed else 'FAIL'}: {reasons}"
+                trace.output_summary = (
+                    f"security={'PASS' if passed else 'FAIL'}: {reasons}"
+                )
                 if not passed:
                     all_gates_passed = False
                     gate_reasons.extend(reasons)
@@ -640,7 +696,9 @@ class MissionPipeline:
             elif agent_id == "S2-Oracle":
                 passed, reasons = _oracle_verify(traces, ihsan_composite)
                 trace.gate_passed = passed
-                trace.output_summary = f"oracle={'PASS' if passed else 'FAIL'}: {reasons}"
+                trace.output_summary = (
+                    f"oracle={'PASS' if passed else 'FAIL'}: {reasons}"
+                )
                 if not passed:
                     all_gates_passed = False
                     gate_reasons.extend(reasons)
@@ -714,8 +772,12 @@ class MissionPipeline:
 
         logger.info(
             "Pipeline %s: %s tier, %d agents, ihsan=%.4f, gates=%s, %.1fms",
-            mission_id, tier.value, len(traces),
-            ihsan_composite, "PASS" if all_gates_passed else "FAIL", total_ms,
+            mission_id,
+            tier.value,
+            len(traces),
+            ihsan_composite,
+            "PASS" if all_gates_passed else "FAIL",
+            total_ms,
         )
 
         return result
@@ -786,6 +848,7 @@ class PipelineStats:
 # WIRING HELPER
 # ═══════════════════════════════════════════════════════════════════
 
+
 def wire_pipeline_to_nervous_system(
     nervous_system: Any,
     inference: AgentInferenceProvider,
@@ -807,7 +870,5 @@ def wire_pipeline_to_nervous_system(
     """
     pipeline = MissionPipeline(inference=inference, classifier=classifier)
     nervous_system._inference = pipeline
-    logger.info(
-        "Pipeline wired to NervousSystem: 12-agent chain active"
-    )
+    logger.info("Pipeline wired to NervousSystem: 12-agent chain active")
     return pipeline

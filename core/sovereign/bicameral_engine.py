@@ -235,7 +235,9 @@ class BicameralReasoningEngine:
         )
 
         if not candidates:
-            return BicameralResult("[NO CANDIDATES]", 0.0, 0, 0, path, degraded=self._degraded)
+            return BicameralResult(
+                "[NO CANDIDATES]", 0.0, 0, 0, path, degraded=self._degraded
+            )
 
         # Phase 2: Verify (Left Hemisphere)
         criteria = context.get("criteria", {"correctness": True})
@@ -283,7 +285,11 @@ class BicameralReasoningEngine:
             score,
         )
         return BicameralResult(
-            best_c.content, score, len(candidates), len(verified), path,
+            best_c.content,
+            score,
+            len(candidates),
+            len(verified),
+            path,
             degraded=self._degraded,
         )
 

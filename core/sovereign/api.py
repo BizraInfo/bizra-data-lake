@@ -778,7 +778,9 @@ class SovereignAPIServer:
         return {"name": name, "value": value, "rating": rating}
 
     @classmethod
-    def _accept_metrics_vitals(cls, data: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    def _accept_metrics_vitals(
+        cls, data: Any
+    ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
         """Normalize and acknowledge a Web Vitals payload."""
         payload = cls._validate_metrics_vitals_payload(data)
         if payload is None:
@@ -3546,7 +3548,9 @@ def create_fastapi_app(runtime: Any) -> Any:
             except ImportError:
                 logger.debug("ReflexCompiler not available, using System-2 only")
             except Exception:  # noqa: BLE001 — review needed
-                logger.debug("Reflex lookup failed, falling through to System-2", exc_info=True)
+                logger.debug(
+                    "Reflex lookup failed, falling through to System-2", exc_info=True
+                )
 
             # Build mission config from Node0 ConfigMap environment
             config = {

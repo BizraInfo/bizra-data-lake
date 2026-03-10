@@ -60,7 +60,6 @@ from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
 )
 
-
 # Expert → Ollama model mapping (overridable via env vars)
 _EXPERT_MODEL_MAP: Dict[str, str] = {
     "pat_r": os.getenv("BIZRA_MODEL_PAT_R", "deepseek-r1:14b"),
@@ -99,6 +98,7 @@ _EXPERT_SYSTEM_PROMPTS: Dict[str, str] = {
 # DATA TYPES
 # ═══════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class ExpertCallResult:
     """Result from a single expert's model call."""
@@ -125,6 +125,7 @@ class MOEBridgeStats:
 # ═══════════════════════════════════════════════════════════════════
 # MOE BRIDGE — InferenceProvider Implementation
 # ═══════════════════════════════════════════════════════════════════
+
 
 class MOEBridge:
     """Expert-to-Model dispatch bridge implementing InferenceProvider protocol.
@@ -188,7 +189,11 @@ class MOEBridge:
         enabling the system to learn which expert combinations produce
         high-quality results for specific input patterns.
         """
-        return self._last_ihsan_tensor.copy() if hasattr(self, "_last_ihsan_tensor") else {}
+        return (
+            self._last_ihsan_tensor.copy()
+            if hasattr(self, "_last_ihsan_tensor")
+            else {}
+        )
 
     # ─── InferenceProvider Protocol ──────────────────────────────
 
@@ -277,18 +282,14 @@ class MOEBridge:
 
     # ─── Expert Model Dispatch ───────────────────────────────────
 
-    async def _call_expert(
-        self, expert_id: str, prompt: str
-    ) -> ExpertCallResult:
+    async def _call_expert(self, expert_id: str, prompt: str) -> ExpertCallResult:
         """Dispatch a single expert to its Ollama model."""
         model = self._expert_models.get(expert_id, "phi3:mini")
         system_prompt = _EXPERT_SYSTEM_PROMPTS.get(expert_id, "")
         t0 = time.monotonic()
 
         self._stats.expert_calls += 1
-        self._stats.model_usage[model] = (
-            self._stats.model_usage.get(model, 0) + 1
-        )
+        self._stats.model_usage[model] = self._stats.model_usage.get(model, 0) + 1
 
         try:
             text = await self._ollama_generate(model, prompt, system_prompt)
@@ -326,16 +327,12 @@ class MOEBridge:
                 error=str(e),
             )
 
-    async def _ollama_generate(
-        self, model: str, prompt: str, system: str = ""
-    ) -> str:
+    async def _ollama_generate(self, model: str, prompt: str, system: str = "") -> str:
         """Call Ollama /api/generate endpoint."""
         try:
             import httpx
         except ImportError:
-            raise RuntimeError(
-                "httpx required for Ollama calls: pip install httpx"
-            )
+            raise RuntimeError("httpx required for Ollama calls: pip install httpx")
 
         payload: Dict[str, Any] = {
             "model": model,
@@ -350,9 +347,7 @@ class MOEBridge:
             payload["system"] = system
 
         async with httpx.AsyncClient(timeout=self._timeout_s) as client:
-            resp = await client.post(
-                f"{self._ollama_url}/api/generate", json=payload
-            )
+            resp = await client.post(f"{self._ollama_url}/api/generate", json=payload)
             resp.raise_for_status()
             data = resp.json()
             return data.get("response", "")

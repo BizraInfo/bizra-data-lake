@@ -273,7 +273,7 @@ impl StringBundle {
 
     /// Get a string by key, returning the key itself if not found
     /// (fail-open for display — never show a blank screen).
-    pub fn get(&self, key: &str) -> &str {
+    pub fn get<'a>(&'a self, key: &'a str) -> &'a str {
         self.strings.get(key).map(|s| s.as_str()).unwrap_or(key)
     }
 }

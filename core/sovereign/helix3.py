@@ -66,6 +66,7 @@ STALE_REFLEX_AGE_DAYS = 30  # Reflexes older than 30d without hits → prune
 # 8D IHSĀN TENSOR (§8)
 # ═══════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class IhsanTensor8D:
     """The canonical 8-dimension Ihsān tensor.
@@ -127,9 +128,7 @@ class IhsanTensor8D:
         """Weighted arithmetic mean — legacy/operational scoring."""
         dims = self.dimensions
         weights = IHSAN_CANONICAL_WEIGHTS
-        return round(
-            sum(dims[k] * weights.get(k, 0.0) for k in dims), 6
-        )
+        return round(sum(dims[k] * weights.get(k, 0.0) for k in dims), 6)
 
     @property
     def min_dimension(self) -> float:
@@ -144,10 +143,7 @@ class IhsanTensor8D:
     @classmethod
     def from_scores(cls, scores: Dict[str, float]) -> IhsanTensor8D:
         """Create tensor from a dict of dimension scores."""
-        return cls(**{
-            k: scores.get(k, 0.0)
-            for k in IHSAN_CANONICAL_WEIGHTS
-        })
+        return cls(**{k: scores.get(k, 0.0) for k in IHSAN_CANONICAL_WEIGHTS})
 
     @classmethod
     def uniform(cls, score: float) -> IhsanTensor8D:
@@ -158,6 +154,7 @@ class IhsanTensor8D:
 # ═══════════════════════════════════════════════════════════════════
 # DATA TYPES
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class HeartbeatReceipt:
@@ -206,6 +203,7 @@ class Helix3Stats:
 # PROTOCOLS (Dependency Injection)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class NervousSystemLike(Protocol):
     """Duck-typed interface matching SovereignNervousSystem."""
 
@@ -229,6 +227,7 @@ class ReflexCacheLike(Protocol):
 # ═══════════════════════════════════════════════════════════════════
 # HELIX 3 SCHEDULER
 # ═══════════════════════════════════════════════════════════════════
+
 
 class Helix3Scheduler:
     """The evolutionary heartbeat that makes the organism GROW.
@@ -306,7 +305,9 @@ class Helix3Scheduler:
 
         # ── Step 2: Score and gate ──────────────────────────────
         passing = [r for r in receipts if r.get("ihsan_score", 0) >= 0.85]
-        excellent = [r for r in passing if r.get("ihsan_score", 0) >= UNIFIED_IHSAN_THRESHOLD]
+        excellent = [
+            r for r in passing if r.get("ihsan_score", 0) >= UNIFIED_IHSAN_THRESHOLD
+        ]
 
         # ── Step 3-4: Constitutional economics ──────────────────
         seed_minted = 0.0
@@ -317,7 +318,8 @@ class Helix3Scheduler:
                 ihsan = r.get("ihsan_score", 0.0)
                 mint_result = self._minter.mint_seed(
                     wallet=self._wallet,
-                    amount=r.get("reward_amount", 0.0) * 2,  # Reconstruct pre-split amount
+                    amount=r.get("reward_amount", 0.0)
+                    * 2,  # Reconstruct pre-split amount
                     poi_evidence=r.get("evidence_hash", ""),
                     ihsan=ihsan,
                 )
@@ -341,7 +343,9 @@ class Helix3Scheduler:
         if not gini_ok:
             logger.critical(
                 "GINI HALT tick=%d | gini=%.4f > %.4f — evolutionary rewards suspended",
-                self._tick_number, gini, ADL_GINI_THRESHOLD,
+                self._tick_number,
+                gini,
+                ADL_GINI_THRESHOLD,
             )
             self._stats.total_gini_halts += 1
 
@@ -376,9 +380,9 @@ class Helix3Scheduler:
         if self._ihsan_history:
             self._stats.avg_ihsan = sum(self._ihsan_history) / len(self._ihsan_history)
         self._stats.avg_tick_duration_ms = (
-            (self._stats.avg_tick_duration_ms * (self._stats.total_ticks - 1) + duration_ms)
-            / self._stats.total_ticks
-        )
+            self._stats.avg_tick_duration_ms * (self._stats.total_ticks - 1)
+            + duration_ms
+        ) / self._stats.total_ticks
 
         evidence_data = {
             "tick": self._tick_number,
@@ -387,9 +391,12 @@ class Helix3Scheduler:
             "gini": gini,
             "minted": seed_minted,
         }
-        evidence_hash = "ev:" + hashlib.sha256(
-            str(sorted(evidence_data.items())).encode()
-        ).hexdigest()[:32]
+        evidence_hash = (
+            "ev:"
+            + hashlib.sha256(str(sorted(evidence_data.items())).encode()).hexdigest()[
+                :32
+            ]
+        )
         chain_hash = hashlib.sha256(
             f"{self._chain_hash}:{evidence_hash}".encode()
         ).hexdigest()
@@ -466,8 +473,11 @@ class Helix3Scheduler:
         constitutional_wallets = [
             ConstitutionalWallet(
                 node_id=b"local_node" + b"\x00" * 22,
-                seed_balance=fp(getattr(self._wallet, "seed_balance", 0.0))
-                if self._wallet else 0,
+                seed_balance=(
+                    fp(getattr(self._wallet, "seed_balance", 0.0))
+                    if self._wallet
+                    else 0
+                ),
             )
         ]
 
@@ -492,9 +502,12 @@ class Helix3Scheduler:
         self._stats.total_seed_minted += fp_float(tick_result.total_minted)
         self._stats.last_tick_time = time.time()
 
-        evidence_hash = "ev:" + hashlib.sha256(
-            f"tick:{self._tick_number}:const".encode()
-        ).hexdigest()[:32]
+        evidence_hash = (
+            "ev:"
+            + hashlib.sha256(f"tick:{self._tick_number}:const".encode()).hexdigest()[
+                :32
+            ]
+        )
         chain_hash = hashlib.sha256(
             f"{self._chain_hash}:{evidence_hash}".encode()
         ).hexdigest()
@@ -618,6 +631,7 @@ class Helix3Scheduler:
 # ═══════════════════════════════════════════════════════════════════
 # FACTORY: Wire Helix 3 to existing Nervous System
 # ═══════════════════════════════════════════════════════════════════
+
 
 def wire_helix3(
     nervous_system: Any,

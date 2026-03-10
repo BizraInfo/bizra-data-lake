@@ -608,7 +608,13 @@ class SovereignRuntime:
                     "⚠ Bus infrastructure partially wired: %s",
                     wiring_state.summary,
                 )
-        except (ImportError, RuntimeError, AttributeError, TypeError, ValueError) as exc:
+        except (
+            ImportError,
+            RuntimeError,
+            AttributeError,
+            TypeError,
+            ValueError,
+        ) as exc:
             self.logger.warning("⚠ Bus infrastructure unavailable: %s", exc)
 
         # Phase 71: Seed Engine (DDAGI growth trajectory)
@@ -621,7 +627,13 @@ class SovereignRuntime:
 
             self._seed_engine = create_seed_engine(runtime=self)
             self.logger.info("✓ Seed Engine initialized")
-        except (ImportError, RuntimeError, AttributeError, TypeError, ValueError) as exc:
+        except (
+            ImportError,
+            RuntimeError,
+            AttributeError,
+            TypeError,
+            ValueError,
+        ) as exc:
             self.logger.warning("⚠ Seed Engine unavailable: %s", exc)
 
     async def _dispatch_equalizer_command(self, eq_cmd: object) -> None:
@@ -1866,7 +1878,13 @@ class SovereignRuntime:
                     try:
                         self._agent_db.set_embedding_fn(self._embedding_service.embed)
                         self.logger.debug("AgentDB embedding function wired (early)")
-                    except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as emb_err:
+                    except (
+                        RuntimeError,
+                        ValueError,
+                        TypeError,
+                        AttributeError,
+                        OSError,
+                    ) as emb_err:
                         self.logger.debug(f"AgentDB embedding fn not wired: {emb_err}")
 
                 # V3 Migration Orchestrator: import from all legacy sources
@@ -1882,7 +1900,13 @@ class SovereignRuntime:
                             f"AgentDB migration: {result.total_imported} records "
                             f"imported ({result.total_errors} errors)"
                         )
-                except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as mig_err:
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    AttributeError,
+                    OSError,
+                ) as mig_err:
                     self.logger.debug(f"AgentDB migration skipped: {mig_err}")
 
             except ImportError:
@@ -1995,7 +2019,13 @@ class SovereignRuntime:
                     self.logger.info(
                         "AgentDB embedding function wired via EmbeddingService"
                     )
-                except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as wire_err:
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    AttributeError,
+                    OSError,
+                ) as wire_err:
                     self.logger.debug(
                         f"AgentDB embedding fn late-wire failed: {wire_err}"
                     )
@@ -2939,7 +2969,13 @@ class SovereignRuntime:
                                 f"Embedding quality gate failed: {gate_result.reason}"
                             )
                             embedding = None
-                except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as e:
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    AttributeError,
+                    OSError,
+                ) as e:
                     self.logger.debug(f"Embedding generation failed: {e}")
 
             # Fallback: zero vector (degraded — RAG retrieval will be empty)
@@ -2951,7 +2987,13 @@ class SovereignRuntime:
             if self._ntu_adapter is not None:
                 try:
                     context = self._ntu_adapter.enrich_context(context)  # type: ignore[union-attr]
-                except (ImportError, RuntimeError, AttributeError, TypeError, ValueError) as e:
+                except (
+                    ImportError,
+                    RuntimeError,
+                    AttributeError,
+                    TypeError,
+                    ValueError,
+                ) as e:
                     self.logger.debug(f"NTU enrichment skipped: {e}")
 
             # Step 3: Run fusion pipeline
@@ -3114,7 +3156,13 @@ class SovereignRuntime:
                     answer = getattr(inference_result, "content", str(inference_result))
                     model_used = getattr(inference_result, "model", "unknown")
                     return answer, model_used
-            except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError) as e:
+            except (
+                OSError,
+                ConnectionError,
+                TimeoutError,
+                RuntimeError,
+                ValueError,
+            ) as e:
                 self.logger.warning(f"Gateway inference failed: {e}")
 
         # FAIL-LOUD: Tag as NO_LLM so pipeline can reject/degrade gracefully
@@ -3225,7 +3273,12 @@ class SovereignRuntime:
                     query_text=query.text,
                     context=context,
                 )
-            except (ImportError, RuntimeError, ValueError, TypeError) as ihsan_computer_err:
+            except (
+                ImportError,
+                RuntimeError,
+                ValueError,
+                TypeError,
+            ) as ihsan_computer_err:
                 self.logger.debug(
                     "IhsanComputer unavailable, using legacy component projection: %s",
                     ihsan_computer_err,
@@ -3286,7 +3339,12 @@ class SovereignRuntime:
                         reason_codes = ihsan_gate_result.setdefault("reason_codes", [])
                         if "THERMODYNAMIC_GATE_REJECTED" not in reason_codes:
                             reason_codes.append("THERMODYNAMIC_GATE_REJECTED")
-                except (ImportError, RuntimeError, ValueError, TypeError) as thermal_gate_err:
+                except (
+                    ImportError,
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                ) as thermal_gate_err:
                     self.logger.debug(
                         "Thermodynamic gate unavailable, continuing without it: %s",
                         thermal_gate_err,

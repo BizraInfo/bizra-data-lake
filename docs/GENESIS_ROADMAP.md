@@ -82,6 +82,11 @@
 | **DONE** | MOE-001 E2E pipeline gate | In CI | 82 tests (46+25+11) |
 | **DONE** | Shell script permissions (69 files) | Fixed | chmod +x in git index |
 | **DONE** | MD024 siblings-only rule | Fixed | markdownlint config updated |
+| **DONE** | Black format pass (29 files) | Fixed | CI Lint Python gate |
+| **DONE** | Rust installer module exports | Fixed | CI Lint Rust gate |
+| **DONE** | Rogue IHSAN_THRESHOLD cleanup | Fixed | Cross-lang sync gate |
+| **DONE** | SAP release gate placeholder | Fixed | Schema Validation gate |
+| **DONE** | Dead doc links (DOCS_INDEX) | Fixed | Lychee link checker |
 | **P1** | bizra_test.py T2 gate in CI | Local only | Add CI step |
 | **P2** | Reflex endpoint in deploy smoke | Done | Auth fail-closed |
 | **P2** | Docker image rebuild | Stale | After Phase 68 |

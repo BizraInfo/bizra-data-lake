@@ -5,14 +5,13 @@ Standing on Giants: Meyer (DbC, 1986) · Liskov (LSP, 1987) · Al-Ghazali (Ihsā
 
 Exception taxonomy for autonomous agents with constitutional constraints:
 - Constitutional violations → fail-closed
-- Tool failures → recoverable  
+- Tool failures → recoverable
 - Task failures → retryable
 
 Each exception type carries structured context for SNR-optimal error handling.
 """
 
 from typing import Any, Dict, Optional
-
 
 # ══════════════════════════════════════════════════════════════════════════
 # Base Agent Exception

@@ -69,6 +69,7 @@ SEED_MINT_FLOOR = 0.95  # From core/token/bloom.py
 # PROTOCOLS (Dependency Injection Contracts)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class InferenceProvider(Protocol):
     """Any callable that turns a prompt into a response string."""
 
@@ -108,6 +109,7 @@ class EventBusLike(Protocol):
 # ═══════════════════════════════════════════════════════════════════
 # DATA TYPES
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class NervousSystemReceipt:
@@ -164,6 +166,7 @@ class NervousSystemStats:
 # QUALITY SCORING
 # ═══════════════════════════════════════════════════════════════════
 
+
 def _score_ihsan(output: str, input_text: str) -> float:
     """Compute Ihsān composite score via unified 8D content scorer.
 
@@ -172,15 +175,20 @@ def _score_ihsan(output: str, input_text: str) -> float:
     """
     try:
         from core.sovereign.ihsan_scorer import score_ihsan_composite
+
         return score_ihsan_composite(output, input_text)
     except ImportError:
         # Fallback: basic heuristic if scorer not available
         if not output or not output.strip():
             return 0.0
         length_score = min(len(output) / 200, 1.0)
-        relevance = 1.0 if any(w in output.lower() for w in input_text.lower().split()[:3]) else 0.5
+        relevance = (
+            1.0
+            if any(w in output.lower() for w in input_text.lower().split()[:3])
+            else 0.5
+        )
         coherence = 1.0 if len(output.split()) > 5 else 0.6
-        raw = (length_score * 0.3 + relevance * 0.4 + coherence * 0.3)
+        raw = length_score * 0.3 + relevance * 0.4 + coherence * 0.3
         return round(min(raw, 1.0), 4)
 
 
@@ -192,6 +200,7 @@ def _score_snr(output: str) -> float:
     """
     try:
         from core.sovereign.ihsan_scorer import score_snr_composite
+
         return score_snr_composite(output)
     except ImportError:
         # Fallback: basic heuristic
@@ -207,15 +216,14 @@ def _score_snr(output: str) -> float:
 
 def _compute_evidence_hash(data: Dict[str, Any]) -> str:
     """BLAKE3-style evidence hash (SHA-256 fallback)."""
-    canonical = hashlib.sha256(
-        str(sorted(data.items())).encode()
-    ).hexdigest()[:32]
+    canonical = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()[:32]
     return f"ev:{canonical}"
 
 
 # ═══════════════════════════════════════════════════════════════════
 # SOVEREIGN NERVOUS SYSTEM
 # ═══════════════════════════════════════════════════════════════════
+
 
 class SovereignNervousSystem:
     """The cognitive bridge between reflexes (S1) and deliberation (S2).
@@ -284,7 +292,9 @@ class SovereignNervousSystem:
 
         reflex = ReflexCompiler(
             max_entries=1000,
-            persistence_path=persistence_dir / "reflexes.json" if persistence_dir else None,
+            persistence_path=(
+                persistence_dir / "reflexes.json" if persistence_dir else None
+            ),
         )
 
         bus = EventBus()
@@ -297,29 +307,43 @@ class SovereignNervousSystem:
         # (re-raise on error), so they need functional dependencies.
         class _NoOpAuditLog:
             """Minimal audit log — logs violations without external service."""
+
             def log_violation(self, **kw: Any) -> None:
                 logger.warning("Ihsān gate violation: %s", kw)
 
         class _NoOpSessionManager:
             """Minimal session manager — halts are logged, not enforced."""
+
             def halt(self, **kw: Any) -> None:
                 logger.warning("Session halt requested: %s", kw)
 
         class _NoOpQuarantine:
             """Minimal quarantine — isolations are logged."""
+
             def isolate(self, **kw: Any) -> None:
                 logger.warning("Quarantine isolation: %s", kw)
 
         class _NoOpMemoryStore:
             """Minimal memory store for subscriber wiring."""
-            def reinforce(self, **kw: Any) -> None: pass
-            def get_success_count(self, key: str) -> int: return 0
-            def set_success_count(self, key: str, val: int) -> None: pass
-            def promote_to_semantic(self, **kw: Any) -> bool: return False
-            def record_failure_pattern(self, **kw: Any) -> None: pass
+
+            def reinforce(self, **kw: Any) -> None:
+                pass
+
+            def get_success_count(self, key: str) -> int:
+                return 0
+
+            def set_success_count(self, key: str, val: int) -> None:
+                pass
+
+            def promote_to_semantic(self, **kw: Any) -> bool:
+                return False
+
+            def record_failure_pattern(self, **kw: Any) -> None:
+                pass
 
         class _NoOpTeleScript:
             """Minimal telescript engine."""
+
             def begin_execution(self, **kw: Any) -> str:
                 return f"ts_noop_{id(self)}"
 
@@ -392,7 +416,9 @@ class SovereignNervousSystem:
                 self._stats.s1_hits += 1
                 logger.info(
                     "S1 HIT | mission=%s hit_count=%d ihsan=%.3f",
-                    mission_id, entry.hit_count, entry.ihsan_composite,
+                    mission_id,
+                    entry.hit_count,
+                    entry.ihsan_composite,
                 )
 
         # ── S2 DELIBERATION: Full inference (Kahneman System 2) ──
@@ -402,7 +428,11 @@ class SovereignNervousSystem:
             logger.info("S2 EXEC | mission=%s len=%d", mission_id, len(output_text))
 
         # ── SCORE: Constitutional quality gates (Al-Ghazali) ─────
-        ihsan = ihsan_override if ihsan_override is not None else _score_ihsan(output_text, mission_text)
+        ihsan = (
+            ihsan_override
+            if ihsan_override is not None
+            else _score_ihsan(output_text, mission_text)
+        )
         snr = snr_override if snr_override is not None else _score_snr(output_text)
 
         self._ihsan_history.append(ihsan)
@@ -411,7 +441,12 @@ class SovereignNervousSystem:
         # ── PUBLISH: EventBus events (Hewitt Actor Model) ────────
         if self._bus is not None:
             events_published = self._publish_events(
-                mission_id, mission_text, output_text, ihsan, snr, reflex_hit,
+                mission_id,
+                mission_text,
+                output_text,
+                ihsan,
+                snr,
+                reflex_hit,
             )
 
         # ── RECORD: Observation for future S1 (Deming PDCA) ─────
@@ -431,11 +466,15 @@ class SovereignNervousSystem:
             mint_result = self._minter.mint_seed(
                 wallet=self._wallet,
                 amount=self._reward_per_mission,
-                poi_evidence=_compute_evidence_hash({
-                    "mission_id": mission_id,
-                    "ihsan": ihsan,
-                    "output_hash": hashlib.sha256(output_text.encode()).hexdigest()[:16],
-                }),
+                poi_evidence=_compute_evidence_hash(
+                    {
+                        "mission_id": mission_id,
+                        "ihsan": ihsan,
+                        "output_hash": hashlib.sha256(output_text.encode()).hexdigest()[
+                            :16
+                        ],
+                    }
+                ),
                 ihsan=ihsan,
             )
             if mint_result.get("minted"):
@@ -470,9 +509,8 @@ class SovereignNervousSystem:
 
         self._stats.total_missions += 1
         self._stats.avg_duration_ms = (
-            (self._stats.avg_duration_ms * (self._stats.total_missions - 1) + duration_ms)
-            / self._stats.total_missions
-        )
+            self._stats.avg_duration_ms * (self._stats.total_missions - 1) + duration_ms
+        ) / self._stats.total_missions
 
         receipt = NervousSystemReceipt(
             mission_id=mission_id,
@@ -580,9 +618,7 @@ class SovereignNervousSystem:
         try:
             from core.token.bloom import compute_gini
 
-            balances = [
-                getattr(w, "seed_balance", 0.0) for w in self._wallets
-            ]
+            balances = [getattr(w, "seed_balance", 0.0) for w in self._wallets]
             if all(b == 0.0 for b in balances):
                 return True
 
@@ -590,7 +626,8 @@ class SovereignNervousSystem:
             if gini > ADL_GINI_THRESHOLD:
                 logger.critical(
                     "GINI HALT | gini=%.4f > threshold=%.4f — token minting suspended",
-                    gini, ADL_GINI_THRESHOLD,
+                    gini,
+                    ADL_GINI_THRESHOLD,
                 )
                 self._stats.gini_halts += 1
                 return False
@@ -616,6 +653,7 @@ class SovereignNervousSystem:
 # ═══════════════════════════════════════════════════════════════════
 # SIMPLE INFERENCE PROVIDERS (for testing and standalone use)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class EchoInference:
     """Echoes input back — for testing only."""

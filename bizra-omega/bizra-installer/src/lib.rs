@@ -10,5 +10,15 @@
 pub mod alpha100;
 pub mod binary_fetch;
 pub mod config;
+pub mod device_profile;
+pub mod hardware_detect;
+pub mod health_check;
+pub mod i18n;
+pub mod install_flow;
+pub mod install_receipt;
+pub mod model_cache;
 pub mod policy;
+pub mod profiles;
 pub mod provider;
+pub mod self_update;
+pub mod urp;

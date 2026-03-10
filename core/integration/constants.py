@@ -369,39 +369,39 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:
 # Vision and embedding are shared capabilities, not agents — routed via task type.
 _OLLAMA_FLEET_DEFAULTS: Dict[str, str] = {
     # 7 PAT agents
-    "P1-Planner": "deepseek-r1:14b",        # Deep reasoning for strategic planning
-    "P2-Researcher": "qwen2.5:3b",          # Knowledge + multilingual
-    "P3-Coder": "mistral:latest",            # 7B code generation (LM Studio: agentflow-7b)
-    "P4-Evaluator": "phi3:mini",             # Fast evaluation + scoring
-    "P5-Ethicist": "frozen",                 # Constitutional gate — no LLM, pure Ihsan logic
-    "P6-Publisher": "phi3:mini",             # Communication formatting
-    "P7-DEMA": "deephat-v1-7b",             # Integrator + voice (NVIDIA PersonaPlex 7B)
+    "P1-Planner": "deepseek-r1:14b",  # Deep reasoning for strategic planning
+    "P2-Researcher": "qwen2.5:3b",  # Knowledge + multilingual
+    "P3-Coder": "mistral:latest",  # 7B code generation (LM Studio: agentflow-7b)
+    "P4-Evaluator": "phi3:mini",  # Fast evaluation + scoring
+    "P5-Ethicist": "frozen",  # Constitutional gate — no LLM, pure Ihsan logic
+    "P6-Publisher": "phi3:mini",  # Communication formatting
+    "P7-DEMA": "deephat-v1-7b",  # Integrator + voice (NVIDIA PersonaPlex 7B)
     # 5 SAT agents
-    "S1-Sentinel": "pure-code",              # Threat detection — no LLM needed
-    "S2-Oracle": "phi3:mini",                # Constitutional reasoning (lightweight)
-    "S3-Ledger": "pure-code",                # Evidence chain — no LLM needed
-    "S4-Conductor": "pure-code",             # Event routing — no LLM needed
-    "S5-Ambassador": "pure-code",            # Federation — no LLM needed
+    "S1-Sentinel": "pure-code",  # Threat detection — no LLM needed
+    "S2-Oracle": "phi3:mini",  # Constitutional reasoning (lightweight)
+    "S3-Ledger": "pure-code",  # Evidence chain — no LLM needed
+    "S4-Conductor": "pure-code",  # Event routing — no LLM needed
+    "S5-Ambassador": "pure-code",  # Federation — no LLM needed
     # Shared capabilities (not agents — routed by task type)
-    "vision": "moondream:1.8b",              # Visual analysis capability
+    "vision": "moondream:1.8b",  # Visual analysis capability
     "embedding": "nomic-embed-text:latest",  # Vector embedding capability
-    "default": "phi3:mini",                  # Fallback for unrouted queries
+    "default": "phi3:mini",  # Fallback for unrouted queries
 }
 
 # Agent ID → local_models.yaml lookup key.
 # Checked against pat_agents first, then models[] directly.
 PAT_ROLE_MAP: Dict[str, str] = {
-    "P1-Planner": "strategist",      # pat_agents → planning (agentflow 7B)
-    "P2-Researcher": "researcher",   # pat_agents → reasoning (deepseek 8B)
-    "P3-Coder": "planning",          # pat_agents → planning (agentflow 7B)
-    "P4-Evaluator": "analyst",       # pat_agents → reasoning (deepseek 8B)
-    "P5-Ethicist": "frozen",         # No YAML lookup — constitutional gate
-    "P6-Publisher": "coordinator",   # pat_agents → planning (agentflow 7B)
-    "P7-DEMA": "voice",              # personaplex/engine.py — nvidia/personaplex-7b-v1
-    "S2-Oracle": "guardian",         # pat_agents → reasoning (deepseek 8B)
-    "vision": "vision_large",        # models[] direct — qwen VL 8B
-    "embedding": "embedding",        # models[] direct — nomic embed
-    "default": "fast",               # models[] direct — liquid 1.2B
+    "P1-Planner": "strategist",  # pat_agents → planning (agentflow 7B)
+    "P2-Researcher": "researcher",  # pat_agents → reasoning (deepseek 8B)
+    "P3-Coder": "planning",  # pat_agents → planning (agentflow 7B)
+    "P4-Evaluator": "analyst",  # pat_agents → reasoning (deepseek 8B)
+    "P5-Ethicist": "frozen",  # No YAML lookup — constitutional gate
+    "P6-Publisher": "coordinator",  # pat_agents → planning (agentflow 7B)
+    "P7-DEMA": "voice",  # personaplex/engine.py — nvidia/personaplex-7b-v1
+    "S2-Oracle": "guardian",  # pat_agents → reasoning (deepseek 8B)
+    "vision": "vision_large",  # models[] direct — qwen VL 8B
+    "embedding": "embedding",  # models[] direct — nomic embed
+    "default": "fast",  # models[] direct — liquid 1.2B
 }
 
 # Env-var overrides applied on top of the loaded fleet
@@ -434,7 +434,9 @@ def load_fleet_from_yaml(
     # Try loading YAML config
     if not yaml_path:
         yaml_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            ),
             "config",
             "local_models.yaml",
         )

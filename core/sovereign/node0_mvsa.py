@@ -32,6 +32,7 @@ PROOF_FILE = "node0_mvsa_proof.json"
 
 def _resolve_binary(project_root: Path) -> Optional[Path]:
     """Resolve the Rust MVSA binary following strict precedence."""
+
     def _existing_binary(path: Path) -> Optional[Path]:
         candidates = [path]
         if os.name == "nt":
@@ -101,12 +102,17 @@ def _run_cargo(
     """Fallback: run via cargo."""
     omega_dir = project_root / "bizra-omega"
     cmd = [
-        "cargo", "run",
-        "-p", "bizra-resourcepool",
-        "--bin", "node0-mvsa",
+        "cargo",
+        "run",
+        "-p",
+        "bizra-resourcepool",
+        "--bin",
+        "node0-mvsa",
         "--",
-        "--state-dir", str(state_dir),
-        "--out", str(out_path),
+        "--state-dir",
+        str(state_dir),
+        "--out",
+        str(out_path),
     ]
     logger.info("Running MVSA via cargo: %s", " ".join(cmd))
     return subprocess.run(

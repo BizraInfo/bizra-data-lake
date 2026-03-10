@@ -347,7 +347,9 @@ class A2AEngine:
             except (OSError, asyncio.TimeoutError) as e:
                 print(f"⚠️ Failed to send result for {task.task_id}: {e}")
             except Exception as e:
-                print(f"⚠️ Unexpected error sending result for {task.task_id}: {type(e).__name__}: {e}")
+                print(
+                    f"⚠️ Unexpected error sending result for {task.task_id}: {type(e).__name__}: {e}"
+                )
         else:
             print(
                 f"📤 Task {task.task_id} completed: {task.status.value} (no transport)"

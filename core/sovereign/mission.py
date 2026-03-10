@@ -236,7 +236,9 @@ class MissionOrchestrator:
         except (OSError, RuntimeError, ValueError) as exc:
             logger.warning("LivingMemory init failed (continuing without): %s", exc)
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
-            logger.warning("LivingMemory init failed (continuing without): %s", exc, exc_info=True)
+            logger.warning(
+                "LivingMemory init failed (continuing without): %s", exc, exc_info=True
+            )
 
         # Initialize EvidenceLedger
         try:
@@ -250,7 +252,11 @@ class MissionOrchestrator:
         except (OSError, ValueError) as exc:
             logger.warning("EvidenceLedger init failed (continuing without): %s", exc)
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
-            logger.warning("EvidenceLedger init failed (continuing without): %s", exc, exc_info=True)
+            logger.warning(
+                "EvidenceLedger init failed (continuing without): %s",
+                exc,
+                exc_info=True,
+            )
 
         # Initialize SNR engine
         try:
@@ -262,7 +268,9 @@ class MissionOrchestrator:
         except (RuntimeError, ValueError) as exc:
             logger.warning("SNRApexEngine init failed (continuing without): %s", exc)
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
-            logger.warning("SNRApexEngine init failed (continuing without): %s", exc, exc_info=True)
+            logger.warning(
+                "SNRApexEngine init failed (continuing without): %s", exc, exc_info=True
+            )
 
         # Initialize ChannelDispatcher
         try:
@@ -277,7 +285,9 @@ class MissionOrchestrator:
             )
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
             logger.warning(
-                "ChannelDispatcher init failed (continuing without): %s", exc, exc_info=True,
+                "ChannelDispatcher init failed (continuing without): %s",
+                exc,
+                exc_info=True,
             )
 
         # Initialize EventBus
@@ -290,7 +300,9 @@ class MissionOrchestrator:
         except (RuntimeError, ValueError) as exc:
             logger.warning("EventBus init failed (continuing without): %s", exc)
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
-            logger.warning("EventBus init failed (continuing without): %s", exc, exc_info=True)
+            logger.warning(
+                "EventBus init failed (continuing without): %s", exc, exc_info=True
+            )
 
         # Initialize InferenceGateway (Ollama/LM Studio) — guarded by env var
         _llm_flag = os.environ.get("BIZRA_ENABLE_LLM", "").lower()
@@ -313,7 +325,11 @@ class MissionOrchestrator:
             except (OSError, RuntimeError, ValueError) as exc:
                 logger.warning("InferenceGateway init failed (template mode): %s", exc)
             except Exception as exc:  # noqa: BLE001 — optional subsystem init
-                logger.warning("InferenceGateway init failed (template mode): %s", exc, exc_info=True)
+                logger.warning(
+                    "InferenceGateway init failed (template mode): %s",
+                    exc,
+                    exc_info=True,
+                )
 
             # O3: Warm model pool — pre-load model weights to eliminate cold start
             await self._warmup_model()
@@ -596,7 +612,9 @@ class MissionOrchestrator:
                     )
                 )
             except Exception as exc:  # noqa: BLE001 — channel execution boundary
-                logger.warning("Channel %s unexpected failure", channel_name, exc_info=True)
+                logger.warning(
+                    "Channel %s unexpected failure", channel_name, exc_info=True
+                )
                 results.append(
                     ChannelResult(
                         channel=channel_name,
@@ -807,9 +825,11 @@ class MissionOrchestrator:
             latency = (time.monotonic() - inference_start) * 1000
             fallback_chain.append("template:success")
             return text, InferenceProvenance(
-                backend="template", model_id="none",
+                backend="template",
+                model_id="none",
                 fallback_chain=fallback_chain,
-                latency_ms=latency, tokens_generated=0,
+                latency_ms=latency,
+                tokens_generated=0,
             )
 
         prompt = self._build_synthesis_prompt(
@@ -840,7 +860,8 @@ class MissionOrchestrator:
                     logger.info("Ollama synthesis complete (%d chars)", len(content))
                     fallback_chain.append("ollama:success")
                     return content, InferenceProvenance(
-                        backend="ollama", model_id=ollama_model,
+                        backend="ollama",
+                        model_id=ollama_model,
                         fallback_chain=fallback_chain,
                         latency_ms=latency,
                         tokens_generated=len(content.split()),
@@ -852,10 +873,14 @@ class MissionOrchestrator:
             logger.info("httpx not available — skipping Ollama synthesis")
         except (OSError, ConnectionError, asyncio.TimeoutError) as exc:
             fallback_chain.append(f"ollama:{type(exc).__name__}")
-            logger.warning("Ollama synthesis failed (network): %s — trying gateway", exc)
+            logger.warning(
+                "Ollama synthesis failed (network): %s — trying gateway", exc
+            )
         except Exception as exc:  # noqa: BLE001 — LLM synthesis boundary
             fallback_chain.append(f"ollama:{type(exc).__name__}")
-            logger.warning("Ollama synthesis failed: %s — trying gateway", exc, exc_info=True)
+            logger.warning(
+                "Ollama synthesis failed: %s — trying gateway", exc, exc_info=True
+            )
 
         # 2. Gateway (LM Studio GPU + Ollama fallback chain)
         gateway_timeout = float(os.environ.get("BIZRA_GATEWAY_TIMEOUT", "20"))
@@ -867,10 +892,16 @@ class MissionOrchestrator:
                 )
                 if result.content.strip():
                     latency = (time.monotonic() - inference_start) * 1000
-                    gw_backend = result.backend.value if hasattr(result.backend, "value") else str(result.backend)
+                    gw_backend = (
+                        result.backend.value
+                        if hasattr(result.backend, "value")
+                        else str(result.backend)
+                    )
                     logger.info(
                         "Gateway synthesis complete (%d chars, backend=%s, %.0fms)",
-                        len(result.content), gw_backend, result.latency_ms,
+                        len(result.content),
+                        gw_backend,
+                        result.latency_ms,
                     )
                     fallback_chain.append(f"gateway:{gw_backend}:success")
                     return result.content, InferenceProvenance(
@@ -878,7 +909,9 @@ class MissionOrchestrator:
                         model_id=getattr(result, "model", "unknown"),
                         fallback_chain=fallback_chain,
                         latency_ms=latency,
-                        tokens_generated=getattr(result, "tokens_generated", len(result.content.split())),
+                        tokens_generated=getattr(
+                            result, "tokens_generated", len(result.content.split())
+                        ),
                     )
                 fallback_chain.append("gateway:empty_content")
                 logger.warning("Gateway returned empty content — falling through")
@@ -897,9 +930,11 @@ class MissionOrchestrator:
         latency = (time.monotonic() - inference_start) * 1000
         fallback_chain.append("template:success")
         return text, InferenceProvenance(
-            backend="template", model_id="none",
+            backend="template",
+            model_id="none",
             fallback_chain=fallback_chain,
-            latency_ms=latency, tokens_generated=0,
+            latency_ms=latency,
+            tokens_generated=0,
         )
 
     def _template_synthesis(
@@ -1142,7 +1177,9 @@ class MissionOrchestrator:
         except (RuntimeError, ValueError) as exc:
             logger.warning("Event emit failed (known) | topic=%s error=%s", topic, exc)
         except Exception as exc:  # noqa: BLE001 — event bus boundary
-            logger.warning("Event emit failed | topic=%s error=%s", topic, exc, exc_info=True)
+            logger.warning(
+                "Event emit failed | topic=%s error=%s", topic, exc, exc_info=True
+            )
 
 
 # ── Persistent Node Signer ─────────────────────────────────────────────

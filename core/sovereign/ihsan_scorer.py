@@ -44,7 +44,10 @@ SNR_WEIGHTS: Dict[str, float] = {
 
 # Harmful content patterns (P5-Ethicist assist)
 _HARM_PATTERNS = [
-    re.compile(r"\b(kill|harm|destroy|attack|exploit)\s+(the\s+)?(user|person|people|system)", re.I),
+    re.compile(
+        r"\b(kill|harm|destroy|attack|exploit)\s+(the\s+)?(user|person|people|system)",
+        re.I,
+    ),
     re.compile(r"\b(bypass|disable|ignore)\s+(security|safety|gate|auth)", re.I),
     re.compile(r"\b(steal|hack|crack|brute.?force)\b", re.I),
 ]
@@ -186,6 +189,7 @@ class SNRScore:
 # SCORING ENGINE
 # ═══════════════════════════════════════════════════════════════════
 
+
 def _weighted_geometric_mean(
     scores: Dict[str, float],
     weights: Dict[str, float],
@@ -218,12 +222,12 @@ def _tokenize(text: str) -> List[str]:
 
 def _count_sentences(text: str) -> int:
     """Approximate sentence count."""
-    return max(len(re.split(r'[.!?]+', text.strip())) - 1, 1)
+    return max(len(re.split(r"[.!?]+", text.strip())) - 1, 1)
 
 
 def _ngrams(words: List[str], n: int) -> List[Tuple[str, ...]]:
     """Generate n-grams from word list."""
-    return [tuple(words[i:i + n]) for i in range(len(words) - n + 1)]
+    return [tuple(words[i : i + n]) for i in range(len(words) - n + 1)]
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -256,7 +260,8 @@ def score_moral_clarity(output: str) -> float:
     deception = re.findall(
         r"\b(act now|limited time|don.t tell anyone|secret|"
         r"no one will know|trust me)\b",
-        output, re.I,
+        output,
+        re.I,
     )
     score -= 0.15 * len(deception)
 
@@ -352,9 +357,9 @@ def score_verifiability(output: str, input_text: str = "") -> float:
     has_code = 1.0 if "```" in output or "    " in output else 0.0
 
     # Claims vs evidence ratio
-    claim_markers = len(re.findall(
-        r"\b(is|are|was|were|will|should|must)\b", output, re.I
-    ))
+    claim_markers = len(
+        re.findall(r"\b(is|are|was|were|will|should|must)\b", output, re.I)
+    )
     evidence_ratio = min(evidence_count / max(claim_markers / 3, 1), 1.0)
 
     base = evidence_density * 0.45 + evidence_ratio * 0.35 + has_code * 0.20
@@ -384,12 +389,8 @@ def score_contextual_relevance(output: str, input_text: str) -> float:
     coverage = len(overlap) / max(len(input_words), 1)
 
     # Bigram overlap for phrase-level relevance
-    input_bigrams = set(_ngrams(
-        [w.lower() for w in _tokenize(input_text)], 2
-    ))
-    output_bigrams = set(_ngrams(
-        [w.lower() for w in _tokenize(output)], 2
-    ))
+    input_bigrams = set(_ngrams([w.lower() for w in _tokenize(input_text)], 2))
+    output_bigrams = set(_ngrams([w.lower() for w in _tokenize(output)], 2))
     bigram_overlap = len(input_bigrams & output_bigrams) / max(len(input_bigrams), 1)
 
     base = coverage * 0.6 + bigram_overlap * 0.2 + 0.2  # 0.2 baseline
@@ -417,15 +418,20 @@ def score_intent_alignment(output: str, input_text: str) -> float:
     is_how = re.search(r"\bhow\b", input_lower) is not None
     is_what = re.search(r"\bwhat\b", input_lower) is not None
     is_why = re.search(r"\bwhy\b", input_lower) is not None
-    is_action = re.search(
-        r"\b(implement|create|build|fix|add|remove|update|deploy|test|run)\b",
-        input_lower,
-    ) is not None
+    is_action = (
+        re.search(
+            r"\b(implement|create|build|fix|add|remove|update|deploy|test|run)\b",
+            input_lower,
+        )
+        is not None
+    )
 
     # Check if response type matches
     has_steps = bool(_ACTION_MARKERS.findall(output))
     has_explanation = len(output_lower) > 100 and _count_sentences(output) > 2
-    has_code = "```" in output or re.search(r"def |class |fn |let |const ", output) is not None
+    has_code = (
+        "```" in output or re.search(r"def |class |fn |let |const ", output) is not None
+    )
 
     if is_action and (has_steps or has_code):
         score += 0.3
@@ -465,19 +471,25 @@ def score_resilience(output: str) -> float:
     unique_ratio = len(set(w.lower() for w in words)) / word_count
 
     # Error handling awareness
-    error_awareness = len(re.findall(
-        r"\b(error|exception|fallback|degrad|recover|retry|timeout|"
-        r"edge case|corner case|failure|handle|catch|safeguard)\b",
-        output, re.I,
-    ))
+    error_awareness = len(
+        re.findall(
+            r"\b(error|exception|fallback|degrad|recover|retry|timeout|"
+            r"edge case|corner case|failure|handle|catch|safeguard)\b",
+            output,
+            re.I,
+        )
+    )
     error_score = min(error_awareness / 3, 1.0)
 
     # Not just a single approach — considers alternatives
-    alternative_markers = len(re.findall(
-        r"\b(alternatively|another approach|option|trade.?off|"
-        r"if .+ fails|backup|plan B)\b",
-        output, re.I,
-    ))
+    alternative_markers = len(
+        re.findall(
+            r"\b(alternatively|another approach|option|trade.?off|"
+            r"if .+ fails|backup|plan B)\b",
+            output,
+            re.I,
+        )
+    )
     alternative_score = min(alternative_markers / 2, 1.0)
 
     base = unique_ratio * 0.5 + error_score * 0.3 + alternative_score * 0.2
@@ -501,9 +513,27 @@ def score_efficiency(output: str) -> float:
 
     # Filler detection
     filler_words = {
-        "very", "really", "just", "actually", "basically", "literally",
-        "simply", "obviously", "clearly", "of", "the", "a", "an",
-        "that", "this", "it", "is", "are", "was", "were", "be",
+        "very",
+        "really",
+        "just",
+        "actually",
+        "basically",
+        "literally",
+        "simply",
+        "obviously",
+        "clearly",
+        "of",
+        "the",
+        "a",
+        "an",
+        "that",
+        "this",
+        "it",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
     }
     content_words = [w for w in words if w.lower() not in filler_words and len(w) > 2]
     content_ratio = len(content_words) / max(word_count, 1)
@@ -530,6 +560,7 @@ def score_efficiency(output: str) -> float:
 # SNR CONTENT SCORING (§8)
 # ═══════════════════════════════════════════════════════════════════
 
+
 def score_signal_density(output: str) -> float:
     """SNR §8: actionable_insights / total_tokens (weight: 0.35)."""
     if not output.strip():
@@ -541,11 +572,14 @@ def score_signal_density(output: str) -> float:
         return 0.0
 
     # Actionable content: commands, decisions, recommendations
-    actionable = len(re.findall(
-        r"\b(should|must|recommend|implement|create|fix|add|run|"
-        r"deploy|configure|verify|test|ensure|use)\b",
-        output, re.I,
-    ))
+    actionable = len(
+        re.findall(
+            r"\b(should|must|recommend|implement|create|fix|add|run|"
+            r"deploy|configure|verify|test|ensure|use)\b",
+            output,
+            re.I,
+        )
+    )
 
     return round(min(actionable / max(word_count / 10, 1), 1.0), 4)
 

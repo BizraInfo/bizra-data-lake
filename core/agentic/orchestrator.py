@@ -359,7 +359,9 @@ class AgentOrchestrator:
                     logger.error(f"Failed to heal agent {agent_id}: {e}")
                     await self.unregister_agent(agent_id)
                 except Exception as e:
-                    logger.error(f"Unexpected failure healing agent {agent_id}: {type(e).__name__}: {e}")
+                    logger.error(
+                        f"Unexpected failure healing agent {agent_id}: {type(e).__name__}: {e}"
+                    )
                     await self.unregister_agent(agent_id)
 
             return healed
