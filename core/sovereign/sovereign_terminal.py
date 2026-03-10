@@ -43,15 +43,15 @@ from typing import Dict, List, Optional
 # ═══════════════════════════════════════════════════════════════════
 
 try:
-    from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
-    from rich.text import Text
-    from rich.progress import Progress, SpinnerColumn, TextColumn  # noqa: F401
-    from rich.live import Live  # noqa: F401
-    from rich.layout import Layout  # noqa: F401
-    from rich.markdown import Markdown  # noqa: F401
     from rich import box
+    from rich.console import Console
+    from rich.layout import Layout  # noqa: F401
+    from rich.live import Live  # noqa: F401
+    from rich.markdown import Markdown  # noqa: F401
+    from rich.panel import Panel
+    from rich.progress import Progress, SpinnerColumn, TextColumn  # noqa: F401
+    from rich.table import Table
+    from rich.text import Text
 
     HAS_RICH = True
 except ImportError:
