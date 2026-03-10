@@ -642,6 +642,7 @@ try:
         model: str = ""
         max_tokens: int = 1024
         temperature: float = 0.3
+        route: str = "direct"  # "direct" = single model, "moe" = 5-expert routing
 
 except ImportError:
     pass  # pydantic unavailable — _cmd_serve will catch it
@@ -861,11 +862,23 @@ def create_app(
     async def query_llm(
         req: _QueryReq, x_api_key: str | None = Header(default=None)
     ) -> dict[str, Any]:
-        """Direct LLM query via Ollama - routes to model by agent role or explicit name."""
+        """LLM query — direct (single model) or MOE (5-expert routing).
+
+        Set route="moe" to activate MOE Engine routing:
+        - Input is scored against 5 experts (R/K/S/G/V)
+        - Top-K experts dispatch to their specialized Ollama models
+        - Results are synthesized with weighted combination
+        - ihsan_tensor tracks expert contributions for learning
+        """
         _require_api_key(x_api_key)
         if not req.prompt.strip():
             raise HTTPException(status_code=400, detail="prompt is required")
 
+        # ── MOE Route: 5-expert multi-model routing ────────────────
+        if req.route == "moe":
+            return await _query_moe(req)
+
+        # ── Direct Route: single model Ollama call ─────────────────
         model = req.model or NODE0_MODEL_FLEET["default"]
         if model in NODE0_MODEL_FLEET:
             model = NODE0_MODEL_FLEET[model]
@@ -896,11 +909,49 @@ def create_app(
                 "response": data.get("response", ""),
                 "eval_count": data.get("eval_count", 0),
                 "latency_ms": round(latency_ms, 1),
+                "route": "direct",
             }
         except ImportError:
             raise HTTPException(status_code=503, detail="httpx not installed")
         except Exception as exc:  # noqa: BLE001 - query boundary
             raise HTTPException(status_code=502, detail=f"LLM query failed: {exc}")
+
+    async def _query_moe(req: _QueryReq) -> dict[str, Any]:
+        """MOE-routed query — dispatches to specialized expert models."""
+        try:
+            from core.sovereign.moe_bridge import MOEBridge
+
+            ollama_url = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+            bridge = MOEBridge.create(ollama_url=ollama_url)
+
+            t0 = time.time()
+            response = await bridge.infer(
+                req.prompt,
+                context={"temperature": req.temperature, "max_tokens": req.max_tokens},
+            )
+            latency_ms = (time.time() - t0) * 1000
+
+            return {
+                "response": response,
+                "route": "moe",
+                "experts": bridge.last_ihsan_tensor,
+                "stats": {
+                    "expert_calls": bridge.stats.expert_calls,
+                    "expert_failures": bridge.stats.expert_failures,
+                    "models_used": bridge.stats.model_usage,
+                },
+                "latency_ms": round(latency_ms, 1),
+            }
+        except ImportError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"MOE Bridge not available: {type(e).__name__}",
+            )
+        except Exception as exc:  # noqa: BLE001 - query boundary
+            raise HTTPException(
+                status_code=502,
+                detail=f"MOE query failed: {type(exc).__name__}",
+            )
 
     @app.post("/task")
     async def task(
