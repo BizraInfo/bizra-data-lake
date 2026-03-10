@@ -218,6 +218,32 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 - Optional Rust toolchain for Omega services (`rustup`, stable)
 - Optional local inference backend (LM Studio, Ollama, or compatible endpoint)
 
+## 1.1 Node0 MVSA Canonical Flow
+
+For Node0 MVSA, the only canonical operator surface is:
+
+```bash
+python scripts/node0_standalone.py activate --architect "MoMo"
+python scripts/node0_standalone.py prove-mvsa
+python scripts/node0_standalone.py task "write file missions/mvsa.txt :: node0 mvsa proof"
+python scripts/node0_standalone.py health
+```
+
+Authority is fail-closed and comes only from:
+
+- `sovereign_state/node0_genesis.json`
+- `sovereign_state/genesis_hash.txt`
+
+The Rust MVSA proof artifact is:
+
+- `sovereign_state/node0_mvsa_proof.json`
+
+The lifecycle single source of truth is:
+
+- `sovereign_state/node0_lifecycle.json`
+
+`health` is read-only. It reports persisted MVSA state and restart recovery; it does not mutate lifecycle files.
+
 ## 2. Start Sequence
 
 ### 2.1 Python Sovereign Runtime
@@ -376,7 +402,13 @@ python scripts/sape_masterpiece_gate.py --strict --json
    - `sovereign_state/genesis_hash.txt`
 3. Validate chain:
    - `python -c "from pathlib import Path; from core.sovereign.origin_guard import validate_genesis_chain; print(validate_genesis_chain(Path('sovereign_state')))"`.
-4. If validation fails, treat as tamper/corruption incident and stop startup until resolved.
+4. Re-run the canonical proof path:
+   - `python scripts/node0_standalone.py prove-mvsa`
+5. Inspect persisted artifacts:
+   - `sovereign_state/node0_authority_migration.json`
+   - `sovereign_state/node0_mvsa_proof.json`
+   - `sovereign_state/node0_lifecycle.json`
+6. If validation still fails, treat as tamper/corruption incident and stop startup until resolved.
 
 ## 6. Safe Rollback Strategy
 
