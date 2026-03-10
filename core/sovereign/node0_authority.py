@@ -141,7 +141,9 @@ def _migrate_legacy_to_canonical(
     atomic_write_text(state_dir / "pat_roster.txt", "\n".join(pat_lines) + "\n")
     atomic_write_text(state_dir / "sat_roster.txt", "\n".join(sat_lines) + "\n")
 
-    logger.info("Migrated legacy genesis from %s → canonical %s", source_path, canonical_genesis)
+    logger.info(
+        "Migrated legacy genesis from %s → canonical %s", source_path, canonical_genesis
+    )
 
 
 def resolve_authority(
@@ -174,9 +176,13 @@ def resolve_authority(
                         genesis_hash_hex=gh,
                     )
                 # Hash mismatch — fall through to legacy search
-                logger.warning("Canonical genesis hash mismatch — searching legacy sources")
+                logger.warning(
+                    "Canonical genesis hash mismatch — searching legacy sources"
+                )
         except ValueError as exc:
-            logger.warning("Canonical genesis corrupted (%s) — searching legacy sources", exc)
+            logger.warning(
+                "Canonical genesis corrupted (%s) — searching legacy sources", exc
+            )
 
     # ── Step 2: Search legacy sources ─────────────────────────────
     legacy_candidates: list[tuple[Path, str]] = [
@@ -204,7 +210,9 @@ def resolve_authority(
         if ref_data is not None:
             if _is_ceremony_compatible(ref_data):
                 gh = _genesis_hash_hex(ref_data)
-                migratable.append((reference_path, SOURCE_LEGACY_REFERENCE, ref_data, gh))
+                migratable.append(
+                    (reference_path, SOURCE_LEGACY_REFERENCE, ref_data, gh)
+                )
             else:
                 has_reference = True
 
@@ -219,13 +227,19 @@ def resolve_authority(
         )
 
     # Filter out reference-only sources for migration candidates
-    ceremony_sources = [(p, k, d, h) for p, k, d, h in migratable if k != SOURCE_LEGACY_REFERENCE]
+    ceremony_sources = [
+        (p, k, d, h) for p, k, d, h in migratable if k != SOURCE_LEGACY_REFERENCE
+    ]
 
     if not ceremony_sources:
         # Only reference-only sources exist
         _write_migration_receipt(
-            state_dir, str(reference_path), SOURCE_LEGACY_REFERENCE,
-            RESULT_BLOCKED, REASON_LEGACY_INSUFFICIENT, "",
+            state_dir,
+            str(reference_path),
+            SOURCE_LEGACY_REFERENCE,
+            RESULT_BLOCKED,
+            REASON_LEGACY_INSUFFICIENT,
+            "",
         )
         return AuthorityResult(
             genesis=None,
@@ -239,8 +253,11 @@ def resolve_authority(
     unique_hashes = {h for _, _, _, h in ceremony_sources}
     if len(unique_hashes) > 1:
         _write_migration_receipt(
-            state_dir, str(ceremony_sources[0][0]), SOURCE_LEGACY_CEREMONY,
-            RESULT_BLOCKED, REASON_LEGACY_CONFLICT,
+            state_dir,
+            str(ceremony_sources[0][0]),
+            SOURCE_LEGACY_CEREMONY,
+            RESULT_BLOCKED,
+            REASON_LEGACY_CONFLICT,
             "|".join(sorted(unique_hashes)),
         )
         return AuthorityResult(
@@ -253,8 +270,12 @@ def resolve_authority(
     source_path, source_kind, source_data, source_hash = ceremony_sources[0]
     _migrate_legacy_to_canonical(source_path, state_dir, source_data)
     _write_migration_receipt(
-        state_dir, str(source_path), source_kind,
-        "migrated", REASON_LEGACY_MIGRATED, source_hash,
+        state_dir,
+        str(source_path),
+        source_kind,
+        "migrated",
+        REASON_LEGACY_MIGRATED,
+        source_hash,
     )
 
     # Re-load from canonical location to get proper GenesisState

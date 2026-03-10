@@ -40,14 +40,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-
 # ─────────────────────────────────────────────────────────────
 # Data Model
 # ─────────────────────────────────────────────────────────────
 
+
 @dataclass
 class QualitySnapshot:
     """A point-in-time quality measurement."""
+
     timestamp: str = ""
     commit_sha: str = ""
 
@@ -109,6 +110,7 @@ class QualitySnapshot:
 @dataclass
 class TrendAnalysis:
     """Result of analyzing quality trend over time."""
+
     window_size: int = 0
     direction: str = "stable"  # improving | degrading | stable
     snr_trend: float = 0.0  # positive = improving
@@ -151,10 +153,13 @@ class QualityTrendStore:
         if not lines:
             return None
         data = json.loads(lines[-1])
-        return QualitySnapshot(**{
-            k: v for k, v in data.items()
-            if k in QualitySnapshot.__dataclass_fields__
-        })
+        return QualitySnapshot(
+            **{
+                k: v
+                for k, v in data.items()
+                if k in QualitySnapshot.__dataclass_fields__
+            }
+        )
 
     def read_last_n(self, n: int) -> List[QualitySnapshot]:
         """Read the last N snapshots."""
@@ -165,10 +170,15 @@ class QualityTrendStore:
         snapshots = []
         for line in lines[-n:]:
             data = json.loads(line)
-            snapshots.append(QualitySnapshot(**{
-                k: v for k, v in data.items()
-                if k in QualitySnapshot.__dataclass_fields__
-            }))
+            snapshots.append(
+                QualitySnapshot(
+                    **{
+                        k: v
+                        for k, v in data.items()
+                        if k in QualitySnapshot.__dataclass_fields__
+                    }
+                )
+            )
         return snapshots
 
     def read_all(self) -> List[QualitySnapshot]:
@@ -181,10 +191,15 @@ class QualityTrendStore:
         for line in lines:
             if line.strip():
                 data = json.loads(line)
-                snapshots.append(QualitySnapshot(**{
-                    k: v for k, v in data.items()
-                    if k in QualitySnapshot.__dataclass_fields__
-                }))
+                snapshots.append(
+                    QualitySnapshot(
+                        **{
+                            k: v
+                            for k, v in data.items()
+                            if k in QualitySnapshot.__dataclass_fields__
+                        }
+                    )
+                )
         return snapshots
 
     def count(self) -> int:
@@ -198,6 +213,7 @@ class QualityTrendStore:
 # ─────────────────────────────────────────────────────────────
 # Trend Analysis Engine
 # ─────────────────────────────────────────────────────────────
+
 
 def compute_linear_trend(values: List[float]) -> float:
     """Compute the slope of a simple linear regression through values.
@@ -318,6 +334,7 @@ def analyze_trend(snapshots: List[QualitySnapshot]) -> TrendAnalysis:
 # CLI
 # ─────────────────────────────────────────────────────────────
 
+
 def _cli_record(args) -> int:
     """Record a new quality snapshot."""
     store = QualityTrendStore(args.store)
@@ -335,7 +352,9 @@ def _cli_record(args) -> int:
         ci_run_id=args.ci_run_id or "",
     )
     store.append(snapshot)
-    print(f"Snapshot recorded: {snapshot.snapshot_hash} (chain: {snapshot.parent_hash[:8]}...)")
+    print(
+        f"Snapshot recorded: {snapshot.snapshot_hash} (chain: {snapshot.parent_hash[:8]}...)"
+    )
     return 0
 
 
@@ -385,7 +404,9 @@ def main() -> int:
     import argparse
 
     parser = argparse.ArgumentParser(description="BIZRA Quality Trend Tracker")
-    parser.add_argument("--store", type=Path, default=DEFAULT_TREND_PATH, help="Trend store path")
+    parser.add_argument(
+        "--store", type=Path, default=DEFAULT_TREND_PATH, help="Trend store path"
+    )
     subparsers = parser.add_subparsers(dest="command")
 
     # Record

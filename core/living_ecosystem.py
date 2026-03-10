@@ -232,14 +232,11 @@ class LivingEcosystem:
                     self._learning_loop = LearningLoopOrchestrator()
                     on_integration_cb = self._learning_loop.on_candidate
                     logger.info(
-                        "LearningLoopOrchestrator wired — "
-                        "closed_loop_enabled=%s",
+                        "LearningLoopOrchestrator wired — " "closed_loop_enabled=%s",
                         self._learning_loop.enabled,
                     )
                 except ImportError as e:
-                    logger.warning(
-                        "LearningLoopOrchestrator not available: %s", e
-                    )
+                    logger.warning("LearningLoopOrchestrator not available: %s", e)
 
                 self._autopoietic_loop = AutopoieticLoop(
                     config=autopoiesis_config,

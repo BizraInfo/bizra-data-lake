@@ -32,22 +32,23 @@ logger = logging.getLogger("bizra.token.bloom")
 
 from core.integration.constants import ADL_GINI_THRESHOLD
 
-TOKEN_ZAKAT_RATE = 0.025          # 2.5% annual Zakat
-COMMUNITY_POOL_SPLIT = 0.50       # 50% — البذرة page 19, HARDCODED, NOT A PARAMETER
-BLOOM_DECAY_RATE = 0.02           # 2% monthly decay (prevents plutocracy)
-BLOOM_MINT_FLOOR = 0.90           # Minimum Ihsān for BLOOM eligibility
-SEED_MINT_FLOOR = 0.95            # Minimum Ihsān for SEED minting
+TOKEN_ZAKAT_RATE = 0.025  # 2.5% annual Zakat
+COMMUNITY_POOL_SPLIT = 0.50  # 50% — البذرة page 19, HARDCODED, NOT A PARAMETER
+BLOOM_DECAY_RATE = 0.02  # 2% monthly decay (prevents plutocracy)
+BLOOM_MINT_FLOOR = 0.90  # Minimum Ihsān for BLOOM eligibility
+SEED_MINT_FLOOR = 0.95  # Minimum Ihsān for SEED minting
 
 
 class TokenType(str, Enum):
-    SEED = "SEED"       # Stable utility token (transferable)
-    BLOOM = "BLOOM"     # Soulbound governance token (non-transferable, decays)
-    BRANCH = "BRANCH"   # Reputation token (earned through attestation)
+    SEED = "SEED"  # Stable utility token (transferable)
+    BLOOM = "BLOOM"  # Soulbound governance token (non-transferable, decays)
+    BRANCH = "BRANCH"  # Reputation token (earned through attestation)
 
 
 # ═══════════════════════════════════════════════════════════════════
 # BLOOM TOKEN
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class BloomBalance:
@@ -55,10 +56,13 @@ class BloomBalance:
     BLOOM is soulbound — it belongs to a node and cannot be transferred.
     It decays monthly to prevent governance concentration.
     """
+
     node_id: str
     balance: float = 0.0
     lifetime_earned: float = 0.0
-    last_decay: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_decay: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     governance_weight: float = 0.0  # Derived from balance
 
     def apply_decay(self) -> float:
@@ -88,6 +92,7 @@ class BloomBalance:
 # COMMUNITY POOL (البذرة page 19)
 # ═══════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class CommunityPool:
     """
@@ -105,6 +110,7 @@ class CommunityPool:
     "وإيمان من البذرة بالفكرة كل أرباح المشروع من جميع
      الخدمات والأدوات ستحول نصف الأرباح إلى الحوض"
     """
+
     total_received: float = 0.0
     total_distributed: float = 0.0
     current_balance: float = 0.0
@@ -123,21 +129,27 @@ class CommunityPool:
             f"(balance: {self.current_balance:.4f})"
         )
 
-    def distribute(self, amount: float, category: str, recipient: str, evidence_hash: str) -> bool:
+    def distribute(
+        self, amount: float, category: str, recipient: str, evidence_hash: str
+    ) -> bool:
         """Distribute from pool to charitable cause."""
         if amount > self.current_balance:
-            logger.warning(f"Pool distribution failed: {amount} > {self.current_balance}")
+            logger.warning(
+                f"Pool distribution failed: {amount} > {self.current_balance}"
+            )
             return False
 
         self.current_balance -= amount
         self.total_distributed += amount
-        self.distributions.append({
-            "amount": amount,
-            "category": category,
-            "recipient": recipient,
-            "evidence_hash": evidence_hash,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self.distributions.append(
+            {
+                "amount": amount,
+                "category": category,
+                "recipient": recipient,
+                "evidence_hash": evidence_hash,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         logger.info(
             f"🕌 Community distribution: {amount:.4f} SEED → {category}:{recipient}"
@@ -149,9 +161,11 @@ class CommunityPool:
 # TOKEN MINTER (with 50% community pool split)
 # ═══════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class WalletState:
     """Node wallet holding all three token types."""
+
     node_id: str
     seed_balance: float = 0.0
     bloom: BloomBalance = None
@@ -193,8 +207,9 @@ class TokenMinter:
         - step_bonus = log2(1 + steps) (diminishing returns on complexity)
         """
         import math
+
         base = 1.0
-        ihsan_mult = ihsan ** 2  # 0.95^2 = 0.9025, 0.99^2 = 0.9801
+        ihsan_mult = ihsan**2  # 0.95^2 = 0.9025, 0.99^2 = 0.9801
         step_bonus = math.log2(1 + steps)
         return base * ihsan_mult * step_bonus
 
@@ -307,6 +322,7 @@ class TokenMinter:
 # GINI COEFFICIENT CALCULATOR (ʿAdl Invariant)
 # ═══════════════════════════════════════════════════════════════════
 
+
 def compute_gini(balances: List[float]) -> float:
     """
     Compute Gini coefficient for wealth distribution.
@@ -366,6 +382,7 @@ def check_gini_invariant(wallets: List[WalletState]) -> Dict:
 # SMOKE TESTS
 # ═══════════════════════════════════════════════════════════════════
 
+
 def _run_smoke_tests():
     pool = CommunityPool()
     minter = TokenMinter(community_pool=pool)
@@ -374,8 +391,12 @@ def _run_smoke_tests():
     # Test 1: SEED minting with 50% split
     result = minter.mint_seed(wallet, amount=10.0, poi_evidence="hash1", ihsan=0.96)
     assert result["minted"] is True
-    assert result["node_share"] == 5.0, f"Node share should be 5.0, got {result['node_share']}"
-    assert result["pool_share"] == 5.0, f"Pool share should be 5.0, got {result['pool_share']}"
+    assert (
+        result["node_share"] == 5.0
+    ), f"Node share should be 5.0, got {result['node_share']}"
+    assert (
+        result["pool_share"] == 5.0
+    ), f"Pool share should be 5.0, got {result['pool_share']}"
     assert wallet.seed_balance == 5.0
     assert pool.current_balance == 5.0
     print("✓ Test 1: SEED minting with 50% community pool split")
@@ -387,7 +408,9 @@ def _run_smoke_tests():
     print("✓ Test 2: SEED rejected below minting floor")
 
     # Test 3: BLOOM is soulbound (no transfer method exists)
-    minter.mint_bloom(wallet, amount=3.0, contribution_type="governance_vote", evidence_hash="h3")
+    minter.mint_bloom(
+        wallet, amount=3.0, contribution_type="governance_vote", evidence_hash="h3"
+    )
     assert wallet.bloom.balance == 3.0
     assert wallet.bloom.governance_weight == 3.0
     # No transfer method exists — soulbound by design

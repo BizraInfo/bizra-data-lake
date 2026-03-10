@@ -176,18 +176,23 @@ class LearningLoopOrchestrator:
         callback to ``AutopoieticLoop.__init__()``.
         """
         self._metrics.candidates_received += 1
-        self._emit("CANDIDATE_RECEIVED", "autopoiesis", {
-            "genome_id": getattr(candidate.genome, "genome_id", "unknown"),
-            "fitness": candidate.fitness,
-            "ihsan_score": candidate.ihsan_score,
-            "recommendation": candidate.recommendation,
-        })
+        self._emit(
+            "CANDIDATE_RECEIVED",
+            "autopoiesis",
+            {
+                "genome_id": getattr(candidate.genome, "genome_id", "unknown"),
+                "fitness": candidate.fitness,
+                "ihsan_score": candidate.ihsan_score,
+                "recommendation": candidate.recommendation,
+            },
+        )
 
         # Gate: fitness and ihsan
         if candidate.fitness < 0.90:
             self._metrics.candidates_filtered += 1
             logger.debug(
-                "Candidate filtered: fitness %.3f < 0.90", candidate.fitness,
+                "Candidate filtered: fitness %.3f < 0.90",
+                candidate.fitness,
             )
             return False
 
@@ -195,7 +200,8 @@ class LearningLoopOrchestrator:
             self._metrics.candidates_filtered += 1
             logger.debug(
                 "Candidate filtered: ihsan %.3f < %.3f",
-                candidate.ihsan_score, UNIFIED_IHSAN_THRESHOLD,
+                candidate.ihsan_score,
+                UNIFIED_IHSAN_THRESHOLD,
             )
             return False
 
@@ -207,28 +213,36 @@ class LearningLoopOrchestrator:
             ihsan_score=candidate.ihsan_score,
             snr_score=getattr(genome, "snr_score", UNIFIED_SNR_THRESHOLD),
             task_description=getattr(
-                genome, "task_description",
+                genome,
+                "task_description",
                 f"Evolved genome ({candidate.recommendation})",
             ),
             task_output=getattr(
-                genome, "task_output",
+                genome,
+                "task_output",
                 f"Genome output (fitness={candidate.fitness:.3f})",
             ),
             reasoning_steps=getattr(genome, "reasoning_steps", []),
             quality_feedback=candidate.recommendation,
             improvement_suggestions=getattr(
-                genome, "improvement_suggestions", [],
+                genome,
+                "improvement_suggestions",
+                [],
             ),
         )
 
         accepted = self._evo_bridge.collect(trace)
         if accepted:
             self._metrics.candidates_accepted += 1
-            self._emit("CANDIDATE_ACCEPTED", "evolution_bridge", {
-                "genome_id": trace.genome_id,
-                "pending_count": self._evo_bridge.pending_count,
-                "ready_for_training": self._evo_bridge.ready_for_training,
-            })
+            self._emit(
+                "CANDIDATE_ACCEPTED",
+                "evolution_bridge",
+                {
+                    "genome_id": trace.genome_id,
+                    "pending_count": self._evo_bridge.pending_count,
+                    "ready_for_training": self._evo_bridge.ready_for_training,
+                },
+            )
         else:
             self._metrics.candidates_filtered += 1
 
@@ -255,18 +269,26 @@ class LearningLoopOrchestrator:
         if training_data is None:
             return None
 
-        self._emit("TRAINING_DATA_READY", "evolution_bridge", {
-            "batch_size": len(training_data["questions"]),
-        })
+        self._emit(
+            "TRAINING_DATA_READY",
+            "evolution_bridge",
+            {
+                "batch_size": len(training_data["questions"]),
+            },
+        )
 
         if not self._enabled:
             logger.info(
                 "Learning loop disabled — training data flushed but not executed "
                 "(set BIZRA_CLOSED_LOOP_ENABLED=1 to enable)",
             )
-            self._emit("TRAINING_SKIPPED_DISABLED", "orchestrator", {
-                "batch_size": len(training_data["questions"]),
-            })
+            self._emit(
+                "TRAINING_SKIPPED_DISABLED",
+                "orchestrator",
+                {
+                    "batch_size": len(training_data["questions"]),
+                },
+            )
             return None
 
         if self._trainer is None:
@@ -285,9 +307,13 @@ class LearningLoopOrchestrator:
             quality_scores=training_data["quality_scores"],
         )
 
-        self._emit("TRAINING_STARTED", "sdpo_trainer", {
-            "batch_size": len(batch),
-        })
+        self._emit(
+            "TRAINING_STARTED",
+            "sdpo_trainer",
+            {
+                "batch_size": len(batch),
+            },
+        )
 
         t0 = time.monotonic()
         result = await self._trainer.train([batch])
@@ -297,24 +323,30 @@ class LearningLoopOrchestrator:
         self._metrics.training_runs += 1
         self._metrics.training_batches_total += 1
         self._training_ihsan_history.append(result.final_ihsan_score)
-        self._metrics.avg_training_ihsan = (
-            sum(self._training_ihsan_history) / len(self._training_ihsan_history)
+        self._metrics.avg_training_ihsan = sum(self._training_ihsan_history) / len(
+            self._training_ihsan_history
         )
 
-        self._emit("TRAINING_COMPLETED", "sdpo_trainer", {
-            "final_loss": result.final_loss,
-            "final_ihsan": result.final_ihsan_score,
-            "epochs": result.total_epochs_completed,
-            "steps": result.total_steps,
-            "elapsed_seconds": round(elapsed, 2),
-        })
+        self._emit(
+            "TRAINING_COMPLETED",
+            "sdpo_trainer",
+            {
+                "final_loss": result.final_loss,
+                "final_ihsan": result.final_ihsan_score,
+                "epochs": result.total_epochs_completed,
+                "steps": result.total_steps,
+                "elapsed_seconds": round(elapsed, 2),
+            },
+        )
 
         # Feed training results → reflex bridge observations
         self._observe_training_results(training_data, result)
 
         logger.info(
             "Training cycle completed: loss=%.4f, ihsan=%.3f, elapsed=%.1fs",
-            result.final_loss, result.final_ihsan_score, elapsed,
+            result.final_loss,
+            result.final_ihsan_score,
+            elapsed,
         )
 
         return result
@@ -357,9 +389,13 @@ class LearningLoopOrchestrator:
         if not candidates:
             return []
 
-        self._emit("COMPILATION_CANDIDATES_FOUND", "reflex_bridge", {
-            "candidate_count": len(candidates),
-        })
+        self._emit(
+            "COMPILATION_CANDIDATES_FOUND",
+            "reflex_bridge",
+            {
+                "candidate_count": len(candidates),
+            },
+        )
 
         if not self._enabled:
             logger.info(
@@ -377,7 +413,8 @@ class LearningLoopOrchestrator:
         if compiled:
             logger.info(
                 "Compilation cycle: %d/%d candidates compiled to reflexes",
-                len(compiled), len(candidates),
+                len(compiled),
+                len(candidates),
             )
 
         return compiled
@@ -407,11 +444,15 @@ class LearningLoopOrchestrator:
                 candidate.pattern_id,
                 reason=f"Rejected by compile_reflex (confidence={confidence})",
             )
-            self._emit("REFLEX_DENIED", "compiler", {
-                "pattern_id": candidate.pattern_id[:16],
-                "avg_ihsan": candidate.avg_ihsan,
-                "confidence_fp": confidence,
-            })
+            self._emit(
+                "REFLEX_DENIED",
+                "compiler",
+                {
+                    "pattern_id": candidate.pattern_id[:16],
+                    "avg_ihsan": candidate.avg_ihsan,
+                    "confidence_fp": confidence,
+                },
+            )
             return None
 
         # Store in reflex cache
@@ -419,14 +460,18 @@ class LearningLoopOrchestrator:
         self._reflex_bridge.mark_compiled(candidate.pattern_id)
         self._metrics.reflexes_compiled += 1
 
-        self._emit("REFLEX_COMPILED", "compiler", {
-            "pattern_id": candidate.pattern_id[:16],
-            "pattern_hash": reflex.pattern_hash.hex()[:16],
-            "avg_ihsan": candidate.avg_ihsan,
-            "reproducibility": candidate.reproducibility,
-            "observations": candidate.observation_count,
-            "cache_size": len(self._reflex_cache),
-        })
+        self._emit(
+            "REFLEX_COMPILED",
+            "compiler",
+            {
+                "pattern_id": candidate.pattern_id[:16],
+                "pattern_hash": reflex.pattern_hash.hex()[:16],
+                "avg_ihsan": candidate.avg_ihsan,
+                "reproducibility": candidate.reproducibility,
+                "observations": candidate.observation_count,
+                "cache_size": len(self._reflex_cache),
+            },
+        )
 
         return reflex
 

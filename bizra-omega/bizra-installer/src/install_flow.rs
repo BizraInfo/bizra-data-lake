@@ -12,7 +12,7 @@ use crate::device_profile::{detect_device, DeviceProfile, ModelTier};
 use crate::health_check::{run_health_check, HealthCheckReport};
 use crate::i18n::{resolve_locale, I18nManager, LocaleInfo};
 use crate::install_receipt::{
-    DeviceSummary, InstallAction, InstallReceipt, InstalledComponent, ModelSelection,
+    DeviceSummary, InstallAction, InstallReceipt, ModelSelection,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

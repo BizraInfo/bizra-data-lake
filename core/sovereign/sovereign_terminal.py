@@ -52,6 +52,7 @@ try:
     from rich.layout import Layout  # noqa: F401
     from rich.markdown import Markdown  # noqa: F401
     from rich import box
+
     HAS_RICH = True
 except ImportError:
     HAS_RICH = False
@@ -90,6 +91,7 @@ BIZRA_BANNER = """
 # ═══════════════════════════════════════════════════════════════════
 # NODE STATE READER
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class NodeIdentity:
@@ -138,9 +140,12 @@ def read_node_health(api_base: str = "http://localhost:8000") -> Optional[NodeHe
     """Read node health from sovereign API (offline-safe)."""
     try:
         import urllib.request
+
         resp = urllib.request.urlopen(f"{api_base}/v1/health", timeout=2)
         data = json.loads(resp.read())
-        return NodeHealth(**{k: data.get(k, 0) for k in NodeHealth.__dataclass_fields__})
+        return NodeHealth(
+            **{k: data.get(k, 0) for k in NodeHealth.__dataclass_fields__}
+        )
     except Exception:
         return None
 
@@ -148,6 +153,7 @@ def read_node_health(api_base: str = "http://localhost:8000") -> Optional[NodeHe
 # ═══════════════════════════════════════════════════════════════════
 # TERMINAL RENDERER (Rich or Plain)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TerminalRenderer:
     """Renders BIZRA terminal output with Rich (or plain text fallback)."""
@@ -175,10 +181,15 @@ class TerminalRenderer:
 
     def status(self, identity: Optional[NodeIdentity], health: Optional[NodeHealth]):
         if self.json_mode:
-            print(json.dumps({
-                "identity": asdict(identity) if identity else None,
-                "health": asdict(health) if health else None,
-            }, indent=2))
+            print(
+                json.dumps(
+                    {
+                        "identity": asdict(identity) if identity else None,
+                        "health": asdict(health) if health else None,
+                    },
+                    indent=2,
+                )
+            )
             return
 
         if not self.console:
@@ -194,12 +205,19 @@ class TerminalRenderer:
             id_table.add_row("Public Key", identity.public_key)
             id_table.add_row("Stage", f"[bold]{identity.stage}[/]")
             id_table.add_row("Sovereignty", self._bar(identity.sovereignty))
-            id_table.add_row("Created", identity.created_at[:10] if identity.created_at else "—")
-            self.console.print(Panel(id_table, title="[bold green]Identity[/]", border_style="green"))
+            id_table.add_row(
+                "Created", identity.created_at[:10] if identity.created_at else "—"
+            )
+            self.console.print(
+                Panel(id_table, title="[bold green]Identity[/]", border_style="green")
+            )
         else:
             self.console.print(
-                Panel("[yellow]No node identity found. Run [bold]bizra init[/] to plant your seed.[/]",
-                      title="[yellow]Identity[/]", border_style="yellow")
+                Panel(
+                    "[yellow]No node identity found. Run [bold]bizra init[/] to plant your seed.[/]",
+                    title="[yellow]Identity[/]",
+                    border_style="yellow",
+                )
             )
 
         # Health panel
@@ -210,18 +228,35 @@ class TerminalRenderer:
             health_table.add_column(width=40)
 
             # Constitutional metrics
-            ihsan_color = "green" if h.ihsan_composite >= 0.95 else ("yellow" if h.ihsan_composite >= 0.85 else "red")
+            ihsan_color = (
+                "green"
+                if h.ihsan_composite >= 0.95
+                else ("yellow" if h.ihsan_composite >= 0.85 else "red")
+            )
             snr_color = "green" if h.snr_score >= 0.85 else "red"
             gini_color = "green" if h.gini_coefficient <= 0.35 else "red"
 
-            health_table.add_row("Ihsān", f"[{ihsan_color}]{h.ihsan_composite:.4f}[/] {self._bar(h.ihsan_composite)}")
-            health_table.add_row("SNR", f"[{snr_color}]{h.snr_score:.4f}[/] {self._bar(h.snr_score)}")
-            health_table.add_row("Gini (ʿAdl)", f"[{gini_color}]{h.gini_coefficient:.4f}[/] [dim](≤ 0.35)[/]")
+            health_table.add_row(
+                "Ihsān",
+                f"[{ihsan_color}]{h.ihsan_composite:.4f}[/] {self._bar(h.ihsan_composite)}",
+            )
+            health_table.add_row(
+                "SNR", f"[{snr_color}]{h.snr_score:.4f}[/] {self._bar(h.snr_score)}"
+            )
+            health_table.add_row(
+                "Gini (ʿAdl)",
+                f"[{gini_color}]{h.gini_coefficient:.4f}[/] [dim](≤ 0.35)[/]",
+            )
             health_table.add_row("", "")
 
             # System metrics
-            health_table.add_row("Myelination", f"{h.myelination_ratio:.1%} {self._bar(h.myelination_ratio)}")
-            health_table.add_row("Containers", f"{h.containers_healthy}/{h.containers_total} healthy")
+            health_table.add_row(
+                "Myelination",
+                f"{h.myelination_ratio:.1%} {self._bar(h.myelination_ratio)}",
+            )
+            health_table.add_row(
+                "Containers", f"{h.containers_healthy}/{h.containers_total} healthy"
+            )
             health_table.add_row("Evidence Chain", f"{h.evidence_chain_height} blocks")
             health_table.add_row("Reflexes", f"{h.reflex_count} compiled")
             health_table.add_row("", "")
@@ -233,14 +268,23 @@ class TerminalRenderer:
             uptime_h = h.uptime_seconds / 3600
             health_table.add_row("Uptime", f"{uptime_h:.1f}h")
 
-            self.console.print(Panel(health_table, title="[bold cyan]Node Health[/]", border_style="cyan"))
+            self.console.print(
+                Panel(
+                    health_table, title="[bold cyan]Node Health[/]", border_style="cyan"
+                )
+            )
         else:
             self.console.print(
-                Panel("[dim]Backend not reachable. Showing offline state.[/]",
-                      title="[dim]Health[/]", border_style="dim")
+                Panel(
+                    "[dim]Backend not reachable. Showing offline state.[/]",
+                    title="[dim]Health[/]",
+                    border_style="dim",
+                )
             )
 
-    def morning_briefing(self, identity: Optional[NodeIdentity], health: Optional[NodeHealth]):
+    def morning_briefing(
+        self, identity: Optional[NodeIdentity], health: Optional[NodeHealth]
+    ):
         """Proactive morning briefing — DEMA persona."""
         if self.json_mode:
             return
@@ -261,47 +305,66 @@ class TerminalRenderer:
 
             if health:
                 h = health
-                lines.append(f"Your node has been running for [cyan]{h.uptime_seconds/3600:.1f}h[/].")
-                lines.append(f"Ihsān: [green]{h.ihsan_composite:.4f}[/] | "
-                             f"Myelination: [cyan]{h.myelination_ratio:.1%}[/] | "
-                             f"Reflexes: [yellow]{h.reflex_count}[/]")
-                lines.append(f"SEED: [green]{h.seed_balance:.4f}[/] | "
-                             f"BLOOM: [magenta]{h.bloom_balance:.4f}[/]")
+                lines.append(
+                    f"Your node has been running for [cyan]{h.uptime_seconds/3600:.1f}h[/]."
+                )
+                lines.append(
+                    f"Ihsān: [green]{h.ihsan_composite:.4f}[/] | "
+                    f"Myelination: [cyan]{h.myelination_ratio:.1%}[/] | "
+                    f"Reflexes: [yellow]{h.reflex_count}[/]"
+                )
+                lines.append(
+                    f"SEED: [green]{h.seed_balance:.4f}[/] | "
+                    f"BLOOM: [magenta]{h.bloom_balance:.4f}[/]"
+                )
                 lines.append(f"Evidence chain: {h.evidence_chain_height} blocks.")
 
                 if h.myelination_ratio < 0.5:
-                    lines.append("\n[dim]Tip: Complete more missions to build reflexes. "
-                                 "Each reflex makes future tasks 36x faster.[/]")
+                    lines.append(
+                        "\n[dim]Tip: Complete more missions to build reflexes. "
+                        "Each reflex makes future tasks 36x faster.[/]"
+                    )
 
                 if h.ihsan_composite < 0.95:
-                    lines.append(f"\n[yellow]Note: Ihsān ({h.ihsan_composite:.3f}) is below "
-                                 f"minting floor (0.95). SEED rewards paused.[/]")
+                    lines.append(
+                        f"\n[yellow]Note: Ihsān ({h.ihsan_composite:.3f}) is below "
+                        f"minting floor (0.95). SEED rewards paused.[/]"
+                    )
             else:
                 lines.append("[dim]Backend is offline. Working in sovereign mode.[/]")
 
-            self.console.print(Panel(
-                Text.from_markup("\n".join(lines)),
-                title="[bold green]DEMA[/]",
-                border_style="green",
-                padding=(1, 2),
-            ))
+            self.console.print(
+                Panel(
+                    Text.from_markup("\n".join(lines)),
+                    title="[bold green]DEMA[/]",
+                    border_style="green",
+                    padding=(1, 2),
+                )
+            )
         else:
             print(f"\n{greeting}, {name}.")
             if health:
-                print(f"Ihsān: {health.ihsan_composite:.4f} | "
-                      f"SEED: {health.seed_balance:.4f} | "
-                      f"Reflexes: {health.reflex_count}")
+                print(
+                    f"Ihsān: {health.ihsan_composite:.4f} | "
+                    f"SEED: {health.seed_balance:.4f} | "
+                    f"Reflexes: {health.reflex_count}"
+                )
 
     def wallet(self, health: Optional[NodeHealth]):
         """Display token wallet."""
         if self.json_mode:
             if health:
-                print(json.dumps({
-                    "seed": health.seed_balance,
-                    "bloom": health.bloom_balance,
-                    "reflexes": health.reflex_count,
-                    "gini": health.gini_coefficient,
-                }, indent=2))
+                print(
+                    json.dumps(
+                        {
+                            "seed": health.seed_balance,
+                            "bloom": health.bloom_balance,
+                            "reflexes": health.reflex_count,
+                            "gini": health.gini_coefficient,
+                        },
+                        indent=2,
+                    )
+                )
             return
 
         if not health:
@@ -310,33 +373,27 @@ class TerminalRenderer:
             return
 
         if self.console:
-            table = Table(title="Sovereign Wallet", box=box.ROUNDED, border_style="green")
+            table = Table(
+                title="Sovereign Wallet", box=box.ROUNDED, border_style="green"
+            )
             table.add_column("Token", style="bold")
             table.add_column("Balance", justify="right")
             table.add_column("Status")
 
-            table.add_row(
-                "🌱 SEED",
-                f"{health.seed_balance:.4f}",
-                "[green]Liquid[/]"
-            )
+            table.add_row("🌱 SEED", f"{health.seed_balance:.4f}", "[green]Liquid[/]")
             table.add_row(
                 "🌸 BLOOM",
                 f"{health.bloom_balance:.4f}",
-                "[magenta]Soulbound[/] [dim](governance)[/]"
+                "[magenta]Soulbound[/] [dim](governance)[/]",
             )
-            table.add_row(
-                "⚡ Reflexes",
-                str(health.reflex_count),
-                "[cyan]Compiled[/]"
-            )
+            table.add_row("⚡ Reflexes", str(health.reflex_count), "[cyan]Compiled[/]")
 
-            gini_status = "[green]✓[/]" if health.gini_coefficient <= 0.35 else "[red]⚠ VIOLATION[/]"
-            table.add_row(
-                "⚖️ Gini",
-                f"{health.gini_coefficient:.4f}",
-                gini_status
+            gini_status = (
+                "[green]✓[/]"
+                if health.gini_coefficient <= 0.35
+                else "[red]⚠ VIOLATION[/]"
             )
+            table.add_row("⚖️ Gini", f"{health.gini_coefficient:.4f}", gini_status)
 
             self.console.print(table)
 
@@ -347,30 +404,104 @@ class TerminalRenderer:
             return
 
         if self.console:
-            self.console.print(Panel(
-                f"Chain height: [bold]{chain_height}[/] blocks\n"
-                f"Latest hash: [dim]{last_hash[:32]}...[/]\n"
-                f"Integrity: [green]VERIFIED[/]",
-                title="[bold blue]Evidence Ledger[/]",
-                border_style="blue",
-            ))
+            self.console.print(
+                Panel(
+                    f"Chain height: [bold]{chain_height}[/] blocks\n"
+                    f"Latest hash: [dim]{last_hash[:32]}...[/]\n"
+                    f"Integrity: [green]VERIFIED[/]",
+                    title="[bold blue]Evidence Ledger[/]",
+                    border_style="blue",
+                )
+            )
 
     def agents(self):
         """Display PAT-7 + SAT-5 agent status."""
         if self.json_mode:
             agents = [
-                {"id": "P1", "name": "Atlas", "role": "Planner", "type": "PAT", "status": "active"},
-                {"id": "P2", "name": "Oracle", "role": "Researcher", "type": "PAT", "status": "active"},
-                {"id": "P3", "name": "Forge", "role": "Coder", "type": "PAT", "status": "active"},
-                {"id": "P4", "name": "Judge", "role": "Evaluator", "type": "PAT", "status": "active"},
-                {"id": "P5", "name": "Crown", "role": "Ethicist", "type": "PAT", "status": "active"},
-                {"id": "P6", "name": "Herald", "role": "Publisher", "type": "PAT", "status": "active"},
-                {"id": "P7", "name": "Nexus", "role": "Integrator", "type": "PAT", "status": "active"},
-                {"id": "S1", "name": "Sentinel", "role": "Health Monitor", "type": "SAT", "status": "pooled"},
-                {"id": "S2", "name": "Oracle-S", "role": "Scorer", "type": "SAT", "status": "pooled"},
-                {"id": "S3", "name": "Ledger", "role": "Event Logger", "type": "SAT", "status": "pooled"},
-                {"id": "S4", "name": "Conductor", "role": "S1/S2 Boundary", "type": "SAT", "status": "pooled"},
-                {"id": "S5", "name": "Ambassador", "role": "Network Comms", "type": "SAT", "status": "pooled"},
+                {
+                    "id": "P1",
+                    "name": "Atlas",
+                    "role": "Planner",
+                    "type": "PAT",
+                    "status": "active",
+                },
+                {
+                    "id": "P2",
+                    "name": "Oracle",
+                    "role": "Researcher",
+                    "type": "PAT",
+                    "status": "active",
+                },
+                {
+                    "id": "P3",
+                    "name": "Forge",
+                    "role": "Coder",
+                    "type": "PAT",
+                    "status": "active",
+                },
+                {
+                    "id": "P4",
+                    "name": "Judge",
+                    "role": "Evaluator",
+                    "type": "PAT",
+                    "status": "active",
+                },
+                {
+                    "id": "P5",
+                    "name": "Crown",
+                    "role": "Ethicist",
+                    "type": "PAT",
+                    "status": "active",
+                },
+                {
+                    "id": "P6",
+                    "name": "Herald",
+                    "role": "Publisher",
+                    "type": "PAT",
+                    "status": "active",
+                },
+                {
+                    "id": "P7",
+                    "name": "Nexus",
+                    "role": "Integrator",
+                    "type": "PAT",
+                    "status": "active",
+                },
+                {
+                    "id": "S1",
+                    "name": "Sentinel",
+                    "role": "Health Monitor",
+                    "type": "SAT",
+                    "status": "pooled",
+                },
+                {
+                    "id": "S2",
+                    "name": "Oracle-S",
+                    "role": "Scorer",
+                    "type": "SAT",
+                    "status": "pooled",
+                },
+                {
+                    "id": "S3",
+                    "name": "Ledger",
+                    "role": "Event Logger",
+                    "type": "SAT",
+                    "status": "pooled",
+                },
+                {
+                    "id": "S4",
+                    "name": "Conductor",
+                    "role": "S1/S2 Boundary",
+                    "type": "SAT",
+                    "status": "pooled",
+                },
+                {
+                    "id": "S5",
+                    "name": "Ambassador",
+                    "role": "Network Comms",
+                    "type": "SAT",
+                    "status": "pooled",
+                },
             ]
             print(json.dumps(agents, indent=2))
             return
@@ -393,7 +524,9 @@ class TerminalRenderer:
                 ("P7", "Nexus/DEMA", "Integrator", "🟣"),
             ]
             for pid, name, role, emoji in pats:
-                table.add_row(pid, f"{emoji} {name}", role, "[green]PAT[/]", "[green]Active[/]")
+                table.add_row(
+                    pid, f"{emoji} {name}", role, "[green]PAT[/]", "[green]Active[/]"
+                )
 
             table.add_row("", "", "", "", "")  # Separator
 
@@ -408,7 +541,9 @@ class TerminalRenderer:
                 table.add_row(sid, f"🛡️ {name}", role, "[cyan]SAT[/]", "[dim]Pooled[/]")
 
             self.console.print(table)
-            self.console.print("[dim]⚠️ Human → DEMA → PAT → Pool → SAT (Boundary Model)[/]")
+            self.console.print(
+                "[dim]⚠️ Human → DEMA → PAT → Pool → SAT (Boundary Model)[/]"
+            )
 
     def reflexes(self, reflexes: List[Dict] = None):
         """Display compiled reflexes (System-1 cache)."""
@@ -421,10 +556,14 @@ class TerminalRenderer:
 
         if self.console:
             if not reflexes:
-                self.console.print("[dim]No reflexes compiled yet. Complete missions to build System-1 cache.[/]")
+                self.console.print(
+                    "[dim]No reflexes compiled yet. Complete missions to build System-1 cache.[/]"
+                )
                 return
 
-            table = Table(title="⚡ Reflex Cache (System-1)", box=box.ROUNDED, border_style="cyan")
+            table = Table(
+                title="⚡ Reflex Cache (System-1)", box=box.ROUNDED, border_style="cyan"
+            )
             table.add_column("Pattern")
             table.add_column("Ihsān", justify="right")
             table.add_column("Executions", justify="right")
@@ -447,7 +586,9 @@ class TerminalRenderer:
 
         if self.console:
             ihsan = result.get("ihsan_composite", 0)
-            ihsan_color = "green" if ihsan >= 0.95 else ("yellow" if ihsan >= 0.85 else "red")
+            ihsan_color = (
+                "green" if ihsan >= 0.95 else ("yellow" if ihsan >= 0.85 else "red")
+            )
 
             lines = [
                 f"[bold]Mission:[/] {result.get('mission', 'unknown')}",
@@ -460,17 +601,23 @@ class TerminalRenderer:
             seed = result.get("seed_earned", 0)
             if seed > 0:
                 lines.append(f"[bold]SEED Earned:[/] [green]+{seed:.4f}[/]")
-                lines.append(f"[bold]Pool Share:[/] [dim]+{seed * 0.5:.4f} → community[/]")
+                lines.append(
+                    f"[bold]Pool Share:[/] [dim]+{seed * 0.5:.4f} → community[/]"
+                )
 
             reflex = result.get("reflex_precipitated", False)
             if reflex:
-                lines.append("\n[bold cyan]⚡ REFLEX PRECIPITATED[/] — This pattern is now System-1!")
+                lines.append(
+                    "\n[bold cyan]⚡ REFLEX PRECIPITATED[/] — This pattern is now System-1!"
+                )
 
-            self.console.print(Panel(
-                Text.from_markup("\n".join(lines)),
-                title="[bold green]Mission Complete[/]",
-                border_style="green",
-            ))
+            self.console.print(
+                Panel(
+                    Text.from_markup("\n".join(lines)),
+                    title="[bold green]Mission Complete[/]",
+                    border_style="green",
+                )
+            )
 
     def help_screen(self):
         """Display available commands."""
@@ -478,7 +625,11 @@ class TerminalRenderer:
             return
 
         if self.console:
-            table = Table(title="BIZRA Sovereign Terminal — Commands", box=box.ROUNDED, border_style="green")
+            table = Table(
+                title="BIZRA Sovereign Terminal — Commands",
+                box=box.ROUNDED,
+                border_style="green",
+            )
             table.add_column("Command", style="bold green")
             table.add_column("Description")
 
@@ -498,7 +649,9 @@ class TerminalRenderer:
                 table.add_row(cmd, desc)
 
             self.console.print(table)
-            self.console.print("\n[dim]Flags: --json (machine output) | --offline (skip API)[/]")
+            self.console.print(
+                "\n[dim]Flags: --json (machine output) | --offline (skip API)[/]"
+            )
 
     def _bar(self, value: float, width: int = 20) -> str:
         """Render a progress bar."""
@@ -512,13 +665,18 @@ class TerminalRenderer:
             print(f"Stage: {identity.stage} | Sovereignty: {identity.sovereignty:.2%}")
         if health:
             print(f"Ihsān: {health.ihsan_composite:.4f} | SNR: {health.snr_score:.4f}")
-            print(f"SEED: {health.seed_balance:.4f} | BLOOM: {health.bloom_balance:.4f}")
-            print(f"Reflexes: {health.reflex_count} | Evidence: {health.evidence_chain_height} blocks")
+            print(
+                f"SEED: {health.seed_balance:.4f} | BLOOM: {health.bloom_balance:.4f}"
+            )
+            print(
+                f"Reflexes: {health.reflex_count} | Evidence: {health.evidence_chain_height} blocks"
+            )
 
 
 # ═══════════════════════════════════════════════════════════════════
 # REPL (Interactive Mode)
 # ═══════════════════════════════════════════════════════════════════
+
 
 def run_repl(renderer: TerminalRenderer):
     """Interactive REPL for the sovereign terminal."""
@@ -530,7 +688,9 @@ def run_repl(renderer: TerminalRenderer):
     # Morning briefing on startup
     renderer.morning_briefing(identity, health)
 
-    prompt = "\n[bold green]bizra>[/] " if HAS_RICH and renderer.console else "\nbizra> "
+    prompt = (
+        "\n[bold green]bizra>[/] " if HAS_RICH and renderer.console else "\nbizra> "
+    )
 
     while True:
         try:
@@ -576,7 +736,9 @@ def run_repl(renderer: TerminalRenderer):
                 task = cmd[8:].strip()
                 if not task:
                     if renderer.console:
-                        renderer.console.print("[yellow]Usage: mission <task description>[/]")
+                        renderer.console.print(
+                            "[yellow]Usage: mission <task description>[/]"
+                        )
                     continue
 
                 # TODO: Wire to sovereign API /v1/plan
@@ -585,7 +747,9 @@ def run_repl(renderer: TerminalRenderer):
                     "status": "completed",
                     "ihsan_composite": 0.96,
                     "duration_ms": 1847,
-                    "receipt_hash": hashlib.blake2b(task.encode(), digest_size=32).hexdigest(),
+                    "receipt_hash": hashlib.blake2b(
+                        task.encode(), digest_size=32
+                    ).hexdigest(),
                     "seed_earned": 2.38,
                     "reflex_precipitated": False,
                 }
@@ -596,13 +760,17 @@ def run_repl(renderer: TerminalRenderer):
 
             elif cmd == "init":
                 if renderer.console:
-                    renderer.console.print("[yellow]bizra init — sovereign seed planting (coming soon)[/]")
+                    renderer.console.print(
+                        "[yellow]bizra init — sovereign seed planting (coming soon)[/]"
+                    )
                 else:
                     print("bizra init — coming soon")
 
             else:
                 if renderer.console:
-                    renderer.console.print(f"[dim]Unknown command: {cmd}. Type 'help' for available commands.[/]")
+                    renderer.console.print(
+                        f"[dim]Unknown command: {cmd}. Type 'help' for available commands.[/]"
+                    )
                 else:
                     print(f"Unknown command: {cmd}")
 
@@ -616,13 +784,18 @@ def run_repl(renderer: TerminalRenderer):
 # CLI ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════
 
+
 def main():
     parser = argparse.ArgumentParser(
         prog="bizra",
         description="BIZRA Sovereign Terminal — Command Center for Your Node",
     )
-    parser.add_argument("command", nargs="?", default=None,
-                        help="Command to run (status, wallet, agents, reflexes, evidence, briefing, mission)")
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default=None,
+        help="Command to run (status, wallet, agents, reflexes, evidence, briefing, mission)",
+    )
     parser.add_argument("args", nargs="*", help="Command arguments")
     parser.add_argument("--json", action="store_true", help="JSON output for scripting")
     parser.add_argument("--offline", action="store_true", help="Skip API calls")
@@ -663,7 +836,9 @@ def main():
                 "status": "completed",
                 "ihsan_composite": 0.96,
                 "duration_ms": 1847,
-                "receipt_hash": hashlib.blake2b(task.encode(), digest_size=32).hexdigest(),
+                "receipt_hash": hashlib.blake2b(
+                    task.encode(), digest_size=32
+                ).hexdigest(),
                 "seed_earned": 2.38,
                 "reflex_precipitated": False,
             }

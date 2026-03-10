@@ -32,6 +32,7 @@ logger = logging.getLogger("bizra.bus.subscribers")
 # EVENT TYPES
 # ═══════════════════════════════════════════════════════════════════
 
+
 class EventType(str, Enum):
     # Core lifecycle
     ACTION_INTENT = "action.intent"
@@ -53,9 +54,12 @@ class EventType(str, Enum):
 @dataclass
 class Event:
     """Immutable event record for the EventBus."""
+
     event_type: EventType
     payload: Dict[str, Any]
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     event_id: str = ""
     prev_hash: str = ""
     event_hash: str = ""
@@ -67,15 +71,18 @@ class Event:
             self.event_hash = self._compute_hash()
 
     def _compute_hash(self) -> str:
-        content = json.dumps({
-            "type": self.event_type,
-            "payload": self.payload,
-            "timestamp": self.timestamp,
-            "prev_hash": self.prev_hash,
-        }, sort_keys=True, separators=(",", ":"))
+        content = json.dumps(
+            {
+                "type": self.event_type,
+                "payload": self.payload,
+                "timestamp": self.timestamp,
+                "prev_hash": self.prev_hash,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         return hashlib.blake2b(
-            b"EVENTBUS_DOMAIN:" + content.encode(),
-            digest_size=32
+            b"EVENTBUS_DOMAIN:" + content.encode(), digest_size=32
         ).hexdigest()
 
 
@@ -83,15 +90,19 @@ class Event:
 # SUBSCRIBER PROTOCOL
 # ═══════════════════════════════════════════════════════════════════
 
+
 class Subscriber(Protocol):
     """Protocol for all EventBus subscribers."""
+
     event_types: List[EventType]
+
     def handle(self, event: Event) -> None: ...
 
 
 # ═══════════════════════════════════════════════════════════════════
 # EVENTBUS CORE
 # ═══════════════════════════════════════════════════════════════════
+
 
 class EventBus:
     """
@@ -107,7 +118,9 @@ class EventBus:
     def subscribe(self, subscriber: Subscriber) -> None:
         for et in subscriber.event_types:
             self._subscribers.setdefault(et, []).append(subscriber)
-            logger.info(f"Subscriber wired: {subscriber.__class__.__name__} -> {et.value}")
+            logger.info(
+                f"Subscriber wired: {subscriber.__class__.__name__} -> {et.value}"
+            )
 
     def publish(self, event_type: EventType, payload: Dict[str, Any]) -> Event:
         event = Event(
@@ -125,7 +138,9 @@ class EventBus:
             except Exception as e:
                 logger.error(f"Subscriber {subscriber.__class__.__name__} failed: {e}")
                 # Fail-open for non-safety subscribers, fail-closed for safety
-                if isinstance(subscriber, (IhsanGateBreachHandler, FailedActionQuarantine)):
+                if isinstance(
+                    subscriber, (IhsanGateBreachHandler, FailedActionQuarantine)
+                ):
                     raise
 
         return event
@@ -147,12 +162,14 @@ class EventBus:
 # PHASE 1: LEARNING LOOP (Subscribers 1-4)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class ActionReceiptMemoryReinforce:
     """
     Subscriber 1: ActionReceipt → Memory Reinforce
     When an action completes successfully, reinforce the memory trace.
     This is how the system learns from its own actions.
     """
+
     event_types = [EventType.ACTION_RECEIPT]
 
     def __init__(self, memory_store):
@@ -187,6 +204,7 @@ class ActionIntentTeleScriptBegin:
     When a user expresses intent, begin the TeleScript workflow.
     This is the entry point of the OODA loop.
     """
+
     event_types = [EventType.ACTION_INTENT]
 
     def __init__(self, telescript_engine):
@@ -203,7 +221,9 @@ class ActionIntentTeleScriptBegin:
             session_id=session_id,
             origin_event=event.event_id,
         )
-        logger.info(f"[SUB-2] TeleScript begun: {execution_id} for intent: {intent[:50]}...")
+        logger.info(
+            f"[SUB-2] TeleScript begun: {execution_id} for intent: {intent[:50]}..."
+        )
 
 
 class TeleScriptStepReceiptAppend:
@@ -212,6 +232,7 @@ class TeleScriptStepReceiptAppend:
     Each step in a TeleScript workflow produces a receipt.
     This creates the granular proof chain.
     """
+
     event_types = [EventType.TELESCRIPT_STEP]
 
     def __init__(self, receipt_chain):
@@ -242,6 +263,7 @@ class SessionEndGenesisCompile:
 
     Rule: 3+ successful executions with Ihsān ≥ 0.90 → precipitate reflex.
     """
+
     event_types = [EventType.SESSION_END]
 
     def __init__(self, reflex_cache, memory_store):
@@ -291,6 +313,7 @@ class SessionEndGenesisCompile:
 # PHASE 2: SAFETY (Subscribers 5-7)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class IhsanGateBreachHandler:
     """
     Subscriber 5: IhsānGateBreached → Session Halt
@@ -299,6 +322,7 @@ class IhsanGateBreachHandler:
 
     FAIL-CLOSED: This subscriber raises on failure, halting the pipeline.
     """
+
     event_types = [EventType.IHSAN_GATE_BREACHED]
 
     MISSION_FLOOR = 0.85
@@ -343,6 +367,7 @@ class FailedActionQuarantine:
 
     FAIL-CLOSED: Quarantine failures halt the pipeline.
     """
+
     event_types = [EventType.ACTION_RECEIPT_FAILED]
 
     def __init__(self, memory_store, quarantine_store):
@@ -377,6 +402,7 @@ class TeleScriptRollbackHealing:
     When a workflow rolls back, trigger self-repair.
     The system learns what went wrong and adjusts.
     """
+
     event_types = [EventType.TELESCRIPT_ROLLED_BACK]
 
     def __init__(self, healing_engine, memory_store):
@@ -413,12 +439,14 @@ class TeleScriptRollbackHealing:
 # PHASE 3: ECONOMICS (Subscribers 8-12)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class ActionReceiptHHMMPromotion:
     """
     Subscriber 8: ActionReceipt → HHMM Promotion
     Successful receipts promote action patterns from episodic
     to semantic memory (glacial memory formation).
     """
+
     event_types = [EventType.ACTION_RECEIPT]
 
     PROMOTION_THRESHOLD = 0.92  # Higher than precipitation (0.90)
@@ -455,6 +483,7 @@ class MemoryPromotedPoICredit:
     When a pattern is promoted to semantic memory, it earns
     Proof-of-Impact credit toward token minting.
     """
+
     event_types = [EventType.MEMORY_PROMOTED]
 
     def __init__(self, poi_engine):
@@ -484,6 +513,7 @@ class TeleScriptCompletedPoIAccumulate:
     Completed workflows accumulate Proof-of-Impact toward SEED minting.
     This is where verified work becomes economic value.
     """
+
     event_types = [EventType.TELESCRIPT_COMPLETED]
 
     MINTING_FLOOR = 0.95  # From constants.py
@@ -536,6 +566,7 @@ class MemoryRetrievedBudgetReport:
     Track context budget per retrieval to prevent overflow.
     Each retrieval consumes context window tokens.
     """
+
     event_types = [EventType.MEMORY_RETRIEVED]
 
     MAX_CONTEXT_TOKENS = 128_000  # Conservative for most LLMs
@@ -576,6 +607,7 @@ class AgentRegisteredSelfModelUpdate:
     self-model to reflect current capabilities.
     This is RSI Pillar I: the system knows what it can do.
     """
+
     event_types = [EventType.AGENT_REGISTERED]
 
     def __init__(self, self_model, capability_registry):
@@ -614,6 +646,7 @@ class AgentRegisteredSelfModelUpdate:
 # ═══════════════════════════════════════════════════════════════════
 # WIRING: Connect all 12 subscribers to the EventBus
 # ═══════════════════════════════════════════════════════════════════
+
 
 def wire_all_subscribers(
     bus: EventBus,
@@ -670,6 +703,7 @@ def wire_all_subscribers(
 # TESTS
 # ═══════════════════════════════════════════════════════════════════
 
+
 def _run_smoke_tests():
     """Quick smoke test that all subscribers can be instantiated and wired."""
 
@@ -678,62 +712,95 @@ def _run_smoke_tests():
         def __init__(self):
             self._data = {}
             self._counts = {}
-        def reinforce(self, **kw): self._data[kw.get("key", "")] = kw
-        def get_success_count(self, key): return self._counts.get(key, 0)
-        def set_success_count(self, key, val): self._counts[key] = val
-        def promote_to_semantic(self, **kw): return True
-        def record_failure_pattern(self, **kw): pass
+
+        def reinforce(self, **kw):
+            self._data[kw.get("key", "")] = kw
+
+        def get_success_count(self, key):
+            return self._counts.get(key, 0)
+
+        def set_success_count(self, key, val):
+            self._counts[key] = val
+
+        def promote_to_semantic(self, **kw):
+            return True
+
+        def record_failure_pattern(self, **kw):
+            pass
 
     class MockTeleScript:
-        def begin_execution(self, **kw): return f"ts_{int(time.time())}"
+        def begin_execution(self, **kw):
+            return f"ts_{int(time.time())}"
 
     class MockReceiptChain(list):
         pass
 
     class MockReflexCache(dict):
-        def precipitate(self, **kw): self[kw["action_type"]] = kw
+        def precipitate(self, **kw):
+            self[kw["action_type"]] = kw
 
     class MockSessionManager:
-        def halt(self, **kw): pass
+        def halt(self, **kw):
+            pass
 
     class MockAuditLog:
-        def log_violation(self, **kw): pass
+        def log_violation(self, **kw):
+            pass
 
     class MockQuarantine:
-        def isolate(self, **kw): pass
+        def isolate(self, **kw):
+            pass
 
     class MockHealing:
         def diagnose(self, **kw):
             class Plan:
                 strategy = "retry"
+
             return Plan()
 
     class MockHHMM:
-        def classify(self, payload): return "macro_general"
+        def classify(self, payload):
+            return "macro_general"
 
     class MockPoI:
         total_credit = 0.0
+
         def accumulate(self, **kw):
             self.total_credit += 0.01
             return 0.01
 
     class MockMinter:
-        def compute_reward(self, **kw): return 0.05
-        def mint_seed(self, **kw): pass
+        def compute_reward(self, **kw):
+            return 0.05
+
+        def mint_seed(self, **kw):
+            pass
 
     class MockBudget:
         total_used = 0
-        def record_retrieval(self, **kw): self.total_used += kw.get("tokens", 0)
+
+        def record_retrieval(self, **kw):
+            self.total_used += kw.get("tokens", 0)
 
     class MockSelfModel:
-        def update_capability_map(self, **kw): pass
+        def update_capability_map(self, **kw):
+            pass
 
     class MockCapRegistry:
-        def register(self, **kw): pass
-        def count(self): return 7
-        def count_by_type(self, t): return 7 if t == "PAT" else 5
-        def total_capabilities(self): return 42
-        def capability_vector(self): return [1.0] * 8
+        def register(self, **kw):
+            pass
+
+        def count(self):
+            return 7
+
+        def count_by_type(self, t):
+            return 7 if t == "PAT" else 5
+
+        def total_capabilities(self):
+            return 42
+
+        def capability_vector(self):
+            return [1.0] * 8
 
     # Wire everything
     bus = EventBus()
@@ -760,40 +827,68 @@ def _run_smoke_tests():
     # Test Phase 1: Learning loop
     bus.publish(EventType.ACTION_INTENT, {"intent": "test task", "session_id": "s1"})
     bus.publish(EventType.TELESCRIPT_STEP, {"step_id": "1", "ihsan_composite": 0.95})
-    bus.publish(EventType.ACTION_RECEIPT, {"action_type": "test", "ihsan_composite": 0.96, "result_summary": "ok"})
-    bus.publish(EventType.SESSION_END, {"session_id": "s1", "actions": [
-        {"action_type": "test", "ihsan_composite": 0.95},
-        {"action_type": "test", "ihsan_composite": 0.93},
-        {"action_type": "test", "ihsan_composite": 0.91},
-    ]})
+    bus.publish(
+        EventType.ACTION_RECEIPT,
+        {"action_type": "test", "ihsan_composite": 0.96, "result_summary": "ok"},
+    )
+    bus.publish(
+        EventType.SESSION_END,
+        {
+            "session_id": "s1",
+            "actions": [
+                {"action_type": "test", "ihsan_composite": 0.95},
+                {"action_type": "test", "ihsan_composite": 0.93},
+                {"action_type": "test", "ihsan_composite": 0.91},
+            ],
+        },
+    )
 
     # Test Phase 2: Safety
-    bus.publish(EventType.IHSAN_GATE_BREACHED, {
-        "session_id": "s2", "ihsan_composite": 0.72,
-        "action_type": "risky", "violation_dimensions": ["safety"]
-    })
-    bus.publish(EventType.ACTION_RECEIPT_FAILED, {
-        "action_type": "broken", "error": "null pointer"
-    })
-    bus.publish(EventType.TELESCRIPT_ROLLED_BACK, {
-        "execution_id": "ts1", "reason": "timeout", "failed_step": "step3"
-    })
+    bus.publish(
+        EventType.IHSAN_GATE_BREACHED,
+        {
+            "session_id": "s2",
+            "ihsan_composite": 0.72,
+            "action_type": "risky",
+            "violation_dimensions": ["safety"],
+        },
+    )
+    bus.publish(
+        EventType.ACTION_RECEIPT_FAILED,
+        {"action_type": "broken", "error": "null pointer"},
+    )
+    bus.publish(
+        EventType.TELESCRIPT_ROLLED_BACK,
+        {"execution_id": "ts1", "reason": "timeout", "failed_step": "step3"},
+    )
 
     # Test Phase 3: Economics
-    bus.publish(EventType.MEMORY_PROMOTED, {
-        "action_type": "promoted", "macro_state": "m1", "ihsan": 0.97
-    })
-    bus.publish(EventType.TELESCRIPT_COMPLETED, {
-        "execution_id": "ts2", "ihsan_composite": 0.96,
-        "total_steps": 5, "duration_ms": 1200
-    })
-    bus.publish(EventType.MEMORY_RETRIEVED, {
-        "tokens_retrieved": 500, "memory_source": "episodic", "query": "test"
-    })
-    bus.publish(EventType.AGENT_REGISTERED, {
-        "agent_id": "atlas", "agent_type": "PAT",
-        "capabilities": ["plan", "decompose"], "version": "1.0.0"
-    })
+    bus.publish(
+        EventType.MEMORY_PROMOTED,
+        {"action_type": "promoted", "macro_state": "m1", "ihsan": 0.97},
+    )
+    bus.publish(
+        EventType.TELESCRIPT_COMPLETED,
+        {
+            "execution_id": "ts2",
+            "ihsan_composite": 0.96,
+            "total_steps": 5,
+            "duration_ms": 1200,
+        },
+    )
+    bus.publish(
+        EventType.MEMORY_RETRIEVED,
+        {"tokens_retrieved": 500, "memory_source": "episodic", "query": "test"},
+    )
+    bus.publish(
+        EventType.AGENT_REGISTERED,
+        {
+            "agent_id": "atlas",
+            "agent_type": "PAT",
+            "capabilities": ["plan", "decompose"],
+            "version": "1.0.0",
+        },
+    )
 
     # Verify chain integrity
     assert bus.verify_chain(), "Chain integrity check failed!"

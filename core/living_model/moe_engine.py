@@ -122,9 +122,7 @@ class Expert:
         # Keyword scoring: fraction of keywords found, with activation floor.
         # A single keyword match should meaningfully activate the expert.
         # Standing on: Shazeer (2017) — even weak gating signal beats no signal.
-        hits = sum(
-            1 for kw in self.keywords if _word_pattern(kw).search(input_text)
-        )
+        hits = sum(1 for kw in self.keywords if _word_pattern(kw).search(input_text))
         keyword_score = hits / max(len(self.keywords), 1)
         if hits > 0:
             keyword_score = max(keyword_score, 0.3)  # Activation floor
@@ -157,50 +155,108 @@ class Expert:
 
 EXPERT_R = Expert(
     id="pat_r",
-    keywords=frozenset({
-        "how", "why", "explain", "reason", "plan", "analyze", "think",
-        "compare", "evaluate", "strategy", "decompose", "because",
-    }),
+    keywords=frozenset(
+        {
+            "how",
+            "why",
+            "explain",
+            "reason",
+            "plan",
+            "analyze",
+            "think",
+            "compare",
+            "evaluate",
+            "strategy",
+            "decompose",
+            "because",
+        }
+    ),
     hhmm_states=frozenset({"reasoning", "planning", "analysis"}),
     base_weight=1.0,
 )
 
 EXPERT_K = Expert(
     id="pat_k",
-    keywords=frozenset({
-        "what", "who", "when", "where", "define", "list", "describe",
-        "tell", "facts", "history", "knowledge", "information",
-    }),
+    keywords=frozenset(
+        {
+            "what",
+            "who",
+            "when",
+            "where",
+            "define",
+            "list",
+            "describe",
+            "tell",
+            "facts",
+            "history",
+            "knowledge",
+            "information",
+        }
+    ),
     hhmm_states=frozenset({"retrieval", "knowledge", "memory"}),
     base_weight=1.0,
 )
 
 EXPERT_S = Expert(
     id="pat_s",
-    keywords=frozenset({
-        "code", "write", "create", "build", "implement", "fix", "run",
-        "execute", "file", "tool", "script", "function", "deploy",
-    }),
+    keywords=frozenset(
+        {
+            "code",
+            "write",
+            "create",
+            "build",
+            "implement",
+            "fix",
+            "run",
+            "execute",
+            "file",
+            "tool",
+            "script",
+            "function",
+            "deploy",
+        }
+    ),
     hhmm_states=frozenset({"skills", "coding", "execution"}),
     base_weight=1.0,
 )
 
 EXPERT_G = Expert(
     id="sat_g",
-    keywords=frozenset({
-        "governance", "policy", "constitutional", "threshold", "ihsan",
-        "compliance", "rule", "regulation", "authority", "permission",
-    }),
+    keywords=frozenset(
+        {
+            "governance",
+            "policy",
+            "constitutional",
+            "threshold",
+            "ihsan",
+            "compliance",
+            "rule",
+            "regulation",
+            "authority",
+            "permission",
+        }
+    ),
     hhmm_states=frozenset({"governance", "constitutional", "policy"}),
     base_weight=0.9,
 )
 
 EXPERT_V = Expert(
     id="sat_v",
-    keywords=frozenset({
-        "verify", "prove", "check", "validate", "evidence", "audit",
-        "test", "confirm", "certify", "assure", "proof",
-    }),
+    keywords=frozenset(
+        {
+            "verify",
+            "prove",
+            "check",
+            "validate",
+            "evidence",
+            "audit",
+            "test",
+            "confirm",
+            "certify",
+            "assure",
+            "proof",
+        }
+    ),
     hhmm_states=frozenset({"verification", "validation", "audit"}),
     base_weight=0.9,
 )
@@ -350,9 +406,7 @@ class MOEEngine:
 
         return assignments
 
-    def _handle_override(
-        self, override: str | Sequence[str]
-    ) -> list[ExpertAssignment]:
+    def _handle_override(self, override: str | Sequence[str]) -> list[ExpertAssignment]:
         """Handle expert_override — force specific expert(s)."""
         if isinstance(override, str):
             override = [override]

@@ -66,9 +66,7 @@ class HHMMEngine(Protocol):
         """
         ...
 
-    def update_transitions(
-        self, description: str, state: str, ihsan: float
-    ) -> None:
+    def update_transitions(self, description: str, state: str, ihsan: float) -> None:
         """Update transition probabilities from observed mission."""
         ...
 
@@ -123,7 +121,7 @@ class ReflexEntry:
         if self.created_at <= 0:
             return self.ihsan_composite
         age_months = (time.time() - self.created_at) / (86400 * 30)
-        decay = 0.98 ** age_months  # Monthly decay factor
+        decay = 0.98**age_months  # Monthly decay factor
         hit_bonus = min(0.1, self.hit_count * 0.005)
         return min(1.0, self.ihsan_composite * decay + hit_bonus)
 
@@ -453,12 +451,14 @@ class ReflexCompiler:
                 )
 
             candidate = self._candidates[pattern_hash]
-            candidate.observations.append({
-                "output": output_text,
-                "ihsan_composite": ihsan_composite,
-                "ihsan_tensor": dict(ihsan_tensor or {}),
-                "timestamp": time.time(),
-            })
+            candidate.observations.append(
+                {
+                    "output": output_text,
+                    "ihsan_composite": ihsan_composite,
+                    "ihsan_tensor": dict(ihsan_tensor or {}),
+                    "timestamp": time.time(),
+                }
+            )
 
             # Bound memory: keep only last 10 observations
             if len(candidate.observations) > 10:
@@ -718,15 +718,15 @@ class ReflexCompiler:
                     and not entry.stale
                     and entry.hit_count >= 2
                 ):
-                    exportable.append({
-                        "key": key_str,
-                        "plan_abstract": self._abstract_plan(
-                            entry.output_template
-                        ),
-                        "ihsan": entry.ihsan_composite,
-                        "hit_count": entry.hit_count,
-                        "confidence": round(entry.confidence, 4),
-                    })
+                    exportable.append(
+                        {
+                            "key": key_str,
+                            "plan_abstract": self._abstract_plan(entry.output_template),
+                            "ihsan": entry.ihsan_composite,
+                            "hit_count": entry.hit_count,
+                            "confidence": round(entry.confidence, 4),
+                        }
+                    )
             return exportable
 
     def revalidate(self, key_str: str, new_ihsan: float) -> bool:

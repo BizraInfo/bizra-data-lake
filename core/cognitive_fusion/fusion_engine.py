@@ -265,9 +265,7 @@ class CognitiveFusionEngine:
         routing.expert_tier = expert_tier
 
         # P4: FRONTIER tier activation — deeper exploration + stricter gate
-        is_frontier = (
-            self._frontier_mode and routing.complexity_class == "FRONTIER"
-        )
+        is_frontier = self._frontier_mode and routing.complexity_class == "FRONTIER"
         if is_frontier:
             required_snr = SNR_THRESHOLD_T0_ELITE  # 0.98
             logger.info(
@@ -311,10 +309,16 @@ class CognitiveFusionEngine:
         )
 
         # P4: Emit SYNTHESIS consciousness event for FRONTIER queries
-        domains_crossed = len(set(
-            r.get("domain", "unknown") if isinstance(r, dict) else "unknown"
-            for r in retrieval
-        )) if is_frontier and retrieval else 0
+        domains_crossed = (
+            len(
+                set(
+                    r.get("domain", "unknown") if isinstance(r, dict) else "unknown"
+                    for r in retrieval
+                )
+            )
+            if is_frontier and retrieval
+            else 0
+        )
 
         elapsed = time.monotonic() - t0
         logger.debug(
@@ -327,8 +331,11 @@ class CognitiveFusionEngine:
             snr_score,
             ihsan_score,
             passes,
-            f"  frontier=True  domains_crossed={domains_crossed}"
-            if is_frontier else "",
+            (
+                f"  frontier=True  domains_crossed={domains_crossed}"
+                if is_frontier
+                else ""
+            ),
         )
 
         return FusionResult(
