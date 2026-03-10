@@ -150,7 +150,7 @@ class HDAClient:
             except (OSError, ConnectionError) as _close_err:
                 logger.debug("Connection already closed: %s", _close_err)
             except Exception as exc:  # noqa: BLE001 — connection cleanup boundary
-                logger.debug("Connection cleanup: %s", exc)
+                logger.debug("Connection cleanup: %s", exc, exc_info=True)
             self._writer = None
             self._reader = None
 
@@ -207,7 +207,7 @@ class MissionOrchestrator:
         except (OSError, RuntimeError, ValueError) as exc:
             logger.warning("LivingMemory init failed (continuing without): %s", exc)
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
-            logger.warning("LivingMemory init failed (continuing without): %s", exc)
+            logger.warning("LivingMemory init failed (continuing without): %s", exc, exc_info=True)
 
         # Initialize EvidenceLedger
         try:
@@ -221,7 +221,7 @@ class MissionOrchestrator:
         except (OSError, ValueError) as exc:
             logger.warning("EvidenceLedger init failed (continuing without): %s", exc)
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
-            logger.warning("EvidenceLedger init failed (continuing without): %s", exc)
+            logger.warning("EvidenceLedger init failed (continuing without): %s", exc, exc_info=True)
 
         # Initialize SNR engine
         try:
@@ -233,7 +233,7 @@ class MissionOrchestrator:
         except (RuntimeError, ValueError) as exc:
             logger.warning("SNRApexEngine init failed (continuing without): %s", exc)
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
-            logger.warning("SNRApexEngine init failed (continuing without): %s", exc)
+            logger.warning("SNRApexEngine init failed (continuing without): %s", exc, exc_info=True)
 
         # Initialize ChannelDispatcher
         try:
@@ -248,7 +248,7 @@ class MissionOrchestrator:
             )
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
             logger.warning(
-                "ChannelDispatcher init failed (continuing without): %s", exc
+                "ChannelDispatcher init failed (continuing without): %s", exc, exc_info=True,
             )
 
         # Initialize EventBus
@@ -261,7 +261,7 @@ class MissionOrchestrator:
         except (RuntimeError, ValueError) as exc:
             logger.warning("EventBus init failed (continuing without): %s", exc)
         except Exception as exc:  # noqa: BLE001 — optional subsystem init
-            logger.warning("EventBus init failed (continuing without): %s", exc)
+            logger.warning("EventBus init failed (continuing without): %s", exc, exc_info=True)
 
         # Initialize InferenceGateway (Ollama/LM Studio) — guarded by env var
         _llm_flag = os.environ.get("BIZRA_ENABLE_LLM", "").lower()
@@ -284,7 +284,7 @@ class MissionOrchestrator:
             except (OSError, RuntimeError, ValueError) as exc:
                 logger.warning("InferenceGateway init failed (template mode): %s", exc)
             except Exception as exc:  # noqa: BLE001 — optional subsystem init
-                logger.warning("InferenceGateway init failed (template mode): %s", exc)
+                logger.warning("InferenceGateway init failed (template mode): %s", exc, exc_info=True)
 
             # O3: Warm model pool — pre-load model weights to eliminate cold start
             await self._warmup_model()
@@ -307,7 +307,7 @@ class MissionOrchestrator:
         except (OSError, ValueError, KeyError) as exc:
             logger.warning("Node signer init failed (crypto/fs): %s", exc)
         except Exception as exc:  # noqa: BLE001 — signer init boundary
-            logger.warning("Node signer init failed: %s", exc)
+            logger.warning("Node signer init failed: %s", exc, exc_info=True)
 
         self._initialized = True
 
@@ -334,7 +334,7 @@ class MissionOrchestrator:
                     logger.info("Ollama not reachable — skipping warmup: %s", exc)
                     return
                 except Exception:  # noqa: BLE001 — network probe boundary
-                    logger.info("Ollama not reachable — skipping warmup")
+                    logger.info("Ollama not reachable — skipping warmup", exc_info=True)
                     return
 
                 # Check if model already loaded (warm)
@@ -371,7 +371,7 @@ class MissionOrchestrator:
         except (OSError, ConnectionError, asyncio.TimeoutError) as exc:
             logger.info("Model warmup skipped (network): %s", exc)
         except Exception as exc:  # noqa: BLE001 — warmup boundary
-            logger.info("Model warmup skipped: %s", exc)
+            logger.info("Model warmup skipped: %s", exc, exc_info=True)
 
     async def execute(self, request: MissionRequest) -> MissionResult:
         """Execute a complete mission from user intent to proof-traced result."""
@@ -562,6 +562,7 @@ class MissionOrchestrator:
                     )
                 )
             except Exception as exc:  # noqa: BLE001 — channel execution boundary
+                logger.warning("Channel %s unexpected failure", channel_name, exc_info=True)
                 results.append(
                     ChannelResult(
                         channel=channel_name,
@@ -608,7 +609,7 @@ class MissionOrchestrator:
             except (OSError, ConnectionError, asyncio.TimeoutError) as exc:
                 logger.warning("HDA get_context failed (connection): %s", exc)
             except Exception as exc:  # noqa: BLE001 — HDA boundary
-                logger.warning("HDA get_context failed: %s", exc)
+                logger.warning("HDA get_context failed: %s", exc, exc_info=True)
 
         local_fs = self._execute_local_filesystem(subtask, request)
         if local_fs is not None:
@@ -796,7 +797,7 @@ class MissionOrchestrator:
         except (OSError, ConnectionError, asyncio.TimeoutError) as exc:
             logger.warning("Ollama synthesis failed (network): %s — trying gateway", exc)
         except Exception as exc:  # noqa: BLE001 — LLM synthesis boundary
-            logger.warning("Ollama synthesis failed: %s — trying gateway", exc)
+            logger.warning("Ollama synthesis failed: %s — trying gateway", exc, exc_info=True)
 
         # 2. Gateway (LM Studio GPU + Ollama fallback chain)
         # Used when direct Ollama fails or returns empty.
@@ -821,7 +822,7 @@ class MissionOrchestrator:
             except (RuntimeError, ValueError, OSError) as exc:
                 logger.warning("Gateway synthesis failed (known): %s", exc)
             except Exception as exc:  # noqa: BLE001 — gateway synthesis boundary
-                logger.warning("Gateway synthesis failed: %s", exc)
+                logger.warning("Gateway synthesis failed: %s", exc, exc_info=True)
 
         # 3. Template (always available, no LLM needed)
         return self._template_synthesis(description, browser_data, desktop_data)
@@ -951,7 +952,7 @@ class MissionOrchestrator:
             logger.warning("SNR scoring failed (data): %s", exc)
             return 0.80, 0.75
         except Exception as exc:  # noqa: BLE001 — SNR scoring boundary
-            logger.warning("SNR scoring failed: %s", exc)
+            logger.warning("SNR scoring failed: %s", exc, exc_info=True)
             # Fail-honest: scoring failure → below threshold → PARTIAL
             return 0.80, 0.75
 
@@ -976,7 +977,7 @@ class MissionOrchestrator:
             logger.warning("Failed to write briefing (filesystem): %s", exc)
             return None
         except Exception as exc:  # noqa: BLE001 — file write boundary
-            logger.warning("Failed to write briefing: %s", exc)
+            logger.warning("Failed to write briefing: %s", exc, exc_info=True)
             return None
 
     def _find_desktop_path(self) -> Path | None:
@@ -1015,7 +1016,7 @@ class MissionOrchestrator:
         except (ImportError, ValueError, OSError) as exc:
             logger.warning("Evidence emission failed (known): %s", exc)
         except Exception as exc:  # noqa: BLE001 — evidence emission boundary
-            logger.warning("Evidence emission failed: %s", exc)
+            logger.warning("Evidence emission failed: %s", exc, exc_info=True)
 
         return receipt_id
 
@@ -1037,7 +1038,7 @@ class MissionOrchestrator:
             logger.warning("Memory storage failed (known): %s", exc)
             return ""
         except Exception as exc:  # noqa: BLE001 — memory storage boundary
-            logger.warning("Memory storage failed: %s", exc)
+            logger.warning("Memory storage failed: %s", exc, exc_info=True)
             return ""
 
     async def _retrieve_memories(self, description: str) -> list[Any]:
@@ -1055,7 +1056,7 @@ class MissionOrchestrator:
             logger.warning("Memory retrieval failed (known): %s", exc)
             return []
         except Exception as exc:  # noqa: BLE001 — memory retrieval boundary
-            logger.warning("Memory retrieval failed: %s", exc)
+            logger.warning("Memory retrieval failed: %s", exc, exc_info=True)
             return []
 
     async def _emit(self, topic: str, payload: dict[str, Any]) -> None:
@@ -1066,7 +1067,7 @@ class MissionOrchestrator:
         except (RuntimeError, ValueError) as exc:
             logger.warning("Event emit failed (known) | topic=%s error=%s", topic, exc)
         except Exception as exc:  # noqa: BLE001 — event bus boundary
-            logger.warning("Event emit failed | topic=%s error=%s", topic, exc)
+            logger.warning("Event emit failed | topic=%s error=%s", topic, exc, exc_info=True)
 
 
 # ── Persistent Node Signer ─────────────────────────────────────────────

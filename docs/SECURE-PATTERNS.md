@@ -606,5 +606,39 @@ result = subprocess.run(["some-command"])  # VULNERABLE
 
 ---
 
+## 11. SEC-003 Exception Boundary Hardening
+
+**Status:** In progress (mission.py complete, 513 remaining across 177 files)
+
+### Pattern: Diagnosable Boundary Guards
+
+Mission-critical orchestrators (e.g., `core/sovereign/mission.py`) use a two-layer
+exception pattern for optional subsystem boundaries:
+
+```python
+# Layer 1: Known failure types — handle specifically
+except (OSError, ValueError, RuntimeError) as exc:
+    logger.warning("Known failure: %s", exc)
+
+# Layer 2: Safety net — catch unexpected, log full traceback
+except Exception as exc:  # noqa: BLE001 — boundary guard
+    logger.warning("Unexpected failure: %s", exc, exc_info=True)
+```
+
+**Key rule:** Layer 2 always includes `exc_info=True` so production logs contain
+full tracebacks for future narrowing. Catches that swallow exceptions silently
+are forbidden (SEC-003 violation).
+
+### Hardened Files
+
+| File | Catches | Status |
+|------|---------|--------|
+| `core/sovereign/api.py` | 60 | Annotated (d5a573c) |
+| `core/sovereign/mission.py` | 20 | Hardened with exc_info (1b300dc) |
+| `core/sovereign/rust_lifecycle.py` | 13 | Pending |
+| `core/apex/apex_engine.py` | 10 | Pending |
+
+---
+
 *Document maintained by Security Architect Agent*
-*Version: 1.0.0*
+*Version: 1.1.0*
