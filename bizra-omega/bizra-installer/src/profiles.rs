@@ -134,10 +134,7 @@ impl ProfileRegistry {
         locale: &str,
     ) -> Result<UserProfile, String> {
         if self.profiles.len() >= self.max_profiles as usize {
-            return Err(format!(
-                "Maximum {} profiles reached",
-                self.max_profiles
-            ));
+            return Err(format!("Maximum {} profiles reached", self.max_profiles));
         }
 
         // Check duplicate names
@@ -158,11 +155,7 @@ impl ProfileRegistry {
     }
 
     /// Switch active profile (requires PIN if set)
-    pub fn switch_profile(
-        &mut self,
-        profile_id: &str,
-        pin: Option<&str>,
-    ) -> Result<(), String> {
+    pub fn switch_profile(&mut self, profile_id: &str, pin: Option<&str>) -> Result<(), String> {
         let profile = self
             .profiles
             .iter()
@@ -180,7 +173,11 @@ impl ProfileRegistry {
         self.active_profile_id = Some(profile_id.to_string());
 
         // Update last_active timestamp
-        if let Some(p) = self.profiles.iter_mut().find(|p| p.profile_id == profile_id) {
+        if let Some(p) = self
+            .profiles
+            .iter_mut()
+            .find(|p| p.profile_id == profile_id)
+        {
             p.last_active = Some(chrono::Utc::now().to_rfc3339());
         }
 
@@ -304,7 +301,11 @@ mod tests {
         let mut p2 = reg.create_profile("Bob", "ar").unwrap();
         p2.set_pin("5678");
         // Update the stored profile with PIN
-        if let Some(stored) = reg.profiles.iter_mut().find(|p| p.profile_id == p2.profile_id) {
+        if let Some(stored) = reg
+            .profiles
+            .iter_mut()
+            .find(|p| p.profile_id == p2.profile_id)
+        {
             stored.pin_hash = p2.pin_hash.clone();
         }
 

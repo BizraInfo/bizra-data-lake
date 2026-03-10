@@ -134,10 +134,7 @@ impl URPState {
     /// Automatically deducts Zakat (2.5% floor).
     ///
     /// Returns (net_seed_earned, zakat_deducted)
-    pub fn credit_contribution(
-        &mut self,
-        interval_seconds: u64,
-    ) -> (f64, f64) {
+    pub fn credit_contribution(&mut self, interval_seconds: u64) -> (f64, f64) {
         if !self.pledge.is_active() {
             return (0.0, 0.0);
         }
@@ -259,7 +256,10 @@ mod tests {
         let (net, zakat) = state.credit_contribution(3600); // 1 hour
         assert!(net > 0.0, "Net SEED should be positive");
         assert!(zakat > 0.0, "Zakat should be deducted");
-        assert!((zakat / (net + zakat) - ZAKAT_RATE).abs() < 0.001, "Zakat rate mismatch");
+        assert!(
+            (zakat / (net + zakat) - ZAKAT_RATE).abs() < 0.001,
+            "Zakat rate mismatch"
+        );
     }
 
     #[test]

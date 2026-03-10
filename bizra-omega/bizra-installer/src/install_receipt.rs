@@ -79,7 +79,10 @@ impl DeviceSummary {
             os: format!("{:?}", profile.os),
             arch: format!("{:?}", profile.arch),
             ram_gb: profile.ram_total_gb,
-            gpu: profile.gpu.as_ref().map(|g| format!("{} ({})", g.model, format!("{:?}", g.api))),
+            gpu: profile
+                .gpu
+                .as_ref()
+                .map(|g| format!("{} ({})", g.model, format!("{:?}", g.api))),
             tier: format!("{:?}", profile.recommended_tier()),
             locale: profile.system_locale.clone(),
         }

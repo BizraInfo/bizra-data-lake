@@ -11,9 +11,7 @@
 use crate::device_profile::{detect_device, DeviceProfile, ModelTier};
 use crate::health_check::{run_health_check, HealthCheckReport};
 use crate::i18n::{resolve_locale, I18nManager, LocaleInfo};
-use crate::install_receipt::{
-    DeviceSummary, InstallAction, InstallReceipt, ModelSelection,
-};
+use crate::install_receipt::{DeviceSummary, InstallAction, InstallReceipt, ModelSelection};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -230,8 +228,14 @@ pub struct GreetResult {
 /// Returns the recommended configuration. In non-interactive mode,
 /// returns immediately with defaults.
 pub fn execute_adapt(state: &InstallState) -> AdaptResult {
-    let profile = state.profile.as_ref().expect("detect must run before adapt");
-    let tier = state.selected_tier.as_ref().expect("detect must run before adapt");
+    let profile = state
+        .profile
+        .as_ref()
+        .expect("detect must run before adapt");
+    let tier = state
+        .selected_tier
+        .as_ref()
+        .expect("detect must run before adapt");
 
     AdaptResult {
         model_name: tier.model_name().to_string(),
@@ -285,11 +289,12 @@ fn generate_warnings(profile: &DeviceProfile, tier: &ModelTier) -> Vec<String> {
 ///
 /// Returns the "I am alive" message from the local LLM and the
 /// health check report.
-pub fn execute_alive(
-    state: &InstallState,
-) -> AliveResult {
+pub fn execute_alive(state: &InstallState) -> AliveResult {
     let install_dir = &state.options.install_dir;
-    let profile = state.profile.as_ref().expect("detect must run before alive");
+    let profile = state
+        .profile
+        .as_ref()
+        .expect("detect must run before alive");
 
     // Run health check
     let health = run_health_check(install_dir, profile);
@@ -310,7 +315,8 @@ pub fn execute_alive(
     AliveResult {
         health_check: health,
         receipt,
-        first_inference_prompt: "You are BIZRA Node0, a sovereign AI. Introduce yourself in one sentence.".to_string(),
+        first_inference_prompt:
+            "You are BIZRA Node0, a sovereign AI. Introduce yourself in one sentence.".to_string(),
     }
 }
 
@@ -361,19 +367,16 @@ mod tests {
         assert_eq!(InstallStep::Greet.step_number(), 2);
         assert_eq!(InstallStep::Alive.step_number(), 6);
         assert_eq!(InstallStep::Complete.step_number(), 7);
-        assert_eq!(
-            InstallStep::Failed {
-                reason: "x".into()
-            }
-            .step_number(),
-            0
-        );
+        assert_eq!(InstallStep::Failed { reason: "x".into() }.step_number(), 0);
     }
 
     #[test]
     fn default_options() {
         let opts = InstallOptions::default();
-        assert!(opts.install_dir.to_str().unwrap().contains("bizra") || opts.install_dir.to_str().unwrap().contains(".bizra"));
+        assert!(
+            opts.install_dir.to_str().unwrap().contains("bizra")
+                || opts.install_dir.to_str().unwrap().contains(".bizra")
+        );
         assert!(!opts.offline);
         assert!(!opts.non_interactive);
     }
