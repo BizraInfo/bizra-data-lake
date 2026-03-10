@@ -1,7 +1,6 @@
 """BIZRA BLOOM governance token + community pool."""
 
 from core.token.ledger import TokenLedger
-from core.token.mint import TokenMinter
 from core.token.types import (
     TokenBalance,
     TokenOp,
@@ -9,6 +8,14 @@ from core.token.types import (
     TokenType,
     TransactionEntry,
 )
+
+try:
+    from core.token.mint import TokenMinter
+except ImportError:
+    try:
+        from core.token.bloom import TokenMinter
+    except ImportError:
+        pass
 
 __all__ = [
     "TokenBalance",

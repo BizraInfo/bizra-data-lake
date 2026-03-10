@@ -90,6 +90,9 @@
 | **DONE** | Rust clippy installer errors (4+7+1) | Fixed | Lint Rust gate |
 | **DONE** | Z3 ImportError cascade (13 tests) | Fixed | Test Python gate |
 | **DONE** | WARP/redis test skip markers | Fixed | Test Python gate |
+| **DONE** | Token API auth test fixture | Fixed | Anonymous auth monkeypatch |
+| **DONE** | TokenBalance export from core.token | Fixed | `__init__.py` re-exports |
+| **DONE** | CSP meta tag in filedfs/index.html | Fixed | CSP + sw-register.js |
 | **P1** | bizra_test.py T2 gate in CI | Local only | Add CI step |
 | **P2** | Reflex endpoint in deploy smoke | Done | Auth fail-closed |
 | **P2** | Docker image rebuild | Stale | After Phase 68 |

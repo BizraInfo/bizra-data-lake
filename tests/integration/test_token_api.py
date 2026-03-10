@@ -29,11 +29,19 @@ class TestTokenAPIRoutes:
             pytest.skip("FastAPI not available")
 
     @pytest.fixture
-    def client(self, app, tmp_path):
-        """Create test client with isolated token ledger."""
+    def client(self, app, tmp_path, monkeypatch):
+        """Create test client with isolated token ledger and anonymous auth."""
         from unittest.mock import patch
 
         from core.token.ledger import TokenLedger as _RealLedger
+
+        # Enable anonymous auth for test environment (not production)
+        monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "1")
+        monkeypatch.delenv("BIZRA_ENV", raising=False)
+        # Reset the warned flag so the env change takes effect
+        import core.auth.middleware as _auth_mod
+
+        monkeypatch.setattr(_auth_mod, "_ANON_AUTH_WARNED", False)
 
         def _factory(*args, **kwargs):
             return _RealLedger(
