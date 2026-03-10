@@ -80,6 +80,8 @@
 | **DONE** | CONST-001 hash audit | In CI | Every push |
 | **DONE** | Coverage ratchet in CI | 62% floor | Bumped from 38% |
 | **DONE** | MOE-001 E2E pipeline gate | In CI | 82 tests (46+25+11) |
+| **DONE** | Shell script permissions (69 files) | Fixed | chmod +x in git index |
+| **DONE** | MD024 siblings-only rule | Fixed | markdownlint config updated |
 | **P1** | bizra_test.py T2 gate in CI | Local only | Add CI step |
 | **P2** | Reflex endpoint in deploy smoke | Done | Auth fail-closed |
 | **P2** | Docker image rebuild | Stale | After Phase 68 |
