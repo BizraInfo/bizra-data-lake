@@ -121,10 +121,10 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
-# Coverage gate: 38% floor enforced in CI (recalibrated 2026-02-26)
-# Ratcheted: 30% → 55% → 60% → 65% → 38% (new modules added without tests)
-# Next target: 45% → 55% → 65% → 95% (Ihsān threshold)
-fail_under = 38
+# Coverage gate: ratcheted in CI (Deming PDCA — never regress)
+# History: 30% → 55% → 60% → 65% → 38% (new modules) → 62% (Week 2 ratchet)
+# Actual coverage: 64.57% (v0.80.0 lock). Floor = measured - 2% headroom.
+fail_under = 62
 show_missing = true
 precision = 2
 
