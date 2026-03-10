@@ -32,27 +32,49 @@ PROOF_FILE = "node0_mvsa_proof.json"
 
 def _resolve_binary(project_root: Path) -> Optional[Path]:
     """Resolve the Rust MVSA binary following strict precedence."""
+    def _existing_binary(path: Path) -> Optional[Path]:
+        candidates = [path]
+        if os.name == "nt":
+            candidates.append(path.with_suffix(".exe"))
+        for candidate in candidates:
+            if candidate.exists() and os.access(str(candidate), os.X_OK):
+                return candidate
+        return None
+
     # 1. Environment variable
     env_bin = os.environ.get("BIZRA_NODE0_MVSA_BIN")
     if env_bin:
         p = Path(env_bin)
-        if p.exists() and os.access(str(p), os.X_OK):
-            return p
+        resolved = _existing_binary(p)
+        if resolved is not None:
+            return resolved
         logger.warning("BIZRA_NODE0_MVSA_BIN=%s not found or not executable", env_bin)
 
     omega_dir = project_root / "bizra-omega"
 
     # 2. Release binary
     release = omega_dir / "target" / "release" / "node0-mvsa"
-    if release.exists() and os.access(str(release), os.X_OK):
-        return release
+    resolved = _existing_binary(release)
+    if resolved is not None:
+        return resolved
 
     # 3. Debug binary
     debug = omega_dir / "target" / "debug" / "node0-mvsa"
-    if debug.exists() and os.access(str(debug), os.X_OK):
-        return debug
+    resolved = _existing_binary(debug)
+    if resolved is not None:
+        return resolved
 
     return None
+
+
+def _to_wsl_path(path: Path) -> str:
+    """Convert a Windows path into its WSL /mnt form."""
+    resolved = path.resolve()
+    drive = resolved.drive.rstrip(":").lower()
+    if drive:
+        suffix = resolved.as_posix().split(":", 1)[1]
+        return f"/mnt/{drive}{suffix}"
+    return resolved.as_posix()
 
 
 def _run_binary(
@@ -96,6 +118,30 @@ def _run_cargo(
     )
 
 
+def _run_cargo_wsl(
+    project_root: Path,
+    state_dir: Path,
+    out_path: Path,
+) -> subprocess.CompletedProcess[str]:
+    """Fallback cargo execution through WSL for Windows-hosted repos."""
+    omega_dir = _to_wsl_path(project_root / "bizra-omega")
+    state_dir_wsl = _to_wsl_path(state_dir)
+    out_path_wsl = _to_wsl_path(out_path)
+    inner = (
+        f"cd {omega_dir} && "
+        "cargo run -p bizra-resourcepool --bin node0-mvsa -- "
+        f"--state-dir {state_dir_wsl} --out {out_path_wsl}"
+    )
+    cmd = ["wsl.exe", "bash", "-lc", inner]
+    logger.info("Running MVSA via WSL cargo: %s", inner)
+    return subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+
+
 def run_mvsa_proof(
     state_dir: Path,
     project_root: Path,
@@ -123,9 +169,17 @@ def run_mvsa_proof(
         try:
             result = _run_cargo(project_root, state_dir, out_path)
         except FileNotFoundError:
-            raise RuntimeError(
-                f"{REASON_BINARY_UNAVAILABLE}: cargo not found in PATH"
-            )
+            if os.name == "nt":
+                try:
+                    result = _run_cargo_wsl(project_root, state_dir, out_path)
+                except FileNotFoundError:
+                    raise RuntimeError(
+                        f"{REASON_BINARY_UNAVAILABLE}: cargo not found in PATH and wsl.exe unavailable"
+                    )
+            else:
+                raise RuntimeError(
+                    f"{REASON_BINARY_UNAVAILABLE}: cargo not found in PATH"
+                )
 
     logger.info("MVSA binary stderr:\n%s", result.stderr)
 

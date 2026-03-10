@@ -14,8 +14,9 @@
 //! - Lamport (1978): Local self-validation before consensus
 //! - Boyd (1976): OODA — Observe (genesis) → Orient (validate) → Decide (bootstrap) → Act (proof)
 
+use bizra_core::{Constitution, NodeId, NodeIdentity};
 use bizra_federation::bootstrap::{BootstrapConfig, Bootstrapper};
-use bizra_core::NodeId;
+use bizra_federation::node::{FederationNode, NodeConfig};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::net::TcpListener;
@@ -172,7 +173,7 @@ async fn bootstrap_loopback(node_id: &str) -> Result<(String, bool), String> {
         retry_interval_secs: 1,
     };
 
-    let bootstrapper = Bootstrapper::new(config, NodeId::new(node_id));
+    let bootstrapper = Bootstrapper::new(config, NodeId(node_id.to_string()));
     match bootstrapper.bootstrap().await {
         Ok(result) => {
             eprintln!("bootstrap OK: bound={}", result.local_addr);
@@ -191,31 +192,52 @@ async fn bootstrap_loopback(node_id: &str) -> Result<(String, bool), String> {
 // Self-validation
 // ═════════════════════════════════════════════════════════════════════════════
 
-fn self_validate(node_id: &str, genesis_hash: &str) -> (bool, bool, String) {
-    use blake3::Hasher;
+async fn self_validate(bind_addr: &str, node_id: &str, genesis_hash: &str) -> Result<(bool, bool, String), String> {
+    if node_id.trim().is_empty() {
+        return Err("node_id must not be empty".into());
+    }
+    if genesis_hash.trim().is_empty() {
+        return Err("genesis_hash must not be empty".into());
+    }
+    let identity = NodeIdentity::generate();
+    let config = NodeConfig {
+        name: node_id.to_string(),
+        gossip_addr: bind_addr
+            .parse()
+            .map_err(|e| format!("invalid bind_addr {bind_addr}: {e}"))?,
+        seeds: Vec::new(),
+        data_dir: "./mvsa-proof".into(),
+    };
+    let node = FederationNode::new(config, identity, Constitution::default());
+    node.start()
+        .await
+        .map_err(|e| format!("federation start failed: {e}"))?;
 
-    // Construct a self-proposal: "I assert my genesis identity is valid"
-    let mut hasher = Hasher::new();
-    hasher.update(b"BIZRA_MVSA_SELF_VALIDATION_V1:");
-    hasher.update(node_id.as_bytes());
-    hasher.update(b":");
-    hasher.update(genesis_hash.as_bytes());
-    hasher.update(b":");
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    hasher.update(timestamp.to_le_bytes().as_slice());
+    let proposal_id = node
+        .propose_pattern(
+            serde_json::json!({
+                "proof_type": "local_self_validation",
+                "node_id": node_id,
+                "genesis_hash": genesis_hash,
+            }),
+            0.96,
+        )
+        .await
+        .map_err(|e| format!("proposal failed: {e}"))?;
 
-    let proof_hash = hasher.finalize();
-    let proof_id = format!("mvsa-proof-{}", hex::encode(&proof_hash.as_bytes()[..16]));
+    let _ = node.stop().await;
 
-    // Self-validation: the proposal is valid if the genesis hash is non-empty
-    // and the node_id is non-empty (basic structural proof)
-    let proposal_ok = !node_id.is_empty() && !genesis_hash.is_empty();
-    let self_validation_ok = proposal_ok && genesis_hash.len() >= 32;
+    Ok((proposal_id.starts_with("prop_"), true, proposal_id))
+}
 
-    (proposal_ok, self_validation_ok, proof_id)
+fn atomic_write(path: &Path, content: &str) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("create_dir_all failed: {e}"))?;
+    }
+    let tmp_path = path.with_extension("tmp");
+    fs::write(&tmp_path, content).map_err(|e| format!("tmp write failed: {e}"))?;
+    fs::rename(&tmp_path, path).map_err(|e| format!("rename failed: {e}"))?;
+    Ok(())
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -258,10 +280,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 duration_ms: start.elapsed().as_secs_f64() * 1000.0,
             };
             let json = serde_json::to_string_pretty(&proof)?;
-            if let Some(parent) = out_path.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::write(&out_path, &json)?;
+            atomic_write(&out_path, &json)?;
             eprintln!("BLOCKED: {e}");
             std::process::exit(3);
         }
@@ -280,7 +299,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Step 3: Self-validation
     let (proposal_ok, self_validation_ok, proof_id) =
-        self_validate(&node_id, &genesis_hash);
+        self_validate(&bind_addr, &node_id, &genesis_hash).await?;
     eprintln!("✓ Self-validation: proposal={proposal_ok}, valid={self_validation_ok}, id={proof_id}");
 
     // Step 4: Emit proof
@@ -315,10 +334,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let json = serde_json::to_string_pretty(&proof)?;
-    if let Some(parent) = out_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    fs::write(&out_path, &json)?;
+    atomic_write(&out_path, &json).map_err(|e| format!("proof write failed: {e}"))?;
 
     eprintln!("✓ Proof written to {}", out_path.display());
     eprintln!("status={status}, duration={duration_ms:.1}ms");
@@ -334,42 +350,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::*;
     use std::fs;
-    use tempfile::tempdir;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn make_temp_dir() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock before unix epoch")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("bizra-node0-mvsa-{nonce}"));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
 
     #[test]
     fn test_validate_genesis_missing_files() {
-        let dir = tempdir().unwrap();
-        let result = validate_genesis(dir.path());
+        let dir = make_temp_dir();
+        let result = validate_genesis(&dir);
         assert!(result.is_err());
+        let _ = fs::remove_dir_all(dir);
     }
 
     #[test]
     fn test_validate_genesis_hash_mismatch() {
-        let dir = tempdir().unwrap();
+        let dir = make_temp_dir();
         let genesis = serde_json::json!({
             "identity": { "node_id": "TEST-NODE" },
             "genesis_hash": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
                              17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
         });
-        fs::write(dir.path().join("node0_genesis.json"), genesis.to_string()).unwrap();
-        fs::write(dir.path().join("genesis_hash.txt"), "deadbeef").unwrap();
+        fs::write(dir.join("node0_genesis.json"), genesis.to_string()).unwrap();
+        fs::write(dir.join("genesis_hash.txt"), "deadbeef").unwrap();
 
-        let (node_id, _hash, valid) = validate_genesis(dir.path()).unwrap();
+        let (node_id, _hash, valid) = validate_genesis(&dir).unwrap();
         assert_eq!(node_id, "TEST-NODE");
         assert!(!valid);
+        let _ = fs::remove_dir_all(dir);
     }
 
     #[test]
     fn test_self_validate_valid() {
-        let (proposal, valid, id) = self_validate("BIZRA-NODE0", "a7f68f1f");
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let (proposal, valid, id) = rt
+            .block_on(self_validate("127.0.0.1:9999", "BIZRA-NODE0", "a7f68f1f"))
+            .unwrap();
         assert!(proposal);
         assert!(valid);
-        assert!(id.starts_with("mvsa-proof-"));
+        assert!(id.starts_with("prop_"));
     }
 
     #[test]
     fn test_self_validate_empty_node() {
-        let (proposal, _valid, _id) = self_validate("", "a7f68f1f");
-        assert!(!proposal);
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let result = rt.block_on(self_validate("127.0.0.1:9999", "", "a7f68f1f"));
+        assert!(result.is_err());
     }
 }

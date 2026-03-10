@@ -84,7 +84,7 @@ class ActivationContext:
     node_id: str
     pat_agent_ids: list[str]
     sat_agent_ids: list[str]
-    private_key_hex: str
+    signing_private_key_hex: str | None
 
 
 class Node0StandaloneManager:
@@ -111,7 +111,9 @@ class Node0StandaloneManager:
             node_id=genesis.node_id,
             pat_agent_ids=genesis.pat_agent_ids,
             sat_agent_ids=genesis.sat_agent_ids,
-            private_key_hex=genesis.identity.public_key,
+            signing_private_key_hex=self._resolve_operational_private_key(
+                genesis, architect=architect
+            ),
         )
 
         # ── Step 2: Hardware + URP + Assets + Awareness ────────────
@@ -412,17 +414,84 @@ class Node0StandaloneManager:
 
     def prove_mvsa(self) -> dict[str, Any]:
         """Run the Rust-backed MVSA proof and update lifecycle v2."""
+        try:
+            genesis = self._resolve_authority()
+        except RuntimeError as exc:
+            lc = self._load_lifecycle_for_write()
+            lc["updated_at"] = _utc_now()
+            lc["status"] = "blocked"
+            lc["ok"] = False
+            lc["ready"] = False
+            lc.setdefault("origin", {})
+            lc["origin"]["authority_source"] = "canonical_genesis"
+            lc["origin"]["reason_code"] = "AUTHORITY_RESOLUTION_FAILED"
+            lc.setdefault("gates", {})
+            lc["gates"]["genesis_authority_valid"] = False
+            _write_json(self.lifecycle_path, lc)
+            return {
+                "ok": False,
+                "status": "blocked",
+                "reason": str(exc),
+                "lifecycle_status": "blocked",
+            }
+
         proof = self._run_mvsa_proof()
         if proof is None:
+            lc = self._load_lifecycle_for_write()
+            lc["updated_at"] = _utc_now()
+            lc["node_id"] = genesis.node_id
+            lc["origin"] = {
+                "authority_source": "canonical_genesis",
+                "genesis_hash": (genesis.genesis_hash.hex() if genesis.genesis_hash else ""),
+                "reason_code": "MVSA_PROOF_FAILED",
+            }
+            lc["identity"] = {
+                "pat_agents": len(genesis.pat_agent_ids),
+                "sat_agents": len(genesis.sat_agent_ids),
+            }
+            gates = lc.setdefault("gates", {})
+            gates["genesis_authority_valid"] = True
+            gates["identity_ready"] = bool(genesis.node_id)
+            gates["pat_sat_ready"] = bool(genesis.pat_agent_ids) and bool(genesis.sat_agent_ids)
+            gates["urp_signed"] = bool((_read_json(self.urp_path, default={}) or {}).get("signed"))
+            gates["urp_verified"] = bool(
+                (_read_json(self.urp_path, default={}) or {}).get("signature_verified")
+            )
+            gates["assets_written"] = self.assets_path.exists()
+            gates["awareness_written"] = self.awareness_path.exists()
+            gates["mvsa_network_bootstrap_ok"] = False
+            gates["mvsa_self_validation_ok"] = False
+            self._apply_restart_recovery(lc)
+            lc["status"] = "blocked"
+            lc["ok"] = False
+            lc["ready"] = False
+            _write_json(self.lifecycle_path, lc)
             return {"ok": False, "status": "blocked", "reason": "MVSA proof failed"}
 
         # Update lifecycle v2 with proof results
-        lc = _read_json(self.lifecycle_path, default={}) or {}
+        lc = self._load_lifecycle_for_write()
+        lc["node_id"] = genesis.node_id
+        lc["origin"] = {
+            "authority_source": "canonical_genesis",
+            "genesis_hash": (genesis.genesis_hash.hex() if genesis.genesis_hash else ""),
+        }
+        lc["identity"] = {
+            "pat_agents": len(genesis.pat_agent_ids),
+            "sat_agents": len(genesis.sat_agent_ids),
+        }
         lc["mvsa"] = proof
         lc["updated_at"] = _utc_now()
 
         # Update gates
         gates = lc.get("gates", {})
+        gates["genesis_authority_valid"] = True
+        gates["identity_ready"] = bool(genesis.node_id)
+        gates["pat_sat_ready"] = bool(genesis.pat_agent_ids) and bool(genesis.sat_agent_ids)
+        urp = _read_json(self.urp_path, default={}) or {}
+        gates["urp_signed"] = bool(urp.get("signed", False))
+        gates["urp_verified"] = bool(urp.get("signature_verified", False))
+        gates["assets_written"] = self.assets_path.exists()
+        gates["awareness_written"] = self.awareness_path.exists()
         gates["mvsa_network_bootstrap_ok"] = bool(
             proof.get("network", {}).get("bootstrap_ok")
         )
@@ -431,6 +500,8 @@ class Node0StandaloneManager:
         )
         lc["gates"] = gates
 
+        self._apply_restart_recovery(lc)
+
         # Recompute status
         lc["status"] = self._compute_status(gates)
         lc["ok"] = lc["status"] != "blocked"
@@ -438,7 +509,8 @@ class Node0StandaloneManager:
         _write_json(self.lifecycle_path, lc)
 
         return {
-            "ok": proof.get("status") == "ready",
+            "ok": lc["status"] != "blocked",
+            "proof_ok": proof.get("status") == "ready",
             "proof": proof,
             "lifecycle_status": lc["status"],
         }
@@ -465,6 +537,7 @@ class Node0StandaloneManager:
         required = [
             self.state_root / "node0_genesis.json",
             self.state_root / "genesis_hash.txt",
+            self.state_root / "node0_mvsa_proof.json",
             self.assets_path,
             self.awareness_path,
             self.urp_path,
@@ -489,7 +562,7 @@ class Node0StandaloneManager:
         self, receipt_id: str, status: str, ihsan: float, snr: float
     ) -> None:
         """Update lifecycle v2 mission fields after a successful task."""
-        lc = _read_json(self.lifecycle_path, default={}) or {}
+        lc = self._load_lifecycle_for_write()
         lc["mission"] = {
             "last_evidence_receipt_id": receipt_id,
             "last_mission_status": status,
@@ -500,29 +573,88 @@ class Node0StandaloneManager:
         if receipt_id:
             gates["mission_path_receipted"] = True
         lc["gates"] = gates
+        self._apply_restart_recovery(lc)
         lc["status"] = self._compute_status(gates)
         lc["ok"] = lc["status"] != "blocked"
         lc["ready"] = lc["status"] == "ready"
         lc["updated_at"] = _utc_now()
         _write_json(self.lifecycle_path, lc)
 
-    def _update_lifecycle_restart_recovery(self) -> None:
-        """Mark restart_recovery_ready if all required artifacts present."""
-        lc = _read_json(self.lifecycle_path, default={}) or {}
+    def _apply_restart_recovery(self, lifecycle: dict[str, Any]) -> None:
+        """Mark restart recovery on mutating commands executed from a fresh process."""
+        mvsa_proof = self.mvsa()
         present = self._check_required_artifacts()
-        mvsa_proof = _read_json(self.state_root / "node0_mvsa_proof.json")
-        if present and mvsa_proof and mvsa_proof.get("status") == "ready":
-            lc.setdefault("restart_recovery", {})["restart_recovery_ready"] = True
-            lc["restart_recovery"]["validated_at"] = _utc_now()
-            lc["restart_recovery"]["required_artifacts_present"] = True
-            gates = lc.get("gates", {})
-            gates["restart_recovery_ready"] = True
-            lc["gates"] = gates
-            lc["status"] = self._compute_status(gates)
-            lc["ok"] = lc["status"] != "blocked"
-            lc["ready"] = lc["status"] == "ready"
-            lc["updated_at"] = _utc_now()
-            _write_json(self.lifecycle_path, lc)
+        restart_ready = bool(present and mvsa_proof.get("status") == "ready")
+        lifecycle.setdefault("restart_recovery", {})
+        lifecycle["restart_recovery"]["restart_recovery_ready"] = restart_ready
+        lifecycle["restart_recovery"]["validated_at"] = _utc_now() if restart_ready else None
+        lifecycle["restart_recovery"]["required_artifacts_present"] = present
+        gates = lifecycle.setdefault("gates", {})
+        gates["restart_recovery_ready"] = restart_ready
+
+    def _load_lifecycle_for_write(self) -> dict[str, Any]:
+        """Load lifecycle data and coerce older payloads into lifecycle v2."""
+        lifecycle = _read_json(self.lifecycle_path, default={}) or {}
+        schema_version = str(lifecycle.get("schema_version", lifecycle.get("version", "1.0.0")))
+        if schema_version.startswith("2."):
+            lifecycle.setdefault("mission", {})
+            lifecycle.setdefault("restart_recovery", {})
+            lifecycle.setdefault("mvsa", {})
+            lifecycle.setdefault("origin", {})
+            lifecycle.setdefault("compat", {})
+            lifecycle.setdefault("gates", {})
+            return lifecycle
+
+        return {
+            "schema_version": "2.0.0",
+            "updated_at": _utc_now(),
+            "status": lifecycle.get("status", "degraded"),
+            "ok": lifecycle.get("status", "degraded") != "blocked",
+            "ready": False,
+            "node_id": lifecycle.get("node_id", "unknown"),
+            "origin": {},
+            "identity": lifecycle.get("identity", {}),
+            "artifacts": lifecycle.get("artifacts", {}),
+            "gates": lifecycle.get("gates", {}),
+            "mvsa": {},
+            "mission": {},
+            "restart_recovery": {
+                "restart_recovery_ready": False,
+                "validated_at": None,
+                "required_artifacts_present": self._check_required_artifacts(),
+            },
+            "compat": {
+                "legacy_status": lifecycle.get("status", "unknown"),
+                "legacy_version": lifecycle.get("version", "1.0.0"),
+            },
+        }
+
+    def _resolve_operational_private_key(
+        self, genesis: Any, architect: str | None = None
+    ) -> str | None:
+        """Resolve a local signing key without treating it as authority."""
+        env_key = os.environ.get("BIZRA_URP_PRIVATE_KEY_HEX", "").strip()
+        if env_key:
+            return env_key
+
+        receipt_key = os.environ.get("BIZRA_RECEIPT_PRIVATE_KEY_HEX", "").strip()
+        if receipt_key:
+            return receipt_key
+
+        existing = self._load_existing_operational_credentials()
+        if existing:
+            return existing.private_key
+
+        helper = self._ensure_operational_signer(architect=architect)
+        if helper is not None:
+            logger.info(
+                "Provisioned non-authoritative local signer for Node0 operations: %s",
+                helper.public_key,
+            )
+            return helper.private_key
+
+        logger.warning("No operational signer available for Node0 URP signing")
+        return None
 
     def _check_http(self, url: str) -> bool:
         try:
@@ -533,7 +665,30 @@ class Node0StandaloneManager:
         except Exception:
             return False
 
-    def _ensure_identity(self, architect: str) -> ActivationContext:
+    def _load_existing_operational_credentials(self) -> Any | None:
+        """Load non-authoritative local credentials for optional signing fallback."""
+        from core.pat.onboarding import OnboardingWizard
+
+        wizard = OnboardingWizard(node_dir=self.identity_dir)
+        return wizard.load_existing_credentials()
+
+    def _ensure_operational_signer(self, architect: str | None = None) -> Any | None:
+        """Provision a local helper signer without changing Node0 authority."""
+        from core.pat.onboarding import OnboardingWizard
+
+        wizard = OnboardingWizard(node_dir=self.identity_dir)
+        existing = wizard.load_existing_credentials()
+        if existing is not None:
+            return existing
+        try:
+            return wizard.onboard(name=architect or "Node0 Operational Signer")
+        except FileExistsError:
+            return wizard.load_existing_credentials()
+        except Exception:
+            logger.warning("Failed to provision local operational signer", exc_info=True)
+            return None
+
+    def _ensure_identity(self, architect: str | None) -> ActivationContext:
         from core.pat.onboarding import OnboardingWizard
 
         wizard = OnboardingWizard(node_dir=self.identity_dir)
@@ -548,7 +703,7 @@ class Node0StandaloneManager:
             node_id=credentials.node_id,
             pat_agent_ids=list(credentials.pat_agent_ids),
             sat_agent_ids=list(credentials.sat_agent_ids),
-            private_key_hex=credentials.private_key,
+            signing_private_key_hex=credentials.private_key,
         )
 
     def _scan_hardware(self) -> dict[str, Any]:
@@ -572,7 +727,7 @@ class Node0StandaloneManager:
         pledge = pledge_resources(
             node_id=context.node_id,
             hardware_info=hardware,
-            signing_private_key_hex=context.private_key_hex,
+            signing_private_key_hex=context.signing_private_key_hex,
         )
         verified = verify_pledge_signature(pledge)
 
@@ -804,8 +959,6 @@ async def _cmd_activate(args: argparse.Namespace) -> int:
 
 async def _cmd_health(args: argparse.Namespace) -> int:
     manager = Node0StandaloneManager()
-    # On second+ health call, check restart recovery
-    manager._update_lifecycle_restart_recovery()
     result = manager.health()
     _print_json(result)
     status = result.get("status", "degraded")
@@ -821,9 +974,10 @@ async def _cmd_prove_mvsa(args: argparse.Namespace) -> int:
     manager = Node0StandaloneManager()
     result = manager.prove_mvsa()
     _print_json(result)
-    if result.get("ok"):
+    status = result.get("lifecycle_status", result.get("status", "blocked"))
+    if status == "ready":
         return 0
-    elif result.get("lifecycle_status") == "degraded":
+    elif status == "degraded":
         return 2
     else:
         return 3
@@ -903,8 +1057,8 @@ def create_app(
     api_key = api_key.strip()
     app = FastAPI(
         title="BIZRA Node0 Standalone",
-        version="1.0.0",
-        description="Single-node lifecycle API (activate, health, task)",
+        version="2.0.0",
+        description="Single-node MVSA lifecycle API (activate, prove-mvsa, health, task)",
     )
 
     def _require_api_key(x_api_key: str | None) -> None:
