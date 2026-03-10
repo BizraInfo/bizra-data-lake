@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from .atomic_io import atomic_write_json, read_json
+from .atomic_io import atomic_write_json, atomic_write_text, read_json
 from .genesis_identity import GenesisState, load_genesis, validate_genesis_hash
 
 logger = logging.getLogger(__name__)
@@ -131,15 +131,15 @@ def _migrate_legacy_to_canonical(
     atomic_write_json(canonical_genesis, data)
 
     genesis_hash = _genesis_hash_hex(data)
-    (state_dir / "genesis_hash.txt").write_text(genesis_hash + "\n", encoding="utf-8")
+    atomic_write_text(state_dir / "genesis_hash.txt", genesis_hash + "\n")
 
     # Extract rosters
     pat_agents = data.get("pat_team", {}).get("agents", [])
     sat_agents = data.get("sat_team", {}).get("agents", [])
     pat_lines = [a.get("agent_id", f"PAT-{i}") for i, a in enumerate(pat_agents)]
     sat_lines = [a.get("agent_id", f"SAT-{i}") for i, a in enumerate(sat_agents)]
-    (state_dir / "pat_roster.txt").write_text("\n".join(pat_lines) + "\n", encoding="utf-8")
-    (state_dir / "sat_roster.txt").write_text("\n".join(sat_lines) + "\n", encoding="utf-8")
+    atomic_write_text(state_dir / "pat_roster.txt", "\n".join(pat_lines) + "\n")
+    atomic_write_text(state_dir / "sat_roster.txt", "\n".join(sat_lines) + "\n")
 
     logger.info("Migrated legacy genesis from %s → canonical %s", source_path, canonical_genesis)
 
