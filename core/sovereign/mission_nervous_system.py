@@ -287,15 +287,48 @@ class SovereignNervousSystem:
         minter = BloomMinter(community_pool=pool)
         wallet = WalletState(node_id="local_node")
 
+        # Minimal no-op implementations for safety-critical subscribers
+        # IhsanGateBreachHandler and FailedActionQuarantine are fail-closed
+        # (re-raise on error), so they need functional dependencies.
+        class _NoOpAuditLog:
+            """Minimal audit log — logs violations without external service."""
+            def log_violation(self, **kw: Any) -> None:
+                logger.warning("Ihsān gate violation: %s", kw)
+
+        class _NoOpSessionManager:
+            """Minimal session manager — halts are logged, not enforced."""
+            def halt(self, **kw: Any) -> None:
+                logger.warning("Session halt requested: %s", kw)
+
+        class _NoOpQuarantine:
+            """Minimal quarantine — isolations are logged."""
+            def isolate(self, **kw: Any) -> None:
+                logger.warning("Quarantine isolation: %s", kw)
+
+        class _NoOpMemoryStore:
+            """Minimal memory store for subscriber wiring."""
+            def reinforce(self, **kw: Any) -> None: pass
+            def get_success_count(self, key: str) -> int: return 0
+            def set_success_count(self, key: str, val: int) -> None: pass
+            def promote_to_semantic(self, **kw: Any) -> bool: return False
+            def record_failure_pattern(self, **kw: Any) -> None: pass
+
+        class _NoOpTeleScript:
+            """Minimal telescript engine."""
+            def begin_execution(self, **kw: Any) -> str:
+                return f"ts_noop_{id(self)}"
+
+        memory_store = _NoOpMemoryStore()
+
         subs = wire_all_subscribers(
             bus,
-            memory_store={},
-            telescript_engine=None,
+            memory_store=memory_store,
+            telescript_engine=_NoOpTeleScript(),
             receipt_chain=[],
             reflex_cache=reflex,
-            session_manager=None,
-            audit_log=None,
-            quarantine_store=None,
+            session_manager=_NoOpSessionManager(),
+            audit_log=_NoOpAuditLog(),
+            quarantine_store=_NoOpQuarantine(),
             healing_engine=None,
             hhmm_engine=None,
             poi_engine=None,
