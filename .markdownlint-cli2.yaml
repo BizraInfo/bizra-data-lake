@@ -10,3 +10,5 @@ config:
   MD031: false # Legacy docs may omit strict fence spacing.
   MD032: false # Legacy docs may omit strict list spacing.
   MD012: false # Legacy docs may contain extra blank lines.
+  MD024:
+    siblings_only: true # Allow same headings under different parents (runbook sections).
