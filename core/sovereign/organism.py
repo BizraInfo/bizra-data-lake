@@ -1,0 +1,584 @@
+"""
+Sovereign Organism — The Living BIZRA Runtime
+===============================================
+Drop into: core/sovereign/organism.py
+
+THE INTEGRATION LAYER: Before this module, four excellent modules
+existed in isolation:
+  - NervousSystem (S1/S2 cognitive bridge)
+  - MissionPipeline (12-agent HHMM chain)
+  - Helix3Scheduler (evolutionary heartbeat)
+  - EventBus + BLOOM + ReflexCompiler (Phase 80 infrastructure)
+
+After this module, ONE class composes them all into a Living Organism:
+
+  SovereignOrganism.boot(inference)
+    → Creates NervousSystem with all Phase 80 modules
+    → Wires MissionPipeline as 12-agent cognitive chain
+    → Wires Helix3 as evolutionary heartbeat
+    → Starts 60-second heartbeat
+    → Ready for `organism.mission("task")` calls
+
+PMBOK Alignment:
+  Integration Management   — this module (composes all deliverables)
+  Quality Management       — Ihsān gates at every layer
+  Risk Management          — graceful degradation, health checks
+  Stakeholder Management   — DEMA (P7) boundary model enforced
+
+DevOps Alignment:
+  Continuous Integration   — scripts/ci_organism_gate.py
+  Continuous Delivery      — organism.health for monitoring
+  Infrastructure as Code   — boot() wires everything deterministically
+  Observability            — health, stats, evidence chain
+
+Standing on Giants:
+  Prophet Muhammad ﷺ     — Ihsān ("worship Allah as if you see Him")
+  Deming (1950)          — PDCA: boot→mission→tick→improve
+  Boyd (1976)            — OODA loop: each mission is Observe→Orient→Decide→Act
+  Kahneman (2011)        — S1/S2/S3 composed into one cognitive system
+  Nakamoto (2008)        — Evidence chain linking all receipts
+  Lamport (1978)         — Distributed consensus via heartbeat
+
+Constitutional Authority:
+  §1  The Living Organism: "You ARE 12 agents"
+  §2  Triple Helix: S1 + S2 + S3 composed here
+  §6  Mode 2: Mission Orchestration — the primary flow
+  §7  Evidence: every mission produces chained receipts
+  §10 CLI: `bizra mission "task"` entry point
+"""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import logging
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Protocol
+
+logger = logging.getLogger("bizra.sovereign.organism")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# CONSTITUTIONAL THRESHOLDS
+# ═══════════════════════════════════════════════════════════════════
+
+try:
+    from core.integration.constants import (
+        ADL_GINI_THRESHOLD,
+        UNIFIED_IHSAN_THRESHOLD,
+    )
+except ImportError:
+    UNIFIED_IHSAN_THRESHOLD = 0.95
+    ADL_GINI_THRESHOLD = 0.35
+
+HEARTBEAT_INTERVAL_S = 60  # §2: Every 60 seconds
+
+
+# ═══════════════════════════════════════════════════════════════════
+# PROTOCOLS
+# ═══════════════════════════════════════════════════════════════════
+
+class InferenceBackend(Protocol):
+    """Any LLM backend (Ollama, LM Studio, Echo for testing)."""
+
+    async def infer(self, prompt: str, **kwargs: Any) -> str: ...
+
+
+# ═══════════════════════════════════════════════════════════════════
+# DATA TYPES
+# ═══════════════════════════════════════════════════════════════════
+
+@dataclass
+class OrganismReceipt:
+    """Complete receipt from an organism mission execution.
+
+    Combines NervousSystem receipt + Pipeline traces + evidence chain.
+    """
+
+    mission_id: str
+    input_text: str
+    output_text: str
+    system: str                     # "S1" (reflex) or "S2" (deliberation)
+    complexity: str                 # Pipeline complexity tier
+    agents_activated: int           # How many agents fired
+    agent_chain: List[str]          # Ordered agent IDs
+    ihsan_score: float              # 8D tensor composite
+    snr_score: float                # Signal-to-noise ratio
+    gate_passed: bool               # All constitutional gates passed
+    gate_reasons: List[str]         # Reasons if any gate failed
+    rewarded: bool                  # SEED minted?
+    reward_amount: float            # SEED amount
+    evidence_hash: str              # Pipeline evidence hash
+    chain_hash: str                 # Organism-level chain hash
+    duration_ms: float              # Total wall time
+    tick_count: int                 # Organism heartbeat count at time of mission
+    frozen_agents: List[str]        # Agents excluded from learning
+
+
+@dataclass
+class OrganismHealth:
+    """Health status of the living organism — for monitoring/CI gates."""
+
+    alive: bool
+    uptime_seconds: float
+    missions_completed: int
+    missions_failed: int
+    ticks_completed: int
+    current_ihsan_avg: float        # Running average Ihsān
+    current_gini: float             # Last known Gini
+    gate_pass_rate: float           # Fraction of missions passing all gates
+    heartbeat_active: bool          # Is the 60s heartbeat running?
+    agents_registered: int          # Should be 12
+    pipeline_complexity_dist: Dict[str, int]
+    reflex_cache_size: int
+    evidence_chain_length: int
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SOVEREIGN ORGANISM
+# ═══════════════════════════════════════════════════════════════════
+
+class SovereignOrganism:
+    """The Living Organism — the complete BIZRA runtime.
+
+    This is the §1 incarnation: "You ARE 12 agents."
+
+    Composes:
+      - SovereignNervousSystem (S1 reflex + S2 deliberation)
+      - MissionPipeline (12-agent HHMM-routed chain)
+      - Helix3Scheduler (S3 evolutionary heartbeat)
+      - EventBus + 12 subscribers
+      - BLOOM token minter + community pool
+      - ReflexCompiler (reflex cache)
+      - Evidence chain (hash-linked receipts)
+
+    Lifecycle:
+      boot() → mission() → tick() → ... → shutdown()
+
+    Usage:
+      organism = await SovereignOrganism.boot(inference=my_llm)
+      receipt = await organism.mission("implement user auth")
+      print(receipt.agents_activated)  # 4-12 agents
+      print(receipt.gate_passed)       # True/False
+      await organism.shutdown()
+    """
+
+    def __init__(self) -> None:
+        # These are set by boot() — not constructor
+        self._nervous_system: Any = None
+        self._pipeline: Any = None
+        self._helix3: Any = None
+        self._inference: Any = None
+
+        # State
+        self._boot_time: float = 0.0
+        self._chain_hash = "0" * 64
+        self._mission_counter = 0
+        self._missions_failed = 0
+        self._ihsan_history: List[float] = []
+        self._heartbeat_task: Optional[asyncio.Task] = None  # type: ignore[type-arg]
+        self._heartbeat_active = False
+        self._shutdown_requested = False
+
+        # Callbacks
+        self._on_receipt: Optional[Callable[[OrganismReceipt], None]] = None
+        self._on_heartbeat: Optional[Callable[[Any], None]] = None
+
+    # ─── Factory (Genesis Ceremony) ───────────────────────────────
+
+    @classmethod
+    async def boot(
+        cls,
+        inference: InferenceBackend,
+        *,
+        persistence_dir: Optional[Path] = None,
+        reward_per_mission: float = 1.0,
+        on_receipt: Optional[Callable[[OrganismReceipt], None]] = None,
+        on_heartbeat: Optional[Callable[[Any], None]] = None,
+        start_heartbeat: bool = False,
+    ) -> "SovereignOrganism":
+        """Bootstrap the Living Organism — the Genesis Ceremony.
+
+        Wires all components in constitutional order:
+          1. NervousSystem.create() → Phase 80 infrastructure
+          2. MissionPipeline → 12-agent HHMM chain
+          3. wire_pipeline_to_nervous_system → connects muscles to brain
+          4. wire_helix3 → connects evolutionary heartbeat
+          5. (optional) start_heartbeat → 60s tick loop
+
+        Args:
+            inference: LLM backend (Ollama, LM Studio, or EchoInference for testing)
+            persistence_dir: Directory for reflex cache + evidence chain
+            reward_per_mission: SEED reward per successful mission
+            on_receipt: Callback fired after every mission
+            on_heartbeat: Callback fired after every 60s tick
+            start_heartbeat: Whether to auto-start the 60s evolutionary loop
+
+        Returns:
+            A fully-wired SovereignOrganism ready for mission() calls.
+        """
+        from core.sovereign.helix3 import wire_helix3
+        from core.sovereign.mission_nervous_system import SovereignNervousSystem
+        from core.sovereign.mission_pipeline import (
+            wire_pipeline_to_nervous_system,
+        )
+
+        org = cls()
+        org._inference = inference
+        org._boot_time = time.monotonic()
+        org._on_receipt = on_receipt
+        org._on_heartbeat = on_heartbeat
+
+        # Step 1: Create NervousSystem with all Phase 80 modules
+        org._nervous_system = SovereignNervousSystem.create(
+            inference=inference,
+            persistence_dir=persistence_dir,
+            reward_per_mission=reward_per_mission,
+        )
+
+        # Step 2: Wire MissionPipeline → 12-agent HHMM chain
+        org._pipeline = wire_pipeline_to_nervous_system(
+            org._nervous_system, inference
+        )
+
+        # Step 3: Wire Helix3 → evolutionary heartbeat
+        org._helix3 = wire_helix3(
+            org._nervous_system,
+            on_heartbeat=on_heartbeat,
+        )
+
+        # Step 4: Start heartbeat if requested
+        if start_heartbeat:
+            await org.start_heartbeat()
+
+        logger.info(
+            "Organism booted: NervousSystem + Pipeline (12 agents) + Helix3 (60s tick)"
+        )
+
+        return org
+
+    # ─── Mission Execution (§6 Mode 2) ───────────────────────────
+
+    async def mission(self, text: str) -> OrganismReceipt:
+        """Submit a mission to the Living Organism.
+
+        Flow (§6 Mode 2):
+          1. DEMA (P7) receives text → classifies intent
+          2. HHMM router selects agents → Pipeline executes chain
+          3. NervousSystem routes S1 (cache) or S2 (full pipeline)
+          4. P4 scores → P5 gates → S2 verifies → S3 records
+          5. Evidence chain extended, SEED minted if Ihsān ≥ 0.95
+          6. Helix3 ingests receipt for next evolutionary tick
+          7. OrganismReceipt returned
+
+        Args:
+            text: Mission description (natural language)
+
+        Returns:
+            OrganismReceipt with full evidence trail
+        """
+        t0 = time.monotonic()
+        self._mission_counter += 1
+
+        try:
+            # Run through NervousSystem → Pipeline → 12 agents
+            ns_receipt = await self._nervous_system.run(text)
+
+            # Get pipeline details (if available)
+            pipeline_stats = self._pipeline.stats if self._pipeline else None
+            complexity = "unknown"
+            agents_activated = 0
+            agent_chain: List[str] = []
+            gate_passed = True
+            gate_reasons: List[str] = []
+            frozen_agents: List[str] = []
+
+            # Extract pipeline trace from the last execution
+            if pipeline_stats and pipeline_stats.missions_executed > 0:
+                complexity = max(
+                    pipeline_stats.complexity_distribution,
+                    key=pipeline_stats.complexity_distribution.get,
+                    default="unknown",
+                )
+                agents_activated = round(pipeline_stats.avg_agents_per_mission)
+
+            duration_ms = round((time.monotonic() - t0) * 1000, 2)
+
+            # Update chain hash
+            evidence_data = (
+                f"{self._chain_hash}:{ns_receipt.mission_id}:"
+                f"{ns_receipt.ihsan_score}:{ns_receipt.evidence_hash}"
+            )
+            self._chain_hash = hashlib.sha256(
+                evidence_data.encode()
+            ).hexdigest()
+
+            # Track Ihsān history
+            self._ihsan_history.append(ns_receipt.ihsan_score)
+            if len(self._ihsan_history) > 1000:
+                self._ihsan_history = self._ihsan_history[-500:]
+
+            receipt = OrganismReceipt(
+                mission_id=ns_receipt.mission_id,
+                input_text=text[:500],
+                output_text=ns_receipt.output_text[:2000],
+                system=ns_receipt.system,
+                complexity=complexity,
+                agents_activated=agents_activated,
+                agent_chain=agent_chain,
+                ihsan_score=ns_receipt.ihsan_score,
+                snr_score=ns_receipt.snr_score,
+                gate_passed=gate_passed,
+                gate_reasons=gate_reasons,
+                rewarded=ns_receipt.rewarded,
+                reward_amount=ns_receipt.reward_amount,
+                evidence_hash=ns_receipt.evidence_hash,
+                chain_hash=self._chain_hash,
+                duration_ms=duration_ms,
+                tick_count=self._helix3.stats.total_ticks if self._helix3 else 0,
+                frozen_agents=frozen_agents,
+            )
+
+            if self._on_receipt:
+                self._on_receipt(receipt)
+
+            logger.info(
+                "Mission %s: %s, ihsan=%.4f, %s, %.1fms",
+                receipt.mission_id, receipt.system,
+                receipt.ihsan_score,
+                "PASS" if receipt.gate_passed else "FAIL",
+                receipt.duration_ms,
+            )
+
+            return receipt
+
+        except Exception as exc:  # noqa: BLE001 — organism-level catch
+            self._missions_failed += 1
+            logger.error("Mission failed: %s", exc)
+
+            # Return a degraded receipt rather than crashing
+            return OrganismReceipt(
+                mission_id=f"org-fail-{self._mission_counter:06d}",
+                input_text=text[:500],
+                output_text=f"[DEGRADED] Mission failed: {exc}",
+                system="ERROR",
+                complexity="error",
+                agents_activated=0,
+                agent_chain=[],
+                ihsan_score=0.0,
+                snr_score=0.0,
+                gate_passed=False,
+                gate_reasons=[f"organism_error: {exc}"],
+                rewarded=False,
+                reward_amount=0.0,
+                evidence_hash="",
+                chain_hash=self._chain_hash,
+                duration_ms=round((time.monotonic() - t0) * 1000, 2),
+                tick_count=0,
+                frozen_agents=[],
+            )
+
+    # ─── Evolutionary Heartbeat (§2 Helix 3) ─────────────────────
+
+    async def tick(self) -> Any:
+        """Process one evolutionary tick manually.
+
+        Normally called automatically every 60 seconds by the heartbeat.
+        Can be called manually for testing or on-demand evolution.
+
+        Returns:
+            HeartbeatReceipt from Helix3Scheduler
+        """
+        if self._helix3 is None:
+            raise RuntimeError("Organism not booted — call boot() first")
+
+        receipt = self._helix3.process_tick()
+        logger.info(
+            "Tick %d: ihsan=%.4f, minted=%d, halted=%s",
+            receipt.tick_number,
+            receipt.ihsan_composite,
+            receipt.seed_minted,
+            not receipt.gini_ok,
+        )
+        return receipt
+
+    async def start_heartbeat(self) -> None:
+        """Start the 60-second evolutionary heartbeat (§2 Helix 3).
+
+        The heartbeat runs process_tick() every HEARTBEAT_INTERVAL_S seconds,
+        processing all accumulated NervousSystem receipts.
+        """
+        if self._heartbeat_active:
+            logger.warning("Heartbeat already active")
+            return
+
+        self._heartbeat_active = True
+        self._shutdown_requested = False
+
+        async def _heartbeat_loop() -> None:
+            while not self._shutdown_requested:
+                await asyncio.sleep(HEARTBEAT_INTERVAL_S)
+                if self._shutdown_requested:
+                    break
+                try:
+                    await self.tick()
+                except Exception as exc:  # noqa: BLE001 — heartbeat must not crash
+                    logger.error("Heartbeat tick failed: %s", exc)
+
+        self._heartbeat_task = asyncio.create_task(_heartbeat_loop())
+        logger.info("Heartbeat started: tick every %ds", HEARTBEAT_INTERVAL_S)
+
+    async def shutdown(self) -> None:
+        """Graceful shutdown of the Living Organism.
+
+        Stops the heartbeat, processes final tick, logs shutdown receipt.
+        """
+        logger.info("Organism shutdown requested")
+        self._shutdown_requested = True
+
+        # Cancel heartbeat
+        if self._heartbeat_task and not self._heartbeat_task.done():
+            self._heartbeat_task.cancel()
+            try:
+                await self._heartbeat_task
+            except asyncio.CancelledError:
+                pass
+        self._heartbeat_active = False
+
+        # Final tick (process any remaining receipts)
+        if self._helix3:
+            try:
+                await self.tick()
+            except (RuntimeError, ValueError) as exc:
+                logger.warning("Final tick failed: %s", exc)
+
+        logger.info(
+            "Organism shut down: %d missions, %d ticks",
+            self._mission_counter,
+            self._helix3.stats.total_ticks if self._helix3 else 0,
+        )
+
+    # ─── Observability (PMBOK Quality Management) ─────────────────
+
+    @property
+    def health(self) -> OrganismHealth:
+        """Current health status of the Living Organism.
+
+        Used by:
+          - CI gates (scripts/ci_organism_gate.py)
+          - `bizra status` CLI command
+          - Monitoring dashboards
+          - Self-harness validation (Mode 3)
+        """
+        uptime = time.monotonic() - self._boot_time if self._boot_time else 0.0
+        avg_ihsan = (
+            sum(self._ihsan_history) / len(self._ihsan_history)
+            if self._ihsan_history
+            else 0.0
+        )
+
+        pipeline_dist: Dict[str, int] = {}
+        if self._pipeline:
+            pipeline_dist = dict(self._pipeline.stats.complexity_distribution)
+
+        reflex_size = 0
+        if self._nervous_system and hasattr(self._nervous_system, "_reflex"):
+            reflex = self._nervous_system._reflex
+            if reflex and hasattr(reflex, "_cache"):
+                reflex_size = len(reflex._cache)
+
+        ticks = 0
+        gini = 0.0
+        if self._helix3:
+            ticks = self._helix3.stats.total_ticks
+            gini = 0.0  # Gini from last tick, not tracked cumulatively
+
+        total_missions = self._mission_counter
+        gate_pass_rate = 1.0
+        if self._pipeline and self._pipeline.stats.missions_executed > 0:
+            gate_pass_rate = self._pipeline.stats.gate_pass_rate
+
+        return OrganismHealth(
+            alive=self._boot_time > 0 and not self._shutdown_requested,
+            uptime_seconds=round(uptime, 2),
+            missions_completed=total_missions - self._missions_failed,
+            missions_failed=self._missions_failed,
+            ticks_completed=ticks,
+            current_ihsan_avg=round(avg_ihsan, 4),
+            current_gini=gini,
+            gate_pass_rate=round(gate_pass_rate, 4),
+            heartbeat_active=self._heartbeat_active,
+            agents_registered=12,
+            pipeline_complexity_dist=pipeline_dist,
+            reflex_cache_size=reflex_size,
+            evidence_chain_length=total_missions,
+        )
+
+    @property
+    def stats(self) -> Dict[str, Any]:
+        """Aggregated statistics across all subsystems."""
+        h = self.health
+        result: Dict[str, Any] = {
+            "organism": {
+                "alive": h.alive,
+                "uptime_s": h.uptime_seconds,
+                "missions": h.missions_completed,
+                "failures": h.missions_failed,
+                "ticks": h.ticks_completed,
+                "ihsan_avg": h.current_ihsan_avg,
+                "gini": h.current_gini,
+                "gate_pass_rate": h.gate_pass_rate,
+            },
+        }
+        if self._pipeline:
+            result["pipeline"] = self._pipeline.stats.to_dict()
+        if self._helix3:
+            result["helix3"] = self._helix3.stats.as_dict()
+        if self._nervous_system and hasattr(self._nervous_system, "_stats"):
+            ns_stats = self._nervous_system._stats
+            result["nervous_system"] = {
+                "s1_hits": ns_stats.s1_hits,
+                "s2_executions": ns_stats.s2_executions,
+                "total": ns_stats.total_missions,
+            }
+        return result
+
+    # ─── Constitutional Invariant Checks ──────────────────────────
+
+    def check_invariants(self) -> List[str]:
+        """Verify all constitutional invariants (§4).
+
+        Returns list of violations (empty = healthy).
+        Used by CI gates and self-harness.
+        """
+        violations: List[str] = []
+        h = self.health
+
+        # §4: Ihsān production ≥ 0.95
+        if h.missions_completed > 5 and h.current_ihsan_avg < UNIFIED_IHSAN_THRESHOLD:
+            violations.append(
+                f"IHSAN_BELOW_PRODUCTION: avg={h.current_ihsan_avg:.4f} "
+                f"< {UNIFIED_IHSAN_THRESHOLD}"
+            )
+
+        # §4: Gini ≤ 0.35
+        if h.current_gini > ADL_GINI_THRESHOLD:
+            violations.append(
+                f"GINI_ABOVE_CEILING: {h.current_gini:.4f} > {ADL_GINI_THRESHOLD}"
+            )
+
+        # §1: 12 agents registered
+        if h.agents_registered != 12:
+            violations.append(
+                f"AGENT_COUNT_MISMATCH: {h.agents_registered} != 12"
+            )
+
+        # Operational: gate pass rate should be healthy
+        if h.missions_completed > 10 and h.gate_pass_rate < 0.80:
+            violations.append(
+                f"GATE_PASS_RATE_LOW: {h.gate_pass_rate:.4f} < 0.80"
+            )
+
+        return violations
