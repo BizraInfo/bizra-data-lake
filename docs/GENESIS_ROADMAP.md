@@ -9,8 +9,9 @@
 
 | Metric | Value | Evidence |
 |--------|-------|----------|
-| Commits shipped | 21 on origin/main | `9464d2d` |
+| Commits shipped | 22 on origin/main | `b37b5b0` |
 | Tests | 3,800+ sovereign GREEN | Proof Forge receipt #2 |
+| E2E integration | 11 MOE pipeline tests GREEN | `test_moe_e2e.py` |
 | Coverage | 64.57% (floor: 38%) | v0.80.0 lock |
 | Routes governed | 63 (24 public, 36 auth, 3 bootstrap) | API exposure policy |
 | Specs | 348 files in `docs/specs/`, 20 unbuilt | UNIFIED_SPEC_INDEX.md |
