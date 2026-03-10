@@ -30,10 +30,7 @@ logger = logging.getLogger("bizra.token.bloom")
 # CONSTANTS — ADL_GINI from SSOT, token-specific constants local
 # ═══════════════════════════════════════════════════════════════════
 
-try:
-    from core.integration.constants import ADL_GINI_THRESHOLD
-except ImportError:
-    ADL_GINI_THRESHOLD = 0.35  # Fallback if constants.py unavailable
+from core.integration.constants import ADL_GINI_THRESHOLD
 
 TOKEN_ZAKAT_RATE = 0.025          # 2.5% annual Zakat
 COMMUNITY_POOL_SPLIT = 0.50       # 50% — البذرة page 19, HARDCODED, NOT A PARAMETER

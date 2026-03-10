@@ -57,16 +57,10 @@ logger = logging.getLogger("bizra.sovereign.nervous_system")
 # CONSTITUTIONAL THRESHOLDS (from single source of truth)
 # ═══════════════════════════════════════════════════════════════════
 
-try:
-    from core.integration.constants import (
-        ADL_GINI_THRESHOLD,
-        SNR_MINIMUM_THRESHOLD,
-        UNIFIED_IHSAN_THRESHOLD,
-    )
-except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95
-    SNR_MINIMUM_THRESHOLD = 0.85
-    ADL_GINI_THRESHOLD = 0.35
+from core.integration.constants import (
+    ADL_GINI_THRESHOLD,
+    UNIFIED_IHSAN_THRESHOLD,
+)
 
 SEED_MINT_FLOOR = 0.95  # From core/token/bloom.py
 
@@ -171,33 +165,44 @@ class NervousSystemStats:
 # ═══════════════════════════════════════════════════════════════════
 
 def _score_ihsan(output: str, input_text: str) -> float:
-    """Compute Ihsān composite score.
+    """Compute Ihsān composite score via unified 8D content scorer.
 
-    In production, this calls the full Ihsān tensor (safety, clarity,
-    completeness, relevance, ethics). For now: heuristic based on
-    output length, relevance, and coherence.
+    Delegates to ihsan_scorer.score_ihsan_composite() — the single
+    source of truth for Ihsān scoring across the organism (§4).
     """
-    if not output or not output.strip():
-        return 0.0
-
-    length_score = min(len(output) / 200, 1.0)
-    relevance = 1.0 if any(w in output.lower() for w in input_text.lower().split()[:3]) else 0.5
-    coherence = 1.0 if len(output.split()) > 5 else 0.6
-
-    raw = (length_score * 0.3 + relevance * 0.4 + coherence * 0.3)
-    return round(min(raw, 1.0), 4)
+    try:
+        from core.sovereign.ihsan_scorer import score_ihsan_composite
+        return score_ihsan_composite(output, input_text)
+    except ImportError:
+        # Fallback: basic heuristic if scorer not available
+        if not output or not output.strip():
+            return 0.0
+        length_score = min(len(output) / 200, 1.0)
+        relevance = 1.0 if any(w in output.lower() for w in input_text.lower().split()[:3]) else 0.5
+        coherence = 1.0 if len(output.split()) > 5 else 0.6
+        raw = (length_score * 0.3 + relevance * 0.4 + coherence * 0.3)
+        return round(min(raw, 1.0), 4)
 
 
 def _score_snr(output: str) -> float:
-    """Compute SNR score (Shannon-inspired signal-to-noise ratio)."""
-    if not output:
-        return 0.0
-    words = output.split()
-    if not words:
-        return 0.0
-    unique_ratio = len(set(words)) / len(words)
-    length_factor = min(len(words) / 20, 1.0)
-    return round(unique_ratio * 0.6 + length_factor * 0.4, 4)
+    """Compute SNR score via unified 4D content scorer (§8).
+
+    Delegates to ihsan_scorer.score_snr_composite() — Shannon-inspired
+    signal-to-noise across 4 dimensions.
+    """
+    try:
+        from core.sovereign.ihsan_scorer import score_snr_composite
+        return score_snr_composite(output)
+    except ImportError:
+        # Fallback: basic heuristic
+        if not output:
+            return 0.0
+        words = output.split()
+        if not words:
+            return 0.0
+        unique_ratio = len(set(words)) / len(words)
+        length_factor = min(len(words) / 20, 1.0)
+        return round(unique_ratio * 0.6 + length_factor * 0.4, 4)
 
 
 def _compute_evidence_hash(data: Dict[str, Any]) -> str:

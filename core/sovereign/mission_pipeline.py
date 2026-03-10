@@ -54,25 +54,9 @@ logger = logging.getLogger("bizra.sovereign.mission_pipeline")
 # CONSTITUTIONAL THRESHOLDS (§4 — single source of truth)
 # ═══════════════════════════════════════════════════════════════════
 
-try:
-    from core.integration.constants import (
-        ADL_GINI_THRESHOLD,
-        IHSAN_CANONICAL_WEIGHTS,
-        UNIFIED_IHSAN_THRESHOLD,
-    )
-except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95
-    ADL_GINI_THRESHOLD = 0.35
-    IHSAN_CANONICAL_WEIGHTS = {
-        "moral_clarity": 0.12,
-        "epistemic_humility": 0.14,
-        "structural_integrity": 0.13,
-        "verifiability": 0.13,
-        "contextual_relevance": 0.11,
-        "intent_alignment": 0.14,
-        "resilience": 0.11,
-        "efficiency": 0.12,
-    }
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+)
 
 IHSAN_GATE_MINIMUM = 0.85  # §4: minimum gate for any action
 DAUGHTER_TEST_HARMFUL_PATTERNS = [
@@ -400,35 +384,37 @@ def _ledger_hash(traces: List[AgentTrace], mission_id: str) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()[:32]
 
 
-def _score_ihsan_tensor(output_text: str) -> Dict[str, float]:
-    """P4-Evaluator: Score 8D Ihsān tensor (algorithmic heuristic).
+def _score_ihsan_tensor(output_text: str, input_text: str = "") -> Dict[str, float]:
+    """P4-Evaluator: Score 8D Ihsān tensor via unified content scorer.
 
-    In production, this would be a learned scoring model (P4-Evaluator 1B).
-    For now, we use deterministic heuristics that correlate with quality.
+    Delegates to ihsan_scorer.score_ihsan_8d() — the single source of
+    truth for Ihsān scoring across the organism (§4).
 
     Returns dict with all 8 canonical dimensions.
     """
-    words = output_text.split()
-    word_count = len(words)
-
-    # Heuristic signals (all [0.0, 1.0])
-    has_content = min(word_count / 20.0, 1.0)
-    unique_ratio = len(set(words)) / max(word_count, 1)
-    has_structure = 1.0 if any(c in output_text for c in [":", "-", "•", "\n"]) else 0.7
-    no_repetition = min(unique_ratio * 1.3, 1.0)
-    reasonable_length = min(word_count / 10.0, 1.0) if word_count < 500 else max(0.5, 1.0 - (word_count - 500) / 2000)
-
-    # Map heuristics to 8D tensor
-    return {
-        "moral_clarity": round(min(has_content * 0.95 + 0.05, 1.0), 4),
-        "epistemic_humility": round(min(no_repetition * 0.9 + 0.1, 1.0), 4),
-        "structural_integrity": round(min(has_structure * 0.95, 1.0), 4),
-        "verifiability": round(min(has_content * 0.85 + 0.15, 1.0), 4),
-        "contextual_relevance": round(min(reasonable_length * 0.9 + 0.1, 1.0), 4),
-        "intent_alignment": round(min(has_content * 0.9 + 0.1, 1.0), 4),
-        "resilience": round(min(no_repetition * 0.85 + 0.15, 1.0), 4),
-        "efficiency": round(min(reasonable_length * 0.95, 1.0), 4),
-    }
+    try:
+        from core.sovereign.ihsan_scorer import score_ihsan_8d
+        tensor = score_ihsan_8d(output_text, input_text)
+        return tensor.as_dict()
+    except ImportError:
+        # Fallback: basic heuristics if scorer not available
+        words = output_text.split()
+        word_count = len(words)
+        has_content = min(word_count / 20.0, 1.0)
+        unique_ratio = len(set(words)) / max(word_count, 1)
+        has_structure = 1.0 if any(c in output_text for c in [":", "-", "•", "\n"]) else 0.7
+        no_repetition = min(unique_ratio * 1.3, 1.0)
+        reasonable_length = min(word_count / 10.0, 1.0) if word_count < 500 else max(0.5, 1.0 - (word_count - 500) / 2000)
+        return {
+            "moral_clarity": round(min(has_content * 0.95 + 0.05, 1.0), 4),
+            "epistemic_humility": round(min(no_repetition * 0.9 + 0.1, 1.0), 4),
+            "structural_integrity": round(min(has_structure * 0.95, 1.0), 4),
+            "verifiability": round(min(has_content * 0.85 + 0.15, 1.0), 4),
+            "contextual_relevance": round(min(reasonable_length * 0.9 + 0.1, 1.0), 4),
+            "intent_alignment": round(min(has_content * 0.9 + 0.1, 1.0), 4),
+            "resilience": round(min(no_repetition * 0.85 + 0.15, 1.0), 4),
+            "efficiency": round(min(reasonable_length * 0.95, 1.0), 4),
+        }
 
 
 def _geometric_mean_ihsan(tensor: Dict[str, float]) -> float:
@@ -626,7 +612,7 @@ class MissionPipeline:
             # ─── P4-Evaluator: 8D Ihsān tensor ──────────────
             elif agent_id == "P4-Evaluator":
                 target_text = execution_output or current_text
-                ihsan_tensor = _score_ihsan_tensor(target_text)
+                ihsan_tensor = _score_ihsan_tensor(target_text, mission_text)
                 ihsan_composite = _geometric_mean_ihsan(ihsan_tensor)
                 trace.ihsan_score = ihsan_composite
                 trace.output_summary = f"ihsan={ihsan_composite:.4f}"
