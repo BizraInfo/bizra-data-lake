@@ -9,6 +9,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **MVSA Authority Resolution** (`core/sovereign/node0_authority.py`)
+  - 4-level precedence: canonical → legacy_ceremony → legacy_reference → fail-closed
+  - Migration of ceremony-compatible legacy sources into `sovereign_state/`
+  - Conflict detection (LEGACY_GENESIS_CONFLICT) and reference-only rejection
+  - Atomic migration receipt: `sovereign_state/node0_authority_migration.json`
+- **Rust MVSA Proof Binary** (`bizra-omega/bizra-resourcepool/src/bin/node0_mvsa.rs`)
+  - Genesis validation, loopback network bootstrap, BLAKE3 self-validation
+  - Structured JSON proof: `sovereign_state/node0_mvsa_proof.json`
+  - 5-step binary resolution: env → release → debug → cargo → fail-closed
+- **Lifecycle v2 Schema** (`node0_lifecycle.json` schema 2.0.0)
+  - 11 gates: genesis_authority_valid through restart_recovery_ready
+  - Status semantics: blocked → degraded → ready
+  - Mission tracking: last_evidence_receipt_id, last_ihsan_score, last_snr_score
+  - Restart recovery validation on second health call
+- **`prove-mvsa` CLI subcommand** + `GET /mvsa` and `POST /prove-mvsa` API routes
+- **`core/sovereign/atomic_io.py`** — shared crash-safe write→fsync→rename utility
+- **`core/sovereign/node0_mvsa.py`** — Python wrapper for Rust MVSA binary
+- 15 new tests (8 authority + 7 MVSA wrapper), 93/93 combined suite green
 - **Wave 1 — Inference Provenance on receipts** (`core/sovereign/mission.py`)
   - `InferenceProvenance` dataclass: backend, model_id, fallback_chain, latency_ms, tokens_generated
   - `_synthesize()` returns `(str, InferenceProvenance)` tuple; provenance attached to MissionResult

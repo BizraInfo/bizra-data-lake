@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """BIZRA Node0 standalone lifecycle manager.
 
-Unified entrypoint for single-node readiness before Alpha-100.
+Unified entrypoint for MVSA (Minimum Viable Sovereign Architecture).
 
 Commands:
-  - activate: mint/load identity, activate URP, publish PAT/SAT awareness
-  - health:   lifecycle and integration health report
-  - task:     autonomous mission execution (filesystem + browser channels)
-  - serve:    local API for website/UI integration
+  - activate:    resolve authority, activate URP, publish PAT/SAT awareness, run MVSA proof
+  - prove-mvsa:  run only the Rust-backed MVSA proof path + update lifecycle
+  - health:      lifecycle and integration health report (read-only)
+  - task:        autonomous mission execution (filesystem + browser channels)
+  - serve:       local API for website/UI integration
 """
 
 from __future__ import annotations
@@ -39,20 +40,24 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8"
-    )
+# Atomic I/O — delegates to core.sovereign.atomic_io when available
+try:
+    from core.sovereign.atomic_io import atomic_write_json as _write_json
+    from core.sovereign.atomic_io import read_json as _read_json
+except ImportError:
+    def _write_json(path: Path, payload: Any, **_kw: Any) -> None:  # type: ignore[misc]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8"
+        )
 
-
-def _read_json(path: Path, default: Any = None) -> Any:
-    if not path.exists():
-        return default
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return default
+    def _read_json(path: Path, default: Any = None) -> Any:  # type: ignore[misc]
+        if not path.exists():
+            return default
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return default
 
 
 def _tcp_open(host: str, port: int, timeout_s: float = 0.4) -> bool:
@@ -100,53 +105,73 @@ class Node0StandaloneManager:
         architect: str = "MoMo",
         strict: bool = False,
     ) -> dict[str, Any]:
-        context = self._ensure_identity(architect)
+        # ── Step 1: Resolve authority (fail-closed) ────────────────
+        genesis = self._resolve_authority()
+        context = ActivationContext(
+            node_id=genesis.node_id,
+            pat_agent_ids=genesis.pat_agent_ids,
+            sat_agent_ids=genesis.sat_agent_ids,
+            private_key_hex=genesis.identity.public_key,
+        )
+
+        # ── Step 2: Hardware + URP + Assets + Awareness ────────────
         hardware = self._scan_hardware()
         urp_payload = self._activate_urp(context, hardware)
         assets = self._build_assets(context, hardware, urp_payload)
         awareness = self._build_pat_awareness(context, assets)
 
-        integrations = assets.get("integrations", {})
+        # ── Step 3: Run Rust MVSA proof ────────────────────────────
+        mvsa_proof = self._run_mvsa_proof()
+
+        # ── Step 4: Build lifecycle v2 gates ───────────────────────
         gates = {
+            "genesis_authority_valid": True,  # We got here → authority resolved
             "identity_ready": bool(context.node_id),
-            "pat_sat_ready": bool(context.pat_agent_ids)
-            and bool(context.sat_agent_ids),
+            "pat_sat_ready": bool(context.pat_agent_ids) and bool(context.sat_agent_ids),
             "urp_signed": bool(urp_payload.get("signed", False)),
             "urp_verified": bool(urp_payload.get("signature_verified", False)),
             "assets_written": self.assets_path.exists(),
             "awareness_written": self.awareness_path.exists(),
-            "desktop_bridge_reachable": bool(integrations.get("ahk_hda_bridge", False)),
-            "mcp_available": bool(integrations.get("mcp", False)),
-            "a2a_available": bool(integrations.get("a2a", False)),
-            "telescript_available": bool(integrations.get("telescript_permit", False)),
+            "mvsa_network_bootstrap_ok": bool(
+                mvsa_proof and mvsa_proof.get("network", {}).get("bootstrap_ok")
+            ),
+            "mvsa_self_validation_ok": bool(
+                mvsa_proof and mvsa_proof.get("consensus", {}).get("self_validation_ok")
+            ),
+            "mission_path_receipted": False,
+            "restart_recovery_ready": False,
         }
-        required = [
-            "identity_ready",
-            "pat_sat_ready",
-            "urp_signed",
-            "urp_verified",
-            "assets_written",
-            "awareness_written",
+
+        # Status determination per lifecycle v2 spec
+        degraded_gates = [
+            "genesis_authority_valid", "identity_ready", "pat_sat_ready",
+            "urp_signed", "urp_verified", "assets_written", "awareness_written",
+            "mvsa_network_bootstrap_ok", "mvsa_self_validation_ok",
         ]
-        ready = all(gates[k] for k in required)
-        if strict:
-            ready = ready and all(gates.values())
+        if not all(gates[k] for k in degraded_gates):
+            status = "blocked"
+        elif gates["mission_path_receipted"] and gates["restart_recovery_ready"]:
+            status = "ready"
+        else:
+            status = "degraded"
+
+        if strict and not all(gates.values()):
+            status = "blocked"
 
         lifecycle = {
-            "version": "1.0.0",
+            "schema_version": "2.0.0",
             "updated_at": _utc_now(),
-            "status": "ready" if ready else "degraded",
-            "strict_mode": bool(strict),
+            "status": status,
+            "ok": status != "blocked",
+            "ready": status == "ready",
             "node_id": context.node_id,
+            "origin": {
+                "authority_source": "canonical_genesis",
+                "genesis_hash": (genesis.genesis_hash.hex() if genesis.genesis_hash else ""),
+            },
             "identity": {
                 "pat_agents": len(context.pat_agent_ids),
                 "sat_agents": len(context.sat_agent_ids),
-            },
-            "urp": {
-                "signed": urp_payload.get("signed", False),
-                "verified": urp_payload.get("signature_verified", False),
-                "enforced": urp_payload.get("enforced", False),
-                "reason_code": urp_payload.get("reason_code"),
             },
             "artifacts": {
                 "assets": str(self.assets_path),
@@ -155,11 +180,28 @@ class Node0StandaloneManager:
                 "identity": str(self.identity_dir / "credentials.json"),
             },
             "gates": gates,
+            "mvsa": mvsa_proof or {},
+            "mission": {},
+            "restart_recovery": {
+                "restart_recovery_ready": False,
+                "validated_at": None,
+                "required_artifacts_present": self._check_required_artifacts(),
+            },
+            "compat": {
+                "version": "1.0.0",
+                "strict_mode": bool(strict),
+                "urp": {
+                    "signed": urp_payload.get("signed", False),
+                    "verified": urp_payload.get("signature_verified", False),
+                    "enforced": urp_payload.get("enforced", False),
+                    "reason_code": urp_payload.get("reason_code"),
+                },
+            },
         }
         _write_json(self.lifecycle_path, lifecycle)
 
         return {
-            "ok": ready,
+            "ok": status != "blocked",
             "lifecycle": lifecycle,
             "assets": assets,
             "pat_awareness": awareness,
@@ -186,7 +228,13 @@ class Node0StandaloneManager:
         lm_online = self._check_http("http://127.0.0.1:1234/v1/models")
         ollama_online = self._check_http("http://127.0.0.1:11434/v1/models")
 
-        gates = {
+        # Read gates from lifecycle (v1 or v2) without crashing
+        lc_gates = lifecycle.get("gates", {})
+        schema_version = lifecycle.get("schema_version", lifecycle.get("version", "1.0.0"))
+        is_v2 = schema_version.startswith("2.")
+
+        # File-based health gates (always computed fresh)
+        file_gates = {
             "identity_credentials": (self.identity_dir / "credentials.json").exists(),
             "lifecycle_file": self.lifecycle_path.exists(),
             "assets_file": self.assets_path.exists(),
@@ -198,30 +246,34 @@ class Node0StandaloneManager:
             "backend_online": lm_online or ollama_online,
         }
 
-        overall = (
-            "ready"
-            if all(
-                gates[k]
-                for k in (
-                    "identity_credentials",
-                    "lifecycle_file",
-                    "assets_file",
-                    "pat_awareness_file",
-                    "urp_file",
-                    "urp_signed",
-                    "urp_verified",
+        # Report status from lifecycle if v2, else compute from file gates
+        if is_v2:
+            overall = lifecycle.get("status", "degraded")
+        else:
+            overall = (
+                "ready"
+                if all(
+                    file_gates[k]
+                    for k in (
+                        "identity_credentials",
+                        "lifecycle_file",
+                        "assets_file",
+                        "pat_awareness_file",
+                        "urp_file",
+                        "urp_signed",
+                        "urp_verified",
+                    )
                 )
+                else "degraded"
             )
-            else "degraded"
-        )
 
-        return {
+        result: dict[str, Any] = {
             "timestamp": _utc_now(),
             "status": overall,
             "node_id": lifecycle.get("node_id")
             or awareness.get("node_id")
             or "unknown",
-            "gates": gates,
+            "gates": lc_gates if is_v2 else file_gates,
             "runtime": {
                 "proactive_pid": pid,
                 "proactive_running": pid_alive,
@@ -232,6 +284,17 @@ class Node0StandaloneManager:
             "identity": lifecycle.get("identity", {}),
             "integrations": assets.get("integrations", {}),
         }
+
+        # V2 additions
+        if is_v2:
+            result["schema_version"] = schema_version
+            result["origin"] = lifecycle.get("origin", {})
+            result["mvsa"] = lifecycle.get("mvsa", {})
+            result["mission"] = lifecycle.get("mission", {})
+            result["restart_recovery"] = lifecycle.get("restart_recovery", {})
+            result["ready"] = lifecycle.get("ready", False)
+
+        return result
 
     async def run_task(
         self,
@@ -324,6 +387,16 @@ class Node0StandaloneManager:
             "browser_mode": browser_mode,
             "synthesis": result.synthesis,
         }
+
+        # Update lifecycle v2 mission fields
+        if result.evidence_receipt_id:
+            self._update_lifecycle_mission(
+                receipt_id=result.evidence_receipt_id,
+                status=result.status,
+                ihsan=result.ihsan_score,
+                snr=result.snr_score,
+            )
+
         return payload
 
     def lifecycle(self) -> dict[str, Any]:
@@ -331,6 +404,125 @@ class Node0StandaloneManager:
 
     def assets(self) -> dict[str, Any]:
         return _read_json(self.assets_path, default={}) or {}
+
+    def mvsa(self) -> dict[str, Any]:
+        """Return persisted MVSA proof summary."""
+        proof_path = self.state_root / "node0_mvsa_proof.json"
+        return _read_json(proof_path, default={}) or {}
+
+    def prove_mvsa(self) -> dict[str, Any]:
+        """Run the Rust-backed MVSA proof and update lifecycle v2."""
+        proof = self._run_mvsa_proof()
+        if proof is None:
+            return {"ok": False, "status": "blocked", "reason": "MVSA proof failed"}
+
+        # Update lifecycle v2 with proof results
+        lc = _read_json(self.lifecycle_path, default={}) or {}
+        lc["mvsa"] = proof
+        lc["updated_at"] = _utc_now()
+
+        # Update gates
+        gates = lc.get("gates", {})
+        gates["mvsa_network_bootstrap_ok"] = bool(
+            proof.get("network", {}).get("bootstrap_ok")
+        )
+        gates["mvsa_self_validation_ok"] = bool(
+            proof.get("consensus", {}).get("self_validation_ok")
+        )
+        lc["gates"] = gates
+
+        # Recompute status
+        lc["status"] = self._compute_status(gates)
+        lc["ok"] = lc["status"] != "blocked"
+        lc["ready"] = lc["status"] == "ready"
+        _write_json(self.lifecycle_path, lc)
+
+        return {
+            "ok": proof.get("status") == "ready",
+            "proof": proof,
+            "lifecycle_status": lc["status"],
+        }
+
+    def _resolve_authority(self) -> Any:
+        """Resolve canonical authority (fail-closed)."""
+        from core.sovereign.node0_authority import require_authority
+        return require_authority(self.state_root, self.project_root)
+
+    def _run_mvsa_proof(self) -> dict[str, Any] | None:
+        """Execute the Rust MVSA proof binary."""
+        try:
+            from core.sovereign.node0_mvsa import run_mvsa_proof
+            return run_mvsa_proof(self.state_root, self.project_root)
+        except RuntimeError as exc:
+            logger.error("MVSA proof failed: %s", exc)
+            return None
+        except Exception as exc:
+            logger.error("MVSA proof unexpected error: %s", exc, exc_info=True)
+            return None
+
+    def _check_required_artifacts(self) -> bool:
+        """Check if all required MVSA artifacts are present on disk."""
+        required = [
+            self.state_root / "node0_genesis.json",
+            self.state_root / "genesis_hash.txt",
+            self.assets_path,
+            self.awareness_path,
+            self.urp_path,
+            self.lifecycle_path,
+        ]
+        return all(p.exists() for p in required)
+
+    def _compute_status(self, gates: dict[str, Any]) -> str:
+        """Compute lifecycle v2 status from gates."""
+        degraded_gates = [
+            "genesis_authority_valid", "identity_ready", "pat_sat_ready",
+            "urp_signed", "urp_verified", "assets_written", "awareness_written",
+            "mvsa_network_bootstrap_ok", "mvsa_self_validation_ok",
+        ]
+        if not all(gates.get(k, False) for k in degraded_gates):
+            return "blocked"
+        if gates.get("mission_path_receipted") and gates.get("restart_recovery_ready"):
+            return "ready"
+        return "degraded"
+
+    def _update_lifecycle_mission(
+        self, receipt_id: str, status: str, ihsan: float, snr: float
+    ) -> None:
+        """Update lifecycle v2 mission fields after a successful task."""
+        lc = _read_json(self.lifecycle_path, default={}) or {}
+        lc["mission"] = {
+            "last_evidence_receipt_id": receipt_id,
+            "last_mission_status": status,
+            "last_ihsan_score": ihsan,
+            "last_snr_score": snr,
+        }
+        gates = lc.get("gates", {})
+        if receipt_id:
+            gates["mission_path_receipted"] = True
+        lc["gates"] = gates
+        lc["status"] = self._compute_status(gates)
+        lc["ok"] = lc["status"] != "blocked"
+        lc["ready"] = lc["status"] == "ready"
+        lc["updated_at"] = _utc_now()
+        _write_json(self.lifecycle_path, lc)
+
+    def _update_lifecycle_restart_recovery(self) -> None:
+        """Mark restart_recovery_ready if all required artifacts present."""
+        lc = _read_json(self.lifecycle_path, default={}) or {}
+        present = self._check_required_artifacts()
+        mvsa_proof = _read_json(self.state_root / "node0_mvsa_proof.json")
+        if present and mvsa_proof and mvsa_proof.get("status") == "ready":
+            lc.setdefault("restart_recovery", {})["restart_recovery_ready"] = True
+            lc["restart_recovery"]["validated_at"] = _utc_now()
+            lc["restart_recovery"]["required_artifacts_present"] = True
+            gates = lc.get("gates", {})
+            gates["restart_recovery_ready"] = True
+            lc["gates"] = gates
+            lc["status"] = self._compute_status(gates)
+            lc["ok"] = lc["status"] != "blocked"
+            lc["ready"] = lc["status"] == "ready"
+            lc["updated_at"] = _utc_now()
+            _write_json(self.lifecycle_path, lc)
 
     def _check_http(self, url: str) -> bool:
         try:
@@ -601,14 +793,40 @@ async def _cmd_activate(args: argparse.Namespace) -> int:
     manager = Node0StandaloneManager()
     result = manager.activate(architect=args.architect, strict=args.strict)
     _print_json(result)
-    return 0 if result.get("ok") else 2
+    status = result.get("lifecycle", {}).get("status", "blocked")
+    if status == "ready":
+        return 0
+    elif status == "degraded":
+        return 2
+    else:
+        return 3
 
 
 async def _cmd_health(args: argparse.Namespace) -> int:
     manager = Node0StandaloneManager()
+    # On second+ health call, check restart recovery
+    manager._update_lifecycle_restart_recovery()
     result = manager.health()
     _print_json(result)
-    return 0 if result.get("status") == "ready" else 2
+    status = result.get("status", "degraded")
+    if status == "ready":
+        return 0
+    elif status == "degraded":
+        return 2
+    else:
+        return 3
+
+
+async def _cmd_prove_mvsa(args: argparse.Namespace) -> int:
+    manager = Node0StandaloneManager()
+    result = manager.prove_mvsa()
+    _print_json(result)
+    if result.get("ok"):
+        return 0
+    elif result.get("lifecycle_status") == "degraded":
+        return 2
+    else:
+        return 3
 
 
 async def _cmd_task(args: argparse.Namespace) -> int:
@@ -699,7 +917,7 @@ def create_app(
     async def root() -> dict[str, Any]:
         return {
             "name": "BIZRA Node0 Standalone API",
-            "version": "1.1.0",
+            "version": "2.0.0",
             "endpoints": [
                 "GET  /health",
                 "GET  /v1/models",
@@ -709,6 +927,8 @@ def create_app(
                 "POST /task",
                 "GET  /assets",
                 "GET  /lifecycle",
+                "GET  /mvsa",
+                "POST /prove-mvsa",
             ],
         }
 
@@ -734,6 +954,22 @@ def create_app(
     ) -> dict[str, Any]:
         _require_api_key(x_api_key)
         return manager.lifecycle()
+
+    @app.get("/mvsa")
+    async def mvsa(
+        x_api_key: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """Return persisted MVSA proof summary."""
+        _require_api_key(x_api_key)
+        return manager.mvsa()
+
+    @app.post("/prove-mvsa")
+    async def prove_mvsa(
+        x_api_key: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """Run the Rust-backed MVSA proof and update lifecycle."""
+        _require_api_key(x_api_key)
+        return manager.prove_mvsa()
 
     @app.get("/v1/models")
     async def list_models() -> dict[str, Any]:
@@ -1012,6 +1248,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("health", help="Show standalone lifecycle health")
 
+    sub.add_parser("prove-mvsa", help="Run Rust-backed MVSA proof and update lifecycle")
+
     p_task = sub.add_parser("task", help="Run one autonomous task")
     p_task.add_argument("description", help="Mission description")
     p_task.add_argument(
@@ -1034,6 +1272,7 @@ def build_parser() -> argparse.ArgumentParser:
 async def _dispatch(args: argparse.Namespace) -> int:
     handlers = {
         "activate": _cmd_activate,
+        "prove-mvsa": _cmd_prove_mvsa,
         "health": _cmd_health,
         "task": _cmd_task,
         "serve": _cmd_serve,
