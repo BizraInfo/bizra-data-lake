@@ -309,21 +309,13 @@ impl DeviceProfile {
 /// safe defaults. Never panics — degraded detection is better
 /// than no detection.
 pub fn detect_device() -> DeviceProfile {
-    let mut profile = DeviceProfile::default();
-
-    // OS version
-    profile.os_version = detect_os_version();
-
-    // GPU detection (platform-specific)
-    profile.gpu = detect_gpu_info();
-
-    // Locale detection
-    profile.system_locale = detect_locale();
-
-    // Network availability (quick check)
-    profile.network_available = check_network();
-
-    profile
+    DeviceProfile {
+        os_version: detect_os_version(),
+        gpu: detect_gpu_info(),
+        system_locale: detect_locale(),
+        network_available: check_network(),
+        ..DeviceProfile::default()
+    }
 }
 
 fn detect_os_version() -> String {
@@ -499,6 +491,7 @@ fn check_network() -> bool {
 // ─────────────────────────────────────────────────────────────
 
 #[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
 

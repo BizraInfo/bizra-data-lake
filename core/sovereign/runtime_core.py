@@ -1014,8 +1014,9 @@ class SovereignRuntime:
                 z3_gate = Z3FATEGate()
                 z3_proof = z3_gate.generate_proof(z3_action_ctx)
                 z3_sat = z3_proof.satisfiable
-            except (RuntimeError, ValueError, OSError) as z3_err:
+            except (ImportError, RuntimeError, ValueError, OSError) as z3_err:
                 # Z3 unavailable — degrade to conservative fallback module (α4).
+                # ImportError: z3-solver not installed (graceful degradation).
                 # Richer than the inline _conservative_fallback_check: returns
                 # FallbackVerdict with reason codes, action type gating, and
                 # Z3 re-validation flags. Standing on: Lamport (verify).
@@ -1779,7 +1780,7 @@ class SovereignRuntime:
                 if Z3_AVAILABLE:
                     self._pek.set_fate_gate(Z3FATEGate())
                     self.logger.info("✓ PEK FATE gate enabled (Z3)")
-            except (RuntimeError, ValueError, OSError) as fate_err:
+            except (ImportError, RuntimeError, ValueError, OSError) as fate_err:
                 self.logger.warning(f"⚠ PEK FATE gate unavailable: {fate_err}")
 
             await self._pek.start()

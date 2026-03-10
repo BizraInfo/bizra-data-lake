@@ -305,6 +305,7 @@ class TestBackendFailover:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """MCP gateway must reject requests when no token is configured."""
+        pytest.importorskip("redis")
         monkeypatch.delenv("BIZRA_MCP_GATEWAY_TOKEN", raising=False)
         monkeypatch.delenv("BIZRA_BRIDGE_TOKEN", raising=False)
         monkeypatch.delenv("BIZRA_MCP_ALLOW_ANONYMOUS", raising=False)
@@ -328,6 +329,7 @@ class TestBackendFailover:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Remote requests must be rejected unless explicitly allowed."""
+        pytest.importorskip("redis")
         monkeypatch.setenv("BIZRA_MCP_GATEWAY_TOKEN", "test-secret")
         monkeypatch.delenv("BIZRA_MCP_ALLOW_REMOTE", raising=False)
         monkeypatch.delenv("BIZRA_MCP_ALLOW_ANONYMOUS", raising=False)

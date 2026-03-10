@@ -18,7 +18,8 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
+
+yaml = pytest.importorskip("yaml")
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -26,6 +27,11 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 XTR_WARP_DIR = REPO_ROOT / "xtr-warp"
+
+pytestmark = pytest.mark.skipif(
+    not XTR_WARP_DIR.exists(),
+    reason="xtr-warp/ directory not present",
+)
 BRIDGES_DIR = REPO_ROOT / "tools" / "bridges"
 
 # Add bridges to sys.path so faiss_env is importable

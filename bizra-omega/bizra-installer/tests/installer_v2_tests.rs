@@ -4,7 +4,6 @@
 //! plus URP, profiles, i18n, receipts, health checks, and self-update.
 
 use bizra_installer::device_profile::*;
-use bizra_installer::health_check::*;
 use bizra_installer::i18n::*;
 use bizra_installer::install_flow::*;
 use bizra_installer::install_receipt::*;

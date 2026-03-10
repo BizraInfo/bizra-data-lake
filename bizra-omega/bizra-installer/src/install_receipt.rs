@@ -82,7 +82,7 @@ impl DeviceSummary {
             gpu: profile
                 .gpu
                 .as_ref()
-                .map(|g| format!("{} ({})", g.model, format!("{:?}", g.api))),
+                .map(|g| format!("{} ({:?})", g.model, g.api)),
             tier: format!("{:?}", profile.recommended_tier()),
             locale: profile.system_locale.clone(),
         }
@@ -128,6 +128,7 @@ pub struct InstalledComponent {
 
 impl InstallReceipt {
     /// Create a new receipt. The `receipt_hash` will be computed from content.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         parent_hash: String,
         action: InstallAction,
@@ -187,7 +188,7 @@ impl InstallReceipt {
         }
 
         hasher.update(self.duration_seconds.to_le_bytes());
-        hasher.update(&[self.health_check_passed as u8]);
+        hasher.update([self.health_check_passed as u8]);
         hasher.update(self.ihsan_score.to_le_bytes());
 
         format!("{:x}", hasher.finalize())
