@@ -67,6 +67,10 @@ path = "src/main.rs"
 name = "node0-genesis"
 path = "src/bin/node0_genesis.rs"
 
+[[bin]]
+name = "node0-mvsa"
+path = "src/bin/node0_mvsa.rs"
+
 [features]
 default = []
 # Enable distributed consensus for pool operations
