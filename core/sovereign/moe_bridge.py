@@ -43,7 +43,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict
 
 logger = logging.getLogger("bizra.sovereign.moe_bridge")
 
@@ -52,12 +52,8 @@ logger = logging.getLogger("bizra.sovereign.moe_bridge")
 # ═══════════════════════════════════════════════════════════════════
 
 from core.integration.constants import (
-    MOE_FALLBACK_EXPERT,
-    MOE_MIN_CONFIDENCE,
-    MOE_SYNTHESIS_STRATEGY,
     MOE_TOP_K,
     OLLAMA_URL,
-    UNIFIED_IHSAN_THRESHOLD,
 )
 
 # Expert → Ollama model mapping (overridable via env vars)
