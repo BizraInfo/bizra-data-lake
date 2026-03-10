@@ -202,3 +202,4 @@ This is not aspirational. These are hard gates in `core/integration/constants.py
 *Standing on: Shannon (SNR), Kahneman (dual-process), Deming (PDCA), Boyd (OODA),
 Ibn Khaldun (Asabiyyah), Al-Ghazali (Ihsan), Lamport (hash chains), Brooks (planning)*
 
+
