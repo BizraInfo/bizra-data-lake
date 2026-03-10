@@ -1,0 +1,7 @@
+# Pin Rust toolchain for reproducible formatting and clippy behavior.
+# Both local dev and CI MUST use the same channel.
+# Standing on: Reproducible Builds (2013), Deming (variation reduction).
+
+[toolchain]
+channel = "1.91"
+components = ["rustfmt", "clippy"]
