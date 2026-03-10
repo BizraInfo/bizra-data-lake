@@ -64,14 +64,10 @@ logger = logging.getLogger("bizra.sovereign.organism")
 # CONSTITUTIONAL THRESHOLDS
 # ═══════════════════════════════════════════════════════════════════
 
-try:
-    from core.integration.constants import (
-        ADL_GINI_THRESHOLD,
-        UNIFIED_IHSAN_THRESHOLD,
-    )
-except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95
-    ADL_GINI_THRESHOLD = 0.35
+from core.integration.constants import (
+    ADL_GINI_THRESHOLD,
+    UNIFIED_IHSAN_THRESHOLD,
+)
 
 HEARTBEAT_INTERVAL_S = 60  # §2: Every 60 seconds
 

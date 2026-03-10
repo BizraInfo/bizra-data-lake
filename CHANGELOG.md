@@ -9,6 +9,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Unified 8D Ihsān content scorer (`core/sovereign/ihsan_scorer.py`, 648 LOC)
+  - 8 canonical dimensions scored by content analysis (moral_clarity, epistemic_humility,
+    structural_integrity, verifiability, contextual_relevance, intent_alignment, resilience, efficiency)
+  - 4D SNR scorer per §8 Shannon weights (signal_density, evidence_grounding,
+    contradiction_resolution, actionability)
+  - Weighted geometric mean: zero in ANY dimension → zero composite (Al-Ghazali fail-closed §4)
+  - Neutral handling for missing context (0.5 not 0.0 when input_text absent)
+
+### Fixed
+- Threshold canonicalization drift: removed `except ImportError` fallback blocks from
+  helix3.py, mission_nervous_system.py, mission_pipeline.py, organism.py, bloom.py —
+  all now hard-import from `core/integration/constants.py` SSOT (4/4 canonicalization tests pass)
+- Phantom import bug: `SNR_MINIMUM_THRESHOLD` → `UNIFIED_SNR_THRESHOLD` in
+  mission_nervous_system.py (fallback was masking a real ImportError)
+- Scorer wiring: mission_nervous_system.py and mission_pipeline.py now delegate to
+  ihsan_scorer as single source of truth, replacing duplicate surface heuristics
+
+### Changed
 - Phase 20.1: SAPE Sovereign Intelligence Report dashboard (`static/sovereign_analysis.html`)
   - 7 hidden patterns (HP-01..HP-07) with SNR scoring and evidence chains
   - Interactive Graph-of-Thoughts canvas (13 nodes, 17 edges, 4 levels)

@@ -35,7 +35,7 @@ In BIZRA, this translates to: **Every operation must meet excellence standards, 
 
 | Component | Metric | Threshold | Verification |
 |-----------|--------|-----------|--------------|
-| Gini Coefficient | resource_distribution | <= 0.40 | Compute market |
+| Gini Coefficient | resource_distribution | <= 0.35 | Compute market |
 | Equal Access | node_participation | Equal opportunity | Federation |
 | Fair Pricing | harberger_tax | Self-assessed | Market contract |
 | Dispute Resolution | consensus_reached | 2/3 + 1 | BFT protocol |
@@ -226,6 +226,30 @@ Ihsān_system = Σ(Ihsān_op × weight_op) / Σ(weight_op)
 ---
 
 ## Attestation
+
+### Unified 8D Ihsān Content Scorer
+
+As of commit `8712297`, all Ihsān scoring flows through a single source of truth:
+`core/sovereign/ihsan_scorer.py`.
+
+**8 Canonical Dimensions (§4):**
+
+| Dimension | Weight | What It Measures |
+|-----------|--------|------------------|
+| moral_clarity | 0.12 | Absence of harmful patterns, honest framing |
+| epistemic_humility | 0.14 | Hedging/qualification vs overclaiming |
+| structural_integrity | 0.13 | Headers, lists, paragraph coherence |
+| verifiability | 0.13 | Evidence markers: file paths, URLs, test refs |
+| contextual_relevance | 0.11 | Token/n-gram overlap with input context |
+| intent_alignment | 0.14 | Response type matches question type |
+| resilience | 0.11 | Vocabulary diversity, error awareness |
+| efficiency | 0.12 | Signal density, low filler, no repetition |
+
+**Composite:** Weighted geometric mean — zero in ANY dimension kills the score
+(Al-Ghazali fail-closed: you cannot compensate for being unethical by being efficient).
+
+**Constitutional thresholds** are imported from `core/integration/constants.py` (SSOT).
+No module defines fallback values. ADL Gini threshold: **0.35** (not 0.40).
 
 By contributing to BIZRA, all participants attest:
 

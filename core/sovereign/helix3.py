@@ -51,25 +51,11 @@ logger = logging.getLogger("bizra.sovereign.helix3")
 # CONSTITUTIONAL THRESHOLDS
 # ═══════════════════════════════════════════════════════════════════
 
-try:
-    from core.integration.constants import (
-        ADL_GINI_THRESHOLD,
-        IHSAN_CANONICAL_WEIGHTS,
-        UNIFIED_IHSAN_THRESHOLD,
-    )
-except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95
-    ADL_GINI_THRESHOLD = 0.35
-    IHSAN_CANONICAL_WEIGHTS = {
-        "moral_clarity": 0.12,
-        "epistemic_humility": 0.14,
-        "structural_integrity": 0.13,
-        "verifiability": 0.13,
-        "contextual_relevance": 0.11,
-        "intent_alignment": 0.14,
-        "resilience": 0.11,
-        "efficiency": 0.12,
-    }
+from core.integration.constants import (
+    ADL_GINI_THRESHOLD,
+    IHSAN_CANONICAL_WEIGHTS,
+    UNIFIED_IHSAN_THRESHOLD,
+)
 
 HEARTBEAT_INTERVAL_S = 60  # §2: Every 60 seconds
 PRECIPITATION_IHSAN_FLOOR = 0.90  # §2: Ihsān ≥ 0.90 for precipitation
