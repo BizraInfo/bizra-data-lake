@@ -499,7 +499,7 @@ WEEK 2 (March 17-21): THE BRAIN
   Tue:  Build MOE router (core/living_model/moe_engine.py)
   Wed:  HHMM integration (macro-state → expert selection)
   Thu:  Integration tests (100 missions through MOE)
-  Fri:  GENESIS (Ramadan 2026 begins ~March 28)
+  Fri:  GENESIS (Ramadan 2026 ends ~March 30)
 
 WEEK 3-4: THE HANDS
   HDA desktop controller + AHK bridge + MCP tools

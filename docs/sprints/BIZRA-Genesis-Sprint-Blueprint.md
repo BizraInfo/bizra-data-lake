@@ -6,7 +6,7 @@
 **Duration:** 8 weeks (March 10 — May 4, 2026)
 **Team:** 1 engineer (Mumo) + 1 NODE0 (i9-14900HX, 128GB, RTX 4090)
 **Budget:** $2,000 (GPU compute for constitutional fine-tuning)
-**Gate:** Ramadan 2026 launch window (~March 28)
+**Gate:** Ramadan 2026 (active now, ends ~March 30)
 
 ---
 
@@ -91,13 +91,13 @@ WEEK 2 (Mar 17-21): THE BRAIN
   │                                                     │
   │ Friday                                              │
   │   AM: Version lock v0.87.0                          │
-  │   PM: Ramadan preparation begins (~March 28)        │
+  │   PM: Ramadan final 10 days (ends ~March 30)        │
   └─────────────────────────────────────────────────────┘
   
   Gate: v0.87.0 locked, MOE engine operational, 5 experts loaded
   Risk: Model download size (~3GB total) → mitigate: quantized GGUF
 
-WEEK 3 (Mar 24-28): THE HANDS — Ramadan begins ~Mar 28
+WEEK 3 (Mar 24-28): THE HANDS — Ramadan active now (ends ~Mar 30)
   ┌─────────────────────────────────────────────────────┐
   │ Focus: HDA desktop controller + MCP integration     │
   │ Reduced hours (Ramadan schedule)                    │
@@ -111,7 +111,7 @@ WEEK 3 (Mar 24-28): THE HANDS — Ramadan begins ~Mar 28
   │          Agent→tool mapping (P3→editor, P2→browser)  │
   │                                                     │
   │ Fri: Version lock v0.89.0                           │
-  │      🌙 Ramadan begins — adjusted schedule           │
+  │      🌙 Ramadan final days — reduced schedule           │
   └─────────────────────────────────────────────────────┘
   
   Gate: v0.89.0 locked, desktop automation works on NODE0
