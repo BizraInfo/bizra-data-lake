@@ -9,7 +9,7 @@ python scripts/node0_standalone.py activate --architect "MoMo"
 python scripts/node0_standalone.py prove-mvsa
 python scripts/node0_standalone.py task "write file missions/mvsa.txt :: node0 mvsa proof"
 python scripts/node0_standalone.py health
-python scripts/node0_standalone.py health   # second call validates restart recovery
+python scripts/node0_standalone.py health   # fresh process observes persisted restart recovery
 ```
 
 No alternate MVSA completion path is allowed through `node0_activate.py` or ad hoc scripts.
@@ -18,11 +18,12 @@ No alternate MVSA completion path is allowed through `node0_activate.py` or ad h
 
 1. **Authority resolution** — canonical `sovereign_state/node0_genesis.json` + `genesis_hash.txt` (fail-closed)
 2. PAT/SAT identity derived from authority artifacts (not onboarding defaults)
-3. Hardware scan and asset registry (`sovereign_state/node0_assets.json`)
-4. URP signed pledge + verification (`sovereign_state/urp_pledge.json`)
-5. PAT awareness publication (`sovereign_state/pat_awareness.json`)
-6. **Rust MVSA proof** — loopback bootstrap + self-validation (`sovereign_state/node0_mvsa_proof.json`)
-7. Lifecycle v2 gate update (`sovereign_state/node0_lifecycle.json`, schema 2.0.0)
+3. Optional helper signer provision/reuse under `sovereign_state/identity/credentials.json` (non-authoritative)
+4. Hardware scan and asset registry (`sovereign_state/node0_assets.json`)
+5. URP signed pledge + verification (`sovereign_state/urp_pledge.json`)
+6. PAT awareness publication (`sovereign_state/pat_awareness.json`)
+7. **Rust MVSA proof** — loopback bootstrap + self-validation (`sovereign_state/node0_mvsa_proof.json`)
+8. Lifecycle v2 gate update (`sovereign_state/node0_lifecycle.json`, schema 2.0.0)
 
 ## Lifecycle v2 Status Semantics
 
@@ -46,7 +47,7 @@ No alternate MVSA completion path is allowed through `node0_activate.py` or ad h
 | `mvsa_network_bootstrap_ok` | `activate` / `prove-mvsa` |
 | `mvsa_self_validation_ok` | `activate` / `prove-mvsa` |
 | `mission_path_receipted` | `task` (on evidence receipt) |
-| `restart_recovery_ready` | `health` (second call, when all artifacts present) |
+| `restart_recovery_ready` | mutating commands persist it when all artifacts reload cleanly; `health` only reports it |
 
 ### CLI Exit Codes
 
@@ -74,6 +75,8 @@ Endpoints:
 | GET | `/assets` | API key | Node0 assets |
 | GET | `/lifecycle` | API key | Lifecycle v2 state |
 
+`GET /health` remains read-only. It reports persisted MVSA state and does not rewrite lifecycle files.
+
 ## Authority Resolution Order
 
 1. Canonical: `sovereign_state/node0_genesis.json` + `genesis_hash.txt`
@@ -83,16 +86,20 @@ Endpoints:
 
 Migration persists: `sovereign_state/node0_authority_migration.json`
 
+`04_GOLD/genesis.json` remains provenance only. It is not sufficient by itself for Node0 MVSA authority.
+
 ## Rust MVSA Proof
 
 Binary resolution: `BIZRA_NODE0_MVSA_BIN` → release → debug → `cargo run` → fail closed.
 
 Output: `sovereign_state/node0_mvsa_proof.json` with genesis validation, loopback bootstrap, and self-validation.
 
+If no operational signer exists yet, activation provisions a local helper credential under `sovereign_state/identity/credentials.json`. This signer is for URP and receipts only; Node0 authority still comes exclusively from canonical genesis artifacts.
+
 ## Acceptance Criteria
 
 - Canonical authority validates from `sovereign_state/`
 - Rust MVSA proof: `genesis_hash_valid=true`, `bootstrap_ok=true`, `self_validation_ok=true`
 - Task emits evidence receipt ID
-- Second `health` call: `restart_recovery_ready=true`
+- A fresh-process `health` call reports `restart_recovery_ready=true`
 - Lifecycle v2 status: `ready`

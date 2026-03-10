@@ -124,7 +124,7 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 | Genesis execution program | [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md) | `config/genesis_execution_framework.json`, `.github/workflows/`, `core/`, `frontend/`, `scripts/` |
 | Unified optimization blueprint | [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md) | `config/bizra_unified_optimization_blueprint.json`, `docs/plans/GENESIS_CLOSURE_SPRINT_v1.md`, `core/`, `tests/` |
 | Closure implementation plan | [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md) | `core/bus/`, `core/proof_engine/`, `core/sovereign/`, `tests/`, `scripts/` |
-| Node0 standalone lifecycle | [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md) | `scripts/node0_standalone.py`, `scripts/node0_activate.py`, `core/sovereign/mission.py` |
+| Node0 standalone lifecycle | [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md) | `scripts/node0_standalone.py`, `core/sovereign/node0_authority.py`, `core/sovereign/node0_mvsa.py`, `core/sovereign/mission.py` |
 | Runtime architecture | [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md) | `core/sovereign/`, `core/integration/constants.py` |
 | Public sovereignty narrative | [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md) | `00_CONSTITUTION/DECLARATION.md`, `docs/DECLARATION_OF_DIGITAL_SOVEREIGNTY.md`, `scripts/ops/declaration_hash_manifest.py` |
 | Constitutional narrative root | [The Constitutional Seed](CONSTITUTIONAL_SEED.md) | `docs/CONSTITUTIONAL_SEED.md`, `filedfs/ConstitutionalSeedPage.jsx` |
