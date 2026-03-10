@@ -928,6 +928,25 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: "MOE-001: MOE Engine → Bridge → NervousSystem E2E pipeline"
+        run: |
+          echo "## MOE-001: Closed-Loop Pipeline" >> $GITHUB_STEP_SUMMARY
+          pytest tests/integration/test_moe_e2e.py \
+            tests/core/living_model/test_moe_engine.py \
+            tests/core/sovereign/test_moe_bridge.py \
+            -v --tb=short --timeout=60 \
+            2>&1 | tee /tmp/moe-output.log
+          exit_code=${PIPESTATUS[0]}
+          passed=$(grep -c ' PASSED' /tmp/moe-output.log || echo "0")
+          echo "| MOE Tests Passed | ${passed} |" >> $GITHUB_STEP_SUMMARY
+          if [ "$exit_code" -ne 0 ]; then
+            echo "::error::MOE pipeline regression — E2E chain broken"
+            exit 1
+          fi
+          echo "> **PASS**: MOE closed-loop pipeline verified (${passed} tests)" >> $GITHUB_STEP_SUMMARY
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: "RDVE-001: RDVE skill registration + invocation smoke test"
         run: |
           python << 'RDVE_EOF'

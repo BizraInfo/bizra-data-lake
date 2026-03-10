@@ -78,7 +78,8 @@
 | **DONE** | e2e_http test exclusion | In CI + local | Aligned |
 | **DONE** | Deploy smoke tests | 16 endpoints | Phase 77 |
 | **DONE** | CONST-001 hash audit | In CI | Every push |
-| **P1** | Coverage ratchet in CI | 38% floor | Bump to 62% |
+| **DONE** | Coverage ratchet in CI | 62% floor | Bumped from 38% |
+| **DONE** | MOE-001 E2E pipeline gate | In CI | 82 tests (46+25+11) |
 | **P1** | bizra_test.py T2 gate in CI | Local only | Add CI step |
 | **P2** | Reflex endpoint in deploy smoke | Done | Auth fail-closed |
 | **P2** | Docker image rebuild | Stale | After Phase 68 |
