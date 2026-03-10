@@ -87,6 +87,9 @@
 | **DONE** | Rogue IHSAN_THRESHOLD cleanup | Fixed | Cross-lang sync gate |
 | **DONE** | SAP release gate placeholder | Fixed | Schema Validation gate |
 | **DONE** | Dead doc links (DOCS_INDEX) | Fixed | Lychee link checker |
+| **DONE** | Rust clippy installer errors (4+7+1) | Fixed | Lint Rust gate |
+| **DONE** | Z3 ImportError cascade (13 tests) | Fixed | Test Python gate |
+| **DONE** | WARP/redis test skip markers | Fixed | Test Python gate |
 | **P1** | bizra_test.py T2 gate in CI | Local only | Add CI step |
 | **P2** | Reflex endpoint in deploy smoke | Done | Auth fail-closed |
 | **P2** | Docker image rebuild | Stale | After Phase 68 |

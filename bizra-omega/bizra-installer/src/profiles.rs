@@ -243,6 +243,7 @@ pub fn load_registry(path: &Path) -> std::io::Result<ProfileRegistry> {
 // ─────────────────────────────────────────────────────────────
 
 #[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
 
