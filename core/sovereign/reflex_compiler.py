@@ -34,7 +34,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol
 
-from core.integration.constants import (
+from core.integration.constants import (  # noqa: isort:skip
     IHSAN_THRESHOLD,  # noqa: F401 — re-exported for dependents
     REFLEX_INVALIDATION_DELTA,
     REFLEX_INVALIDATION_INTERVAL,

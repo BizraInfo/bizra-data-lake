@@ -266,8 +266,7 @@ pub struct StringBundle {
 impl StringBundle {
     /// Load a string bundle from a JSON file.
     pub fn load_from_file(path: &Path) -> Result<Self, String> {
-        let content =
-            std::fs::read_to_string(path).map_err(|e| format!("Read error: {e}"))?;
+        let content = std::fs::read_to_string(path).map_err(|e| format!("Read error: {e}"))?;
         serde_json::from_str(&content).map_err(|e| format!("Parse error: {e}"))
     }
 
@@ -464,7 +463,11 @@ mod tests {
     #[test]
     fn all_locales_have_native_names() {
         for locale in supported_locales() {
-            assert!(!locale.native_name.is_empty(), "Empty native_name for {}", locale.code);
+            assert!(
+                !locale.native_name.is_empty(),
+                "Empty native_name for {}",
+                locale.code
+            );
             assert!(!locale.flag.is_empty(), "Empty flag for {}", locale.code);
         }
     }

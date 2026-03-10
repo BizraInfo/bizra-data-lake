@@ -286,9 +286,9 @@ class SovereignNervousSystem:
         """
         from core.bus.subscribers import EventBus, wire_all_subscribers
         from core.sovereign.reflex_compiler import ReflexCompiler
-        from core.token.bloom import CommunityPool, WalletState
-
+        from core.token.bloom import CommunityPool
         from core.token.bloom import TokenMinter as BloomMinter
+        from core.token.bloom import WalletState
 
         reflex = ReflexCompiler(
             max_entries=1000,
