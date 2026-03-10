@@ -87,6 +87,7 @@ This is the master index of all documentation for **Node0 (Genesis Block)**.
 | :--- | :--- |
 | [HHMM_SPARSE_TENSOR_ANALYSIS_2026-02-20.md](HHMM_SPARSE_TENSOR_ANALYSIS_2026-02-20.md) | Canonical internal markdown snapshot (values preserved exactly as authored). |
 | [HHMM_SPARSE_TENSOR_ANALYSIS_INDEX.md](HHMM_SPARSE_TENSOR_ANALYSIS_INDEX.md) | Index and governance notes for HHMM sparse tensor artifacts. |
+| [SESSION_ARCHAEOLOGY_V3_OPTIMIZATION_TRANSCRIPT_2026-02-23.md](SESSION_ARCHAEOLOGY_V3_OPTIMIZATION_TRANSCRIPT_2026-02-23.md) | Internal transcript archaeology artifact capturing hidden hot paths, governance-by-eviction patterns, and the engineering-process fractal. |
 
 ---
 
@@ -120,8 +121,8 @@ This is the master index of all documentation for **Node0 (Genesis Block)**.
 | [Phase 19 Integration](../specs/phase19_integration_completion.md) | Integration completion spec |
 | [Apex Integration](../specs/apex_integration/00_overview.md) | Social/market/swarm integration spec |
 | [Autopoietic Loop](../specs/autopoietic-loop-architecture.md) | Self-healing loop architecture |
-| [SAP v0 (Core)](../../specs/sap-v0/README.md) | Sovereign Agent Protocol v0 (internal-first, schema-backed) |
-| [SAP Retail Ads Profile v0](../../specs/sap-v0/profiles/agentic-ads-retail-v0.md) | Agentic ads lifecycle profile for retail e-commerce |
+| SAP v0 (Core) | Sovereign Agent Protocol v0 — planned (specs not yet authored) |
+| SAP Retail Ads Profile v0 | Agentic ads lifecycle profile — planned (specs not yet authored) |
 | [SAP Evidence Matrix](SAP_V0_EVIDENCE_MATRIX.md) | Claim-level truth mapping (`Implemented/Planned/Hypothesis`) |
 | [Technical Master Plan v1.0](../../TMP_v1.0.md) | Authoritative internal source of truth (priority, evidence, roadmap) |
 

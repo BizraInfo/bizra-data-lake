@@ -103,10 +103,10 @@ fn validate_genesis(state_dir: &Path) -> Result<(String, String, bool), String> 
         return Err(format!("missing {}", hash_path.display()));
     }
 
-    let genesis_raw = fs::read_to_string(&genesis_path)
-        .map_err(|e| format!("cannot read genesis: {e}"))?;
-    let genesis: serde_json::Value = serde_json::from_str(&genesis_raw)
-        .map_err(|e| format!("invalid genesis JSON: {e}"))?;
+    let genesis_raw =
+        fs::read_to_string(&genesis_path).map_err(|e| format!("cannot read genesis: {e}"))?;
+    let genesis: serde_json::Value =
+        serde_json::from_str(&genesis_raw).map_err(|e| format!("invalid genesis JSON: {e}"))?;
 
     // Extract node_id
     let node_id = genesis
@@ -192,7 +192,11 @@ async fn bootstrap_loopback(node_id: &str) -> Result<(String, bool), String> {
 // Self-validation
 // ═════════════════════════════════════════════════════════════════════════════
 
-async fn self_validate(bind_addr: &str, node_id: &str, genesis_hash: &str) -> Result<(bool, bool, String), String> {
+async fn self_validate(
+    bind_addr: &str,
+    node_id: &str,
+    genesis_hash: &str,
+) -> Result<(bool, bool, String), String> {
     if node_id.trim().is_empty() {
         return Err("node_id must not be empty".into());
     }
@@ -300,7 +304,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Step 3: Self-validation
     let (proposal_ok, self_validation_ok, proof_id) =
         self_validate(&bind_addr, &node_id, &genesis_hash).await?;
-    eprintln!("✓ Self-validation: proposal={proposal_ok}, valid={self_validation_ok}, id={proof_id}");
+    eprintln!(
+        "✓ Self-validation: proposal={proposal_ok}, valid={self_validation_ok}, id={proof_id}"
+    );
 
     // Step 4: Emit proof
     let duration_ms = start.elapsed().as_secs_f64() * 1000.0;

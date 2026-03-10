@@ -51,22 +51,14 @@ logger = logging.getLogger("bizra.sovereign.moe_bridge")
 # CONSTANTS (from single source of truth)
 # ═══════════════════════════════════════════════════════════════════
 
-try:
-    from core.integration.constants import (
-        MOE_FALLBACK_EXPERT,
-        MOE_MIN_CONFIDENCE,
-        MOE_SYNTHESIS_STRATEGY,
-        MOE_TOP_K,
-        OLLAMA_URL,
-        UNIFIED_IHSAN_THRESHOLD,
-    )
-except ImportError:
-    MOE_TOP_K = 2
-    MOE_MIN_CONFIDENCE = 0.1
-    MOE_FALLBACK_EXPERT = "pat_r"
-    MOE_SYNTHESIS_STRATEGY = "weighted"
-    OLLAMA_URL = "http://localhost:11434"
-    UNIFIED_IHSAN_THRESHOLD = 0.95
+from core.integration.constants import (
+    MOE_FALLBACK_EXPERT,
+    MOE_MIN_CONFIDENCE,
+    MOE_SYNTHESIS_STRATEGY,
+    MOE_TOP_K,
+    OLLAMA_URL,
+    UNIFIED_IHSAN_THRESHOLD,
+)
 
 
 # Expert → Ollama model mapping (overridable via env vars)

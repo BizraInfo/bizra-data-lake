@@ -156,7 +156,11 @@ fn multi_user_profile_lifecycle() {
     // Create secondary with PIN
     let bob = registry.create_profile("Bob", "ar").unwrap();
     let bob_id = bob.profile_id.clone();
-    if let Some(p) = registry.profiles.iter_mut().find(|p| p.profile_id == bob_id) {
+    if let Some(p) = registry
+        .profiles
+        .iter_mut()
+        .find(|p| p.profile_id == bob_id)
+    {
         p.set_pin("9999");
     }
 
@@ -264,12 +268,18 @@ fn update_strategy_integration() {
 #[test]
 fn i18n_full_coverage_check() {
     let locales = supported_locales();
-    let tier1_count = locales.iter().filter(|l| l.tier == LanguageTier::Tier1).count();
-    let tier2_count = locales.iter().filter(|l| l.tier == LanguageTier::Tier2).count();
+    let tier1_count = locales
+        .iter()
+        .filter(|l| l.tier == LanguageTier::Tier1)
+        .count();
+    let tier2_count = locales
+        .iter()
+        .filter(|l| l.tier == LanguageTier::Tier2)
+        .count();
 
     // Spec §4.2 requires 10 Tier-1, 7+ Tier-2
-    assert_eq!(tier1_count, 10,  "Expected 10 Tier-1 languages");
-    assert!(tier2_count >= 7,    "Expected at least 7 Tier-2 languages");
+    assert_eq!(tier1_count, 10, "Expected 10 Tier-1 languages");
+    assert!(tier2_count >= 7, "Expected at least 7 Tier-2 languages");
 
     // RTL languages must include Arabic, Urdu, Persian
     let rtl: Vec<_> = locales
