@@ -117,7 +117,7 @@
 2. `core/bus/omega_loop.py` — Proof-based iteration (spec 68.02)
 3. Wire into `/v1/plan` as alternative execution path
 
-**Ramadan begins ~March 28** — scope reduces from Week 4.
+**Ramadan ends ~March 30** — final 10 days now. Reduced scope active.
 
 ### Week 4 (March 24-30): AKIS + Config (Reduced Scope)
 
@@ -155,7 +155,7 @@
 |---|------|-------------|--------|------------|
 | R1 | WSL2 filesystem slow | HIGH | Coverage runs 2h+ | B: drive migration |
 | R2 | Token budget exhaustion | HIGH | Blocks development | Conserve, batch work |
-| R3 | Ramadan reduced capacity | CERTAIN | Weeks 4-7 slower | Pre-load in W2-3 |
+| R3 | Ramadan final 10 days | ACTIVE NOW | Reduced capacity until ~March 30 | Shipped W1+W2 early |
 | R4 | SDPO divergence | MEDIUM | Quality regression | Ihsan gate + feature flag |
 | R5 | Phase 68 scope creep | MEDIUM | Delays Genesis | Strict spec adherence |
 | R6 | CI quality gate soft-gated | LOW | False confidence | SAPE-003 resolution |
