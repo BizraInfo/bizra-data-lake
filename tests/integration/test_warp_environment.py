@@ -29,8 +29,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 XTR_WARP_DIR = REPO_ROOT / "xtr-warp"
 
 pytestmark = pytest.mark.skipif(
-    not XTR_WARP_DIR.exists(),
-    reason="xtr-warp/ directory not present",
+    not (XTR_WARP_DIR / "scripts").exists(),
+    reason="xtr-warp/ submodule not checked out",
 )
 BRIDGES_DIR = REPO_ROOT / "tools" / "bridges"
 
