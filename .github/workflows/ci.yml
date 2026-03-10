@@ -188,6 +188,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Organism smoke gate (§7 T0)
+        run: python scripts/ci_organism_gate.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Generate Atlas alignment report
         run: |
           python scripts/atlas/atlas_gap_report.py \
