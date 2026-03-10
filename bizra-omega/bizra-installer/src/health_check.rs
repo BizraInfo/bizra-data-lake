@@ -80,10 +80,7 @@ pub fn check_core_runtime(install_dir: &std::path::Path) -> HealthCheckItem {
     let (status, detail) = if binary.exists() {
         (CheckStatus::Pass, format!("Found: {}", binary.display()))
     } else {
-        (
-            CheckStatus::Fail,
-            format!("Missing: {}", binary.display()),
-        )
+        (CheckStatus::Fail, format!("Missing: {}", binary.display()))
     };
 
     HealthCheckItem {
@@ -113,11 +110,7 @@ pub fn check_llm_model(install_dir: &std::path::Path) -> HealthCheckItem {
         .map(|entries| {
             entries
                 .filter_map(|e| e.ok())
-                .any(|e| {
-                    e.path()
-                        .extension()
-                        .is_some_and(|ext| ext == "gguf")
-                })
+                .any(|e| e.path().extension().is_some_and(|ext| ext == "gguf"))
         })
         .unwrap_or(false);
 
@@ -179,10 +172,7 @@ pub fn check_evidence_ledger(install_dir: &std::path::Path) -> HealthCheckItem {
     let (status, detail) = if ledger.exists() && ledger.is_dir() {
         (CheckStatus::Pass, "Evidence ledger directory exists".into())
     } else {
-        (
-            CheckStatus::Fail,
-            "Evidence ledger not initialized".into(),
-        )
+        (CheckStatus::Fail, "Evidence ledger not initialized".into())
     };
 
     HealthCheckItem {
@@ -204,15 +194,16 @@ pub fn check_agents(install_dir: &std::path::Path) -> HealthCheckItem {
                     let count = val
                         .as_array()
                         .map(|a| a.len())
-                        .or_else(|| val.get("agents").and_then(|a| a.as_array()).map(|a| a.len()))
+                        .or_else(|| {
+                            val.get("agents")
+                                .and_then(|a| a.as_array())
+                                .map(|a| a.len())
+                        })
                         .unwrap_or(0);
                     if count >= 12 {
                         (CheckStatus::Pass, format!("{count} agents minted"))
                     } else {
-                        (
-                            CheckStatus::Warn,
-                            format!("Only {count}/12 agents minted"),
-                        )
+                        (CheckStatus::Warn, format!("Only {count}/12 agents minted"))
                     }
                 }
                 Err(e) => (CheckStatus::Fail, format!("Invalid agents.json: {e}")),
@@ -246,7 +237,12 @@ pub fn check_language_packs(install_dir: &std::path::Path) -> HealthCheckItem {
 
     let pack_count = std::fs::read_dir(&locales_dir)
         .ok()
-        .map(|entries| entries.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()).count())
+        .map(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().is_dir())
+                .count()
+        })
         .unwrap_or(0);
 
     let (status, detail) = if pack_count >= 2 {

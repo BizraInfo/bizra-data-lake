@@ -118,10 +118,7 @@ pub fn determine_strategy(manifest: &UpdateManifest, current_version: &str) -> U
 
 /// Plan an update but don't execute it.
 /// Returns what would happen if the update were applied.
-pub fn plan_update(
-    manifest: &UpdateManifest,
-    current_version: &str,
-) -> UpdateResult {
+pub fn plan_update(manifest: &UpdateManifest, current_version: &str) -> UpdateResult {
     let strategy = determine_strategy(manifest, current_version);
 
     let bytes = match strategy {
@@ -135,10 +132,9 @@ pub fn plan_update(
             "Delta patch: {} → {} ({} bytes)",
             current_version, manifest.to_version, bytes
         ),
-        UpdateStrategy::FullReplace => format!(
-            "Full download: {} ({} bytes)",
-            manifest.to_version, bytes
-        ),
+        UpdateStrategy::FullReplace => {
+            format!("Full download: {} ({} bytes)", manifest.to_version, bytes)
+        }
         UpdateStrategy::UpToDate => "Already up to date".to_string(),
     };
 
@@ -200,10 +196,7 @@ mod tests {
     #[test]
     fn full_replace_when_version_mismatch() {
         let m = sample_manifest();
-        assert_eq!(
-            determine_strategy(&m, "1.9.0"),
-            UpdateStrategy::FullReplace
-        );
+        assert_eq!(determine_strategy(&m, "1.9.0"), UpdateStrategy::FullReplace);
     }
 
     #[test]
@@ -243,9 +236,6 @@ mod tests {
         let mut m = sample_manifest();
         m.patch_url = None;
         m.patch_sha256 = None;
-        assert_eq!(
-            determine_strategy(&m, "2.0.0"),
-            UpdateStrategy::FullReplace
-        );
+        assert_eq!(determine_strategy(&m, "2.0.0"), UpdateStrategy::FullReplace);
     }
 }

@@ -358,7 +358,11 @@ fn detect_os_version() -> String {
                 content
                     .lines()
                     .find(|l| l.starts_with("VERSION_ID="))
-                    .map(|l| l.trim_start_matches("VERSION_ID=").trim_matches('"').to_string())
+                    .map(|l| {
+                        l.trim_start_matches("VERSION_ID=")
+                            .trim_matches('"')
+                            .to_string()
+                    })
             })
             .unwrap_or_default()
     }
@@ -373,7 +377,10 @@ fn detect_gpu_info() -> Option<GpuInfo> {
     #[cfg(any(target_os = "linux", target_os = "windows"))]
     {
         if let Ok(output) = std::process::Command::new("nvidia-smi")
-            .args(["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"])
+            .args([
+                "--query-gpu=name,memory.total",
+                "--format=csv,noheader,nounits",
+            ])
             .output()
         {
             if output.status.success() {
