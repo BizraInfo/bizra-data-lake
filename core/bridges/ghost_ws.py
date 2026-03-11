@@ -186,7 +186,7 @@ class GhostConnectionManager:
                 await ws.send_text(payload)
                 sent += 1
                 self._message_count += 1
-            except Exception:
+            except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
                 stale.append(ws)
 
         for ws in stale:
@@ -201,7 +201,7 @@ class GhostConnectionManager:
             await ws.send_text(payload)
             self._message_count += 1
             return True
-        except Exception:
+        except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
             self._connections.discard(ws)
             return False
 
@@ -362,7 +362,7 @@ async def http_rpc_proxy(request: Request) -> JSONResponse:
 
     try:
         body = await request.json()
-    except Exception:
+    except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
         return JSONResponse(
             {
                 "jsonrpc": "2.0",
@@ -416,7 +416,7 @@ async def http_rpc_proxy(request: Request) -> JSONResponse:
                 status_code=502,
             )
         return JSONResponse(json.loads(raw.decode()))
-    except Exception as exc:
+    except (json.JSONDecodeError, OSError, ValueError) as exc:  # SEC-003 — json boundary
         logger.warning("http_rpc_proxy error: %s", exc)
         return JSONResponse(
             {
@@ -430,7 +430,7 @@ async def http_rpc_proxy(request: Request) -> JSONResponse:
         try:
             writer.close()
             await asyncio.wait_for(writer.wait_closed(), timeout=2.0)
-        except Exception:
+        except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
             pass
 
 
@@ -524,7 +524,7 @@ async def ghost_overlay_ws(ws: WebSocket) -> None:
 
     except WebSocketDisconnect:
         manager.disconnect(ws)
-    except Exception:
+    except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
         logger.exception("Ghost WS: unexpected error in client loop")
         manager.disconnect(ws)
 

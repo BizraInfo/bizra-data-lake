@@ -52,7 +52,7 @@ def _load_yaml_file(path: Path) -> dict[str, Any]:
         with open(path) as f:
             data = yaml.safe_load(f)
         return data if isinstance(data, dict) else {}
-    except Exception:
+    except (OSError, ValueError):  # SEC-003 — file_io boundary
         logger.exception("Failed to load config: %s", path)
         return {}
 
@@ -132,7 +132,7 @@ class ConfigLoader:
         for watcher in self._watchers:
             try:
                 watcher(config)
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.exception("Config watcher failed")
         return config
 

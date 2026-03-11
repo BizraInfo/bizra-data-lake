@@ -284,13 +284,13 @@ class AssetRegistry:
                 try:
                     util = pynvml.nvmlDeviceGetUtilizationRates(handle)
                     gpu_pct = util.gpu / 100.0
-                except Exception:
+                except Exception:  # noqa: BLE001 — boundary boundary
                     gpu_pct = used_gb / total_gb if total_gb > 0 else 0.0
                 try:
                     temp = pynvml.nvmlDeviceGetTemperature(
                         handle, pynvml.NVML_TEMPERATURE_GPU
                     )
-                except Exception:
+                except Exception:  # noqa: BLE001 — boundary boundary
                     temp = None
 
                 gpus.append(
@@ -305,7 +305,7 @@ class AssetRegistry:
                     )
                 )
             pynvml.nvmlShutdown()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             logger.debug("GPU introspection failed (non-fatal): %s", exc)
 
         return gpus
@@ -326,7 +326,7 @@ class AssetRegistry:
                 available_now=0.0,  # bandwidth is not "stored"
                 utilization=0.0,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             return None
 
     # ── Sovereign queries ─────────────────────────────────────

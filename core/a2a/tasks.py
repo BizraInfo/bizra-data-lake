@@ -197,7 +197,7 @@ class TaskManager:
             if self.on_task_failed:
                 await self.on_task_failed(task)
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             task.mark_failed(str(e))
             self.stats["failed"] += 1
 

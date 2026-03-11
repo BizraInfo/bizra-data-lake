@@ -206,5 +206,5 @@ class GuildRegistry:
             data = {gid: g.to_dict() for gid, g in self._guilds.items()}
             self._persist_path.parent.mkdir(parents=True, exist_ok=True)
             self._persist_path.write_text(json.dumps(data, indent=2))
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
             logger.warning("Failed to persist guild data: %s", e)

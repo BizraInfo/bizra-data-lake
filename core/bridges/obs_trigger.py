@@ -27,7 +27,7 @@ class OBSTrigger:
     async def connect(self) -> bool:
         try:
             import websockets
-        except Exception:
+        except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
             logger.warning("OBS trigger unavailable: websockets package missing")
             self._connected = False
             return False
@@ -37,7 +37,7 @@ class OBSTrigger:
             self._ws = await websockets.connect(endpoint)
             self._connected = True
             return True
-        except Exception as exc:
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
             logger.warning("OBS connection failed (%s)", exc)
             self._ws = None
             self._connected = False
@@ -56,7 +56,7 @@ class OBSTrigger:
 
         try:
             await self._ws.close()
-        except Exception:
+        except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
             pass
         finally:
             self._ws = None
@@ -77,7 +77,7 @@ class OBSTrigger:
         try:
             await self._ws.send(json.dumps(payload))
             return True
-        except Exception:
+        except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
             self._connected = False
             return False
 

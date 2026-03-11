@@ -203,7 +203,7 @@ class PATBridge:
             logger.info(f"Connected to PAT gateway: {self.gateway_url}")
             return True
 
-        except Exception as e:
+        except (OSError, ConnectionError, RuntimeError) as e:  # SEC-003
             logger.error(f"Failed to connect to PAT gateway: {e}")
             self._connected = False
             return False
@@ -227,7 +227,7 @@ class PATBridge:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (OSError, ConnectionError, ValueError) as e:  # SEC-003
                 logger.error(f"Error receiving PAT message: {e}")
 
     async def _handle_incoming(self, message: PATMessage) -> None:
@@ -259,7 +259,7 @@ class PATBridge:
                     await handler(message)
                 else:
                     handler(message)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — handler dispatch boundary
                 logger.error(f"Handler error: {e}")
 
         # Handle tool calls
@@ -294,7 +294,7 @@ Is this message safe and appropriate? Answer YES or NO."""
                 if "NO" in response.upper():
                     message.ihsan_score = 0.3
                     return False
-            except Exception as e:
+            except (ValueError, RuntimeError) as e:  # SEC-003
                 logger.warning(f"Ihsan validation failed: {e}")
                 message.ihsan_score = 0.0
                 return False
@@ -346,7 +346,7 @@ Is this message safe and appropriate? Answer YES or NO."""
             )
             await self.send(response)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — mission execution boundary
             response = PATMessage(
                 channel=message.channel,
                 sender="bizra",
@@ -391,7 +391,7 @@ Is this message safe and appropriate? Answer YES or NO."""
         try:
             await self._websocket.send(json.dumps(message.to_dict()))
             return True
-        except Exception as e:
+        except (OSError, ConnectionError, RuntimeError) as e:  # SEC-003
             logger.error(f"Failed to send PAT message: {e}")
             return False
 
@@ -454,7 +454,7 @@ Respond helpfully and concisely."""
 
                 return response
 
-            except Exception as e:
+            except (ValueError, RuntimeError) as e:  # SEC-003
                 return f"Error generating response: {e}"
 
         return "LLM not available for response generation."

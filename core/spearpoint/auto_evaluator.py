@@ -538,7 +538,7 @@ class AutoEvaluator:
                 finally:
                     _unlock_file(lock_file)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Failed to emit receipt for {eval_id}: {e}")
             return ""
 

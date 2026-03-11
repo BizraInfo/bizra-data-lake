@@ -567,7 +567,7 @@ class PropagationEngine:
         except ImportError as e:
             logger.error(f"PCI crypto module not available: {e}")
             return False
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(
                 f"Envelope verification error: {e}",
                 extra={"error_type": type(e).__name__},
@@ -620,7 +620,7 @@ class PropagationEngine:
             pattern = ElevatedPattern.from_dict(pattern_data)
             return self.store.add_network_pattern(pattern)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(
                 f"Failed to process pattern: {e}",
                 extra={

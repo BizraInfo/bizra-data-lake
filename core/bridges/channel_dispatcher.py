@@ -295,7 +295,7 @@ class ChannelDispatcher:
                 "method": method,
                 "result": result,
             }
-        except Exception as exc:
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
             return {
                 "success": False,
                 "channel": Channel.DESKTOP.value,
@@ -318,7 +318,7 @@ class ChannelDispatcher:
                 "channel": Channel.BROWSER.value,
                 "result": result,
             }
-        except Exception as exc:
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
             return {
                 "success": False,
                 "channel": Channel.BROWSER.value,
@@ -345,7 +345,7 @@ class ChannelDispatcher:
                 "tier": output.tier,
                 "warning": output.warning,
             }
-        except Exception as exc:
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
             return {
                 "success": False,
                 "channel": Channel.VOICE.value,
@@ -377,7 +377,7 @@ class ChannelDispatcher:
                 "action": action,
                 "warning": "" if ok else "proof_action_failed",
             }
-        except Exception as exc:
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
             return {
                 "success": False,
                 "channel": Channel.PROOF.value,
@@ -396,7 +396,7 @@ class ChannelDispatcher:
                 from core.bridges.browser_mcp_client import BrowserMCPClient
 
                 self._browser = BrowserMCPClient(mode="mock")
-            except Exception as exc:
+            except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
                 logger.debug("Browser channel unavailable: %s", exc)
 
         if self._voice is None:
@@ -404,7 +404,7 @@ class ChannelDispatcher:
                 from core.voice.personaplex_bridge import PersonaPlexBridge
 
                 self._voice = PersonaPlexBridge()
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — boundary boundary
                 logger.debug("Voice channel unavailable: %s", exc)
 
         if self._proof is None:
@@ -412,7 +412,7 @@ class ChannelDispatcher:
                 from core.bridges.obs_trigger import OBSTrigger
 
                 self._proof = OBSTrigger()
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — boundary boundary
                 logger.debug("Proof channel unavailable: %s", exc)
 
     def _needs_channel(self, channel: Channel, description: str) -> bool:

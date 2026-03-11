@@ -762,7 +762,7 @@ class GossipEngine:
         try:
             host, port = address.split(":")
             self._transport.sendto(data, (host, int(port)))
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             print(f"⚠️ Failed to send to {address}: {e}")
 
     async def _gossip_loop(self):
@@ -783,7 +783,7 @@ class GossipEngine:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 print(f"⚠️ Gossip loop error: {e}")
 
     async def _health_check_loop(self):
@@ -796,7 +796,7 @@ class GossipEngine:
                 self.check_peer_health()
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 print(f"⚠️ Health check error: {e}")
 
     async def broadcast_pattern_async(self, pattern_data: Dict):

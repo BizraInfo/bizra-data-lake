@@ -107,7 +107,7 @@ class ResourceFabricProfile:
         for key, val in self.category_weights.items():
             try:
                 f = max(0.0, float(val))
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 f = 0.0
             cleaned[str(key)] = f
             total += f
@@ -163,7 +163,7 @@ class ResourceFabric:
             raw = profile_path.read_text(encoding="utf-8")
             data = yaml.safe_load(raw) or {}
             return ResourceFabricProfile.from_dict(data)
-        except Exception:
+        except (OSError, ValueError):  # SEC-003 — file_io boundary
             return ResourceFabricProfile()
 
     def get_profile(self) -> Dict[str, Any]:

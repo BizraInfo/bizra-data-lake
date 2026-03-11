@@ -492,7 +492,7 @@ class OpportunityPipeline:
                 self._active[opportunity.id] = opportunity
                 asyncio.create_task(self._process_opportunity(opportunity))
 
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error("Pipeline loop error: %s", e)
                 await asyncio.sleep(1.0)
 
@@ -540,7 +540,7 @@ class OpportunityPipeline:
                 opp, OpportunityStatus.EXECUTED if success else OpportunityStatus.FAILED
             )
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error("Error processing opportunity %s: %s", opp.id, e)
             opp.rejection_reason = str(e)
             self._finalize(opp, OpportunityStatus.FAILED)
@@ -560,7 +560,7 @@ class OpportunityPipeline:
                     # May adjust scores based on knowledge
                     if "ihsan_adjustment" in enrichment:
                         opp.ihsan_score = enrichment["ihsan_adjustment"]
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.warning("Enrichment callback failed: %s", e)
 
         # Default Ihsan score if not set
@@ -610,7 +610,7 @@ class OpportunityPipeline:
                     # Agent may recommend autonomy level
                     if "recommended_autonomy" in plan:
                         opp.autonomy_level = AutonomyLevel[plan["recommended_autonomy"]]
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.warning("Planning callback failed: %s", e)
 
         # Default plan if none provided
@@ -679,7 +679,7 @@ class OpportunityPipeline:
                 else:
                     await self.reject(opp.id, "User rejected")
                     return False
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.warning("Approval callback failed: %s", e)
 
         logger.info("Opportunity %s queued for human approval", opp.id)
@@ -703,7 +703,7 @@ class OpportunityPipeline:
                     self._metrics["by_domain"][opp.domain]["executed"] += 1
 
                 return result.get("success", True)
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error("Execution failed for %s: %s", opp.id, e)
                 opp.execution_result = {"success": False, "error": str(e)}
                 self._metrics["total_failed"] += 1

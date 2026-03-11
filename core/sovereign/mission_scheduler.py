@@ -543,7 +543,7 @@ class MissionScheduler:
                     )
                     return result
 
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — boundary boundary
                     record.status = "failed"
                     record.result_summary = str(exc)[:256]
                     self._persistence.upsert(record)

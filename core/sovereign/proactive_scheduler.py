@@ -195,7 +195,7 @@ class ProactiveScheduler:
             job.run_count += 1
             job.last_run = datetime.now(timezone.utc)
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             result.success = False
             result.error = str(e)
             job.error_count += 1

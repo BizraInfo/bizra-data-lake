@@ -314,7 +314,7 @@ class LivingEcosystem:
                 await asyncio.sleep(self.config.maintenance_interval_seconds)
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Maintenance error: {e}")
                 await asyncio.sleep(10)
 
@@ -326,7 +326,7 @@ class LivingEcosystem:
                 await self._consolidate_memory()
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Memory consolidation error: {e}")
 
     async def _evolution_loop(self) -> None:
@@ -337,7 +337,7 @@ class LivingEcosystem:
                 await self._run_evolution()
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Evolution error: {e}")
 
     async def _run_maintenance(self) -> None:
@@ -392,7 +392,7 @@ class LivingEcosystem:
         try:
             await self._autopoietic_loop._run_cycle()
             self._health.evolution_health = 1.0
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error(f"Evolution cycle failed: {e}")
             self._health.evolution_health = 0.5
 
@@ -401,7 +401,7 @@ class LivingEcosystem:
             try:
                 await self._learning_loop.run_training_cycle()
                 self._learning_loop.run_compilation_cycle()
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.warning("Learning loop cycle error: %s", e)
 
         self.state = EcosystemState.RUNNING

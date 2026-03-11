@@ -322,7 +322,7 @@ class ToxicityDetector:
             try:
                 score = self.toxicity_fn(text)
                 return score, []
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.warning(
                     "Toxicity classifier failed, falling back to heuristic",
                     exc_info=True,

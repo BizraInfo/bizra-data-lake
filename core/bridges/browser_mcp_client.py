@@ -196,7 +196,7 @@ class BrowserMCPClient:
 
                 response.raise_for_status()
                 return response.text
-        except Exception as exc:
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
             logger.warning("Page fetch failed for %s (%s)", url, exc)
             return ""
 
@@ -227,7 +227,7 @@ class BrowserMCPClient:
 
         try:
             raw = await client.search(query=query, limit=limit)
-        except Exception:
+        except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
             return []
 
         normalized: list[SearchResult] = []
@@ -288,7 +288,7 @@ class BrowserMCPClient:
             if results:
                 logger.info("Brave Search returned %d results", len(results))
             return results
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             logger.warning("Brave Search failed (%s)", exc)
             return []
 
@@ -314,7 +314,7 @@ class BrowserMCPClient:
                     return parsed
         except SSRFValidationError as exc:
             logger.warning("DDG URL blocked by SSRF guard (%s)", exc)
-        except Exception as exc:
+        except (OSError, ValueError) as exc:  # SEC-003 — network boundary
             logger.warning("DDG search failed (%s)", exc)
 
         return []

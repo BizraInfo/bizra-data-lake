@@ -91,7 +91,7 @@ Stores content as a new memory record. Returns a `MemoryRecord`.
 |-----------|------|---------|-------------|
 | `content` | `str` | required | The text content to store |
 | `kind` | `MemoryKind` | `SEMANTIC` | Category: episodic, semantic, procedural, working, prospective |
-| `embedding` | `Sequence[float]` | `None` | Optional pre-computed embedding (dim=768) |
+| `embedding` | `Sequence[float]` | `None` | Optional pre-computed embedding (dim=384 by default) |
 | `importance` | `float` | `0.5` | Importance weight for ranking (0.0-1.0) |
 | `source` | `str` | `"agent"` | Provenance tag |
 | `tags` | `List[str]` | `[]` | Searchable tags |
@@ -113,6 +113,7 @@ Hybrid search across all memory using 5-signal score fusion.
 | `tags` | `List[str]` | `None` | Filter by tags (any match) |
 | `source` | `str` | `None` | Filter by source |
 | `context_ids` | `List[str]` | `None` | IDs for graph-overlap scoring |
+| `include_archived` | `bool` | `False` | Include archived memories in the ranked result set |
 
 Returns `List[SearchResult]` sorted by fused score descending.
 
@@ -136,7 +137,7 @@ class MemoryRecord:
     content: str                         # The memory text
     kind: MemoryKind                     # episodic | semantic | procedural | working | prospective
     state: RecordState                   # active | archived | deleted
-    embedding: Optional[List[float]]     # float32, dim=768
+    embedding: Optional[List[float]]     # float32, dim=384 by default
     ihsan_score: float                   # Quality score (0.0-1.0)
     snr_score: float                     # Signal-to-noise (0.0-1.0)
     importance: float                    # Ranking weight (0.0-1.0)
@@ -180,7 +181,7 @@ config = MemoryConfig(
 
     # HNSW parameters (from .swarm/schema.sql, proven production defaults)
     hnsw=HNSWConfig(
-        dimensions=768,           # Embedding dimensionality
+        dimensions=384,           # Embedding dimensionality for all-MiniLM-L6-v2
         space="cosine",           # Distance metric
         m=16,                     # Bi-directional links per element
         ef_construction=200,      # Build-time candidate list size
@@ -308,7 +309,7 @@ Benchmarked on the production BIZRA-DATA-LAKE dataset:
 | 1,000 entries | ~5ms | ~0.035ms | **140x** |
 | 10,000 entries | ~50ms | ~0.04ms | **1,250x** |
 
-HNSW index parameters: M=16, ef_construction=200, ef_search=100, dim=768, cosine.
+HNSW index parameters: M=16, ef_construction=200, ef_search=100, dim=384, cosine.
 
 ## Testing
 

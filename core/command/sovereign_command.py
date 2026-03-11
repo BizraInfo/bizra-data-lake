@@ -222,7 +222,7 @@ class LMStudioBackend(LLMBackend):
             if resp.status_code == 200:
                 return resp.json()["choices"][0]["message"]["content"]
             return f"[Error: {resp.status_code}]"
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             return f"[Error: {e}]"
 
     async def health_check(self) -> bool:
@@ -230,7 +230,7 @@ class LMStudioBackend(LLMBackend):
             client = await self._get_client()
             resp = await client.get(f"{self.base_url}/v1/models", timeout=5.0)
             return resp.status_code == 200
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.debug("LM Studio health check failed: %s", e)
             return False
 
@@ -281,7 +281,7 @@ class OllamaBackend(LLMBackend):
             if resp.status_code == 200:
                 return resp.json().get("message", {}).get("content", "")
             return f"[Error: {resp.status_code}]"
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             return f"[Error: {e}]"
 
     async def health_check(self) -> bool:
@@ -289,7 +289,7 @@ class OllamaBackend(LLMBackend):
             client = await self._get_client()
             resp = await client.get(f"{self.base_url}/api/tags", timeout=5.0)
             return resp.status_code == 200
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.debug("Ollama health check failed: %s", e)
             return False
 
@@ -355,7 +355,7 @@ class InferenceGateway:
                     self._active = backend
                     logger.info(f"Selected backend: {backend.name}")
                     return backend
-            except Exception:
+            except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
                 logger.debug(
                     "Backend %s health check failed", backend.name, exc_info=True
                 )

@@ -285,7 +285,7 @@ class GateChain(Generic[T]):
             start = time.perf_counter()
             try:
                 gate_result = gate.validate(item)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 gate_result = GateResult(
                     GateStatus.ERROR,
                     gate.name,

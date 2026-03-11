@@ -194,6 +194,11 @@ try:
         top_k: int = 10
         min_score: float = 0.1
         source: Optional[str] = None
+        kinds: Optional[list[str]] = None
+        tags: Optional[list[str]] = None
+        context_ids: Optional[list[str]] = None
+        include_archived: bool = False
+        debug_scores: bool = False
 
     # Phase 31: Cognitive Fusion request model
     class CognitiveFuseModel(_PydanticBaseModel):
@@ -4265,12 +4270,30 @@ def create_fastapi_app(runtime: Any) -> Any:
                     status_code=400,
                     content={"error": "Query text required"},
                 )
+            from core.memory.types import MemoryKind
+
             top_k = max(1, min(body.top_k, 100))
+            min_score = max(0.0, min(body.min_score, 1.0))
+            kinds = None
+            if body.kinds:
+                try:
+                    kinds = [MemoryKind(kind) for kind in dict.fromkeys(body.kinds)]
+                except ValueError as exc:
+                    return JSONResponse(
+                        status_code=400,
+                        content={"error": f"Invalid memory kind: {exc}"},
+                    )
+            tags = list(dict.fromkeys(body.tags or []))[:32] or None
+            context_ids = list(dict.fromkeys(body.context_ids or []))[:64] or None
             results = agent_db.search(
                 query=body.query,
                 top_k=top_k,
-                min_score=body.min_score,
+                min_score=min_score,
                 source=body.source,
+                kinds=kinds,
+                tags=tags,
+                context_ids=context_ids,
+                include_archived=body.include_archived,
             )
             return {
                 "query": body.query,
@@ -4286,7 +4309,15 @@ def create_fastapi_app(runtime: Any) -> Any:
                         "keyword_score": round(r.keyword_score, 4),
                         "recency_score": round(r.recency_score, 4),
                         "importance_score": round(r.importance_score, 4),
+                        "graph_score": round(r.graph_score, 4),
                         "source": r.record.source,
+                        "tags": r.record.tags,
+                        "related_ids": r.record.related_ids,
+                        **(
+                            {"metadata": r.record.metadata}
+                            if body.debug_scores
+                            else {}
+                        ),
                     }
                     for r in results
                 ],

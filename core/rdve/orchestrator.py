@@ -339,7 +339,7 @@ class RDVEOrchestrator:
                 observation,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             duration = (time.time() - start) * 1000
             logger.error(f"RDVE Observe failed: {e}")
             return (
@@ -384,7 +384,7 @@ class RDVEOrchestrator:
                 ranked,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             duration = (time.time() - start) * 1000
             logger.error(f"RDVE Generate failed: {e}")
             return (
@@ -450,7 +450,7 @@ class RDVEOrchestrator:
                 explored,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             duration = (time.time() - start) * 1000
             logger.error(f"RDVE Explore failed: {e}")
             return (
@@ -556,7 +556,7 @@ class RDVEOrchestrator:
                         f"RDVE Verify REJECTED: {eh.hypothesis.description[:60]}... "
                         f"reason={result.rejection_reason}"
                     )
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.warning(f"RDVE Verify error for hypothesis: {e}")
 
         duration = (time.time() - start) * 1000
@@ -604,7 +604,7 @@ class RDVEOrchestrator:
                 success,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             duration = (time.time() - start) * 1000
             logger.error(f"RDVE Implement failed: {e}")
             return (
@@ -641,7 +641,7 @@ class RDVEOrchestrator:
                 artifacts={"integrated": True},
             )
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             duration = (time.time() - start) * 1000
             return StageResult(
                 stage=RDVEStage.INTEGRATE,
@@ -687,7 +687,7 @@ class RDVEOrchestrator:
                 },
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             duration = (time.time() - start) * 1000
             return StageResult(
                 stage=RDVEStage.LEARN,

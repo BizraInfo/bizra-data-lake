@@ -120,7 +120,7 @@ class GoTBridge:
 
                 self._got_engine = GraphOfThoughts()
                 logger.info("GoTBridge: lazily initialised GraphOfThoughts engine")
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.warning(
                     "GoTBridge: GraphOfThoughts unavailable -- "
                     "falling back to template mode"
@@ -153,7 +153,7 @@ class GoTBridge:
                 len(results),
             )
             return results
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             logger.warning("GoTBridge: evidence search failed -- %s", exc)
             return []
 
@@ -221,7 +221,7 @@ class GoTBridge:
             raw: dict[str, Any] = await got.reason(
                 query, context_with_facts, self._max_depth
             )
-        except Exception as exc:
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
             logger.error("GoTBridge: GoT engine raised -- %s", exc)
             return self._build_fallback_result(query, evidence, merged_facts)
 

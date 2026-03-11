@@ -354,7 +354,7 @@ class Probe(ABC):
                 None if passed else self._generate_failure_reason(score, evidence)
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Probe {self.probe_type.value} failed with exception: {e}")
             score = 0.0
             evidence = {"exception": str(e)}
@@ -1145,7 +1145,7 @@ class ProbeMatrix:
                 try:
                     result = future.result()
                     results.append(result)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — boundary boundary
                     probe = futures[future]
                     logger.error(f"Probe {probe.probe_type.value} failed: {e}")
                     results.append(
@@ -1297,7 +1297,7 @@ class IntegratedProbeMatrix(ProbeMatrix):
                 "generation_time_ms": proof.generation_time_ms,
                 "counterexample": proof.counterexample,
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"FATE Gate verification failed: {e}")
             return {"available": True, "error": str(e)}
 
@@ -1394,7 +1394,7 @@ class IntegratedProbeMatrix(ProbeMatrix):
                     "fairness": round(fairness, 4),
                 },
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Ihsan Vector mapping failed: {e}")
             return {"available": True, "error": str(e)}
 

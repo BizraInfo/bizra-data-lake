@@ -341,7 +341,7 @@ class AutoResearcher:
 
             return result.status.value
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.warning(f"Constitutional gate error: {e}")
             return "error"
 
@@ -477,7 +477,7 @@ class AutoResearcher:
                     return entry.entry_hash
                 finally:
                     _unlock_file(lock_file)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Failed to emit research receipt {result.research_id}: {e}")
             return ""
 
@@ -519,7 +519,7 @@ class AutoResearcher:
 
                 self._sci_bridge = SciReasoningBridge()
                 self._sci_bridge.load()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.warning(f"Sci-Reasoning bridge unavailable: {e}")
                 result = ResearchResult(
                     research_id=f"res_{uuid.uuid4().hex[:12]}",

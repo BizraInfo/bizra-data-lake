@@ -404,7 +404,7 @@ class ApexSovereignEntity:
 
             except asyncio.CancelledError:
                 raise
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"OODA cycle error: {e}", exc_info=True)
                 await self._handle_cycle_error(e)
                 self.current_state = ApexOODAState.OBSERVE
@@ -454,21 +454,21 @@ class ApexSovereignEntity:
                 f"(pass rate: {len(filtered_readings)/max(1, len(raw_readings)):.1%})"
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Market scan failed: {e}")
             observation.market_readings = []
 
         # Get swarm health
         try:
             observation.swarm_health = await self.swarm.check_all_health()
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.warning(f"Swarm health check failed: {e}")
             observation.swarm_health = {}
 
         # Get social metrics
         try:
             observation.social_metrics = self.social_bridge.get_network_metrics()
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.warning(f"Social metrics failed: {e}")
             observation.social_metrics = {}
 
@@ -552,7 +552,7 @@ class ApexSovereignEntity:
                         f"depth={got_result.max_depth_reached}, time={got_result.execution_time_ms:.1f}ms"
                     )
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.warning(f"GoT reasoning fallback: {e}")
                 # Continue with standard prediction if GoT fails
 
@@ -592,7 +592,7 @@ class ApexSovereignEntity:
                     }
                 )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Collaboration discovery failed: {e}")
 
         return team_plan
@@ -730,7 +730,7 @@ class ApexSovereignEntity:
                 if decision.autonomy_level >= AutonomyLevel.AUTOLOW:
                     self.metrics["autonomous_actions"] += 1
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Action execution failed: {e}")
                 outcome = Outcome(
                     decision=decision,

@@ -57,7 +57,7 @@ class PatternMemoryAdapter:
                 if record is not None:
                     records.append(record)
             logger.info(f"PatternMemoryAdapter: exported {len(records)} patterns")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"PatternMemory export failed: {e}")
 
         return records
@@ -91,6 +91,6 @@ class PatternMemoryAdapter:
                     "origin": "pattern_memory",
                 },
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Failed to convert pattern: {e}")
             return None

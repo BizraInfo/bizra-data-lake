@@ -450,7 +450,7 @@ class SkillRegistry:
                 profile_path,
             )
             return profile
-        except Exception as exc:
+        except (OSError, ValueError) as exc:  # SEC-003 — file_io boundary
             logger.warning(
                 "Failed to load skill profile from %s: %s. Using defaults.",
                 profile_path,
@@ -477,7 +477,7 @@ class SkillRegistry:
                 include_assets=include_assets,
                 force=force,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             return {
                 "error": str(exc),
                 "profile": self._resource_fabric.get_profile(),
@@ -496,7 +496,7 @@ class SkillRegistry:
                 findings_limit=findings_limit,
                 force=force,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             return {
                 "error": str(exc),
                 "profile_name": "bizra-agentic-self-harness",
@@ -630,7 +630,7 @@ class SkillRegistry:
                         if skill:
                             self._register(skill)
                             loaded += 1
-                    except Exception as e:
+                    except Exception as e:  # noqa: BLE001 — boundary boundary
                         logger.error(f"Failed to load skill {skill_path.name}: {e}")
 
         logger.info(f"Loaded {loaded} skills from {self.skills_dir}")

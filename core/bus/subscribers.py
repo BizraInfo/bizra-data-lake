@@ -135,7 +135,7 @@ class EventBus:
         for subscriber in handlers:
             try:
                 subscriber.handle(event)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Subscriber {subscriber.__class__.__name__} failed: {e}")
                 # Fail-open for non-safety subscribers, fail-closed for safety
                 if isinstance(

@@ -338,7 +338,7 @@ class BizraDoctor:
                     details={"url": url, "error": str(e)},
                 )
             )
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — network boundary
             self.report.add(
                 CheckResult(
                     name="LM Studio",
@@ -382,7 +382,7 @@ class BizraDoctor:
                     details={"url": url},
                 )
             )
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — network boundary
             self.report.add(
                 CheckResult(
                     name="Ollama",
@@ -467,7 +467,7 @@ class BizraDoctor:
                 test_file.write_text("test")
                 test_file.unlink()
                 writable.append(str(path))
-            except Exception:
+            except (OSError, ValueError):  # SEC-003 — file_io boundary
                 not_writable.append(str(path))
 
         if not not_writable:

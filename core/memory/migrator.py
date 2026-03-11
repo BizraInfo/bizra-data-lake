@@ -113,7 +113,7 @@ class MemoryMigrator:
         try:
             source_conn = sqlite3.connect(f"file:{self._source_path}?mode=ro", uri=True)
             source_conn.row_factory = sqlite3.Row
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — file_io boundary
             logger.error(f"Failed to open source DB: {e}")
             result.errors += 1
             return result
@@ -143,7 +143,7 @@ class MemoryMigrator:
                     try:
                         record = self._v1_row_to_record(row)
                         batch.append(record)
-                    except Exception as e:
+                    except Exception as e:  # noqa: BLE001 — boundary boundary
                         logger.warning(f"Failed to convert row {row['id']}: {e}")
                         result.errors += 1
 
@@ -166,7 +166,7 @@ class MemoryMigrator:
                 f"{result.errors} errors, {result.skipped} skipped"
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Migration failed: {e}")
             result.errors += 1
         finally:

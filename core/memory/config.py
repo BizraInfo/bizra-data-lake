@@ -25,11 +25,11 @@ _DATA_ROOT = Path(os.getenv("BIZRA_DATA_LAKE_ROOT", "/mnt/c/BIZRA-DATA-LAKE"))
 class HNSWConfig:
     """HNSW index parameters.
 
-    Defaults from .swarm/schema.sql (proven in production):
-    M=16, ef_construction=200, ef_search=100, dim=768, cosine.
+    Defaults from .swarm/schema.sql with MiniLM-compatible dimensions:
+    M=16, ef_construction=200, ef_search=100, dim=384, cosine.
     """
 
-    dimensions: int = 768
+    dimensions: int = 384
     space: str = "cosine"  # hnswlib space: "cosine", "l2", "ip"
     m: int = 16  # Number of bi-directional links per element
     ef_construction: int = 200  # Size of dynamic candidate list during build

@@ -67,7 +67,7 @@ class TestSuite:
             duration = (time.perf_counter() - start) * 1000
             self.results.append(TestResult(name, False, duration, str(e)))
             print(f"  ✗ {name}: {e}")
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             duration = (time.perf_counter() - start) * 1000
             self.results.append(TestResult(name, False, duration, str(e)))
             print(f"  ✗ {name}: {type(e).__name__}: {e}")

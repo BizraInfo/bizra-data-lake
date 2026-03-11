@@ -453,7 +453,7 @@ class AdlInvariant:
         if self.on_violation:
             try:
                 self.on_violation(violation)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Violation callback error: {e}")
 
     def get_violation_history(self) -> list[AdlViolation]:
@@ -693,7 +693,7 @@ class TreasuryController:
         if self.on_transition:
             try:
                 self.on_transition(old, new, reason)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Transition callback error: {e}")
 
     def should_hibernate(self) -> bool:

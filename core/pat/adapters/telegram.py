@@ -138,7 +138,7 @@ class TelegramAdapter(ChannelAdapter):
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — network boundary
             # HIGH-2: Log only method + error type, never str(e) which may
             # contain the bot token if httpx embeds the URL in its error
             logger.error(f"Telegram API call failed: {method} ({type(e).__name__})")
@@ -254,7 +254,7 @@ class TelegramAdapter(ChannelAdapter):
                     await self._process_update(update)
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 self._metrics.errors += 1
                 logger.error(f"Poll loop error: {e}")
                 await asyncio.sleep(1.0)

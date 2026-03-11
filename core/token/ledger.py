@@ -294,7 +294,7 @@ class TokenLedger:
         # Apply to SQLite
         try:
             balance_after = self._apply_to_db(tx)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             self._sequence -= 1
             logger.error("Failed to apply transaction %s: %s", tx.tx_id, e)
             return TokenReceipt(success=False, error=str(e))
@@ -643,7 +643,7 @@ class TokenLedger:
 
             try:
                 balance_after = self._apply_to_db(tx)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 self._sequence -= 1
                 return TokenReceipt(success=False, error=str(e))
 

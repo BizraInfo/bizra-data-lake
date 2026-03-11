@@ -329,7 +329,7 @@ def _detect_wsl_gateway() -> str:
         if result.returncode == 0 and "via" in result.stdout:
             # "default via 172.22.48.1 dev eth0" → extract the IP
             return result.stdout.split("via")[1].strip().split()[0]
-    except Exception:
+    except (OSError, subprocess.SubprocessError):  # SEC-003 — subprocess boundary
         pass
 
     # Fallback: most recent known WSL gateway

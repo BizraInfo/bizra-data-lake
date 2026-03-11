@@ -1029,7 +1029,7 @@ Examples:
                 print("Bridge not running on 127.0.0.1:9742")
                 print("Start with: python -m core.sovereign bridge start")
                 sys.exit(1)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 print(f"Error: {e}")
                 sys.exit(1)
         else:

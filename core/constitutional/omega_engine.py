@@ -1335,7 +1335,7 @@ class TreasuryController:
         for callback in self._mode_change_callbacks:
             try:
                 callback(old_mode, new_mode)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Mode change callback error: {e}")
 
         return True

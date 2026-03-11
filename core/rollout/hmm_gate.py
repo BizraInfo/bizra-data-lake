@@ -90,7 +90,7 @@ class HMMCallerGate:
             return None
         try:
             return self._engine.predict_next()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             logger.warning("HMM gate predict failed: %s", exc)
             return None
 

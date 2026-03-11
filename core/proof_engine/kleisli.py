@@ -302,7 +302,7 @@ class KleisliGate:
             start = time.perf_counter_ns()
             try:
                 passed, gate_evidence, reason = self.evaluate_fn(value, {})
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 return Err(
                     gate_name=self.gate_name,
                     reason=f"Gate raised exception: {e}",

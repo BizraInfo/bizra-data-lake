@@ -878,7 +878,7 @@ class SovereignNexus:
 
             self.state = NexusState.COMPLETE
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             result.error = str(e)
             self.state = NexusState.ERROR
             logger.exception(f"Nexus processing failed: {e}")
@@ -932,7 +932,7 @@ class SovereignNexus:
                         # Further expansion on high-quality thoughts
                         thought.thought_type = ThoughtType.SYNTHESIS
                         thought.confidence = 0.90
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — boundary boundary
                     logger.warning(f"Agent {role.value} failed: {e}")
             else:
                 # No handler - create placeholder thought

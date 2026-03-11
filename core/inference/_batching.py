@@ -182,7 +182,7 @@ class BatchingInferenceQueue:
                         req.prompt, req.max_tokens, req.temperature
                     )
                     req.future.set_result(result)
-                except Exception as e:
+                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                     req.future.set_exception(e)
 
             # Launch all requests in parallel

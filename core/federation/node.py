@@ -204,7 +204,7 @@ class FederationNode:
             )
             # Schedule async broadcast
             asyncio.create_task(self.gossip.broadcast_pattern_async(pattern_data))
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
             print(f"⚠️ Broadcast failed: {e}")
 
     def _handle_pattern_propagate(self, payload: Dict):

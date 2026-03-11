@@ -180,7 +180,7 @@ class AutopoieticLoop:
 
             try:
                 await self._run_cycle()
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Autopoiesis cycle error: {e}")
                 self.state.phase = AutopoiesisPhase.EMERGENCY
 

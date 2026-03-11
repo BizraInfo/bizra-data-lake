@@ -104,7 +104,7 @@ async def cmd_status():
         print(json.dumps(result))
         return 0
 
-    except Exception as e:
+    except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
         print(json.dumps({"status": "disconnected", "error": str(e)}))
         return 1
 
@@ -141,7 +141,7 @@ async def cmd_models(purpose: Optional[str] = None):
         print(json.dumps({"models": result}))
         return 0
 
-    except Exception as e:
+    except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
         print(json.dumps({"error": str(e)}))
         return 1
 
@@ -170,7 +170,7 @@ async def cmd_chat(
         print(json.dumps(response))
         return 0 if "error" not in response else 1
 
-    except Exception as e:
+    except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
         print(json.dumps({"error": str(e)}))
         return 1
 

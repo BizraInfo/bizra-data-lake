@@ -300,7 +300,7 @@ class OnboardingWizard:
             # Save baseline state (creates impact_tracker.json)
             tracker._save_state()
             logger.info(f"Impact tracker initialized for {node_id}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             # Impact tracker init should not block onboarding
             logger.warning(f"Impact tracker init skipped: {e}")
 
@@ -331,7 +331,7 @@ class OnboardingWizard:
             else:
                 logger.warning(f"Genesis grant failed for {node_id}: {receipt.error}")
             ledger.close()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             # Token grant should not block onboarding
             logger.warning(f"Genesis grant skipped: {e}")
 

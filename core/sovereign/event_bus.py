@@ -154,7 +154,7 @@ class EventBus:
                 await self._process_event(event)
             except asyncio.TimeoutError:
                 continue
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Event bus error: {e}")
 
     def stop(self) -> None:
@@ -278,7 +278,7 @@ def create_rust_event_bridge(
         return None
     try:
         return RustEventBridge(production=production)
-    except Exception as e:
+    except (AttributeError, RuntimeError, OSError) as e:  # SEC-003 — pyo3 boundary
         logger.debug("Failed to create Rust event bridge: %s", e)
         return None
 

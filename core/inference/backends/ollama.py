@@ -54,7 +54,7 @@ class OllamaBackend(InferenceBackendBase):
                     print("[Ollama] No models available")
                     return False
 
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — network boundary
             print(f"[Ollama] Not available: {e}")
             return False
 
@@ -112,7 +112,7 @@ class OllamaBackend(InferenceBackendBase):
                 req, timeout=3
             ) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 return resp.status == 200
-        except Exception:
+        except (OSError, ValueError):  # SEC-003 — network boundary
             return False
 
     def get_loaded_model(self) -> Optional[str]:

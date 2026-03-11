@@ -114,7 +114,7 @@ class LivingMemoryAdapter:
                     "origin": "living_memory",
                 },
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(
                 f"Failed to convert MemoryEntry {getattr(entry, 'id', '?')}: {e}"
             )

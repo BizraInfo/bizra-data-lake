@@ -138,7 +138,7 @@ class VectorSearchEngine:
             # Read only chunk_text and chunk_id (if present) — skip embeddings
             try:
                 df = pd.read_parquet(fpath, columns=["chunk_text", "chunk_id"])
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 df = pd.read_parquet(fpath, columns=["chunk_text"])
             t = df["chunk_text"].fillna("").astype(str).tolist()
             ids = (

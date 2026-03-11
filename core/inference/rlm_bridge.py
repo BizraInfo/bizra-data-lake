@@ -312,7 +312,7 @@ class RLMSandbox:
                 return "[LM_QUERY_UNAVAILABLE]"
             try:
                 value = self._lm_query_fn(query)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — boundary boundary
                 return f"[LM_QUERY_ERROR] {type(exc).__name__}: {exc}"
 
             if inspect.isawaitable(value):
@@ -336,7 +336,7 @@ class RLMSandbox:
                 self._exec_with_timeout(compiled, globals_ns, locals_ns)
         except RLMSandboxTimeoutError as exc:
             output = f"[SANDBOX_TIMEOUT] {exc}"
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             output = f"[SANDBOX_ERROR] {type(exc).__name__}: {exc}"
 
         stdout_text = stream.getvalue().strip()

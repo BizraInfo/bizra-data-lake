@@ -30,7 +30,7 @@ def estimate_tokens(content: str, model: str | None = None) -> int:
 
             enc = tiktoken.encoding_for_model(model)
             return len(enc.encode(content))
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             pass
 
     if _contains_cjk(content):
@@ -61,7 +61,7 @@ def detect_language(text: str) -> tuple[str, float]:
             return results[0].lang, results[0].prob
     except ImportError:
         pass
-    except Exception:
+    except Exception:  # noqa: BLE001 — boundary boundary
         pass
     return "en", 0.5
 

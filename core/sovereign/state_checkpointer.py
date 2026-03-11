@@ -459,7 +459,7 @@ class StateCheckpointer:
             try:
                 state = state_provider()
                 await self.checkpoint(state, source="auto")
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Auto-checkpoint failed: {e}")
 
     def stop(self) -> None:

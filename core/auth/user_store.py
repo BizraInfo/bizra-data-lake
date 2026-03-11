@@ -486,7 +486,7 @@ class UserStore:
                     (wrapped, now, row["user_id"]),
                 )
                 migrated += 1
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — boundary boundary
                 logger.error(
                     "Failed to migrate legacy secret key for user %s: %s",
                     row["user_id"][:8],

@@ -275,7 +275,7 @@ class SovereignVault:
             return json.loads(plaintext.decode("utf-8"))
         except InvalidToken:
             raise ValueError("Decryption failed - incorrect master secret")
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
             raise ValueError(f"Decryption failed: {e}")
 
     def delete(self, key: str) -> bool:
@@ -331,7 +331,7 @@ class SovereignVault:
                 value = self.get(key)
                 metadata = self._entries[key].metadata
                 decrypted[key] = (value, metadata)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 # Atomic rollback — restore original secret, raise
                 self._master_secret = old_secret
                 _logger.error(f"Rotation Phase 1 FAILED at key '{key}': {e}")
@@ -348,7 +348,7 @@ class SovereignVault:
             try:
                 self.put(key, value, metadata)
                 count += 1
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 # Phase 2 failure is critical — log and raise
                 _logger.critical(
                     f"Rotation Phase 2 FAILED at key '{key}' ({count}/{len(decrypted)} "

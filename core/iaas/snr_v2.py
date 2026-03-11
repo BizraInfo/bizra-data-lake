@@ -615,7 +615,7 @@ class SNRCalculatorV2:
                     + 0.2 * (1 - redundancy)
                 )
             return float(diversity), float(normalized_entropy), float(redundancy)
-        except (ImportError, Exception) as e:
+        except (ImportError, RuntimeError) as e:  # SEC-003
             logger.debug(f"Rényi entropy unavailable, using Shannon-only: {e}")
 
         # Fallback: Shannon-only diversity

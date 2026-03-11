@@ -225,7 +225,7 @@ class MCPProgressiveDisclosure:
             logger.info(f"Loaded skill: {skill_id} in {load_time_ms:.2f}ms")
             return loaded
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Failed to load skill {skill_id}: {e}")
             raise ImportError(f"Failed to load skill {skill_id}: {e}") from e
 

@@ -267,7 +267,7 @@ class ProactiveTeam:
                     f"tasks={result.tasks_executed}, "
                     f"synergy={result.synergy_score:.2f}"
                 )
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Proactive cycle error: {e}")
 
             await asyncio.sleep(5.0)  # Cycle interval

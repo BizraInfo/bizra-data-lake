@@ -71,7 +71,7 @@ class VoiceBackend:
             self._bridge = PersonaPlexBridge()
             self._initialized = True
             return True
-        except Exception as exc:
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
             logger.warning("Voice backend initialization failed: %s", exc)
             self._initialized = False
             return False

@@ -111,7 +111,7 @@ class AutoModelRouter:
         # Refresh what's already in VRAM
         try:
             self._loaded_models = await self._get_loaded_models()
-        except Exception:
+        except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
             pass  # proceed with stale cache
 
         status: Dict[str, bool] = {}
@@ -142,7 +142,7 @@ class AutoModelRouter:
                 presence=presence,
             )
             cmd = self._equalizer.next_command()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             logger.debug("Equalizer observation failed: %s", exc)
             return None
 
@@ -222,7 +222,7 @@ class AutoModelRouter:
                         model_id,
                         resp.status_code,
                     )
-            except Exception as exc:
+            except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
                 logger.warning(
                     "Model load error (attempt %d): %s -> %s",
                     attempt + 1,
@@ -251,7 +251,7 @@ class AutoModelRouter:
                     self._loaded_models.discard(model_id)
                     logger.info("Model unloaded: %s", model_id)
                     return True
-        except Exception as exc:
+        except (OSError, ValueError) as exc:  # SEC-003 — network boundary
             logger.warning("Model unload error: %s -> %s", model_id, exc)
         return False
 

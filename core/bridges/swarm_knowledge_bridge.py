@@ -228,7 +228,7 @@ class SwarmKnowledgeBridge:
                         },
                         priority=EventPriority.HIGH,
                     )
-                except Exception as e:
+                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                     logger.error(f"Knowledge request failed: {e}")
 
         self.event_bus.subscribe("knowledge.request", handle_knowledge_request)

@@ -371,7 +371,7 @@ class GraphOfThoughts(GraphOperationsMixin, GraphSearchMixin, GraphReasoningMixi
             graph_hash = self.compute_graph_hash()
             signature = sign_message(graph_hash, private_key_hex)
             return signature
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Graph signing failed: {e}")
             return None
 

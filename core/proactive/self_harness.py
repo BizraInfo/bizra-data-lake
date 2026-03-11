@@ -211,7 +211,7 @@ class GoalScanner:
                 if results:
                     sim = results[0].get("score", 0.0)
                     score += min(sim, 0.15)
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 pass
 
         return min(1.0, max(0.0, score))
@@ -358,7 +358,7 @@ class GhostPusher:
                     return sent
             except ImportError:
                 pass
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.debug("GhostPusher in-process failed: %s", e)
 
         # Fallback: WebSocket client
@@ -410,7 +410,7 @@ class GhostPusher:
             logger.info("GhostPusher: %d suggestions pushed via WebSocket", count)
             return count
 
-        except Exception as e:
+        except (OSError, ConnectionError) as e:  # SEC-003 — connection boundary
             logger.warning("GhostPusher WS error: %s", e)
             self._connected = False
             self._ws = None
@@ -421,7 +421,7 @@ class GhostPusher:
         if self._ws:
             try:
                 await self._ws.close()
-            except Exception:
+            except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
                 pass
             self._ws = None
             self._connected = False

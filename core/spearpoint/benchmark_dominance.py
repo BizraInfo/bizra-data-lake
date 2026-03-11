@@ -285,7 +285,7 @@ class BenchmarkDominanceLoop:
                 from .config import SpearpointConfig
 
                 self._evaluator = AutoEvaluator(config=SpearpointConfig())
-            except Exception as e:
+            except (ImportError, ValueError, RuntimeError) as e:  # SEC-003
                 logger.warning(f"AutoEvaluator unavailable: {e}")
 
         if self._ablation_engine is None:
@@ -293,7 +293,7 @@ class BenchmarkDominanceLoop:
                 from .ablation_engine import AblationEngine
 
                 self._ablation_engine = AblationEngine()
-            except Exception as e:
+            except (ImportError, ValueError, RuntimeError) as e:  # SEC-003
                 logger.warning(f"AblationEngine unavailable: {e}")
 
         if self._pattern_library is None:
@@ -301,7 +301,7 @@ class BenchmarkDominanceLoop:
                 from core.rdve.interdisciplinary import InterdisciplinaryTransfer
 
                 self._pattern_library = InterdisciplinaryTransfer()
-            except Exception as e:
+            except (ImportError, ValueError, RuntimeError) as e:  # SEC-003
                 logger.warning(f"InterdisciplinaryTransfer unavailable: {e}")
 
         if self._stability is None:
@@ -309,7 +309,7 @@ class BenchmarkDominanceLoop:
                 from core.rdve.stability import StabilityProtocol
 
                 self._stability = StabilityProtocol()
-            except Exception as e:
+            except (ImportError, ValueError, RuntimeError) as e:  # SEC-003
                 logger.warning(f"StabilityProtocol unavailable: {e}")
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -355,7 +355,7 @@ class BenchmarkDominanceLoop:
                 baseline,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — benchmark campaign outer boundary
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Evaluate failed: {e}")
             return (
@@ -424,7 +424,7 @@ class BenchmarkDominanceLoop:
                 effects,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — benchmark campaign outer boundary
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Ablate failed: {e}")
             return (
@@ -495,7 +495,7 @@ class BenchmarkDominanceLoop:
                 patterns_applied,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — benchmark campaign outer boundary
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Architect failed: {e}")
             return (
@@ -569,7 +569,7 @@ class BenchmarkDominanceLoop:
                 cost,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — benchmark campaign outer boundary
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Submit failed: {e}")
             return (
@@ -648,7 +648,7 @@ class BenchmarkDominanceLoop:
                 is_improvement,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — benchmark campaign outer boundary
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Analyze failed: {e}")
             return (

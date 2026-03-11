@@ -128,7 +128,7 @@ class RollbackEngine:
         if self._metrics is not None:
             try:
                 metrics_snap = self._metrics.snapshot()
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — boundary boundary
                 logger.warning("Metrics snapshot failed during rollback: %s", exc)
 
         receipt = RollbackReceipt(

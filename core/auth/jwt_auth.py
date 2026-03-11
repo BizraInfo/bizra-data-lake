@@ -300,7 +300,7 @@ class JWTAuth:
             payload_bytes = self._b64url_decode(payload_b64)
             return json.loads(payload_bytes)
 
-        except (ValueError, json.JSONDecodeError, Exception) as e:
+        except (ValueError, json.JSONDecodeError) as e:  # SEC-003
             logger.debug(f"JWT decode failed: {e}")
             return None
 

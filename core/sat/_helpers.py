@@ -48,7 +48,7 @@ def _run(
         return 127, f"Command not found: {cmd[0]}"
     except subprocess.TimeoutExpired:
         return 124, f"Timeout after {timeout}s: {' '.join(cmd)}"
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:  # SEC-003 — subprocess boundary
         return 1, f"Error running {cmd[0]}: {e}"
 
 

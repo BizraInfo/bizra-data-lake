@@ -436,7 +436,7 @@ class CalendarOptimizer(BackgroundAgent):
             self.update_stats(action, True)
             return True
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error(f"Calendar optimization failed: {e}")
             action.execution_status = ExecutionStatus.FAILED
             return False
@@ -601,7 +601,7 @@ class EmailTriage(BackgroundAgent):
             self.update_stats(action, True)
             return True
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error(f"Email triage failed: {e}")
             action.execution_status = ExecutionStatus.FAILED
             return False
@@ -765,7 +765,7 @@ class FileOrganizer(BackgroundAgent):
             self.update_stats(action, True)
             return True
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error(f"File organization failed: {e}")
             action.execution_status = ExecutionStatus.FAILED
             return False

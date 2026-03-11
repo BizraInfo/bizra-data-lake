@@ -790,7 +790,7 @@ class SovereignOrchestrator:
             task.outputs["content"] = content
             task.outputs["agent"] = routing.selected_agent.name
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             task.status = TaskStatus.FAILED
             task.completed_at = datetime.now()
             task.snr_score = 0.0
@@ -891,7 +891,7 @@ class SovereignOrchestrator:
                             + "\n".join(f"- {s}" for s in snippets)
                             + "\n"
                         )
-            except Exception as mem_err:
+            except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
                 logger.debug("Memory retrieval failed (non-fatal): %s", mem_err)
 
         full_prompt = prompt + memory_context if memory_context else prompt

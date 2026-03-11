@@ -217,7 +217,7 @@ class SpearPointPipeline:
                 duration_ms=_elapsed(t0),
                 detail=f"stored (hash={result.graph_hash[:12]}...)",
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — pipeline step boundary
             return StepResult(
                 name="graph_artifact",
                 success=False,
@@ -323,7 +323,7 @@ class SpearPointPipeline:
                 duration_ms=_elapsed(t0),
                 detail=f"emitted ({decision})",
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — pipeline step boundary
             return StepResult(
                 name="evidence_receipt",
                 success=False,
@@ -409,7 +409,7 @@ class SpearPointPipeline:
                     f"(processed={processed}, missing={missing}, decision={decision})"
                 ),
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — pipeline step boundary
             return StepResult(
                 name="sense_reinforcement",
                 success=False,
@@ -450,7 +450,7 @@ class SpearPointPipeline:
                 duration_ms=_elapsed(t0),
                 detail=f"recorded (bloom={bloom:.3f})",
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — pipeline step boundary
             return StepResult(
                 name="record_impact",
                 success=False,
@@ -498,7 +498,7 @@ class SpearPointPipeline:
                 duration_ms=_elapsed(t0),
                 detail=f"registered (hash={content_hash[:12]}...)",
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — pipeline step boundary
             return StepResult(
                 name="poi_contribution",
                 success=False,
@@ -547,7 +547,7 @@ class SpearPointPipeline:
                 duration_ms=_elapsed(t0),
                 detail="encoded",
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — pipeline step boundary
             return StepResult(
                 name="living_memory",
                 success=False,
@@ -620,7 +620,7 @@ class SpearPointPipeline:
                 duration_ms=_elapsed(t0),
                 detail=f"committed (nodes={graph_node_count})",
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — pipeline step boundary
             return StepResult(
                 name="experience_ledger",
                 success=False,
@@ -659,7 +659,7 @@ class SpearPointPipeline:
                 duration_ms=_elapsed(t0),
                 detail=f"observed ({verdict.name})",
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — pipeline step boundary
             return StepResult(
                 name="judgment_observe",
                 success=False,
@@ -705,7 +705,7 @@ class SpearPointPipeline:
                 duration_ms=_elapsed(t0),
                 detail=f"healthy (gini={gini:.3f})",
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — pipeline step boundary
             return StepResult(
                 name="sat_health",
                 success=False,

@@ -559,7 +559,7 @@ class MOEEngine:
             try:
                 result = executor(assignment, input_text, ctx)
                 results.append(result)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.warning(
                     "Expert %s execution failed: %s", assignment.expert_id, e
                 )

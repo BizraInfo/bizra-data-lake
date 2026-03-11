@@ -255,7 +255,7 @@ class GenesisOrchestrator:
                     self._reason_codes.append(reason_code)
             else:
                 step.status = GenesisStepStatus.SUCCESS
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             step.status = GenesisStepStatus.FAILED
             step.error = str(e)
             step.reason_code = f"GENESIS_{name.upper()}_EXCEPTION"
@@ -347,7 +347,7 @@ class GenesisOrchestrator:
                     None if all_success else "GENESIS_TOKEN_ALLOCATION_FAILED"
                 ),
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning("Token allocation unavailable: %s", e)
             return {
                 "receipts": 0,

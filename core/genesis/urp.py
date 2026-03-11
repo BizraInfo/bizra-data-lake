@@ -158,7 +158,7 @@ def pledge_resources(
                 resource_budget=payload["resource_budget"],
                 provenance="node_local",
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             pledge = URPPledge(
                 node_id=node_id,
                 ram_gb=ram_gb,

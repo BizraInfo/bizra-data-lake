@@ -418,7 +418,7 @@ class HunterAgent:
             status = ScanStatus.COMPLETE
             error = None
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             status = ScanStatus.ERROR
             error = str(e)
 

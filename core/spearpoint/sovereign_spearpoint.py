@@ -690,7 +690,7 @@ class SovereignSpearpoint:
             result = await self._inference_fn(prompt)
             self._circuit_breaker.record_success()
             return result
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             self._circuit_breaker.record_failure()
             raise RuntimeError(f"Inference failed: {e}") from e
 
@@ -904,7 +904,7 @@ Provide a thoughtful, accurate response. Acknowledge uncertainty where appropria
                 loop_trace=loop_trace,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             self._stats["cycles"] += 1
             self._stats["failed"] += 1
             loop_trace.append(f"ERROR: {e}")

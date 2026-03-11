@@ -379,7 +379,7 @@ class ProactiveSovereignEntity:
                 result.ihsan_score = latest.ihsan_score
                 result.snr_score = latest.snr_score
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Entity cycle error: {e}")
 
         finally:
@@ -403,7 +403,7 @@ class ProactiveSovereignEntity:
                 )
                 self._knowledge_initialized = True
                 knowledge_status = "BIZRA Data Lake + MoMo R&D connected"
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.warning(f"Knowledge integration unavailable: {e}")
                 knowledge_status = "Unavailable (standalone mode)"
         else:
@@ -466,7 +466,7 @@ class ProactiveSovereignEntity:
                         f"ihsan={result.ihsan_score:.3f}"
                     )
 
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Main loop error: {e}")
 
             await asyncio.sleep(self.config.cycle_interval)

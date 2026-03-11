@@ -156,7 +156,7 @@ class RustServiceAdapter:
             logger.warning(f"Health check timeout: {self.service_name}")
             self.last_health = HealthStatus.DEGRADED
 
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — network boundary
             logger.error(f"Health check failed for {self.service_name}: {e}")
             self.last_health = HealthStatus.UNHEALTHY
 
@@ -195,7 +195,7 @@ class RustServiceAdapter:
                 self.restart_count += 1
                 return False
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error(f"Restart failed for {self.service_name}: {e}")
             self.restart_count += 1
             return False
@@ -510,7 +510,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         while self._running:
             try:
                 await self._self_heal_iteration()
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Self-heal error: {e}")
 
             await asyncio.sleep(HEALTH_CHECK_INTERVAL)

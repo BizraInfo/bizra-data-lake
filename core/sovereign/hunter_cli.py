@@ -59,7 +59,7 @@ def _fetch_bytecode_rpc(address: str, rpc_url: str) -> Optional[bytes]:
             code_hex = data.get("result", "0x")
             if code_hex and code_hex != "0x":
                 return bytes.fromhex(code_hex[2:])
-    except Exception as e:
+    except (OSError, ValueError) as e:  # SEC-003 — network boundary
         print(f"  RPC fetch failed: {e}")
 
     return None
@@ -330,7 +330,7 @@ async def run_hunter_list(output_dir: Optional[str] = None) -> int:
             status = scan.get("status", "?")
             print(f"  {scan_file.name}")
             print(f"    Target: {addr}  Findings: {findings}  Status: {status}  {ts}")
-        except Exception:
+        except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
             print(f"  {scan_file.name}  (corrupt)")
     print()
     print("=" * 60)

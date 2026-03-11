@@ -1683,7 +1683,7 @@ class SovereignRuntime:
             try:
                 await asyncio.wait_for(self._gateway.initialize(), timeout=30.0)
                 self.logger.info("✓ InferenceGateway loaded and initialized")
-            except (asyncio.TimeoutError, Exception) as init_err:
+            except (asyncio.TimeoutError, OSError, RuntimeError) as init_err:  # SEC-003
                 self.logger.warning(
                     f"⚠ InferenceGateway init timeout/error: {init_err}, gateway available but uninitialized"
                 )

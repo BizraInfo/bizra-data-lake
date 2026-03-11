@@ -80,7 +80,7 @@ class SwarmEventBridge:
                 source="SwarmEngine",
                 correlation_id=swarm_event.swarm_id,
             )
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.debug("Bridge publish failed: %s", e)
 
 
