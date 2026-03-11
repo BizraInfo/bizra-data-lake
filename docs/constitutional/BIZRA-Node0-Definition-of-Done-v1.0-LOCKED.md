@@ -1,13 +1,15 @@
 # BIZRA Definition of Done — Genesis Node0
 
-## Version 1.1 · LOCKED
+## Version 1.2 · LOCKED
 
 > **Date:** March 11, 2026 · Dubai
 > **Author:** MoMo (محمد) / System Architect
 > **Scope:** Node0 only — MoMo's machine as the Genesis Node
 > **Status:** LOCKED — changes require SAT-5 consensus
-> **Canonical truth:** `docs/NODE0_STANDALONE_READINESS.md` + `sovereign_state/node0_lifecycle.json`
-> **Rule:** If any hard gate fails, Node0 is NOT declared complete.
+> **Canonical truth:** `sovereign_state/node0_lifecycle.json` (runtime) + `sovereign_state/node0_genesis.json` (authority)
+> **Governance:** This DoD is the **birth gate** (verification instrument). `NODE0_STANDALONE_READINESS.md` is the **MVSA specification** (definition). The DoD verifies what the spec defines — neither replaces the other.
+> **Certification path:** Linux / WSL2 via `bash scripts/node0_genesis_ceremony.sh`
+> **Rule:** If any hard gate fails, Node0 is NOT declared complete. Lifecycle must report `status == "ready"` (not merely degraded).
 
 ---
 
@@ -23,10 +25,22 @@
 
 This document reads from two canonical sources:
 
-1. **`sovereign_state/node0_lifecycle.json`** — Lifecycle v2 runtime state (14 gates, computed by `node0_standalone.py`)
+1. **`sovereign_state/node0_lifecycle.json`** — Lifecycle v2 runtime state (computed by `node0_standalone.py`)
+   - **11 status-determining gates** — used by `_compute_status()` to derive `blocked` / `degraded` / `ready`
+   - **3 availability gates** — informational (desktop_bridge, mcp, a2a, telescript); do NOT affect status
+   - Total: 14 entries in runtime JSON, 11 gates determine status
 2. **`sovereign_state/node0_genesis.json`** + **`genesis_hash.txt`** — Canonical authority pair
 
 All hard gates below read these sources. No gate depends on shell scraping, grep, or timeout heuristics.
+
+### Lifecycle Gate Coverage
+
+The DoD hard gates verify a **superset** of lifecycle truth:
+- Gates 1.3, 2.5, 3.1 → named lifecycle gate checks (identity, PAT/SAT, MVSA)
+- Gate 4.2 → requires `lifecycle.status == "ready"`, which implies ALL 11 status-determining gates are true
+- Gates 1.1–1.4, 2.1–2.6, 3.2–3.4, 5.1–5.2 → constitutional and ceremony checks beyond lifecycle scope
+
+The 3 availability gates (mcp_available, a2a_available, telescript_available) are NOT birth-critical. `desktop_bridge_reachable` is NOT birth-critical (requires AHK HDA running). These are operational health, not genesis identity.
 
 ---
 
@@ -36,7 +50,7 @@ All hard gates below read these sources. No gate depends on shell scraping, grep
 L1: GENESIS INTEGRITY            → Canonical authority validates
 L2: PERSONAL SOVEREIGN ACTIVATION → PAT-7 / SAT-5 constitutionally alive
 L3: STAND-ALONE CAPABILITY       → MVSA lifecycle gates satisfied
-L4: DEVICE CONSECRATION          → Lifecycle not blocked, state persisted
+L4: DEVICE CONSECRATION          → Lifecycle READY, state persisted
 L5: REPLICATION READINESS        → Template deterministic, constants synced
 ```
 
@@ -80,7 +94,7 @@ These must ALL pass. Each reads runtime truth, not file presence.
 | # | Gate | Verification | Pass |
 |---|------|-------------|------|
 | 4.1 | State directory exists | `sovereign_state/` is a directory | Exists |
-| 4.2 | Lifecycle not blocked | `lifecycle.status != "blocked"` | degraded or ready |
+| 4.2 | Lifecycle ready | `lifecycle.status == "ready"` | ready |
 | 4.3 | Lifecycle schema v2 | `lifecycle.schema_version == "2.0.0"` | 2.0.0 |
 
 ### Layer 5 — Replication Readiness (2 gates)
@@ -137,23 +151,43 @@ class Node0GenesisReceipt:
 
 ## 7. What "Node0 Complete" Means
 
-**When all 19 hard gates pass:**
+**When all 19 hard gates pass AND lifecycle.status == "ready":**
 - MoMo's machine is formally born as Node0
 - PAT-7 and SAT-5 are constitutionally bound
 - Genesis identity is cryptographically anchored
 - MVSA self-validation has proven sovereignty
-- Lifecycle v2 is not blocked
+- All 11 status-determining lifecycle gates are satisfied
+- Mission path has been receipted (evidence chain operational)
+- Restart recovery validated (artifacts survive process restart)
 - Future nodes can replicate via deterministic ceremony
 
 **Does NOT mean:** Genesis-100 readiness, public launch, multi-validator federation.
 
+**Prerequisite for "ready":** Run `python scripts/node0_standalone.py task` to receipt a mission and trigger restart recovery. Without this, lifecycle remains `degraded` and gate 4.2 fails.
+
 ---
 
-## 8. Relationship to NODE0_STANDALONE_READINESS.md
+## 8. Document Governance
 
-This document is the **birth gate**. It reads from the same lifecycle v2 truth that `NODE0_STANDALONE_READINESS.md` defines. It does not introduce new truth — it assembles existing canonical truth into a verifiable checklist.
+### Hierarchy (no competing truth)
 
-The MVSA contract in `NODE0_STANDALONE_READINESS.md` remains the authoritative specification. This DoD is its verification instrument.
+| Document | Role | Changes |
+|----------|------|---------|
+| `NODE0_STANDALONE_READINESS.md` | **MVSA specification** — defines what gates exist, how status is computed, what "ready" means | Architect-level change |
+| This DoD (v1.2) | **Birth gate** — verifies the spec is satisfied, adds ceremony/constitutional checks | SAT-5 consensus |
+| `NODE0_DOD_CORRECTION_MATRIX.md` | **Audit trail** — documents rebase decisions from v1.0→v1.1→v1.2 | Append-only |
+
+This DoD does not introduce new truth. It verifies truth defined by the MVSA spec and constitutional constants. If the spec and DoD ever conflict, the spec wins.
+
+### Lifecycle Gate Reconciliation
+
+`NODE0_STANDALONE_READINESS.md` defines 11 status-determining gates. The runtime JSON (`node0_lifecycle.json`) contains 14 entries because `node0_standalone.py` also writes 3 availability gates for operational health monitoring. These availability gates do NOT affect `_compute_status()` and are NOT birth-critical.
+
+| Category | Gates | Determines status? |
+|----------|-------|--------------------|
+| MVSA-critical (9) | genesis_authority_valid, identity_ready, pat_sat_ready, urp_signed, urp_verified, assets_written, awareness_written, mvsa_network_bootstrap_ok, mvsa_self_validation_ok | Yes — all must be true or status = "blocked" |
+| Completion (2) | mission_path_receipted, restart_recovery_ready | Yes — both must be true for status = "ready" |
+| Availability (3) | desktop_bridge_reachable, mcp_available, a2a_available, telescript_available | No — informational only |
 
 ---
 
@@ -161,8 +195,11 @@ The MVSA contract in `NODE0_STANDALONE_READINESS.md` remains the authoritative s
 
 | Field | Value |
 |-------|-------|
-| Version | 1.1 LOCKED |
+| Version | 1.2 LOCKED |
 | Date | 2026-03-11 |
 | Lock policy | Changes require SAT-5 consensus |
-| Canonical truth | `node0_lifecycle.json` + `node0_genesis.json` |
-| Predecessor | `NODE0_STANDALONE_READINESS.md` (authoritative) |
+| Canonical truth | `node0_lifecycle.json` (runtime) + `node0_genesis.json` (authority) |
+| Birth requirement | `lifecycle.status == "ready"` (Ready Only — locked by Mumo) |
+| MVSA spec | `NODE0_STANDALONE_READINESS.md` (defines gates, DoD verifies them) |
+| Certification path | Linux / WSL2 (`bash scripts/node0_genesis_ceremony.sh`) |
+| Changelog | v1.0→v1.1: rebased 38→19 gates; v1.1→v1.2: Ready Only enforced, governance clarified |

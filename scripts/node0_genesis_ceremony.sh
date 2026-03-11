@@ -155,8 +155,8 @@ run_gate "3.4" "Gini = 0.35" \
 run_gate "4.1" "State directory exists" \
     "test -d sovereign_state && echo PASS || echo FAIL"
 
-run_gate "4.2" "Lifecycle not blocked" \
-    "python3 -c \"import json; lc=json.load(open('sovereign_state/node0_lifecycle.json')); print('PASS' if lc.get('status')!='blocked' else 'FAIL')\""
+run_gate "4.2" "Lifecycle ready" \
+    "python3 -c \"import json; lc=json.load(open('sovereign_state/node0_lifecycle.json')); print('PASS' if lc.get('status')=='ready' else 'FAIL')\""
 
 run_gate "4.3" "Lifecycle schema v2" \
     "python3 -c \"import json; lc=json.load(open('sovereign_state/node0_lifecycle.json')); assert lc.get('schema_version')=='2.0.0'; print('PASS')\""

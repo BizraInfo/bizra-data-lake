@@ -146,10 +146,36 @@ L5.4  validate_cross_repo_consistency() passes
 
 ## Pre-Commit Checklist
 
-- [ ] Rewrite DoD v1.0 with 19 hard gates + 13 supporting (clearly separated)
-- [ ] All hard gates read `node0_lifecycle.json` or canonical authority files
-- [ ] Remove grep/timeout scraping in favor of JSON reads
-- [ ] Node0GenesisReceipt moved to appendix
-- [ ] README.md references both NODE0_STANDALONE_READINESS.md and DoD v1.0
-- [ ] `node0_genesis_ceremony.sh` updated to match
-- [ ] git commit includes doc + script in same commit
+- [x] Rewrite DoD v1.0 with 19 hard gates + 13 supporting (clearly separated) — v1.1
+- [x] All hard gates read `node0_lifecycle.json` or canonical authority files — v1.1
+- [x] Remove grep/timeout scraping in favor of JSON reads — v1.1
+- [x] Node0GenesisReceipt moved to appendix — v1.1
+- [ ] README.md references both NODE0_STANDALONE_READINESS.md and DoD v1.2
+- [x] `node0_genesis_ceremony.sh` updated to match — v1.1, tightened v1.2
+- [x] git commit includes doc + script in same commit — v1.1
+
+## v1.2 Correction (Ready Only)
+
+**Date:** 2026-03-11
+**Trigger:** Second DevOps ground-truth review identified 3 HIGH findings in v1.1
+
+### Changes
+
+| Finding | v1.1 State | v1.2 Fix |
+|---------|-----------|----------|
+| Gate 4.2 too weak | `!= "blocked"` allows `degraded` to pass | `== "ready"` — Ready Only locked by Mumo |
+| Lifecycle coverage gap | DoD reads 3 of 14 gates | Gate 4.2 now implies all 11 status gates; availability gates documented as non-birth-critical |
+| STANDALONE_READINESS drift | Doc says 11 gates, JSON has 14 | Doc updated to document 3 availability gates as informational addendum |
+| Competing truth | Ambiguous DoD↔Readiness governance | Clear hierarchy: Readiness=spec, DoD=verification, Matrix=audit |
+| Certification path | Undeclared | Linux/WSL2 declared in DoD header |
+
+### Current Ceremony Result (v1.2)
+
+```
+Hard Gates: 18/19 passed, 1 failed
+Failed: 4.2 (lifecycle.status == "degraded", not "ready")
+Reason: mission_path_receipted not yet set — requires `node0_standalone.py task`
+Score: 94.7%
+```
+
+This is **correct behavior**. Gate 4.2 will pass only when the full MVSA lifecycle reaches `ready`.

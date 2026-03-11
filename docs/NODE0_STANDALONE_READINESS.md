@@ -49,6 +49,21 @@ No alternate MVSA completion path is allowed through `node0_activate.py` or ad h
 | `mission_path_receipted` | `task` (on evidence receipt) |
 | `restart_recovery_ready` | mutating commands persist it when all artifacts reload cleanly; `health` only reports it |
 
+### Availability Gates (informational — NOT status-determining)
+
+The runtime lifecycle JSON also stores availability gates for operational health monitoring.
+These do NOT affect `_compute_status()` and are NOT required for `ready` status.
+
+| Gate | Set by | Purpose |
+|------|--------|---------|
+| `desktop_bridge_reachable` | `health` | AHK HDA TCP probe (port 9743) |
+| `mcp_available` | `health` | MCP server availability |
+| `a2a_available` | `health` | Agent-to-Agent protocol |
+| `telescript_available` | `health` | TeleScript mobile agent |
+
+Total entries in `node0_lifecycle.json`: 14 (11 status-determining + 3 availability).
+The "All 11 gates satisfied" criterion above refers only to the status-determining gates.
+
 ### CLI Exit Codes
 
 | Code | Meaning |
