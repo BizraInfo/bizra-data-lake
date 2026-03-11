@@ -2,13 +2,14 @@
 
 from .claude_flow import ClaudeFlowAdapter
 from .experience_ledger import ExperienceLedgerAdapter
-from .living_memory import LivingMemoryAdapter
+from .living_memory import LivingMemoryAdapter, LivingMemoryBridge
 from .reasoning_bank import ReasoningBankAdapter
 
 __all__ = [
     "ClaudeFlowAdapter",
     "ExperienceLedgerAdapter",
     "LivingMemoryAdapter",
+    "LivingMemoryBridge",
     "PatternMemoryAdapter",
     "ReasoningBankAdapter",
 ]
