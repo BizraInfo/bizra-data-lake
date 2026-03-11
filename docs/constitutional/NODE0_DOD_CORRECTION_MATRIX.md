@@ -169,13 +169,18 @@ L5.4  validate_cross_repo_consistency() passes
 | Competing truth | Ambiguous DoD↔Readiness governance | Clear hierarchy: Readiness=spec, DoD=verification, Matrix=audit |
 | Certification path | Undeclared | Linux/WSL2 declared in DoD header |
 
-### Current Ceremony Result (v1.2)
+### Ceremony Result (v1.2 — FINAL)
 
 ```
-Hard Gates: 18/19 passed, 1 failed
-Failed: 4.2 (lifecycle.status == "degraded", not "ready")
-Reason: mission_path_receipted not yet set — requires `node0_standalone.py task`
-Score: 94.7%
+Hard Gates: 19/19 passed, 0 failed
+Lifecycle: ready
+Score: 100.0%
 ```
 
-This is **correct behavior**. Gate 4.2 will pass only when the full MVSA lifecycle reaches `ready`.
+Gate 4.2 resolved by executing `node0_standalone.py task` which:
+1. Receipted a mission (evidence_receipt_id: `5c9a2184e0904b2d`)
+2. Set `mission_path_receipted=true` in lifecycle gates
+3. Triggered restart recovery validation → `restart_recovery_ready=true`
+4. `_compute_status()` returned `ready`
+
+Block 0 is alive. Node0 is sovereign.

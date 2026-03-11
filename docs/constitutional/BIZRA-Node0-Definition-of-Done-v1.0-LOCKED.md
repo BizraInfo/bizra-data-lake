@@ -165,6 +165,8 @@ class Node0GenesisReceipt:
 
 **Prerequisite for "ready":** Run `python scripts/node0_standalone.py task` to receipt a mission and trigger restart recovery. Without this, lifecycle remains `degraded` and gate 4.2 fails.
 
+**First ceremony pass:** 2026-03-11T07:30:02Z — 19/19 hard GREEN, 13/13 supporting GREEN, lifecycle `ready`, score 100.0%.
+
 ---
 
 ## 8. Document Governance
