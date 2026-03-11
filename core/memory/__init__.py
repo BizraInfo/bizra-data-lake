@@ -18,6 +18,7 @@ Architecture:
 """
 
 from .adapters.claude_flow import ClaudeFlowAdapter
+from .adapters.evidence_chain import EvidenceAwareMemory
 from .adapters.living_memory import LivingMemoryBridge
 from .agent_db import AgentDB
 from .config import HNSWConfig, MemoryConfig
@@ -54,6 +55,7 @@ __all__ = [
     "ConsolidationResult",
     "ContextSynthesizer",
     "ConvergencePolicy",
+    "EvidenceAwareMemory",
     "format_convergence_summary",
     "FactStore",
     "HNSWConfig",
