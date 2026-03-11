@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 
 from core.memory.agent_db import AgentDB
-from core.memory.config import MemoryConfig
-from core.memory.types import MemoryKind, RecordState
+from core.memory.types import MemoryKind, MemoryRecord, RecordState
 
 from .conftest import random_embedding
 
@@ -77,6 +78,27 @@ class TestAgentDBSearch:
         for r in results:
             assert r.record.source == "agent_a"
 
+    def test_search_include_archived(self, db):
+        now = datetime.now(timezone.utc)
+        db.store_record(
+            MemoryRecord(
+                id="archived_001",
+                content="Archived retrieval candidate",
+                kind=MemoryKind.SEMANTIC,
+                state=RecordState.ARCHIVED,
+                source="test",
+                tags=["archive"],
+                created_at=now,
+                updated_at=now,
+                last_accessed=now,
+            )
+        )
+
+        assert db.search("Archived retrieval", include_archived=False) == []
+        results = db.search("Archived retrieval", include_archived=True)
+        assert len(results) == 1
+        assert results[0].record.state == RecordState.ARCHIVED
+
 
 class TestAgentDBRetrieve:
     def test_retrieve_by_id(self, db):
@@ -130,7 +152,24 @@ class TestAgentDBPersistence:
         stats = db.stats()
         assert stats["total_records"] == 1
         assert stats["active_records"] == 1
+        assert "fts_row_count" in stats
         assert stats["indexed_vectors"] >= 0
+
+    def test_rebuild_indexes_repairs_stale_fts(self, db):
+        db.store("repair me", embedding=random_embedding(8))
+        conn = db.backend._ensure_conn()
+        conn.execute("DELETE FROM records_fts")
+        conn.commit()
+
+        stale_stats = db.stats()
+        assert stale_stats["index_health"]["status"] == "stale"
+
+        result = db.rebuild_indexes()
+        repaired_stats = db.stats()
+
+        assert result["fts_rows"] == repaired_stats["fts_row_count"]
+        assert repaired_stats["index_health"]["status"] == "healthy"
+        assert repaired_stats["last_rebuild_at"] is not None
 
     def test_not_initialized_raises(self, memory_config):
         db = AgentDB(memory_config)

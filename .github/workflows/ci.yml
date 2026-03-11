@@ -89,7 +89,7 @@ jobs:
       - name: "SEC-001: BLAKE3 enforcement gate (PCI/proof paths)"
         run: python scripts/ci_blake3_gate.py
 
-      - name: "SEC-002: Secret hygiene gate (YAML/scripts)"
+      - name: "SEC-002: Secret hygiene gate (config/code)"
         run: python scripts/ci_secret_scan.py
 
       - name: "SEC-003: Exception specificity gate (boundary modules)"

@@ -61,7 +61,7 @@ db.save()
 | `types.py` | `MemoryRecord`, `SearchResult`, `QueryOptions` | ~120 |
 | `config.py` | `MemoryConfig`, `HNSWConfig` with constitutional thresholds | ~80 |
 | `migrator.py` | v1 (LivingMemory) to v2 non-destructive migration | ~210 |
-| `adapters/` | Wrappers for legacy memory systems | ~3 files |
+| `adapters/` | Wrappers for legacy memory systems and Claude-flow ingestion | ~4 files |
 
 ## API Reference
 
@@ -75,7 +75,7 @@ class AgentDB:
     def initialize() -> None
     def store(content, kind, embedding, importance, source, tags, metadata) -> MemoryRecord
     def store_record(record: MemoryRecord) -> None
-    def search(query, query_embedding, top_k, min_score, kinds, tags, source) -> List[SearchResult]
+    def search(query, query_embedding, top_k, min_score, kinds, tags, source, context_ids, include_archived) -> List[SearchResult]
     def retrieve(record_id: str) -> Optional[MemoryRecord]
     def forget(record_id: str, hard: bool = False) -> bool
     def save() -> None
@@ -257,7 +257,12 @@ print(result)  # MigrationResult(migrated=1234, skipped=0, errors=0)
   "query": "quantum computing",
   "top_k": 10,
   "min_score": 0.1,
-  "source": null
+  "source": null,
+  "kinds": ["semantic"],
+  "tags": ["research"],
+  "context_ids": ["ctx-123"],
+  "include_archived": false,
+  "debug_scores": false
 }
 ```
 
@@ -278,7 +283,10 @@ Response:
       "keyword_score": 0.7500,
       "recency_score": 0.9800,
       "importance_score": 0.8000,
-      "source": "agent"
+      "graph_score": 0.2500,
+      "source": "agent",
+      "tags": ["research"],
+      "related_ids": ["ctx-123"]
     }
   ]
 }
@@ -286,7 +294,7 @@ Response:
 
 ### `GET /v1/memory/stats`
 
-Returns record counts, vector index size, and file paths.
+Returns record counts, FTS/vector index health, embedding dimensions, backend type, and file paths.
 
 ## Adapters
 

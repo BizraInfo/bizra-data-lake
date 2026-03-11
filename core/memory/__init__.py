@@ -18,6 +18,7 @@ Architecture:
 """
 
 from .agent_db import AgentDB
+from .adapters.claude_flow import ClaudeFlowAdapter
 from .config import HNSWConfig, MemoryConfig
 from .coordinator_bridge import AgentDBBridge
 from .health import AgentDBHealthChecker, AgentDBMetrics, HealthReport, HealthStatus
@@ -32,6 +33,7 @@ __all__ = [
     "AgentDBBridge",
     "AgentDBHealthChecker",
     "AgentDBMetrics",
+    "ClaudeFlowAdapter",
     "HNSWConfig",
     "HNSWIndex",
     "HealthReport",

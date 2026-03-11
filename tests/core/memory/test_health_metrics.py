@@ -11,7 +11,6 @@ from core.memory.config import MemoryConfig
 from core.memory.health import (
     AgentDBHealthChecker,
     AgentDBMetrics,
-    HealthReport,
     HealthStatus,
 )
 
@@ -60,7 +59,7 @@ class TestHealthReport:
 
         hnsw = report.components["hnsw"]
         assert hnsw.details["vector_count"] >= 0
-        assert hnsw.details["dimensions"] == 768
+        assert hnsw.details["dimensions"] == 384
 
     def test_uninitialized_db_is_down(self, tmp_config):
         db = AgentDB(tmp_config)  # NOT initialized

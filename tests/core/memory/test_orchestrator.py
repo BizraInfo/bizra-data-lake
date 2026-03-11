@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
+import sqlite3
 from unittest.mock import MagicMock
 
 import pytest
@@ -160,6 +160,97 @@ class TestProgressCallback:
         orch.run()
 
         assert len(calls) >= 1  # At least one callback at 100th record
+
+
+def _create_claude_flow_db(path: Path) -> None:
+    conn = sqlite3.connect(path)
+    conn.executescript(
+        """
+        CREATE TABLE memory_entries (
+            id TEXT PRIMARY KEY,
+            key TEXT,
+            namespace TEXT,
+            type TEXT,
+            content TEXT,
+            tags TEXT,
+            metadata TEXT,
+            owner_id TEXT,
+            created_at INTEGER,
+            updated_at INTEGER,
+            last_accessed_at INTEGER,
+            access_count INTEGER,
+            status TEXT
+        );
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO memory_entries (
+            id, key, namespace, type, content, tags, metadata, owner_id,
+            created_at, updated_at, last_accessed_at, access_count, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "mem-1",
+            "alpha",
+            "bizra",
+            "semantic",
+            "Alpha bridge memory",
+            "ops",
+            "{}",
+            "owner",
+            1_773_210_000_000,
+            1_773_210_100_000,
+            1_773_210_200_000,
+            1,
+            "active",
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+class TestClaudeFlowMigration:
+    def test_migrates_claude_flow_sources(self, db, tmp_path: Path):
+        db_path = tmp_path / ".swarm" / "memory.db"
+        db_path.parent.mkdir(parents=True)
+        _create_claude_flow_db(db_path)
+
+        artifact_dir = tmp_path / ".claude-flow" / "memory"
+        artifact_dir.mkdir(parents=True)
+        (artifact_dir / "session-index.json").write_text(
+            '{"sessions":[{"session_id":"s1","timestamp":"2026-03-11T07:00:00Z","summary":"Session summary"}]}',
+            encoding="utf-8",
+        )
+        (artifact_dir / "project-patterns.json").write_text(
+            '{"patterns":{"alpha":{"value":1}}}\n{"extra":true}',
+            encoding="utf-8",
+        )
+
+        orch = MigrationOrchestrator(db)
+        orch.set_claude_flow_db(db_path)
+        orch.set_claude_flow_artifact_dir(artifact_dir)
+        result = orch.run()
+
+        assert result.total_imported == 2
+        assert result.total_errors == 0
+        artifact_phase = next(p for p in result.phases if p.source == "claude_flow_artifacts")
+        assert artifact_phase.records_skipped == 1
+        assert len(artifact_phase.issues) == 1
+
+    def test_strict_json_promotes_artifact_errors(self, db, tmp_path: Path):
+        artifact_dir = tmp_path / ".claude-flow" / "memory"
+        artifact_dir.mkdir(parents=True)
+        (artifact_dir / "project-patterns.json").write_text(
+            '{"patterns":{"alpha":{"value":1}}}\n{"extra":true}',
+            encoding="utf-8",
+        )
+
+        orch = MigrationOrchestrator(db).set_strict_json(True)
+        orch.set_claude_flow_artifact_dir(artifact_dir)
+        result = orch.run()
+
+        assert result.total_errors == 1
 
 
 class TestOrchestratorResult:
