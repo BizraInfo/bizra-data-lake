@@ -18,6 +18,7 @@ Architecture:
 """
 
 from .adapters.claude_flow import ClaudeFlowAdapter
+from .adapters.living_memory import LivingMemoryBridge
 from .agent_db import AgentDB
 from .config import HNSWConfig, MemoryConfig
 from .convergence import (
@@ -62,6 +63,7 @@ __all__ = [
     "HierarchicalMemory",
     "HybridQueryEngine",
     "inspect_claude_flow_sources",
+    "LivingMemoryBridge",
     "MemoryConfig",
     "MemoryConsolidator",
     "MemoryKind",

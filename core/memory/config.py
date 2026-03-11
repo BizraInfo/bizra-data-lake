@@ -83,6 +83,9 @@ class MemoryConfig:
     # Optional: existing LivingMemory path for migration
     living_memory_db: Optional[Path] = None
 
+    # Search cache size (LRU — invalidated on writes)
+    search_cache_size: int = 256
+
     @property
     def sqlite_path(self) -> Path:
         return self.data_dir / self.sqlite_filename
