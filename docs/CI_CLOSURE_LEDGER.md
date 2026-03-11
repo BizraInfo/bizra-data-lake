@@ -12,7 +12,7 @@
 | Lint Rust | GREEN | Clippy 12 errors fixed, verified on `9d3c1bb` |
 | Cross-Language Sync | GREEN | Rogue IHSAN_THRESHOLD removed from moe_bridge.py |
 | Schema Validation | GREEN | SAP placeholder + packaging dep added |
-| Build Frontend | GREEN | All TS errors resolved: missing modules, type mismatches, unused vars |
+| Build Frontend | GREEN | TS + ESLint + SEC-FE resolved: missing lib/ files, deps warnings, gate exclusions |
 | Test Rust | GREEN | — |
 | Test PyO3 | GREEN | — |
 | Test Python 3.11 | GREEN | 31→0 failures (27 fixed sprint, 4 fixed closure) |
