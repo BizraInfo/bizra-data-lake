@@ -1,0 +1,406 @@
+"""
+SNR Protocol — Unified Interface for Signal-to-Noise Ratio Engines
+====================================================================
+
+Standing on Giants:
+- Shannon (1948): Information Theory — foundational SNR definition
+- PEP 544 (2017): Structural subtyping — Protocol for static conformance
+
+BIZRA has TWO legitimate SNR engines with different measurement domains:
+
+    ┌─────────────────────────────────────────────────────┐
+    │                    SNRProtocol                       │
+    │  calculate_snr() → (score, metrics, ihsan_achieved) │
+    └───────────────┬─────────────────┬───────────────────┘
+                    │                 │
+    ┌───────────────┴──┐   ┌─────────┴──────────────┐
+    │  arte_engine      │   │  snr_maximizer           │
+    │  .SNREngine       │   │  .SNRMaximizer           │
+    │                   │   │                          │
+    │  Domain: Vectors  │   │  Domain: Text            │
+    │  Method: Cosine   │   │  Method: Keyword + dB    │
+    │  Scale: [0, 1]    │   │  Scale: linear & dB      │
+    │  Input: np.ndarray│   │  Input: str              │
+    │  Use: Retrieval   │   │  Use: Generation QA      │
+    └───────────────────┘   └──────────────────────────┘
+
+Consumers should depend on SNRProtocol, not concrete classes.
+The SNRFacade provides a single entry point that dispatches to
+the appropriate engine based on input type.
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+from dataclasses import dataclass, field
+from typing import Any, Optional, Protocol, runtime_checkable
+
+logger = logging.getLogger(__name__)
+
+try:
+    # Constitution package integration (Step 2): single canonical normalizer.
+    from bizra_constitution.snr import normalize_snr as _constitution_normalize_snr
+except Exception:  # pragma: no cover - fallback keeps legacy behavior
+    _constitution_normalize_snr = None
+
+# ── Canonical Normalization ───────────────────────────────────────────────
+
+
+def normalize_snr_linear(snr_linear: float) -> float:
+    """Normalize an unbounded linear SNR ratio into [0, 1].
+
+    Formula:
+        normalized = snr_linear / (1 + snr_linear)
+
+    This is monotonic, bounded, and preserves ordering while avoiding
+    oversized values from dominating downstream policy gates.
+    """
+    if _constitution_normalize_snr is not None:
+        return float(_constitution_normalize_snr(float(snr_linear)))
+    snr = max(float(snr_linear), 0.0)
+    return min(snr / (1.0 + snr), 1.0)
+
+
+def assert_snr_normalized(value: float, *, label: str = "snr") -> float:
+    """Validate that an SNR value is properly normalized to [0, 1].
+
+    Raises ValueError if the value is outside the normalized range.
+    Use this guard at every boundary where SNR enters a receipt,
+    evidence ledger, or downstream policy gate.
+
+    Standing on Giants:
+    - Shannon (1948): bounded information measures
+    - Meyer (Design by Contract, 1986): precondition enforcement
+    """
+    if not isinstance(value, (int, float)):
+        raise TypeError(f"{label}: expected numeric, got {type(value).__name__}")
+    v = float(value)
+    if not math.isfinite(v):
+        raise ValueError(
+            f"{label}: SNR value {v} is not finite; expected normalized [0.0, 1.0]."
+        )
+    if v < 0.0 or v > 1.0:
+        raise ValueError(
+            f"{label}: SNR value {v:.6f} is outside normalized range [0.0, 1.0]. "
+            f"Use normalize_snr_linear() to map unbounded ratios before storage."
+        )
+    return v
+
+
+# ── Unified Result ──────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class SNRResult:
+    """
+    Canonical SNR measurement result.
+
+    All engines produce this, regardless of internal representation.
+    Consumers only need to check `score`, `ihsan_achieved`, and optionally
+    drill into `metrics` for engine-specific details.
+    """
+
+    score: float  # Normalized to [0.0, 1.0]
+    ihsan_achieved: bool  # score >= ihsan_threshold
+    engine: str  # "embedding" | "text" | "ensemble"
+    metrics: dict[str, Any] = field(default_factory=dict)
+    recommendations: list[str] = field(default_factory=list)
+
+    def __repr__(self) -> str:
+        status = "PASS" if self.ihsan_achieved else "FAIL"
+        return (
+            f"SNRResult(score={self.score:.4f}, ihsan={status}, engine={self.engine})"
+        )
+
+
+# ── Protocol ────────────────────────────────────────────────────────────
+
+
+@runtime_checkable
+class SNRProtocol(Protocol):
+    """
+    Structural typing contract for SNR engines.
+
+    Any class implementing `calculate_snr_normalized()` conforming to this
+    signature is a valid SNR engine — no inheritance required (PEP 544).
+    """
+
+    def calculate_snr_normalized(self, **kwargs: Any) -> SNRResult:
+        """
+        Compute SNR and return a normalized result.
+
+        Keyword arguments vary by engine:
+        - Embedding engine: query_embedding, context_embeddings, symbolic_facts, neural_results
+        - Text engine: text, query, sources
+        """
+        ...
+
+
+# ── Facade ──────────────────────────────────────────────────────────────
+
+
+class SNRFacade:
+    """
+    Unified SNR entry point for the orchestrator.
+
+    Routes to the appropriate engine based on available inputs:
+    - rust_engine (highest priority): Rust SNREngine via PyO3 (Gap G-2 bridge)
+    - v2_engine (preferred Python): SNRv2Adapter wrapping SNRCalculatorV2
+    - embedding_engine (legacy): arte_engine.SNREngine
+    - text_engine: snr_maximizer.SNRMaximizer
+    - ensemble: geometric mean when multiple engines available
+
+    Usage:
+        facade = SNRFacade(rust_engine=adapter, v2_engine=v2_adapter, text_engine=maximizer)
+        result = facade.calculate(text=answer, query="question")
+    """
+
+    def __init__(
+        self,
+        embedding_engine: Optional[Any] = None,
+        text_engine: Optional[Any] = None,
+        v2_engine: Optional[Any] = None,
+        rust_engine: Optional[Any] = None,
+        ihsan_threshold: float = 0.95,
+    ):
+        self.rust_engine = rust_engine
+        self.embedding_engine = embedding_engine
+        self.text_engine = text_engine
+        self.v2_engine = v2_engine
+        self.ihsan_threshold = ihsan_threshold
+
+    def calculate(
+        self,
+        *,
+        # Text engine inputs
+        text: Optional[str] = None,
+        query: Optional[str] = None,
+        sources: Optional[list[str]] = None,
+        # Embedding engine inputs
+        query_embedding: Optional[Any] = None,
+        context_embeddings: Optional[Any] = None,
+        symbolic_facts: Optional[list[dict]] = None,
+        neural_results: Optional[list[dict]] = None,
+    ) -> SNRResult:
+        """
+        Dispatch to the appropriate SNR engine(s) based on available inputs.
+
+        Returns a single canonical SNRResult.
+        """
+
+        has_rust = self.rust_engine is not None and text is not None
+        has_v2 = self.v2_engine is not None and text is not None
+        has_embeddings = (
+            query_embedding is not None
+            and context_embeddings is not None
+            and self.embedding_engine is not None
+        )
+        has_text = text is not None and self.text_engine is not None
+
+        # Priority: rust > v2+text > v2 > emb+text > emb > text > none
+        if has_rust:
+            return self._from_rust_engine(text=text or "", query=query)
+        elif has_v2 and has_text:
+            return self._ensemble_v2(
+                text=text or "",
+                query=query,
+                sources=sources,
+            )
+        elif has_v2:
+            return self.v2_engine.calculate_snr_normalized(
+                text=text or "", query=query or ""
+            )
+        elif has_embeddings and has_text:
+            return self._ensemble(
+                text=text or "",
+                query=query,
+                sources=sources,
+                query_embedding=query_embedding,
+                context_embeddings=context_embeddings,
+                symbolic_facts=symbolic_facts or [],
+                neural_results=neural_results or [],
+            )
+        elif has_embeddings:
+            return self._from_embedding_engine(
+                query_embedding=query_embedding,
+                context_embeddings=context_embeddings,
+                symbolic_facts=symbolic_facts or [],
+                neural_results=neural_results or [],
+            )
+        elif has_text:
+            return self._from_text_engine(text=text or "", query=query, sources=sources)
+        else:
+            logger.warning("SNRFacade: No valid inputs — returning baseline")
+            return SNRResult(
+                score=0.0,
+                ihsan_achieved=False,
+                engine="none",
+                recommendations=["Provide text or embeddings for SNR calculation"],
+            )
+
+    def _from_rust_engine(
+        self,
+        text: str,
+        query: Optional[str] = None,
+    ) -> SNRResult:
+        """Delegate to Rust SNREngine via PyO3 bridge (Gap G-2)."""
+        if self.rust_engine is None:
+            raise RuntimeError("Rust SNR engine not available")
+        try:
+            return self.rust_engine.calculate_snr_normalized(
+                text=text, query=query or ""
+            )
+        except Exception as e:
+            logger.warning("Rust SNR engine failed, falling back: %s", e)
+            # Graceful degradation: try v2, then text, then baseline
+            if self.v2_engine is not None:
+                return self.v2_engine.calculate_snr_normalized(
+                    text=text, query=query or ""
+                )
+            if self.text_engine is not None:
+                return self._from_text_engine(text=text, query=query)
+            return SNRResult(
+                score=0.0,
+                ihsan_achieved=False,
+                engine="rust_fallback",
+                recommendations=[f"All SNR engines failed. Rust error: {e}"],
+            )
+
+    def _from_embedding_engine(self, **kwargs: Any) -> SNRResult:
+        """Delegate to arte_engine.SNREngine and normalize."""
+        if self.embedding_engine is None:
+            raise RuntimeError("Embedding engine not available")
+        score, metrics = self.embedding_engine.calculate_snr(**kwargs)
+        return SNRResult(
+            score=float(score),
+            ihsan_achieved=score >= self.ihsan_threshold,
+            engine="embedding",
+            metrics=metrics,
+        )
+
+    def _from_text_engine(
+        self,
+        text: str,
+        query: Optional[str] = None,
+        sources: Optional[list[str]] = None,
+    ) -> SNRResult:
+        """Delegate to snr_maximizer.SNRMaximizer and normalize."""
+        if self.text_engine is None:
+            return SNRResult(
+                score=0.0,
+                ihsan_achieved=False,
+                engine="text",
+                recommendations=["Text engine not available"],
+            )
+        analysis = self.text_engine.analyze(text, query, sources)
+
+        # Use snr_normalized (bounded [0,1]) — Phase 42 Spec 01 fix.
+        # snr_linear is an unbounded diagnostic ratio (0 to 10^10);
+        # snr_normalized = signal * (1 - noise), properly bounded.
+        normalized_score = analysis.snr_normalized
+
+        return SNRResult(
+            score=normalized_score,
+            ihsan_achieved=analysis.ihsan_achieved,
+            engine="text",
+            metrics=analysis.to_dict(),
+            recommendations=analysis.recommendations,
+        )
+
+    def _ensemble(
+        self,
+        *,
+        text: str,
+        query: Optional[str],
+        sources: Optional[list[str]],
+        **embedding_kwargs: Any,
+    ) -> SNRResult:
+        """
+        Ensemble: geometric mean of both engines.
+
+        Geometric mean is appropriate because both scores are in [0,1]
+        and we want a single zero to dominate (fail-closed behavior).
+        """
+        import math
+
+        emb_result = self._from_embedding_engine(**embedding_kwargs)
+        txt_result = self._from_text_engine(text=text, query=query, sources=sources)
+
+        epsilon = 1e-10
+        ensemble_score = math.exp(
+            0.5 * math.log(emb_result.score + epsilon)
+            + 0.5 * math.log(txt_result.score + epsilon)
+        )
+        ensemble_score = min(max(ensemble_score, 0.0), 1.0)
+
+        # Merge recommendations
+        all_recs = list(set(emb_result.recommendations + txt_result.recommendations))
+
+        return SNRResult(
+            score=round(ensemble_score, 4),
+            ihsan_achieved=ensemble_score >= self.ihsan_threshold,
+            engine="ensemble",
+            metrics={
+                "embedding_snr": emb_result.score,
+                "text_snr": txt_result.score,
+                "ensemble_method": "geometric_mean",
+                "embedding_metrics": emb_result.metrics,
+                "text_metrics": txt_result.metrics,
+            },
+            recommendations=all_recs,
+        )
+
+    def _ensemble_v2(
+        self,
+        *,
+        text: str,
+        query: Optional[str],
+        sources: Optional[list[str]],
+    ) -> SNRResult:
+        """
+        Ensemble v2: geometric mean of SNRv2Adapter + text engine.
+
+        v2 provides embedding-grade measurement (Shannon + Renyi-2).
+        Text engine provides heuristic noise analysis (7 dimensions).
+        Geometric mean ensures a single zero dominates (fail-closed).
+        """
+        import math
+
+        v2_result = self.v2_engine.calculate_snr_normalized(
+            text=text, query=query or ""
+        )
+        txt_result = self._from_text_engine(text=text, query=query, sources=sources)
+
+        epsilon = 1e-10
+        ensemble_score = math.exp(
+            0.5 * math.log(v2_result.score + epsilon)
+            + 0.5 * math.log(txt_result.score + epsilon)
+        )
+        ensemble_score = min(max(ensemble_score, 0.0), 1.0)
+
+        all_recs = list(set(v2_result.recommendations + txt_result.recommendations))
+
+        return SNRResult(
+            score=round(ensemble_score, 4),
+            ihsan_achieved=ensemble_score >= self.ihsan_threshold,
+            engine="ensemble_v2",
+            metrics={
+                "v2_snr": v2_result.score,
+                "v2_tier": v2_result.metrics.get("quality_tier", "unknown"),
+                "text_snr": txt_result.score,
+                "ensemble_method": "geometric_mean",
+                "v2_metrics": v2_result.metrics,
+                "text_metrics": txt_result.metrics,
+            },
+            recommendations=all_recs,
+        )
+
+
+__all__ = [
+    "normalize_snr_linear",
+    "assert_snr_normalized",
+    "SNRResult",
+    "SNRProtocol",
+    "SNRFacade",
+]

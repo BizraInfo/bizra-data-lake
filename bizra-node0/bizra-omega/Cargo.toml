@@ -1,0 +1,82 @@
+# Node0 Production — scoped workspace (MVSA binary + required sibling crates)
+[workspace]
+resolver = "2"
+members = [
+    "bizra-core",
+    "bizra-proofspace",
+    "bizra-telescript",
+    "bizra-federation",
+    "bizra-resourcepool",
+]
+
+[workspace.package]
+version = "2.0.0"
+edition = "2021"
+authors = ["BIZRA Sovereign <sovereign@bizra.node0>"]
+license = "MIT"
+
+[workspace.dependencies]
+# Cryptography
+ed25519-dalek = { version = "2.1", features = ["serde", "rand_core", "batch"] }
+blake3 = { version = "1.5", features = ["rayon"] }
+rand = "0.8"
+sha2 = "0.10"
+hex = "0.4"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Async Runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-stream = "0.1"
+async-trait = "0.1"
+
+# Error Handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Time & Identity
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Network
+reqwest = { version = "0.12", features = ["json"] }
+
+# SIMD acceleration
+rayon = "1.8"
+
+# Testing
+tempfile = "3.10"
+
+# Pinned transitive deps — security floor
+bytes = ">=1.11.1"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true
+opt-level = 3
+panic = "abort"
+
+[profile.release.build-override]
+opt-level = 3
+
+# Maximum optimization profile with AVX-512
+# Run with: RUSTFLAGS="-C target-cpu=native" cargo build --profile omega
+[profile.omega]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+debug = false
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 1
