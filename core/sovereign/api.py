@@ -63,6 +63,50 @@ def _env_truthy(var_name: str) -> bool:
     return os.environ.get(var_name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _production_mode_enabled() -> bool:
+    """Return True when the runtime is explicitly in production mode."""
+    return os.environ.get("BIZRA_ENV", "").strip().lower() == "production"
+
+
+def _resolved_api_keys(explicit_api_keys: Optional[list[str] | set[str]]) -> set[str]:
+    """Merge CLI-provided API keys with supported environment fallbacks."""
+    keys = {key.strip() for key in (explicit_api_keys or []) if key and key.strip()}
+    for var_name in (
+        "BIZRA_NODE0_API_KEY",
+        "BIZRA_API_KEY",
+        "BIZRA_NODE0_API_KEYS",
+        "BIZRA_API_KEYS",
+    ):
+        raw = os.environ.get(var_name, "")
+        if not raw:
+            continue
+        for candidate in raw.split(","):
+            candidate = candidate.strip()
+            if candidate:
+                keys.add(candidate)
+    return keys
+
+
+def _ensure_production_auth_prerequisites(
+    *,
+    use_fastapi: bool,
+    api_keys: set[str],
+) -> None:
+    """Fail closed when production startup lacks required auth material."""
+    if not _production_mode_enabled():
+        return
+
+    if not os.environ.get("BIZRA_JWT_SECRET", "").strip():
+        raise RuntimeError("BIZRA_JWT_SECRET is required in production")
+
+    if not use_fastapi and not api_keys:
+        raise RuntimeError(
+            "Raw asyncio API fallback requires explicit API auth in production. "
+            "Set BIZRA_NODE0_API_KEY, BIZRA_API_KEY, BIZRA_NODE0_API_KEYS, or "
+            "BIZRA_API_KEYS, or pass --api-key."
+        )
+
+
 # =============================================================================
 # PYDANTIC MODELS (module-level for FastAPI schema generation)
 # =============================================================================
@@ -533,6 +577,11 @@ class SovereignAPIServer:
         self.host = host
         self.port = port
         self.api_keys = api_keys or set()
+        self._production_mode = _production_mode_enabled()
+        if self._production_mode and not self.api_keys:
+            raise RuntimeError(
+                "SovereignAPIServer requires explicit API keys in production"
+            )
         self.rate_limiter = RateLimiter()
 
         self._server: Optional[asyncio.Server] = None
@@ -1234,12 +1283,20 @@ def create_fastapi_app(runtime: Any) -> Any:
         _auth_available = True
         logger.info("Phase 21: Auth layer initialized (UserStore + JWT + Middleware)")
     except (ValueError, KeyError, PermissionError) as exc:
+        if _production_mode_enabled():
+            raise RuntimeError(
+                "Authentication layer failed to initialize in production"
+            ) from exc
         logger.warning("Auth init error (specific): %s", exc)
         _user_store = None  # type: ignore[assignment]
         _jwt_auth = None  # type: ignore[assignment]
         _auth_middleware = None  # type: ignore[assignment]
         _auth_available = False
     except Exception as e:  # noqa: BLE001 — review needed
+        if _production_mode_enabled():
+            raise RuntimeError(
+                "Authentication layer failed to initialize in production"
+            ) from e
         logger.error(
             "SECURITY: Auth layer failed to initialize: %s. "
             "Protected endpoints will deny requests until auth is restored.",
@@ -1574,10 +1631,8 @@ def create_fastapi_app(runtime: Any) -> Any:
                 )
             except (ValueError, KeyError, PermissionError) as exc:
                 logger.warning("Auth error (specific): %s", exc)
-                return JSONResponse(
-                    status_code=500,
-                    content={"error": str(exc) or "Operation failed"},
-                )
+                await ws.close(code=1011, reason="Authentication failed")
+                return "", False
             except Exception:  # noqa: BLE001 — review needed
                 user = None
 
@@ -4907,6 +4962,11 @@ async def serve(
     from .runtime import RuntimeConfig, SovereignRuntime
 
     config = RuntimeConfig(autonomous_enabled=True)
+    resolved_api_keys = _resolved_api_keys(api_keys)
+    _ensure_production_auth_prerequisites(
+        use_fastapi=use_fastapi,
+        api_keys=resolved_api_keys,
+    )
 
     async with SovereignRuntime.create(config) as runtime:
         # Prefer FastAPI + Uvicorn (console, OpenAPI docs, CORS, WebSocket)
@@ -4936,7 +4996,7 @@ async def serve(
             runtime=runtime,
             host=host,
             port=port,
-            api_keys=set(api_keys) if api_keys else None,
+            api_keys=resolved_api_keys or None,
         )
 
         await server.start()

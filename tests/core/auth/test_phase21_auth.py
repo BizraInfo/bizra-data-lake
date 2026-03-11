@@ -527,6 +527,15 @@ class TestJWTAuth:
         claims = jwt2.verify_token(pair.access_token)
         assert claims is None
 
+    def test_missing_secret_fails_closed_in_production(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setenv("BIZRA_ENV", "production")
+        monkeypatch.delenv("BIZRA_JWT_SECRET", raising=False)
+
+        with pytest.raises(ValueError, match="BIZRA_JWT_SECRET is required"):
+            JWTAuth()
+
 
 # ===========================================================================
 # SOVEREIGN QUERY / RESULT USER_ID PROPAGATION

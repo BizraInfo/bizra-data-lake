@@ -33,6 +33,11 @@ from typing import Any, Optional
 
 logger = logging.getLogger("bizra.auth.jwt")
 
+
+def _production_mode_enabled() -> bool:
+    """Return True when the runtime is explicitly in production mode."""
+    return os.environ.get("BIZRA_ENV", "").strip().lower() == "production"
+
 # ==============================================================================
 # CONSTANTS
 # ==============================================================================
@@ -106,6 +111,8 @@ class JWTAuth:
             "utf-8"
         )
         if not self._secret:
+            if _production_mode_enabled():
+                raise ValueError("BIZRA_JWT_SECRET is required in production")
             self._secret = os.urandom(32)
             logger.warning(
                 "JWT secret auto-generated. set BIZRA_JWT_SECRET env var for persistence."

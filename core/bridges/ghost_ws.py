@@ -42,6 +42,32 @@ from core.integration.constants import (
 
 logger = logging.getLogger("bizra.ghost_ws")
 
+
+def _env_truthy(var_name: str) -> bool:
+    """Return True when an environment flag is explicitly enabled."""
+    return os.getenv(var_name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _production_mode_enabled() -> bool:
+    """Return True when the bridge is running in production mode."""
+    return os.getenv("BIZRA_ENV", "development").strip().lower() == "production"
+
+
+def _allowed_origins() -> list[str]:
+    """Return the explicit CORS allowlist for the current mode."""
+    if not _production_mode_enabled():
+        return ["*"]
+    raw = os.getenv(
+        "GHOST_WS_ALLOWED_ORIGINS",
+        "http://127.0.0.1,http://localhost,http://127.0.0.1:9743,http://localhost:9743,null",
+    )
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
+def _loopback_client(host: Optional[str]) -> bool:
+    """Return True when a client host resolves to a loopback interface."""
+    return host in {"127.0.0.1", "::1", "localhost"}
+
 # ---------------------------------------------------------------------------
 # Configuration (from env, never hardcoded)
 # ---------------------------------------------------------------------------
@@ -57,6 +83,8 @@ MAX_CONNECTED_CLIENTS = int(os.getenv("GHOST_MAX_CLIENTS", "4"))
 # Auth token for WS handshake (optional — dev mode allows unauthenticated)
 GHOST_WS_AUTH_TOKEN = os.getenv("GHOST_WS_AUTH_TOKEN", "")
 BIZRA_ENV = os.getenv("BIZRA_ENV", "development")
+GHOST_WS_ENABLED = _env_truthy("GHOST_WS_ENABLED")
+GHOST_WS_ALLOWED_ORIGINS = _allowed_origins()
 
 
 # ---------------------------------------------------------------------------
@@ -251,12 +279,15 @@ app = FastAPI(
 manager = GhostConnectionManager()
 debouncer = PredictionDebouncer()
 
-# Allow file:// and localhost origins so standalone HTML tools can call /rpc
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=GHOST_WS_ALLOWED_ORIGINS,
     allow_methods=["GET", "POST"],
-    allow_headers=["*"],
+    allow_headers=(
+        ["*"]
+        if not _production_mode_enabled()
+        else ["Content-Type", "X-BIZRA-TOKEN"]
+    ),
 )
 
 
@@ -276,6 +307,58 @@ async def http_rpc_proxy(request: Request) -> JSONResponse:
     BRIDGE_PORT = int(os.environ.get("DESKTOP_BRIDGE_PORT", "9742"))
     CONNECT_TIMEOUT = 3.0
     READ_TIMEOUT = 30.0
+
+    if _production_mode_enabled() and not GHOST_WS_ENABLED:
+        return JSONResponse(
+            {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32003,
+                    "message": "Ghost bridge disabled in production",
+                },
+                "id": None,
+            },
+            status_code=503,
+        )
+
+    if _production_mode_enabled() and GHOST_WS_ENABLED:
+        client_host = getattr(getattr(request, "client", None), "host", None)
+        if not _loopback_client(client_host):
+            return JSONResponse(
+                {
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": -32004,
+                        "message": "Ghost bridge requires a loopback client in production",
+                    },
+                    "id": None,
+                },
+                status_code=403,
+            )
+        if not GHOST_WS_AUTH_TOKEN:
+            return JSONResponse(
+                {
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": -32005,
+                        "message": "Ghost bridge auth token is required in production",
+                    },
+                    "id": None,
+                },
+                status_code=503,
+            )
+        if request.headers.get("X-BIZRA-TOKEN", "") != GHOST_WS_AUTH_TOKEN:
+            return JSONResponse(
+                {
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": -32006,
+                        "message": "Ghost bridge authentication failed",
+                    },
+                    "id": None,
+                },
+                status_code=401,
+            )
 
     try:
         body = await request.json()
@@ -373,12 +456,27 @@ async def ghost_overlay_ws(ws: WebSocket) -> None:
       3. Server pushes OverlayEvent messages as JSON text frames
       4. Client can send {"gesture": "solidify"|"dismiss"|"scroll_next"|"scroll_prev"}
     """
+    if _production_mode_enabled() and not GHOST_WS_ENABLED:
+        await ws.close(code=4403, reason="Ghost bridge disabled in production")
+        return
+
+    client_host = getattr(getattr(ws, "client", None), "host", None)
+    if _production_mode_enabled() and GHOST_WS_ENABLED and not _loopback_client(
+        client_host
+    ):
+        await ws.close(code=4403, reason="Loopback-only in production")
+        return
+
+    if _production_mode_enabled() and GHOST_WS_ENABLED and not GHOST_WS_AUTH_TOKEN:
+        await ws.close(code=1013, reason="Ghost bridge auth not configured")
+        return
+
     if not await manager.connect(ws):
         await ws.close(code=1013, reason="Max clients reached")
         return
 
-    # Auth handshake (enforced in production)
-    if BIZRA_ENV == "production" and GHOST_WS_AUTH_TOKEN:
+    # Auth handshake (enforced in production when the bridge is enabled)
+    if _production_mode_enabled() and GHOST_WS_ENABLED:
         try:
             raw = await asyncio.wait_for(ws.receive_text(), timeout=10.0)
             msg = json.loads(raw)
@@ -481,6 +579,10 @@ async def _startup() -> None:
         UNIFIED_SNR_THRESHOLD,
         UNIFIED_IHSAN_THRESHOLD,
     )
+    if _production_mode_enabled() and not GHOST_WS_ENABLED:
+        logger.warning("Ghost WS Bridge is disabled in production")
+    if _production_mode_enabled() and GHOST_WS_ENABLED and not GHOST_WS_AUTH_TOKEN:
+        logger.error("Ghost WS Bridge enabled in production without auth token")
 
 
 @app.on_event("shutdown")
