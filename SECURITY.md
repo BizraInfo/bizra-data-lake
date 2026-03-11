@@ -63,6 +63,23 @@ All thresholds are defined in `core/integration/constants.py` as the single sour
   `tools/engines/agentic_cleaner.py`, gated by AST validation + restricted `__builtins__`
 - Path traversal protection on file operations
 
+## Incident Response
+
+### Tracked Configuration Secret Exposure
+
+If a tracked config file contains a literal credential:
+
+1. Rotate the exposed key immediately.
+2. Replace the committed value with an environment placeholder or remove it entirely.
+3. Run `python scripts/ci_secret_scan.py` and verify the old pattern now fails while the remediated tree passes.
+4. Assess whether git history rewrite is required.
+5. If history rewrite is deferred, the minimum compensating control is:
+   - confirmed key rotation
+   - widened scanner coverage for tracked config files
+   - CI enforcement on every push and pull request
+
+Tracked config directories such as `.claude/`, `.claude-flow/`, `.github/`, and root-level config files are in scope for secret hygiene. A green scan that ignores those surfaces is not a valid security signal.
+
 ## Further Reading
 
 - [Security Architecture](docs/SECURITY-ARCHITECTURE.md)

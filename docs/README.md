@@ -23,6 +23,8 @@ Use this file first, then follow the role-based reading paths below.
 
 **Immediate closure program:** [plans/GENESIS_CLOSURE_SPRINT_v1.md](plans/GENESIS_CLOSURE_SPRINT_v1.md)
 
+**Production canon blueprint:** [plans/NODE0_PRODUCTION_CANON_BLUEPRINT_v1.md](plans/NODE0_PRODUCTION_CANON_BLUEPRINT_v1.md)
+
 The handover document covers: identity, architecture, metrics (582K lines, 7,907 tests), timeline (Ramadan 2023 to present), security posture, economic model, roadmap, and full documentation index. It references the authoritative genesis documents in `00_GENESIS/`.
 
 ## Why This Exists
@@ -124,6 +126,7 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 |---|---|---|
 | Genesis execution program | [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md) | `config/genesis_execution_framework.json`, `.github/workflows/`, `core/`, `frontend/`, `scripts/` |
 | Unified optimization blueprint | [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md) | `config/bizra_unified_optimization_blueprint.json`, `docs/plans/GENESIS_CLOSURE_SPRINT_v1.md`, `core/`, `tests/` |
+| Node0 production canon | [Node0 Production Canon Blueprint](plans/NODE0_PRODUCTION_CANON_BLUEPRINT_v1.md) | `bizra-node0/`, `scripts/node0_standalone.py`, `scripts/node0_genesis_ceremony.sh`, `core/sovereign/`, `.github/workflows/` |
 | Closure implementation plan | [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md) | `core/bus/`, `core/proof_engine/`, `core/sovereign/`, `tests/`, `scripts/` |
 | Node0 standalone lifecycle | [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md) | `scripts/node0_standalone.py`, `core/sovereign/node0_authority.py`, `core/sovereign/node0_mvsa.py`, `core/sovereign/mission.py` |
 | Node0 birth verification | [Node0 Definition of Done](constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md) | `scripts/node0_genesis_ceremony.sh`, `sovereign_state/node0_lifecycle.json`, `sovereign_state/node0_genesis.json` |

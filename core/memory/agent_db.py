@@ -309,7 +309,7 @@ class AgentDB:
         """Return state dict for MemoryCoordinator integration."""
         return {
             "record_count": self._store.count(),
-            "vector_count": self._hnsw.count,
+            "vector_count": self._hnsw.live_count,
             "hnsw_path": str(self._config.hnsw_path),
             "sqlite_path": str(self._config.sqlite_path),
         }
@@ -321,7 +321,11 @@ class AgentDB:
         fts = self._store.fts_stats()
         indexed_vectors = self._hnsw.live_count
         expected_vectors = self._store.count_embeddings(include_archived=True)
-        fts_in_sync = fts["rows"] == fts["searchable_rows"] and fts["deleted_rows"] == 0 and fts["orphaned_rows"] == 0
+        fts_in_sync = (
+            fts["rows"] == fts["searchable_rows"]
+            and fts["deleted_rows"] == 0
+            and fts["orphaned_rows"] == 0
+        )
         vectors_in_sync = indexed_vectors == expected_vectors
         index_status = "healthy" if fts_in_sync and vectors_in_sync else "stale"
         return {

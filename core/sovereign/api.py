@@ -1569,9 +1569,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                 user = _auth_middleware.authenticate_request(request)
             except (ValueError, KeyError, PermissionError) as exc:
                 logger.warning("Auth error (specific): %s", exc)
-                return JSONResponse(
-                    status_code=500,
-                    content={"error": str(exc) or "Operation failed"},
+                return (
+                    "",
+                    None,
+                    JSONResponse(
+                        status_code=500,
+                        content={"error": str(exc) or "Operation failed"},
+                    ),
                 )
             except Exception as e:  # noqa: BLE001 — review needed
                 if not allow_anonymous:
@@ -4277,7 +4281,9 @@ def create_fastapi_app(runtime: Any) -> Any:
             kinds = None
             if body.kinds:
                 try:
-                    kinds = [MemoryKind(kind) for kind in dict.fromkeys(body.kinds)]
+                    kinds = [
+                        MemoryKind(kind.lower()) for kind in dict.fromkeys(body.kinds)
+                    ]
                 except ValueError as exc:
                     return JSONResponse(
                         status_code=400,

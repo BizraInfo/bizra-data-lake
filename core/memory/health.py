@@ -247,10 +247,10 @@ class AgentDBMetrics:
                 self._records_gauge.labels(state=state.value).set(
                     store.count(state=state)
                 )
-            self._vectors_gauge.set(self._db.hnsw.count)
+            self._vectors_gauge.set(self._db.hnsw.live_count)
             cap = self._db.hnsw.capacity
             if cap > 0:
-                self._capacity_gauge.set(self._db.hnsw.count / cap)
+                self._capacity_gauge.set(self._db.hnsw.live_count / cap)
         except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Metrics update failed: {e}")
 

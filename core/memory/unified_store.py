@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +29,7 @@ from .types import MemoryKind, MemoryRecord, RecordState
 logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = 2
+_FTS_TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 
 
 class UnifiedStore:
@@ -51,6 +53,9 @@ class UnifiedStore:
         self._conn = sqlite3.connect(
             str(self.db_path),
             timeout=self._config.sqlite_busy_timeout_ms / 1000.0,
+            # FastAPI/TestClient and background workers may access the store
+            # from different threads. WAL + busy_timeout still guard writes.
+            check_same_thread=False,
         )
         self._conn.row_factory = sqlite3.Row
 
@@ -309,16 +314,7 @@ class UnifiedStore:
         We negate them so higher = better.
         """
         conn = self._ensure_conn()
-        cursor = conn.execute(
-            """
-            SELECT id, rank
-            FROM records_fts
-            WHERE records_fts MATCH ?
-            ORDER BY rank
-            LIMIT ?
-            """,
-            (query, top_k),
-        )
+        cursor = self._keyword_cursor(conn, query, top_k)
         results = []
         for row in cursor:
             # FTS5 rank is negative BM25 (more negative = more relevant)
@@ -332,6 +328,24 @@ class UnifiedStore:
             results = [(rid, s / max_score) for rid, s in results]
 
         return results
+
+    def _keyword_cursor(
+        self, conn: sqlite3.Connection, query: str, top_k: int
+    ) -> sqlite3.Cursor:
+        statement = """
+            SELECT id, rank
+            FROM records_fts
+            WHERE records_fts MATCH ?
+            ORDER BY rank
+            LIMIT ?
+        """
+        try:
+            return conn.execute(statement, (query, top_k))
+        except sqlite3.OperationalError:
+            sanitized = " ".join(_FTS_TOKEN_RE.findall(query))
+            if not sanitized or sanitized == query:
+                raise
+            return conn.execute(statement, (sanitized, top_k))
 
     # ── Bulk Operations ──────────────────────────────────────────────────
 

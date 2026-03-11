@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from core.memory.config import MemoryConfig
-from core.memory.types import MemoryKind, MemoryRecord, RecordState
+from core.memory.types import MemoryKind, RecordState
 from core.memory.unified_store import UnifiedStore
 
 from .conftest import make_record, random_embedding
@@ -109,6 +108,14 @@ class TestStoreFTS:
         assert len(results) > 0
         _, score = results[0]
         assert 0.0 <= score <= 1.0
+
+    def test_keyword_search_sanitizes_hyphenated_queries(self, store):
+        store.upsert(make_record("r1", content="Archive-only memory surface"))
+
+        results = store.keyword_search("Archive-only memory", top_k=5)
+
+        assert len(results) > 0
+        assert results[0][0] == "r1"
 
 
 class TestStoreAccessTracking:
