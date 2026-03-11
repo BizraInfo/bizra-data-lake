@@ -512,6 +512,12 @@ class BizraHookEngine:
         self.memory_sync = MemorySync()
         self.audit_logger = AuditLogger()
         self.perf_tracker = PerformanceTracker()
+        # ReasoningBank: adaptive learning from hook outcomes
+        try:
+            from reasoning_bank import ReasoningBank
+            self.reasoning_bank = ReasoningBank()
+        except ImportError:
+            self.reasoning_bank = None
 
     def handle_session_start(self, input_data: dict) -> dict:
         """Handle SessionStart event."""
@@ -535,7 +541,7 @@ class BizraHookEngine:
         return output
 
     def handle_pre_tool_use(self, input_data: dict) -> dict:
-        """Handle PreToolUse event."""
+        """Handle PreToolUse event with FATE gating + ReasoningBank advisory."""
         tool_name = input_data.get("tool_name", "unknown")
         tool_input = input_data.get("tool_input", {})
 
@@ -554,11 +560,74 @@ class BizraHookEngine:
                     "permissionDecisionReason": reason,
                 }
             }
+
+        # Closed-loop advisory: query ReasoningBank for strategy before execution
+        # Boyd OODA: Orient phase — match current context against learned patterns
+        advice_context = ""
+        if self.reasoning_bank:
+            try:
+                ctx = self._extract_tool_context(tool_name, tool_input)
+                strategy = self.reasoning_bank.recommend_strategy(
+                    tool_name.lower(), ctx
+                )
+                if strategy.get("confidence", 0) >= 0.70:
+                    advice_context = (
+                        f"ReasoningBank: {strategy['best_approach']} "
+                        f"(score={strategy.get('score', 0):.2f}, "
+                        f"conf={strategy['confidence']:.2f})"
+                    )
+                patterns = self.reasoning_bank.match_patterns(
+                    {"tool": tool_name, **ctx}
+                )
+                if patterns and patterns[0].get("confidence", 0) >= 0.70:
+                    p = patterns[0]
+                    advice_context += (
+                        f" | Pattern: {','.join(p.get('actions', [])[:2])}"
+                    )
+            except Exception as e:
+                log_entry("hook_errors.jsonl", {
+                    "timestamp": now_utc(),
+                    "event": "pre_tool_advisory",
+                    "error": str(e),
+                })
+
+        if advice_context:
+            return {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "additionalContext": advice_context,
+                }
+            }
         return {}
 
+    @staticmethod
+    def _extract_tool_context(tool_name: str, tool_input: dict) -> dict:
+        """Extract meaningful context from tool input for pattern matching."""
+        ctx: dict = {"tool": tool_name}
+        if tool_name in ("Edit", "Write", "MultiEdit"):
+            path = tool_input.get("file_path", tool_input.get("path", ""))
+            if path:
+                ext = path.rsplit(".", 1)[-1] if "." in path else "unknown"
+                ctx["file_ext"] = ext
+                ctx["language"] = {
+                    "py": "python", "rs": "rust", "ts": "typescript",
+                    "tsx": "typescript", "js": "javascript", "json": "json",
+                    "toml": "toml", "yml": "yaml", "yaml": "yaml",
+                    "md": "markdown", "sh": "shell",
+                }.get(ext, ext)
+        elif tool_name == "Bash":
+            cmd = tool_input.get("command", "")
+            if cmd:
+                first_word = cmd.strip().split()[0] if cmd.strip() else ""
+                ctx["command_type"] = first_word
+        elif tool_name == "Task":
+            ctx["subagent"] = True
+        return ctx
+
     def handle_post_tool_use(self, input_data: dict) -> dict:
-        """Handle PostToolUse event."""
+        """Handle PostToolUse event with NTU monitoring + ReasoningBank learning."""
         tool_name = input_data.get("tool_name", "unknown")
+        tool_input = input_data.get("tool_input", {})
         tool_result = input_data.get("tool_response", {})
 
         score = self.ntu_monitor.compute_tool_score(tool_name, tool_result)
@@ -580,7 +649,45 @@ class BizraHookEngine:
                 "hookEventName": "PostToolUse",
                 "additionalContext": f"NTU anomaly: belief={belief:.3f}",
             }
+
+        # ReasoningBank: record experience with rich context (closed-loop learning)
+        # Deming PDCA: Check phase — record actual outcome for strategy evaluation
+        if self.reasoning_bank:
+            try:
+                ctx = self._extract_tool_context(tool_name, tool_input)
+                ctx["anomaly"] = anomaly
+                approach = self._infer_approach(tool_name, tool_input)
+                self.reasoning_bank.record_experience(
+                    task=tool_name.lower(),
+                    approach=approach,
+                    outcome={"success": True, "metrics": {"quality_score": score}},
+                    context=ctx,
+                )
+            except Exception as e:
+                log_entry("hook_errors.jsonl", {
+                    "timestamp": now_utc(),
+                    "event": "post_tool_record",
+                    "error": str(e),
+                })
+
         return output
+
+    @staticmethod
+    def _infer_approach(tool_name: str, tool_input: dict) -> str:
+        """Infer the approach/strategy from tool input for richer learning."""
+        if tool_name in ("Edit", "Write", "MultiEdit"):
+            path = tool_input.get("file_path", tool_input.get("path", ""))
+            ext = path.rsplit(".", 1)[-1] if "." in path else "unknown"
+            return f"edit_{ext}"
+        elif tool_name == "Bash":
+            cmd = tool_input.get("command", "")
+            first = cmd.strip().split()[0] if cmd.strip() else "unknown"
+            return f"bash_{first}"
+        elif tool_name == "Task":
+            return "subagent_dispatch"
+        elif tool_name in ("Read", "Glob", "Grep"):
+            return f"search_{tool_name.lower()}"
+        return "default"
 
     def handle_post_tool_failure(self, input_data: dict) -> dict:
         """Handle PostToolUseFailure event."""
@@ -601,6 +708,31 @@ class BizraHookEngine:
                 "hookEventName": "PostToolUseFailure",
                 "additionalContext": f"Suggested fix: {analysis['suggested_fix']}",
             }
+
+        # ReasoningBank: record failure with rich context for pattern learning
+        if self.reasoning_bank:
+            try:
+                ctx = self._extract_tool_context(tool_name, tool_input if 'tool_input' in dir() else {})
+                approach = self._infer_approach(tool_name, input_data.get("tool_input", {}))
+                self.reasoning_bank.record_experience(
+                    task=tool_name.lower(),
+                    approach=approach,
+                    outcome={
+                        "success": False,
+                        "metrics": {"error_count": 1},
+                    },
+                    context={
+                        **ctx,
+                        "error_type": analysis["error_type"] if analysis else "unknown",
+                    },
+                )
+            except Exception as e:
+                log_entry("hook_errors.jsonl", {
+                    "timestamp": now_utc(),
+                    "event": "post_tool_failure_record",
+                    "error": str(e),
+                })
+
         return output
 
     def handle_stop(self, input_data: dict) -> dict:
@@ -738,6 +870,18 @@ class BizraHookEngine:
             "reason": reason,
             "operations": perf_summary["total_operations"],
         })
+
+        # ReasoningBank: consolidate patterns at session end
+        # Deming PDCA: Act phase — update strategies from accumulated experience
+        if self.reasoning_bank:
+            try:
+                self.reasoning_bank.consolidate()
+            except Exception as e:
+                log_entry("hook_errors.jsonl", {
+                    "timestamp": now_utc(),
+                    "event": "session_end_consolidate",
+                    "error": str(e),
+                })
 
         return {}
 
