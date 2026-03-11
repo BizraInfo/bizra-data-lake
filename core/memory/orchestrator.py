@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, List, Optional
 
+from .adapters.claude_flow import ClaudeFlowAdapter
 from .adapters.experience_ledger import ExperienceLedgerAdapter
 from .adapters.living_memory import LivingMemoryAdapter
 from .adapters.pattern_memory import PatternMemoryAdapter
@@ -48,6 +49,18 @@ class MigrationPhaseResult:
     records_skipped: int = 0
     errors: int = 0
     duration_ms: float = 0.0
+    issues: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "source": self.source,
+            "records_found": self.records_found,
+            "records_imported": self.records_imported,
+            "records_skipped": self.records_skipped,
+            "errors": self.errors,
+            "duration_ms": round(self.duration_ms, 3),
+            "issues": self.issues,
+        }
 
 
 @dataclass
@@ -64,14 +77,24 @@ class OrchestratorResult:
         prefix = "(DRY RUN) " if self.dry_run else ""
         lines = [f"Migration {prefix}complete:"]
         for p in self.phases:
+            issue_suffix = f", {len(p.issues)} issues" if p.issues else ""
             lines.append(
                 f"  {p.source}: {p.records_imported}/{p.records_found} "
-                f"imported ({p.errors} errors, {p.duration_ms:.0f}ms)"
+                f"imported ({p.errors} errors{issue_suffix}, {p.duration_ms:.0f}ms)"
             )
         lines.append(
             f"  Total: {self.total_imported} imported, {self.total_errors} errors"
         )
         return "\n".join(lines)
+
+    def to_dict(self) -> dict:
+        return {
+            "dry_run": self.dry_run,
+            "total_imported": self.total_imported,
+            "total_errors": self.total_errors,
+            "duration_ms": round(self.duration_ms, 3),
+            "phases": [phase.to_dict() for phase in self.phases],
+        }
 
 
 class MigrationOrchestrator:
@@ -92,6 +115,9 @@ class MigrationOrchestrator:
         self._experience_ledger = None
         self._pattern_memory = None
         self._v1_db_path: Optional[Path] = None
+        self._claude_flow_db_path: Optional[Path] = None
+        self._claude_flow_artifact_dir: Optional[Path] = None
+        self._strict_json = False
 
     def set_living_memory(self, lm) -> MigrationOrchestrator:
         self._living_memory = lm
@@ -107,6 +133,18 @@ class MigrationOrchestrator:
 
     def set_v1_database(self, path: Path) -> MigrationOrchestrator:
         self._v1_db_path = path
+        return self
+
+    def set_claude_flow_db(self, path: Path) -> MigrationOrchestrator:
+        self._claude_flow_db_path = path
+        return self
+
+    def set_claude_flow_artifact_dir(self, path: Path) -> MigrationOrchestrator:
+        self._claude_flow_artifact_dir = path
+        return self
+
+    def set_strict_json(self, strict_json: bool) -> MigrationOrchestrator:
+        self._strict_json = strict_json
         return self
 
     def run(self, dry_run: bool = False) -> OrchestratorResult:
@@ -140,6 +178,17 @@ class MigrationOrchestrator:
             phase = self._migrate_v1(dry_run)
             result.phases.append(phase)
 
+        if self._claude_flow_db_path is not None and self._claude_flow_db_path.exists():
+            phase = self._migrate_claude_flow_db(dry_run)
+            result.phases.append(phase)
+
+        if (
+            self._claude_flow_artifact_dir is not None
+            and self._claude_flow_artifact_dir.exists()
+        ):
+            phase = self._migrate_claude_flow_artifacts(dry_run)
+            result.phases.append(phase)
+
         if not dry_run:
             self._db.save()
 
@@ -171,16 +220,80 @@ class MigrationOrchestrator:
                 try:
                     self._db.store_record(record)
                     phase.records_imported += 1
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — boundary boundary
                     logger.warning(f"Failed to import {source} record {record.id}: {e}")
                     phase.errors += 1
 
                 if self._on_progress and (i + 1) % 100 == 0:
                     self._on_progress(source, i + 1, len(records))
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Adapter {source} failed: {e}")
             phase.errors += 1
+
+        phase.duration_ms = _now_ms() - start
+        return phase
+
+    def _migrate_claude_flow_db(self, dry_run: bool) -> MigrationPhaseResult:
+        adapter = ClaudeFlowAdapter(
+            db_path=self._claude_flow_db_path,
+            artifact_dir=self._claude_flow_artifact_dir,
+            strict_json=self._strict_json,
+        )
+        batch = adapter.export_db()
+        phase = MigrationPhaseResult(
+            source="claude_flow_db",
+            records_found=len(batch.records),
+            issues=[issue.to_message() for issue in batch.issues],
+        )
+        start = _now_ms()
+        if dry_run:
+            phase.duration_ms = _now_ms() - start
+            return phase
+
+        for record in batch.records:
+            try:
+                self._db.store_record(record)
+                phase.records_imported += 1
+            except Exception as exc:  # noqa: BLE001 — boundary boundary
+                logger.warning("Failed to import claude_flow_db record %s: %s", record.id, exc)
+                phase.errors += 1
+
+        phase.duration_ms = _now_ms() - start
+        return phase
+
+    def _migrate_claude_flow_artifacts(self, dry_run: bool) -> MigrationPhaseResult:
+        adapter = ClaudeFlowAdapter(
+            db_path=self._claude_flow_db_path,
+            artifact_dir=self._claude_flow_artifact_dir,
+            strict_json=self._strict_json,
+        )
+        batch = adapter.export_artifacts()
+        phase = MigrationPhaseResult(
+            source="claude_flow_artifacts",
+            records_found=len(batch.records),
+            records_skipped=len(batch.issues),
+            issues=[issue.to_message() for issue in batch.issues],
+        )
+        if self._strict_json:
+            phase.errors = len(batch.issues)
+
+        start = _now_ms()
+        if dry_run:
+            phase.duration_ms = _now_ms() - start
+            return phase
+
+        for record in batch.records:
+            try:
+                self._db.store_record(record)
+                phase.records_imported += 1
+            except Exception as exc:  # noqa: BLE001 — boundary boundary
+                logger.warning(
+                    "Failed to import claude_flow artifact record %s: %s",
+                    record.id,
+                    exc,
+                )
+                phase.errors += 1
 
         phase.duration_ms = _now_ms() - start
         return phase
@@ -197,7 +310,7 @@ class MigrationOrchestrator:
                 ).fetchone()[0]
                 conn.close()
                 phase.records_found = count
-            except Exception as e:
+            except (OSError, ConnectionError) as e:  # SEC-003 — connection boundary
                 logger.warning(f"v1 DB count failed: {e}")
                 phase.errors += 1
             phase.duration_ms = _now_ms() - start
@@ -210,7 +323,7 @@ class MigrationOrchestrator:
             phase.records_imported = mr.migrated
             phase.records_skipped = mr.skipped
             phase.errors = mr.errors
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"SQLite v1 migration failed: {e}")
             phase.errors += 1
 

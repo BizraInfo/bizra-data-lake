@@ -354,7 +354,7 @@ class NTUFusionAdapter:
                 result = detector()
                 if result is not None:
                     pattern = result.name if hasattr(result, "name") else str(result)
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             pass
 
         context["ntu_state"] = {

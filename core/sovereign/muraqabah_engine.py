@@ -393,7 +393,7 @@ class MuraqabahEngine:
         for domain, name, sensor_fn in sensor_registrations:
             try:
                 self.register_sensor(domain, name, sensor_fn)
-            except Exception as e:
+            except (OSError, ConnectionError) as e:  # SEC-003 — connection boundary
                 logger.warning(f"Could not register sensor {domain.value}:{name}: {e}")
 
         logger.info(
@@ -452,7 +452,7 @@ class MuraqabahEngine:
                         # PERF FIX: deque with maxlen auto-discards oldest (O(1))
                         self._readings[domain].append(reading)
 
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Sensor {sensor_id} error: {e}")
                 self._sensor_states[sensor_id] = SensorState.ERROR
 
@@ -748,7 +748,7 @@ class MuraqabahEngine:
                     for handler in self._opportunity_handlers:
                         try:
                             handler(opp)
-                        except Exception as e:
+                        except Exception as e:  # noqa: BLE001 — boundary boundary
                             logger.error(f"Opportunity handler error: {e}")
 
         # PERF FIX: deque with maxlen auto-trims (removed manual trimming)

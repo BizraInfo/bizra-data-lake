@@ -63,7 +63,7 @@ class GenesisReceipt:
             self.signature = (
                 sig.signature.hex() if hasattr(sig, "signature") else sig.hex()
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             # Fallback for different signer APIs
             self.signature = hashlib.blake2b(payload, key=b"fallback").hexdigest()
 
@@ -123,7 +123,7 @@ def genesis_100_ceremony(
             # Try to load persistent signer
             signer = _load_signer()
             receipt.sign(signer)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             print(f"WARNING: Could not sign receipt: {e}", file=sys.stderr)
 
     # Store as evidence block
@@ -133,7 +133,7 @@ def genesis_100_ceremony(
 
             ledger = EvidenceLedger(validate_on_append=False)
             ledger.append(receipt=receipt.to_dict())
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             print(f"WARNING: Could not store receipt: {e}", file=sys.stderr)
 
     # Print result

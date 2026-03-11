@@ -85,7 +85,7 @@ class MemorySyncPublisher:
 
         except ImportError:
             logger.warning("redis package not installed — sync disabled")
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.warning(f"Redis connection failed: {e}")
 
     async def publish(self, record: MemoryRecord) -> None:
@@ -102,7 +102,7 @@ class MemorySyncPublisher:
                 await self._client.publish(self._channel, message)
                 self._publish_count += 1
                 return
-            except Exception as e:
+            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
                 logger.warning(f"Publish failed: {e}")
                 self._connected = False
 
@@ -186,7 +186,7 @@ class MemorySyncSubscriber:
 
         except ImportError:
             logger.warning("redis package not installed — sync disabled")
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.warning(f"Subscriber start failed: {e}")
 
     async def _listen_loop(self) -> None:
@@ -199,7 +199,7 @@ class MemorySyncSubscriber:
                     await self._handle_message(message["data"])
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.warning(f"Subscriber error: {e}")
                 await asyncio.sleep(1.0)
 
@@ -242,7 +242,7 @@ class MemorySyncSubscriber:
 
         except json.JSONDecodeError:
             logger.warning("Invalid JSON in sync message")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Failed to handle sync message: {e}")
 
     @staticmethod
@@ -270,7 +270,7 @@ class MemorySyncSubscriber:
                     "synced_from": d.get("source", "unknown"),
                 },
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Failed to parse synced record: {e}")
             return None
 

@@ -329,7 +329,7 @@ class AnalyticalManifold:
             try:
                 probe.output = probe_fn(probe)
                 probe.result = ProbeResult.SUCCESS
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 probe.output = {"error": str(e)}
                 probe.result = ProbeResult.FAILURE
         else:

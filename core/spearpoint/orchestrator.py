@@ -151,7 +151,7 @@ class SpearpointOrchestrator:
                     elapsed_ms=(time.perf_counter() - start) * 1000,
                     error=f"Unknown mission type: {mission.mission_type}",
                 )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Mission {mission.mission_id} failed: {e}")
             return MissionResult(
                 mission_id=mission.mission_id,
@@ -323,7 +323,7 @@ class SpearpointOrchestrator:
                 research_results=[r.to_dict() for r in results],
                 elapsed_ms=(time.perf_counter() - start) * 1000,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Pattern research mission {mid} failed: {e}")
             mission_result = MissionResult(
                 mission_id=mid,

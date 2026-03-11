@@ -111,7 +111,7 @@ class IngestPipeline:
                     report.files_processed += 1
                 else:
                     report.files_skipped += 1
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — boundary boundary
                 log.warning("Failed to parse %s: %s", filepath.name, exc)
                 report.files_skipped += 1
 

@@ -304,7 +304,7 @@ class TrueSpearpointLoop:
                     "cycles": result.total_cycles,
                     "sota_achieved": result.sota_achieved,
                 }
-            except Exception as exc:
+            except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
                 logger.warning("_phase_evaluate inner_loop failed: %s", exc)
                 return {"score": 0.0, "cost_usd": 0.0, "error": str(exc)}
 

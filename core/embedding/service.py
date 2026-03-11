@@ -78,7 +78,7 @@ class EmbeddingService:
             vec = self._embed_local(text)
             self._tier = "local"
             return vec
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.debug(f"Tier 1 (sentence-transformers) unavailable: {e}")
 
         # Tier 2: Ollama
@@ -86,7 +86,7 @@ class EmbeddingService:
             vec = self._embed_ollama(text)
             self._tier = "ollama"
             return vec
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.debug(f"Tier 2 (Ollama) unavailable: {e}")
 
         raise EmbeddingUnavailableError(

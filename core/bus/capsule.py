@@ -155,7 +155,7 @@ class CapsuleRegistry:
                 manifest = self._load_manifest(manifest_path)
                 self._capsules[manifest.name] = manifest
                 found += 1
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.warning("Invalid capsule: %s", manifest_path, exc_info=True)
 
         return found

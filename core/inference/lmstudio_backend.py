@@ -177,7 +177,7 @@ class LMStudioBackend:
             logger.info(f"Connected to LM Studio at {self.config.base_url}")
             return True
 
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — network boundary
             logger.error(f"Failed to connect to LM Studio: {e}")
             self._connected = False
             return False

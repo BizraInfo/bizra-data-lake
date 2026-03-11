@@ -197,7 +197,7 @@ class LlamaCppBackend(InferenceBackendBase):
                 print("[LlamaCpp] Batching disabled (using serial lock)")
 
             return True
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             print(f"[LlamaCpp] Failed to load model: {e}")
             return False
 
@@ -291,7 +291,7 @@ class LlamaCppBackend(InferenceBackendBase):
                     None, lambda: self._model("test", max_tokens=1)
                 )
             return True
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.debug("LlamaCpp health check failed: %s", e)
             return False
 
@@ -433,7 +433,7 @@ class OllamaBackend(InferenceBackendBase):
                     print("[Ollama] No models available")
                     return False
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             print(f"[Ollama] Not available: {e}")
             return False
 
@@ -539,7 +539,7 @@ class OllamaBackend(InferenceBackendBase):
                 req, timeout=3
             ) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 return resp.status == 200
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — network boundary
             logger.debug("Ollama health check failed: %s", e)
             return False
 
@@ -639,7 +639,7 @@ class LMStudioBackend(InferenceBackendBase):
             else:
                 print("[LMStudio] Connection failed")
                 return False
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             print(f"[LMStudio] Initialization error: {e}")
             return False
 
@@ -699,7 +699,7 @@ class LMStudioBackend(InferenceBackendBase):
         try:
             models = await self._client.list_models()
             return len(models) > 0
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.debug("LMStudio health check failed: %s", e)
             return False
 

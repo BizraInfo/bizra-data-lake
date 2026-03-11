@@ -137,7 +137,7 @@ def _is_safe_pattern(action_type: str, context: Dict[str, Any]) -> bool:
         return False
     try:
         return bool(pred(context))
-    except Exception:
+    except Exception:  # noqa: BLE001 — boundary boundary
         logger.debug("Safe pattern predicate failed for action_type=%s", action_type)
         return False
 
@@ -213,7 +213,7 @@ class TieredVerificationEngine:
             import z3  # type: ignore  # noqa: F401
 
             self._z3_available = True
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             self._z3_available = False
 
     def tier1_precheck(self, context: Dict[str, Any]) -> TierResult:

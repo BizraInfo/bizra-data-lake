@@ -403,7 +403,7 @@ class InferenceGateway:
                 last_error = e
                 continue
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 # Other error - backend failure, try next
                 print(f"[Gateway] Backend {backend.backend_type.value} failed: {e}")
                 last_error = e

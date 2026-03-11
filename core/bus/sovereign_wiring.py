@@ -132,7 +132,7 @@ def wire_config_loader(
                 try:
                     loader.load(path)
                     logger.info("Config loaded: %s", path)
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — boundary boundary
                     logger.warning("Config load failed: %s — %s", path, exc)
 
     return loader
@@ -195,7 +195,7 @@ def wire_all(
     try:
         components["topic_registry"] = wire_topic_registry()
         state.topic_registry_ok = True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — boundary boundary
         state.errors.append(f"TopicRegistry: {exc}")
         logger.warning("TopicRegistry wiring failed: %s", exc)
 
@@ -209,7 +209,7 @@ def wire_all(
             fate_gate=fate_gate,
         )
         state.action_bus_ok = True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — boundary boundary
         state.errors.append(f"ActionBus: {exc}")
         logger.warning("ActionBus wiring failed: %s", exc)
 
@@ -217,7 +217,7 @@ def wire_all(
     try:
         components["config_loader"] = wire_config_loader(config_paths)
         state.config_loader_ok = True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — boundary boundary
         state.errors.append(f"ConfigLoader: {exc}")
         logger.warning("ConfigLoader wiring failed: %s", exc)
 
@@ -230,7 +230,7 @@ def wire_all(
         components["capsule_registry"] = registry
         components["capsule_runtime"] = capsule_rt
         state.capsule_runtime_ok = True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — boundary boundary
         state.errors.append(f"CapsuleRuntime: {exc}")
         logger.warning("CapsuleRuntime wiring failed: %s", exc)
 
@@ -241,7 +241,7 @@ def wire_all(
             event_bus=event_bus,
         )
         state.omega_controller_ok = True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — boundary boundary
         state.errors.append(f"OmegaLoopController: {exc}")
         logger.warning("OmegaLoopController wiring failed: %s", exc)
 

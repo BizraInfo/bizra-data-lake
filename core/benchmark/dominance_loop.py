@@ -571,7 +571,7 @@ class BenchmarkDominanceLoop:
                     f"Real eval: {response.completion_tokens} tokens, "
                     f"{elapsed_ms:.0f}ms, model={response.model}"
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.warning(f"Gateway eval failed, falling back to simulation: {e}")
                 self._fill_simulated_metrics(metrics)
         else:
@@ -696,7 +696,7 @@ class BenchmarkDominanceLoop:
                     tokens=total_tokens,
                 )
                 return result
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.warning(
                     f"Gateway submit failed, falling back to simulation: {e}"
                 )

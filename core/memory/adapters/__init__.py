@@ -1,9 +1,11 @@
 """Adapters for wrapping existing memory systems into AgentDB."""
 
+from .claude_flow import ClaudeFlowAdapter
 from .experience_ledger import ExperienceLedgerAdapter
 from .living_memory import LivingMemoryAdapter
 
 __all__ = [
+    "ClaudeFlowAdapter",
     "ExperienceLedgerAdapter",
     "LivingMemoryAdapter",
     "PatternMemoryAdapter",

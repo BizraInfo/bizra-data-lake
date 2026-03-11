@@ -159,7 +159,7 @@ def create_rust_snr_adapter(
         return None
     try:
         return SNRRustAdapter(snr_floor=snr_floor, ihsan_target=ihsan_target)
-    except Exception as e:
+    except (AttributeError, RuntimeError, OSError) as e:  # SEC-003 — pyo3 boundary
         logger.debug("Failed to create Rust SNR adapter: %s", e)
         return None
 

@@ -81,7 +81,7 @@ class PersonaPlexBridge:
             self._engine = personaplex_loaders
             self._tier = "personaplex"
             return
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             pass
 
         try:
@@ -90,7 +90,7 @@ class PersonaPlexBridge:
             self._engine = coqui_tts
             self._tier = "coqui"
             return
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             pass
 
         self._engine = None
@@ -149,7 +149,7 @@ class PersonaPlexBridge:
             else:
                 warning = "voice_noop"
                 logger.warning("Voice output skipped; no engine available")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             logger.warning("Voice synthesis failed (%s); falling back to no-op", exc)
             warning = f"voice_error:{type(exc).__name__}"
             audio = b""
@@ -157,7 +157,7 @@ class PersonaPlexBridge:
         if output_path and audio:
             try:
                 Path(output_path).write_bytes(audio)
-            except Exception as exc:
+            except (OSError, ValueError) as exc:  # SEC-003 — file_io boundary
                 warning = f"file_write_error:{type(exc).__name__}"
                 logger.warning(
                     "Unable to write voice output to %s (%s)",

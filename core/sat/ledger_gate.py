@@ -62,7 +62,7 @@ def ledger_verify() -> GateResult:
                     f"SEED mint: {'success' if receipt.success else receipt.error}",
                 )
             )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, OSError) as e:  # SEC-003 — ledger check boundary
         checks.append(CheckResult("quality_gated", FAIL, f"Error: {e}"))
 
     # 4.2 BLOOM is soulbound (transfer rejected)
@@ -96,7 +96,7 @@ def ledger_verify() -> GateResult:
                     f"BLOOM transfer: {'REJECTED' if rejected else 'ALLOWED'}",
                 )
             )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, OSError) as e:  # SEC-003 — ledger check boundary
         checks.append(CheckResult("bloom_soulbound", FAIL, f"Error: {e}"))
 
     # 4.3 BLOOM decays
@@ -134,7 +134,7 @@ def ledger_verify() -> GateResult:
                         "apply_bloom_decay not implemented",
                     )
                 )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, OSError) as e:  # SEC-003 — ledger check boundary
         checks.append(CheckResult("bloom_decays", PARTIAL, f"Error: {e}"))
 
     # 4.4 Community pool — founder's oath (constant verified, not user tax)
@@ -181,7 +181,7 @@ def ledger_verify() -> GateResult:
                         "apply_zakat not implemented as direct method",
                     )
                 )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, OSError) as e:  # SEC-003 — ledger check boundary
         checks.append(CheckResult("zakat_applied", PARTIAL, f"Error: {e}"))
 
     # 4.6 Gini enforcement
@@ -216,7 +216,7 @@ def ledger_verify() -> GateResult:
                     f"Gini throttle: {'activated' if gini_blocked else 'not triggered'}",
                 )
             )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, OSError) as e:  # SEC-003 — ledger check boundary
         checks.append(CheckResult("gini_enforced", PARTIAL, f"Error: {e}"))
 
     # 4.7 No double-mint (genesis)
@@ -248,7 +248,7 @@ def ledger_verify() -> GateResult:
                     f"Second genesis mint: {'REJECTED' if rejected else 'ALLOWED'}",
                 )
             )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, OSError) as e:  # SEC-003 — ledger check boundary
         checks.append(CheckResult("no_double_mint", PARTIAL, f"Error: {e}"))
 
     # 4.8 Supply cap
@@ -272,7 +272,7 @@ def ledger_verify() -> GateResult:
                     f"Over-cap mint: {'REJECTED' if cap_hit else 'ALLOWED (cap may not be enforced yet)'}",
                 )
             )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, OSError) as e:  # SEC-003 — ledger check boundary
         checks.append(CheckResult("supply_capped", PARTIAL, f"Error: {e}"))
 
     # 4.9 Bot farming resistance (Gini gate blocks concentrated minting)
@@ -305,7 +305,7 @@ def ledger_verify() -> GateResult:
                     f"{blocked}/20 concentrated mints blocked by Gini",
                 )
             )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, OSError) as e:  # SEC-003 — ledger check boundary
         checks.append(CheckResult("bot_resistant", PARTIAL, f"Error: {e}"))
 
     # 4.10 Receipt fabrication (hash chain rejects forged receipt)
@@ -341,7 +341,7 @@ def ledger_verify() -> GateResult:
             )
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, OSError) as e:  # SEC-003 — ledger check boundary
         checks.append(CheckResult("chain_tamper_proof", PARTIAL, f"Error: {e}"))
 
     return GateResult(agent="Ledger", layer="ECONOMIC_SOUNDNESS", checks=checks)

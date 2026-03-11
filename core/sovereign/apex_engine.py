@@ -752,7 +752,7 @@ class ApexSovereignEngine:
             logger.info(f"ApexSovereignEngine initialized in {duration:.1f}ms")
             return True
 
-        except Exception as e:
+        except (ImportError, OSError, ValueError, RuntimeError) as e:  # SEC-003
             logger.error(f"Failed to initialize ApexSovereignEngine: {e}")
             return False
 
@@ -1144,7 +1144,7 @@ class ApexSovereignEngine:
                         pass
             raise
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — outer processing pipeline boundary
             logger.error(f"[{request_id}] Processing error: {e}", exc_info=True)
 
             # Cancel any active tasks
@@ -1424,7 +1424,7 @@ class ApexSovereignEngine:
                     "passed": True,
                     "components": {},
                 }
-        except Exception as e:
+        except (ImportError, ValueError, RuntimeError) as e:  # SEC-003
             logger.warning(f"SNR filter error: {e}")
             return {"snr_score": 0.7, "passed": False, "components": {"error": str(e)}}
 
@@ -1469,13 +1469,13 @@ class ApexSovereignEngine:
                         "depth_reached": bridge_result.reasoning_depth,
                         "best_path": bridge_result.convergence_path,
                     }
-                except Exception as bridge_exc:
+                except (ImportError, ValueError, RuntimeError) as bridge_exc:  # SEC-003
                     self._phase46_metrics.inc("got_fallback")
                     logger.warning(
                         "GoT Bridge failed, falling back to direct GoT: %s",
                         bridge_exc,
                     )
-        except Exception:
+        except (ImportError, ValueError, RuntimeError):  # SEC-003 — GoT bridge init
             logger.debug("GoT bridge rollout init failed", exc_info=True)
 
         # --- Canonical GoT engine path ---
@@ -1508,7 +1508,7 @@ class ApexSovereignEngine:
                     "depth_reached": 1,
                     "best_path": ["Direct analysis"],
                 }
-        except Exception as e:
+        except (ValueError, RuntimeError) as e:  # SEC-003 — reasoning boundary
             logger.warning(f"GoT exploration error: {e}")
             return {
                 "conclusion": "",
@@ -1572,7 +1572,7 @@ class ApexSovereignEngine:
                     "candidates_verified": 1,
                     "reasoning_path": [],
                 }
-        except Exception as e:
+        except (ValueError, RuntimeError) as e:  # SEC-003 — consensus boundary
             logger.warning(f"Bicameral reasoning error: {e}")
             return {
                 "answer": got_result.get("conclusion", ""),
@@ -1623,7 +1623,7 @@ class ApexSovereignEngine:
                     "score": 0.85,
                     "certificate": content_hash,
                 }
-        except Exception as e:
+        except (ValueError, OSError, RuntimeError) as e:  # SEC-003 — FATE gate boundary
             logger.warning(f"FATE Gate error: {e}")
             return {
                 "status": "ERROR",
@@ -1658,7 +1658,7 @@ class ApexSovereignEngine:
                 )
                 self._pattern_memory = dict(sorted_patterns[:500])
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError) as e:  # SEC-003 — memory boundary
             logger.debug(f"Autopoiesis learning skipped: {e}")
 
     def _compute_ihsan_score(self, snr: float, fate_passed: bool) -> float:
@@ -1776,7 +1776,7 @@ class ApexSovereignEngine:
 
             return result
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — outer evolution boundary
             logger.error(f"Evolution error: {e}")
             return EvolutionResult(
                 cycle_number=self._evolution_cycles,

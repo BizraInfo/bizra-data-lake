@@ -240,7 +240,7 @@ class Iceoryx2Bridge(IPCBridge):
             self._connected = True
             logger.info(f"iceoryx2 bridge initialized: {self._service_name}")
 
-        except Exception as e:
+        except (OSError, ConnectionError) as e:  # SEC-003 — connection boundary
             logger.error(f"Failed to initialize iceoryx2: {e}")
             self._connected = False
             raise
@@ -283,7 +283,7 @@ class Iceoryx2Bridge(IPCBridge):
                 latency_ns=latency_ns,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             return DeliveryResult(
                 status=DeliveryStatus.ERROR, message_id=message.message_id, error=str(e)
             )
@@ -312,7 +312,7 @@ class Iceoryx2Bridge(IPCBridge):
                         timestamp_ns=time.time_ns(),
                         sender_id="rust_worker",
                     )
-            except Exception as e:
+            except (AttributeError, RuntimeError, OSError) as e:  # SEC-003 — pyo3 boundary
                 logger.debug(f"Receive error: {e}")
 
             # Small sleep to avoid busy-waiting
@@ -406,7 +406,7 @@ class AsyncFallbackBridge(IPCBridge):
                 message_id=message.message_id,
                 error="Send queue full",
             )
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             return DeliveryResult(
                 status=DeliveryStatus.ERROR, message_id=message.message_id, error=str(e)
             )
@@ -424,7 +424,7 @@ class AsyncFallbackBridge(IPCBridge):
             return message
         except asyncio.TimeoutError:
             return None
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.debug(f"Receive error: {e}")
             return None
 
@@ -487,7 +487,7 @@ def create_ipc_bridge(
             bridge = Iceoryx2Bridge(service_name)
             logger.info("Created iceoryx2 zero-copy bridge")
             return bridge
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.warning(f"iceoryx2 init failed, using fallback: {e}")
             return AsyncFallbackBridge(service_name)
 

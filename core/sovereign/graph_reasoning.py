@@ -194,7 +194,7 @@ class GraphReasoningMixin:
                 return None
 
             return content.strip()
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.warning(f"GoT LLM call failed: {e}")
             return None
 
@@ -380,7 +380,7 @@ class GraphReasoningMixin:
         try:
             graph_hash = self.compute_graph_hash()
             thoughts.append(f"Graph artifact hash: {graph_hash[:16]}...")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Graph hash computation failed: {e}")
 
         # Compile final result

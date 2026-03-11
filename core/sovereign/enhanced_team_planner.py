@@ -284,7 +284,7 @@ class EnhancedTeamPlanner(TeamPlanner):
                             priority=EventPriority.NORMAL,
                         )
 
-                except Exception as e:
+                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                     logger.error(f"Task execution error: {e}")
                     result.tasks_failed += 1
 
@@ -294,7 +294,7 @@ class EnhancedTeamPlanner(TeamPlanner):
                 goal.estimated_value * result.tasks_completed / max(len(plan.tasks), 1)
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             result.error = str(e)
             logger.error(f"Goal execution error: {e}")
 
@@ -331,7 +331,7 @@ class EnhancedTeamPlanner(TeamPlanner):
             try:
                 if handler(goal):
                     return True
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Approval handler error: {e}")
 
         # Default: not approved without explicit handler
@@ -345,7 +345,7 @@ class EnhancedTeamPlanner(TeamPlanner):
 
         try:
             return handler(task)
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error(f"Task handler error: {e}")
             return False
 

@@ -291,7 +291,7 @@ class MetricsCollector:
                 self.series["error_rate"].add(snapshot.error_rate)
                 self.series["health_score"].add(snapshot.health_score())
 
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Metrics collection error: {e}")
 
             await asyncio.sleep(self.collection_interval)
@@ -325,7 +325,7 @@ class MetricsCollector:
                 for k, v in metrics.items():
                     if hasattr(snapshot, k):
                         setattr(snapshot, k, v)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.debug(f"Collector error: {e}")
 
         return snapshot
@@ -351,7 +351,7 @@ class MetricsCollector:
         except ImportError:
             # Fallback without psutil
             pass
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.debug(f"System metrics error: {e}")
 
     async def _collect_gpu(self, snapshot: SystemSnapshot) -> None:
@@ -385,7 +385,7 @@ class MetricsCollector:
 
         except FileNotFoundError:
             pass  # nvidia-smi not available
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.debug(f"GPU metrics error: {e}")
 
     async def snapshot(self) -> SystemSnapshot:

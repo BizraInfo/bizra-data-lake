@@ -304,10 +304,10 @@ class MemorySynthesizer:
                     top_k=200,
                 )
                 return self._raw_to_records(raw_results)
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.warning("agent_db.search failed; returning empty list")
                 return []
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             logger.warning("Memory retrieval failed; returning empty list")
             return []
 
@@ -337,7 +337,7 @@ class MemorySynthesizer:
                         metadata=getattr(item, "metadata", {}),
                     )
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.debug("Skipping unconvertible result: %s", type(item))
         return records
 

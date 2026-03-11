@@ -327,7 +327,7 @@ class ZeroPointKernel:
             if pcrs is not None and not isinstance(pcrs, dict):
                 pcrs = None
             return tpm_quote, pcrs
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.warning("TPM quote collection failed: %s", e)
             return None, None
 
@@ -490,7 +490,7 @@ class ZeroPointKernel:
                 error=None,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             return None, FetchReceipt(
                 url=manifest_uri,
                 hash=None,
@@ -721,7 +721,7 @@ class ZeroPointKernel:
                     health={"attempts": attempt, "last_error": None},
                     rollback_used=rollback_used,
                 )
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 last_error = str(e)
                 logger.warning("worker attempt %d failed: %s", attempt, e)
 
@@ -790,7 +790,7 @@ class ZeroPointKernel:
                 ihsan_policy=float(manifest.get("ihsan_policy", 0.95)),
                 source_uri=str(manifest.get("source_uri", "lkg")),
             )
-        except Exception:
+        except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
             logger.warning(
                 "LKG manifest load failed from %s",
                 self._lkg_manifest_path,
@@ -877,7 +877,7 @@ class ZeroPointKernel:
                 publish_result = self._event_bus.publish(event)
                 if inspect.isawaitable(publish_result):
                     await publish_result
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.debug("Receipt event publish failed: %s", e)
 
     @staticmethod

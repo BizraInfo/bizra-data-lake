@@ -213,7 +213,7 @@ async def tier_2_concurrent(
                 ),
                 elapsed_ms=_ns_to_ms(start),
             )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — boundary boundary
         logger.error("Tier 2 evaluation failed: %s", e)
         # Failure in verification = BLOCK (conservative)
         return TierResult(
@@ -273,7 +273,7 @@ async def tier_3_attestation(
             reason="Attestation complete. Quality within bounds.",
             elapsed_ms=_ns_to_ms(start),
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — boundary boundary
         return TierResult(
             tier=VerificationTier.TIER_3_ATTESTATION,
             decision=TierDecision.FLAG,

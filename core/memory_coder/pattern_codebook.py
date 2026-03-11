@@ -129,7 +129,7 @@ class PatternCodebook:
                     embedding=pattern.embedding,
                     metadata={"type": "synthesized_pattern", **pattern.metadata},
                 )
-            except Exception:
+            except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
                 logger.warning(
                     "Failed to persist pattern %s to agent_db", pattern.pattern_id
                 )
@@ -200,6 +200,6 @@ class PatternCodebook:
                 if pid in self._patterns:
                     matched.append(self._patterns[pid])
             return matched[:top_k]
-        except Exception:
+        except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
             logger.warning("agent_db.search failed; falling back to linear scan")
             return self._lookup_linear(query_embedding, top_k)

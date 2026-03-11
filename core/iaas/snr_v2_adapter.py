@@ -67,7 +67,7 @@ class SNRv2Adapter:
                 )
             else:
                 components = self._calculator.calculate_simple(query=query, texts=texts)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"SNRv2Adapter: compute failed: {e}")
             return SNRResult(
                 score=0.0,

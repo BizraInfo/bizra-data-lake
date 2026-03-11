@@ -124,7 +124,7 @@ class LocalFirstDetector:
                         latency_ms=latency,
                         reason="LM Studio v1 API responsive",
                     )
-        except Exception as _e:
+        except (OSError, ValueError):  # SEC-003 — network boundary
             _err_reason = str(_e)[:40]
             latency = (time.perf_counter() - start) * 1000
 
@@ -157,7 +157,7 @@ class LocalFirstDetector:
                         latency_ms=latency,
                         reason="Ollama API responsive",
                     )
-        except Exception as exc:
+        except (OSError, ValueError) as exc:  # SEC-003 — network boundary
             _err_reason = str(exc)[:40]
             latency = (time.perf_counter() - start) * 1000
 
@@ -196,7 +196,7 @@ class LocalFirstDetector:
                     else "llama.cpp unavailable"
                 ),
             )
-        except Exception as exc:
+        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
             _err_reason = str(exc)[:40]
             latency = (time.perf_counter() - start) * 1000
 

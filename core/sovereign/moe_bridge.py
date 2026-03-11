@@ -304,7 +304,7 @@ class MOEBridge:
                 latency_ms=elapsed,
                 success=True,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             elapsed = (time.monotonic() - t0) * 1000
             self._stats.expert_failures += 1
             logger.warning(

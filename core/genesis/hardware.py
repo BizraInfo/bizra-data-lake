@@ -75,7 +75,7 @@ class HardwareScanner:
         # CPU detection
         try:
             info.cpu = platform.processor() or platform.machine()
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             info.cpu = platform.machine()
 
         # RAM detection
@@ -127,7 +127,7 @@ class HardwareScanner:
                 ]
                 if lines:
                     return round(int(lines[0]) / (1024**3))
-        except Exception:
+        except (OSError, subprocess.SubprocessError):  # SEC-003 — subprocess boundary
             pass
         return 0
 
@@ -160,7 +160,7 @@ class HardwareScanner:
                 for line in result.stdout.split("\n"):
                     if "VGA" in line or "3D" in line:
                         return line.split(": ", 1)[-1].strip()
-        except Exception:
+        except (OSError, subprocess.SubprocessError):  # SEC-003 — subprocess boundary
             pass
         return "Unknown"
 
@@ -183,6 +183,6 @@ class HardwareScanner:
             if result.returncode == 0:
                 mb = int(result.stdout.strip().split("\n")[0])
                 return round(mb / 1024)
-        except Exception:
+        except (OSError, subprocess.SubprocessError):  # SEC-003 — subprocess boundary
             pass
         return 0

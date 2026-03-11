@@ -80,7 +80,7 @@ class CognitiveResonance:
                 logger.debug(
                     "Resonance search returned %d results", len(search_results)
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — boundary boundary
                 logger.warning("Resonance search failed: %s", exc)
                 path.append("search:error")
 
@@ -94,7 +94,7 @@ class CognitiveResonance:
                 else:
                     reasoning_result = await self._reasoning.reason(query, ctx)
                 path.append("reasoning:ok")
-            except Exception as exc:
+            except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
                 logger.warning("Resonance reasoning failed: %s", exc)
                 path.append("reasoning:error")
 
@@ -105,7 +105,7 @@ class CognitiveResonance:
                 symbol = _query_to_symbol(query)
                 prediction_result = self._prediction.observe(symbol)
                 path.append(f"prediction:{prediction_result.most_likely_state.value}")
-            except Exception as exc:
+            except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
                 logger.warning("Resonance prediction failed: %s", exc)
                 path.append("prediction:error")
 
@@ -132,7 +132,7 @@ class CognitiveResonance:
             return None
         try:
             return self._prediction.observe(action)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             logger.warning("Resonance observe failed: %s", exc)
             return None
 

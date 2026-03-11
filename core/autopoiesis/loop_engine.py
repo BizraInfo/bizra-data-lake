@@ -905,7 +905,7 @@ class AutopoieticLoop:
                     reasons.append(
                         f"fate_gate_failed:{getattr(proof, 'counterexample', '')}"
                     )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 reasons.append(f"fate_gate_exception:{e}")
 
         activated = len(reasons) == 0
@@ -1082,7 +1082,7 @@ class AutopoieticLoop:
             result.state = AutopoieticState.REFLECTING
             await self._reflect_on_cycle(result)
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error(f"Autopoietic cycle error: {e}", exc_info=True)
             result.state = AutopoieticState.EMERGENCY_ROLLBACK
 
@@ -1165,7 +1165,7 @@ class AutopoieticLoop:
 
             return observation
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Observation failed: {e}")
             return None
 
@@ -1341,7 +1341,7 @@ class AutopoieticLoop:
 
             if not z3_satisfiable:
                 violations.append(f"Z3 FATE gate failed: {z3_proof.counterexample}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Z3 verification error: {e}")
             z3_satisfiable = False
             z3_proof_id = None
@@ -1505,7 +1505,7 @@ class AutopoieticLoop:
 
             return result
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Implementation failed: {e}")
             return ImplementationResult(
                 hypothesis_id=hypothesis.id,
@@ -1741,7 +1741,7 @@ class AutopoieticLoop:
         try:
             with open(self._audit_log_path, "a") as f:
                 f.write(json.dumps(entry.to_dict()) + "\n")
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
             logger.error(f"Failed to persist audit log: {e}")
 
     # =========================================================================
@@ -1773,7 +1773,7 @@ class AutopoieticLoop:
                     logger.warning("Loop halted - human intervention required")
                     break
 
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Autopoietic loop error: {e}", exc_info=True)
                 self._state = AutopoieticState.EMERGENCY_ROLLBACK
 

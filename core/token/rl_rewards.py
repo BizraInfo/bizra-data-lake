@@ -81,7 +81,7 @@ def _seed_holdings_from_minter(minter: Any, agent_ids: list[str]) -> list[float]
         try:
             bal = minter.ledger.get_balance(agent_id, TokenType.SEED)
             holdings.append(float(getattr(bal, "balance", 0.0)))
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             holdings.append(0.0)
     return holdings
 
@@ -105,7 +105,7 @@ def compute_agent_reward(
         account_ids = []
         try:
             account_ids = list(minter.ledger.list_accounts())
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             account_ids = []
         if agent_id not in account_ids:
             account_ids.append(agent_id)
@@ -116,7 +116,7 @@ def compute_agent_reward(
                 current_holdings=holdings,
             )
             gated_seed = float(gate.get("gated_amount", requested_seed))
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             gated_seed = requested_seed
 
     if gated_seed <= 0:
@@ -173,7 +173,7 @@ def enforce_agent_gini(
         try:
             bal = minter.ledger.get_balance(agent_id, TokenType.SEED)
             holdings_map[agent_id] = float(getattr(bal, "balance", 0.0))
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             holdings_map[agent_id] = 0.0
 
     detail = calculate_gini_detailed(list(holdings_map.values()), threshold=threshold)

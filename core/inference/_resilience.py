@@ -204,7 +204,7 @@ class CircuitBreaker:
         if self._on_state_change:
             try:
                 self._on_state_change(self.name, old_state, new_state)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 print(f"[CircuitBreaker:{self.name}] State change callback error: {e}")
 
     async def can_execute(self) -> bool:
@@ -300,7 +300,7 @@ class CircuitBreaker:
         try:
             yield
             await self.record_success()
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             await self.record_failure(e)
             raise
 

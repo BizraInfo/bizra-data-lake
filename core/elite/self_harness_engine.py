@@ -170,7 +170,7 @@ class SelfHarnessEngine:
             raw = profile_path.read_text(encoding="utf-8")
             data = yaml.safe_load(raw) or {}
             return HarnessProfile.from_dict(data)
-        except Exception:
+        except (OSError, ValueError):  # SEC-003 — file_io boundary
             return HarnessProfile.from_dict(None)
 
     def _is_excluded(self, path: Path) -> bool:
@@ -205,7 +205,7 @@ class SelfHarnessEngine:
         for path in self._iter_candidate_files(rule.file_globs):
             try:
                 text = path.read_text(encoding="utf-8", errors="ignore")
-            except Exception:
+            except (OSError, ValueError):  # SEC-003 — file_io boundary
                 continue
 
             lines = text.splitlines()

@@ -118,7 +118,7 @@ class ProactiveDashboard:
 
         try:
             return self.entity.stats()
-        except Exception as e:
+        except (OSError, ConnectionError) as e:  # SEC-003 — connection boundary
             return {"error": str(e)}
 
     def _create_header(self) -> Optional[Any]:

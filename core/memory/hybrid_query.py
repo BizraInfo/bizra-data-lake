@@ -94,7 +94,7 @@ class HybridQueryEngine:
                 )
                 for record_id, score in fts_results:
                     candidate_scores.setdefault(record_id, {})["keyword"] = score
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 pass  # FTS query syntax error — skip keyword signal
 
         # If no candidates from vector or keyword, return empty

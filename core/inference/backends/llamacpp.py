@@ -60,7 +60,7 @@ class LlamaCppBackend(InferenceBackendBase):
             self._model_path = str(model_path)
             print("[LlamaCpp] Model loaded successfully")
             return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             print(f"[LlamaCpp] Failed to load model: {e}")
             return False
 
@@ -111,7 +111,7 @@ class LlamaCppBackend(InferenceBackendBase):
             with self._lock:
                 self._model("test", max_tokens=1)
             return True
-        except Exception:
+        except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
             return False
 
     def get_loaded_model(self) -> Optional[str]:

@@ -189,7 +189,7 @@ class RustAPIClient:
                     url, timeout=self.timeout
                 ) as resp:  # nosec B310 — URL scheme validated in __init__
                     return resp.status, json.loads(resp.read().decode())
-            except Exception:
+            except (OSError, ValueError):  # noqa: BLE001 — network boundary
                 logger.warning("GET %s failed (urllib fallback)", url, exc_info=True)
                 return 0, None
 
@@ -232,7 +232,7 @@ class RustAPIClient:
                     req, timeout=actual_timeout
                 ) as resp:  # nosec B310 — URL scheme validated in __init__
                     return resp.status, json.loads(resp.read().decode())
-            except Exception:
+            except (OSError, ValueError):  # noqa: BLE001 — network boundary
                 logger.warning("POST %s failed (urllib fallback)", url, exc_info=True)
                 return 0, None
 
@@ -251,7 +251,7 @@ class RustAPIClient:
                 status=RustServiceStatus.DEGRADED,
                 error=f"HTTP {status}",
             )
-        except Exception as e:
+        except (OSError, ValueError) as e:  # noqa: BLE001 — health probe boundary
             return RustServiceHealth(
                 service="bizra-api",
                 status=RustServiceStatus.UNHEALTHY,
@@ -265,7 +265,7 @@ class RustAPIClient:
             if status == 200 and data:
                 return data
             return {"error": f"HTTP {status}"}
-        except Exception as e:
+        except (OSError, ValueError) as e:  # noqa: BLE001 — RPC boundary
             return {"error": str(e)}
 
     async def check_gates(
@@ -291,7 +291,7 @@ class RustAPIClient:
             if status == 200 and data:
                 return data
             return {"error": f"HTTP {status}", "passed": False}
-        except Exception as e:
+        except (OSError, ValueError) as e:  # noqa: BLE001 — RPC boundary
             return {"error": str(e), "passed": False}
 
     async def inference_generate(
@@ -323,7 +323,7 @@ class RustAPIClient:
             if status == 200 and data:
                 return data
             return {"error": f"HTTP {status}"}
-        except Exception as e:
+        except (OSError, ValueError) as e:  # noqa: BLE001 — RPC boundary
             return {"error": str(e)}
 
     async def get_federation_status(self) -> dict[str, Any]:
@@ -333,7 +333,7 @@ class RustAPIClient:
             if status == 200 and data:
                 return data
             return {"error": f"HTTP {status}", "connected": False}
-        except Exception as e:
+        except (OSError, ValueError) as e:  # noqa: BLE001 — RPC boundary
             return {"error": str(e), "connected": False}
 
 
@@ -421,7 +421,7 @@ class RustProcessManager:
                 return await self._wait_for_health()
             return True
 
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError) as e:  # noqa: BLE001 — process start boundary
             logger.error("Failed to start Rust API: %s", e)
             return False
 
@@ -607,7 +607,7 @@ class RustLifecycleManager:
 
                 self._last_health = new_health
 
-            except Exception as e:
+            except (OSError, ValueError) as e:  # noqa: BLE001 — health monitor boundary
                 logger.warning("Health check error: %s", e)
 
             await asyncio.sleep(self.health_check_interval)
@@ -687,7 +687,7 @@ class RustLifecycleManager:
             assert self._pyo3_module is not None
             memory = self._pyo3_module.PatternMemory(node_id)
             return memory.learn(content, embedding, tags or [])
-        except Exception as e:
+        except (AttributeError, RuntimeError, OSError) as e:  # noqa: BLE001 — PyO3 interop boundary
             logger.warning("PyO3 pattern learn failed: %s", e)
             return None
 
@@ -708,7 +708,7 @@ class RustLifecycleManager:
             assert self._pyo3_module is not None
             memory = self._pyo3_module.PatternMemory(node_id)
             return memory.recall(embedding, limit)
-        except Exception as e:
+        except (AttributeError, RuntimeError, OSError) as e:  # noqa: BLE001 — PyO3 interop boundary
             logger.warning("PyO3 pattern recall failed: %s", e)
             return None
 
@@ -731,7 +731,7 @@ class RustLifecycleManager:
                 self._pyo3_pref_tracker = self._pyo3_module.PreferenceTracker()
             self._pyo3_pref_tracker.observe(pref_type, key, value)  # type: ignore[has-type]
             return True
-        except Exception as e:
+        except (AttributeError, RuntimeError, OSError) as e:  # noqa: BLE001 — PyO3 interop boundary
             logger.warning("PyO3 preference observe failed: %s", e)
             return False
 
@@ -745,7 +745,7 @@ class RustLifecycleManager:
 
         try:
             return self._pyo3_pref_tracker.apply_to_prompt(prompt)  # type: ignore[has-type]
-        except Exception as e:
+        except (AttributeError, RuntimeError, OSError) as e:  # noqa: BLE001 — PyO3 interop boundary
             logger.warning("PyO3 preference apply failed: %s", e)
             return prompt
 

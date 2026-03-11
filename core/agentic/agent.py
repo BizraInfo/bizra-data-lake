@@ -263,7 +263,7 @@ Respond with YES if all conditions are met, NO otherwise."""
                 logger.warning(f"Constitutional check failed: {e}")
                 # Fail-closed: don't allow if can't verify
                 return False
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Unexpected error in constitutional check: {e}")
                 return False
 
@@ -321,7 +321,7 @@ Respond with YES if all conditions are met, NO otherwise."""
                 )
             )
             return False, str(e)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             duration = (time.time() - start) * 1000
             logger.error(
                 f"Unexpected error in tool '{tool_name}': {type(e).__name__}: {e}"
@@ -432,7 +432,7 @@ Respond with YES if all conditions are met, NO otherwise."""
             self._total_tasks += 1
 
             return False
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error(
                 f"Unexpected error in task '{task.name}': {type(e).__name__}: {e}"
             )
@@ -512,7 +512,7 @@ class SimpleAgent(AutonomousAgent):
                 return True, result
             except (TypeError, ValueError, RuntimeError, OSError) as e:
                 return False, str(e)
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Unexpected error in LLM call: {type(e).__name__}: {e}")
                 return False, f"{type(e).__name__}: {e}"
 

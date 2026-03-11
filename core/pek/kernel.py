@@ -228,7 +228,7 @@ class ProactiveExecutionKernel:
 
         try:
             await self._pipeline.stop()
-        except Exception as e:
+        except (asyncio.CancelledError, OSError, RuntimeError) as e:  # SEC-003
             logger.debug("PEK pipeline stop warning: %s", e)
 
         logger.info("PEK stopped")
@@ -245,7 +245,7 @@ class ProactiveExecutionKernel:
                 await task
             except asyncio.CancelledError:
                 pass
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError) as e:  # SEC-003
             logger.warning("PEK task failed, cancelling: %s", e)
             task.cancel()
             try:
@@ -272,7 +272,7 @@ class ProactiveExecutionKernel:
                 self._cycle_count += 1
                 self._metrics["cycles"] = self._cycle_count
 
-            except Exception as e:
+            except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — signal boundary
                 self._last_error = str(e)
                 logger.error("PEK loop error: %s", e)
 
@@ -293,7 +293,7 @@ class ProactiveExecutionKernel:
                     self._metrics["signals_collected"] += 1
                 else:
                     signals[name] = {"value": output}
-            except Exception as e:
+            except (ValueError, RuntimeError) as e:  # SEC-003 — signal collection
                 signals[name] = {"error": str(e)}
                 logger.debug("PEK sensor %s failed: %s", name, e)
         return signals
@@ -308,7 +308,7 @@ class ProactiveExecutionKernel:
                 "pending_approval": int(stats.get("pending_approval", 0)),
                 "active_count": int(stats.get("active_count", 0)),
             }
-        except Exception as e:
+        except (ValueError, RuntimeError) as e:  # SEC-003
             return {"error": str(e)}
 
     async def _sense_gateway(self) -> dict[str, Any]:
@@ -324,7 +324,7 @@ class ProactiveExecutionKernel:
                 "avg_latency_ms": float(stats.get("avg_latency_ms", 0.0)),
                 "total_requests": int(stats.get("total_requests", 0)),
             }
-        except Exception as e:
+        except (ValueError, RuntimeError) as e:  # SEC-003
             return {"status": "error", "error": str(e)}
 
     async def _sense_memory(self) -> dict[str, Any]:
@@ -344,7 +344,7 @@ class ProactiveExecutionKernel:
                 "avg_snr": float(stats.get("avg_snr", 0.0)),
                 "working_entries": working_entries,
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             return {"status": "error", "error": str(e)}
 
     def _compute_tau(self, signals: dict[str, dict[str, Any]]) -> float:
@@ -609,7 +609,7 @@ class ProactiveExecutionKernel:
             passed = bool(getattr(proof, "satisfiable", True))
             note = f"fate proof={proof_id} satisfiable={passed}"
             return passed, proof_id, note
-        except Exception as e:
+        except (ValueError, ImportError, RuntimeError) as e:  # SEC-003
             logger.warning("PEK FATE verification failed: %s", e)
             return False, None, f"fate verification error={e}"
 
@@ -793,7 +793,7 @@ class ProactiveExecutionKernel:
             publish_result = self._event_bus.publish(event)
             if inspect.isawaitable(publish_result):
                 await publish_result
-        except Exception as e:
+        except (RuntimeError, OSError) as e:  # SEC-003 — event bus boundary
             logger.debug("PEK proof event publish failed: %s", e)
 
     @staticmethod

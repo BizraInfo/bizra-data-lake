@@ -116,7 +116,7 @@ class ChatGPTParser(PlatformParser):
         try:
             text = raw_bytes.decode("utf-8", errors="ignore")
             return '"mapping"' in text and '"message"' in text and '"author"' in text
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             return False
 
     def parse(
@@ -816,6 +816,6 @@ def detect_platform(raw_bytes: bytes) -> Platform | None:
         try:
             if parser.detect(sample):
                 return parser.platform_name()
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             continue
     return None

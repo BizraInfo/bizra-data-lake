@@ -61,10 +61,20 @@ class HNSWIndex:
         return len(self._fallback_vectors)
 
     @property
+    def live_count(self) -> int:
+        if self._use_hnswlib:
+            return len(self._reverse_map)
+        return len(self._fallback_vectors)
+
+    @property
     def capacity(self) -> int:
         if self._use_hnswlib and self._index is not None:
             return self._index.get_max_elements()  # type: ignore[union-attr]
         return self._config.max_elements
+
+    @property
+    def backend_name(self) -> str:
+        return "hnswlib" if self._use_hnswlib else "numpy"
 
     def initialize(self) -> None:
         """Create or re-create the index in memory."""
@@ -80,7 +90,7 @@ class HNSWIndex:
         self._initialized = True
         logger.info(
             f"HNSW index initialized: dim={self._config.dimensions}, "
-            f"backend={'hnswlib' if self._use_hnswlib else 'numpy'}"
+            f"backend={self.backend_name}"
         )
 
     def add(self, record_id: str, vector: Sequence[float]) -> None:
@@ -265,7 +275,7 @@ class HNSWIndex:
 
                 logger.info(f"HNSW index loaded: {path} ({self.count} vectors)")
                 return True
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Failed to load HNSW index: {e}")
                 return False
         else:
@@ -280,7 +290,7 @@ class HNSWIndex:
                 self._initialized = True
                 logger.info(f"Numpy index loaded: {npz_path} ({len(ids)} vectors)")
                 return True
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Failed to load numpy index: {e}")
                 return False
 

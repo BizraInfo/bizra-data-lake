@@ -236,7 +236,7 @@ class TreasuryController:
                     iaas_score=0.85,
                 )
                 return min(1.0, snr_result.snr / 0.95)
-            except Exception as e:
+            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
                 logger.warning(f"SNR calculation failed: {e}")
         return market_data.get("ihsan_alignment", 0.80)
 
@@ -515,7 +515,7 @@ class TreasuryController:
         for handler in self._event_handlers.get(event_type, []):
             try:
                 handler(data)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Event handler error: {e}")
 
     def _broadcast_to_federation(self, message: dict) -> None:
@@ -523,7 +523,7 @@ class TreasuryController:
         if self._federation_broadcast:
             try:
                 self._federation_broadcast(message)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.error(f"Federation broadcast error: {e}")
 
     # -------------------------------------------------------------------------

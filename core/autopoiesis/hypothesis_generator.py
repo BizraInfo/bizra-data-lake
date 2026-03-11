@@ -349,7 +349,7 @@ class ImprovementPattern:
         """Check if this pattern applies to the observation."""
         try:
             return self.condition(observation)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.debug(f"Pattern {self.name} condition error: {e}")
             return False
 
@@ -924,7 +924,7 @@ class HypothesisGenerator:
                     hypotheses.append(hypothesis)
                     logger.debug(f"Pattern matched: {pattern.name}")
 
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — boundary boundary
                     logger.warning(
                         f"Pattern {pattern.name} hypothesis generation failed: {e}"
                     )
@@ -1191,7 +1191,7 @@ class HypothesisGenerator:
         try:
             with open(state_path, "w") as f:
                 json.dump(state, f, indent=2)
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
             logger.warning(f"Failed to save hypothesis generator state: {e}")
 
     def _load_state(self) -> None:
@@ -1232,7 +1232,7 @@ class HypothesisGenerator:
                 f"{self._total_successful} successful"
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Failed to load hypothesis generator state: {e}")
 
 

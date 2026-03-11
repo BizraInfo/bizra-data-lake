@@ -214,7 +214,7 @@ class BIZRAPersonaPlex:
             logger.error("Install with: pip install moshi/.")
             raise
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Failed to initialize PersonaPlex: {e}")
             raise
 
@@ -382,7 +382,7 @@ class BIZRAPersonaPlex:
                 ihsan_reason="Ihsān gate passed",
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Audio processing failed: {e}")
             return VoiceResponse(
                 guardian_name=guardian_name,

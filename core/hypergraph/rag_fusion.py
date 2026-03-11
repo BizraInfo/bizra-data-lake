@@ -178,7 +178,7 @@ class HyperGraphRAGFusion:
                 )
                 for r in raw
             ]
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             logger.warning("Vector search failed; returning empty list.")
             return []
 
@@ -203,7 +203,7 @@ class HyperGraphRAGFusion:
                 )
                 for r in raw
             ]
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             logger.warning("Keyword search failed; returning empty list.")
             return []
 

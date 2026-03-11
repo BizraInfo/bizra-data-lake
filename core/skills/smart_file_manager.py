@@ -129,7 +129,7 @@ def _file_hash(filepath: Path) -> str:
 
         data = filepath.read_bytes()
         return hex_digest(data)
-    except (ImportError, Exception):
+    except (ImportError, OSError):  # SEC-003
         import hashlib
 
         data = filepath.read_bytes()
@@ -418,7 +418,7 @@ class SmartFileHandler:
                     else:
                         shutil.move(str(src), str(dest))
                     executed += 1
-                except Exception as exc:
+                except (OSError, PermissionError, FileNotFoundError) as exc:  # SEC-003
                     errors.append(f"{move['source']}: {exc}")
 
         action = "copied" if copy_mode else "moved"
@@ -511,7 +511,7 @@ class SmartFileHandler:
                 try:
                     old_path.rename(new_path)
                     executed += 1
-                except Exception as exc:
+                except (OSError, PermissionError, FileNotFoundError) as exc:  # SEC-003
                     errors.append(f"{entry['old']}: {exc}")
 
         return {
@@ -573,7 +573,7 @@ class SmartFileHandler:
         for rp in resolved_paths:
             try:
                 content = rp.read_text(encoding="utf-8", errors="replace")
-            except Exception as exc:
+            except (OSError, UnicodeDecodeError) as exc:  # SEC-003 — file read boundary
                 return {"error": f"Cannot read {rp}: {exc}"}
 
             if add_headers:
@@ -614,7 +614,7 @@ class SmartFileHandler:
                             if fn not in seen_fields:
                                 all_fields.append(fn)
                                 seen_fields.add(fn)
-            except Exception as exc:
+            except (OSError, UnicodeDecodeError, ValueError) as exc:  # SEC-003 — CSV read boundary
                 return {"error": f"Cannot read CSV {p}: {exc}"}
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -645,7 +645,7 @@ class SmartFileHandler:
                     line = line.strip()
                     if line:
                         all_lines.append(line)
-            except Exception as exc:
+            except (OSError, UnicodeDecodeError, ValueError) as exc:  # SEC-003 — JSONL read boundary
                 return {"error": f"Cannot read JSONL {p}: {exc}"}
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -711,7 +711,7 @@ class SmartFileHandler:
             gw = InferenceGateway()
             await gw.initialize()
             gateway = gw
-        except Exception:
+        except (OSError, ValueError):  # SEC-003
             pass
 
         classified: List[Dict[str, Any]] = []
@@ -722,7 +722,7 @@ class SmartFileHandler:
 
             try:
                 snippet = fp.read_bytes()[:512].decode("utf-8", errors="replace")
-            except Exception:
+            except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
                 snippet = ""
 
             ai_result: Optional[Dict[str, Any]] = None
@@ -744,7 +744,7 @@ class SmartFileHandler:
                     end = raw.rfind("}") + 1
                     if start >= 0 and end > start:
                         ai_result = json.loads(raw[start:end])
-                except Exception:
+                except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
                     pass
 
             if ai_result:

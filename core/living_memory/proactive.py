@@ -102,7 +102,7 @@ class ProactiveRetriever:
             from core.rollout.hmm_gate import HMMCallerGate
 
             self._hmm_gate = HMMCallerGate()
-        except Exception:
+        except Exception:  # noqa: BLE001 — boundary boundary
             pass  # gate unavailable — direct observe only
 
         # Phase 49.8: Metrics for proactive HMM observations
@@ -128,7 +128,7 @@ class ProactiveRetriever:
             self._hmm_engine = HMMEngine()
             logger.info("ProactiveRetriever: HMM engine initialised (Phase 46)")
             return True
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             logger.warning("ProactiveRetriever: HMM init failed: %s", exc)
             return False
 
@@ -138,7 +138,7 @@ class ProactiveRetriever:
             return None
         try:
             return self._hmm_engine.predict_next()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             logger.warning("ProactiveRetriever: HMM predict failed: %s", exc)
             return None
 
@@ -190,7 +190,7 @@ class ProactiveRetriever:
                             continue
                     self._hmm_engine.observe(symbol)
                     self._p46_metrics.inc("hmm_proactive_observations")
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 — boundary boundary
                     self._p46_metrics.inc("hmm_proactive_errors")
                     logger.debug("HMM observe failed for symbol %s: %s", symbol, exc)
 

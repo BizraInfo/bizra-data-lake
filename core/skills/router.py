@@ -291,7 +291,7 @@ class SkillRouter:
             duration_ms = (time.perf_counter() - start_time) * 1000
             skill.record_invocation(success=True, duration_ms=duration_ms)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             result.error = str(e)
             logger.exception(f"Skill invocation failed: {skill_name}")
 

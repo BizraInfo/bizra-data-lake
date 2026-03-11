@@ -132,7 +132,7 @@ def read_node_identity(state_dir: str = "sovereign_state") -> Optional[NodeIdent
             stage=data.get("stage", "Seed"),
             sovereignty=data.get("sovereignty", 0.0),
         )
-    except Exception:
+    except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
         return None
 
 
@@ -146,7 +146,7 @@ def read_node_health(api_base: str = "http://localhost:8000") -> Optional[NodeHe
         return NodeHealth(
             **{k: data.get(k, 0) for k in NodeHealth.__dataclass_fields__}
         )
-    except Exception:
+    except (OSError, ValueError):  # SEC-003 — network boundary
         return None
 
 

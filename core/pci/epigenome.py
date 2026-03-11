@@ -451,7 +451,7 @@ class EpigeneticLayer:
                     self._interpretations[receipt_hash] = [
                         Interpretation.from_dict(i) for i in interps
                     ]
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
             print(f"[Epigenome] Load failed: {e}")
 
     def _save(self):
@@ -466,7 +466,7 @@ class EpigeneticLayer:
 
             with open(self.storage_path, "w") as f:
                 json.dump(data, f, indent=2)
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
             print(f"[Epigenome] Save failed: {e}")
 
 

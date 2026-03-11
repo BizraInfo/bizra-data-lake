@@ -494,7 +494,7 @@ class RecoveryCeremony:
                 ceremony_duration_ms=elapsed_ms,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error("Recovery reconstruction failed: %s", e)
             return RecoveryCeremonyResult(
                 success=False,

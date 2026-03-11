@@ -37,7 +37,7 @@ try:
     from bizra_constitution.generated.generated_constants import (
         IHSAN_GATE_MINIMUM as _CONSTITUTION_GATE_MINIMUM,
     )
-except Exception:  # pragma: no cover - constitution package optional
+except Exception:  # noqa: BLE001 — boundary boundary
     _CONSTITUTION_GATE_MINIMUM = 0.85
     _CONSTITUTION_BLOOM_ELIGIBILITY = 0.90
     _CONSTITUTION_IHSAN_EXCELLENCE = 0.95

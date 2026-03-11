@@ -89,7 +89,7 @@ class EmbeddingPipeline:
             logger.debug("sentence-transformers not installed, trying Ollama")
         except ValueError:
             raise  # Re-raise dimension mismatch
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"sentence-transformers load failed: {e}")
 
         # Attempt 2: Ollama
@@ -104,7 +104,7 @@ class EmbeddingPipeline:
                 model = getattr(self._config, "ollama_embed_model", "nomic-embed-text")
                 logger.info(f"Embedding pipeline: Ollama {model}")
                 return
-        except Exception:
+        except (OSError, ValueError):  # SEC-003 — network boundary
             logger.debug("Ollama not available")
 
         self._backend = "none"
@@ -144,7 +144,7 @@ class EmbeddingPipeline:
         try:
             vec = self._model.encode(text, normalize_embeddings=True)
             return vec.tolist()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"ST embed failed: {e}")
             return None
 
@@ -193,7 +193,7 @@ class EmbeddingPipeline:
                 if embeddings:
                     return embeddings[0]
             return None
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — network boundary
             logger.warning(f"Ollama embed failed: {e}")
             return None
 

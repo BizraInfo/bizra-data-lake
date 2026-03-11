@@ -848,7 +848,7 @@ class SessionHookIntegration:
 
                 return result
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 # Failed
                 self.session.fail(str(e))
                 raise

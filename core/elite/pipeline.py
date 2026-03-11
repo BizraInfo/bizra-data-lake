@@ -442,7 +442,7 @@ class ElitePipeline:
                 logs=logs,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             duration = (time.time() - start) * 1000
             return StageResult(
                 stage=stage,

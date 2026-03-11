@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 try:
     # Constitution package integration (Step 2): single canonical normalizer.
     from bizra_constitution.snr import normalize_snr as _constitution_normalize_snr
-except Exception:  # pragma: no cover - fallback keeps legacy behavior
+except Exception:  # noqa: BLE001 — boundary boundary
     _constitution_normalize_snr = None
 
 # ── Canonical Normalization ───────────────────────────────────────────────
@@ -251,7 +251,7 @@ class SNRFacade:
             return self.rust_engine.calculate_snr_normalized(
                 text=text, query=query or ""
             )
-        except Exception as e:
+        except (AttributeError, RuntimeError, OSError) as e:  # SEC-003 — pyo3 boundary
             logger.warning("Rust SNR engine failed, falling back: %s", e)
             # Graceful degradation: try v2, then text, then baseline
             if self.v2_engine is not None:

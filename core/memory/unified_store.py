@@ -179,11 +179,13 @@ class UnifiedStore:
             ),
         )
 
-        # Update FTS index
-        conn.execute(
-            "INSERT OR REPLACE INTO records_fts (id, content, tags) VALUES (?, ?, ?)",
-            (record.id, record.content, " ".join(record.tags)),
-        )
+        if record.state == RecordState.DELETED:
+            conn.execute("DELETE FROM records_fts WHERE id = ?", (record.id,))
+        else:
+            conn.execute(
+                "INSERT OR REPLACE INTO records_fts (id, content, tags) VALUES (?, ?, ?)",
+                (record.id, record.content, " ".join(record.tags)),
+            )
         conn.commit()
 
     def upsert_batch(self, records: List[MemoryRecord]) -> int:
@@ -232,10 +234,13 @@ class UnifiedStore:
                         json.dumps(record.metadata),
                     ),
                 )
-                conn.execute(
-                    "INSERT OR REPLACE INTO records_fts (id, content, tags) VALUES (?, ?, ?)",
-                    (record.id, record.content, " ".join(record.tags)),
-                )
+                if record.state == RecordState.DELETED:
+                    conn.execute("DELETE FROM records_fts WHERE id = ?", (record.id,))
+                else:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO records_fts (id, content, tags) VALUES (?, ?, ?)",
+                        (record.id, record.content, " ".join(record.tags)),
+                    )
                 count += 1
         return count
 
@@ -259,6 +264,7 @@ class UnifiedStore:
                 "UPDATE records SET state = ? WHERE id = ?",
                 (RecordState.DELETED.value, record_id),
             )
+            conn.execute("DELETE FROM records_fts WHERE id = ?", (record_id,))
         conn.commit()
         return True
 
@@ -337,14 +343,50 @@ class UnifiedStore:
         )
         return [self._row_to_record(row) for row in cursor]
 
-    def load_with_embeddings(self) -> List[tuple[str, bytes]]:
+    def load_with_embeddings(self, include_archived: bool = True) -> List[tuple[str, bytes]]:
         """Load just IDs and embedding blobs (for HNSW rebuild)."""
         conn = self._ensure_conn()
-        cursor = conn.execute(
-            "SELECT id, embedding FROM records WHERE state = ? AND embedding IS NOT NULL",
-            (RecordState.ACTIVE.value,),
-        )
+        if include_archived:
+            cursor = conn.execute(
+                """
+                SELECT id, embedding
+                FROM records
+                WHERE state != ? AND embedding IS NOT NULL
+                """,
+                (RecordState.DELETED.value,),
+            )
+        else:
+            cursor = conn.execute(
+                """
+                SELECT id, embedding
+                FROM records
+                WHERE state = ? AND embedding IS NOT NULL
+                """,
+                (RecordState.ACTIVE.value,),
+            )
         return [(row["id"], row["embedding"]) for row in cursor]
+
+    def count_embeddings(self, include_archived: bool = True) -> int:
+        conn = self._ensure_conn()
+        if include_archived:
+            cursor = conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM records
+                WHERE state != ? AND embedding IS NOT NULL
+                """,
+                (RecordState.DELETED.value,),
+            )
+        else:
+            cursor = conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM records
+                WHERE state = ? AND embedding IS NOT NULL
+                """,
+                (RecordState.ACTIVE.value,),
+            )
+        return int(cursor.fetchone()[0])
 
     def touch_access(self, record_id: str) -> None:
         """Update last_accessed and increment access_count."""
@@ -355,6 +397,71 @@ class UnifiedStore:
             (now, record_id),
         )
         conn.commit()
+
+    def fts_stats(self) -> dict[str, int]:
+        conn = self._ensure_conn()
+        total_rows = int(conn.execute("SELECT COUNT(*) FROM records_fts").fetchone()[0])
+        searchable_rows = int(
+            conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM records
+                WHERE state != ?
+                """,
+                (RecordState.DELETED.value,),
+            ).fetchone()[0]
+        )
+        deleted_rows = int(
+            conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM records r
+                JOIN records_fts f ON f.id = r.id
+                WHERE r.state = ?
+                """,
+                (RecordState.DELETED.value,),
+            ).fetchone()[0]
+        )
+        orphaned_rows = int(
+            conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM records_fts f
+                LEFT JOIN records r ON r.id = f.id
+                WHERE r.id IS NULL
+                """
+            ).fetchone()[0]
+        )
+        return {
+            "rows": total_rows,
+            "searchable_rows": searchable_rows,
+            "deleted_rows": deleted_rows,
+            "orphaned_rows": orphaned_rows,
+        }
+
+    def rebuild_fts(self) -> int:
+        conn = self._ensure_conn()
+        rows = conn.execute(
+            """
+            SELECT id, content, tags
+            FROM records
+            WHERE state != ?
+            ORDER BY updated_at DESC
+            """,
+            (RecordState.DELETED.value,),
+        ).fetchall()
+        with conn:
+            conn.execute("DELETE FROM records_fts")
+            for row in rows:
+                try:
+                    tags = json.loads(row["tags"] or "[]")
+                except json.JSONDecodeError:
+                    tags = []
+                conn.execute(
+                    "INSERT INTO records_fts (id, content, tags) VALUES (?, ?, ?)",
+                    (row["id"], row["content"], " ".join(tags)),
+                )
+        return len(rows)
 
     # ── Internal ─────────────────────────────────────────────────────────
 

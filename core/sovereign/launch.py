@@ -204,7 +204,7 @@ class SovereignLauncher:
                 logger.info(
                     f"  ✓ Desktop bridge on 127.0.0.1:{self.desktop_bridge_port}"
                 )
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.warning(f"  ✗ Desktop bridge failed: {e} (non-fatal)")
         else:
             logger.info("[6/6] Desktop bridge disabled")

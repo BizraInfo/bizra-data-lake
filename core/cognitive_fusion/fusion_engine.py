@@ -376,7 +376,7 @@ class CognitiveFusionEngine:
         if self._moe_router is not None:
             try:
                 return self._moe_router.route(query, constraints=ctx)
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.warning(
                     "MoE router failed — falling back to STANDARD", exc_info=True
                 )
@@ -397,7 +397,7 @@ class CognitiveFusionEngine:
                     **ctx,
                 }
                 return self._hrm_engine.run_cycle(observation)
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.warning(
                     "HRM engine failed — using default result", exc_info=True
                 )
@@ -416,7 +416,7 @@ class CognitiveFusionEngine:
                 return self._hypergraph_rag.retrieve(
                     query, query_embedding, top_k=top_k
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.warning("RAG retrieval failed — returning empty", exc_info=True)
         return []
 
@@ -425,7 +425,7 @@ class CognitiveFusionEngine:
         if self._northstar_engine is not None:
             try:
                 return self._northstar_engine.run_cycle(observation)
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.warning("NorthStar gate failed — using default", exc_info=True)
         return NorthStarResult(
             unified_snr=UNIFIED_SNR_THRESHOLD,

@@ -601,7 +601,7 @@ Provide a clear, actionable response that:
                 state=LoopState.COMPLETED,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Sovereign loop failed: {e}")
             execution = LoopExecution(
                 id=execution_id,

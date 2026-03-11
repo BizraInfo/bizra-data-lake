@@ -596,7 +596,7 @@ class MoERouter:
             try:
                 response = inference_fn(query, tier)
                 dispatches.append((tier, response))
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.warning(f"Dispatch to {tier.key} failed: {e}")
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000

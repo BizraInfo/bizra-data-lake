@@ -706,7 +706,7 @@ class AdlGate:
         # Get current holdings
         try:
             current_holdings = self.holdings_provider()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             return AdlValidationResult(
                 passed=False,
                 reject_code=AdlRejectCode.REJECT_INVALID_TRANSACTION,

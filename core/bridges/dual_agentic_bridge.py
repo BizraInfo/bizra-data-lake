@@ -477,7 +477,7 @@ class DualAgenticBridge:
             receipt.ledger_sequence = entry.sequence
             receipt.ledger_entry_hash = entry.entry_hash
             self._evidence_entries += 1
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
             self._evidence_failures += 1
             if self._fail_closed_on_ledger_error:
                 raise RuntimeError(
@@ -602,7 +602,7 @@ class DualAgenticBridge:
                     veto_reason=None,
                     comments="Timeout",
                 )
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Validator {role.value} error: {e}")
                 return Vote(
                     validator_role=role,

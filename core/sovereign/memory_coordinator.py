@@ -157,7 +157,7 @@ class MemoryCoordinator:
                 try:
                     state[name] = provider()
                     state[name]["_restore_priority"] = priority.value
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — boundary boundary
                     logger.warning(f"State provider '{name}' failed: {e}")
                     state[name] = {"error": str(e)}
 
@@ -174,7 +174,7 @@ class MemoryCoordinator:
                         state["living_memory"] = (
                             stats.to_dict() if hasattr(stats, "to_dict") else {}
                         )
-                except Exception as e:
+                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                     logger.warning(f"Living memory save failed: {e}")
 
             # Create versioned checkpoint
@@ -197,7 +197,7 @@ class MemoryCoordinator:
             )
             return True
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"save_all failed: {e}")
             return False
 

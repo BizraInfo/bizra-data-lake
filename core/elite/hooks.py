@@ -733,7 +733,7 @@ class HookExecutor:
 
             return self._create_result(True, context, phase_results, start_time)
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.exception(f"Hook execution error: {e}")
             context.error = str(e)
             return self._create_result(False, context, phase_results, start_time)
@@ -779,7 +779,7 @@ class HookExecutor:
                     if "output_data" in result:
                         context.output_data.update(result["output_data"])
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 hook.failure_count += 1
                 logger.error(f"Hook '{hook.name}' error: {e}")
                 # Continue on non-critical hooks

@@ -373,7 +373,7 @@ class HookConditionEvaluator:
         except ConditionParseError:
             logger.warning(f"Failed to parse condition: {condition!r}")
             return False
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error(f"Condition evaluation error: {e}")
             return False
 

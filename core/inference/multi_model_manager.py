@@ -475,7 +475,7 @@ class MultiModelManager:
             )
             return True
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             logger.error(f"Failed to initialize MultiModelManager: {e}")
             return False
 
@@ -575,7 +575,7 @@ class MultiModelManager:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Health check loop error: {e}")
                 self._pool_metrics.health_check_failures += 1
 
@@ -615,7 +615,7 @@ class MultiModelManager:
             logger.warning(f"Health check connection error: {e}")
             self._pool_metrics.connection_errors += 1
             return False
-        except Exception as e:
+        except (OSError, ValueError) as e:  # SEC-003 — network boundary
             logger.warning(f"Health check error: {e}")
             return False
 
@@ -745,7 +745,7 @@ class MultiModelManager:
             logger.info(f"Loaded model: {model_id}")
             return True
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             model.status = ModelStatus.ERROR
             logger.error(f"Failed to load model {model_id}: {e}")
             return False
@@ -771,7 +771,7 @@ class MultiModelManager:
             logger.info(f"Unloaded model: {model_id}")
             return True
 
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             model.status = ModelStatus.ERROR
             logger.error(f"Failed to unload model {model_id}: {e}")
             return False
@@ -876,7 +876,7 @@ class MultiModelManager:
                 "raw_content": raw_content if raw_content != cleaned_content else None,
             }
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             return {"error": str(e), "model": model.id}
 
     def list_models(self, purpose: Optional[ModelPurpose] = None) -> List[ModelProfile]:
@@ -948,7 +948,7 @@ class MultiModelManager:
                 logger.warning(
                     f"Connection drain timed out after {drain_timeout}s, forcing close"
                 )
-            except Exception as e:
+            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Error during connection pool close: {e}")
             finally:
                 self._client = None

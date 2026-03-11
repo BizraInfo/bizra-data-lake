@@ -117,7 +117,7 @@ class AgentDBHealthChecker:
             fts_ok = True
             try:
                 store.keyword_search("__health_check__", top_k=1)
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 fts_ok = False
 
             status = HealthStatus.HEALTHY
@@ -135,7 +135,7 @@ class AgentDBHealthChecker:
                     "path": str(path),
                 },
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             return ComponentHealth("sqlite", HealthStatus.DOWN, {"error": str(e)})
 
     def _check_hnsw(self) -> ComponentHealth:
@@ -147,7 +147,7 @@ class AgentDBHealthChecker:
                     "hnsw", HealthStatus.DEGRADED, {"reason": "not_initialized"}
                 )
 
-            count = hnsw.count
+            count = hnsw.live_count
             capacity = hnsw.capacity
             ratio = count / max(capacity, 1)
 
@@ -163,10 +163,10 @@ class AgentDBHealthChecker:
                     "capacity": capacity,
                     "capacity_ratio": round(ratio, 4),
                     "dimensions": hnsw._config.dimensions,
-                    "backend": "hnswlib" if hnsw._use_hnswlib else "numpy",
+                    "backend": hnsw.backend_name,
                 },
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             return ComponentHealth("hnsw", HealthStatus.DOWN, {"error": str(e)})
 
     def _check_memory(self) -> ComponentHealth:
@@ -184,7 +184,7 @@ class AgentDBHealthChecker:
                 status = HealthStatus.DEGRADED
 
             return ComponentHealth("memory", status, {"estimated_mb": round(est_mb, 2)})
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             return ComponentHealth(
                 "memory", HealthStatus.HEALTHY, {"estimated_mb": -1, "error": str(e)}
             )
@@ -251,7 +251,7 @@ class AgentDBMetrics:
             cap = self._db.hnsw.capacity
             if cap > 0:
                 self._capacity_gauge.set(self._db.hnsw.count / cap)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.warning(f"Metrics update failed: {e}")
 
     def observe_search(self, duration_seconds: float) -> None:

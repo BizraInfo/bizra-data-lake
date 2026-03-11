@@ -197,7 +197,7 @@ def _decode_strategy(raw: Any, agent_id: str) -> AgentStrategy:
 
     try:
         data = json.loads(raw)
-    except Exception:
+    except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
         return AgentStrategy(agent_id=agent_id).normalized()
 
     strategy = AgentStrategy(

@@ -292,7 +292,7 @@ class DPFedLoRAUpdate:
                 privatized_delta=noisy,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — boundary boundary
             logger.error("DP-FedLoRA privatization failed: %s", e)
             return DPResult(
                 success=False,

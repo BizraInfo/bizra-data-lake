@@ -47,6 +47,7 @@ class AgentDB:
         self._hnsw = HNSWIndex(self._config.hnsw)
         self._query_engine: Optional[HybridQueryEngine] = None
         self._initialized = False
+        self._last_rebuild_at: Optional[str] = None
 
         # Optional embedding function (injected by runtime)
         self._embedding_fn = None
@@ -98,7 +99,7 @@ class AgentDB:
                 fn = create_default_embedding_fn(self._config)
                 if fn is not None:
                     self._embedding_fn = fn
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.debug(f"Auto-embed setup skipped: {e}")
 
         self._initialized = True
@@ -138,7 +139,7 @@ class AgentDB:
         if embedding is None and self._embedding_fn is not None:
             try:
                 embedding = self._embedding_fn(content)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.warning(f"Auto-embedding failed: {e}")
 
         now = datetime.now(timezone.utc)
@@ -244,6 +245,7 @@ class AgentDB:
         tags: Optional[List[str]] = None,
         source: Optional[str] = None,
         context_ids: Optional[List[str]] = None,
+        include_archived: bool = False,
     ) -> List[SearchResult]:
         """Search memory using hybrid scoring.
 
@@ -257,7 +259,7 @@ class AgentDB:
         if effective_embedding is None and query and self._embedding_fn:
             try:
                 effective_embedding = self._embedding_fn(query)
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 pass
 
         options = QueryOptions(
@@ -268,6 +270,7 @@ class AgentDB:
             kinds=kinds,
             tags=tags,
             source=source,
+            include_archived=include_archived,
         )
 
         return self._query_engine.search(options, context_ids=context_ids)
@@ -315,15 +318,53 @@ class AgentDB:
 
     def stats(self) -> dict:
         """Return summary statistics."""
+        fts = self._store.fts_stats()
+        indexed_vectors = self._hnsw.live_count
+        expected_vectors = self._store.count_embeddings(include_archived=True)
+        fts_in_sync = fts["rows"] == fts["searchable_rows"] and fts["deleted_rows"] == 0 and fts["orphaned_rows"] == 0
+        vectors_in_sync = indexed_vectors == expected_vectors
+        index_status = "healthy" if fts_in_sync and vectors_in_sync else "stale"
         return {
             "total_records": self._store.count(),
             "active_records": self._store.count(state=RecordState.ACTIVE),
             "archived_records": self._store.count(state=RecordState.ARCHIVED),
             "deleted_records": self._store.count(state=RecordState.DELETED),
-            "indexed_vectors": self._hnsw.count,
+            "fts_row_count": fts["rows"],
+            "indexed_vectors": indexed_vectors,
+            "embedding_dimensions": self._config.hnsw.dimensions,
+            "vector_backend": self._hnsw.backend_name,
+            "index_health": {
+                "status": index_status,
+                "fts_in_sync": fts_in_sync,
+                "vectors_in_sync": vectors_in_sync,
+                "expected_vectors": expected_vectors,
+            },
+            "last_rebuild_at": self._last_rebuild_at,
             "hnsw_capacity": self._hnsw.capacity,
             "sqlite_path": str(self._config.sqlite_path),
             "hnsw_path": str(self._config.hnsw_path),
+        }
+
+    def rebuild_indexes(
+        self,
+        rebuild_fts: bool = True,
+        rebuild_hnsw: bool = True,
+    ) -> dict:
+        self._ensure_initialized()
+        rebuilt_fts_rows = 0
+        if rebuild_fts:
+            rebuilt_fts_rows = self._store.rebuild_fts()
+        if rebuild_hnsw:
+            self._hnsw.clear()
+            self._rebuild_hnsw()
+        self._last_rebuild_at = datetime.now(timezone.utc).isoformat()
+        self.save()
+        return {
+            "rebuild_fts": rebuild_fts,
+            "rebuild_hnsw": rebuild_hnsw,
+            "fts_rows": rebuilt_fts_rows,
+            "indexed_vectors": self._hnsw.live_count,
+            "last_rebuild_at": self._last_rebuild_at,
         }
 
     # ── Internal ─────────────────────────────────────────────────────────
@@ -336,7 +377,7 @@ class AgentDB:
         """Rebuild HNSW index from SQLite embeddings."""
         import numpy as np
 
-        rows = self._store.load_with_embeddings()
+        rows = self._store.load_with_embeddings(include_archived=True)
         if not rows:
             return
 

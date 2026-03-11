@@ -391,7 +391,7 @@ class CardIssuer:
                 signature = bytes.fromhex(card.signature)
                 public_key.verify(signature, canonical)
                 return True
-            except Exception:
+            except Exception:  # noqa: BLE001 — boundary boundary
                 logger.error(
                     "Ed25519 signature verification failed for card %s",
                     card.model_id,
@@ -437,7 +437,7 @@ def verify_capability_card(card: CapabilityCard) -> Dict[str, Any]:
                         signature = bytes.fromhex(card.signature)
                         public_key.verify(signature, card.canonical_bytes())
                         signature_valid = True
-                except Exception:
+                except Exception:  # noqa: BLE001 — boundary boundary
                     signature_valid = False
         else:
             # Key not in registry - signature not trusted

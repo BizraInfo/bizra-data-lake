@@ -206,7 +206,7 @@ class UDPTransport(A2ATransport):
                             self.udp_transport.sendto(response.to_bytes(), addr)
                 except (ValueError, UnicodeDecodeError, OSError) as e:
                     print(f"⚠️ UDP message error: {e}")
-                except Exception as e:
+                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
                     print(f"⚠️ Unexpected UDP error: {type(e).__name__}: {e}")
 
         self._transport, self._protocol = await loop.create_datagram_endpoint(  # type: ignore[assignment]
@@ -234,7 +234,7 @@ class UDPTransport(A2ATransport):
         except (OSError, ValueError) as e:
             print(f"⚠️ UDP send error: {e}")
             return False
-        except Exception as e:
+        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
             print(f"⚠️ Unexpected UDP send error: {type(e).__name__}: {e}")
             return False
 
