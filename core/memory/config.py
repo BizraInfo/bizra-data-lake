@@ -36,6 +36,13 @@ class HNSWConfig:
     ef_search: int = 100  # Size of dynamic candidate list during search
     max_elements: int = 1_000_000  # Initial capacity (auto-resized)
 
+    # Scalar quantization (numpy fallback only — hnswlib uses its own)
+    quantize: bool = False  # Enable uint8 scalar quantization (4x memory reduction)
+    quantize_calibration_size: int = 100  # Vectors to collect before calibrating
+
+    # Auto-tuning: adjust M/ef based on dataset size (0 = disabled)
+    auto_tune: bool = False
+
 
 @dataclass
 class MemoryConfig:
