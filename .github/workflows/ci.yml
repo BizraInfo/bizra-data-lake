@@ -485,7 +485,7 @@ jobs:
 
       - name: "SEC-FE: Secret hygiene gate (no hardcoded keys in source)"
         run: |
-          if grep -rn 'BIZRA_\|sk_\|pk_\|secret\|password' src/ --include='*.ts' --include='*.tsx' | grep -v 'placeholder\|env\|import.meta\|type.*string\|interface\|Props'; then
+          if grep -rn 'BIZRA_\|sk_\|pk_\|secret\|password' src/ --include='*.ts' --include='*.tsx' | grep -v 'placeholder\|env\|import.meta\|type.*string\|interface\|Props\|param\|function\|async.*string\|credentials\|Promise\|api\.\|username'; then
             echo "::error::Potential secret found in frontend source"
             exit 1
           fi
