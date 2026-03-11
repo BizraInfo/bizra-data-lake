@@ -26,7 +26,10 @@ runtime truth.
 This blueprint is grounded in the current repo and canonical documents:
 
 - `docs/GENESIS_EXECUTION_FRAMEWORK.md`
+- `docs/plans/BIZRA_DELIVERY_CONTROL_TOWER_v1.md`
 - `docs/plans/GENESIS_CLOSURE_SPRINT_v1.md`
+- `config/bizra_delivery_control_plane.json`
+- `config/genesis_closure_program_board.json`
 - `docs/GENESIS_ROADMAP.md`
 - `docs/MASTER_MULTI_LENS_AUDIT_2026-03-03.md`
 - `docs/SAPE_SNR_MASTER_AUDIT_v1.md`
@@ -53,6 +56,11 @@ It needs disciplined closure in the following order:
 The correct move is:
 
 `masterpiece vision -> closure architecture -> measured runtime truth -> trusted scale`
+
+The machine-readable execution control layer for this sequence lives in:
+
+- `config/bizra_delivery_control_plane.json`
+- `config/genesis_closure_program_board.json`
 
 ## North-Star Constraints
 
