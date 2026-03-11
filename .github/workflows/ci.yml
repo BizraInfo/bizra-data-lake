@@ -518,10 +518,12 @@ jobs:
       - name: Upload frontend coverage
         if: always()
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4
+        continue-on-error: true
         with:
           files: frontend/coverage/coverage-final.json
           flags: frontend
           name: frontend-coverage
+          fail_ci_if_error: false
 
   build-frontend:
     name: "Frontend Gate 3: Build + Bundle Budget"

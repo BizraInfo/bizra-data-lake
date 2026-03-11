@@ -119,8 +119,9 @@ export function useWallet(nodeState: NodeState) {
     };
 
     try {
-      // Fetch all three independently — partial success is handled
-      const results = await Promise.allSettled([
+      // Constitutional fail-closed: ALL endpoints must succeed for live state.
+      // Any partial failure → offline fallback (Saltzer & Schroeder: default-deny).
+      const [balance, supply, potential] = await Promise.all([
         api.tokenBalance(),
         api.tokenSupply(),
         api.seedPotential(),
@@ -130,65 +131,39 @@ export function useWallet(nodeState: NodeState) {
 
       // Version check: has a newer fetch already landed?
       if (myVersion < versionRef.current) {
-        // A newer fetch was initiated while we were waiting.
-        // Discard this result — the newer one will win.
         return;
       }
 
-      const [balanceResult, supplyResult, potentialResult] = results;
+      fetchStatus.balance = 'ok';
+      fetchStatus.supply = 'ok';
+      fetchStatus.potential = 'ok';
 
-      // Track partial failures
-      const balance = balanceResult.status === 'fulfilled' ? balanceResult.value : null;
-      const supply = supplyResult.status === 'fulfilled' ? supplyResult.value : null;
-      const potential = potentialResult.status === 'fulfilled' ? potentialResult.value : null;
+      const grossSeed = balance.seed / (1 - THRESHOLDS.ZAKAT_RATE);
 
-      fetchStatus.balance = balance ? 'ok' : 'error';
-      fetchStatus.supply = supply ? 'ok' : 'error';
-      fetchStatus.potential = potential ? 'ok' : 'error';
-
-      const anySuccess = balance || supply || potential;
-
-      if (!anySuccess) {
-        // Total failure — fall back to offline, but only if no live state exists
-        setWallet(prev => {
-          // CRITICAL: Do not overwrite live state with offline fallback
-          // if we already have live data from a recent successful fetch.
-          if (prev.live && prev.lastSync && (Date.now() - prev.lastSync) < POLL_INTERVAL_MS * 2) {
-            // Recent live data exists — keep it, just mark the fetch status
-            return { ...prev, fetchStatus };
-          }
-          return { ...deriveOffline(nodeState, myVersion), fetchStatus };
-        });
-      } else {
-        // Partial or full success — merge what we got
-        setWallet(prev => {
-          const grossSeed = (balance?.seed ?? prev.seed) / (1 - THRESHOLDS.ZAKAT_RATE);
-
-          return {
-            seed: balance?.seed ?? prev.seed,
-            bloom: balance?.bloom ?? prev.bloom,
-            lockedSeed: balance?.locked_seed ?? prev.lockedSeed,
-            zakatContributed: +(grossSeed * THRESHOLDS.ZAKAT_RATE).toFixed(4),
-            totalSeed: supply?.total_seed ?? prev.totalSeed,
-            totalBloom: supply?.total_bloom ?? prev.totalBloom,
-            circulating: supply?.circulating ?? prev.circulating,
-            supplyCapUtilization: (supply?.total_seed ?? prev.totalSeed) / THRESHOLDS.SEED_SUPPLY_CAP_PER_YEAR,
-            factors: potential?.factors ?? prev.factors,
-            live: true,
-            lastSync: Date.now(),
-            loading: false,
-            version: myVersion,
-            fetchStatus,
-          };
-        });
-      }
+      setWallet({
+        seed: balance.seed,
+        bloom: balance.bloom,
+        lockedSeed: balance.locked_seed,
+        zakatContributed: +(grossSeed * THRESHOLDS.ZAKAT_RATE).toFixed(4),
+        totalSeed: supply.total_seed,
+        totalBloom: supply.total_bloom,
+        circulating: supply.circulating,
+        supplyCapUtilization: supply.total_seed / THRESHOLDS.SEED_SUPPLY_CAP_PER_YEAR,
+        factors: potential.factors,
+        live: true,
+        lastSync: Date.now(),
+        loading: false,
+        version: myVersion,
+        fetchStatus,
+      });
     } catch {
-      // Shouldn't reach here (allSettled doesn't throw), but safety net
+      // Any failure → offline fallback, preserving lastSync from prior live state
       if (mountedRef.current && myVersion >= versionRef.current) {
-        setWallet(prev => {
-          if (prev.live) return { ...prev, fetchStatus };
-          return { ...deriveOffline(nodeState, myVersion), fetchStatus };
-        });
+        setWallet(prev => ({
+          ...deriveOffline(nodeState, myVersion),
+          lastSync: prev.lastSync,
+          fetchStatus,
+        }));
       }
     } finally {
       inFlightRef.current = false;

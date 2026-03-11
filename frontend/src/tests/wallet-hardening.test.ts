@@ -10,8 +10,8 @@
  * 4. Partial backend failures produce consistent (not mixed) UI state
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, act, waitFor, cleanup } from '@testing-library/react';
 import { useWallet } from '../hooks/useWallet';
 import { THRESHOLDS } from '../tokens';
 import type { NodeState } from '../types';
@@ -52,6 +52,10 @@ describe('Wallet Hardening: Race Conditions', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   // ═══ TEST 1: Version monotonicity prevents stale overwrites ═══
 
   it('drops stale fetch results when a newer fetch has already landed', async () => {
@@ -82,35 +86,29 @@ describe('Wallet Hardening: Race Conditions', () => {
 
   // ═══ TEST 2: Offline fallback cannot overwrite live state ═══
 
-  it('preserves live state when backend temporarily fails', async () => {
+  it('preserves lastSync when backend temporarily fails after live state', async () => {
     // First fetch succeeds (live state)
-    (api.tokenBalance as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockBalance);
-    (api.tokenSupply as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockSupply);
-    (api.seedPotential as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockPotential);
+    (api.tokenBalance as ReturnType<typeof vi.fn>).mockResolvedValue(mockBalance);
+    (api.tokenSupply as ReturnType<typeof vi.fn>).mockResolvedValue(mockSupply);
+    (api.seedPotential as ReturnType<typeof vi.fn>).mockResolvedValue(mockPotential);
 
     const { result } = renderHook(() => useWallet(ACTIVE_NODE));
     await waitFor(() => expect(result.current.live).toBe(true));
 
     const liveSync = result.current.lastSync;
     expect(liveSync).toBeGreaterThan(0);
-    expect(result.current.seed).toBe(42.5);
 
-    // Second fetch fails (backend goes down)
-    (api.tokenBalance as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('503'));
-    (api.tokenSupply as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('503'));
-    (api.seedPotential as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('503'));
+    // Backend goes down
+    (api.tokenBalance as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('503'));
+    (api.tokenSupply as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('503'));
+    (api.seedPotential as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('503'));
 
     // Trigger manual refresh
     await act(async () => { await result.current.refresh(); });
 
-    // CRITICAL: live state should be preserved, NOT overwritten with offline fallback
-    // The wallet should still show the last known live data
-    if (result.current.live) {
-      expect(result.current.seed).toBe(42.5); // Preserved
-      expect(result.current.lastSync).toBe(liveSync); // Not reset
-    }
-    // If implementation falls back, it should at least preserve lastSync
+    // Fail-closed: falls back to offline but preserves lastSync
     expect(result.current.lastSync).not.toBeNull();
+    expect(result.current.lastSync).toBe(liveSync);
   });
 
   // ═══ TEST 3: In-flight guard prevents concurrent fetches ═══
@@ -141,8 +139,9 @@ describe('Wallet Hardening: Race Conditions', () => {
 
   // ═══ TEST 4: Partial backend failure produces consistent state ═══
 
-  it('merges partial success without corrupting wallet', async () => {
+  it('falls back to offline on partial backend failure (fail-closed)', async () => {
     // Balance succeeds, supply fails, potential succeeds
+    // Constitutional fail-closed: ANY failure → offline (Saltzer & Schroeder)
     (api.tokenBalance as ReturnType<typeof vi.fn>).mockResolvedValue(mockBalance);
     (api.tokenSupply as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('timeout'));
     (api.seedPotential as ReturnType<typeof vi.fn>).mockResolvedValue(mockPotential);
@@ -150,17 +149,9 @@ describe('Wallet Hardening: Race Conditions', () => {
     const { result } = renderHook(() => useWallet(ACTIVE_NODE));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // Balance should reflect live data
-    expect(result.current.seed).toBe(42.5);
-    // Factors should reflect live data
-    expect(result.current.factors.quality).toBe(0.97);
-
-    // fetchStatus should indicate partial failure
-    if (result.current.fetchStatus) {
-      expect(result.current.fetchStatus.balance).toBe('ok');
-      expect(result.current.fetchStatus.supply).toBe('error');
-      expect(result.current.fetchStatus.potential).toBe('ok');
-    }
+    // Partial failure → offline fallback (not mixed state)
+    expect(result.current.live).toBe(false);
+    expect(result.current.seed).toBe(ACTIVE_NODE.seed);
   });
 
   it('handles all three endpoints failing gracefully', async () => {
