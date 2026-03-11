@@ -463,3 +463,15 @@ Collect these before escalating:
 5. Smoke test status (pass/fail list)
 6. Bridge status: `ping` response or connection error
 7. SEC-001 gate status: `python3 scripts/ci_blake3_gate.py`
+
+---
+
+## 9. Node0 Production Deployment
+
+For production deployment of Node0 on native Linux, see the production repo:
+
+- **Installer:** `bizra-node0/installers/install-node0-linux.sh`
+- **Systemd unit:** `bizra-node0/deploy/node0/bizra-node0.service`
+- **Logrotate:** `bizra-node0/deploy/node0/bizra-node0.logrotate`
+- **Certification:** `bizra-node0/deploy/node0/certify-linux.sh`
+- **Full runbook:** `bizra-node0/docs/OPERATIONS_RUNBOOK.md` §9

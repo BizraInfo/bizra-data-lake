@@ -463,3 +463,97 @@ Collect these before escalating:
 5. Smoke test status (pass/fail list)
 6. Bridge status: `ping` response or connection error
 7. SEC-001 gate status: `python3 scripts/ci_blake3_gate.py`
+
+---
+
+## 9. Native Linux Production Deployment
+
+> Standing on Giants: Burns (12-Factor App, 2011) · FHS 3.0 (2015) · Deming (PDCA, 1950)
+
+### Canonical Host Layout
+
+```
+/opt/bizra-node0/                 — Code (read-only after install)
+  ├── core/                       — Python modules (97 files, 15 packages)
+  ├── scripts/                    — Operator CLI (node0_standalone.py)
+  ├── deploy/node0/               — systemd, logrotate, preflight, certification
+  ├── bizra-omega/                — Rust workspace (5 crates, MVSA binary)
+  ├── tests/                      — Test suite
+  ├── .venv/                      — Virtual environment (created by installer)
+  └── pyproject.toml              — Package metadata
+
+/etc/bizra-node0/                 — Config (operator-managed)
+  └── node0.env                   — Environment: JWT secret, API keys, inference hosts
+
+/var/lib/bizra-node0/             — Mutable state (service-writable)
+  ├── sovereign_state/            — Lifecycle JSON, identity, evidence chain
+  ├── checkpoints/                — Checkpoint snapshots
+  └── evidence/                   — Evidence receipts
+
+/var/log/bizra-node0/             — Logs (logrotate-managed, 30-day retention)
+
+/data/bizra/                      — Models/data (optional, operator-created)
+```
+
+### Installation
+
+```bash
+# Clone or extract the production repo
+git clone https://github.com/BizraInfo/bizra-node0.git /tmp/bizra-node0
+
+# Run installer (requires root)
+sudo bash /tmp/bizra-node0/installers/install-node0-linux.sh
+
+# Configure (REQUIRED before first boot)
+sudo vim /etc/bizra-node0/node0.env
+# → Set BIZRA_JWT_SECRET (python3 -c "import secrets; print(secrets.token_urlsafe(64))")
+# → Set BIZRA_API_KEYS
+
+# Enable and start
+sudo systemctl enable --now bizra-node0
+
+# Verify
+sudo systemctl status bizra-node0
+sudo journalctl -u bizra-node0 -f
+```
+
+### Certification
+
+```bash
+# Run the native Linux certification suite (25 checks, 6 sections)
+sudo -u bizra bash /opt/bizra-node0/deploy/node0/certify-linux.sh
+
+# Certification JSON receipt is written to /tmp/bizra-node0-certification-*.json
+```
+
+### Systemd Management
+
+```bash
+sudo systemctl start bizra-node0       # Start service
+sudo systemctl stop bizra-node0        # Stop service
+sudo systemctl restart bizra-node0     # Restart
+sudo systemctl status bizra-node0      # Status check
+sudo journalctl -u bizra-node0 -f      # Follow logs
+sudo journalctl -u bizra-node0 --since "1 hour ago"  # Recent logs
+```
+
+### Security Hardening (systemd)
+
+The service unit enforces 18 security restrictions:
+- `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`
+- `PrivateTmp`, `PrivateDevices`, `MemoryDenyWriteExecute`
+- `SystemCallFilter=@system-service`, `RestrictNamespaces`
+- `ReadOnlyPaths=/opt/bizra-node0` (code cannot be modified at runtime)
+- `ReadWritePaths` limited to state + log directories only
+- `MemoryMax=4G`, `CPUQuota=200%` (resource bounds)
+- `WatchdogSec=120` (integrates with Helix 3 heartbeat)
+
+### Uninstall
+
+```bash
+# Remove code + systemd (preserves config, state, logs)
+sudo bash /opt/bizra-node0/installers/install-node0-linux.sh --uninstall
+
+# Full removal (destroys state)
+sudo rm -rf /etc/bizra-node0 /var/lib/bizra-node0 /var/log/bizra-node0
+```

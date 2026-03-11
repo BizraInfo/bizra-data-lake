@@ -1,0 +1,85 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Node0 — Sovereign Lifecycle Runtime (systemd unit)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants:
+# - Lennart Poettering (systemd, 2010): declarative service management
+# - Burns (12-Factor App, 2011): strict config/code/state separation
+# - Deming (PDCA, 1950): health pre-check before every start cycle
+#
+# Install:
+#   sudo cp deploy/node0/bizra-node0.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now bizra-node0
+#
+# Layout (FHS 3.0):
+#   /opt/bizra-node0/      — code (read-only)
+#   /etc/bizra-node0/      — config (operator-managed)
+#   /var/lib/bizra-node0/  — mutable state
+#   /var/log/bizra-node0/  — logs
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=BIZRA Node0 Sovereign Lifecycle Runtime
+Documentation=file:///opt/bizra-node0/docs/NODE0_STANDALONE_READINESS.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bizra
+Group=bizra
+
+# ─── Environment ──────────────────────────────────────────────────────────────
+EnvironmentFile=/etc/bizra-node0/node0.env
+Environment=PYTHONPATH=/opt/bizra-node0
+Environment=PATH=/opt/bizra-node0/.venv/bin:/usr/local/bin:/usr/bin:/bin
+
+# ─── Execution ────────────────────────────────────────────────────────────────
+# Pre-check: health gate must pass before serving (Deming: Plan before Do)
+ExecStartPre=/opt/bizra-node0/.venv/bin/python /opt/bizra-node0/scripts/node0_standalone.py health
+ExecStart=/opt/bizra-node0/.venv/bin/python /opt/bizra-node0/scripts/node0_standalone.py serve --host 127.0.0.1 --port 8091
+ExecReload=/bin/kill -HUP $MAINPID
+
+# ─── Security Hardening (Spine §4, L2 Constitutional Layer) ──────────────────
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+
+# ─── Filesystem (principle of least privilege) ────────────────────────────────
+ReadOnlyPaths=/opt/bizra-node0
+ReadWritePaths=/var/lib/bizra-node0 /var/log/bizra-node0
+
+# ─── Resource Limits ─────────────────────────────────────────────────────────
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryMax=4G
+CPUQuota=200%
+
+# ─── Restart Policy ──────────────────────────────────────────────────────────
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bizra-node0
+
+# ─── Watchdog (integrates with Helix 3 heartbeat, Spine §3) ─────────────────
+WatchdogSec=120
+
+[Install]
+WantedBy=multi-user.target
