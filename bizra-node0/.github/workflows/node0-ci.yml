@@ -1,0 +1,121 @@
+# BIZRA Node0 — CI Pipeline
+# Scoped to the Node0 production surface only.
+# Standing on Giants: Deming (PDCA, 1950), GitHub Actions
+
+name: Node0 CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: '3.12'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Ruff
+        run: ruff check core/ scripts/
+
+      - name: Black
+        run: black --check core/ scripts/
+
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --tb=short --timeout=60
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+  mvsa-gate:
+    name: MVSA Acceptance Gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Run MVSA gate
+        run: |
+          python scripts/ci_mvsa_gate.py \
+            --project-root . \
+            --report /tmp/mvsa_gate_report.json \
+            --github-output "$GITHUB_OUTPUT" || true
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Upload MVSA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvsa-gate-${{ github.sha }}
+          path: /tmp/mvsa_gate_report.json
+          retention-days: 90
+
+  ceremony-smoke:
+    name: Ceremony Smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Ceremony script syntax check
+        run: bash -n scripts/node0_genesis_ceremony.sh
+
+      - name: Preflight check
+        run: bash deploy/node0/mvsa-preflight.sh || true
