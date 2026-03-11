@@ -119,3 +119,37 @@ jobs:
 
       - name: Preflight check
         run: bash deploy/node0/mvsa-preflight.sh || true
+
+  genesis-100:
+    name: Genesis-100 Gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [mvsa-gate, ceremony-smoke]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Run Genesis-100 gate
+        run: |
+          python scripts/genesis_100_gate.py \
+            --project-root . \
+            --report /tmp/genesis_100_report.json \
+            --github-output "$GITHUB_OUTPUT"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Upload Genesis-100 report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: genesis-100-${{ github.sha }}
+          path: /tmp/genesis_100_report.json
+          retention-days: 90
