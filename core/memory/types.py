@@ -119,3 +119,10 @@ class QueryOptions:
     tags: Optional[List[str]] = None
     source: Optional[str] = None
     include_archived: bool = False
+
+    # MMR (Maximal Marginal Relevance) — diversifies results
+    use_mmr: bool = False
+    mmr_lambda: float = 0.5  # 0.0=max diversity, 1.0=max relevance
+
+    # Metadata filters (key → value or {$gte/$lte/$in/$contains} dict)
+    metadata_filters: Optional[Dict[str, Any]] = None

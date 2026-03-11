@@ -71,7 +71,9 @@ def _coerce_datetime(value: Any) -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _normalize_kind(value: Any, default: MemoryKind = MemoryKind.SEMANTIC) -> MemoryKind:
+def _normalize_kind(
+    value: Any, default: MemoryKind = MemoryKind.SEMANTIC
+) -> MemoryKind:
     if isinstance(value, str):
         try:
             return MemoryKind(value.lower())
@@ -223,15 +225,13 @@ class ClaudeFlowAdapter:
         return ClaudeFlowImportBatch(records=records, issues=issues)
 
     def _export_memory_entries(self, conn: sqlite3.Connection) -> list[MemoryRecord]:
-        rows = conn.execute(
-            """
+        rows = conn.execute("""
             SELECT id, key, namespace, type, content, tags, metadata, owner_id,
                    created_at, updated_at, last_accessed_at, access_count, status
             FROM memory_entries
             WHERE status != 'deleted'
             ORDER BY updated_at DESC
-            """
-        ).fetchall()
+            """).fetchall()
         records: list[MemoryRecord] = []
         for row in rows:
             record = self._memory_entry_to_record(dict(row))
@@ -261,7 +261,9 @@ class ClaudeFlowAdapter:
         created_at = _coerce_datetime(row.get("created_at"))
         updated_at = _coerce_datetime(row.get("updated_at"))
         last_accessed = _coerce_datetime(
-            row.get("last_accessed_at") or row.get("updated_at") or row.get("created_at")
+            row.get("last_accessed_at")
+            or row.get("updated_at")
+            or row.get("created_at")
         )
 
         metadata.update(
@@ -299,8 +301,12 @@ class ClaudeFlowAdapter:
         )
 
     def _pattern_row_to_record(self, row: dict[str, Any]) -> MemoryRecord | None:
-        pattern_name = str(row.get("name") or row.get("pattern_name") or row.get("id") or "").strip()
-        pattern_type = str(row.get("pattern_type") or row.get("type") or "pattern").strip()
+        pattern_name = str(
+            row.get("name") or row.get("pattern_name") or row.get("id") or ""
+        ).strip()
+        pattern_type = str(
+            row.get("pattern_type") or row.get("type") or "pattern"
+        ).strip()
         content_bits = [
             bit
             for bit in (
@@ -351,17 +357,25 @@ class ClaudeFlowAdapter:
             return self._project_pattern_records(path, payload)
         return self._generic_artifact_records(source, path, payload)
 
-    def _session_index_records(self, path: Path, payload: dict[str, Any]) -> list[MemoryRecord]:
+    def _session_index_records(
+        self, path: Path, payload: dict[str, Any]
+    ) -> list[MemoryRecord]:
         records: list[MemoryRecord] = []
         for session in payload.get("sessions", []):
             if not isinstance(session, dict):
                 continue
             content = str(session.get("summary") or _json_preview(session)).strip()
-            source_id = str(session.get("session_id") or session.get("timestamp") or len(records))
-            timestamp = _coerce_datetime(session.get("timestamp") or payload.get("updated"))
+            source_id = str(
+                session.get("session_id") or session.get("timestamp") or len(records)
+            )
+            timestamp = _coerce_datetime(
+                session.get("timestamp") or payload.get("updated")
+            )
             records.append(
                 MemoryRecord(
-                    id=_stable_record_id(content, "claude_flow_session_index", source_id),
+                    id=_stable_record_id(
+                        content, "claude_flow_session_index", source_id
+                    ),
                     content=content,
                     kind=MemoryKind.EPISODIC,
                     state=RecordState.ACTIVE,
@@ -383,7 +397,9 @@ class ClaudeFlowAdapter:
             )
         return records
 
-    def _project_pattern_records(self, path: Path, payload: dict[str, Any]) -> list[MemoryRecord]:
+    def _project_pattern_records(
+        self, path: Path, payload: dict[str, Any]
+    ) -> list[MemoryRecord]:
         records: list[MemoryRecord] = []
         patterns = payload.get("patterns", {})
         if not isinstance(patterns, dict):
@@ -394,7 +410,9 @@ class ClaudeFlowAdapter:
             timestamp = datetime.now(timezone.utc)
             records.append(
                 MemoryRecord(
-                    id=_stable_record_id(content, "claude_flow_project_patterns", source_id),
+                    id=_stable_record_id(
+                        content, "claude_flow_project_patterns", source_id
+                    ),
                     content=content,
                     kind=MemoryKind.PROCEDURAL,
                     state=RecordState.ACTIVE,

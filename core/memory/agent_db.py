@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from time import perf_counter
 from typing import List, Optional, Sequence
 
 from core.proof_engine.canonical import hex_digest
@@ -285,6 +286,28 @@ class AgentDB:
             self._store.touch_access(record_id)
         return record
 
+    def find(
+        self,
+        source: Optional[str] = None,
+        kind: Optional[MemoryKind] = None,
+        tags: Optional[List[str]] = None,
+        limit: int = 1000,
+        include_archived: bool = False,
+    ) -> List[MemoryRecord]:
+        """Find records by metadata filters (no semantic search needed).
+
+        Unlike search(), this does not require a text query or embedding.
+        Queries SQLite directly by source, kind, and/or tags.
+        """
+        self._ensure_initialized()
+        return self._store.find_records(
+            source=source,
+            kind=kind,
+            tags=tags,
+            limit=limit,
+            include_archived=include_archived,
+        )
+
     # ── Forget ───────────────────────────────────────────────────────────
 
     def forget(self, record_id: str, hard: bool = False) -> bool:
@@ -304,6 +327,15 @@ class AgentDB:
         if self._initialized:
             self._hnsw.save(self._config.hnsw_path)
             logger.info("AgentDB saved (HNSW index persisted)")
+
+    def close(self) -> None:
+        """Release SQLite resources held by the store."""
+        if not self._initialized:
+            return
+        self.save()
+        self._store.close()
+        self._query_engine = None
+        self._initialized = False
 
     def get_persistable_state(self) -> dict:
         """Return state dict for MemoryCoordinator integration."""
@@ -355,6 +387,7 @@ class AgentDB:
         rebuild_hnsw: bool = True,
     ) -> dict:
         self._ensure_initialized()
+        started = perf_counter()
         rebuilt_fts_rows = 0
         if rebuild_fts:
             rebuilt_fts_rows = self._store.rebuild_fts()
@@ -369,6 +402,7 @@ class AgentDB:
             "fts_rows": rebuilt_fts_rows,
             "indexed_vectors": self._hnsw.live_count,
             "last_rebuild_at": self._last_rebuild_at,
+            "duration_ms": round((perf_counter() - started) * 1000, 3),
         }
 
     # ── Internal ─────────────────────────────────────────────────────────

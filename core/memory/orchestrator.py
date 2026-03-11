@@ -30,6 +30,7 @@ from .adapters.claude_flow import ClaudeFlowAdapter
 from .adapters.experience_ledger import ExperienceLedgerAdapter
 from .adapters.living_memory import LivingMemoryAdapter
 from .adapters.pattern_memory import PatternMemoryAdapter
+from .adapters.reasoning_bank import ReasoningBankAdapter
 from .agent_db import AgentDB
 from .migrator import MemoryMigrator
 from .types import MemoryRecord
@@ -117,6 +118,7 @@ class MigrationOrchestrator:
         self._v1_db_path: Optional[Path] = None
         self._claude_flow_db_path: Optional[Path] = None
         self._claude_flow_artifact_dir: Optional[Path] = None
+        self._reasoning_bank_dir: Optional[Path] = None
         self._strict_json = False
 
     def set_living_memory(self, lm) -> MigrationOrchestrator:
@@ -141,6 +143,11 @@ class MigrationOrchestrator:
 
     def set_claude_flow_artifact_dir(self, path: Path) -> MigrationOrchestrator:
         self._claude_flow_artifact_dir = path
+        return self
+
+    def set_reasoning_bank_dir(self, path: Path) -> MigrationOrchestrator:
+        """Set the ReasoningBank state directory (.claude/state/reasoning_bank/)."""
+        self._reasoning_bank_dir = path
         return self
 
     def set_strict_json(self, strict_json: bool) -> MigrationOrchestrator:
@@ -188,6 +195,12 @@ class MigrationOrchestrator:
         ):
             phase = self._migrate_claude_flow_artifacts(dry_run)
             result.phases.append(phase)
+
+        if self._reasoning_bank_dir is not None:
+            adapter = ReasoningBankAdapter(state_dir=self._reasoning_bank_dir)
+            if adapter.available:
+                phase = self._migrate_adapter("reasoning_bank", adapter, dry_run)
+                result.phases.append(phase)
 
         if not dry_run:
             self._db.save()
@@ -256,7 +269,9 @@ class MigrationOrchestrator:
                 self._db.store_record(record)
                 phase.records_imported += 1
             except Exception as exc:  # noqa: BLE001 — boundary boundary
-                logger.warning("Failed to import claude_flow_db record %s: %s", record.id, exc)
+                logger.warning(
+                    "Failed to import claude_flow_db record %s: %s", record.id, exc
+                )
                 phase.errors += 1
 
         phase.duration_ms = _now_ms() - start

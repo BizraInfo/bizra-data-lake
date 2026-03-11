@@ -3,12 +3,14 @@
 from .claude_flow import ClaudeFlowAdapter
 from .experience_ledger import ExperienceLedgerAdapter
 from .living_memory import LivingMemoryAdapter
+from .reasoning_bank import ReasoningBankAdapter
 
 __all__ = [
     "ClaudeFlowAdapter",
     "ExperienceLedgerAdapter",
     "LivingMemoryAdapter",
     "PatternMemoryAdapter",
+    "ReasoningBankAdapter",
 ]
 
 # PatternMemory adapter is optional (requires PyO3 build)

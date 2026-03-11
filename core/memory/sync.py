@@ -85,7 +85,11 @@ class MemorySyncPublisher:
 
         except ImportError:
             logger.warning("redis package not installed — sync disabled")
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.warning(f"Redis connection failed: {e}")
 
     async def publish(self, record: MemoryRecord) -> None:
@@ -102,7 +106,11 @@ class MemorySyncPublisher:
                 await self._client.publish(self._channel, message)
                 self._publish_count += 1
                 return
-            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ) as e:  # SEC-003 — json boundary
                 logger.warning(f"Publish failed: {e}")
                 self._connected = False
 
@@ -186,7 +194,11 @@ class MemorySyncSubscriber:
 
         except ImportError:
             logger.warning("redis package not installed — sync disabled")
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.warning(f"Subscriber start failed: {e}")
 
     async def _listen_loop(self) -> None:
@@ -199,7 +211,11 @@ class MemorySyncSubscriber:
                     await self._handle_message(message["data"])
             except asyncio.CancelledError:
                 break
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.warning(f"Subscriber error: {e}")
                 await asyncio.sleep(1.0)
 

@@ -184,7 +184,11 @@ class HNSWIndex:
     _scale_warned = False
 
     def _numpy_search(self, query: np.ndarray, top_k: int) -> List[Tuple[str, float]]:
-        """Brute-force cosine search (fallback when hnswlib unavailable)."""
+        """Brute-force search (fallback when hnswlib unavailable).
+
+        Supports cosine, l2, and ip (inner product) spaces matching
+        the hnswlib space config.
+        """
         if not self._fallback_vectors:
             return []
 
@@ -199,14 +203,26 @@ class HNSWIndex:
         ids = list(self._fallback_vectors.keys())
         matrix = np.stack([self._fallback_vectors[i] for i in ids])
 
-        # Normalize
-        query_norm = query / (np.linalg.norm(query) + 1e-10)
-        norms = np.linalg.norm(matrix, axis=1, keepdims=True) + 1e-10
-        matrix_norm = matrix / norms
-
-        # Cosine distance = 1 - dot product of normalized vectors
-        similarities = matrix_norm @ query_norm
-        distances = 1.0 - similarities
+        space = self._config.space
+        if space == "cosine":
+            query_norm = query / (np.linalg.norm(query) + 1e-10)
+            norms = np.linalg.norm(matrix, axis=1, keepdims=True) + 1e-10
+            matrix_norm = matrix / norms
+            similarities = matrix_norm @ query_norm
+            distances = 1.0 - similarities
+        elif space == "l2":
+            diff = matrix - query.reshape(1, -1)
+            distances = np.sum(diff**2, axis=1)
+        elif space == "ip":
+            # Inner product: hnswlib returns negative IP as distance
+            distances = -(matrix @ query)
+        else:
+            # Default to cosine
+            query_norm = query / (np.linalg.norm(query) + 1e-10)
+            norms = np.linalg.norm(matrix, axis=1, keepdims=True) + 1e-10
+            matrix_norm = matrix / norms
+            similarities = matrix_norm @ query_norm
+            distances = 1.0 - similarities
 
         top_indices = np.argsort(distances)[:top_k]
         return [(ids[i], float(distances[i])) for i in top_indices]
