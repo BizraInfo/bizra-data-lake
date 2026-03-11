@@ -174,7 +174,7 @@ export function useMission(userName: string) {
         add(pa, pt, 'pro');
       }, 3500);
     },
-    [add, running],
+    [add, running], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return { msgs, running, nodeState, exec, add, inputRef };

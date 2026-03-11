@@ -361,7 +361,7 @@ export default function TerminalTimeline() {
 
   // Load events from API or demo
   const { data: episodes } = useSeedEpisodes();
-  const { data: constitutional } = useConstitutionalStatus();
+  const { data: _constitutional } = useConstitutionalStatus();
 
   useEffect(() => {
     // If we have live data, transform it; otherwise use demo events

@@ -4,7 +4,6 @@ import {
   useNodeValue,
   useNodeLifecycle,
   useNetworkEffect,
-  useNetworkMilestones,
 } from "@/hooks/use-sovereign-api";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -132,8 +131,6 @@ function LifecycleProgress() {
   const stages = ["Seedling", "Sprout", "Sapling", "Branch", "Canopy", "Catalyst"];
   const emojis = ["🌱", "🌿", "🌲", "🌳", "🏔️", "⭐"];
   const currentIdx = stages.indexOf(DEMO_LIFECYCLE.current_stage);
-  const progress =
-    (DEMO_LIFECYCLE.sovereignty_score - (currentIdx * 0.2)) / 0.2;
 
   return (
     <div className="border border-slate-700/50 rounded-lg p-4 mb-3">
@@ -260,9 +257,9 @@ function DiffusionEligibility() {
 // ─── Main Component ─────────────────────────────────────────────
 
 export default function TerminalNetwork() {
-  const { data: nodeValue } = useNodeValue();
-  const { data: lifecycle } = useNodeLifecycle();
-  const { data: networkEffect } = useNetworkEffect();
+  const { data: _nodeValue } = useNodeValue();
+  const { data: _lifecycle } = useNodeLifecycle();
+  const { data: _networkEffect } = useNetworkEffect();
 
   return (
     <div className="p-4 max-w-3xl mx-auto">

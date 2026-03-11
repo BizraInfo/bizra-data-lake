@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   useSeedPotential,
-  useSeedEpisodes,
 } from "@/hooks/use-sovereign-api";
 
 // ─── Types ──────────────────────────────────────────────────────

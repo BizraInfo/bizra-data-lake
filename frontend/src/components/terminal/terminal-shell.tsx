@@ -21,7 +21,7 @@ interface ViewDef {
   label: string;
   shortcut: string;
   emoji: string;
-  component: React.LazyExoticComponent<() => JSX.Element>;
+  component: React.LazyExoticComponent<React.ComponentType<unknown>>;
 }
 
 // ─── Constants ──────────────────────────────────────────────────
