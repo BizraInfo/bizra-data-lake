@@ -19,13 +19,11 @@ import asyncio
 import inspect
 import json
 import time
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
 from core.bridges.ghost_ws import (
-    GHOST_DEBOUNCE_MS,
-    GHOST_IDLE_TIMEOUT_MS,
     MAX_SUGGESTIONS,
     GhostConnectionManager,
     OverlayEvent,
@@ -37,6 +35,11 @@ from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
+
+
+def _ghost_ws_endpoint():
+    route = next(r for r in app.routes if getattr(r, "path", "") == "/ws/ghost")
+    return route.endpoint
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -297,6 +300,80 @@ class TestHealthEndpoint:
             assert data["thresholds"]["snr"] == UNIFIED_SNR_THRESHOLD
 
 
+class TestProductionHardening:
+    """Production defaults must disable or harden the Ghost bridge."""
+
+    @pytest.mark.asyncio
+    async def test_rpc_disabled_by_default_in_production(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        import core.bridges.ghost_ws as ghost_ws
+        from httpx import ASGITransport, AsyncClient
+
+        monkeypatch.setattr(ghost_ws, "GHOST_WS_ENABLED", False)
+        monkeypatch.setattr(ghost_ws, "BIZRA_ENV", "production")
+        monkeypatch.setattr(ghost_ws, "_production_mode_enabled", lambda: True)
+
+        transport = ASGITransport(app=ghost_ws.app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/rpc",
+                json={"jsonrpc": "2.0", "method": "ping", "params": {}, "id": 1},
+            )
+
+        assert resp.status_code == 503
+        assert "disabled in production" in resp.json()["error"]["message"]
+
+    @pytest.mark.asyncio
+    async def test_rpc_requires_auth_token_when_enabled_in_production(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        import core.bridges.ghost_ws as ghost_ws
+        from httpx import ASGITransport, AsyncClient
+
+        monkeypatch.setattr(ghost_ws, "GHOST_WS_ENABLED", True)
+        monkeypatch.setattr(ghost_ws, "GHOST_WS_AUTH_TOKEN", "test-secret-token")
+        monkeypatch.setattr(ghost_ws, "BIZRA_ENV", "production")
+        monkeypatch.setattr(ghost_ws, "_production_mode_enabled", lambda: True)
+        monkeypatch.setattr(ghost_ws, "_loopback_client", lambda host: True)
+
+        transport = ASGITransport(app=ghost_ws.app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/rpc",
+                json={"jsonrpc": "2.0", "method": "ping", "params": {}, "id": 2},
+            )
+
+        assert resp.status_code == 401
+        assert "authentication failed" in resp.json()["error"]["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_websocket_disabled_by_default_in_production(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        import core.bridges.ghost_ws as ghost_ws
+
+        monkeypatch.setattr(ghost_ws, "GHOST_WS_ENABLED", False)
+        monkeypatch.setattr(ghost_ws, "BIZRA_ENV", "production")
+        monkeypatch.setattr(ghost_ws, "_production_mode_enabled", lambda: True)
+
+        endpoint = _ghost_ws_endpoint()
+
+        class _FakeWebSocket:
+            def __init__(self):
+                self.client = type("Client", (), {"host": "127.0.0.1"})()
+                self.headers = {}
+                self.closed = None
+
+            async def close(self, code: int = 1000, reason: str = "") -> None:
+                self.closed = (code, reason)
+
+        ws = _FakeWebSocket()
+        await endpoint(ws)
+
+        assert ws.closed == (4403, "Ghost bridge disabled in production")
+
+
 # ---------------------------------------------------------------------------
 # TestNoHardcodedSecrets
 # ---------------------------------------------------------------------------
@@ -315,8 +392,6 @@ class TestNoHardcodedSecrets:
 
     def test_auth_token_from_env(self):
         """Auth token must come from environment, not source."""
-        from core.bridges.ghost_ws import GHOST_WS_AUTH_TOKEN
-
         # In test env, it's empty (no env var set) — correct
         # In production, GHOST_WS_AUTH_TOKEN env var is required
         source = inspect.getsource(PredictionDebouncer)

@@ -265,6 +265,59 @@ async def test_websocket_denies_missing_credentials_by_default(
 
 
 @pytest.mark.asyncio
+async def test_websocket_auth_exception_closes_connection_without_unpack_error(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.delenv("BIZRA_AUTH_ALLOW_ANONYMOUS", raising=False)
+
+    import core.auth.middleware as auth_middleware_module
+
+    original_authenticate = auth_middleware_module.AuthMiddleware.authenticate
+
+    def _boom(self, authorization=None, api_key=None):
+        raise ValueError("forced websocket auth failure")
+
+    monkeypatch.setattr(
+        auth_middleware_module.AuthMiddleware,
+        "authenticate",
+        _boom,
+    )
+
+    runtime = _runtime(tmp_path)
+    app = create_fastapi_app(runtime)
+    endpoint = _websocket_endpoint(app)
+
+    class _FakeWebSocket:
+        def __init__(self):
+            self.headers = {"authorization": "Bearer test"}
+            self.accepted = False
+            self.closed: tuple[int, str] | None = None
+
+        async def close(self, code: int = 1000, reason: str = "") -> None:
+            self.closed = (code, reason)
+
+        async def accept(self) -> None:
+            self.accepted = True
+
+        async def send_json(self, _: dict[str, object]) -> None:
+            pass
+
+        async def receive_json(self) -> dict[str, object]:
+            raise RuntimeError("ws should be rejected before receive loop")
+
+    ws = _FakeWebSocket()
+    await endpoint(ws)
+
+    assert ws.accepted is False
+    assert ws.closed == (1011, "Authentication failed")
+    monkeypatch.setattr(
+        auth_middleware_module.AuthMiddleware,
+        "authenticate",
+        original_authenticate,
+    )
+
+
+@pytest.mark.asyncio
 async def test_memory_stats_denies_missing_credentials_by_default(
     tmp_path, monkeypatch
 ) -> None:
@@ -276,6 +329,30 @@ async def test_memory_stats_denies_missing_credentials_by_default(
     resp = await endpoint(_Request())
     assert isinstance(resp, JSONResponse)
     assert resp.status_code in {401, 503}
+
+
+def test_fastapi_app_creation_fails_closed_without_jwt_secret_in_production(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("BIZRA_ENV", "production")
+    monkeypatch.delenv("BIZRA_JWT_SECRET", raising=False)
+
+    runtime = _runtime(tmp_path)
+
+    with pytest.raises(
+        RuntimeError, match="Authentication layer failed to initialize in production"
+    ):
+        create_fastapi_app(runtime)
+
+
+def test_asyncio_server_requires_api_keys_in_production(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("BIZRA_ENV", "production")
+    runtime = _runtime(tmp_path)
+
+    from core.sovereign.api import SovereignAPIServer
+
+    with pytest.raises(RuntimeError, match="requires explicit API keys"):
+        SovereignAPIServer(runtime)
 
 
 @pytest.mark.asyncio
