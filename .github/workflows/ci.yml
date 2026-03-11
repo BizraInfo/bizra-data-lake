@@ -625,6 +625,68 @@ jobs:
           echo "> **Warning:** Quality gates were intentionally skipped via workflow_dispatch." >> $GITHUB_STEP_SUMMARY
           echo "> This bypass should only be used for emergency hotfixes on feature branches." >> $GITHUB_STEP_SUMMARY
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MVSA Acceptance Gate — Node0 sovereign lifecycle verification
+  # Standing on Giants: Deming (1950) PDCA, Juran (1951) quality ratcheting
+  # ═══════════════════════════════════════════════════════════════════════════
+  mvsa-acceptance-gate:
+    name: MVSA Acceptance Gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [test-python]
+    outputs:
+      mvsa_gate_passed: ${{ steps.mvsa.outputs.mvsa_gate_passed }}
+      mvsa_checks_total: ${{ steps.mvsa.outputs.mvsa_checks_total }}
+      mvsa_checks_passed: ${{ steps.mvsa.outputs.mvsa_checks_passed }}
+      mvsa_checks_failed: ${{ steps.mvsa.outputs.mvsa_checks_failed }}
+      mvsa_lifecycle_status: ${{ steps.mvsa.outputs.mvsa_lifecycle_status }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run MVSA acceptance gate
+        id: mvsa
+        run: |
+          python scripts/ci_mvsa_gate.py \
+            --project-root . \
+            --report /tmp/mvsa_gate_report.json \
+            --github-output "$GITHUB_OUTPUT" || true
+          echo "---"
+          cat /tmp/mvsa_gate_report.json 2>/dev/null || echo "No report generated"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Upload MVSA report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: mvsa-gate-report-${{ github.sha }}
+          path: /tmp/mvsa_gate_report.json
+          retention-days: 90
+
+      - name: MVSA gate summary
+        if: always()
+        run: |
+          echo "## MVSA Acceptance Gate" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Gate Passed | ${{ steps.mvsa.outputs.mvsa_gate_passed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Checks Total | ${{ steps.mvsa.outputs.mvsa_checks_total }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Checks Passed | ${{ steps.mvsa.outputs.mvsa_checks_passed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Checks Failed | ${{ steps.mvsa.outputs.mvsa_checks_failed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lifecycle Status | ${{ steps.mvsa.outputs.mvsa_lifecycle_status }} |" >> $GITHUB_STEP_SUMMARY
+
   quality-gates:
     name: Quality Gates
     runs-on: ubuntu-24.04
@@ -1726,14 +1788,14 @@ jobs:
     name: Evidence Accumulation
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: [lint-python, lint-rust, lint-frontend, test-frontend, build-frontend, validate-schemas, cross-lang-sync, validate-deploy-overlays, test-python, test-rust, quality-gates, phase65-masterpiece-gate, phase56-security-gate, security-scan, container-signing, sbom-generation, performance-gate]
+    needs: [lint-python, lint-rust, lint-frontend, test-frontend, build-frontend, validate-schemas, cross-lang-sync, validate-deploy-overlays, test-python, test-rust, quality-gates, mvsa-acceptance-gate, phase65-masterpiece-gate, phase56-security-gate, security-scan, container-signing, sbom-generation, performance-gate]
     if: always()
     steps:
       - name: Produce evidence.json
         run: |
           cat > evidence.json <<EVIDENCE_EOF
           {
-            "schema_version": "1.0.0",
+            "schema_version": "1.1.0",
             "commit_sha": "${{ github.sha }}",
             "branch": "${{ github.ref_name }}",
             "run_id": "${{ github.run_id }}",
@@ -1781,7 +1843,12 @@ jobs:
               "frontend_budget_pass": "${{ needs.build-frontend.outputs.budget_pass }}",
               "container_signing": "${{ needs.container-signing.result }}",
               "sbom_generation": "${{ needs.sbom-generation.result }}",
-              "performance_gate": "${{ needs.performance-gate.result }}"
+              "performance_gate": "${{ needs.performance-gate.result }}",
+              "mvsa_acceptance": "${{ needs.mvsa-acceptance-gate.result }}",
+              "mvsa_gate_passed": "${{ needs.mvsa-acceptance-gate.outputs.mvsa_gate_passed }}",
+              "mvsa_checks_total": "${{ needs.mvsa-acceptance-gate.outputs.mvsa_checks_total }}",
+              "mvsa_checks_passed": "${{ needs.mvsa-acceptance-gate.outputs.mvsa_checks_passed }}",
+              "mvsa_lifecycle_status": "${{ needs.mvsa-acceptance-gate.outputs.mvsa_lifecycle_status }}"
             },
             "all_gates_passed": $(
               if [ "${{ needs.lint-python.result }}" = "success" ] && \
@@ -1818,7 +1885,7 @@ jobs:
     name: CI Summary
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: [lint-python, lint-rust, lint-frontend, test-frontend, build-frontend, validate-schemas, validate-deploy-overlays, test-python, test-rust, quality-gates, quality-gate-bypass-audit, phase65-masterpiece-gate, phase56-security-gate, security-scan, build-python-image, build-rust-image, container-signing, sbom-generation, performance-gate, integration-tests, evidence-accumulate]
+    needs: [lint-python, lint-rust, lint-frontend, test-frontend, build-frontend, validate-schemas, validate-deploy-overlays, test-python, test-rust, quality-gates, quality-gate-bypass-audit, mvsa-acceptance-gate, phase65-masterpiece-gate, phase56-security-gate, security-scan, build-python-image, build-rust-image, container-signing, sbom-generation, performance-gate, integration-tests, evidence-accumulate]
     if: always()
     steps:
       - name: Generate Summary
@@ -1852,6 +1919,7 @@ jobs:
           echo "| Frontend Test | ${{ needs.test-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend Build | ${{ needs.build-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Evidence Accumulation | ${{ needs.evidence-accumulate.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| MVSA Acceptance Gate | ${{ needs.mvsa-acceptance-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Gate 10: Container Signing | ${{ needs.container-signing.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Gate 11: SBOM Generation | ${{ needs.sbom-generation.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Gate 12: Performance Gate | ${{ needs.performance-gate.result }} |" >> $GITHUB_STEP_SUMMARY
@@ -1889,3 +1957,12 @@ jobs:
           echo "| Blueprint Score | ${{ needs.phase65-masterpiece-gate.outputs.blueprint_score }} | >= 0.93 |" >> $GITHUB_STEP_SUMMARY
           echo "| Weights Total | ${{ needs.phase65-masterpiece-gate.outputs.blueprint_weights_total }} | 1.0 |" >> $GITHUB_STEP_SUMMARY
           echo "| Failed Checks | ${{ needs.phase65-masterpiece-gate.outputs.blueprint_failed_checks }} | 0 |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## MVSA Acceptance Gate" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Gate Passed | ${{ needs.mvsa-acceptance-gate.outputs.mvsa_gate_passed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Checks Total | ${{ needs.mvsa-acceptance-gate.outputs.mvsa_checks_total }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Checks Passed | ${{ needs.mvsa-acceptance-gate.outputs.mvsa_checks_passed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Checks Failed | ${{ needs.mvsa-acceptance-gate.outputs.mvsa_checks_failed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lifecycle Status | ${{ needs.mvsa-acceptance-gate.outputs.mvsa_lifecycle_status }} |" >> $GITHUB_STEP_SUMMARY
