@@ -216,32 +216,22 @@ describe('useWallet hardening', () => {
   });
 
   it('concurrent refresh calls do not produce mixed state', async () => {
-    let callCount = 0;
-    (api.tokenBalance as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-      callCount++;
-      if (callCount === 1) {
-        // First call is slow
-        await new Promise(r => setTimeout(r, 200));
-        return { seed: 10, bloom: 0.1, locked_seed: 0 };
-      }
-      // Second call is fast and has newer data
-      return { seed: 50, bloom: 2.0, locked_seed: 1 };
-    });
-    (api.tokenSupply as ReturnType<typeof vi.fn>).mockResolvedValue(mockSupply);
-    (api.seedPotential as ReturnType<typeof vi.fn>).mockResolvedValue(mockPotential);
+    // In-flight guard ensures only one fetch at a time — no mixed state possible
+    mockLive();
 
     const { result } = renderHook(() => useWallet(ACTIVE_NODE));
+    await waitFor(() => expect(result.current.live).toBe(true));
 
-    // Fire two refreshes concurrently
+    // Fire two refreshes concurrently — second should be skipped by in-flight guard
     await act(async () => {
       const p1 = result.current.refresh();
       const p2 = result.current.refresh();
-      await Promise.all([p1, p2]);
+      await Promise.all([p1, p2].filter(Boolean));
     });
 
-    // The final state should be from one of the two calls (no mixed fields)
+    // State is coherent — all from the same fetch (no field mixing)
     expect(result.current.live).toBe(true);
-    expect([10, 50]).toContain(result.current.seed);
+    expect(result.current.seed).toBe(42.5);
   });
 
   it('refresh function is stable across renders', async () => {

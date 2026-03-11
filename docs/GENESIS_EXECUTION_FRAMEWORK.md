@@ -20,8 +20,13 @@ It is not another parallel strategy file. It is the delivery spine that binds:
 Companion artifacts:
 
 - `docs/plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md`
+- `docs/plans/BIZRA_DELIVERY_CONTROL_TOWER_v1.md`
+- `docs/plans/BIZRA_RELEASE_GATE_MATRIX_v1.md`
 - `docs/plans/GENESIS_CLOSURE_SPRINT_v1.md`
 - `config/bizra_unified_optimization_blueprint.json`
+- `config/bizra_delivery_control_plane.json`
+- `config/bizra_release_gate_matrix.json`
+- `config/genesis_closure_program_board.json`
 
 ## Grounding
 
