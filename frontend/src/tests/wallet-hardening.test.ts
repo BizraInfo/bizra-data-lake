@@ -49,7 +49,7 @@ const ACTIVE_NODE: NodeState = {
 
 describe('Wallet Hardening: Race Conditions', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   afterEach(() => {
@@ -106,7 +106,7 @@ describe('Wallet Hardening: Race Conditions', () => {
     // Trigger manual refresh
     await act(async () => { await result.current.refresh(); });
 
-    // Fail-closed: falls back to offline but preserves lastSync
+    // Total failure after recent live → preserves last known live snapshot
     expect(result.current.lastSync).not.toBeNull();
     expect(result.current.lastSync).toBe(liveSync);
   });
@@ -139,9 +139,9 @@ describe('Wallet Hardening: Race Conditions', () => {
 
   // ═══ TEST 4: Partial backend failure produces consistent state ═══
 
-  it('falls back to offline on partial backend failure (fail-closed)', async () => {
+  it('merges partial success without corrupting wallet', async () => {
     // Balance succeeds, supply fails, potential succeeds
-    // Constitutional fail-closed: ANY failure → offline (Saltzer & Schroeder)
+    // Partial merge: available data merged, fetchStatus tracks per-endpoint
     (api.tokenBalance as ReturnType<typeof vi.fn>).mockResolvedValue(mockBalance);
     (api.tokenSupply as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('timeout'));
     (api.seedPotential as ReturnType<typeof vi.fn>).mockResolvedValue(mockPotential);
@@ -149,9 +149,15 @@ describe('Wallet Hardening: Race Conditions', () => {
     const { result } = renderHook(() => useWallet(ACTIVE_NODE));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // Partial failure → offline fallback (not mixed state)
-    expect(result.current.live).toBe(false);
-    expect(result.current.seed).toBe(ACTIVE_NODE.seed);
+    // Partial success → live with available data
+    expect(result.current.live).toBe(true);
+    expect(result.current.seed).toBe(42.5);
+    expect(result.current.factors.quality).toBe(0.97);
+
+    // fetchStatus tracks per-endpoint failure
+    expect(result.current.fetchStatus.balance).toBe('ok');
+    expect(result.current.fetchStatus.supply).toBe('error');
+    expect(result.current.fetchStatus.potential).toBe('ok');
   });
 
   it('handles all three endpoints failing gracefully', async () => {
@@ -171,7 +177,7 @@ describe('Wallet Hardening: Race Conditions', () => {
 
 describe('Wallet Hardening: Economic Integrity', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('zakat is always exactly 2.5% of gross', async () => {

@@ -49,7 +49,7 @@ function mockLive() {
 
 describe('useWallet', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('returns offline state when API fails', async () => {
@@ -146,7 +146,7 @@ describe('useWallet', () => {
 
 describe('useWallet hardening', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
@@ -154,7 +154,7 @@ describe('useWallet hardening', () => {
     vi.useRealTimers();
   });
 
-  it('falls back to offline on partial API failure (balance ok, supply fails)', async () => {
+  it('stays live on partial API failure (balance ok, supply fails)', async () => {
     (api.tokenBalance as ReturnType<typeof vi.fn>).mockResolvedValue(mockBalance);
     (api.tokenSupply as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('503'));
     (api.seedPotential as ReturnType<typeof vi.fn>).mockResolvedValue(mockPotential);
@@ -162,12 +162,15 @@ describe('useWallet hardening', () => {
     const { result } = renderHook(() => useWallet(ACTIVE_NODE));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // Promise.all rejects if ANY promise rejects — should fall back to offline
-    expect(result.current.live).toBe(false);
-    expect(result.current.seed).toBe(ACTIVE_NODE.seed);
+    // Partial merge: balance + potential succeeded → live with fetchStatus tracking failure
+    expect(result.current.live).toBe(true);
+    expect(result.current.seed).toBe(mockBalance.seed);
+    expect(result.current.fetchStatus.balance).toBe('ok');
+    expect(result.current.fetchStatus.supply).toBe('error');
+    expect(result.current.fetchStatus.potential).toBe('ok');
   });
 
-  it('falls back to offline on partial API failure (potential fails)', async () => {
+  it('stays live on partial API failure (potential fails)', async () => {
     (api.tokenBalance as ReturnType<typeof vi.fn>).mockResolvedValue(mockBalance);
     (api.tokenSupply as ReturnType<typeof vi.fn>).mockResolvedValue(mockSupply);
     (api.seedPotential as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('timeout'));
@@ -175,10 +178,12 @@ describe('useWallet hardening', () => {
     const { result } = renderHook(() => useWallet(ACTIVE_NODE));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.live).toBe(false);
+    // Partial merge: balance + supply succeeded → live
+    expect(result.current.live).toBe(true);
+    expect(result.current.fetchStatus.potential).toBe('error');
   });
 
-  it('preserves lastSync from live state when falling back to offline', async () => {
+  it('preserves lastSync from live state when total failure after live', async () => {
     // First: go live
     mockLive();
     const { result } = renderHook(() => useWallet(ACTIVE_NODE));
@@ -186,12 +191,11 @@ describe('useWallet hardening', () => {
     const syncTime = result.current.lastSync;
     expect(syncTime).toBeGreaterThan(0);
 
-    // Then: API goes down, trigger refresh
+    // Then: total API failure, trigger refresh
     mockOffline();
     await act(async () => { await result.current.refresh(); });
 
-    // Should preserve the last known sync time, not null it out
-    expect(result.current.live).toBe(false);
+    // Recent live state preserved (within 2x poll interval)
     expect(result.current.lastSync).toBe(syncTime);
   });
 

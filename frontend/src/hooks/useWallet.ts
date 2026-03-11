@@ -119,9 +119,10 @@ export function useWallet(nodeState: NodeState) {
     };
 
     try {
-      // Constitutional fail-closed: ALL endpoints must succeed for live state.
-      // Any partial failure → offline fallback (Saltzer & Schroeder: default-deny).
-      const [balance, supply, potential] = await Promise.all([
+      // Partial merge: fetch all three independently via allSettled.
+      // Any success → live: true with available fields merged.
+      // Only total failure falls back to offline.
+      const results = await Promise.allSettled([
         api.tokenBalance(),
         api.tokenSupply(),
         api.seedPotential(),
@@ -134,36 +135,56 @@ export function useWallet(nodeState: NodeState) {
         return;
       }
 
-      fetchStatus.balance = 'ok';
-      fetchStatus.supply = 'ok';
-      fetchStatus.potential = 'ok';
+      const [balanceResult, supplyResult, potentialResult] = results;
 
-      const grossSeed = balance.seed / (1 - THRESHOLDS.ZAKAT_RATE);
+      const balance = balanceResult.status === 'fulfilled' ? balanceResult.value : null;
+      const supply = supplyResult.status === 'fulfilled' ? supplyResult.value : null;
+      const potential = potentialResult.status === 'fulfilled' ? potentialResult.value : null;
 
-      setWallet({
-        seed: balance.seed,
-        bloom: balance.bloom,
-        lockedSeed: balance.locked_seed,
-        zakatContributed: +(grossSeed * THRESHOLDS.ZAKAT_RATE).toFixed(4),
-        totalSeed: supply.total_seed,
-        totalBloom: supply.total_bloom,
-        circulating: supply.circulating,
-        supplyCapUtilization: supply.total_seed / THRESHOLDS.SEED_SUPPLY_CAP_PER_YEAR,
-        factors: potential.factors,
-        live: true,
-        lastSync: Date.now(),
-        loading: false,
-        version: myVersion,
-        fetchStatus,
-      });
+      fetchStatus.balance = balance ? 'ok' : 'error';
+      fetchStatus.supply = supply ? 'ok' : 'error';
+      fetchStatus.potential = potential ? 'ok' : 'error';
+
+      const anySuccess = balance || supply || potential;
+
+      if (!anySuccess) {
+        // Total failure — fall back to offline, preserving recent live state
+        setWallet(prev => {
+          if (prev.live && prev.lastSync && (Date.now() - prev.lastSync) < POLL_INTERVAL_MS * 2) {
+            return { ...prev, fetchStatus };
+          }
+          return { ...deriveOffline(nodeState, myVersion), lastSync: prev.lastSync, fetchStatus };
+        });
+      } else {
+        // Partial or full success — merge available fields, retain prior for failed
+        setWallet(prev => {
+          const grossSeed = (balance?.seed ?? prev.seed) / (1 - THRESHOLDS.ZAKAT_RATE);
+
+          return {
+            seed: balance?.seed ?? prev.seed,
+            bloom: balance?.bloom ?? prev.bloom,
+            lockedSeed: balance?.locked_seed ?? prev.lockedSeed,
+            zakatContributed: +(grossSeed * THRESHOLDS.ZAKAT_RATE).toFixed(4),
+            totalSeed: supply?.total_seed ?? prev.totalSeed,
+            totalBloom: supply?.total_bloom ?? prev.totalBloom,
+            circulating: supply?.circulating ?? prev.circulating,
+            supplyCapUtilization: (supply?.total_seed ?? prev.totalSeed) / THRESHOLDS.SEED_SUPPLY_CAP_PER_YEAR,
+            factors: potential?.factors ?? prev.factors,
+            live: true,
+            lastSync: Date.now(),
+            loading: false,
+            version: myVersion,
+            fetchStatus,
+          };
+        });
+      }
     } catch {
-      // Any failure → offline fallback, preserving lastSync from prior live state
+      // Safety net (allSettled shouldn't throw)
       if (mountedRef.current && myVersion >= versionRef.current) {
-        setWallet(prev => ({
-          ...deriveOffline(nodeState, myVersion),
-          lastSync: prev.lastSync,
-          fetchStatus,
-        }));
+        setWallet(prev => {
+          if (prev.live) return { ...prev, fetchStatus };
+          return { ...deriveOffline(nodeState, myVersion), lastSync: prev.lastSync, fetchStatus };
+        });
       }
     } finally {
       inFlightRef.current = false;

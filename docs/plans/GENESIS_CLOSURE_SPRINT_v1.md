@@ -35,6 +35,11 @@ Therefore the real work is:
 4. Upgrade and operationalize ReflexCompiler on `/v1/plan`.
 5. Produce one real First Heartbeat proof artifact.
 
+Machine-readable execution board:
+
+- `config/bizra_delivery_control_plane.json`
+- `config/genesis_closure_program_board.json`
+
 ## Sprint Outcome
 
 By the end of this sprint, one real request must pass through:
