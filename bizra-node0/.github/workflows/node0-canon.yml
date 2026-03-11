@@ -1,0 +1,104 @@
+name: Node0 Canon
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  docs-parity:
+    name: Docs Parity
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Node0 doc stack
+        run: |
+          test -f docs/NODE0_STANDALONE_READINESS.md
+          test -f docs/constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md
+          test -f docs/constitutional/NODE0_DOD_CORRECTION_MATRIX.md
+          test -f docs/PROGRAM_BLUEPRINT.md
+          test -f docs/QUALITY_GATES.md
+          test -f docs/RISK_REGISTER.md
+          test -f docs/ROADMAP.md
+          test -f UPSTREAM_IMPORT_MANIFEST.yaml
+          test -f RELEASE.md
+          test -f .github/CODEOWNERS
+          test -f .github/PULL_REQUEST_TEMPLATE.md
+
+  security-fail-closed:
+    name: Security Fail Closed
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Python fail-closed tests
+        run: |
+          python -m pytest \
+            tests/core/auth/test_phase21_auth.py \
+            tests/core/sovereign/test_api_query_auth_fail_closed.py \
+            tests/ui_ux_apex/test_ghost_overlay.py -q
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+  node0-operator-smoke:
+    name: Node0 Operator Smoke
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Smoke canonical operator path
+        run: |
+          python -m pytest \
+            tests/scripts/test_node0_standalone.py \
+            tests/core/sovereign/test_node0_authority.py \
+            tests/core/sovereign/test_node0_mvsa.py \
+            tests/integration/test_mvsa_acceptance.py -q
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+  native-linux-certification:
+    name: Native Linux Certification
+    runs-on: ubuntu-24.04
+    needs:
+      - docs-parity
+      - security-fail-closed
+      - node0-operator-smoke
+    steps:
+      - uses: actions/checkout@v4
+      - name: Certification script syntax
+        run: |
+          bash -n deploy/node0/certify-linux.sh
+          bash -n installers/install-node0-linux.sh
+      - name: Certification contract note
+        run: |
+          echo "Native Linux certification remains an installed-host gate."
+          echo "CI validates the certification surface and packaging contract."
+
+  provenance:
+    name: SBOM and Provenance
+    runs-on: ubuntu-24.04
+    needs: [native-linux-certification]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provenance contract
+        run: |
+          test -f UPSTREAM_IMPORT_MANIFEST.yaml
+          test -f RELEASE.md
+          echo "SBOM, provenance manifest, and signed artifacts are release-blocking outputs."

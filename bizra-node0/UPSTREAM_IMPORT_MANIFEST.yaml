@@ -1,0 +1,72 @@
+version: 1
+status: draft
+source_repo:
+  name: bizra-data-lake
+  commit: f04c05a
+  intent: "Extract the minimal, signed, production-grade Node0 release surface"
+
+policy:
+  import_mode: dependency_closure_only
+  canonical_release_surface: bizra-node0
+  exclude_archive_material: true
+  exclude_frontend_experiments: true
+  exclude_session_memory: true
+  exclude_superseded_plans: true
+
+roots:
+  - source: scripts/node0_standalone.py
+    target: scripts/node0_standalone.py
+    reason: canonical operator surface
+  - source: scripts/node0_genesis_ceremony.sh
+    target: scripts/node0_genesis_ceremony.sh
+    reason: birth-gate verification
+  - source: core/sovereign/node0_authority.py
+    target: core/sovereign/node0_authority.py
+    reason: fail-closed authority resolution
+  - source: core/sovereign/node0_mvsa.py
+    target: core/sovereign/node0_mvsa.py
+    reason: Rust-backed MVSA proof integration
+  - source: core/sovereign/genesis_identity.py
+    target: core/sovereign/genesis_identity.py
+    reason: canonical identity loading
+  - source: bizra-omega/bizra-resourcepool/src/bin/node0_mvsa.rs
+    target: bizra-omega/bizra-resourcepool/src/bin/node0_mvsa.rs
+    reason: local self-validation proof binary
+
+direct_docs:
+  - source: docs/NODE0_STANDALONE_READINESS.md
+    target: docs/NODE0_STANDALONE_READINESS.md
+  - source: docs/constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md
+    target: docs/constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md
+  - source: docs/constitutional/NODE0_DOD_CORRECTION_MATRIX.md
+    target: docs/constitutional/NODE0_DOD_CORRECTION_MATRIX.md
+  - source: docs/OPERATIONS_RUNBOOK.md
+    target: docs/OPERATIONS_RUNBOOK.md
+  - source: docs/plans/NODE0_PRODUCTION_CANON_BLUEPRINT_v1.md
+    target: docs/plans/NODE0_PRODUCTION_CANON_BLUEPRINT_v1.md
+
+direct_tests:
+  - source: tests/scripts/test_node0_standalone.py
+    target: tests/scripts/test_node0_standalone.py
+  - source: tests/core/sovereign/test_node0_authority.py
+    target: tests/core/sovereign/test_node0_authority.py
+  - source: tests/core/sovereign/test_node0_mvsa.py
+    target: tests/core/sovereign/test_node0_mvsa.py
+  - source: tests/integration/test_mvsa_acceptance.py
+    target: tests/integration/test_mvsa_acceptance.py
+
+certification:
+  required_host: native_linux
+  compatibility_host: wsl2_linux_filesystem
+  required_commands:
+    - python scripts/node0_standalone.py activate --architect "MoMo"
+    - python scripts/node0_standalone.py prove-mvsa
+    - python scripts/node0_standalone.py task "write file missions/mvsa.txt :: node0 mvsa proof"
+    - python scripts/node0_standalone.py health
+    - bash scripts/node0_genesis_ceremony.sh
+
+release_rules:
+  signed_artifacts_only: true
+  sbom_required: true
+  provenance_required: true
+  genesis_100_is_separate_gate: true
