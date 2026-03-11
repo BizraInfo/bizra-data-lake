@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   useSeedPotential,
-  useSeedEpisodes,
 } from "@/hooks/use-sovereign-api";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -328,9 +327,9 @@ export default function TerminalSkills() {
   const { data: potential } = useSeedPotential();
   const [showSAT, setShowSAT] = useState(false);
 
-  const currentActions = potential?.episodes_total ?? 25;
-  const currentIhsan = potential?.sovereignty_score ?? 0.42;
-  const sovereigntyScore = potential?.sovereignty_score ?? 0.42;
+  const currentActions = (potential as Record<string, unknown>)?.episodes_total as number ?? 25;
+  const currentIhsan = potential?.potential ?? 0.42;
+  const sovereigntyScore = potential?.potential ?? 0.42;
 
   return (
     <div className="p-4 max-w-3xl mx-auto">

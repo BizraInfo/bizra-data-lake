@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PrimordialBloom } from '../components/PrimordialBloom';
 import { Reveal } from '../components/Reveal';
 import { color } from '../tokens';
 
@@ -21,9 +22,28 @@ export default function Splash({ onStart }: SplashProps) {
         top: '20%', left: '50%', transform: 'translateX(-50%)', filter: 'blur(80px)',
       }} />
 
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+      }}>
+        <PrimordialBloom
+          size={420}
+          style={{
+            opacity: 0.8,
+            transform: 'translateY(-26px)',
+            maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 56%, rgba(0,0,0,0.15) 82%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 56%, rgba(0,0,0,0.15) 82%, transparent 100%)',
+          }}
+        />
+      </div>
+
       <Reveal delay={400}>
-        <div style={{ position: 'relative', width: 140, height: 140, marginBottom: 40 }}>
-          <svg width="140" height="140" viewBox="0 0 140 140" style={{ position: 'absolute', inset: 0 }}>
+        <div style={{ position: 'relative', width: 170, height: 170, marginBottom: 36 }}>
+          <svg width="170" height="170" viewBox="0 0 140 140" style={{ position: 'absolute', inset: 0 }}>
             <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(201,169,98,.08)" strokeWidth=".5" />
             <circle cx="70" cy="70" r="48" fill="none" stroke="rgba(201,169,98,.12)" strokeWidth="1"
               strokeDasharray="2 5" style={{ animation: 'spinSlow 90s linear infinite', transformOrigin: '70px 70px' }} />
@@ -58,6 +78,15 @@ export default function Splash({ onStart }: SplashProps) {
             fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 300, maxWidth: 340,
           }}>
             Every human is a node. Every node is a seed.<br />Every seed has infinite potential.
+          </div>
+          <div style={{
+            marginTop: 18,
+            color: 'rgba(96,165,250,.48)',
+            fontSize: 9,
+            letterSpacing: 3,
+            fontFamily: 'var(--font-mono)',
+          }}>
+            PRIMORDIAL BLOOM / GOLDEN-ANGLE EMERGENCE
           </div>
         </div>
       </Reveal>
