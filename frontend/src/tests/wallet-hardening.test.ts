@@ -10,15 +10,15 @@
  * 4. Partial backend failures produce consistent (not mixed) UI state
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useWallet } from '../src/hooks/useWallet';
-import { THRESHOLDS } from '../src/tokens';
-import type { NodeState } from '../src/types';
-import { INITIAL_NODE_STATE } from '../src/types';
+import { useWallet } from '../hooks/useWallet';
+import { THRESHOLDS } from '../tokens';
+import type { NodeState } from '../types';
+import { INITIAL_NODE_STATE } from '../types';
 
 // Mock the API module
-vi.mock('../src/lib/api', () => ({
+vi.mock('../lib/api', () => ({
   api: {
     tokenBalance: vi.fn(),
     tokenSupply: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('../src/lib/api', () => ({
   },
 }));
 
-import { api } from '../src/lib/api';
+import { api } from '../lib/api';
 
 const mockBalance = { seed: 42.5, bloom: 1.23, locked_seed: 5.0 };
 const mockSupply = { total_seed: 10000, total_bloom: 500, circulating: 9500 };
@@ -56,8 +56,9 @@ describe('Wallet Hardening: Race Conditions', () => {
 
   it('drops stale fetch results when a newer fetch has already landed', async () => {
     // Simulate: slow poll returns AFTER a fast WebSocket-triggered refresh
-    let resolveSlowFetch: (val: typeof mockBalance) => void;
+    let resolveSlowFetch: ((val: typeof mockBalance) => void) | undefined;
     const slowPromise = new Promise<typeof mockBalance>(r => { resolveSlowFetch = r; });
+    void resolveSlowFetch;
 
     const updatedBalance = { seed: 100.0, bloom: 5.0, locked_seed: 10.0 };
 

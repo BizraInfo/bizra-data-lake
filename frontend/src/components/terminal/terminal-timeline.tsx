@@ -361,12 +361,12 @@ export default function TerminalTimeline() {
 
   // Load events from API or demo
   const { data: episodes } = useSeedEpisodes();
-  const { data: constitutional } = useConstitutionalStatus();
+  const { data: _constitutional } = useConstitutionalStatus();
 
   useEffect(() => {
     // If we have live data, transform it; otherwise use demo events
-    if (episodes?.episodes?.length) {
-      const mapped: TimelineEvent[] = episodes.episodes.map(
+    if (Array.isArray(episodes) && episodes.length) {
+      const mapped: TimelineEvent[] = episodes.map(
         (ep: Record<string, unknown>, i: number) => ({
           id: `ep_${i}`,
           timestamp:

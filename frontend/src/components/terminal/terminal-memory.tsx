@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import {
   useMemoryStats,
   useTerminalBriefing,
-  useSeedEpisodes,
   useSeedPotential,
 } from "@/hooks/use-sovereign-api";
 
@@ -115,8 +113,8 @@ function calculateStreak(missions: MissionSummary[]): number {
 // ─── Sub-Components ─────────────────────────────────────────────
 
 function BriefingCard() {
-  const { data: briefing } = useTerminalBriefing();
-  const { data: potential } = useSeedPotential();
+  const { data: _briefing } = useTerminalBriefing();
+  const { data: _potential } = useSeedPotential();
   const streak = calculateStreak(DEMO_MISSIONS);
   const qualityTrend = DEMO_MISSIONS.slice(0, 5)
     .reduce((sum, m) => sum + m.ihsan_score, 0) / 5;
@@ -329,15 +327,15 @@ export default function TerminalMemory() {
           </h3>
           <div className="grid grid-cols-3 gap-2 text-xs text-center">
             <div className="bg-slate-800/50 rounded p-2">
-              <div className="text-slate-300 font-bold">{memStats.episodic ?? 0}</div>
+              <div className="text-slate-300 font-bold">{memStats.episodic_count ?? 0}</div>
               <div className="text-slate-600">Episodic</div>
             </div>
             <div className="bg-slate-800/50 rounded p-2">
-              <div className="text-slate-300 font-bold">{memStats.semantic ?? 0}</div>
+              <div className="text-slate-300 font-bold">{memStats.semantic_count ?? 0}</div>
               <div className="text-slate-600">Semantic</div>
             </div>
             <div className="bg-slate-800/50 rounded p-2">
-              <div className="text-slate-300 font-bold">{memStats.procedural ?? 0}</div>
+              <div className="text-slate-300 font-bold">{memStats.procedural_count ?? 0}</div>
               <div className="text-slate-600">Procedural</div>
             </div>
           </div>

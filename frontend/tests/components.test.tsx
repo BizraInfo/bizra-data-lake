@@ -1,7 +1,36 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { Reveal } from '../src/components/Reveal';
 import { AstrolabeSVG } from '../src/components/AstrolabeSVG';
+import { PrimordialBloom } from '../src/components/PrimordialBloom';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let getContextSpy: any;
+
+beforeEach(() => {
+  getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    setTransform: vi.fn(),
+    clearRect: vi.fn(),
+    fillRect: vi.fn(),
+    beginPath: vi.fn(),
+    fill: vi.fn(),
+    stroke: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    arc: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    lineWidth: 1,
+    fillStyle: '',
+    strokeStyle: '',
+    globalCompositeOperation: 'source-over',
+  } as unknown as CanvasRenderingContext2D);
+});
+
+afterEach(() => {
+  getContextSpy?.mockRestore();
+  getContextSpy = undefined;
+});
 
 describe('Reveal', () => {
   it('renders children after delay', async () => {
@@ -49,5 +78,15 @@ describe('AstrolabeSVG', () => {
     const { container } = render(<AstrolabeSVG size={100} agents={agents} active />);
     const lines = container.querySelectorAll('line');
     expect(lines.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('PrimordialBloom', () => {
+  it('renders a canvas with the requested dimensions', () => {
+    const { container } = render(<PrimordialBloom size={320} seed={7} />);
+    const canvas = container.querySelector('canvas');
+    expect(canvas).toBeTruthy();
+    expect(canvas?.style.width).toBe('320px');
+    expect(canvas?.style.height).toBe('320px');
   });
 });

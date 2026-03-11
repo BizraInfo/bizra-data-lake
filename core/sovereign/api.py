@@ -2935,8 +2935,11 @@ def create_fastapi_app(runtime: Any) -> Any:
     # ─── Token System Endpoints ─────────────────────────────────
 
     @app.get("/v1/token/balance")
-    async def token_balance(account: str = "BIZRA-00000000"):
-        """Get token balances for an account (read-only, no auth required)."""
+    async def token_balance(request: Request, account: str = "BIZRA-00000000"):
+        """Get token balances for an account."""
+        _user_id, _user, auth_err = _authenticate_http_request(request)
+        if auth_err:
+            return auth_err
         try:
             from core.token.ledger import TokenLedger
             from core.token.types import TokenType

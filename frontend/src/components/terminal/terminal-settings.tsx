@@ -174,7 +174,7 @@ function ModelRouting({ models, onSelect }: { models: ModelRoute[]; onSelect: (i
 
 function EnvironmentInfo() {
   const { data: health } = useSovereignHealth();
-  const env = health?.env || "development";
+  const env = (health as Record<string, unknown>)?.env as string || "development";
   const isProduction = env === "production";
 
   return (

@@ -21,7 +21,7 @@ interface ViewDef {
   label: string;
   shortcut: string;
   emoji: string;
-  component: React.LazyExoticComponent<() => JSX.Element>;
+  component: React.LazyExoticComponent<React.ComponentType<unknown>>;
 }
 
 // ─── Constants ──────────────────────────────────────────────────
@@ -63,8 +63,8 @@ function StatusBar() {
   }, []);
 
   const isLive = !!health;
-  const ihsan = potential?.sovereignty_score ?? 0;
-  const seed = balance?.balance ?? 0;
+  const ihsan = potential?.potential ?? 0;
+  const seed = balance?.seed ?? 0;
   const tier = potential?.tier ?? "—";
 
   return (
