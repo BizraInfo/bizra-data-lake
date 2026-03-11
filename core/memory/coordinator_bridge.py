@@ -76,7 +76,11 @@ class AgentDBBridge:
         try:
             if getattr(self._db, "_initialized", False):
                 self._db.save()
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.warning(f"AgentDB HNSW flush failed: {e}")
 
     def _get_state(self) -> Dict[str, Any]:

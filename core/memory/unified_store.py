@@ -304,6 +304,57 @@ class UnifiedStore:
         )
         return [row["id"] for row in cursor]
 
+    def find_records(
+        self,
+        source: Optional[str] = None,
+        kind: Optional["MemoryKind"] = None,
+        tags: Optional[List[str]] = None,
+        limit: int = 1000,
+        include_archived: bool = False,
+    ) -> List[MemoryRecord]:
+        """Find records by metadata filters without requiring a semantic query.
+
+        Args:
+            source: Filter by source field (exact match).
+            kind: Filter by MemoryKind.
+            tags: Filter by tags (all must be present via JSON LIKE).
+            limit: Maximum records to return.
+            include_archived: Include archived records.
+
+        Returns:
+            List of MemoryRecord matching all filters.
+        """
+        conn = self._ensure_conn()
+        conditions: list = []
+        params: list = []
+
+        if not include_archived:
+            conditions.append("state = ?")
+            params.append(RecordState.ACTIVE.value)
+        else:
+            conditions.append("state != ?")
+            params.append(RecordState.DELETED.value)
+
+        if source is not None:
+            conditions.append("source = ?")
+            params.append(source)
+
+        if kind is not None:
+            conditions.append("kind = ?")
+            params.append(kind.value)
+
+        if tags:
+            for tag in tags:
+                conditions.append("tags LIKE ?")
+                params.append(f'%"{tag}"%')
+
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        cursor = conn.execute(
+            f"SELECT * FROM records {where} ORDER BY updated_at DESC LIMIT ?",
+            params + [limit],
+        )
+        return [self._row_to_record(row) for row in cursor]
+
     # ── FTS5 Keyword Search ──────────────────────────────────────────────
 
     def keyword_search(self, query: str, top_k: int = 10) -> List[tuple[str, float]]:
@@ -357,7 +408,9 @@ class UnifiedStore:
         )
         return [self._row_to_record(row) for row in cursor]
 
-    def load_with_embeddings(self, include_archived: bool = True) -> List[tuple[str, bytes]]:
+    def load_with_embeddings(
+        self, include_archived: bool = True
+    ) -> List[tuple[str, bytes]]:
         """Load just IDs and embedding blobs (for HNSW rebuild)."""
         conn = self._ensure_conn()
         if include_archived:
@@ -436,16 +489,12 @@ class UnifiedStore:
                 (RecordState.DELETED.value,),
             ).fetchone()[0]
         )
-        orphaned_rows = int(
-            conn.execute(
-                """
+        orphaned_rows = int(conn.execute("""
                 SELECT COUNT(*)
                 FROM records_fts f
                 LEFT JOIN records r ON r.id = f.id
                 WHERE r.id IS NULL
-                """
-            ).fetchone()[0]
-        )
+                """).fetchone()[0])
         return {
             "rows": total_rows,
             "searchable_rows": searchable_rows,

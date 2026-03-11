@@ -104,8 +104,10 @@ class EmbeddingPipeline:
                 model = getattr(self._config, "ollama_embed_model", "nomic-embed-text")
                 logger.info(f"Embedding pipeline: Ollama {model}")
                 return
-        except (OSError, ValueError):  # SEC-003 — network boundary
+        except (OSError, ValueError):  # SEC-003 — network boundary (socket-level)
             logger.debug("Ollama not available")
+        except Exception:  # noqa: BLE001 — httpx wraps OSError in ConnectError
+            logger.debug("Ollama connection failed")
 
         self._backend = "none"
         logger.warning("No embedding backend — records stored without vectors")
