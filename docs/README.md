@@ -1,6 +1,6 @@
 # BIZRA Documentation Portal
 
-Last updated: 2026-03-09
+Last updated: 2026-03-11
 
 ## API Surface (v1.4.0)
 
@@ -50,17 +50,18 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 
 ### 2. Operator / SRE
 
-1. [Operations Runbook](OPERATIONS_RUNBOOK.md)
-2. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
-3. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
-4. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
-5. [DevOps Blueprint](DEVOPS_BLUEPRINT.md)
-6. [Desktop Bridge](DESKTOP_BRIDGE.md)
-7. [Threat Model](THREAT-MODEL-V3.md)
-8. [Security Architecture](SECURITY-ARCHITECTURE.md)
-9. [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md)
-10. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
-11. [Risk Management Plan](RISK_MANAGEMENT_PLAN.md)
+1. [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md) - MVSA specification
+2. [Node0 Definition of Done](constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md) - verification gate
+3. [Operations Runbook](OPERATIONS_RUNBOOK.md) - operator procedure
+4. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
+5. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
+6. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
+7. [DevOps Blueprint](DEVOPS_BLUEPRINT.md)
+8. [Desktop Bridge](DESKTOP_BRIDGE.md)
+9. [Threat Model](THREAT-MODEL-V3.md)
+10. [Security Architecture](SECURITY-ARCHITECTURE.md)
+11. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
+12. [Risk Management Plan](RISK_MANAGEMENT_PLAN.md)
 
 ### 3. Security / Compliance Reviewer
 
@@ -125,6 +126,7 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 | Unified optimization blueprint | [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md) | `config/bizra_unified_optimization_blueprint.json`, `docs/plans/GENESIS_CLOSURE_SPRINT_v1.md`, `core/`, `tests/` |
 | Closure implementation plan | [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md) | `core/bus/`, `core/proof_engine/`, `core/sovereign/`, `tests/`, `scripts/` |
 | Node0 standalone lifecycle | [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md) | `scripts/node0_standalone.py`, `core/sovereign/node0_authority.py`, `core/sovereign/node0_mvsa.py`, `core/sovereign/mission.py` |
+| Node0 birth verification | [Node0 Definition of Done](constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md) | `scripts/node0_genesis_ceremony.sh`, `sovereign_state/node0_lifecycle.json`, `sovereign_state/node0_genesis.json` |
 | Runtime architecture | [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md) | `core/sovereign/`, `core/integration/constants.py` |
 | Public sovereignty narrative | [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md) | `00_CONSTITUTION/DECLARATION.md`, `docs/DECLARATION_OF_DIGITAL_SOVEREIGNTY.md`, `scripts/ops/declaration_hash_manifest.py` |
 | Constitutional narrative root | [The Constitutional Seed](CONSTITUTIONAL_SEED.md) | `docs/CONSTITUTIONAL_SEED.md`, `filedfs/ConstitutionalSeedPage.jsx` |

@@ -27,8 +27,8 @@ This document reads from two canonical sources:
 
 1. **`sovereign_state/node0_lifecycle.json`** — Lifecycle v2 runtime state (computed by `node0_standalone.py`)
    - **11 status-determining gates** — used by `_compute_status()` to derive `blocked` / `degraded` / `ready`
-   - **3 availability gates** — informational (desktop_bridge, mcp, a2a, telescript); do NOT affect status
-   - Total: 14 entries in runtime JSON, 11 gates determine status
+   - **4 availability gates** — informational (`desktop_bridge_reachable`, `mcp_available`, `a2a_available`, `telescript_available`); do NOT affect status
+   - Total: 15 entries in runtime JSON, 11 gates determine status
 2. **`sovereign_state/node0_genesis.json`** + **`genesis_hash.txt`** — Canonical authority pair
 
 All hard gates below read these sources. No gate depends on shell scraping, grep, or timeout heuristics.
@@ -40,7 +40,7 @@ The DoD hard gates verify a **superset** of lifecycle truth:
 - Gate 4.2 → requires `lifecycle.status == "ready"`, which implies ALL 11 status-determining gates are true
 - Gates 1.1–1.4, 2.1–2.6, 3.2–3.4, 5.1–5.2 → constitutional and ceremony checks beyond lifecycle scope
 
-The 3 availability gates (mcp_available, a2a_available, telescript_available) are NOT birth-critical. `desktop_bridge_reachable` is NOT birth-critical (requires AHK HDA running). These are operational health, not genesis identity.
+The 4 availability gates (`desktop_bridge_reachable`, `mcp_available`, `a2a_available`, `telescript_available`) are NOT birth-critical. They remain operational health signals unless the MVSA spec explicitly promotes them later.
 
 ---
 
@@ -183,13 +183,13 @@ This DoD does not introduce new truth. It verifies truth defined by the MVSA spe
 
 ### Lifecycle Gate Reconciliation
 
-`NODE0_STANDALONE_READINESS.md` defines 11 status-determining gates. The runtime JSON (`node0_lifecycle.json`) contains 14 entries because `node0_standalone.py` also writes 3 availability gates for operational health monitoring. These availability gates do NOT affect `_compute_status()` and are NOT birth-critical.
+`NODE0_STANDALONE_READINESS.md` defines 11 status-determining gates. The runtime JSON (`node0_lifecycle.json`) contains 15 entries because `node0_standalone.py` also writes 4 availability gates for operational health monitoring. These availability gates do NOT affect `_compute_status()` and are NOT birth-critical.
 
 | Category | Gates | Determines status? |
 |----------|-------|--------------------|
 | MVSA-critical (9) | genesis_authority_valid, identity_ready, pat_sat_ready, urp_signed, urp_verified, assets_written, awareness_written, mvsa_network_bootstrap_ok, mvsa_self_validation_ok | Yes — all must be true or status = "blocked" |
 | Completion (2) | mission_path_receipted, restart_recovery_ready | Yes — both must be true for status = "ready" |
-| Availability (3) | desktop_bridge_reachable, mcp_available, a2a_available, telescript_available | No — informational only |
+| Availability (4) | desktop_bridge_reachable, mcp_available, a2a_available, telescript_available | No — informational only |
 
 ---
 
