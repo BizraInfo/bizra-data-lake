@@ -257,6 +257,7 @@ function DiffusionEligibility() {
 // ─── Main Component ─────────────────────────────────────────────
 
 export default function TerminalNetwork() {
+  // Pre-fetch live data for future integration — currently using demo data
   const { data: _nodeValue } = useNodeValue();
   const { data: _lifecycle } = useNodeLifecycle();
   const { data: _networkEffect } = useNetworkEffect();

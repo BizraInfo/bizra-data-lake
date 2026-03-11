@@ -166,6 +166,7 @@ describe('useWallet hardening', () => {
     // with available data merged in
     expect(result.current.live).toBe(true);
     expect(result.current.seed).toBe(mockBalance.seed);
+    expect(result.current.fetchStatus.balance).toBe('ok');
     expect(result.current.fetchStatus.supply).toBe('error');
   });
 
@@ -232,11 +233,18 @@ describe('useWallet hardening', () => {
 
     // Wait for initial fetch to complete
     await waitFor(() => expect(result.current.loading).toBe(false));
+    const initialCallCount = callCount;
 
-    // The initial fetch uses one call, subsequent refresh should work
+    // Fire two refreshes concurrently — the in-flight guard should skip the second
+    await act(async () => {
+      const p1 = result.current.refresh();
+      const p2 = result.current.refresh();
+      await Promise.all([p1, p2]);
+    });
+
+    // In-flight guard means only one additional fetch went through
+    expect(callCount).toBe(initialCallCount + 1);
     expect(result.current.live).toBe(true);
-    // In-flight guard means only one fetch at a time — no mixed state
-    expect(result.current.seed).toBeGreaterThan(0);
   });
 
   it('refresh function is stable across renders', async () => {

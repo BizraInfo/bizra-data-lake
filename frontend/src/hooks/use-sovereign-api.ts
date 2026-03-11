@@ -24,7 +24,7 @@ function useFetch<T>(path: string): HookResult<T> {
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch(path);
-      if (!res.ok) throw new Error(`${res.status}`);
+      if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
       const json = (await res.json()) as T;
       if (mountedRef.current) {
         setData(json);
