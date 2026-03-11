@@ -1,0 +1,25 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Node0 — Log Rotation Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Deming (PDCA, 1950) — log lifecycle management
+#
+# Install:
+#   sudo cp deploy/node0/bizra-node0.logrotate /etc/logrotate.d/bizra-node0
+#
+# Verify:
+#   sudo logrotate -d /etc/logrotate.d/bizra-node0
+# ═══════════════════════════════════════════════════════════════════════════════
+
+/var/log/bizra-node0/*.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 0640 bizra bizra
+    sharedscripts
+    postrotate
+        systemctl reload bizra-node0 2>/dev/null || true
+    endscript
+}
