@@ -31,7 +31,7 @@ No alternate MVSA completion path is allowed through `node0_activate.py` or ad h
 |--------|---------|
 | `blocked` | Authority invalid/missing, Rust MVSA failed, or structural gates not met |
 | `degraded` | Authority + MVSA valid, but mission receipt or restart recovery incomplete |
-| `ready` | All 11 gates satisfied |
+| `ready` | All 11 status-determining gates satisfied |
 
 ### 11 Gates
 
@@ -61,7 +61,7 @@ These do NOT affect `_compute_status()` and are NOT required for `ready` status.
 | `a2a_available` | `health` | Agent-to-Agent protocol |
 | `telescript_available` | `health` | TeleScript mobile agent |
 
-Total entries in `node0_lifecycle.json`: 14 (11 status-determining + 3 availability).
+Total entries in `node0_lifecycle.json`: 15 (11 status-determining + 4 availability).
 The "All 11 gates satisfied" criterion above refers only to the status-determining gates.
 
 ### CLI Exit Codes

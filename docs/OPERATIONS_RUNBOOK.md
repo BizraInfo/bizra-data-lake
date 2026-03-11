@@ -1,6 +1,6 @@
 # BIZRA Operations Runbook
 
-Last updated: 2026-03-01
+Last updated: 2026-03-11
 
 This runbook is the operator-focused guide for starting, validating, and troubleshooting BIZRA services.
 
@@ -229,6 +229,22 @@ python scripts/node0_standalone.py task "write file missions/mvsa.txt :: node0 m
 python scripts/node0_standalone.py health
 ```
 
+Node0 documentation hierarchy for operators:
+
+1. `docs/NODE0_STANDALONE_READINESS.md` — MVSA specification
+2. `docs/constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md` — birth-gate verification
+3. `docs/OPERATIONS_RUNBOOK.md` — operator procedure
+
+`Ready Only` is the birth rule. Node0 is not complete unless `sovereign_state/node0_lifecycle.json` reports `status == "ready"`.
+
+The verification entrypoint is:
+
+```bash
+bash scripts/node0_genesis_ceremony.sh
+bash scripts/node0_genesis_ceremony.sh --full
+bash scripts/node0_genesis_ceremony.sh --json
+```
+
 Authority is fail-closed and comes only from:
 
 - `sovereign_state/node0_genesis.json`
@@ -243,6 +259,12 @@ The lifecycle single source of truth is:
 - `sovereign_state/node0_lifecycle.json`
 
 `health` is read-only. It reports persisted MVSA state and restart recovery; it does not mutate lifecycle files.
+
+Certification path:
+
+- Native Linux is canonical.
+- WSL2 is supported for compatibility only when code and state live on the Linux filesystem.
+- `/mnt/c` is not a production hot path.
 
 ## 2. Start Sequence
 

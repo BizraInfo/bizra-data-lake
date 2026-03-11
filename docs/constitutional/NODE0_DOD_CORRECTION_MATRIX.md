@@ -4,7 +4,7 @@
 **Context:** DevOps ground-truth review of `BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md`
 **Canonical truth sources:**
 - `docs/NODE0_STANDALONE_READINESS.md` — MVSA contract
-- `sovereign_state/node0_lifecycle.json` — Lifecycle v2 runtime state (14 gates)
+- `sovereign_state/node0_lifecycle.json` — Lifecycle v2 runtime state (15 entries: 11 status + 4 availability)
 - `scripts/node0_standalone.py` — Canonical CLI surface
 
 ## The Core Problem
@@ -164,8 +164,8 @@ L5.4  validate_cross_repo_consistency() passes
 | Finding | v1.1 State | v1.2 Fix |
 |---------|-----------|----------|
 | Gate 4.2 too weak | `!= "blocked"` allows `degraded` to pass | `== "ready"` — Ready Only locked by Mumo |
-| Lifecycle coverage gap | DoD reads 3 of 14 gates | Gate 4.2 now implies all 11 status gates; availability gates documented as non-birth-critical |
-| STANDALONE_READINESS drift | Doc says 11 gates, JSON has 14 | Doc updated to document 3 availability gates as informational addendum |
+| Lifecycle coverage gap | DoD reads 3 of 15 runtime entries | Gate 4.2 now implies all 11 status gates; 4 availability gates documented as non-birth-critical |
+| STANDALONE_READINESS drift | Doc said 11 gates, JSON had 15 entries | Doc updated to document 4 availability gates as informational addendum |
 | Competing truth | Ambiguous DoD↔Readiness governance | Clear hierarchy: Readiness=spec, DoD=verification, Matrix=audit |
 | Certification path | Undeclared | Linux/WSL2 declared in DoD header |
 
