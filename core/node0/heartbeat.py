@@ -210,12 +210,14 @@ class Node0Heartbeat:
         self._evidence: Optional[Any] = None
         self._reflex_bridge: Optional[Any] = None
         self._event_bus: Optional[Any] = event_bus  # Nervous system bridge
+        self._reasoning_bank: Optional[Any] = None  # ReasoningBank Intelligence
 
         # Cumulative stats
         self._total_memories_stored = 0
         self._total_evidence_entries = 0
         self._total_reflexes = 0
         self._total_events_emitted = 0
+        self._total_rb_experiences = 0
 
     # ═══════════════════════════════════════════════════════════════
     # §9 BOOT — Genesis Ceremony (Block Zero)
@@ -259,6 +261,9 @@ class Node0Heartbeat:
 
         # ── Step 6: Reflex Bridge ────────────────────────────────
         self._boot_reflex_bridge()
+
+        # ── Step 6b: ReasoningBank Intelligence ──────────────────
+        self._boot_reasoning_bank()
 
         # ── Step 7: Sovereignty Proof ────────────────────────────
         checks = self._verify_sovereignty(asset_summary, memory_ok, evidence_genesis)
@@ -369,6 +374,9 @@ class Node0Heartbeat:
         # ── Step 4: Reflex Precipitation Check ───────────────────
         reflexes = self._check_reflex_precipitation(helix_result)
 
+        # ── Step 4b: ReasoningBank Experience Recording ───────────
+        self._record_rb_experience(helix_result)
+
         # ── Step 5: Chain Integrity ──────────────────────────────
         duration_ms = (time.monotonic() - start) * 1000
 
@@ -461,6 +469,7 @@ class Node0Heartbeat:
             "total_memories_stored": self._total_memories_stored,
             "total_evidence_entries": self._total_evidence_entries,
             "total_reflexes_precipitated": self._total_reflexes,
+            "total_rb_experiences": self._total_rb_experiences,
             "total_events_emitted": self._total_events_emitted,
             "subsystems": {
                 "asset_registry": self._asset_registry is not None,
@@ -469,6 +478,7 @@ class Node0Heartbeat:
                 "evidence": self._evidence is not None,
                 "reflex_bridge": self._reflex_bridge is not None,
                 "event_bus": self._event_bus is not None,
+                "reasoning_bank": self._reasoning_bank is not None,
             },
             "hardware": (
                 {
@@ -673,6 +683,24 @@ class Node0Heartbeat:
         except (ImportError, AttributeError) as exc:
             logger.warning("ReflexBridge unavailable: %s", exc)
 
+    def _boot_reasoning_bank(self) -> None:
+        """Initialize ReasoningBank Intelligence Engine.
+
+        Standing on Giants: Boyd (OODA, 1976) — adaptive learning loop.
+        The engine records breath experiences, recognizes patterns, and
+        feeds precipitable patterns back to the reflex bridge.
+
+        Note: RB engine does NOT receive the EventBus directly — heartbeat
+        owns event emission. RB is a passive learning subsystem.
+        """
+        try:
+            from core.reasoning.reasoning_bank import ReasoningBankEngine
+
+            self._reasoning_bank = ReasoningBankEngine()
+            logger.info("ReasoningBank Intelligence wired to heartbeat")
+        except (ImportError, AttributeError) as exc:
+            logger.warning("ReasoningBank unavailable: %s", exc)
+
     # ═══════════════════════════════════════════════════════════════
     # PRIVATE: Sovereignty Verification
     # ═══════════════════════════════════════════════════════════════
@@ -832,6 +860,38 @@ class Node0Heartbeat:
             except (RuntimeError, AttributeError, TypeError) as exc:
                 logger.debug("Reflex precipitation check: %s", exc)
         return 0
+
+    def _record_rb_experience(self, helix_result: Dict[str, Any]) -> None:
+        """Record this breath as a ReasoningBank experience.
+
+        Standing on Giants: Deming (PDCA, 1950) — Act phase feeds
+        the learning loop. Every breath is an observation.
+        """
+        if self._reasoning_bank is None:
+            return
+        try:
+            ihsan = helix_result.get("ihsan_composite", 0.0)
+            missions = helix_result.get("missions_processed", 0)
+            self._reasoning_bank.record_experience(
+                task_type="node0_breath",
+                approach=f"helix3_tick_{self._tick_number}",
+                success=helix_result.get("gini_ok", True),
+                ihsan_score=ihsan,
+                snr_score=ihsan,
+                duration_ms=0.0,
+                context={
+                    "tick": self._tick_number,
+                    "missions": missions,
+                    "gini": helix_result.get("gini", 0.0),
+                },
+                metrics={
+                    "seed_minted": helix_result.get("seed_minted", 0.0),
+                    "rejected": helix_result.get("rejected_count", 0),
+                },
+            )
+            self._total_rb_experiences += 1
+        except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
+            logger.debug("ReasoningBank experience recording: %s", exc)
 
     def _store_in_memory(
         self,
