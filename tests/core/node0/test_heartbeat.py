@@ -374,6 +374,7 @@ class TestHealth:
         assert "memory" in subs
         assert "evidence" in subs
         assert "reflex_bridge" in subs
+        assert "learning_loop" in subs
 
     def test_health_reflex_compilation_status(self, booted_heartbeat):
         """Health reports honest reflex compilation status.
@@ -382,10 +383,11 @@ class TestHealth:
         """
         h = booted_heartbeat.health()
         rcs = h["reflex_compilation_status"]
-        assert rcs["truth_label"] == "OPTIMIZATION: PARTIAL"
+        assert rcs["truth_label"] == "OPTIMIZATION: WIRED"
         assert rcs["feature_flag"] == "BIZRA_CLOSED_LOOP_ENABLED"
         assert isinstance(rcs["enabled"], bool)
         assert isinstance(rcs["reflex_bridge_wired"], bool)
+        assert isinstance(rcs["learning_loop_wired"], bool)
         assert "opt-in" in rcs["note"].lower()
 
 
@@ -1302,3 +1304,268 @@ class TestNervousSystemBridge:
         # Bus chain
         assert bus.verify_chain()
         assert bus._chain[1].prev_hash == bus._chain[0].event_hash
+
+
+# ═══════════════════════════════════════════════════════════════
+# §12 LEARNING LOOP INTEGRATION TESTS
+# ═══════════════════════════════════════════════════════════════
+
+
+class TestLearningLoopIntegration:
+    """Test LearningLoopOrchestrator wiring into heartbeat.
+
+    Validates the 9th subsystem: boot, breathe cycle, health reporting,
+    feature-gating, and graceful degradation.
+    """
+
+    def test_boot_learning_loop_success(self, data_dir):
+        """Learning loop boots as 9th subsystem when module is available."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_loop = MagicMock()
+        mock_loop.enabled = False
+        mock_loop.run_compilation_cycle.return_value = []
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-test")
+            hb.boot()
+
+            assert hb._learning_loop is mock_loop
+            assert hb.health()["subsystems"]["learning_loop"] is True
+
+    def test_boot_learning_loop_import_error(self, data_dir):
+        """Learning loop boots gracefully when module not available."""
+        from unittest.mock import patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        with patch(
+            "core.node0.heartbeat.Node0Heartbeat._boot_learning_loop",
+            side_effect=None,
+        ):
+            # Simulate import failure — _learning_loop stays None
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-import-fail")
+            # Directly set to None to simulate failure
+            hb._learning_loop = None
+            hb._booted = True
+            hb._node_id = "ll-import-fail"
+            hb._chain_hash = "a" * 64
+
+            health = hb.health()
+            assert health["subsystems"]["learning_loop"] is False
+
+    def test_breathe_runs_learning_cycle(self, data_dir):
+        """breathe() invokes _run_learning_cycle on each tick."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_loop = MagicMock()
+        mock_loop.enabled = True
+        mock_loop.run_compilation_cycle.return_value = []
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-breathe")
+            hb.boot()
+            hb.breathe()
+
+            mock_loop.run_compilation_cycle.assert_called_once()
+            assert hb._total_learning_cycles == 1
+
+    def test_breathe_learning_cycle_with_compiled_reflexes(self, data_dir):
+        """Learning cycle compilation increments reflex count."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_candidate_1 = MagicMock()
+        mock_candidate_2 = MagicMock()
+        mock_loop = MagicMock()
+        mock_loop.enabled = True
+        mock_loop.run_compilation_cycle.return_value = [
+            mock_candidate_1,
+            mock_candidate_2,
+        ]
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-compile")
+            hb.boot()
+            initial_reflexes = hb._total_reflexes
+            hb.breathe()
+
+            assert hb._total_reflexes == initial_reflexes + 2
+            assert hb._total_learning_cycles == 1
+
+    def test_breathe_learning_cycle_exception_graceful(self, data_dir):
+        """Learning cycle exception does not break breathe()."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_loop = MagicMock()
+        mock_loop.enabled = True
+        mock_loop.run_compilation_cycle.side_effect = RuntimeError("SDPO crash")
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-error")
+            hb.boot()
+            receipt = hb.breathe()
+
+            # Breath still completes despite learning cycle failure
+            assert receipt.tick_number == 1
+            assert receipt.chain_hash != "0" * 64
+
+    def test_breathe_no_learning_loop_skipped(self, data_dir):
+        """When learning loop is None, _run_learning_cycle is a no-op."""
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-none")
+        hb.boot()
+        hb._learning_loop = None
+        receipt = hb.breathe()
+
+        # Still breathes fine
+        assert receipt.tick_number == 1
+        assert hb._total_learning_cycles == 0
+
+    def test_health_reports_learning_loop_metrics(self, data_dir):
+        """health() includes total_learning_cycles in its output."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_loop = MagicMock()
+        mock_loop.enabled = False
+        mock_loop.run_compilation_cycle.return_value = []
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-health")
+            hb.boot()
+            hb.breathe()
+
+            health = hb.health()
+            assert "total_learning_cycles" in health
+            assert health["total_learning_cycles"] == 1
+
+    def test_reflex_compilation_status_includes_learning_loop(self, data_dir):
+        """Reflex compilation status reports learning_loop_wired."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_loop = MagicMock()
+        mock_loop.enabled = False
+        mock_loop.run_compilation_cycle.return_value = []
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-status")
+            hb.boot()
+
+            status = hb._get_reflex_compilation_status()
+            assert status["learning_loop_wired"] is True
+            assert status["truth_label"] == "OPTIMIZATION: WIRED"
+
+    def test_learning_loop_disabled_dry_run(self, data_dir):
+        """When BIZRA_CLOSED_LOOP_ENABLED=0, loop runs but doesn't compile."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_loop = MagicMock()
+        mock_loop.enabled = False
+        # Returns empty — loop reported candidates but didn't compile
+        mock_loop.run_compilation_cycle.return_value = []
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-dry-run")
+            hb.boot()
+            hb.breathe()
+
+            assert hb._total_reflexes == 0
+            assert hb._total_learning_cycles == 1
+
+    def test_multiple_breathe_cycles_accumulate(self, data_dir):
+        """Multiple breathe() calls accumulate learning cycle count."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_loop = MagicMock()
+        mock_loop.enabled = True
+        mock_loop.run_compilation_cycle.return_value = []
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-multi")
+            hb.boot()
+            hb.breathe()
+            hb.breathe()
+            hb.breathe()
+
+            assert hb._total_learning_cycles == 3
+            assert mock_loop.run_compilation_cycle.call_count == 3
+
+    def test_learning_cycle_type_error_graceful(self, data_dir):
+        """TypeError in learning cycle doesn't crash breathe()."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_loop = MagicMock()
+        mock_loop.enabled = True
+        mock_loop.run_compilation_cycle.side_effect = TypeError("bad argument")
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-type-err")
+            hb.boot()
+            receipt = hb.breathe()
+
+            assert receipt.tick_number == 1
+
+    def test_learning_cycle_value_error_graceful(self, data_dir):
+        """ValueError in learning cycle doesn't crash breathe()."""
+        from unittest.mock import MagicMock, patch
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        mock_loop = MagicMock()
+        mock_loop.enabled = True
+        mock_loop.run_compilation_cycle.side_effect = ValueError("invalid config")
+
+        with patch(
+            "core.orchestration.learning_loop.LearningLoopOrchestrator",
+            return_value=mock_loop,
+        ):
+            hb = Node0Heartbeat(data_dir=data_dir, node_id="ll-val-err")
+            hb.boot()
+            receipt = hb.breathe()
+
+            assert receipt.tick_number == 1
