@@ -707,63 +707,52 @@ def cmd_launch():
 # ─── CLI Entry Point ─────────────────────────────────────────────
 
 def main():
+    """
+    CLI entry point — delegates to the modular CommandRegistry.
+
+    The original monolithic if/elif chain is replaced by a registry
+    that auto-discovers commands from core.cli.commands. All behavior
+    is preserved. Bare `bizra` (no args) still launches the full terminal.
+    """
+    from core.cli.registry import CommandRegistry
+    from core.cli.hooks import CLIHooksManager
+    from core.cli.commands import ALL_COMMANDS
+
+    # Build registry
+    registry = CommandRegistry()
+    for cmd_class in ALL_COMMANDS:
+        registry.register(cmd_class())
+
+    # Wire hooks (no EventBus at CLI level — hooks record locally)
+    hooks = CLIHooksManager()
+    registry.add_pre_hook(hooks.pre_command)
+    registry.add_post_hook(hooks.post_command)
+
     args = sys.argv[1:]
 
+    # Bare `bizra` → launch (default command)
     if not args:
-        cmd_launch()
+        entry = registry.resolve("launch")
+        if entry:
+            entry.command.execute([])
         return
 
-    cmd = args[0].lower().strip("-")
+    cmd_name = args[0].lower().strip("-")
 
-    if cmd in ("start", "up"):
-        foreground = "--foreground" in args or "-f" in args
-        cmd_start(foreground=foreground)
-
-    elif cmd in ("stop", "down", "kill"):
-        cmd_stop()
-
-    elif cmd in ("status", "health", "s"):
-        cmd_status()
-
-    elif cmd in ("mission", "m", "do"):
-        if len(args) < 2:
-            _print_error("Usage: bizra mission \"your mission text\"")
-            sys.exit(1)
-        cmd_mission(" ".join(args[1:]))
-
-    elif cmd in ("briefing", "brief", "b", "morning"):
-        cmd_briefing()
-
-    elif cmd in ("wallet", "w", "balance"):
-        cmd_wallet()
-
-    elif cmd in ("identity", "id", "whoami"):
-        cmd_identity()
-
-    elif cmd in ("version", "v", "--version", "-v"):
-        cmd_version()
-
-    elif cmd in ("doctor", "doc", "check", "diagnose"):
-        cmd_doctor()
-
-    elif cmd in ("help", "h", "--help", "-h"):
+    # Help is handled directly (prints module docstring)
+    if cmd_name in ("help", "h", "--help", "-h"):
         print(__doc__)
+        return
 
-    elif cmd in ("reset",):
-        confirm = input(f"  {C.RED}This will clear cache and reflexes (identity preserved). Continue? [y/N] {C.RESET}")
-        if confirm.lower() == "y":
-            import shutil as sh
-            for d in [BIZRA_LOGS, BIZRA_MODELS]:
-                if d.exists():
-                    sh.rmtree(d)
-                    d.mkdir()
-            _print_info("Cache cleared. Identity preserved.")
-        else:
-            _print_info("Reset cancelled.")
+    # Try registry dispatch
+    result = registry.dispatch(args)
 
-    else:
-        # Treat as a mission
-        cmd_mission(" ".join(args))
+    # If unknown, treat the entire input as a mission (legacy behavior)
+    if not result.success and "Unknown command" in result.message:
+        result = registry.dispatch(["mission"] + args)
+
+    if not result.success and result.exit_code != 0:
+        sys.exit(result.exit_code)
 
 
 if __name__ == "__main__":
