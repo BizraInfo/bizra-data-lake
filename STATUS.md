@@ -26,6 +26,7 @@ Updated: 2026-03-12T13:35Z
 | **Evidence Chain** | ✅ Hash-chained | `[ENFORCEMENT: PROVEN]` | `chain_hash = Hash(prev ∥ evidence_hash)` on every breath |
 | **Legacy Gating** | ✅ Blocked in canonical | `[ENFORCEMENT: PROVEN]` | `_ingest_via_node0()` refuses fallback, `_submit_mission_to_tick()` deprecated |
 | **Node0 Heartbeat** | ✅ Wired | `[ENFORCEMENT: PROVEN]` | `SovereignOrganism` → `Node0Heartbeat` → `Helix3Scheduler` |
+| **Nervous System Bridge** | ✅ EventBus wired | `[ENFORCEMENT: PROVEN]` | Heartbeat emits `action.receipt` → 12 subscribers (HHMM, reflex, PoI). Dual chain integrity proven. |
 | **CI Gate** | ✅ CANONICAL-001 | `[ENFORCEMENT: PROVEN]` | `pytest tests/core/node0/ tests/integration/test_plan_endpoint.py` in CI |
 | **GoT Signer Gate** | ✅ Canonical-gated | `[ENFORCEMENT: PROVEN]` | `got_bridge.py` rejects SimpleSigner fallback in canonical mode |
 | **Exception Audit** | ✅ SEC-003b | `[ENFORCEMENT: WIRED]` | Sovereign surfaces tracked (baseline=157), ratchet-only |
@@ -34,10 +35,11 @@ Updated: 2026-03-12T13:35Z
 | **Empirical Validation** | ✅ Live mode | `[ENFORCEMENT: PROVEN]` | `canonical_empirical_validation.py --live` proves real boot→breathe→chain→mission→FATE |
 
 ### Test Evidence
-- Node0 heartbeat: **74 tests** (boot, breathe, chain, identity, FATE consequence, reflex precipitation, boot degradation)
+- Node0 heartbeat: **84 tests** (boot, breathe, chain, identity, FATE consequence, reflex precipitation, boot degradation, nervous system bridge)
 - Organism bridge: **17 tests** (wiring, double-ingest prevention, signer propagation)
-- Plan endpoint: **14 tests** (receipt, fail-closed, reflex suppression, authority exclusivity, FATE fields)
-- **Total canonical tests: 85/85 pass**
+- Plan endpoint: **16 tests** (receipt, fail-closed, reflex suppression, authority exclusivity, FATE fields)
+- GoT bridge: **42 tests** (canonical signer gate, SimpleSigner rejection)
+- **Total canonical tests: 159/159 pass**
 
 ### Canonical Flow (single truth surface)
 ```

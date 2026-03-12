@@ -181,6 +181,7 @@ class Node0Heartbeat:
         node_id: Optional[str] = None,
         interval_s: float = HEARTBEAT_INTERVAL_S,
         helix3: Optional[Any] = None,
+        event_bus: Optional[Any] = None,
         identity_mode: str = "placeholder_degraded",
         signer_public_key_prefix: str = "",
         signer_public_key_hex: str = "",
@@ -208,11 +209,13 @@ class Node0Heartbeat:
         self._memory: Optional[Any] = None
         self._evidence: Optional[Any] = None
         self._reflex_bridge: Optional[Any] = None
+        self._event_bus: Optional[Any] = event_bus  # Nervous system bridge
 
         # Cumulative stats
         self._total_memories_stored = 0
         self._total_evidence_entries = 0
         self._total_reflexes = 0
+        self._total_events_emitted = 0
 
     # ═══════════════════════════════════════════════════════════════
     # §9 BOOT — Genesis Ceremony (Block Zero)
@@ -408,6 +411,9 @@ class Node0Heartbeat:
 
         self._breath_history.append(receipt)
 
+        # ── Step 6: Nervous System Bridge (EventBus) ──────────────
+        self._emit_breath_event(receipt)
+
         logger.info(
             "Node0 BREATH #%d | ihsan=%.3f | gini=%.4f | mem=%d | ev=%d | %.1fms",
             self._tick_number,
@@ -455,12 +461,14 @@ class Node0Heartbeat:
             "total_memories_stored": self._total_memories_stored,
             "total_evidence_entries": self._total_evidence_entries,
             "total_reflexes_precipitated": self._total_reflexes,
+            "total_events_emitted": self._total_events_emitted,
             "subsystems": {
                 "asset_registry": self._asset_registry is not None,
                 "helix3": self._helix3 is not None,
                 "memory": self._memory is not None,
                 "evidence": self._evidence is not None,
                 "reflex_bridge": self._reflex_bridge is not None,
+                "event_bus": self._event_bus is not None,
             },
             "hardware": (
                 {
@@ -841,6 +849,63 @@ class Node0Heartbeat:
         )
 
     # ═══════════════════════════════════════════════════════════════
+    # NERVOUS SYSTEM BRIDGE — EventBus Integration
+    # ═══════════════════════════════════════════════════════════════
+
+    def _emit_breath_event(self, receipt: BreathReceipt) -> None:
+        """Emit a BreathReceipt to the EventBus nervous system.
+
+        Standing on Giants:
+          Hewitt (1973): Actor model — receipts as messages between actors
+          Deming (1950): PDCA complete — Plan→Do→Check→Act→EMIT→LEARN
+          Kahneman (2011): System-2 output (receipt) → System-1 learning (subscriber)
+
+        This bridges the enforcement spine (heartbeat) to the intelligence spine
+        (12 EventBus subscribers: HHMM promotion, reflex compilation, PoI credit).
+        """
+        self._emit_event("action.receipt", {
+            "source": "node0:heartbeat",
+            "tick": receipt.tick_number,
+            "ihsan_composite": receipt.ihsan_composite,
+            "gini_coefficient": receipt.gini_coefficient,
+            "gini_ok": receipt.gini_ok,
+            "seed_minted": receipt.seed_minted,
+            "missions_processed": receipt.missions_processed,
+            "reflexes_precipitated": receipt.reflexes_precipitated,
+            "chain_hash": receipt.chain_hash,
+            "approved_count": receipt.helix_result.get("approved_count", 0),
+            "rejected_count": receipt.helix_result.get("rejected_count", 0),
+        })
+
+    def _emit_event(self, event_type_name: str, payload: Dict[str, Any]) -> None:
+        """Emit an event to the EventBus if connected.
+
+        Gracefully degrades: if no bus is wired or if the bus fails,
+        the heartbeat continues (enforcement spine is independent).
+        """
+        if self._event_bus is None:
+            return
+        try:
+            # Support both bus.subscribers.EventBus and sovereign.event_bus.EventBus
+            if hasattr(self._event_bus, "publish"):
+                # bus.subscribers.EventBus: publish(EventType, payload)
+                from core.bus.subscribers import EventType
+
+                try:
+                    event_type = EventType(event_type_name)
+                except ValueError:
+                    event_type = None
+
+                if event_type is not None:
+                    self._event_bus.publish(event_type, payload)
+                    self._total_events_emitted += 1
+            elif hasattr(self._event_bus, "emit"):
+                self._event_bus.emit(event_type_name, payload)
+                self._total_events_emitted += 1
+        except (RuntimeError, AttributeError, TypeError, ValueError, OSError) as exc:
+            logger.debug("EventBus emission failed (non-fatal): %s", exc)
+
+    # ═══════════════════════════════════════════════════════════════
     # INGEST — Feed missions into the heartbeat cycle
     # ═══════════════════════════════════════════════════════════════
 
@@ -848,6 +913,7 @@ class Node0Heartbeat:
         """Feed a completed mission receipt into the heartbeat cycle.
 
         The receipt will be processed at the next breathe() call via Helix3.
+        Also emits the receipt to the EventBus for downstream subscribers.
 
         Args:
             receipt: Dict with at least 'ihsan_score' and 'description'.
@@ -856,6 +922,14 @@ class Node0Heartbeat:
             self._helix3.ingest_receipt(receipt)
         else:
             logger.debug("Helix3 not available — receipt dropped")
+
+        # Emit to nervous system for downstream learning
+        self._emit_event("action.receipt", {
+            "source": "node0:ingest",
+            "ihsan_score": receipt.get("ihsan_score", 0.0),
+            "description": receipt.get("description", ""),
+            "fate_verdict": receipt.get("fate_verdict", "unknown"),
+        })
 
 
 # ═══════════════════════════════════════════════════════════════════
