@@ -41,12 +41,14 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
 import threading
 import time
 import uuid
+from collections import deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -244,6 +246,14 @@ try:
             default="api",
             description="Caller identity: 'terminal', 'api', 'test', 'ahk'.",
         )
+        permission_envelope: Optional[dict[str, Any]] = _PydanticField(
+            default=None,
+            description="Mission-scoped approval envelope for terminal clients.",
+        )
+        proof_mode: str = _PydanticField(
+            default="auto",
+            description="Proof lane selection: auto | verified | standard.",
+        )
 
     class ChannelResult(_PydanticBaseModel):
         """Per-channel execution result within a mission."""
@@ -273,6 +283,19 @@ try:
         semantic: int = 0
         procedural: int = 0
 
+    class ReasoningProofResponse(_PydanticBaseModel):
+        """Additive proof metadata for missions routed through VRG reasoning."""
+
+        mode: str = "verified_graph"
+        vrg_root: str = ""
+        verified: bool = False
+        receipt_id: str = ""
+        status: str = ""
+        payload_digest: str = ""
+        branch_count: int = 0
+        surviving_branches: int = 0
+        detail: str = ""
+
     class MissionPlanResponse(_PydanticBaseModel):
         """Response model for POST /v1/plan — receipted mission result.
 
@@ -295,7 +318,7 @@ try:
         evidence_receipt_id: Optional[str] = None
         channels_executed: list[ChannelResult] = _PydanticField(default_factory=list)
         execution_path: str = _PydanticField(
-            default="system_2",
+            default="SYSTEM_2_NOVEL",
             description="SYSTEM_1_CACHE_HIT | SYSTEM_2_NOVEL | MIXED",
         )
         wallet_delta: WalletDeltaResponse = _PydanticField(
@@ -312,6 +335,41 @@ try:
         reflex_pattern: str = ""
         reflex_latency_ms: float = 0.0
         comparison_s2_avg_ms: float = 0.0
+        reasoning_proof: Optional[ReasoningProofResponse] = None
+
+    class CriticalAcknowledgmentRequest(_PydanticBaseModel):
+        """Request model for proof-bearing acknowledgment of a critical event."""
+
+        event_hash: str = _PydanticField(
+            ...,
+            min_length=32,
+            max_length=32,
+            description="Terminal event hash being acknowledged.",
+        )
+        topic: str = _PydanticField(
+            ...,
+            min_length=1,
+            description="Canonical topic of the critical event.",
+        )
+        summary: str = _PydanticField(
+            default="",
+            description="Human-readable summary shown to the operator.",
+        )
+        mission_id: str = ""
+        receipt_id: str = ""
+
+    class CriticalAcknowledgmentResponse(_PydanticBaseModel):
+        """Response model for a proof-bearing critical acknowledgment."""
+
+        acknowledgement_id: str
+        receipt_id: str
+        status: str = "ACKNOWLEDGED"
+        hash_chain_ref: str
+        acknowledged_event_hash: str
+        acknowledged_topic: str
+        mission_id: str = ""
+        timestamp: str
+        synthesis: str
 
     class OnboardingTeachRequest(_PydanticBaseModel):
         """Request model for POST /v1/onboarding/teach — user preference teaching."""
@@ -352,6 +410,8 @@ try:
     MissionPlanRequest.model_rebuild()
     ChannelResult.model_rebuild()
     MissionPlanResponse.model_rebuild()
+    CriticalAcknowledgmentRequest.model_rebuild()
+    CriticalAcknowledgmentResponse.model_rebuild()
     OnboardingTeachRequest.model_rebuild()
     JudgmentSimulateRequest.model_rebuild()
     EpochSimulateModel.model_rebuild()
@@ -377,6 +437,8 @@ except ImportError:
     MissionPlanRequest = None  # type: ignore[assignment,misc]
     ChannelResult = None  # type: ignore[assignment,misc]
     MissionPlanResponse = None  # type: ignore[assignment,misc]
+    CriticalAcknowledgmentRequest = None  # type: ignore[assignment,misc]
+    CriticalAcknowledgmentResponse = None  # type: ignore[assignment,misc]
     OnboardingTeachRequest = None  # type: ignore[assignment,misc]
     JudgmentSimulateRequest = None  # type: ignore[assignment,misc]
     EpochSimulateModel = None  # type: ignore[assignment,misc]
@@ -1312,6 +1374,212 @@ def create_fastapi_app(runtime: Any) -> Any:
         _auth_middleware = None  # type: ignore[assignment]
         _auth_available = False
 
+    from core.inference.model_routing import DEFAULT_MODEL_ROUTING
+    from core.sovereign.atomic_io import atomic_write_json, read_json
+    from core.sovereign.terminal import PermissionEnvelope as TerminalPermissionEnvelope
+
+    _topic_aliases = {
+        "policy.invariant.violation": "invariant.violation",
+    }
+    _event_severity_by_topic = {
+        "mission.created": "info",
+        "mission.executed": "info",
+        "mission.verified": "info",
+        "mission.failed": "warning",
+        "economy.seed_minted": "notice",
+        "economy.zakat": "info",
+        "economy.bloom_accrued": "info",
+        "economy.asabiyyah": "info",
+        "reflex.compiled": "notice",
+        "ihsan.breach": "critical",
+        "invariant.violation": "critical",
+        "auth.boundary.crossed": "warning",
+        "critical.acknowledged": "notice",
+        "receipt.generated": "info",
+        "receipt.verified": "info",
+        "tick.completed": "info",
+    }
+    _model_routing_path = _db_dir / "model_routing.json"
+    _terminal_event_history: deque[dict[str, Any]] = deque(maxlen=500)
+    _terminal_event_chain_head = ""
+    _ws_clients: dict[Any, set[str]] = {}
+
+    def _utcnow_iso() -> str:
+        return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    def _json_safe(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {str(k): _json_safe(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [_json_safe(item) for item in value]
+        if isinstance(value, datetime):
+            return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        if hasattr(value, "to_dict") and callable(value.to_dict):
+            return _json_safe(value.to_dict())
+        if hasattr(value, "value"):
+            return _json_safe(value.value)
+        if isinstance(value, bytes):
+            return value.hex()
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        return str(value)
+
+    def _canonical_topic_name(topic: str) -> str:
+        return _topic_aliases.get(topic, topic)
+
+    def _normalize_receipt_status(status: Any) -> str:
+        value = str(status or "FAILED").upper()
+        if value == "COMPLETED":
+            value = "COMPLETE"
+        if value not in {"COMPLETE", "PARTIAL", "FAILED", "BLOCKED"}:
+            return "FAILED"
+        return value
+
+    def _normalize_execution_path(path: Any) -> str:
+        value = str(path or "").strip()
+        mapping = {
+            "system_1": "SYSTEM_1_CACHE_HIT",
+            "system_1_reflex": "SYSTEM_1_CACHE_HIT",
+            "SYSTEM_1": "SYSTEM_1_CACHE_HIT",
+            "SYSTEM_1_CACHE_HIT": "SYSTEM_1_CACHE_HIT",
+            "system_2": "SYSTEM_2_NOVEL",
+            "SYSTEM_2": "SYSTEM_2_NOVEL",
+            "SYSTEM_2_NOVEL": "SYSTEM_2_NOVEL",
+            "mixed": "MIXED",
+            "MIXED": "MIXED",
+        }
+        return mapping.get(value, "SYSTEM_2_NOVEL")
+
+    def _load_model_routing() -> dict[str, str]:
+        stored = read_json(_model_routing_path, default={})
+        routing = dict(DEFAULT_MODEL_ROUTING)
+        if isinstance(stored, dict):
+            for key, value in stored.items():
+                if isinstance(key, str) and isinstance(value, str) and value.strip():
+                    routing[key] = value.strip()
+        return routing
+
+    def _current_model_routing() -> dict[str, str]:
+        routing = getattr(runtime, "_terminal_model_routing", None)
+        if not isinstance(routing, dict):
+            routing = _load_model_routing()
+            runtime._terminal_model_routing = routing
+        return dict(routing)
+
+    def _persist_model_routing(routing: dict[str, str]) -> dict[str, str]:
+        merged = dict(DEFAULT_MODEL_ROUTING)
+        for key, value in routing.items():
+            if isinstance(key, str) and isinstance(value, str) and value.strip():
+                merged[key] = value.strip()
+        atomic_write_json(_model_routing_path, merged)
+        runtime._terminal_model_routing = merged
+        return merged
+
+    def _default_permission_policy() -> dict[str, Any]:
+        configured = getattr(runtime, "_terminal_permission_defaults", None)
+        if isinstance(configured, dict):
+            return _json_safe(configured)
+        return TerminalPermissionEnvelope().to_dict()
+
+    def _wallet_snapshot() -> dict[str, float]:
+        wallets = getattr(runtime, "_constitutional_wallets", [])
+        if not wallets:
+            return {"seed": 0.0, "bloom": 0.0}
+        try:
+            from core.constitutional.fixed_point import fp_float
+
+            wallet = wallets[0]
+            return {
+                "seed": fp_float(getattr(wallet, "seed_balance", 0)),
+                "bloom": fp_float(getattr(wallet, "bloom_balance", 0)),
+            }
+        except Exception:  # noqa: BLE001 - read model fallback
+            return {"seed": 0.0, "bloom": 0.0}
+
+    def _recent_episodes(limit: int = 10) -> list[dict[str, Any]]:
+        seed_engine = getattr(runtime, "_seed_engine", None)
+        if seed_engine is None:
+            return []
+        try:
+            episodes = seed_engine.recent_episodes(limit=limit)
+        except Exception:  # noqa: BLE001 - read model fallback
+            return []
+        return episodes if isinstance(episodes, list) else []
+
+    def _last_mission_summary() -> str:
+        episodes = _recent_episodes(limit=1)
+        if not episodes:
+            return ""
+        latest = episodes[-1]
+        return (
+            f"Episode {latest.get('index', '?')} "
+            f"qualified={latest.get('qualified', False)} "
+            f"Ihsan {float(latest.get('ihsan', 0.0)):.2f}"
+        )
+
+    def _auth_state_label() -> str:
+        from core.auth.middleware import _anonymous_auth_allowed
+
+        if _auth_available and _auth_middleware is not None:
+            if _anonymous_auth_allowed() and not _production_mode_enabled():
+                return "anonymous-dev"
+            return "authenticated"
+        if _anonymous_auth_allowed() and not _production_mode_enabled():
+            return "anonymous-dev"
+        return "unavailable"
+
+    def _health_snapshot() -> dict[str, Any]:
+        status = runtime.status()
+        last_tick = getattr(runtime, "_last_tick_result", None)
+        gini = 0.0
+        asabiyyah = 0.0
+        minted_ihsan = 0.0
+        minted_snr = 0.0
+        if last_tick is not None:
+            try:
+                from core.constitutional.fixed_point import fp_float
+
+                gini = fp_float(getattr(last_tick, "network_gini", 0))
+                asabiyyah = fp_float(getattr(last_tick, "network_asabiyyah", 0))
+                minted_ihsan = fp_float(getattr(last_tick, "avg_ihsan", 0))
+                minted_snr = fp_float(getattr(last_tick, "avg_snr", 0))
+            except Exception:  # noqa: BLE001 - read model fallback
+                gini = 0.0
+                asabiyyah = 0.0
+        live = bool(status.get("state", {}).get("running", True))
+        return {
+            "status": status.get("health", {}).get("status", "unknown"),
+            "tier": "terminal",
+            "live_status": "LIVE" if live else "OFFLINE",
+            "running": live,
+            "ihsan_score": round(minted_ihsan, 4),
+            "snr_score": round(minted_snr, 4),
+            "gini": round(gini, 4),
+            "asabiyyah": round(asabiyyah, 4),
+            "last_tick_timestamp": getattr(runtime, "_last_tick_timestamp", ""),
+            "tick_interval_s": getattr(runtime, "_tick_interval_s", _tick_interval_s),
+            "wallet_snapshot": _wallet_snapshot(),
+            "last_mission_summary": _last_mission_summary(),
+            "auth_state": _auth_state_label(),
+            "runtime_mode": os.environ.get("BIZRA_ENV", "development") or "development",
+            "model_routing": _current_model_routing(),
+            "permission_defaults": _default_permission_policy(),
+            "version": status.get("identity", {}).get("version", ""),
+            "env": os.environ.get("BIZRA_ENV", "development") or "development",
+            "critical_subsystems": status.get("health", {}).get(
+                "critical_subsystems", {}
+            ),
+        }
+
+    def _schedule_bus_event(
+        topic: str, payload: dict[str, Any], source: str = "api"
+    ) -> None:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        loop.create_task(_emit_bus_event(topic, payload, source=source))
+
     # ── Constitutional Heartbeat Background Task ──────────────────
     # Phase 73: Schedule the 12-step constitutional tick as a periodic
     # background task. This activates: minting, zakat, demurrage, Gini
@@ -1323,11 +1591,97 @@ def create_fastapi_app(runtime: Any) -> Any:
 
     _tick_interval_s = int(os.environ.get("BIZRA_TICK_INTERVAL_S", "60"))
     _tick_task: list[Any] = []  # mutable container for background task ref
+    runtime._tick_interval_s = _tick_interval_s  # type: ignore[attr-defined]
+
+    def _topic_matches_subscription(topic: str, subscriptions: set[str]) -> bool:
+        if not subscriptions:
+            return True
+        canonical = _canonical_topic_name(topic)
+        for subscription in subscriptions:
+            if subscription in {"*", "all"}:
+                return True
+            if subscription == canonical:
+                return True
+            if subscription.endswith(".*") and canonical.startswith(subscription[:-1]):
+                return True
+        return False
+
+    def _history_events(
+        limit: int = 100, subscriptions: set[str] | None = None
+    ) -> list[dict[str, Any]]:
+        subscriptions = subscriptions or set()
+        items = [
+            event
+            for event in _terminal_event_history
+            if _topic_matches_subscription(event["topic"], subscriptions)
+        ]
+        return items[-max(1, min(limit, 100)) :]
+
+    def _record_terminal_event(
+        topic: str, payload: dict[str, Any], source: str
+    ) -> dict[str, Any]:
+        nonlocal _terminal_event_chain_head
+
+        canonical_topic = _canonical_topic_name(topic)
+        normalized_payload = _json_safe(payload)
+        mission_id = str(normalized_payload.get("mission_id", "") or "")
+        receipt_id = str(
+            normalized_payload.get("receipt_id", "")
+            or normalized_payload.get("evidence_receipt_id", "")
+        )
+        timestamp = _utcnow_iso()
+        prev_hash = _terminal_event_chain_head
+        digest_material = json.dumps(
+            {
+                "topic": canonical_topic,
+                "mission_id": mission_id,
+                "receipt_id": receipt_id,
+                "timestamp": timestamp,
+                "payload": normalized_payload,
+                "prev_hash": prev_hash,
+                "source": source,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        event_hash = hashlib.blake2b(
+            digest_material.encode("utf-8"), digest_size=16
+        ).hexdigest()
+        envelope = {
+            "topic": canonical_topic,
+            "severity": _event_severity_by_topic.get(canonical_topic, "info"),
+            "mission_id": mission_id,
+            "receipt_id": receipt_id,
+            "event_hash": event_hash,
+            "prev_hash": prev_hash,
+            "timestamp": timestamp,
+            "payload": normalized_payload,
+            "source": source,
+        }
+        _terminal_event_history.append(envelope)
+        _terminal_event_chain_head = event_hash
+        return envelope
+
+    async def _push_terminal_event(event: dict[str, Any]) -> int:
+        sent = 0
+        disconnected: list[Any] = []
+        for ws, subscriptions in list(_ws_clients.items()):
+            if not _topic_matches_subscription(event["topic"], subscriptions):
+                continue
+            try:
+                await ws.send_json({"type": "event", "event": event})
+                sent += 1
+            except Exception:  # noqa: BLE001 - websocket boundary
+                disconnected.append(ws)
+        for ws in disconnected:
+            _ws_clients.pop(ws, None)
+        return sent
 
     async def _emit_bus_event(
         topic: str, payload: dict[str, Any], source: str = "heartbeat"
-    ) -> None:
+    ) -> dict[str, Any] | None:
         """Emit an event to the sovereign EventBus (fire-and-forget)."""
+        event = _record_terminal_event(topic, payload, source)
         try:
             from core.sovereign.event_bus import get_event_bus
 
@@ -1341,6 +1695,145 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
         except Exception:  # noqa: BLE001 — review needed
             logger.debug("EventBus emit failed for topic=%s", topic, exc_info=True)
+        await _push_terminal_event(event)
+        return event
+
+    def _mission_proof_requested(
+        proof_mode: str,
+        *,
+        source: str,
+        permission_envelope: dict[str, Any] | None,
+    ) -> bool:
+        normalized_mode = proof_mode.strip().lower()
+        if normalized_mode in {"verified", "required", "proof"}:
+            return True
+        if normalized_mode in {"off", "none", "disabled", "standard"}:
+            return False
+        return source == "terminal" or isinstance(permission_envelope, dict)
+
+    def _resolve_mission_got_bridge() -> Any | None:
+        runtime_state = getattr(runtime, "__dict__", {})
+        candidate = runtime_state.get("_got_bridge")
+        candidate_reason_verified = getattr(candidate, "reason_verified", None)
+        if candidate is not None and asyncio.iscoroutinefunction(
+            candidate_reason_verified
+        ):
+            return candidate
+
+        graph_engine = runtime_state.get("_graph_reasoner")
+        try:
+            from core.reasoning.got_bridge import GoTBridge
+
+            return GoTBridge(got_engine=graph_engine)
+        except Exception:
+            logger.debug("Mission VRG bridge unavailable", exc_info=True)
+            return None
+
+    async def _build_reasoning_proof(
+        *,
+        description: str,
+        source: str,
+        proof_mode: str,
+        permission_envelope: dict[str, Any] | None,
+        mission_id: str,
+        mission_receipt_id: str,
+        execution_path: str,
+        mission_result: Any,
+    ) -> dict[str, Any] | None:
+        if not _mission_proof_requested(
+            proof_mode,
+            source=source,
+            permission_envelope=permission_envelope,
+        ):
+            return None
+
+        bridge = _resolve_mission_got_bridge()
+        if bridge is None or not asyncio.iscoroutinefunction(
+            getattr(bridge, "reason_verified", None)
+        ):
+            return {
+                "mode": "verified_graph",
+                "vrg_root": "",
+                "verified": False,
+                "receipt_id": "",
+                "status": "UNAVAILABLE",
+                "payload_digest": "",
+                "branch_count": 0,
+                "surviving_branches": 0,
+                "detail": "reason_verified_unavailable",
+            }
+
+        context_facts = [
+            f"mission_id={mission_id}",
+            f"mission_receipt_id={mission_receipt_id}",
+            f"source={source}",
+            f"execution_path={execution_path}",
+        ]
+        synthesis = str(getattr(mission_result, "synthesis", "") or "").strip()
+        if synthesis:
+            context_facts.append(f"synthesis={synthesis[:400]}")
+        for channel in getattr(mission_result, "channels_executed", [])[:8]:
+            try:
+                context_facts.append(
+                    "channel="
+                    f"{getattr(channel, 'channel', 'unknown')}"
+                    f"|success={bool(getattr(channel, 'success', False))}"
+                    f"|duration_ms={round(float(getattr(channel, 'duration_ms', 0.0)), 1)}"
+                )
+            except Exception:
+                continue
+
+        context = {
+            "domain": "mission_execution",
+            "facts": context_facts,
+            "mission_id": mission_id,
+            "mission_receipt_id": mission_receipt_id,
+            "permission_envelope": permission_envelope or {},
+            "source": source,
+        }
+
+        try:
+            verified_result = await bridge.reason_verified(description, context=context)
+            proof_receipt = verified_result.receipt
+            proof_status = getattr(
+                getattr(proof_receipt, "status", ""),
+                "value",
+                str(getattr(proof_receipt, "status", "")),
+            )
+            branch_count = len(verified_result.branch_certificates)
+            surviving_branches = sum(
+                1
+                for certificate in verified_result.branch_certificates
+                if certificate.get("included_in_root")
+            )
+            return {
+                "mode": "verified_graph",
+                "vrg_root": str(verified_result.vrg_root),
+                "verified": bool(verified_result.verified),
+                "receipt_id": str(getattr(proof_receipt, "receipt_id", "") or ""),
+                "status": str(proof_status),
+                "payload_digest": getattr(
+                    getattr(proof_receipt, "payload_digest", b""),
+                    "hex",
+                    lambda: "",
+                )(),
+                "branch_count": branch_count,
+                "surviving_branches": surviving_branches,
+                "detail": str(getattr(proof_receipt, "reason", "") or ""),
+            }
+        except Exception:
+            logger.debug("Mission VRG proof generation failed", exc_info=True)
+            return {
+                "mode": "verified_graph",
+                "vrg_root": "",
+                "verified": False,
+                "receipt_id": "",
+                "status": "UNAVAILABLE",
+                "payload_digest": "",
+                "branch_count": 0,
+                "surviving_branches": 0,
+                "detail": "reason_verified_failed",
+            }
 
     async def _emit_tick_events(result: Any, reflex_cache: dict[bytes, Any]) -> None:
         """Emit bus events for constitutional tick outcomes.
@@ -1408,6 +1901,26 @@ def create_fastapi_app(runtime: Any) -> Any:
                 },
                 source="tick",
             )
+        if fp_float(getattr(result, "network_gini", 0)) > 0.35:
+            await _emit_bus_event(
+                "invariant.violation",
+                {
+                    "metric": "gini",
+                    "gini": fp_float(getattr(result, "network_gini", 0)),
+                    "threshold": 0.35,
+                },
+                source="tick",
+            )
+        await _emit_bus_event(
+            "tick.completed",
+            {
+                "scored": result.scored,
+                "rejected": result.rejected,
+                "minted": fp_float(result.total_minted),
+                "reflexes": len(reflex_cache),
+            },
+            source="tick",
+        )
 
     async def _constitutional_heartbeat() -> None:
         """Background task: run constitutional tick every interval."""
@@ -1438,6 +1951,8 @@ def create_fastapi_app(runtime: Any) -> Any:
                     event_log=event_log,
                     reflex_cache=reflex_cache,
                 )
+                runtime._last_tick_result = result  # type: ignore[attr-defined]
+                runtime._last_tick_timestamp = _utcnow_iso()  # type: ignore[attr-defined]
 
                 # Clear consumed receipts
                 if hasattr(runtime, "_constitutional_receipts"):
@@ -1464,7 +1979,26 @@ def create_fastapi_app(runtime: Any) -> Any:
 
     @asynccontextmanager
     async def _lifespan(app_instance: Any):  # type: ignore[override]
-        """FastAPI lifespan: start/stop constitutional heartbeat."""
+        """FastAPI lifespan: start/stop constitutional heartbeat + Node0."""
+        # ── Boot Node0Heartbeat — canonical ingest authority ────
+        # Standing on Giants: Nakamoto (2008) — one chain, one authority
+        # Deming (1950) — PDCA closure across the full API surface
+        try:
+            from pathlib import Path as _LifespanPath
+
+            from core.node0.heartbeat import Node0Heartbeat
+
+            _node0_dir = _LifespanPath(
+                os.environ.get("NODE0_STATE_DIR", "sovereign_state/api_node0")
+            )
+            _node0 = Node0Heartbeat(data_dir=_node0_dir)
+            _node0.boot()
+            runtime._node0 = _node0  # type: ignore[attr-defined]
+            logger.info("API Node0Heartbeat booted: node_id=%s", _node0.node_id)
+        except Exception:  # noqa: BLE001 — Node0 unavailable is degraded, not fatal
+            runtime._node0 = None  # type: ignore[attr-defined]
+            logger.warning("API Node0Heartbeat unavailable (degraded mode)")
+
         if _tick_interval_s > 0:
             task = asyncio.create_task(_constitutional_heartbeat())
             _tick_task.append(task)
@@ -1569,6 +2103,16 @@ def create_fastapi_app(runtime: Any) -> Any:
                 user = _auth_middleware.authenticate_request(request)
             except (ValueError, KeyError, PermissionError) as exc:
                 logger.warning("Auth error (specific): %s", exc)
+                _schedule_bus_event(
+                    "auth.boundary.crossed",
+                    {
+                        "path": str(request.url.path),
+                        "reason": "auth_error",
+                        "detail": str(exc),
+                        "transport": "http",
+                    },
+                    source="auth",
+                )
                 return (
                     "",
                     None,
@@ -1579,6 +2123,15 @@ def create_fastapi_app(runtime: Any) -> Any:
                 )
             except Exception as e:  # noqa: BLE001 — review needed
                 if not allow_anonymous:
+                    _schedule_bus_event(
+                        "auth.boundary.crossed",
+                        {
+                            "path": str(request.url.path),
+                            "reason": "authentication_required",
+                            "transport": "http",
+                        },
+                        source="auth",
+                    )
                     return (
                         "",
                         None,
@@ -1594,6 +2147,15 @@ def create_fastapi_app(runtime: Any) -> Any:
 
             if user is None:
                 if not allow_anonymous:
+                    _schedule_bus_event(
+                        "auth.boundary.crossed",
+                        {
+                            "path": str(request.url.path),
+                            "reason": "missing_credentials",
+                            "transport": "http",
+                        },
+                        source="auth",
+                    )
                     return (
                         "",
                         None,
@@ -1605,6 +2167,16 @@ def create_fastapi_app(runtime: Any) -> Any:
                 return "", None, None
 
             if not _auth_middleware.check_rate_limit(user.user_id):
+                _schedule_bus_event(
+                    "auth.boundary.crossed",
+                    {
+                        "path": str(request.url.path),
+                        "reason": "rate_limit_exceeded",
+                        "transport": "http",
+                        "user_id": user.user_id,
+                    },
+                    source="auth",
+                )
                 return (
                     "",
                     None,
@@ -1616,6 +2188,15 @@ def create_fastapi_app(runtime: Any) -> Any:
             return user.user_id, user, None
 
         if not allow_anonymous:
+            _schedule_bus_event(
+                "auth.boundary.crossed",
+                {
+                    "path": str(request.url.path),
+                    "reason": "auth_service_unavailable",
+                    "transport": "http",
+                },
+                source="auth",
+            )
             return (
                 "",
                 None,
@@ -1640,22 +2221,60 @@ def create_fastapi_app(runtime: Any) -> Any:
                 )
             except (ValueError, KeyError, PermissionError) as exc:
                 logger.warning("Auth error (specific): %s", exc)
+                await _emit_bus_event(
+                    "auth.boundary.crossed",
+                    {
+                        "path": str(getattr(ws, "url", "")),
+                        "reason": "auth_error",
+                        "detail": str(exc),
+                        "transport": "websocket",
+                    },
+                    source="auth",
+                )
                 await ws.close(code=1011, reason="Authentication failed")
                 return "", False
             except Exception:  # noqa: BLE001 — review needed
                 user = None
 
             if user is None and not allow_anonymous:
+                await _emit_bus_event(
+                    "auth.boundary.crossed",
+                    {
+                        "path": str(getattr(ws, "url", "")),
+                        "reason": "authentication_required",
+                        "transport": "websocket",
+                    },
+                    source="auth",
+                )
                 await ws.close(code=4401, reason="Authentication required")
                 return "", False
 
             if user is not None and not _auth_middleware.check_rate_limit(user.user_id):
+                await _emit_bus_event(
+                    "auth.boundary.crossed",
+                    {
+                        "path": str(getattr(ws, "url", "")),
+                        "reason": "rate_limit_exceeded",
+                        "transport": "websocket",
+                        "user_id": user.user_id,
+                    },
+                    source="auth",
+                )
                 await ws.close(code=4429, reason="Rate limit exceeded")
                 return "", False
 
             return (user.user_id if user is not None else ""), True
 
         if not allow_anonymous:
+            await _emit_bus_event(
+                "auth.boundary.crossed",
+                {
+                    "path": str(getattr(ws, "url", "")),
+                    "reason": "auth_service_unavailable",
+                    "transport": "websocket",
+                },
+                source="auth",
+            )
             await ws.close(code=1013, reason="Authentication service unavailable")
             return "", False
 
@@ -1727,6 +2346,47 @@ def create_fastapi_app(runtime: Any) -> Any:
         except Exception:  # noqa: BLE001 — review needed
             # Never block mission return for tick wiring failure
             logger.debug("Tick bridge emission failed", exc_info=True)
+
+    def _ingest_via_node0(rt: Any, mission_result: Any) -> None:
+        """Route mission receipt through the canonical Node0 ingest authority.
+
+        When Node0Heartbeat is available, feeds the mission into the
+        evidence chain → memory → reflex path.  Falls back to the
+        legacy _submit_mission_to_tick() when Node0 is not booted.
+
+        Standing on Giants:
+          Nakamoto (2008) — one chain, one authority
+          Deming (1950)   — PDCA: every mission closes through one loop
+        """
+        node0 = getattr(rt, "_node0", None)
+        if node0 is not None:
+            try:
+                mission_id = getattr(mission_result, "mission_id", "") or ""
+                ihsan = getattr(mission_result, "ihsan_score", 0.0) or 0.0
+                snr = getattr(mission_result, "snr_score", 0.0) or 0.0
+                node0.ingest_mission_receipt(
+                    {
+                        "mission_id": mission_id,
+                        "description": str(
+                            getattr(mission_result, "synthesis", "") or ""
+                        )[:200],
+                        "ihsan_score": ihsan,
+                        "snr_score": snr,
+                        "agent_id": "api",
+                        "gate_passed": ihsan >= 0.85,
+                        "duration_ms": getattr(mission_result, "duration_ms", 0.0)
+                        or 0.0,
+                    }
+                )
+                return
+            except Exception:  # noqa: BLE001 — fall through to legacy
+                logger.debug(
+                    "Node0 ingest failed, falling back to legacy tick bridge",
+                    exc_info=True,
+                )
+
+        # Fallback: legacy tick bridge (when Node0 not available)
+        _submit_mission_to_tick(rt, mission_result)
 
     # ── Health Endpoint Tiering (Phase 60 Step 3) ─────────────────────
     #
@@ -1863,8 +2523,8 @@ def create_fastapi_app(runtime: Any) -> Any:
 
     @app.get("/v1/health", tags=["health"])
     async def health():
-        """Backward-compatible alias — delegates to readiness check."""
-        return await health_ready()
+        """Terminal read model for Dashboard and Settings surfaces."""
+        return _health_snapshot()
 
     @app.get("/v1/status", tags=["health"], summary="Runtime status snapshot")
     async def status():
@@ -2455,6 +3115,15 @@ def create_fastapi_app(runtime: Any) -> Any:
             }
 
             if is_valid:
+                await _emit_bus_event(
+                    "receipt.verified",
+                    {
+                        "receipt_id": receipt.receipt_id,
+                        "status": receipt.status.value,
+                        "signature_verified": True,
+                    },
+                    source="verification",
+                )
                 return VerifierResponse.approved(
                     receipt_id=receipt.receipt_id,
                     artifacts=artifacts,
@@ -3551,6 +4220,8 @@ def create_fastapi_app(runtime: Any) -> Any:
                 )
 
             source = body.get("source", "api")
+            proof_mode = str(body.get("proof_mode", "auto") or "auto")
+            permission_envelope = body.get("permission_envelope")
 
             # ── System-1 Fast Path: Reflex Cache Lookup ──────────
             # Kahneman S1: if this pattern is cached with high Ihsan,
@@ -3575,24 +4246,29 @@ def create_fastapi_app(runtime: Any) -> Any:
 
                 reflex_entry = _reflex_compiler.lookup(description)
                 if reflex_entry and not reflex_entry.needs_validation():
-                    import secrets as _secrets
-
                     logger.info(
                         "System-1 cache hit for pattern %s (hits=%d, ihsan=%.3f)",
                         reflex_entry.pattern_hash[:12],
                         reflex_entry.hit_count,
                         reflex_entry.ihsan_composite,
                     )
-                    return {
-                        "status": "COMPLETED",
-                        "mission_id": _secrets.token_hex(8),
-                        "receipt_id": _secrets.token_hex(8),
-                        "evidence_receipt_id": "",
+                    from core.sovereign.terminal import ExecutionPath as _ExecutionPath
+                    from core.sovereign.terminal import TerminalState as _TerminalState
+                    from core.sovereign.terminal import (
+                        TerminalStateController as _TerminalStateController,
+                    )
+
+                    mission_id = _secrets.token_hex(8)
+                    receipt_id = _secrets.token_hex(8)
+                    receipt_payload = {
+                        "status": "COMPLETE",
+                        "mission_id": mission_id,
+                        "receipt_id": receipt_id,
                         "synthesis": reflex_entry.output_template,
                         "ihsan_score": reflex_entry.ihsan_composite,
                         "snr_score": reflex_entry.ihsan_composite,
                         "duration_ms": 0.1,
-                        "execution_path": "system_1_reflex",
+                        "execution_path": _ExecutionPath.SYSTEM_1_CACHE_HIT.value,
                         "channels_executed": [],
                         "action_count": 0,
                         "wallet_delta": {"seed": 0.0, "bloom": 0.0},
@@ -3604,10 +4280,48 @@ def create_fastapi_app(runtime: Any) -> Any:
                         },
                         "memory_delta": {"episodic": 0, "semantic": 0, "procedural": 0},
                         "hash_chain_ref": reflex_entry.pattern_hash,
-                        "reflex_pattern": reflex_entry.pattern_hash[:12],
+                        "reflex_pattern": reflex_entry.pattern_hash,
                         "reflex_latency_ms": 0.1,
                         "comparison_s2_avg_ms": 0.0,
                     }
+                    session_id = request.headers.get("X-Session-ID", "default")
+                    if session_id not in _terminal_controllers:
+                        ctrl = _TerminalStateController()
+                        ctrl.transition(_TerminalState.READY)
+                        _terminal_controllers[session_id] = ctrl
+                    ctrl = _terminal_controllers[session_id]
+                    ctrl.start_mission(
+                        mission_id,
+                        execution_path=_ExecutionPath.SYSTEM_1_CACHE_HIT,
+                    )
+                    ctrl.transition(_TerminalState.PERMISSION_REVIEW)
+                    ctrl.transition(_TerminalState.EXECUTING)
+                    ctrl.complete()
+
+                    await _emit_bus_event(
+                        "mission.created",
+                        {"mission_id": mission_id, "source": source},
+                        source="mission",
+                    )
+                    await _emit_bus_event(
+                        "receipt.generated",
+                        receipt_payload,
+                        source="mission",
+                    )
+                    await _emit_bus_event(
+                        "mission.executed",
+                        {
+                            "mission_id": mission_id,
+                            "receipt_id": receipt_id,
+                            "status": "COMPLETE",
+                            "ihsan_score": reflex_entry.ihsan_composite,
+                            "snr_score": reflex_entry.ihsan_composite,
+                            "duration_ms": 0.1,
+                            "execution_path": _ExecutionPath.SYSTEM_1_CACHE_HIT.value,
+                        },
+                        source="mission",
+                    )
+                    return receipt_payload
             except ImportError:
                 logger.debug("ReflexCompiler not available, using System-2 only")
             except Exception:  # noqa: BLE001 — review needed
@@ -3650,11 +4364,11 @@ def create_fastapi_app(runtime: Any) -> Any:
 
             result = await orchestrator.execute(mission_req)
 
-            # ── Reflex Cache Wiring ──────────────────────────────
-            # Feed mission result into constitutional tick queue so
-            # Step 10 (reflex compilation) can cache excellent patterns.
-            # This closes the loop: mission → receipt → tick → reflex.
-            _submit_mission_to_tick(runtime, result)
+            # ── Canonical Ingest Authority ────────────────────────
+            # Feed mission result through Node0Heartbeat (evidence chain,
+            # memory, reflex).  Falls back to legacy tick bridge if Node0
+            # unavailable.  Nakamoto (2008): one chain, one authority.
+            _ingest_via_node0(runtime, result)
 
             # ── System-1 Precipitation: Record Observation ─────────
             # After every System-2 completion, record the pattern.
@@ -3675,10 +4389,82 @@ def create_fastapi_app(runtime: Any) -> Any:
             except Exception:  # noqa: BLE001 — review needed
                 logger.debug("Reflex observation recording failed", exc_info=True)
 
-            # ── Terminal State Wiring (P2a fix) ──────────────────
-            # Update the session's terminal controller so
-            # /v1/terminal/state reflects the actual mission lifecycle.
+            normalized_status = _normalize_receipt_status(result.status)
+            normalized_execution_path = _normalize_execution_path(
+                getattr(result, "execution_path", "SYSTEM_2_NOVEL")
+            )
+            receipt_id = result.evidence_receipt_id or _secrets.token_hex(8)
+            reasoning_proof = await _build_reasoning_proof(
+                description=description,
+                source=source,
+                proof_mode=proof_mode,
+                permission_envelope=(
+                    permission_envelope
+                    if isinstance(permission_envelope, dict)
+                    else None
+                ),
+                mission_id=result.mission_id,
+                mission_receipt_id=receipt_id,
+                execution_path=normalized_execution_path,
+                mission_result=result,
+            )
+            reflex_delta_payload = {
+                "compiled": False,
+                "near_compile": False,
+                "compile_count": 0,
+                "threshold": 3,
+            }
+            compiled_reflex_event_payload: dict[str, Any] | None = None
             try:
+                if "_reflex_compiler" in globals() and _reflex_compiler is not None:
+                    pattern_hash = _reflex_compiler._hash_input(description)
+                    if pattern_hash in getattr(_reflex_compiler, "_cache", {}):
+                        compiled_entry = _reflex_compiler._cache[pattern_hash]
+                        reflex_delta_payload = {
+                            "compiled": True,
+                            "near_compile": False,
+                            "compile_count": int(
+                                getattr(compiled_entry, "precipitation_count", 0)
+                            ),
+                            "threshold": 3,
+                        }
+                        compiled_reflex_event_payload = {
+                            "mission_id": result.mission_id,
+                            "name": str(
+                                getattr(compiled_entry, "input_template", description)
+                            )[:120],
+                            "pattern_hash": str(
+                                getattr(compiled_entry, "pattern_hash", pattern_hash)
+                            ),
+                            "avg_ihsan": round(
+                                float(getattr(compiled_entry, "ihsan_composite", 0.0)),
+                                4,
+                            ),
+                            "execution_count": int(
+                                getattr(compiled_entry, "hit_count", 0)
+                            ),
+                            "precipitation_count": int(
+                                getattr(compiled_entry, "precipitation_count", 0)
+                            ),
+                        }
+                    else:
+                        candidate = getattr(_reflex_compiler, "_candidates", {}).get(
+                            pattern_hash
+                        )
+                        if candidate is not None:
+                            consecutive = int(candidate.consecutive_high_quality())
+                            reflex_delta_payload = {
+                                "compiled": False,
+                                "near_compile": consecutive > 0,
+                                "compile_count": consecutive,
+                                "threshold": 3,
+                            }
+            except Exception:  # noqa: BLE001 - reflex telemetry fallback
+                logger.debug("Reflex delta synthesis failed", exc_info=True)
+
+            # ── Terminal State Wiring (contract alignment) ─────────────────────
+            try:
+                from core.sovereign.terminal import ExecutionPath as _ExecutionPath
                 from core.sovereign.terminal import TerminalState as _TS
                 from core.sovereign.terminal import TerminalStateController as _TSC
 
@@ -3688,43 +4474,29 @@ def create_fastapi_app(runtime: Any) -> Any:
                     _ctrl.transition(_TS.READY)
                     _terminal_controllers[_session_id] = _ctrl
                 _ctrl = _terminal_controllers[_session_id]
-                _ctrl.start_mission(mission_req.mission_id)
-                # Fast-forward through intermediate states for API-driven missions
+                _ctrl.start_mission(
+                    mission_req.mission_id,
+                    execution_path=_ExecutionPath(normalized_execution_path),
+                )
                 _ctrl.transition(_TS.PERMISSION_REVIEW)
                 _ctrl.transition(_TS.EXECUTING)
-                if result.status == "FAILED":
+                if normalized_status == "FAILED":
                     _ctrl.fail()
+                elif normalized_status == "BLOCKED":
+                    _ctrl.block()
                 else:
                     _ctrl.complete()
             except (ImportError, Exception):  # noqa: BLE001 — API boundary
                 logger.debug("Terminal state wiring unavailable", exc_info=True)
 
-            # ── Mission Lifecycle: Executed ──────────────────────
-            mission_topic = (
-                "mission.executed" if result.status != "FAILED" else "mission.failed"
-            )
-            await _emit_bus_event(
-                mission_topic,
-                {
-                    "mission_id": result.mission_id,
-                    "status": result.status,
-                    "ihsan_score": result.ihsan_score,
-                    "snr_score": result.snr_score,
-                    "duration_ms": round(result.duration_ms, 1),
-                },
-                source="mission",
-            )
-
             # Build enriched Terminal v1 receipt
             try:
                 from core.sovereign.terminal import ChannelRecord as TChannelRecord
-                from core.sovereign.terminal import (
-                    ExecutionPath,
-                )
+                from core.sovereign.terminal import ExecutionPath
+                from core.sovereign.terminal import MemoryDelta as TMemoryDelta
                 from core.sovereign.terminal import MissionReceipt as TerminalReceipt
-                from core.sovereign.terminal import (
-                    WalletDelta,
-                )
+                from core.sovereign.terminal import ReflexDelta as TReflexDelta
+                from core.sovereign.terminal import WalletDelta
 
                 t_channels = [
                     TChannelRecord(
@@ -3736,54 +4508,99 @@ def create_fastapi_app(runtime: Any) -> Any:
                 ]
                 terminal_receipt = TerminalReceipt(
                     mission_id=result.mission_id,
-                    receipt_id=result.evidence_receipt_id or _secrets.token_hex(8),
-                    status=result.status,
+                    receipt_id=receipt_id,
+                    status=normalized_status,
                     synthesis=result.synthesis,
                     ihsan_score=result.ihsan_score,
                     snr_score=result.snr_score,
                     duration_ms=result.duration_ms,
                     channels_executed=t_channels,
+                    execution_path=ExecutionPath(normalized_execution_path),
+                    wallet_delta=WalletDelta(),
+                    reflex_delta=TReflexDelta(**reflex_delta_payload),
+                    memory_delta=TMemoryDelta(),
+                    hash_chain_ref=receipt_id,
                     action_count=len(t_channels),
                 )
-                return terminal_receipt.to_dict()
+                receipt_payload = terminal_receipt.to_dict()
             except ImportError:
-                pass
+                receipt_payload = {
+                    "status": normalized_status,
+                    "mission_id": result.mission_id,
+                    "receipt_id": receipt_id,
+                    "synthesis": result.synthesis,
+                    "ihsan_score": result.ihsan_score,
+                    "snr_score": result.snr_score,
+                    "duration_ms": round(result.duration_ms, 1),
+                    "execution_path": normalized_execution_path,
+                    "channels_executed": [
+                        {
+                            "channel": cr.channel,
+                            "success": cr.success,
+                            "duration_ms": round(cr.duration_ms, 1),
+                        }
+                        for cr in result.channels_executed
+                    ],
+                    "action_count": len(result.channels_executed),
+                    "wallet_delta": {"seed": 0.0, "bloom": 0.0},
+                    "reflex_delta": reflex_delta_payload,
+                    "memory_delta": {"episodic": 0, "semantic": 0, "procedural": 0},
+                    "hash_chain_ref": receipt_id,
+                    "reflex_pattern": "",
+                    "reflex_latency_ms": 0.0,
+                    "comparison_s2_avg_ms": 0.0,
+                }
+            if reasoning_proof is not None:
+                receipt_payload["reasoning_proof"] = reasoning_proof
 
-            # Fallback: Contract §8.1 normalized dict if terminal module unavailable
-            # All required fields MUST be present even in fallback path
-            _fallback_receipt_id = result.evidence_receipt_id or _secrets.token_hex(8)
-            return {
-                "status": result.status,
-                "mission_id": result.mission_id,
-                "receipt_id": _fallback_receipt_id,
-                "evidence_receipt_id": _fallback_receipt_id,
-                "synthesis": result.synthesis,
-                "ihsan_score": result.ihsan_score,
-                "snr_score": result.snr_score,
-                "duration_ms": round(result.duration_ms, 1),
-                "execution_path": "system_2",
-                "channels_executed": [
+            mission_topic = (
+                "mission.failed"
+                if normalized_status == "FAILED"
+                else "mission.executed"
+            )
+            await _emit_bus_event(
+                "receipt.generated",
+                receipt_payload,
+                source="mission",
+            )
+            if compiled_reflex_event_payload is not None:
+                compiled_reflex_event_payload["receipt_id"] = receipt_id
+                await _emit_bus_event(
+                    "reflex.compiled",
+                    compiled_reflex_event_payload,
+                    source="mission",
+                )
+            if reasoning_proof is not None:
+                await _emit_bus_event(
+                    "mission.verified",
                     {
-                        "channel": cr.channel,
-                        "success": cr.success,
-                        "duration_ms": round(cr.duration_ms, 1),
-                    }
-                    for cr in result.channels_executed
-                ],
-                "action_count": len(result.channels_executed),
-                "wallet_delta": {"seed": 0.0, "bloom": 0.0},
-                "reflex_delta": {
-                    "compiled": False,
-                    "near_compile": False,
-                    "compile_count": 0,
-                    "threshold": 3,
+                        "mission_id": result.mission_id,
+                        "receipt_id": receipt_id,
+                        "proof_receipt_id": reasoning_proof.get("receipt_id", ""),
+                        "proof_status": reasoning_proof.get("status", ""),
+                        "verified": reasoning_proof.get("verified", False),
+                        "vrg_root": reasoning_proof.get("vrg_root", ""),
+                        "branch_count": reasoning_proof.get("branch_count", 0),
+                        "surviving_branches": reasoning_proof.get(
+                            "surviving_branches", 0
+                        ),
+                    },
+                    source="mission",
+                )
+            await _emit_bus_event(
+                mission_topic,
+                {
+                    "mission_id": result.mission_id,
+                    "receipt_id": receipt_id,
+                    "status": normalized_status,
+                    "ihsan_score": result.ihsan_score,
+                    "snr_score": result.snr_score,
+                    "duration_ms": round(result.duration_ms, 1),
+                    "execution_path": normalized_execution_path,
                 },
-                "memory_delta": {"episodic": 0, "semantic": 0, "procedural": 0},
-                "hash_chain_ref": "",
-                "reflex_pattern": "",
-                "reflex_latency_ms": 0.0,
-                "comparison_s2_avg_ms": 0.0,
-            }
+                source="mission",
+            )
+            return receipt_payload
 
         except ImportError as exc:
             logger.exception("Mission orchestrator not available")
@@ -3953,8 +4770,6 @@ def create_fastapi_app(runtime: Any) -> Any:
     # Clients connect once and receive: proactive suggestions, agent status,
     # task completions, and system events.
 
-    _ws_clients: set[Any] = set()  # Active WebSocket connections
-
     try:
         from starlette.websockets import WebSocket as StarletteWS
         from starlette.websockets import WebSocketDisconnect
@@ -3979,16 +4794,27 @@ def create_fastapi_app(runtime: Any) -> Any:
                 return
 
             await ws.accept()
-            _ws_clients.add(ws)
+            _ws_clients[ws] = set()
 
-            # Send welcome
-            identity = runtime.status().get("identity", {})
+            # Send welcome. Normalize identity defensively so the stream
+            # remains available even if a runtime adapter returns a mock or
+            # non-dict status payload.
+            try:
+                status_snapshot = runtime.status()
+            except Exception:  # noqa: BLE001 - websocket boundary hardening
+                status_snapshot = {}
+            identity = (
+                status_snapshot.get("identity", {})
+                if isinstance(status_snapshot, dict)
+                else {}
+            )
             await ws.send_json(
                 {
                     "type": "connected",
-                    "node_id": identity.get("node_id", "unknown"),
-                    "version": identity.get("version", "1.0.0"),
+                    "node_id": str(identity.get("node_id", "unknown")),
+                    "version": str(identity.get("version", "1.0.0")),
                     "user_id": ws_user_id,
+                    "protocol": ["subscribe", "unsubscribe", "history", "ping"],
                 }
             )
 
@@ -4000,6 +4826,59 @@ def create_fastapi_app(runtime: Any) -> Any:
 
                     if msg_type == "ping":
                         await ws.send_json({"type": "pong"})
+
+                    elif msg_type == "subscribe":
+                        topics = data.get("topics", [])
+                        if isinstance(topics, str):
+                            topics = [topics]
+                        if not isinstance(topics, list):
+                            await ws.send_json(
+                                {"type": "error", "error": "topics must be a list"}
+                            )
+                            continue
+                        subscriptions = _ws_clients.get(ws, set())
+                        subscriptions.update(
+                            {
+                                str(topic).strip()
+                                for topic in topics
+                                if str(topic).strip()
+                            }
+                        )
+                        _ws_clients[ws] = subscriptions
+
+                    elif msg_type == "unsubscribe":
+                        topics = data.get("topics", [])
+                        if isinstance(topics, str):
+                            topics = [topics]
+                        if not isinstance(topics, list):
+                            await ws.send_json(
+                                {"type": "error", "error": "topics must be a list"}
+                            )
+                            continue
+                        subscriptions = _ws_clients.get(ws, set())
+                        for topic in topics:
+                            subscriptions.discard(str(topic).strip())
+                        _ws_clients[ws] = subscriptions
+
+                    elif msg_type == "history":
+                        topics = data.get("topics", [])
+                        if isinstance(topics, str):
+                            topics = [topics]
+                        if topics and not isinstance(topics, list):
+                            await ws.send_json(
+                                {"type": "error", "error": "topics must be a list"}
+                            )
+                            continue
+                        requested_topics = {
+                            str(topic).strip() for topic in topics if str(topic).strip()
+                        }
+                        if not requested_topics:
+                            requested_topics = set(_ws_clients.get(ws, set()))
+                        history = _history_events(
+                            limit=int(data.get("limit", 100) or 100),
+                            subscriptions=requested_topics,
+                        )
+                        await ws.send_json({"type": "history", "events": history})
 
                     elif msg_type == "query":
                         # Allow queries over WebSocket too
@@ -4037,17 +4916,25 @@ def create_fastapi_app(runtime: Any) -> Any:
                             }
                         )
 
+                    else:
+                        await ws.send_json(
+                            {
+                                "type": "error",
+                                "error": f"Unsupported message type: {msg_type}",
+                            }
+                        )
+
             except (WebSocketDisconnect, Exception):  # noqa: BLE001 — WS boundary
                 pass
             finally:
-                _ws_clients.discard(ws)
+                _ws_clients.pop(ws, None)
 
     # Broadcast helper (used by background tasks to push to all clients)
     async def broadcast_to_clients(message: dict) -> int:
         """Push a message to all connected WebSocket clients."""
         sent = 0
         disconnected = set()
-        for ws in _ws_clients:  # noqa: F823 — defined at function scope (line 1790)
+        for ws in list(_ws_clients):
             try:
                 await ws.send_json(message)
                 sent += 1
@@ -4059,7 +4946,8 @@ def create_fastapi_app(runtime: Any) -> Any:
                 )
             except Exception:  # noqa: BLE001 — review needed
                 disconnected.add(ws)
-        _ws_clients -= disconnected
+        for ws in disconnected:
+            _ws_clients.pop(ws, None)
         return sent
 
     # Attach broadcaster to runtime for agent access
@@ -4320,9 +5208,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                         "tags": r.record.tags,
                         "related_ids": r.record.related_ids,
                         **(
-                            {"metadata": r.record.metadata}
-                            if body.debug_scores
-                            else {}
+                            {"metadata": r.record.metadata} if body.debug_scores else {}
                         ),
                     }
                     for r in results
@@ -4353,6 +5239,213 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "AgentDB not initialized"},
             )
         return agent_db.stats()
+
+    @app.get("/v1/memory/profile")
+    async def memory_profile(request: Request):
+        """Return the terminal continuity profile for Memory view rendering."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        try:
+            from core.sovereign.terminal import BriefingContext
+
+            now = datetime.now(timezone.utc)
+            seed_engine = getattr(runtime, "_seed_engine", None)
+            episodes = []
+            if seed_engine is not None:
+                episodes = seed_engine.recent_episodes(limit=10)
+
+            wallets = getattr(runtime, "_constitutional_wallets", [])
+            wallet_snapshot = {"seed": 0.0, "bloom": 0.0}
+            if wallets:
+                from core.constitutional.fixed_point import fp_float
+
+                wallet = wallets[0]
+                wallet_snapshot = {
+                    "seed": fp_float(getattr(wallet, "seed_balance", 0)),
+                    "bloom": fp_float(getattr(wallet, "bloom_balance", 0)),
+                }
+
+            last_mission_summary = ""
+            time_since_last_mission_s = 0.0
+            if episodes:
+                latest = episodes[-1]
+                ts = latest.get("timestamp", "")
+                if isinstance(ts, str) and ts:
+                    try:
+                        parsed = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                        time_since_last_mission_s = max(
+                            0.0, (now - parsed).total_seconds()
+                        )
+                    except ValueError:
+                        time_since_last_mission_s = 0.0
+                last_mission_summary = (
+                    "Episode "
+                    f"{latest.get('index', '?')} qualified={latest.get('qualified', False)} "
+                    f"Ihsan {float(latest.get('ihsan', 0.0)):.2f}"
+                )
+
+            near_compile_patterns = []
+            reflex_candidates = getattr(
+                globals().get("_reflex_compiler"), "_candidates", {}
+            )
+            if isinstance(reflex_candidates, dict):
+                for candidate in reflex_candidates.values():
+                    observations = getattr(candidate, "observations", [])
+                    if not observations:
+                        continue
+                    high_quality = 0
+                    for observation in reversed(observations):
+                        if float(observation.get("ihsan_composite", 0.0)) >= 0.95:
+                            high_quality += 1
+                        else:
+                            break
+                    if high_quality <= 0:
+                        continue
+                    avg_ihsan = sum(
+                        float(observation.get("ihsan_composite", 0.0))
+                        for observation in observations
+                    ) / len(observations)
+                    near_compile_patterns.append(
+                        {
+                            "name": str(
+                                getattr(candidate, "input_template", "pattern")
+                            )[:80],
+                            "count": high_quality,
+                            "threshold": 3,
+                            "avg_ihsan": round(avg_ihsan, 4),
+                        }
+                    )
+
+            near_compile_patterns.sort(
+                key=lambda item: (item["count"], item["avg_ihsan"]),
+                reverse=True,
+            )
+            near_compile_patterns = near_compile_patterns[:5]
+
+            agent_db = getattr(runtime, "_agent_db", None)
+            stats = {
+                "episodic_count": 0,
+                "semantic_count": 0,
+                "procedural_count": 0,
+                "total_entries": 0,
+                "db_size_mb": 0.0,
+            }
+            if agent_db is not None:
+                raw_stats = agent_db.stats()
+                if isinstance(raw_stats, dict):
+                    stats.update(raw_stats)
+
+            work_streak = 0
+            if seed_engine is not None and hasattr(seed_engine, "potential"):
+                try:
+                    work_streak = int(
+                        getattr(seed_engine.potential(), "streak", 0) or 0
+                    )
+                except Exception:  # noqa: BLE001 - read model fallback
+                    work_streak = 0
+
+            compiled_reflex_summary = []
+            reflex_cache = getattr(globals().get("_reflex_compiler"), "_cache", {})
+            if isinstance(reflex_cache, dict):
+                for entry in list(reflex_cache.values())[:10]:
+                    created_at = float(getattr(entry, "created_at", 0.0) or 0.0)
+                    last_hit_at = float(getattr(entry, "last_hit_at", 0.0) or 0.0)
+                    compiled_reflex_summary.append(
+                        {
+                            "name": str(getattr(entry, "input_template", "pattern"))[
+                                :80
+                            ],
+                            "avg_ihsan": round(
+                                float(getattr(entry, "ihsan_composite", 0.0)), 4
+                            ),
+                            "execution_count": int(getattr(entry, "hit_count", 0)),
+                            "avg_latency_ms": 0.0,
+                            "compiled_at": (
+                                datetime.fromtimestamp(
+                                    created_at, tz=timezone.utc
+                                ).isoformat()
+                                if created_at > 0.0
+                                else ""
+                            ),
+                            "last_hit_at": (
+                                datetime.fromtimestamp(
+                                    last_hit_at, tz=timezone.utc
+                                ).isoformat()
+                                if last_hit_at > 0.0
+                                else ""
+                            ),
+                        }
+                    )
+
+            briefing = BriefingContext(
+                time_since_last_mission_s=time_since_last_mission_s,
+                active_project="bizra-data-lake",
+                last_mission_summary=last_mission_summary,
+                near_compile_patterns=[
+                    item["name"] for item in near_compile_patterns[:3]
+                ],
+                quality_trend="stable" if episodes else "warming",
+                next_action_suggestion=(
+                    "Submit one more excellent mission to progress a reflex."
+                    if near_compile_patterns
+                    else "Submit a mission to start building continuity."
+                ),
+                wallet_snapshot=wallet_snapshot,
+            )
+
+            missions = [
+                {
+                    "mission_id": f"episode-{episode.get('index', index + 1)}",
+                    "description": f"Growth episode {episode.get('index', index + 1)}",
+                    "status": "COMPLETE" if episode.get("qualified") else "PARTIAL",
+                    "ihsan_score": round(float(episode.get("ihsan", 0.0)), 4),
+                    "seed_earned": round(float(episode.get("reward", 0.0)), 4),
+                    "timestamp": episode.get("timestamp", ""),
+                    "receipt_hash": episode.get("receipt_hash", ""),
+                }
+                for index, episode in enumerate(reversed(episodes))
+            ]
+
+            active_projects = []
+            if missions:
+                active_projects.append(
+                    {
+                        "name": "bizra-data-lake",
+                        "last_activity": missions[0]["timestamp"],
+                        "mission_count": len(missions),
+                    }
+                )
+
+            return {
+                "privacy_note": "All data is local",
+                "briefing": briefing.to_dict(),
+                "semantic_profile": {
+                    "preferred_domains": [],
+                    "active_hours": "",
+                    "vocabulary_signature": "local-first constitutional terminal",
+                    "work_window": "",
+                },
+                "missions": missions,
+                "active_projects": active_projects,
+                "work_streak": work_streak,
+                "near_compile_patterns": near_compile_patterns,
+                "compiled_reflex_summary": compiled_reflex_summary,
+                "stats": stats,
+            }
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Read error (specific): %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(exc) or "Operation failed"},
+            )
+        except Exception:  # noqa: BLE001 — API boundary
+            logger.exception("Memory profile unavailable")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error"},
+            )
 
     # ─── Cognitive Fusion Endpoints (Phase 31) ──────────────────────
 
@@ -4852,6 +5945,104 @@ def create_fastapi_app(runtime: Any) -> Any:
     # Per-app terminal controller instance (shared across requests)
     _terminal_controllers: dict[str, Any] = {}
 
+    @app.put(
+        "/v1/settings/model-routing",
+        tags=["terminal"],
+        summary="Persist model routing preferences",
+    )
+    async def update_model_routing(payload: dict[str, Any], request: Request):
+        """Persist editable model routing preferences for Settings view."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        if not isinstance(payload, dict):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "JSON object required"},
+            )
+
+        routing = {
+            str(key): str(value).strip()
+            for key, value in payload.items()
+            if isinstance(key, str) and isinstance(value, str) and value.strip()
+        }
+        if not routing:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "At least one routing entry is required"},
+            )
+
+        persisted = _persist_model_routing(routing)
+        return {"model_routing": persisted}
+
+    @app.post(
+        "/v1/terminal/critical-acknowledgments",
+        tags=["terminal"],
+        summary="Record a proof-bearing acknowledgment for a critical timeline event",
+    )
+    async def acknowledge_critical_event(
+        body: CriticalAcknowledgmentRequest,
+        request: Request,
+    ):
+        """Convert a critical-event acknowledgment into a receipted spine event."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        acknowledged_topic = _canonical_topic_name(body.topic.strip())
+        if _event_severity_by_topic.get(acknowledged_topic) != "critical":
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Only critical events can be acknowledged"},
+            )
+
+        event_hash = body.event_hash.strip().lower()
+        if len(event_hash) != 32 or any(
+            ch not in "0123456789abcdef" for ch in event_hash
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "event_hash must be a 32-character lowercase hex string"
+                },
+            )
+
+        acknowledgement_id = uuid.uuid4().hex[:12]
+        receipt_id = uuid.uuid4().hex[:16]
+        mission_id = body.mission_id.strip()
+        session_id = request.headers.get("X-Session-ID", "default")
+        synthesis = f"Critical event acknowledged | {acknowledged_topic} | operator session {session_id}"
+        payload = {
+            "acknowledgement_id": acknowledgement_id,
+            "receipt_id": receipt_id,
+            "status": "ACKNOWLEDGED",
+            "acknowledged_event_hash": event_hash,
+            "acknowledged_topic": acknowledged_topic,
+            "acknowledged_summary": body.summary.strip(),
+            "mission_id": mission_id,
+            "acknowledged_receipt_id": body.receipt_id.strip(),
+            "operator_session_id": session_id,
+            "synthesis": synthesis,
+        }
+        envelope = await _emit_bus_event(
+            "critical.acknowledged",
+            payload,
+            source="operator",
+        )
+
+        return CriticalAcknowledgmentResponse(
+            acknowledgement_id=acknowledgement_id,
+            receipt_id=receipt_id,
+            status="ACKNOWLEDGED",
+            hash_chain_ref=str((envelope or {}).get("event_hash", "")),
+            acknowledged_event_hash=event_hash,
+            acknowledged_topic=acknowledged_topic,
+            mission_id=mission_id,
+            timestamp=str((envelope or {}).get("timestamp", _utcnow_iso())),
+            synthesis=synthesis,
+        ).model_dump()
+
     @app.get(
         "/v1/terminal/state",
         tags=["terminal"],
@@ -4898,6 +6089,11 @@ def create_fastapi_app(runtime: Any) -> Any:
 
             wallets = getattr(runtime, "_constitutional_wallets", [])
             reflex_cache = getattr(runtime, "_constitutional_reflex_cache", {})
+            seed_engine = getattr(runtime, "_seed_engine", None)
+            episodes = (
+                seed_engine.recent_episodes(limit=5) if seed_engine is not None else []
+            )
+            now = datetime.now(timezone.utc)
 
             wallet_snap = {}
             if wallets:
@@ -4913,9 +6109,36 @@ def create_fastapi_app(runtime: Any) -> Any:
             for key in list(reflex_cache.keys())[:5]:
                 near_compile.append(key.hex() if isinstance(key, bytes) else str(key))
 
+            last_mission_summary = ""
+            time_since_last_mission_s = 0.0
+            if episodes:
+                latest = episodes[-1]
+                timestamp = latest.get("timestamp", "")
+                if isinstance(timestamp, str) and timestamp:
+                    try:
+                        parsed = datetime.fromisoformat(
+                            timestamp.replace("Z", "+00:00")
+                        )
+                        time_since_last_mission_s = max(
+                            0.0, (now - parsed).total_seconds()
+                        )
+                    except ValueError:
+                        time_since_last_mission_s = 0.0
+                last_mission_summary = (
+                    "Last mission quality "
+                    f"Ihsan {float(latest.get('ihsan', 0.0)):.2f} "
+                    f"SNR {float(latest.get('snr', 0.0)):.2f}"
+                )
+
             ctx = BriefingContext(
+                time_since_last_mission_s=time_since_last_mission_s,
                 active_project="bizra-data-lake",
+                last_mission_summary=last_mission_summary,
                 near_compile_patterns=near_compile,
+                quality_trend="stable" if episodes else "warming",
+                next_action_suggestion=(
+                    "Review the permission envelope, then execute your next mission."
+                ),
                 wallet_snapshot=wallet_snap,
             )
             return ctx.to_dict()
