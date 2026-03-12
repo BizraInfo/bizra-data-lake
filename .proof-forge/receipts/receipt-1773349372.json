@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_id": "receipt-1773349372",
+  "timestamp": "2026-03-12T21:02:52.428834+00:00",
+  "description": "Session Sprint: Node0 Heartbeat (951L, 84 tests, 94.77% cov) + Organism Bridge (17 tests) + FATE Aggregate Fix (helix3 L303/L503) + Enforcement Closure E1-E6 (6 commits) + Optimization Spine R1-R4 (74 tests, 96% cov) + Nervous System Bridge (EventBus) + SAPE System Review (63 claims, 6 deliverables) + Peak Masterpiece (exception hardening 30 catches, E2E benchmark 7 gates) + CLI Modernization (10 command modules, 55 tests, 5ms dispatch) + True Spearpoint (3/3 targets, 12/12 strict gates) + ReasoningBank Intelligence (UCB1 + meta-learning + transfer, 56 tests). 35 commits, 212 canonical tests, 192K lines changed.",
+  "chain_position": 3,
+  "hashes": {
+    "evidence_hash": "e6ee7476796a6ca65331520f1b6b832bb11a1d3a0c1f7cd15b67841c793e3812",
+    "previous_hash": "fdbaf29961a20eccc934aa5cbbcf8cb85359fa1b58fbdb6a3b6fdc8e70011641",
+    "chain_hash": "9928757e76ad2489d1572e4e9fa67f13f2c52f2e8c3f2569fb5a6e6d394daad5"
+  },
+  "confidence": {
+    "level": 5,
+    "label": "Ironclad",
+    "criteria": "test_suite(212 pass) + benchmark(7 E2E gates + 12 spearpoint gates) + static_analysis(0 errors) = 4 check types"
+  },
+  "artifacts": {
+    "count": 40,
+    "summary": {
+      "code": 25,
+      "config": 2,
+      "data": 2,
+      "doc": 7,
+      "test": 4
+    }
+  },
+  "verification": {
+    "verification_id": "verify-1773349372",
+    "timestamp": "2026-03-12T21:02:52.428834+00:00",
+    "ecosystems": [
+      "python"
+    ],
+    "checks": [
+      {
+        "type": "test_suite",
+        "command": "python -m pytest tests/core/node0/ tests/core/cli/ tests/core/reasoning/test_reasoning_bank_engine.py",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 74550,
+        "summary": "212 passed in 74.55s (0:01:14). heartbeat=84, bridge=17, cli=55, reasoning_bank=56",
+        "output_excerpt": "tests/core/node0/test_heartbeat.py 84 PASSED | tests/core/node0/test_organism_bridge.py 17 PASSED | tests/core/cli/test_cli_registry.py 55 PASSED | tests/core/reasoning/test_reasoning_bank_engine.py 56 PASSED"
+      },
+      {
+        "type": "benchmark",
+        "command": "python scripts/ci_canonical_e2e_benchmark.py",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 3000,
+        "summary": "7/7 gates PASS \u2014 got_bridge_init 11.4ms, full_spine 24.3ms",
+        "output_excerpt": "got_bridge_init_ms 11.4/500 PASS | got_bridge_reason_ms 0.0/200 PASS | vrg_receipt_build_ms 0.0/100 PASS | organism_boot_ms 0.0/5000 PASS | node0_breathe_ms 0.0/50 PASS | eventbus_emission_ms 0.0/10 PASS | full_spine_ms 24.3/6000 PASS"
+      },
+      {
+        "type": "static_analysis",
+        "command": "python -m ruff check core/node0/ core/reasoning/reasoning_bank.py core/cli/",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 1500,
+        "summary": "0 lint errors across node0, reasoning_bank, cli modules",
+        "output_excerpt": "CLEAN \u2014 0 errors"
+      },
+      {
+        "type": "benchmark",
+        "command": "python .claude/skills/true-spearpoint/scripts/spearpoint_run.py --mode strict --target all",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 5000,
+        "summary": "3/3 targets PASS, 12/12 gates PASS (strict mode). swe_bench 0.877, hle 0.862, agentbeats 0.851",
+        "output_excerpt": "swe_bench_verified: 0.8619\u21920.8769 var=2.25e-06 | hle: 0.8470\u21920.8620 var=1.10e-05 | agentbeats: 0.8356\u21920.8506 var=4.04e-06 | budget=$0.003 | tokens=4846"
+      }
+    ],
+    "checks_run": 4,
+    "checks_passed": 4,
+    "checks_failed": 0,
+    "overall_pass": true,
+    "manual_attestation": null
+  }
+}

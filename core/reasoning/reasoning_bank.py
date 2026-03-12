@@ -48,10 +48,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.integration.constants import (
-    IHSAN_THRESHOLD_CI,
     REFLEX_PRECIPITATION_IHSAN,
     SNR_THRESHOLD_T0_ELITE,
-    UNIFIED_IHSAN_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
