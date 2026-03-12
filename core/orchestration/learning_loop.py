@@ -359,18 +359,24 @@ class LearningLoopOrchestrator:
         """Pipe training results into the reflex bridge as observations."""
         questions = training_data["questions"]
         quality_scores = training_data["quality_scores"]
+        snr_scores = training_data.get("snr_scores") or []
 
         for i, question in enumerate(questions):
             ihsan = quality_scores[i] if i < len(quality_scores) else 0.0
+            snr = snr_scores[i] if i < len(snr_scores) else 0.0
             # Use training result's overall ihsan as a floor
             effective_ihsan = max(ihsan, result.final_ihsan_score)
+            effective_snr = max(0.0, min(1.0, snr))
 
             self._reflex_bridge.observe(
                 task_description=question,
                 ihsan_score=effective_ihsan,
-                snr_score=UNIFIED_SNR_THRESHOLD,  # Conservative default
+                snr_score=effective_snr,
                 loss=result.final_loss,
-                success=effective_ihsan >= UNIFIED_IHSAN_THRESHOLD,
+                success=(
+                    effective_ihsan >= UNIFIED_IHSAN_THRESHOLD
+                    and effective_snr >= UNIFIED_SNR_THRESHOLD
+                ),
             )
             self._metrics.total_observations += 1
 

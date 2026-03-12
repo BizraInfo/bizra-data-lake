@@ -1,6 +1,6 @@
 # Elite Full-Stack Blueprint
 
-Last updated: 2026-03-05
+Last updated: 2026-03-12
 
 ## Objective
 
@@ -12,6 +12,12 @@ Provide an execution-grade blueprint that unifies:
 - Security and ethical integrity gates
 
 This blueprint is operationalized through executable checks, not narrative only.
+
+Current companion canon:
+
+- `docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md`
+- `docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md`
+- `config/elite_fullstack_blueprint.yaml`
 
 ## PMBOK-to-Engineering Mapping
 
@@ -86,10 +92,16 @@ Machine-readable blueprint:
 Audit engine:
 
 - `scripts/ops/elite_fullstack_blueprint_audit.py`
+- `scripts/ops/masterpiece_program_board.py`
+- `scripts/ops/canonical_empirical_validation.py`
+- `scripts/ops/learning_loop_closure_gate.py`
 
 Validation tests:
 
 - `tests/scripts/test_elite_fullstack_blueprint_audit.py`
+- `tests/scripts/test_masterpiece_program_board.py`
+- `tests/scripts/test_canonical_empirical_validation.py`
+- `tests/scripts/test_learning_loop_closure_gate.py`
 
 Run locally:
 
@@ -97,16 +109,61 @@ Run locally:
 python scripts/ops/elite_fullstack_blueprint_audit.py \
   --config config/elite_fullstack_blueprint.yaml \
   --report /tmp/phase65/elite_fullstack_blueprint_report.json
+
+python scripts/ops/masterpiece_program_board.py \
+  --config config/masterpiece_program_board.json \
+  --blueprint-report /tmp/phase65/elite_fullstack_blueprint_report.json \
+  --autonomous-report /tmp/phase65/autonomous_engine_report.json \
+  --canonical-empirical-report /tmp/phase65/canonical_empirical_validation.json \
+  --report /tmp/phase65/masterpiece_program_board.json
+
+python scripts/ops/canonical_empirical_validation.py \
+  --config config/canonical_empirical_validation.json \
+  --report /tmp/phase65/canonical_empirical_validation.json \
+  --markdown-report /tmp/phase65/canonical_empirical_validation.md
+
+python scripts/ops/learning_loop_closure_gate.py \
+  --config config/learning_loop_closure_gate.json \
+  --report /tmp/phase65/learning_loop_closure_gate.json \
+  --markdown-report /tmp/phase65/learning_loop_closure_gate.md
 ```
 
-## v2 Control Extensions
+## v4 Control Extensions
 
-The v2 blueprint adds four machine-checkable control planes:
+The v4 blueprint extends the executable audit from a generic release baseline into a true multi-lens synthesis engine.
+
+It adds two explicit control planes on top of the v3 audit:
+
+1. Architecture coherence (`checks.architecture_coherence`)
+2. Security coherence (`checks.security_coherence`)
+
+These sit alongside the existing planes:
+
+1. Documentation truth enforcement (`checks.docs_truth`)
+2. Terminal contract and sovereign surface enforcement (`checks.terminal_contract`)
+3. Performance-governance enforcement (`checks.performance_controls`)
+
+These additions align the audit with the repo's current masterpiece state:
+
+- the unified actionable framework and docs-truth gate are now first-class governance artifacts,
+- the locked Terminal v1 build contract and terminal manifest are now first-class delivery artifacts,
+- the CI performance lane is now first-class release-readiness evidence.
+- the masterpiece program board is now the synthesis artifact that fuses blueprint, autonomy, and execution workstreams.
+- the masterpiece board now also fuses canonical empirical validation, so release synthesis is grounded in measured proof rather than design intent alone.
+- the canonical empirical validation packet is now the flagship evidence artifact that proves simulation, metabolism, receipt contract, and sovereignty composition as one status.
+- the learning loop closure gate now proves the board-selected P0 workstream end to end: candidates retain SNR through training and can compile into a reflex with receipt-backed evidence.
+
+The blueprint now enforces nine machine-checkable control planes:
 
 1. PMBOK artifact traceability (`checks.pmbok_artifacts`)
 2. Pipeline dependency integrity (`checks.pipeline_automation`)
 3. QA control coverage (`checks.qa`)
 4. Ethical invariant enforcement (`checks.ethical_integrity`)
+5. Documentation truth enforcement (`checks.docs_truth`)
+6. Architecture coherence enforcement (`checks.architecture_coherence`)
+7. Security coherence enforcement (`checks.security_coherence`)
+8. Terminal contract enforcement (`checks.terminal_contract`)
+9. Performance control enforcement (`checks.performance_controls`)
 
 The audit now emits an `optimization_roadmap` with prioritized remediation:
 
@@ -117,13 +174,29 @@ The audit now emits an `optimization_roadmap` with prioritized remediation:
 
 This converts the blueprint from static compliance to an actionable execution queue.
 
-v2 audit output now includes:
+Audit output now includes:
 
 - `snr` (signal/noise, raw, normalized)
+- `control_planes` (score, status, failed-check count by plane)
 - `graph_of_thought` (nodes/edges dependency graph across control planes)
-- `interdisciplinary_lenses` (architecture/devops/quality/governance/documentation/performance scores)
+- `interdisciplinary_lenses` (architecture/devops/quality/governance/documentation/performance/operator-experience scores)
+- `ethical_integrity_posture` (Ihsan, Adl, Amanah, overall posture)
+- `risk_register` (cascade-aware risk list with SAPE phase and owner)
+- `implementation_strategy` (current phase, objective, immediate/next/later sequence)
 - `standing_on_giants_protocol` (traceable methodological anchors)
 - `autonomous_next_step` (highest-priority executable action)
+
+## Unified Strategy
+
+The audit is now expected to do more than fail or pass. It must synthesize:
+
+1. Architecture reality into control-plane coherence.
+2. Security findings into trust-boundary repair actions.
+3. Performance and QA findings into benchmark-backed remediation.
+4. Documentation findings into truth-state enforcement.
+5. Ethical findings into explicit Ihsan, Adl, and Amanah posture.
+
+That synthesis is the actionable bridge between PMBOK planning, DevSecOps execution, CI/CD enforcement, and elite release readiness.
 
 ## Definition of Elite Readiness
 
@@ -133,5 +206,5 @@ Elite readiness is achieved only when:
 2. Required CI jobs are present.
 3. README contains required visibility markers.
 4. Phase65 thresholds match configured governance baseline.
-5. PMBOK artifacts, pipeline dependencies, QA controls, and ethical invariants pass.
+5. PMBOK artifacts, pipeline dependencies, QA controls, ethical invariants, docs truth, terminal contract, and performance controls pass.
 6. Weighted blueprint score meets minimum and no hard checks fail.

@@ -403,6 +403,20 @@ class TestReceiptBuilder:
         assert receipt.reason == "SNR below threshold"
         assert len(receipt.signature) == 32
 
+    def test_rejected_receipt_can_bind_payload_digest(self, builder, query, policy):
+        """rejected() binds payload digests when proof payload is supplied."""
+        payload = b"verified reasoning graph payload"
+        receipt = builder.rejected(
+            query=query,
+            policy=policy,
+            snr=0.50,
+            ihsan_score=0.80,
+            gate_failed="vrg",
+            reason="VRG rejection",
+            payload=payload,
+        )
+        assert receipt.payload_digest == blake3_digest(payload)
+
     def test_amber_restricted_receipt(self, builder, query, policy):
         """amber_restricted() creates an AMBER_RESTRICTED receipt."""
         receipt = builder.amber_restricted(

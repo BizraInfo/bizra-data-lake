@@ -1746,6 +1746,94 @@ impl PySagaRegistry {
     }
 }
 
+/// Python wrapper for ReflexLedger (System 1 cache)
+#[pyclass(name = "ReflexLedger")]
+pub struct PyReflexLedger {
+    inner: bizra_action::ReflexLedger,
+}
+
+#[pymethods]
+impl PyReflexLedger {
+    #[new]
+    fn new(capacity: usize) -> Self {
+        Self {
+            inner: bizra_action::ReflexLedger::new(capacity),
+        }
+    }
+
+    /// Compile a reflex from successful reasoning (Ihsan >= threshold)
+    fn compile_vrg_reflex(
+        &mut self,
+        task_description: &str,
+        ihsan_score: f64,
+        timestamp_ns: u64,
+        vrg_root: &str,
+        branch_certificates: Vec<String>,
+    ) -> PyResult<usize> {
+        let score = bizra_action::IhsanScore::new(ihsan_score);
+        let ts = bizra_action::ActionTimestamp(timestamp_ns);
+        let actions = vec![]; // Verified abstract thought
+        let mut provenance = vec![vrg_root.to_string()];
+        provenance.extend(branch_certificates);
+
+        self.inner
+            .compile(task_description, actions, score, ts, provenance)
+            .map_err(|e| PyRuntimeError::new_err(format!("Reflex compilation failed: {:?}", e)))
+    }
+}
+
+/// Python wrapper for Dilithium-5 (ML-DSA-87) Keypair
+#[pyclass(name = "DilithiumKeypair")]
+#[derive(Clone)]
+pub struct PyDilithiumKeypair {
+    public_key: Vec<u8>,
+    secret_key: Vec<u8>,
+}
+
+#[pymethods]
+impl PyDilithiumKeypair {
+    #[staticmethod]
+    fn generate() -> PyResult<Self> {
+        let (pk, sk) = pqcrypto_mldsa::mldsa87::keypair();
+        Ok(Self {
+            public_key: pk.as_bytes().to_vec(),
+            secret_key: sk.as_bytes().to_vec(),
+        })
+    }
+
+    #[getter]
+    fn public_key_hex(&self) -> String {
+        hex::encode(&self.public_key)
+    }
+
+    fn sign(&self, message: &[u8]) -> PyResult<Vec<u8>> {
+        use pqcrypto_traits::sign::SecretKey;
+        let sk = pqcrypto_mldsa::mldsa87::SecretKey::from_bytes(&self.secret_key)
+            .map_err(|_| PyValueError::new_err("Invalid secret key"))?;
+        let signature = pqcrypto_mldsa::mldsa87::detached_sign(message, &sk);
+        Ok(signature.as_bytes().to_vec())
+    }
+
+    fn verify(&self, message: &[u8], signature: &[u8]) -> PyResult<bool> {
+        use pqcrypto_traits::sign::PublicKey;
+        let pk = pqcrypto_mldsa::mldsa87::PublicKey::from_bytes(&self.public_key)
+            .map_err(|_| PyValueError::new_err("Invalid public key"))?;
+        let sig = pqcrypto_mldsa::mldsa87::DetachedSignature::from_bytes(signature)
+            .map_err(|_| PyValueError::new_err("Invalid signature format"))?;
+        Ok(pqcrypto_mldsa::mldsa87::verify_detached_signature(&sig, message, &pk).is_ok())
+    }
+}
+
+#[pyfunction]
+fn verify_dilithium_signature(public_key: &[u8], message: &[u8], signature: &[u8]) -> PyResult<bool> {
+    use pqcrypto_traits::sign::PublicKey;
+    let pk = pqcrypto_mldsa::mldsa87::PublicKey::from_bytes(public_key)
+        .map_err(|_| PyValueError::new_err("Invalid public key"))?;
+    let sig = pqcrypto_mldsa::mldsa87::DetachedSignature::from_bytes(signature)
+        .map_err(|_| PyValueError::new_err("Invalid signature format"))?;
+    Ok(pqcrypto_mldsa::mldsa87::verify_detached_signature(&sig, message, &pk).is_ok())
+}
+
 #[pymodule]
 fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core types
@@ -1789,10 +1877,17 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySagaPhase>()?;
     m.add_class::<PySagaRegistry>()?;
 
+    // Fast System 1 Reflexes
+    m.add_class::<PyReflexLedger>()?;
+
     // Functions
     m.add_function(wrap_pyfunction!(domain_separated_digest, m)?)?;
     m.add_function(wrap_pyfunction!(get_ihsan_threshold, m)?)?;
     m.add_function(wrap_pyfunction!(get_snr_threshold, m)?)?;
+    m.add_function(wrap_pyfunction!(verify_dilithium_signature, m)?)?;
+
+    // Post-Quantum Cryptography
+    m.add_class::<PyDilithiumKeypair>()?;
 
     // Module metadata
     m.add("__version__", "2.0.0")?;

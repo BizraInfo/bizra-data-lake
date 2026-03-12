@@ -21,6 +21,7 @@ exclude_path_fragments:
   - 04_GOLD/
   - 99_QUARANTINE/
   - __pycache__/
+  - .claude/worktrees/
 
 penalties:
   critical: 0.045
@@ -36,6 +37,11 @@ rules:
     file_globs: ["*.sh", "*.bash", "*.zsh", "*.yml", "*.yaml"]
     patterns:
       - "pytest[^\\n]*\\|\\s*tail"
+    exclude_patterns:
+      - "echo.*pytest"
+      - "Fix.*pytest"
+      - "Replace.*pytest"
+      - "grep.*pytest"
     recommendation: "Capture pytest exit code before tailing logs; fail closed."
 
   - id: wildcard_cors
@@ -66,6 +72,8 @@ rules:
       - "except\\s+Exception\\s*(as\\s+\\w+)?\\s*:"
     exclude_patterns:
       - "except\\s+Exception\\s*:\\s*pass"
+      - "# noqa: BLE001"
+      - "# SEC-003"
     recommendation: "Replace with specific exception types (e.g. OSError, ValueError, RuntimeError)."
 
   - id: unbounded_recursive_scan

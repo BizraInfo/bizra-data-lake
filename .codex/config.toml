@@ -1,0 +1,48 @@
+# Project-local Codex MCP configuration for BIZRA-DATA-LAKE.
+# Codex loads this file for trusted workspaces and merges it with ~/.codex/config.toml.
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@latest"]
+
+[mcp_servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem@latest", "/mnt/c/BIZRA-DATA-LAKE"]
+
+[mcp_servers.memory]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-memory@latest"]
+
+[mcp_servers."sequential-thinking"]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking@latest"]
+
+[mcp_servers.github]
+command = "bash"
+args = ["-lc", "export GITHUB_PERSONAL_ACCESS_TOKEN=\"${GITHUB_TOKEN:-}\"; exec npx -y @modelcontextprotocol/server-github@latest"]
+env_vars = ["GITHUB_TOKEN"]
+
+[mcp_servers."brave-search"]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-brave-search@latest"]
+env_vars = ["BRAVE_API_KEY"]
+
+[mcp_servers.sqlite]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sqlite@latest", "--db-path", "/mnt/c/BIZRA-DATA-LAKE/04_GOLD/bizra.db"]
+
+[mcp_servers."claude-flow-sqlite"]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sqlite@latest", "--db-path", "/mnt/c/BIZRA-DATA-LAKE/.swarm/memory.db"]
+
+[mcp_servers."bizra-sovereign"]
+command = "/usr/bin/python3"
+args = ["/mnt/c/BIZRA-DATA-LAKE/tools/mcp/sovereign_mcp_server.py", "--stdio"]
+cwd = "/mnt/c/BIZRA-DATA-LAKE"
+env_vars = ["BRAVE_API_KEY", "GOOGLE_API_KEY", "LANGEXTRACT_API_KEY", "LM_STUDIO_API_KEY", "LM_API_TOKEN"]
+
+[mcp_servers."bizra-ecosystem"]
+command = "/usr/bin/python3"
+args = ["/mnt/c/BIZRA-DATA-LAKE/tools/mcp/ecosystem_mcp_server.py", "--stdio"]
+cwd = "/mnt/c/BIZRA-DATA-LAKE"
+env_vars = ["BRAVE_API_KEY", "GOOGLE_API_KEY", "LANGEXTRACT_API_KEY", "LM_STUDIO_API_KEY", "LM_API_TOKEN"]

@@ -170,6 +170,7 @@ class TestAgentDBPersistence:
         assert result["fts_rows"] == repaired_stats["fts_row_count"]
         assert repaired_stats["index_health"]["status"] == "healthy"
         assert repaired_stats["last_rebuild_at"] is not None
+        assert result["duration_ms"] >= 0
 
     def test_not_initialized_raises(self, memory_config):
         db = AgentDB(memory_config)

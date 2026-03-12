@@ -21,6 +21,7 @@ Created: 2026-02-19 | Phase 46 Cognitive Resonance
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from dataclasses import dataclass
@@ -32,6 +33,7 @@ from core.integration.constants import (
     GOT_MAX_HYPOTHESES,
 )
 from core.memory.types import SearchResult
+from core.reasoning.verified_graph import VerifiedGoTBridgeResult
 
 logger = logging.getLogger(__name__)
 
@@ -92,12 +94,14 @@ class GoTBridge:
         max_hypotheses: int = GOT_MAX_HYPOTHESES,
         convergence_snr: float = GOT_CONVERGENCE_SNR,
         max_depth: int = GOT_MAX_DEPTH,
+        receipt_signer: Optional[Any] = None,
     ) -> None:
         self._search_engine = search_engine
         self._got_engine = got_engine
         self._max_hypotheses = max_hypotheses
         self._convergence_snr = convergence_snr
         self._max_depth = max_depth
+        self._receipt_signer = self._resolve_receipt_signer(receipt_signer)
 
         # P1: Degradation transparency
         from core.protocols.degradation import DegradationEmitter
@@ -107,6 +111,19 @@ class GoTBridge:
         emitter.check("got_engine", got_engine)
         self._degradation_event = emitter.emit()
         self._degraded = self._degradation_event is not None
+
+    @staticmethod
+    def _resolve_receipt_signer(receipt_signer: Optional[Any]) -> Any:
+        """Resolve the signer used for proof-bearing reasoning receipts."""
+        if receipt_signer is not None:
+            return receipt_signer
+
+        from core.proof_engine.receipt import Ed25519Signer, SimpleSigner
+
+        try:
+            return Ed25519Signer.generate()
+        except Exception:
+            return SimpleSigner(b"got_bridge_vrg_default_signer")
 
     # ------------------------------------------------------------------
     # Lazy GoT engine import (avoids circular imports at module load)
@@ -329,9 +346,62 @@ class GoTBridge:
         ctx = context if context is not None else {}
         return await self._run_reasoning(query, ctx, evidence)
 
+    async def reason_verified(
+        self,
+        query: str,
+        context: dict[str, Any] | None = None,
+    ) -> "VerifiedGoTBridgeResult":
+        """Run GoT reasoning and return a proof-bearing VRG result."""
+        from core.reasoning.verified_graph import VerifiedReasoningGraphBuilder
+
+        ctx = context if context is not None else {}
+        evidence = self._search_for_evidence(query)
+        base_result = await self._run_reasoning(query, ctx, evidence)
+        builder = VerifiedReasoningGraphBuilder(
+            signer=self._receipt_signer,
+            convergence_snr=self._convergence_snr,
+        )
+        result = builder.build(
+            query=query,
+            context=ctx,
+            evidence=evidence,
+            base_result=base_result,
+            got_engine=self._got_engine,
+        )
+
+        # === Phase 3: Reflex Precipitation ===
+        try:
+            # We only distill reflexes from high-Ihsan, fully converged thought chains
+            # that were actually verified to match roots (result.verified)
+            ihsan = float(result.receipt.payload.ihsan_score)
+            if result.verified and ihsan >= 0.90 and base_result.converged:
+                import time
+
+                try:
+                    import bizra
+
+                    ledger = bizra.ReflexLedger(1000)
+                    proof_certs = [c["certificate_hash"] for c in result.branch_certificates]
+
+                    ledger.compile_vrg_reflex(
+                        task_description=query,
+                        ihsan_score=ihsan,
+                        timestamp_ns=time.time_ns(),
+                        vrg_root=result.vrg_root,
+                        branch_certificates=proof_certs,
+                    )
+                    logger.info("Precipitated VRG reflex for query: %s (Ihsan: %.3f)", query, ihsan)
+                except ImportError:
+                    logger.debug("bizra native module unavailable; skipping reflex compilation")
+        except Exception as exc:
+            logger.warning("Failed to precipitate VRG reflex: %s", exc)
+
+        return result
+
 
 __all__ = [
     "PHASE46_GOT_BRIDGE_ENABLED",
     "GoTBridgeResult",
+    "VerifiedGoTBridgeResult",
     "GoTBridge",
 ]

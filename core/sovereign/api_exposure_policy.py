@@ -187,6 +187,14 @@ API_ROUTE_POLICIES: tuple[APIRoutePolicy, ...] = (
         "/v1/cognitive/fuse",
         "/v1/judgment/simulate",
         "/v1/onboarding/teach",
+        "/v1/terminal/critical-acknowledgments",
+    ),
+    *_policies(
+        "PUT",
+        RouteExposure.AUTHENTICATED,
+        True,
+        "Persisted terminal settings modify node-local state and require authenticated callers.",
+        "/v1/settings/model-routing",
     ),
     *_policies(
         "GET",
@@ -199,6 +207,7 @@ API_ROUTE_POLICIES: tuple[APIRoutePolicy, ...] = (
         "/v1/sel/episodes",
         "/v1/sel/episodes/{episode_hash}",
         "/v1/memory/stats",
+        "/v1/memory/profile",
         "/v1/judgment/stats",
         "/v1/judgment/stability",
         "/v1/suggestions",

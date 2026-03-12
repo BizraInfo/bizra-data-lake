@@ -106,6 +106,13 @@ class TestAutopoiesisSDPOBridge:
         assert bridge.collect(self._make_trace(ihsan=0.90)) is False
         assert bridge.pending_count == 0
 
+    def test_collect_rejects_low_snr(self):
+        bridge = AutopoiesisSDPOBridge()
+        trace = self._make_trace()
+        trace.snr_score = 0.70
+        assert bridge.collect(trace) is False
+        assert bridge.pending_count == 0
+
     def test_ready_for_training(self):
         bridge = AutopoiesisSDPOBridge(min_samples=2)
         bridge.collect(self._make_trace())
@@ -131,7 +138,9 @@ class TestAutopoiesisSDPOBridge:
         assert "feedbacks" in data
         assert "failed_attempts" in data
         assert "quality_scores" in data
+        assert "snr_scores" in data
         assert len(data["questions"]) == 3
+        assert data["snr_scores"] == [0.93, 0.93, 0.93]
 
     def test_flush_clears_buffer(self):
         bridge = AutopoiesisSDPOBridge(min_samples=1)
@@ -266,6 +275,14 @@ class TestSDPOReflexBridge:
         assert len(candidates) == 1
         assert candidates[0].eligible is True
 
+    def test_custom_min_observations_are_honored(self):
+        bridge = SDPOReflexBridge(min_observations=3)
+        for _ in range(3):
+            bridge.observe("Fast closure task", 0.99, 0.97, 0.05, True)
+        candidates = bridge.get_eligible_candidates()
+        assert len(candidates) == 1
+        assert candidates[0].observation_count == 3
+
     def test_not_eligible_below_min_observations(self):
         bridge = SDPOReflexBridge(min_observations=5)
         for _ in range(3):
@@ -361,6 +378,7 @@ class TestEndToEndLearningLoop:
         training_data = evo_bridge.flush_to_training_data()
         assert training_data is not None
         assert len(training_data["questions"]) == 2
+        assert training_data["snr_scores"] == [0.95, 0.94]
 
         # Phase 3: Feed into reflex bridge (simulating SDPO training outcomes)
         # Need >= REFLEX_MIN_OBSERVATIONS (5) per pattern for eligibility

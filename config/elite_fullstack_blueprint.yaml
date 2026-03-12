@@ -1,15 +1,19 @@
 program:
   id: elite_fullstack_masterpiece
   name: "BIZRA Elite Full-Stack Blueprint"
-  version: "2.0.0"
+  version: "3.0.0"
   intent: >
     Enforce a professional, evidence-backed implementation baseline across PMBOK,
-    DevOps, CI/CD, security, performance, documentation, and ethical governance.
+    DevOps, CI/CD, architecture, security, performance, documentation, and
+    ethical governance.
   giants_protocol:
     - "Shannon:SNR maximization"
+    - "Besta:graph-of-thought reasoning topology"
     - "Deming:PDCA quality discipline"
+    - "Boyd:OODA bounded execution loops"
     - "Lamport:deterministic evidence ordering"
     - "PMBOK:lifecycle governance"
+    - "SAPE:symbolic-abstraction-probe-elevation"
     - "Al-Ghazali:Ihsan as hard floor"
 
 pmbok_domains:
@@ -64,6 +68,7 @@ checks:
   pmbok_artifacts:
     initiating:
       - "docs/ELITE_FULLSTACK_BLUEPRINT.md"
+      - "docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md"
       - "config/elite_fullstack_blueprint.yaml"
     planning:
       - "config/phase65_masterpiece_roadmap.yaml"
@@ -95,6 +100,89 @@ checks:
         - "phase56-security-gate"
         - "autonomous_engine_report.json"
         - "autonomous_gate_passed"
+  docs_truth:
+    required_files:
+      - "scripts/ci_docs_truth_gate.py"
+      - "tests/scripts/test_ci_docs_truth_gate.py"
+      - "docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md"
+      - "docs/internal/DOCS_INDEX.md"
+    required_patterns:
+      ".github/workflows/ci.yml":
+        - "python scripts/ci_docs_truth_gate.py"
+      ".github/workflows/docs-quality.yml":
+        - "python scripts/ci_docs_truth_gate.py"
+      "docs/internal/DOCS_INDEX.md":
+        - "UNIFIED_ACTIONABLE_FRAMEWORK.md"
+  architecture_coherence:
+    required_files:
+      - "core/sovereign/api.py"
+      - "core/sovereign/terminal.py"
+      - "core/proof_engine/receipt.py"
+      - "core/reasoning/verified_graph.py"
+      - "docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md"
+      - "frontend/src/components/terminal/terminal-manifest.ts"
+    required_patterns:
+      "core/sovereign/api.py":
+        - "/v1/plan"
+        - "/v1/stream"
+        - "/v1/settings/model-routing"
+      "core/sovereign/terminal.py":
+        - "BLOCKED_CONSTITUTIONALLY"
+        - "SYSTEM_1_CACHE_HIT"
+        - "AWAITING_ESCALATION"
+      "docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md":
+        - "Strategic Workstreams"
+        - "Prioritized Roadmap"
+        - "SAPE Execution Method"
+  security_coherence:
+    required_files:
+      - "docs/security/hardening-checklist.md"
+      - "core/auth/middleware.py"
+      - "scripts/ci_secret_scan.py"
+      - ".github/workflows/ci.yml"
+      - "core/sovereign/api.py"
+    required_patterns:
+      ".github/workflows/ci.yml":
+        - "scripts/ci_secret_scan.py"
+      "core/sovereign/api.py":
+        - "auth.boundary.crossed"
+        - "receipt.verified"
+        - "tick.completed"
+  terminal_contract:
+    required_files:
+      - "docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md"
+      - "frontend/src/components/terminal/terminal-manifest.ts"
+      - "frontend/src/components/terminal/terminal-shell.tsx"
+      - "frontend/src/components/terminal/terminal-mission.tsx"
+      - "frontend/src/components/terminal/terminal-timeline.tsx"
+      - "frontend/src/components/terminal/terminal-memory.tsx"
+      - "frontend/src/components/terminal/terminal-skills.tsx"
+      - "frontend/src/components/terminal/terminal-network.tsx"
+      - "frontend/src/components/terminal/terminal-settings.tsx"
+      - "frontend/tests/terminal-panels.test.tsx"
+    required_patterns:
+      "frontend/src/components/terminal/terminal-shell.tsx":
+        - "terminal-manifest"
+        - "One mission, one proof, remembered forever"
+      "frontend/src/components/terminal/terminal-skills.tsx":
+        - "PAT_AGENT_MANIFEST"
+        - "SAT_AGENT_MANIFEST"
+  performance_controls:
+    required_files:
+      - ".github/workflows/performance.yml"
+      - "scripts/ci_release_readiness.py"
+      - "scripts/ci_quality_gate.py"
+      - "scripts/quality_spine.py"
+      - "tests/scripts/test_quality_spine.py"
+    required_jobs:
+      ".github/workflows/ci.yml":
+        - "performance-gate"
+      ".github/workflows/performance.yml":
+        - "performance-gate"
+    required_patterns:
+      ".github/workflows/ci.yml":
+        - "needs.performance-gate.result"
+        - "Gate 12: Performance Gate"
   qa:
     required_test_targets:
       - "tests/scripts/test_phase65_blueprint_gate.py"
@@ -116,11 +204,16 @@ checks:
 scoring:
   min_score: 0.93
   weights:
-    files: 0.20
-    jobs: 0.15
-    readme: 0.05
-    thresholds: 0.25
-    pmbok: 0.10
-    pipeline: 0.10
-    qa: 0.10
-    ethics: 0.05
+    files: 0.12
+    jobs: 0.09
+    readme: 0.03
+    thresholds: 0.15
+    pmbok: 0.07
+    pipeline: 0.09
+    qa: 0.09
+    ethics: 0.04
+    docs_truth: 0.08
+    architecture: 0.05
+    security: 0.05
+    terminal: 0.07
+    performance: 0.07

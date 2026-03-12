@@ -304,7 +304,13 @@ class Helix3Scheduler:
         composite = tensor.geometric_mean
 
         # ── Step 2: Score and gate ──────────────────────────────
-        passing = [r for r in receipts if r.get("ihsan_score", 0) >= 0.85]
+        constitutionally_approved = [
+            r
+            for r in receipts
+            if r.get("fate_verdict", "approved") == "approved"
+            and r.get("gate_passed", True)
+        ]
+        passing = [r for r in constitutionally_approved if r.get("ihsan_score", 0) >= 0.85]
         excellent = [
             r for r in passing if r.get("ihsan_score", 0) >= UNIFIED_IHSAN_THRESHOLD
         ]

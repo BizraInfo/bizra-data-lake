@@ -1,207 +1,569 @@
-# BIZRA Unified Actionable Framework (UAF) v1.0
+# BIZRA Unified Actionable Framework v3.0
 
-Generated: 2026-01-29
-Scope: Node0 / BIZRA Data Lake
-Status: Draft for execution (evidence-aligned)
-
----
-
-## 0) Evidence Baseline (What is true now)
-
-Sources reviewed: `AUDIT_REPORT.md`, `ARCHITECTURE.md`, `ARCHITECTURE_LOCK.md`, `SAPE_IMPLEMENTATION_BLUEPRINT.md`,
-`SAPE_SOVEREIGN_REVIEW_2026.md`, `IHSAN_CONSTRAINTS.yaml`, `SOVEREIGNTY.md`, `OMEGA_ROADMAP.md`,
-`PINNACLE_ROADMAP.md`, `SLEEPING-BEAST-STATUS.md`, `FINAL_OMNI_BLUEPRINT.md`.
-
-Ground truths extracted:
-- System health is reported as ~70% operational in the audit; core crypto, vault, and engines work, while federation/P2P networking is not truly implemented.
-- Documentation has mismatches (claims vs reality), including federation status and some architecture references.
-- LLM integration in the Peak Masterpiece pipeline is largely stubbed; GoT and SNR logic exists but needs real model coupling.
-- SAPE implementation blueprint defines WBS, CI/CD gates, and SNR thresholds; Ihsan constraints define ethical minima and validations.
-- Architectural baseline includes a data lake pipeline, vector + graph indexing, and multi-engine reasoning, with constraints on Windows/WSL roles.
-- Sovereign review highlights ARTE under-development, graph memory pressure, and hardware dependency risk.
-
-This framework resolves these realities into a unified execution plan without aspirational claims.
+**Generated:** 2026-03-12  
+**Scope:** Node0 / BIZRA Data Lake / Terminal v1 / Sovereign runtime  
+**Status:** Active execution companion  
+**Supersedes:** `UNIFIED_ACTIONABLE_FRAMEWORK.md` v2.0 (2026-03-11)  
+**Companion To:** `docs/UNIFIED_BLUEPRINT/00_MASTER_INDEX.md`, `docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md`
 
 ---
 
-## 1) Unified Operating Model (Architecture + Reality Gate)
+## 0. Executive Synthesis
 
-### 1.1 Operating Layers (Aligned to current codebase)
-- Data Layer: Intake -> Raw -> Processed -> Indexed -> Gold (single source of truth).
-- Reasoning Layer: Vector retrieval + hypergraph traversal + ARTE tension evaluation + SNR optimizer.
-- Orchestration Layer: Unified query router, PAT engine, ecosystem bridge, model router.
-- Governance Layer: Ihsan gates, audit logs, Proof-of-Impact (PoI), and transparency checks.
+This document is the professional next step after the multi-lens BIZRA review corpus. It turns architecture findings, security audits, performance bottlenecks, terminal contract requirements, and SAPE analyses into one implementation framework that can be executed by engineering, platform, security, and documentation teams without interpretive drift.
 
-### 1.2 Reality Gate (Truthfulness enforcement)
-Each component must declare one of: OPERATIONAL, PARTIAL, or DESIGN-ONLY.
-- Federation/P2P: DESIGN-ONLY until real networking and tests exist.
-- LLM integration in Peak Masterpiece: PARTIAL until real calls and eval gates are in place.
-- Documentation: OPERATIONAL only if claims are verified in code or tests.
+### Current truth-state
 
-### 1.3 Architecture invariants (from architecture lock)
-- WSL is compute core; Windows is data steward.
-- Do not run MCP bridge on Windows.
-- Use /mnt/c/BIZRA-DATA-LAKE as the single mounted source.
+- The canonical unified blueprint reports the system at **78% built**, with strongest maturity in constitutional logic, knowledge layer, infrastructure, and runtime foundations.
+- Infrastructure is materially ahead of several higher-level surfaces: CI/CD, rollouts, monitoring, and release evidence already exist, while frontend surfaces, protocol depth, and some security controls remain partial.
+- Terminal v1 now has a usable spine and partial contract alignment, but **lock condition is not yet achieved** because Phase B trust-boundary blockers, event-native live wiring, and full permission-envelope enforcement remain incomplete.
+- Proof-carrying cognition is no longer theoretical: a Python **Verified Reasoning Graph vertical slice** exists, but it is not yet the governing bridge between mutable cognition, constitutional gates, receipts, and federation.
+- Security is strong in depth, but not yet coherent across layers: node identity is Ed25519-based, while other critical proofs already point toward stronger post-quantum and formally verified patterns.
+- Documentation quality is high in volume but still vulnerable to **truth drift** because historical documents, operational reality, and newly locked contracts are not yet continuously reconciled.
+- The next execution artifact is no longer just a document. It is a machine-checkable synthesis report that fuses architecture, security, performance, documentation, terminal contract, PMBOK traceability, and ethical posture into one prioritized implementation queue.
 
----
+### North-star target
 
-## 2) PMBOK Integration (Project and Program Governance)
+BIZRA’s next masterpiece is not “more features.” It is a **Provably Constitutional Sovereign Runtime**:
 
-### 2.1 Process Groups mapped to BIZRA phases
-- Initiating: Confirm scope of sovereign single-node capability; approve Reality Gate model.
-- Planning: Convert UAF roadmap into backlog with owners, budgets, and SLOs.
-- Executing: Implement CI/CD, security hardening, P2P networking, LLM integration, and documentation updates.
-- Monitoring & Controlling: SNR/Ihsan gating, performance SLOs, security scans, and risk register review.
-- Closing: Phase gates with acceptance criteria; archive evidence and lessons learned.
+1. Every mission executes through a contractually enforced envelope.
+2. Every important reasoning path carries verifiable proof.
+3. Every release is blocked by truth, not optimism.
+4. Every optimization preserves Ihsan, Adl, and Amanah.
+5. Every architectural layer improves the future cache hit without weakening the constitutional core.
 
-### 2.2 Knowledge Areas (deliverable anchors)
-- Integration: Unified backlog, system architecture map, and dependency DAG.
-- Scope: Clear feature boundary (single-node vs P2P); avoid aspirational drift.
-- Schedule: Timeboxed waves (0-30, 31-90, 91-180 days).
-- Cost: GPU/compute cost tracking, data growth costs, CI/CD cost envelope.
-- Quality: SNR and Ihsan gates; 80%+ coverage; no silent failures.
-- Resource: Owners for core modules, ops, security, and docs.
-- Risk: Cascading risk map (see Section 8).
-- Procurement: Model sources and dependency pinning with SBOM.
-- Stakeholder: Node0 governance + data stewardship + ethical oversight.
-- Communications: Weekly release note + audit delta + SNR dashboards.
+### The five master tensions to resolve
+
+| Tension | Current shape | Next-step resolution |
+|---|---|---|
+| Mutable cognition vs immutable constitutional anchors | P5/S2 freeze is architecturally brilliant but under-bridged | Make VRG + PCI the formal bridge across the freeze boundary |
+| Security strength vs cryptographic coherence | Defense-in-depth is strong, identity layer lags stronger proof layers | Introduce hybrid signature and capability attenuation roadmap |
+| UX ambition vs runtime truth | Seven views exist, but some are still partially synthetic or fallback-driven | Enforce truth-state matrix and event-native rendering |
+| Scale ambition vs stable learning | Federation and caching patterns exist, but damping/rehydration paths are under-specified | Add damping, evaporation, sharding, and benchmark gates |
+| Documentation richness vs operational clarity | Many strong documents, but some conflict or age unevenly | Add documentation truth CI and runtime-backed status labeling |
 
 ---
 
-## 3) DevOps and CI/CD Blueprint (Pipeline Automation)
+## 1. Governing Principles
 
-### 3.1 Pipeline stages (mapped to SAPE blueprint)
-- Validate: lint, unit tests, static analysis.
-- Ethics gate: Ihsan threshold check (correctness, safety, beneficence, transparency, sustainability).
-- Integration: graph integrity, PoI checks, data lineage validation.
-- Security: SAST, dependency audit, secrets scan, SBOM generation.
-- Performance: benchmark suite, latency targets, memory ceiling.
-- Release: artifact build, release notes, doc sync, version tagging.
+### 1.1 Truth Before Velocity
 
-### 3.2 Quality gates (minimums)
-- SNR >= 0.95 for all automated responses; 0.99 target for release.
-- Test coverage >= 80% (per Ihsan constraints).
-- No HIGH/CRITICAL vulnerabilities in dependency scan.
-- Documentation truthfulness check: no unverified claims.
+No component is allowed to exist as “implied capability.” Every module, view, and operational claim must be explicitly marked as one of:
 
-### 3.3 Observability
-- Metrics: SNR, latency, retrieval precision, GPU utilization, memory pressure.
-- Logs: structured JSON with correlation IDs and PoI references.
-- Traces: graph traversal paths and ARTE decisions.
+- `BUILT`
+- `PARTIAL`
+- `NOT BUILT`
 
----
+This status must be rooted in code paths, tests, and live delivery evidence, not prose alone.
 
-## 4) LLM Capacity Activation (Graph-of-Thoughts + SAPE Elevation)
+### 1.2 Proof Before Privilege
 
-### 4.1 Graph-of-Thoughts (GoT) pipeline
-1) Retrieval: vector + hypergraph union query.
-2) Symbolic expansion: build candidate reasoning DAG with evidence links.
-3) Tension analysis: ARTE scores contradictions vs alignment.
-4) Probe: adversarial checks, counterfactual tests, and sanity constraints.
-5) Elevation: synthesize high-SNR response with PoI anchoring.
-6) Verification: Ihsan gate and transparency log.
+Privilege escalation, federation trust, economic minting, and reasoning elevation should all be gated by proof artifacts:
 
-### 4.2 SAPE (Symbolic-Abstraction Probe Elevation) overlay
-This extends existing SAPE (Security/Architecture/Performance/Engineering) to a reasoning pipeline:
-- Symbolic: enforce graph consistency and causal constraints.
-- Abstraction: compress into concept frames with traceable evidence.
-- Probe: multi-agent critique and falsification attempts.
-- Elevation: finalize with clarity, ethical integrity, and SNR optimization.
+- signature proof
+- policy proof
+- receipt proof
+- reasoning proof
+- audit proof
 
-### 4.3 LLM integration priorities
-- Replace template stubs with real model calls in Peak Masterpiece.
-- Add model router confidence scoring and fallback logic.
-- Introduce evaluation harness (truthfulness, alignment, latency).
+### 1.3 Event-Native Sovereignty
 
----
+Anything visible in Terminal v1 must be explainable as:
 
-## 5) Performance and QA (World-class standards)
+- API snapshot
+- EventBus event
+- ActionBus state
+- receipt-chain artifact
+- memory update
 
-Targets aligned with audit + SAPE blueprint:
-- Latency: maintain sub-ms symbolic lookups; bound end-to-end query latency.
-- Memory: streaming graph build to avoid crashes; enforce peak memory ceilings.
-- Reliability: graceful degradation patterns; circuit breaker + retries.
-- Quality: full E2E tests for federation networking, retrieval, and synthesis.
-- Resilience: chaos testing and failure mode rehearsal.
+Synthetic placeholder state is allowed only as clearly labeled offline fallback.
+
+### 1.4 SAPE As Operating Method
+
+SAPE is not just a review lens. It becomes the execution method:
+
+- **Symbolic:** invariants, schemas, proofs, policy obligations
+- **Abstraction:** architecture modules, workstreams, dashboards, contracts
+- **Probe:** tests, red-team checks, contradiction search, chaos, fuzz
+- **Elevation:** only promote capabilities that improve SNR without violating Ihsan or trust
+
+### 1.5 Ihsan, Adl, Amanah As Engineering Controls
+
+| Principle | Engineering interpretation | Enforced by |
+|---|---|---|
+| Ihsan | Excellence in every critical dimension, not averaged mediocrity | thresholds, coverage ratchets, SNR gates, performance budgets |
+| Adl | Justice, fairness, bounded power, anti-concentration | Gini ceiling, capability attenuation, pre-credit Zakat, fail-closed auth |
+| Amanah | Trustworthiness, transparency, faithful custody | receipts, audit trails, documentation truth CI, atomic persistence |
 
 ---
 
-## 6) Ethical Integrity Layer (Ihsan, Adl, Amanah)
+## 2. PMBOK-Aligned Program Structure
 
-### 6.1 Core principles into system gates
-- Ihsan (Excellence): SNR thresholds and continuous optimization.
-- Adl (Justice): fairness checks, no manipulation, transparent rationale.
-- Amanah (Trust): audit trails, data sovereignty, and no silent failures.
+### 2.1 Program name
 
-### 6.2 Ethical KPIs (from IHSAN_CONSTRAINTS)
-- Correctness: 80%+ test coverage; no hallucinated facts.
-- Safety: secure endpoints, secrets scanning, and encrypted data flows.
-- Beneficence: user-impact tracking and no dark patterns.
-- Transparency: documentation accuracy, explainability, and PoI chains.
-- Sustainability: dependency pinning, DR tests, and maintainability.
+`MASTERPIECE-2026: Provably Constitutional Runtime`
 
----
+### 2.2 PMBOK process mapping
 
-## 7) Prioritized Roadmap (Architecture + Security + Performance + Docs + Ethics)
+| Process Group | BIZRA application |
+|---|---|
+| Initiating | Lock the truth-state baseline, accept the north-star target, ratify priority workstreams |
+| Planning | Build WBS, dependency graph, risk register, quality gates, and release evidence expectations |
+| Executing | Deliver workstreams in controlled waves with CI/CD enforcement and acceptance tests |
+| Monitoring & Controlling | Track SNR, Ihsan, latency, security posture, drift, and roadmap burn-down |
+| Closing | Close each wave with evidence bundle, rollback proof, doc update, and residual-risk statement |
 
-### Wave 0: 0-30 days (Critical integrity)
-- Fix documentation mismatches (federation, architecture references, LLM stubs).
-- Implement SBOM generation and dependency audits.
-- Add real P2P networking or re-scope to single-node with explicit status.
-- Enforce Ihsan gates in CI with SNR thresholds.
-- Add network tests for federation (or disable federation claims).
+### 2.3 Knowledge areas translated into repo reality
 
-### Wave 1: 31-90 days (Operational hardening)
-- Implement ARTE v2 weighted consensus (symbolic vs neural).
-- Add streaming graph build to prevent memory spikes.
-- Add mTLS and token auth on all endpoints.
-- Establish full performance baseline and regression dashboards.
+| Knowledge Area | BIZRA artifact |
+|---|---|
+| Integration | unified blueprint + this execution framework + release evidence bundle |
+| Scope | locked terminal contract + module statuses in unified blueprint |
+| Schedule | wave roadmap with dependencies and acceptance gates |
+| Cost | GPU/CPU utilization budgets, CI runtime budget, storage growth controls |
+| Quality | SNR/Ihsan thresholds, contract tests, canary metrics, coverage ratchets |
+| Resource | clear ownership by workstream, subsystem, and path |
+| Communications | weekly status note, doc-truth delta, risk register update |
+| Risk | cascade map with prevention-first mitigations |
+| Procurement | model/vendor neutrality, dependency governance, signing and SBOM |
+| Stakeholder | Node0 program owner, security owner, runtime owner, frontend owner, documentation owner |
 
-### Wave 2: 91-180 days (Scaling readiness)
-- Implement A2A protocol, PKI, and offline mode.
-- Build multi-modal ingestion (vision/audio) and cross-modal graph.
-- Expand GoT depth and contradiction resolution.
-- Complete public documentation and runbooks.
+### 2.4 Mandatory governance artifacts
 
-### Wave 3: 180+ days (Federation maturity)
-- Production P2P federation with real networking, health, and consensus.
-- Third-party security audit, chaos engineering, and load testing.
-- Ihsan compliance certification and ecosystem readiness.
+The program should operate with these living artifacts:
 
----
-
-## 8) Cascading Risk Strategy (Prevention over cure)
-
-Top cascading risks and mitigations:
-- Federation gap: risk of false claims -> Reality Gate + network tests.
-- Hardware dependency: risk of sovereign silo -> backup strategy + failover policy.
-- Memory spikes in graph build: streaming construction and resource watchdog.
-- Security hardening gaps: mTLS, secrets scan, and SBOM.
-- Documentation drift: doc CI check against code and tests.
+- Work Breakdown Structure
+- dependency DAG
+- release evidence bundle
+- documentation truth matrix
+- security control matrix
+- performance benchmark pack
+- terminal lock checklist
+- VRG adoption checklist
+- risk register with cascade fields
 
 ---
 
-## 9) Implementation Governance (How execution stays honest)
+## 3. Strategic Workstreams
 
-- Change control: every change must map to a roadmap item with owner and acceptance criteria.
-- Evidence ledger: test logs + SNR scores + PoI hash for releases.
-- Release checklist: security scan clean, SNR threshold met, docs verified.
-- Weekly review: update risk register and measure progress vs gates.
+## 3.1 Workstream A: Constitutional Truth and Terminal Contract Completion
+
+**Objective:** Turn Terminal v1 from partial implementation into a locked, evidence-native sovereign surface.
+
+**Primary repo anchors:**
+- `core/sovereign/terminal.py`
+- `core/sovereign/api.py`
+- `frontend/src/components/terminal/`
+- `docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md`
+
+**Must deliver:**
+- real permission-envelope enforcement
+- escalation only on boundary crossing
+- live EventBus-driven timeline
+- complete seven-view data truth matrix compliance
+- canonical mission loop proof demo
+- 100-mission stability evidence
+
+**Exit gate:**
+- Terminal lock checklist satisfied
+- no synthetic non-fallback UI state
+- receipt normalization fully verified in API and UI
+
+## 3.2 Workstream B: Proof-Carrying Cognition
+
+**Objective:** Make reasoning constitutionally provable, not merely plausible.
+
+**Primary repo anchors:**
+- `core/reasoning/verified_graph.py`
+- `core/reasoning/got_bridge.py`
+- `core/proof_engine/receipt.py`
+- `core/pci/`
+
+**Must deliver:**
+- branch-level gate results carried into VRG artifacts
+- mission receipts bound to VRG roots
+- P5/S2 freeze-boundary proof semantics
+- reflex precipitation from verified branches only
+- reflex evaporation when repeated quality drops
+
+**Exit gate:**
+- every high-value mission can produce a reasoning proof root
+- rejected reasoning is auditable, not silent
+
+## 3.3 Workstream C: Security Coherence and Trust Boundaries
+
+**Objective:** Eliminate mismatch between security layers and make the strongest guarantees structurally consistent.
+
+**Primary repo anchors:**
+- `core/sovereign/api.py`
+- `core/auth/`
+- `core/pci/`
+- `deploy/`
+- `docs/security/`
+
+**Must deliver:**
+- hybrid signature path for identity-critical artifacts
+- per-hop capability attenuation in permission transport
+- hard-gated SBOM and container signing
+- protocol authentication for non-local deployment
+- TLS or mTLS strategy for inter-service trust
+- atomic writes for ZPK and rollback receipts
+
+**Exit gate:**
+- no trust-critical path depends on a weaker cryptographic or auth layer than the artifacts above it
+
+## 3.4 Workstream D: Performance, Scale, and Learning Stability
+
+**Objective:** Increase throughput and responsiveness without degrading proof quality or constitutional enforcement.
+
+**Primary repo anchors:**
+- `core/sovereign/runtime.py`
+- `core/sovereign/reflex_compiler.py`
+- `core/sovereign/network_effect.py`
+- bus and concurrency modules
+
+**Must deliver:**
+- inference batching or pool-based concurrency
+- event-bus load-aware sharding
+- federation delta damping
+- cache proof telemetry and speedup reporting
+- benchmark suite for p50/p95/p99 latency and memory ceilings
+
+**Exit gate:**
+- performance claims backed by benchmark artifacts
+- no optimization bypasses proof, auth, or gate logic
+
+## 3.5 Workstream E: Economic and Ethical Flywheel
+
+**Objective:** Make ethical and economic principles structural rather than advisory.
+
+**Primary repo anchors:**
+- `core/constitutional/ticker.py`
+- `core/constitutional/types.py`
+- `core/sovereign/seed_engine.py`
+- economic documentation modules
+
+**Must deliver:**
+- pre-credit Zakat deduction where intended by policy
+- Gini monitoring as release-visible signal
+- justice-aware reward accounting
+- explicit policy mapping of Adl and Amanah into economy flows
+
+**Exit gate:**
+- the economics layer is auditable for fairness, not just for accounting correctness
+
+## 3.6 Workstream F: Documentation Truth and Evidence Operations
+
+**Objective:** End documentation drift by turning truthfulness into a pipeline-enforced property.
+
+**Primary repo anchors:**
+- `docs/UNIFIED_BLUEPRINT/`
+- `docs/internal/`
+- `scripts/`
+- CI workflows
+
+**Must deliver:**
+- truth-state markers in execution-facing docs
+- claim-to-test or claim-to-code verification paths
+- doc CI for stale status labels and unsupported claims
+- role-based operator runbooks aligned to real system state
+
+**Exit gate:**
+- no critical operational document contradicts code, tests, or locked contracts without being explicitly marked historical
+
+## 3.7 Workstream G: DevSecOps and Quality Gate Elevation
+
+**Objective:** Make the release pipeline reflect elite practice, not just successful builds.
+
+**Primary repo anchors:**
+- `.github/workflows/`
+- `scripts/`
+- `tests/`
+- `deploy/`
+
+**Must deliver:**
+- T1.5 contract fuzz tier
+- per-module coverage ratchets
+- stronger DAST and supply-chain gates
+- release evidence publication
+- rollback rehearsal and proof capture
+
+**Exit gate:**
+- deployment is blocked by quality truth, not by human memory
 
 ---
 
-## 10) Immediate Activation (Next logical step)
+## 4. Prioritized Roadmap
 
-Create a single execution board titled "UAF-Execution" with:
-1) Critical fixes from audit and sovereignty roadmap.
-2) CI/CD pipeline with Ihsan and SNR gates.
-3) LLM integration + ARTE v2 prototype.
+## Wave 0: 0-14 Days — Truth, Hardening, and Lock Blockers
 
-Deliverables for week 1:
-- Reality Gate status table (OPERATIONAL/PARTIAL/DESIGN-ONLY) for each subsystem.
-- CI pipeline scaffold with SBOM, security scan, and test gates.
-- Documentation truthfulness patch for federation and LLM status.
+**Purpose:** eliminate the blockers that make everything else unstable or misleading.
+
+### Priorities
+1. hard-gate SBOM generation and container signing in CI/CD
+2. activate `ihsan.breach` and `invariant.violation` as live topics
+3. complete ZPK atomic writes and rollback receipt atomicity
+4. enforce documentation truth-state on critical internal docs
+5. finish per-endpoint auth hardening for terminal-critical routes
+
+### Acceptance
+- all terminal lock blockers in the hardening list have named owners and evidence-backed status
+- release pipeline fails on missing SBOM/signing
+- critical constitutional events are visible in Timeline and logs
+
+## Wave 1: 2-6 Weeks — Terminal v1 Lock Execution
+
+**Purpose:** complete the product promise of one mission, one proof, remembered forever.
+
+### Priorities
+1. permission envelope enforced in runtime, not just rendered in UI
+2. EventBus subscriptions replace timeline polling and synthetic placeholders
+3. Mission pane supports true two-touch behavior with escalation only on boundary crossing
+4. skills and network surfaces move from demo/fallback data to live state
+5. canonical E2E test proves mission → receipt → tick → reflex → cache hit → wallet → memory
+
+### Acceptance
+- all seven views satisfy their locked acceptance criteria
+- 100 consecutive missions complete without crash
+- reflex benefit is visible and measurable in receipts
+
+## Wave 2: 4-8 Weeks — Verified Reasoning Graph Operationalization
+
+**Purpose:** make constitutional reasoning explainable and portable.
+
+### Priorities
+1. bind mission receipts to VRG roots
+2. prune reasoning branches using constitutional gates, not only final-output checks
+3. add proof semantics for mutable-lattice proposals crossing P5/S2 constitutional anchors
+4. implement reflex evaporation threshold and re-deliberation path
+5. add contract-fuzz tier and per-module coverage ratchets for reasoning-critical modules
+
+### Acceptance
+- a mission can produce a signed, deterministic reasoning proof root
+- low-Ihsan branches are auditable and excluded from reflex promotion
+
+## Wave 3: 6-10 Weeks — Security Coherence and Federation Trust
+
+**Purpose:** unify cryptographic identity, permission flow, and inter-node trust.
+
+### Priorities
+1. hybrid Ed25519 + PQ signature roadmap for trust-critical artifacts
+2. capability attenuation chain for all delegated mission permissions
+3. auth and trust policy for non-local protocol transport
+4. TLS or mTLS service boundary design and staged rollout
+5. compliance-control evidence matrix generation
+
+### Acceptance
+- no external or delegated action can inherit more privilege than explicitly granted
+- identity and evidence chains share a coherent trust story
+
+## Wave 4: 8-12 Weeks — Performance and Scale Excellence
+
+**Purpose:** increase throughput while preserving formal and ethical guarantees.
+
+### Priorities
+1. inference batching or pooled execution for latency and concurrency
+2. consistent-hash event sharding or equivalent load-aware distribution
+3. federation-learning damping tied to network size
+4. p50/p95/p99 dashboards for mission, receipt, and reasoning latency
+5. memory-ceiling tests and soak benchmarks
+
+### Acceptance
+- performance improvements are benchmarked, not narrated
+- reactive path remains fast without destabilizing novel reasoning
+
+## Wave 5: 12+ Weeks — Ethical Economic Completion and External Readiness
+
+**Purpose:** make the system externally auditable as a principled sovereign platform.
+
+### Priorities
+1. structurally enforce economic justice paths such as Zakat deduction semantics
+2. publish doc truth and control evidence packs
+3. stage third-party security and compliance audit readiness
+4. produce public-facing proof narratives from release evidence
+
+### Acceptance
+- economic invariants are visible in evidence
+- external audit preparation is operational, not rhetorical
 
 ---
 
-End of UAF v1.0
+## 5. DevSecOps, CI/CD, and Quality Gates
+
+## 5.1 Pipeline topology
+
+### Pull request gate
+
+- lint, typecheck, and schema parity
+- unit and delta tests
+- T1.5 contract fuzz for touched interfaces
+- security scans: SAST, dependency audit, secrets, policy checks
+- docs truth validation for touched documents
+- frontend and backend build verification
+
+### Merge gate
+
+- integration tests
+- terminal contract tests
+- reasoning proof tests
+- benchmark smoke tests
+- SBOM generation
+- container signing
+
+### Release gate
+
+- canary metrics including error rate, p95, p99, SNR, Ihsan, E2E, and rollback health
+- release evidence bundle
+- rollback drill evidence
+- documentation sync confirmation
+
+## 5.2 Minimum thresholds
+
+| Gate | Minimum | Target |
+|---|---|---|
+| SNR | 0.95 for promoted outputs | 0.99 for elite release paths |
+| Ihsan | 0.95 production floor | 0.99 constitutional excellence target |
+| Coverage | no regression on changed module | progressive ratchet toward 95% |
+| Security | no critical unresolved pipeline findings | signed, SBOM-backed release |
+| Contract | terminal and receipt contracts pass | zero drift against locked build contract |
+
+## 5.3 Quality mechanisms to add immediately
+
+- property-based contract fuzzing for touched interfaces
+- per-module coverage floors for `pci`, `governance`, `proof_engine`, `auth`, and terminal-critical modules
+- performance attestations attached to important releases
+- doc truth checks comparing live route set, tests, and module statuses
+
+---
+
+## 6. SAPE Execution Method
+
+## 6.1 Symbolic
+
+Require every major change to declare:
+
+- invariants affected
+- schemas and interfaces touched
+- policy thresholds touched
+- proof obligations introduced
+
+## 6.2 Abstraction
+
+Translate local code changes into:
+
+- blueprint module alignment
+- terminal contract alignment
+- quality-gate implications
+- operator impact
+
+## 6.3 Probe
+
+Probe every meaningful change with at least one of:
+
+- adversarial input
+- fuzzing
+- chaos or rollback drill
+- contradiction search
+- benchmark comparison
+
+## 6.4 Elevation
+
+Promote only those changes that:
+
+- improve clarity and verifiability
+- preserve or improve security posture
+- preserve or improve ethical integrity
+- avoid hidden regressions in latency, drift, or trust
+
+---
+
+## 7. Cascading Risk Map
+
+| Source Risk | Cascade | Prevention |
+|---|---|---|
+| Documentation claims outrun implementation | operator error, wrong planning, audit failure | truth-state CI + historical labeling |
+| Identity security lags evidence security | forged node trust, poisoned federation | hybrid signature plan + trust-path review |
+| Event-native contract stays partial | misleading UX, hidden failures, false confidence | mandatory live topic wiring + timeline tests |
+| Performance work bypasses proof paths | fast but untrustworthy outputs | benchmark gates coupled to proof and auth checks |
+| Mutable agents outgrow static constitutional bridge | false rejects or brittle governance | VRG + PCI proof bridge + policy versioning |
+| Federation grows without damping | instability in learned reflex exchange | learning-rate damping + progressive rollout |
+
+---
+
+## 8. Immediate Top 10 Actions
+
+1. Make SBOM and container signing hard release blockers.
+2. Finish Phase B terminal hardening blockers and publish evidence status.
+3. Enforce permission envelopes in runtime execution, not just in UI payloads.
+4. Replace remaining terminal synthetic state with live EventBus or explicit offline fallback.
+5. Bind `/v1/plan` receipts to VRG proof roots for reasoning-critical missions.
+6. Implement reflex evaporation to complete the H1↔H2 learning loop.
+7. Add capability attenuation across delegated mission actions.
+8. Introduce T1.5 contract fuzz and per-module coverage ratchets.
+9. Add performance benchmark artifacts for mission, reasoning, and cache-hit paths.
+10. Add documentation truth CI that rejects unsupported operational claims.
+
+---
+
+## 9. Definition of Success
+
+BIZRA reaches the next professional elite tier when the following statement becomes true:
+
+> The system can accept a mission, reason through a constitutionally gated graph, execute within a verified permission envelope, emit a signed receipt and proof root, update ethical-economic state, compile or revise reflexes, expose the whole sequence through an event-native interface, and prove in CI/CD that the documentation, code, and operational claims all agree.
+
+That is the next masterpiece.
+
+---
+
+## 10. Source Evidence
+
+This framework synthesizes the current repo truth from:
+
+- `docs/UNIFIED_BLUEPRINT/00_MASTER_INDEX.md`
+- `docs/UNIFIED_BLUEPRINT/10_INFRASTRUCTURE.md`
+- `docs/UNIFIED_BLUEPRINT/11_SECURITY_COMPLIANCE.md`
+- `docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md`
+- `docs/internal/SAPE_IMPLEMENTATION_BLUEPRINT.md`
+- `docs/internal/SAPE_COMPREHENSIVE_ANALYSIS.md`
+- `docs/internal/SAPE_ULTIMATE_ANALYSIS_v2.2.2.md`
+- `docs/security/hardening-checklist.md`
+- current runtime, terminal, proof-engine, and frontend implementation state in the repo
+
+---
+
+## 11. Execution Artifact Contract
+
+The unified framework must now materialize as an executable synthesis artifact emitted by the blueprint audit and consumed by the masterpiece board.
+
+### Required outputs
+
+- `control_planes`
+- `interdisciplinary_lenses`
+- `risk_register`
+- `ethical_integrity_posture`
+- `implementation_strategy`
+- `autonomous_next_step`
+
+### Required interpretation
+
+- `control_planes` tell engineering where the system is weak.
+- `interdisciplinary_lenses` tell leadership which dimensions are lagging.
+- `risk_register` exposes cascade paths, not just failed checks.
+- `ethical_integrity_posture` translates Ihsan, Adl, and Amanah into engineering status.
+- `implementation_strategy` turns audit findings into a phased execution sequence.
+
+This is the practical bridge between analysis and implementation.
+
+---
+
+## 12. LLM Activation Protocol
+
+To activate untapped LLM capacity without compromising trust, the system should prefer:
+
+1. graph-of-thought reasoning for planning and contradiction search
+2. SNR-maximizing summarization over verbose low-signal narration
+3. proof-carrying promotion for high-value reasoning paths
+4. SAPE execution discipline for all major changes
+5. Ihsan-first elevation, where capability is promoted only when it improves clarity, correctness, and trust together
+
+The goal is not maximal output volume. The goal is maximal verified signal.

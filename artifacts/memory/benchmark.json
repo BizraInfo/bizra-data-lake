@@ -1,0 +1,112 @@
+{
+  "timestamp": "2026-03-11T19:06:44Z",
+  "results": [
+    {
+      "name": "store_single_ms",
+      "latency_ms": 32.1343679970596,
+      "threshold_ms": 50.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "store_batch_100_ms",
+      "latency_ms": 33.50173699800507,
+      "threshold_ms": 500.0,
+      "passed": true,
+      "ops_per_sec": 2984.9198567213007,
+      "detail": ""
+    },
+    {
+      "name": "search_keyword_ms",
+      "latency_ms": 3.1905650030239485,
+      "threshold_ms": 100.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "search_hybrid_ms",
+      "latency_ms": 2.545848998124711,
+      "threshold_ms": 200.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "find_by_source_ms",
+      "latency_ms": 0.7469919983122963,
+      "threshold_ms": 50.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "session_store_turn_ms",
+      "latency_ms": 0.2434269990772009,
+      "threshold_ms": 50.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "session_get_history_ms",
+      "latency_ms": 0.33774600160541013,
+      "threshold_ms": 50.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "fact_store_retrieve_ms",
+      "latency_ms": 0.14288999955169857,
+      "threshold_ms": 50.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "hierarchical_store_ms",
+      "latency_ms": 0.11210999946342781,
+      "threshold_ms": 50.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "consolidate_1000_ms",
+      "latency_ms": 0.12144499851274304,
+      "threshold_ms": 2000.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "deduplicate_ms",
+      "latency_ms": 0.7341720011027064,
+      "threshold_ms": 1000.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "context_synthesize_ms",
+      "latency_ms": 1.809686997148674,
+      "threshold_ms": 200.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    },
+    {
+      "name": "rebuild_indexes_ms",
+      "latency_ms": 6.610595999518409,
+      "threshold_ms": 2000.0,
+      "passed": true,
+      "ops_per_sec": 0.0,
+      "detail": ""
+    }
+  ],
+  "total_passed": 13,
+  "total_failed": 0,
+  "all_passed": true
+}

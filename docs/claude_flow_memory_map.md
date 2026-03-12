@@ -56,6 +56,35 @@ Notes:
 - `--as-sovereign` maps entries into a Sovereign catalog style record so they can be merged later.
 - SNR is not stored in Claude-Flow; provide `--snr` explicitly if you want ranking behavior.
 
+## Operational Convergence Gate
+Use the unified memory CLI when you need a single operator-grade pass over:
+- source inspection
+- migration into AgentDB
+- FTS/HNSW rebuild
+- index-health gating
+
+```bash
+python -m core.memory converge --dry-run --json
+python -m core.memory converge --report artifacts/memory_convergence.json
+```
+
+Default convergence policy is fail-closed:
+- malformed `.claude-flow/memory/*.json` blocks the gate
+- migration errors block the gate
+- stale AgentDB index health blocks the gate
+
+## CI/CD Quality Ratchet
+The repo also ships a deterministic release gate for memory quality:
+
+```bash
+python scripts/ci_memory_quality_gate.py \
+  --report-out artifacts/memory/memory_quality_gate.json
+```
+
+This gate does not depend on the current repo's live malformed artifacts. It
+creates a known-good fixture, proves convergence, rebuilds FTS/HNSW, measures
+hybrid search latency, and emits a receipt JSON for CI artifact retention.
+
 ## UnifiedMemory (Recommended)
 `sovereign_memory.UnifiedMemory` merges the Sovereign Catalog with Claude-Flow memory sources (`.swarm/memory.db` and `.claude-flow/memory/*.json`). `bizra_prime.py` now uses it automatically when available.
 

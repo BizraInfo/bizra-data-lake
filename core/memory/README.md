@@ -248,6 +248,33 @@ print(result)  # MigrationResult(migrated=1234, skipped=0, errors=0)
 - Batch processing (500 records per batch) for memory efficiency
 - Idempotent: re-running skips already-migrated records (upsert semantics)
 
+**Operator path:**
+```bash
+# Inspect + migrate + rebuild + gate live convergence
+python -m core.memory converge --report artifacts/memory_convergence.json
+
+# Dry-run the same flow without mutating AgentDB
+python -m core.memory converge --dry-run --json
+
+# Deterministic CI/CD quality gate for convergence + rebuild + search latency
+python scripts/ci_memory_quality_gate.py \
+  --report-out artifacts/memory/memory_quality_gate.json
+```
+
+By default, `converge` fails closed when:
+- Claude-flow JSON artifacts are malformed
+- migration phases report errors
+- AgentDB index health remains stale after rebuild
+
+The CI quality gate is intentionally separate from the live repo dry-run. It
+builds a known-good Claude-flow fixture, proves full convergence into AgentDB,
+seeds benchmark vectors, rebuilds FTS/HNSW, and enforces ratchets over:
+- convergence duration
+- index rebuild duration
+- hybrid search p50/p95 latency
+- minimum imported records
+- minimum indexed vectors
+
 ## REST API
 
 ### `POST /v1/memory/search`

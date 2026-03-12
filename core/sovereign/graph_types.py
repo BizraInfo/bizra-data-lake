@@ -19,7 +19,6 @@ from enum import Enum
 from typing import Any, Optional
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
-from core.proof_engine.canonical import hex_digest
 
 
 class ThoughtType(Enum):
@@ -72,14 +71,33 @@ class ThoughtNode:
     created_at: float = field(default_factory=time.time)
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    # Ihsan dimensions
+    # Ihsan 8D Tensor dimensions
+    truthfulness: float = 0.5
+    dignity: float = 0.5
+    fairness: float = 0.5
+    excellence: float = 0.5
+    sustainability: float = 0.5
     correctness: float = 0.5
     groundedness: float = 0.5
     coherence: float = 0.5
 
     @property
+    def ihsan_tensor(self) -> dict[str, float]:
+        """The 8D Ihsān tensor."""
+        return {
+            "truthfulness": self.truthfulness,
+            "dignity": self.dignity,
+            "fairness": self.fairness,
+            "excellence": self.excellence,
+            "sustainability": self.sustainability,
+            "correctness": self.correctness,
+            "groundedness": self.groundedness,
+            "coherence": self.coherence,
+        }
+
+    @property
     def content_hash(self) -> str:
-        """Content-addressed hash (BLAKE3 of canonical content, SEC-001).
+        """Content-addressed hash (BLAKE2b of canonical content, SEC-001).
 
         Standing on: Merkle (1979) — content-addressed integrity.
         Makes each node independently verifiable.
@@ -89,21 +107,18 @@ class ThoughtNode:
                 "content": self.content,
                 "type": self.thought_type.value,
                 "depth": self.depth,
+                "ihsan_tensor": self.ihsan_tensor,
             },
             sort_keys=True,
             separators=(",", ":"),
         ).encode("utf-8")
-        return hex_digest(canonical)  # SEC-001: BLAKE3 for Rust interop
+        import hashlib
+        return hashlib.blake2b(canonical, digest_size=32).hexdigest()
 
     @property
     def ihsan_score(self) -> float:
-        """Composite Ihsan score (geometric mean)."""
-        scores = [
-            max(self.correctness, 1e-10),
-            max(self.groundedness, 1e-10),
-            max(self.coherence, 1e-10),
-            max(self.confidence, 1e-10),
-        ]
+        """Composite Ihsan score (geometric mean of 8D tensor)."""
+        scores = [max(v, 1e-10) for v in self.ihsan_tensor.values()]
         return math.exp(sum(math.log(s) for s in scores) / len(scores))
 
     @property

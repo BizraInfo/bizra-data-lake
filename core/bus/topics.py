@@ -52,7 +52,7 @@ class TopicDef:
 
 
 # ═══════════════════════════════════════════════════════════════
-# Canonical Topic Registry — 44 topics across 8 tiers
+# Canonical Topic Registry — 45 topics across 8 tiers
 # ═══════════════════════════════════════════════════════════════
 
 TOPIC_REGISTRY: dict[str, TopicDef] = {
@@ -67,10 +67,18 @@ TOPIC_REGISTRY: dict[str, TopicDef] = {
     "action.cancelled": TopicDef(
         tier=TopicTier.CONSTITUTIONAL, schema="action_cancelled_v1"
     ),
+    "critical.acknowledged": TopicDef(
+        tier=TopicTier.CONSTITUTIONAL,
+        schema="critical_ack_v1",
+    ),
     "ihsan.breach": TopicDef(
         tier=TopicTier.CONSTITUTIONAL,
         schema="ihsan_breach_v1",
         min_priority=Priority.EMERGENCY,
+    ),
+    "tick.completed": TopicDef(
+        tier=TopicTier.LIFECYCLE,
+        schema="tick_completed_v1",
     ),
     "poi.credit": TopicDef(tier=TopicTier.CONSTITUTIONAL, schema="poi_credit_v1"),
     # Tier 1: Cognitive
@@ -108,6 +116,16 @@ TOPIC_REGISTRY: dict[str, TopicDef] = {
     # Tier 5: Policy
     "policy.fate.vetoed": TopicDef(tier=TopicTier.POLICY, schema="policy_v1"),
     "policy.telescript.denied": TopicDef(tier=TopicTier.POLICY, schema="policy_v1"),
+    "auth.boundary.crossed": TopicDef(
+        tier=TopicTier.POLICY,
+        schema="auth_boundary_v1",
+        min_priority=Priority.HIGH,
+    ),
+    "invariant.violation": TopicDef(
+        tier=TopicTier.POLICY,
+        schema="invariant_v1",
+        min_priority=Priority.CRITICAL,
+    ),
     "policy.invariant.violation": TopicDef(
         tier=TopicTier.POLICY,
         schema="invariant_v1",
@@ -123,6 +141,8 @@ TOPIC_REGISTRY: dict[str, TopicDef] = {
     "mission.decomposed": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
     "mission.completed": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
     "mission.system_ready": TopicDef(tier=TopicTier.MISSION, schema="mission_v1"),
+    "receipt.generated": TopicDef(tier=TopicTier.MISSION, schema="receipt_v1"),
+    "receipt.verified": TopicDef(tier=TopicTier.MISSION, schema="receipt_v1"),
     # Tier 7: Omega
     "omega.started": TopicDef(tier=TopicTier.OMEGA, schema="omega_v1"),
     "omega.iteration": TopicDef(tier=TopicTier.OMEGA, schema="omega_v1"),

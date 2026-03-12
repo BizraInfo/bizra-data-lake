@@ -379,6 +379,65 @@ async def run_server(host: str, port: int, api_keys: Optional[list] = None) -> N
     await serve(host, port, api_keys)
 
 
+async def run_mission(
+    description: str,
+    *,
+    json_output: bool = False,
+    source: str = "cli",
+) -> None:
+    """Run a canonical mission through the runtime-owned organism."""
+    from .runtime import RuntimeConfig, SovereignRuntime
+
+    config = RuntimeConfig(autonomous_enabled=False)
+
+    async with SovereignRuntime.create(config) as runtime:
+        receipt = await runtime.mission(description, source=source, context={})
+        payload = {
+            "mission_id": receipt.mission_id,
+            "status": (
+                "BLOCKED"
+                if receipt.fate_verdict == "rejected"
+                else ("FAILED" if receipt.system == "ERROR" else "COMPLETE")
+            ),
+            "synthesis": receipt.output_text,
+            "ihsan_score": receipt.ihsan_score,
+            "snr_score": receipt.snr_score,
+            "duration_ms": receipt.duration_ms,
+            "execution_authority": "organism",
+            "authority_path": "runtime->organism->node0",
+            "fate_verdict": receipt.fate_verdict,
+            "fate_reason_codes": list(receipt.fate_reason_codes),
+            "fate_mode": receipt.fate_mode,
+            "identity_mode": receipt.identity_mode,
+            "signer_public_key_prefix": receipt.signer_public_key_prefix,
+            "hash_chain_ref": receipt.chain_hash,
+        }
+
+        if json_output:
+            import json
+
+            print(json.dumps(payload, indent=2))
+            return
+
+        print_banner()
+        print("Mission Receipt")
+        print("=" * 60)
+        print(f"Mission ID:  {payload['mission_id']}")
+        print(f"Status:      {payload['status']}")
+        print(f"Authority:   {payload['authority_path']}")
+        print(
+            f"Identity:    {payload['identity_mode']} {payload['signer_public_key_prefix']}"
+        )
+        print(f"FATE:        {payload['fate_verdict']} ({payload['fate_mode']})")
+        if payload["fate_reason_codes"]:
+            print(f"Reasons:     {', '.join(payload['fate_reason_codes'])}")
+        print(f"Ihsan:       {payload['ihsan_score']:.3f}")
+        print(f"SNR:         {payload['snr_score']:.3f}")
+        print(f"Duration:    {payload['duration_ms']:.1f}ms")
+        print("-" * 60)
+        print(payload["synthesis"])
+
+
 async def run_status(json_output: bool = False) -> None:
     """Show system status."""
     from ..inference.local_first import LocalFirstDetector
@@ -409,6 +468,10 @@ async def run_status(json_output: bool = False) -> None:
             print("=" * 60)
             ident = status["identity"]
             print(f"Node ID:    {ident['node_id']}")
+            if ident.get("identity_mode"):
+                print(f"Identity:   {ident['identity_mode']}")
+            if ident.get("signer_public_key_prefix"):
+                print(f"Signer:     {ident['signer_public_key_prefix']}")
             if ident.get("node_name"):
                 print(f"Node Name:  {ident['node_name']}")
                 print(f"Location:   {ident.get('location', 'unknown')}")
@@ -423,6 +486,10 @@ async def run_status(json_output: bool = False) -> None:
             print(f"Score:      {health.get('score', 'N/A')}")
             print(f"SNR:        {health.get('snr', 'N/A')}")
             print(f"Ihsan:      {health.get('ihsan', 'N/A')}")
+            canonical = status.get("canonical", {})
+            if canonical:
+                print(f"Authority:  {canonical.get('mission_authority', 'unknown')}")
+                print(f"FATE:       {canonical.get('fate_mode', 'unknown')}")
             print("-" * 60)
             mem = status.get("memory", {})
             if mem.get("running"):
@@ -730,6 +797,14 @@ Examples:
     query_parser.add_argument("text", help="Query text")
     query_parser.add_argument("--json", action="store_true", help="JSON output")
 
+    # Mission command
+    mission_parser = subparsers.add_parser(
+        "mission",
+        help="Run one canonical mission through runtime -> organism -> Node0",
+    )
+    mission_parser.add_argument("text", help="Mission description")
+    mission_parser.add_argument("--json", action="store_true", help="JSON output")
+
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Run API server")
     serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind")
@@ -886,6 +961,8 @@ Examples:
     # Route to command
     if args.command == "query":
         asyncio.run(run_query(args.text, args.json))
+    elif args.command == "mission":
+        asyncio.run(run_mission(args.text, json_output=args.json))
     elif args.command == "serve":
         asyncio.run(run_server(args.host, args.port, args.api_key))
     elif args.command == "status":

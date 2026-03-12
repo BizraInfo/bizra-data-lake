@@ -276,3 +276,261 @@ def test_elite_blueprint_audit_fails_on_non_numeric_weight(tmp_path: Path) -> No
     assert any(
         check["name"] == "config:weights_numeric" for check in report["failed_checks"]
     )
+
+
+def test_elite_blueprint_audit_checks_docs_truth_and_terminal_contract(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".github/workflows/ci.yml",
+        yaml.safe_dump({"jobs": {"phase65-masterpiece-gate": {}}}, sort_keys=False)
+        + "\n# python scripts/ci_docs_truth_gate.py\n"
+        + "# needs.performance-gate.result\n"
+        + "# Gate 12: Performance Gate\n",
+    )
+    _write(
+        repo / ".github/workflows/phase65-masterpiece.yml",
+        yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False),
+    )
+    _write(repo / ".github/workflows/docs-quality.yml", "# python scripts/ci_docs_truth_gate.py\n")
+    _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
+    _write(repo / "scripts/ci_docs_truth_gate.py", "# docs truth gate\n")
+    _write(repo / "tests/scripts/test_ci_docs_truth_gate.py", "# tests\n")
+    _write(repo / "docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md", "# framework\n")
+    _write(repo / "docs/internal/DOCS_INDEX.md", "UNIFIED_ACTIONABLE_FRAMEWORK.md\n")
+    _write(
+        repo / "README.md",
+        "\n".join(["[![CI Status]", "[![Roadmap]", "## Community"]),
+    )
+    _write(repo / "ROADMAP.md", "# roadmap\n")
+    _write(repo / "COMMUNITY.md", "# community\n")
+    _write(
+        repo / "frontend/src/components/terminal/terminal-manifest.ts",
+        "export const PAT_AGENT_MANIFEST = [];\nexport const SAT_AGENT_MANIFEST = [];\n",
+    )
+    _write(
+        repo / "frontend/src/components/terminal/terminal-shell.tsx",
+        'import "./terminal-manifest";\nconst motto = "One mission, one proof, remembered forever";\n',
+    )
+    _write(repo / "frontend/src/components/terminal/terminal-mission.tsx", "export default 1;\n")
+    _write(repo / "frontend/src/components/terminal/terminal-timeline.tsx", "export default 1;\n")
+    _write(repo / "frontend/src/components/terminal/terminal-memory.tsx", "export default 1;\n")
+    _write(
+        repo / "frontend/src/components/terminal/terminal-skills.tsx",
+        "const x = 'PAT_AGENT_MANIFEST SAT_AGENT_MANIFEST';\n",
+    )
+    _write(repo / "frontend/src/components/terminal/terminal-network.tsx", "export default 1;\n")
+    _write(repo / "frontend/src/components/terminal/terminal-settings.tsx", "export default 1;\n")
+    _write(repo / "frontend/tests/terminal-panels.test.tsx", "describe('terminal', () => {});\n")
+    _write(
+        repo / "docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md",
+        "# locked contract\n",
+    )
+    _seed_phase65_config(repo)
+
+    cfg = _minimal_cfg()
+    cfg["checks"]["docs_truth"] = {
+        "required_files": [
+            "scripts/ci_docs_truth_gate.py",
+            "tests/scripts/test_ci_docs_truth_gate.py",
+            "docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md",
+            "docs/internal/DOCS_INDEX.md",
+        ],
+        "required_patterns": {
+            ".github/workflows/ci.yml": ["python scripts/ci_docs_truth_gate.py"],
+            ".github/workflows/docs-quality.yml": ["python scripts/ci_docs_truth_gate.py"],
+            "docs/internal/DOCS_INDEX.md": ["UNIFIED_ACTIONABLE_FRAMEWORK.md"],
+        },
+    }
+    cfg["checks"]["terminal_contract"] = {
+        "required_files": [
+            "docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md",
+            "frontend/src/components/terminal/terminal-manifest.ts",
+            "frontend/src/components/terminal/terminal-shell.tsx",
+            "frontend/src/components/terminal/terminal-mission.tsx",
+            "frontend/src/components/terminal/terminal-timeline.tsx",
+            "frontend/src/components/terminal/terminal-memory.tsx",
+            "frontend/src/components/terminal/terminal-skills.tsx",
+            "frontend/src/components/terminal/terminal-network.tsx",
+            "frontend/src/components/terminal/terminal-settings.tsx",
+            "frontend/tests/terminal-panels.test.tsx",
+        ],
+        "required_patterns": {
+            "frontend/src/components/terminal/terminal-shell.tsx": [
+                "terminal-manifest",
+                "One mission, one proof, remembered forever",
+            ],
+            "frontend/src/components/terminal/terminal-skills.tsx": [
+                "PAT_AGENT_MANIFEST",
+                "SAT_AGENT_MANIFEST",
+            ],
+        },
+    }
+
+    report = audit_repo(repo, cfg)
+    assert report["gate_passed"] is True
+    assert report["sections"]["docs_truth"]["score"] == 1.0
+    assert report["sections"]["terminal"]["score"] == 1.0
+    assert "operator_experience" in report["interdisciplinary_lenses"]
+
+
+def test_elite_blueprint_audit_flags_missing_performance_pattern(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".github/workflows/ci.yml",
+        yaml.safe_dump({"jobs": {"phase65-masterpiece-gate": {}, "performance-gate": {}}}, sort_keys=False)
+        + "\n# needs.performance-gate.result\n",
+    )
+    _write(
+        repo / ".github/workflows/phase65-masterpiece.yml",
+        yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False),
+    )
+    _write(
+        repo / ".github/workflows/performance.yml",
+        yaml.safe_dump({"jobs": {"performance-gate": {}}}, sort_keys=False),
+    )
+    _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
+    _write(repo / "scripts/ci_release_readiness.py", "# release readiness\n")
+    _write(repo / "scripts/ci_quality_gate.py", "# quality gate\n")
+    _write(repo / "scripts/quality_spine.py", "# quality spine\n")
+    _write(repo / "tests/scripts/test_quality_spine.py", "# tests\n")
+    _write(
+        repo / "README.md",
+        "\n".join(["[![CI Status]", "[![Roadmap]", "## Community"]),
+    )
+    _write(repo / "ROADMAP.md", "# roadmap\n")
+    _write(repo / "COMMUNITY.md", "# community\n")
+    _seed_phase65_config(repo)
+
+    cfg = _minimal_cfg()
+    cfg["checks"]["performance_controls"] = {
+        "required_files": [
+            ".github/workflows/performance.yml",
+            "scripts/ci_release_readiness.py",
+            "scripts/ci_quality_gate.py",
+            "scripts/quality_spine.py",
+            "tests/scripts/test_quality_spine.py",
+        ],
+        "required_jobs": {
+            ".github/workflows/ci.yml": ["performance-gate"],
+            ".github/workflows/performance.yml": ["performance-gate"],
+        },
+        "required_patterns": {
+            ".github/workflows/ci.yml": [
+                "needs.performance-gate.result",
+                "Gate 12: Performance Gate",
+            ]
+        },
+    }
+
+    report = audit_repo(repo, cfg)
+    assert report["gate_passed"] is False
+    assert any(
+        check["name"]
+        == "performance:pattern:.github/workflows/ci.yml:Gate 12: Performance Gate"
+        for check in report["failed_checks"]
+    )
+
+
+def test_elite_blueprint_audit_emits_architecture_security_risks_and_strategy(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".github/workflows/ci.yml",
+        yaml.safe_dump({"jobs": {"phase65-masterpiece-gate": {}}}, sort_keys=False)
+        + "\n# scripts/ci_secret_scan.py\n",
+    )
+    _write(
+        repo / ".github/workflows/phase65-masterpiece.yml",
+        yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False),
+    )
+    _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
+    _write(repo / "scripts/ci_secret_scan.py", "# secret scan\n")
+    _write(repo / "core/auth/middleware.py", "class AuthMiddleware: pass\n")
+    _write(
+        repo / "core/sovereign/api.py",
+        'ROUTES = ["/v1/plan", "/v1/stream", "/v1/settings/model-routing"]\n'
+        'EVENTS = ["auth.boundary.crossed", "receipt.verified", "tick.completed"]\n',
+    )
+    _write(
+        repo / "core/sovereign/terminal.py",
+        'STATES = ["BLOCKED_CONSTITUTIONALLY", "SYSTEM_1_CACHE_HIT", "AWAITING_ESCALATION"]\n',
+    )
+    _write(repo / "core/proof_engine/receipt.py", "hash_chain_ref = 'root'\n")
+    _write(
+        repo / "core/reasoning/verified_graph.py",
+        "class VerifiedReasoningGraph:\n    pass\n",
+    )
+    _write(
+        repo / "docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md",
+        "# doc\nStrategic Workstreams\nPrioritized Roadmap\nSAPE Execution Method\n",
+    )
+    _write(
+        repo / "frontend/src/components/terminal/terminal-manifest.ts",
+        "export const PAT_AGENT_MANIFEST = [];\n",
+    )
+    _write(
+        repo / "README.md",
+        "\n".join(["[![CI Status]", "[![Roadmap]", "## Community"]),
+    )
+    _write(repo / "ROADMAP.md", "# roadmap\n")
+    _write(repo / "COMMUNITY.md", "# community\n")
+    _seed_phase65_config(repo)
+
+    cfg = _minimal_cfg()
+    cfg["checks"]["architecture_coherence"] = {
+        "required_files": [
+            "core/sovereign/api.py",
+            "core/sovereign/terminal.py",
+            "core/proof_engine/receipt.py",
+            "core/reasoning/verified_graph.py",
+            "docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md",
+            "frontend/src/components/terminal/terminal-manifest.ts",
+        ],
+        "required_patterns": {
+            "core/sovereign/api.py": [
+                "/v1/plan",
+                "/v1/stream",
+                "/v1/settings/model-routing",
+            ],
+            "core/sovereign/terminal.py": [
+                "BLOCKED_CONSTITUTIONALLY",
+                "SYSTEM_1_CACHE_HIT",
+                "AWAITING_ESCALATION",
+            ],
+        },
+    }
+    cfg["checks"]["security_coherence"] = {
+        "required_files": [
+            "docs/security/hardening-checklist.md",
+            "core/auth/middleware.py",
+            "scripts/ci_secret_scan.py",
+            ".github/workflows/ci.yml",
+            "core/sovereign/api.py",
+        ],
+        "required_patterns": {
+            ".github/workflows/ci.yml": ["scripts/ci_secret_scan.py"],
+            "core/sovereign/api.py": [
+                "auth.boundary.crossed",
+                "receipt.verified",
+                "tick.completed",
+            ],
+        },
+    }
+
+    report = audit_repo(repo, cfg)
+
+    assert report["gate_passed"] is False
+    assert report["sections"]["architecture"]["score"] == 1.0
+    assert report["sections"]["security"]["score"] < 1.0
+    assert "security" in report["interdisciplinary_lenses"]
+    plane_ids = {plane["id"] for plane in report["control_planes"]}
+    assert "architecture" in plane_ids
+    assert "security" in plane_ids
+    assert any(risk["dimension"] == "security" for risk in report["risk_register"])
+    assert report["implementation_strategy"]["current_phase"] == "stabilize_truth_and_trust"
+    assert "ihsan" in report["ethical_integrity_posture"]

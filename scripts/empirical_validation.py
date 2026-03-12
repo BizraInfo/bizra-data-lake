@@ -41,7 +41,7 @@ from pathlib import Path
 
 random.seed(42)  # Reproducible
 
-RESULTS_DIR = Path("sovereign_state/empirical")
+DEFAULT_RESULTS_DIR = Path("sovereign_state/empirical")
 NUM_SIMULATED_DAYS = 1095  # 3 years
 NUM_TRIALS = 1000
 
@@ -1033,7 +1033,7 @@ def v10_p5_frozen() -> ValidationResult:
 # RUNNER
 # ============================================================================
 
-def run_all_validations():
+def run_all_validations(results_dir: Path | str | None = None):
     print("""
 ╔══════════════════════════════════════════════════════════════════════╗
 ║          BIZRA EMPIRICAL VALIDATION SUITE                          ║
@@ -1044,7 +1044,8 @@ def run_all_validations():
 ╚══════════════════════════════════════════════════════════════════════╝
     """)
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    output_dir = Path(results_dir) if results_dir is not None else DEFAULT_RESULTS_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     validators = [
         ("V1",  "Economic Sustainability",    v1_economic_sustainability),
@@ -1158,14 +1159,17 @@ def run_all_validations():
     ).hexdigest()
     output["proof_hash"] = proof_hash
 
-    results_file = RESULTS_DIR / "validation_results.json"
+    results_file = output_dir / "validation_results.json"
     results_file.write_text(json.dumps(output, indent=2, default=str))
 
-    raw_file = RESULTS_DIR / "raw_data.json"
+    raw_file = output_dir / "raw_data.json"
     raw_file.write_text(json.dumps(
         {r.id: r.raw_data for r in results},
         indent=2, default=str
     ))
+
+    output["results_file"] = str(results_file)
+    output["raw_data_file"] = str(raw_file)
 
     print(f"\n  Proof hash: {proof_hash[:32]}...")
     print(f"  Results:    {results_file}")

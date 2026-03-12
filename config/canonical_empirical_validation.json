@@ -1,0 +1,45 @@
+{
+  "program": {
+    "id": "canonical_empirical_validation",
+    "name": "BIZRA Canonical Empirical Validation",
+    "version": "1.0.0",
+    "date": "2026-03-11",
+    "status": "active",
+    "objective": "Fuse simulation-backed validation with flagship integration proofs into one canonical empirical status artifact."
+  },
+  "empirical_results_dir": "/tmp/phase65/empirical",
+  "native_proof_planes": [
+    "flagship_metabolism"
+  ],
+  "pytest_targets": {
+    "receipt_contract": [
+      "tests/core/sovereign/test_plan_receipt_contract.py"
+    ],
+    "sovereignty_pipeline": [
+      "tests/integration/test_sovereignty_pipeline.py"
+    ]
+  },
+  "score_weights": {
+    "empirical_suite": 0.4,
+    "flagship_metabolism": 0.25,
+    "receipt_contract": 0.15,
+    "sovereignty_pipeline": 0.2
+  },
+  "thresholds": {
+    "min_score": 0.95,
+    "min_empirical_pass_rate": 1.0,
+    "required_proof_planes": [
+      "flagship_metabolism",
+      "receipt_contract",
+      "sovereignty_pipeline"
+    ]
+  },
+  "giants_protocol": [
+    "Shannon:SNR through measured evidence",
+    "Kahneman:System-1/System-2 metabolism proof",
+    "Lamport:compositional invariant verification",
+    "Nakamoto:receipt chain integrity",
+    "Deming:PDCA quality ratchet",
+    "Al-Ghazali:Ihsan as hard floor"
+  ]
+}

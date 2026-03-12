@@ -42,10 +42,10 @@ class TerminalState(str, Enum):
         EXECUTING → FAILED_RECOVERABLY         (bounded operational failure)
         EXECUTING → BLOCKED_CONSTITUTIONALLY   (invariant violation risk)
         AWAITING_ESCALATION → EXECUTING        (escalation approved)
-        AWAITING_ESCALATION → FAILED_RECOVERABLY (escalation denied)
+        AWAITING_ESCALATION → READY            (escalation denied)
         COMPLETED → READY                      (cycle reset)
         FAILED_RECOVERABLY → READY             (cycle reset)
-        BLOCKED_CONSTITUTIONALLY → READY       (cycle reset after review)
+        BLOCKED_CONSTITUTIONALLY → restart     (restart required)
     """
 
     BOOT = "boot"
@@ -74,20 +74,20 @@ TERMINAL_TRANSITIONS: dict[TerminalState, frozenset[TerminalState]] = {
         }
     ),
     TerminalState.AWAITING_ESCALATION: frozenset(
-        {TerminalState.EXECUTING, TerminalState.FAILED_RECOVERABLY}
+        {TerminalState.EXECUTING, TerminalState.READY}
     ),
     TerminalState.COMPLETED: frozenset({TerminalState.READY}),
     TerminalState.FAILED_RECOVERABLY: frozenset({TerminalState.READY}),
-    TerminalState.BLOCKED_CONSTITUTIONALLY: frozenset({TerminalState.READY}),
+    TerminalState.BLOCKED_CONSTITUTIONALLY: frozenset(),
 }
 
 
 class ExecutionPath(str, Enum):
     """How the mission was resolved — System-1, System-2, or mixed."""
 
-    SYSTEM_1_CACHE_HIT = "system_1"  # Reflex cache hit
-    SYSTEM_2_NOVEL = "system_2"  # Full reasoning pipeline
-    MIXED = "mixed"  # Partial cache, partial novel
+    SYSTEM_1_CACHE_HIT = "SYSTEM_1_CACHE_HIT"  # Reflex cache hit
+    SYSTEM_2_NOVEL = "SYSTEM_2_NOVEL"  # Full reasoning pipeline
+    MIXED = "MIXED"  # Partial cache, partial novel
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -410,15 +410,31 @@ class TerminalStateController:
         self._state = TerminalState.FAILED_RECOVERABLY
         return True
 
+    def deny_escalation(self) -> bool:
+        """Return to READY when the user denies an escalation request."""
+        if self._state != TerminalState.AWAITING_ESCALATION:
+            return False
+        self._state = TerminalState.READY
+        self._mission_id = ""
+        self._execution_path = ExecutionPath.SYSTEM_2_NOVEL
+        return True
+
+    def block(self) -> bool:
+        """Enter the restart-only constitutional block state."""
+        if self._state != TerminalState.EXECUTING:
+            return False
+        self._state = TerminalState.BLOCKED_CONSTITUTIONALLY
+        return True
+
     def reset(self) -> bool:
-        """Return to READY from any terminal state."""
+        """Return to READY from recoverable terminal states only."""
         if self._state in (
             TerminalState.COMPLETED,
             TerminalState.FAILED_RECOVERABLY,
-            TerminalState.BLOCKED_CONSTITUTIONALLY,
         ):
             self._state = TerminalState.READY
             self._mission_id = ""
+            self._execution_path = ExecutionPath.SYSTEM_2_NOVEL
             return True
         return False
 
@@ -427,4 +443,5 @@ class TerminalStateController:
             "state": self._state.value,
             "execution_path": self._execution_path.value,
             "mission_id": self._mission_id,
+            "restart_required": self._state == TerminalState.BLOCKED_CONSTITUTIONALLY,
         }

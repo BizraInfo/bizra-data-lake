@@ -16,9 +16,17 @@ on:
       - "scripts/ops/phase65_alpha_launch_packet.py"
       - "scripts/ops/phase65_masterpiece_runner.py"
       - "scripts/ops/elite_fullstack_blueprint_audit.py"
+      - "scripts/ops/masterpiece_program_board.py"
+      - "scripts/ops/autonomous_engine_gate.py"
+      - "scripts/ops/canonical_empirical_validation.py"
+      - "scripts/ops/learning_loop_closure_gate.py"
       - "config/phase65_masterpiece_roadmap.yaml"
       - "config/phase65_alpha_manual_checks.template.json"
       - "config/elite_fullstack_blueprint.yaml"
+      - "config/masterpiece_program_board.json"
+      - "config/autonomous_engine_gate.yaml"
+      - "config/canonical_empirical_validation.json"
+      - "config/learning_loop_closure_gate.json"
       - "README.md"
       - "ROADMAP.md"
       - "COMMUNITY.md"
@@ -33,6 +41,10 @@ on:
       - "tests/scripts/test_phase65_alpha_launch_packet.py"
       - "tests/scripts/test_phase65_masterpiece_runner.py"
       - "tests/scripts/test_elite_fullstack_blueprint_audit.py"
+      - "tests/scripts/test_autonomous_engine_gate.py"
+      - "tests/scripts/test_masterpiece_program_board.py"
+      - "tests/scripts/test_canonical_empirical_validation.py"
+      - "tests/scripts/test_learning_loop_closure_gate.py"
       - "core/constitutional/energy_functions.py"
       - "core/proof_engine/thermodynamic_gate.py"
       - "core/proof_engine/ihsan_computer.py"
@@ -57,6 +69,22 @@ jobs:
       blueprint_score: ${{ steps.blueprint_outputs.outputs.blueprint_score }}
       blueprint_weights_total: ${{ steps.blueprint_outputs.outputs.blueprint_weights_total }}
       blueprint_failed_checks: ${{ steps.blueprint_outputs.outputs.blueprint_failed_checks }}
+      autonomous_gate_passed: ${{ steps.autonomous_outputs.outputs.autonomous_gate_passed }}
+      autonomous_score: ${{ steps.autonomous_outputs.outputs.autonomous_score }}
+      masterpiece_board_passed: ${{ steps.masterpiece_board_outputs.outputs.masterpiece_board_passed }}
+      masterpiece_board_score: ${{ steps.masterpiece_board_outputs.outputs.masterpiece_board_score }}
+      masterpiece_empirical_score: ${{ steps.masterpiece_board_outputs.outputs.masterpiece_empirical_score }}
+      masterpiece_empirical_pass_rate: ${{ steps.masterpiece_board_outputs.outputs.masterpiece_empirical_pass_rate }}
+      masterpiece_empirical_status: ${{ steps.masterpiece_board_outputs.outputs.masterpiece_empirical_status }}
+      learning_loop_closure_passed: ${{ steps.learning_loop_closure_outputs.outputs.learning_loop_closure_passed }}
+      learning_loop_closure_status: ${{ steps.learning_loop_closure_outputs.outputs.learning_loop_closure_status }}
+      learning_loop_closure_score: ${{ steps.learning_loop_closure_outputs.outputs.learning_loop_closure_score }}
+      learning_loop_compiled_reflexes: ${{ steps.learning_loop_closure_outputs.outputs.learning_loop_compiled_reflexes }}
+      learning_loop_training_ihsan: ${{ steps.learning_loop_closure_outputs.outputs.learning_loop_training_ihsan }}
+      canonical_empirical_passed: ${{ steps.canonical_empirical_outputs.outputs.canonical_empirical_passed }}
+      canonical_empirical_score: ${{ steps.canonical_empirical_outputs.outputs.canonical_empirical_score }}
+      canonical_empirical_status: ${{ steps.canonical_empirical_outputs.outputs.canonical_empirical_status }}
+      canonical_empirical_pass_rate: ${{ steps.canonical_empirical_outputs.outputs.canonical_empirical_pass_rate }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       BIZRA_PHASE65_STRICT_SIGNING: "1"
@@ -117,6 +145,10 @@ jobs:
             tests/scripts/test_phase65_alpha_launch_packet.py \
             tests/scripts/test_phase65_masterpiece_runner.py \
             tests/scripts/test_elite_fullstack_blueprint_audit.py \
+            tests/scripts/test_autonomous_engine_gate.py \
+            tests/scripts/test_masterpiece_program_board.py \
+            tests/scripts/test_canonical_empirical_validation.py \
+            tests/scripts/test_learning_loop_closure_gate.py \
             tests/core/constitutional/test_energy_functions.py \
             tests/core/proof_engine/test_thermodynamic_gate.py
 
@@ -145,6 +177,48 @@ jobs:
               fh.write(f"blueprint_failed_checks={len(report.get('failed_checks') or [])}\n")
           PY
 
+      - name: Run autonomous SNR/GoT engine gate
+        id: autonomous_outputs
+        run: |
+          python scripts/ops/autonomous_engine_gate.py \
+            --config config/autonomous_engine_gate.yaml \
+            --report /tmp/phase65/autonomous_engine_report.json \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Build canonical empirical validation status
+        id: canonical_empirical_outputs
+        run: |
+          python scripts/ops/canonical_empirical_validation.py \
+            --config config/canonical_empirical_validation.json \
+            --report /tmp/phase65/canonical_empirical_validation.json \
+            --markdown-report /tmp/phase65/canonical_empirical_validation.md \
+            --github-output "$GITHUB_OUTPUT"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Run learning loop closure gate
+        id: learning_loop_closure_outputs
+        run: |
+          python scripts/ops/learning_loop_closure_gate.py \
+            --config config/learning_loop_closure_gate.json \
+            --report /tmp/phase65/learning_loop_closure_gate.json \
+            --markdown-report /tmp/phase65/learning_loop_closure_gate.md \
+            --github-output "$GITHUB_OUTPUT"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build masterpiece program board
+        id: masterpiece_board_outputs
+        run: |
+          python scripts/ops/masterpiece_program_board.py \
+            --config config/masterpiece_program_board.json \
+            --blueprint-report /tmp/phase65/elite_fullstack_blueprint_report.json \
+            --autonomous-report /tmp/phase65/autonomous_engine_report.json \
+            --canonical-empirical-report /tmp/phase65/canonical_empirical_validation.json \
+            --report /tmp/phase65/masterpiece_program_board.json \
+            --markdown-report /tmp/phase65/masterpiece_program_board.md \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Append elite blueprint summary
         run: |
           echo "## Elite Blueprint v2 Audit" >> $GITHUB_STEP_SUMMARY
@@ -154,6 +228,25 @@ jobs:
           echo "| Blueprint Score | ${{ steps.blueprint_outputs.outputs.blueprint_score }} | >= 0.93 |" >> $GITHUB_STEP_SUMMARY
           echo "| Weights Total | ${{ steps.blueprint_outputs.outputs.blueprint_weights_total }} | 1.0 |" >> $GITHUB_STEP_SUMMARY
           echo "| Failed Checks | ${{ steps.blueprint_outputs.outputs.blueprint_failed_checks }} | 0 |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Autonomous + Masterpiece Board" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value | Target |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Autonomous Gate Passed | ${{ steps.autonomous_outputs.outputs.autonomous_gate_passed }} | true |" >> $GITHUB_STEP_SUMMARY
+          echo "| Autonomous Score | ${{ steps.autonomous_outputs.outputs.autonomous_score }} | >= 0.78 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Masterpiece Board Passed | ${{ steps.masterpiece_board_outputs.outputs.masterpiece_board_passed }} | true |" >> $GITHUB_STEP_SUMMARY
+          echo "| Masterpiece Board Score | ${{ steps.masterpiece_board_outputs.outputs.masterpiece_board_score }} | >= 0.93 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Masterpiece Empirical Score | ${{ steps.masterpiece_board_outputs.outputs.masterpiece_empirical_score }} | >= 0.95 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Masterpiece Empirical Pass Rate | ${{ steps.masterpiece_board_outputs.outputs.masterpiece_empirical_pass_rate }} | 1.0 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Masterpiece Empirical Status | ${{ steps.masterpiece_board_outputs.outputs.masterpiece_empirical_status }} | CANONICAL |" >> $GITHUB_STEP_SUMMARY
+          echo "| Learning Loop Closure | ${{ steps.learning_loop_closure_outputs.outputs.learning_loop_closure_status }} | CLOSED |" >> $GITHUB_STEP_SUMMARY
+          echo "| Learning Loop Score | ${{ steps.learning_loop_closure_outputs.outputs.learning_loop_closure_score }} | 1.0 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Learning Loop Compiled Reflexes | ${{ steps.learning_loop_closure_outputs.outputs.learning_loop_compiled_reflexes }} | >= 1 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Learning Loop Training Ihsan | ${{ steps.learning_loop_closure_outputs.outputs.learning_loop_training_ihsan }} | >= 0.98 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Canonical Empirical Passed | ${{ steps.canonical_empirical_outputs.outputs.canonical_empirical_passed }} | true |" >> $GITHUB_STEP_SUMMARY
+          echo "| Canonical Empirical Score | ${{ steps.canonical_empirical_outputs.outputs.canonical_empirical_score }} | >= 0.95 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Canonical Empirical Status | ${{ steps.canonical_empirical_outputs.outputs.canonical_empirical_status }} | CANONICAL |" >> $GITHUB_STEP_SUMMARY
+          echo "| Canonical Empirical Pass Rate | ${{ steps.canonical_empirical_outputs.outputs.canonical_empirical_pass_rate }} | 1.0 |" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload lifecycle artifacts
         if: always()
@@ -168,4 +261,11 @@ jobs:
             /tmp/phase65/phase65_alpha_launch_packet.json
             /tmp/phase65/phase65_alpha_launch_packet.md
             /tmp/phase65/elite_fullstack_blueprint_report.json
+            /tmp/phase65/autonomous_engine_report.json
+            /tmp/phase65/masterpiece_program_board.json
+            /tmp/phase65/masterpiece_program_board.md
+            /tmp/phase65/canonical_empirical_validation.json
+            /tmp/phase65/canonical_empirical_validation.md
+            /tmp/phase65/learning_loop_closure_gate.json
+            /tmp/phase65/learning_loop_closure_gate.md
           retention-days: 30

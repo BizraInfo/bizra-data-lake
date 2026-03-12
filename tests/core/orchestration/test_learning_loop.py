@@ -211,6 +211,24 @@ class TestTrainingCycle:
         assert reflex_bridge.total_observations >= 3
         assert orch.metrics.total_observations >= 3
 
+    def test_preserves_snr_signal_for_reflex_impact(self):
+        trainer = _mock_trainer(final_ihsan=0.99)
+        reflex_bridge = SDPOReflexBridge(min_observations=3)
+        orch = LearningLoopOrchestrator(
+            enabled=True,
+            sdpo_trainer=trainer,
+            reflex_bridge=reflex_bridge,
+        )
+        for _ in range(3):
+            orch.on_candidate(_make_candidate(ihsan=0.99))
+
+        asyncio.run(orch.run_training_cycle())
+
+        candidates = reflex_bridge.get_eligible_candidates()
+        assert len(candidates) >= 1
+        assert candidates[0].avg_snr > UNIFIED_SNR_THRESHOLD
+        assert candidates[0].impact_score > 0.01
+
     def test_training_ihsan_history(self):
         trainer = _mock_trainer(final_ihsan=0.98)
         orch = LearningLoopOrchestrator(enabled=True, sdpo_trainer=trainer)
@@ -355,7 +373,7 @@ class TestFullCycle:
     def test_end_to_end_pipeline(self):
         """Full pipeline: candidates → training → observations → compilation."""
         trainer = _mock_trainer(final_ihsan=0.99)
-        reflex_bridge = SDPOReflexBridge(min_observations=2)
+        reflex_bridge = SDPOReflexBridge(min_observations=3)
         reflex_cache: dict = {}
         orch = LearningLoopOrchestrator(
             enabled=True,
@@ -364,29 +382,22 @@ class TestFullCycle:
             reflex_cache=reflex_cache,
         )
 
-        # Step 1: Feed candidates
-        for _ in range(5):
+        # Step 1: Feed candidates with the same task so observations aggregate.
+        for _ in range(3):
             orch.on_candidate(_make_candidate(fitness=0.96, ihsan=0.98))
-        assert orch.metrics.candidates_accepted == 5
+        assert orch.metrics.candidates_accepted == 3
 
-        # Step 2: Run training
-        asyncio.run(orch.run_training_cycle())
-        assert orch.metrics.training_runs == 1
-
-        # Step 3: Need more observations for reflex eligibility
-        # The training cycle piped observations, but we need reproducibility.
-        # Run additional training cycles to accumulate observations.
-        for _ in range(4):
-            for _ in range(3):
-                orch.on_candidate(_make_candidate(fitness=0.96, ihsan=0.99))
-            asyncio.run(orch.run_training_cycle())
-
-        # Step 4: Compile reflexes
+        # Step 2-4: Run one full cycle and require a compiled reflex.
+        result = asyncio.run(orch.run_full_cycle())
         compiled = orch.run_compilation_cycle()
-        # The pipeline should produce at least some compiled reflexes
-        # (depends on observation accumulation matching task descriptions)
+        assert result["training_executed"] is True
+        assert result["reflexes_compiled"] >= 1
+        assert result["reflex_cache_size"] >= 1
+        assert len(compiled) == 0  # Already compiled during run_full_cycle()
         assert orch.metrics.loop_cycles >= 1
-        assert orch.metrics.total_observations >= 5
+        assert orch.metrics.total_observations >= 3
+        assert orch.metrics.reflexes_compiled >= 1
+        assert len(reflex_cache) >= 1
 
 
 # ═══════════════════════════════════════════════════════════════════════════

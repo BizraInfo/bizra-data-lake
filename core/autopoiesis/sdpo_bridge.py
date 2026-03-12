@@ -183,6 +183,15 @@ class AutopoiesisSDPOBridge:
             )
             return False
 
+        if trace.snr_score < UNIFIED_SNR_THRESHOLD:
+            logger.debug(
+                "Filtered trace %s: snr %.3f < %.3f",
+                trace.genome_id,
+                trace.snr_score,
+                UNIFIED_SNR_THRESHOLD,
+            )
+            return False
+
         self._traces.append(trace)
         return True
 
@@ -203,6 +212,7 @@ class AutopoiesisSDPOBridge:
         - feedbacks: quality feedback strings
         - corrected_attempts: higher-quality outputs (from higher-fitness traces)
         - quality_scores: ihsan scores
+        - snr_scores: signal-to-noise scores preserved for downstream impact gates
 
         Returns None if insufficient traces collected.
         """
@@ -228,12 +238,14 @@ class AutopoiesisSDPOBridge:
         feedbacks = []
         corrected_attempts = []
         quality_scores = []
+        snr_scores = []
 
         for trace in batch_traces:
             questions.append(trace.task_description)
             corrected_attempts.append(trace.task_output)
             feedbacks.append(trace.quality_feedback)
             quality_scores.append(trace.ihsan_score)
+            snr_scores.append(trace.snr_score)
 
             # Construct "failed" version from improvement suggestions
             failed_version = self._construct_counterfactual(trace)
@@ -268,6 +280,7 @@ class AutopoiesisSDPOBridge:
             "feedbacks": feedbacks,
             "corrected_attempts": corrected_attempts,
             "quality_scores": quality_scores,
+            "snr_scores": snr_scores,
         }
 
     def get_bridge_history(self) -> List[Dict[str, Any]]:

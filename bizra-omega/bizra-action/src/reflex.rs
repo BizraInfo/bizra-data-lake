@@ -23,6 +23,7 @@ pub struct Reflex {
     pub description: String,
     pub actions: Vec<BizraAction>,
     pub compiled_ihsan: IhsanScore,
+    pub provenance_proof: Vec<String>, // Merkle proof of VRG derivation
     pub execution_count: u64,
     pub last_used: ActionTimestamp,
     pub compiled_at: ActionTimestamp,
@@ -114,6 +115,7 @@ impl ReflexLedger {
         actions: Vec<BizraAction>,
         ihsan: IhsanScore,
         timestamp: ActionTimestamp,
+        provenance_proof: Vec<String>,
     ) -> Result<usize, ReflexError> {
         if !ihsan.meets_constitutional() {
             return Err(ReflexError::IhsanBelowThreshold {
@@ -130,6 +132,7 @@ impl ReflexLedger {
                 self.entries[idx].actions = actions;
                 self.entries[idx].compiled_ihsan = ihsan;
                 self.entries[idx].compiled_at = timestamp;
+                self.entries[idx].provenance_proof = provenance_proof;
                 return Ok(idx);
             }
             return Err(ReflexError::ExistingReflexBetter);
@@ -145,6 +148,7 @@ impl ReflexLedger {
             description: description.to_string(),
             actions,
             compiled_ihsan: ihsan,
+            provenance_proof,
             execution_count: 0,
             last_used: timestamp,
             compiled_at: timestamp,

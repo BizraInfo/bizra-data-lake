@@ -1,0 +1,37 @@
+{
+  "program": {
+    "id": "learning_loop_closure_gate",
+    "name": "BIZRA Learning Loop Closure Gate",
+    "version": "1.0.0",
+    "date": "2026-03-11",
+    "status": "active",
+    "objective": "Empirically prove candidate -> batch -> receipt -> reflex closure for the P0 learning-loop workstream."
+  },
+  "scenario": {
+    "candidate_count": 3,
+    "min_observations": 3,
+    "candidate_fitness": 0.96,
+    "candidate_ihsan": 0.99,
+    "candidate_snr": 0.92,
+    "training_ihsan": 0.99,
+    "training_loss": 0.05,
+    "task_description": "Close learning loop with preserved SNR",
+    "task_output": "High-signal learning loop synthesis"
+  },
+  "thresholds": {
+    "min_training_ihsan": 0.98,
+    "required_compiled_reflexes": 1,
+    "required_events": [
+      "CANDIDATE_ACCEPTED",
+      "TRAINING_COMPLETED",
+      "REFLEX_COMPILED"
+    ]
+  },
+  "giants_protocol": [
+    "Deming:PDCA closed-loop quality ratchet",
+    "Kahneman:System-2 to System-1 compilation",
+    "Shannon:SNR preserved through learning",
+    "Al-Ghazali:Ihsan as hard floor",
+    "Lamport:receipt-backed execution evidence"
+  ]
+}

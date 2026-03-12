@@ -29,6 +29,7 @@ The following conditions are already true in the repo:
 - `sovereign_state/node0_lifecycle.json` reports `status == "ready"`
 - Node0 documentation hierarchy exists:
   - `docs/NODE0_STANDALONE_READINESS.md` = specification
+  - `docs/constitutional/BIZRA-Node0-Activation-Planning-Principle-v1.0-DRAFT.md` = planning law
   - `docs/constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md` = verification
   - `docs/constitutional/NODE0_DOD_CORRECTION_MATRIX.md` = audit trail
 - Production auth hardening is in motion:

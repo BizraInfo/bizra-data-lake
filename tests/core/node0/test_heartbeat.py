@@ -95,6 +95,81 @@ class TestBoot:
         assert len(receipt.node_id) == 32  # BLAKE2b hex, 16 bytes
         assert hb.node_id == receipt.node_id
 
+    def test_canonical_boot_requires_injected_genesis_identity(self, data_dir: Path):
+        """Canonical identity mode must fail closed without injected signer truth."""
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, identity_mode="genesis_ed25519")
+        with pytest.raises(
+            RuntimeError,
+            match="injected genesis Ed25519 signer public key",
+        ):
+            hb.boot()
+
+    def test_canonical_boot_derives_node_id_from_signer_public_key(
+        self, data_dir: Path
+    ) -> None:
+        """Canonical Node0 identity should derive from the injected public key."""
+        from core.node0.heartbeat import Node0Heartbeat
+        from core.pat.identity_card import _generate_node_id
+        from core.pci.crypto import generate_keypair
+
+        _private_hex, public_hex = generate_keypair()
+        expected_node_id = _generate_node_id(public_hex)
+
+        hb = Node0Heartbeat(
+            data_dir=data_dir,
+            identity_mode="genesis_ed25519",
+            signer_public_key_hex=public_hex,
+        )
+
+        receipt = hb.boot()
+        assert receipt.node_id == expected_node_id
+        assert hb.node_id == expected_node_id
+        assert hb.health()["signer_public_key_prefix"] == public_hex[:16]
+
+    def test_canonical_boot_rejects_node_id_signer_mismatch(
+        self, data_dir: Path
+    ) -> None:
+        """Canonical Node0 must fail closed on signer/node_id mismatch."""
+        from core.node0.heartbeat import Node0Heartbeat
+        from core.pci.crypto import generate_keypair
+
+        _private_hex, public_hex = generate_keypair()
+        hb = Node0Heartbeat(
+            data_dir=data_dir,
+            node_id="BIZRA-DEADBEEF",
+            identity_mode="genesis_ed25519",
+            signer_public_key_hex=public_hex,
+        )
+
+        with pytest.raises(
+            RuntimeError,
+            match="node_id does not match injected signer public key",
+        ):
+            hb.boot()
+
+    def test_canonical_boot_rejects_prefix_signer_mismatch(
+        self, data_dir: Path
+    ) -> None:
+        """Canonical Node0 must fail closed on signer prefix mismatch."""
+        from core.node0.heartbeat import Node0Heartbeat
+        from core.pci.crypto import generate_keypair
+
+        _private_hex, public_hex = generate_keypair()
+        hb = Node0Heartbeat(
+            data_dir=data_dir,
+            identity_mode="genesis_ed25519",
+            signer_public_key_hex=public_hex,
+            signer_public_key_prefix="deadbeefdeadbeef",
+        )
+
+        with pytest.raises(
+            RuntimeError,
+            match="signer prefix does not match injected signer public key",
+        ):
+            hb.boot()
+
     def test_boot_initializes_memory(self, heartbeat):
         """Boot initializes AgentDB memory subsystem."""
         receipt = heartbeat.boot()

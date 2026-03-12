@@ -3,94 +3,25 @@
 import { useState } from "react";
 import {
   useSeedPotential,
+  useMemoryProfile,
+  type MemoryProfileCompiledReflex,
+  type MemoryProfilePattern,
 } from "@/hooks/use-sovereign-api";
-
-// ─── Types ──────────────────────────────────────────────────────
-
-interface AgentInfo {
-  id: string;
-  name: string;
-  role: string;
-  emoji: string;
-  temperature: number;
-  status: "active" | "idle" | "standby";
-  team: "PAT" | "SAT";
-  raidRole: string;
-}
-
-interface CompiledReflex {
-  name: string;
-  compiled_at: string;
-  avg_ihsan: number;
-  execution_count: number;
-  avg_latency_ms: number;
-}
-
-interface NearCompile {
-  name: string;
-  count: number;
-  threshold: number;
-  avg_ihsan: number;
-}
-
-type TierName = "Novice" | "Adept" | "Expert" | "Master";
-
-interface TierDef {
-  name: TierName;
-  min_actions: number;
-  min_ihsan: number;
-  unlocks: string[];
-  color: string;
-}
-
-type LifecycleStage = "Seedling" | "Sprout" | "Sapling" | "Branch" | "Canopy" | "Catalyst";
+import {
+  PAT_AGENT_MANIFEST,
+  SAT_AGENT_MANIFEST,
+  TERMINAL_LIFECYCLE_STAGES,
+  TERMINAL_TIER_DEFS,
+  type LifecycleStageDef,
+  type TerminalAgentDef,
+} from "./terminal-manifest";
 
 // ─── Constants ──────────────────────────────────────────────────
 
-const PAT_AGENTS: AgentInfo[] = [
-  { id: "P1", name: "Atlas", role: "Planner", emoji: "🗺️", temperature: 0.2, status: "active", team: "PAT", raidRole: "Strategist" },
-  { id: "P2", name: "Oracle", role: "Researcher", emoji: "🔭", temperature: 0.7, status: "active", team: "PAT", raidRole: "Scout" },
-  { id: "P3", name: "Forge", role: "Coder", emoji: "⚒️", temperature: 0.3, status: "active", team: "PAT", raidRole: "DPS" },
-  { id: "P4", name: "Judge", role: "Evaluator", emoji: "⚖️", temperature: 0.1, status: "active", team: "PAT", raidRole: "Healer" },
-  { id: "P5", name: "Crown", role: "Ethicist", emoji: "👑", temperature: 0.1, status: "active", team: "PAT", raidRole: "Tank" },
-  { id: "P6", name: "Herald", role: "Publisher", emoji: "📢", temperature: 0.4, status: "idle", team: "PAT", raidRole: "Bard" },
-  { id: "P7", name: "DEMA", role: "Nexus", emoji: "💜", temperature: 0.2, status: "active", team: "PAT", raidRole: "Raid Leader" },
-];
-
-const SAT_AGENTS: AgentInfo[] = [
-  { id: "S1", name: "Sentinel", role: "Security", emoji: "🛡️", temperature: 0.05, status: "active", team: "SAT", raidRole: "Anti-Cheat" },
-  { id: "S2", name: "Oracle-S", role: "Forest Health", emoji: "🌳", temperature: 0.3, status: "active", team: "SAT", raidRole: "World State" },
-  { id: "S3", name: "Ledger", role: "Economy", emoji: "📊", temperature: 0.05, status: "active", team: "SAT", raidRole: "Economy Mgr" },
-  { id: "S4", name: "Conductor", role: "Capacity", emoji: "🎵", temperature: 0.2, status: "active", team: "SAT", raidRole: "Load Balancer" },
-  { id: "S5", name: "Ambassador", role: "Federation", emoji: "🤝", temperature: 0.4, status: "standby", team: "SAT", raidRole: "Diplomacy" },
-];
-
-const TIER_DEFS: TierDef[] = [
-  { name: "Novice", min_actions: 0, min_ihsan: 0, unlocks: ["Read files", "Clipboard", "Basic queries"], color: "text-slate-400" },
-  { name: "Adept", min_actions: 10, min_ihsan: 0.85, unlocks: ["Write files", "Local scripts", "Browser automation"], color: "text-teal-400" },
-  { name: "Expert", min_actions: 100, min_ihsan: 0.90, unlocks: ["Network access", "API calls", "Multi-app orchestration"], color: "text-amber-400" },
-  { name: "Master", min_actions: 1000, min_ihsan: 0.95, unlocks: ["Unsandboxed processes", "Marketplace publish", "Mentor others"], color: "text-purple-400" },
-];
-
-const LIFECYCLE_STAGES: { name: LifecycleStage; threshold: number; emoji: string }[] = [
-  { name: "Seedling", threshold: 0, emoji: "🌱" },
-  { name: "Sprout", threshold: 0.15, emoji: "🌿" },
-  { name: "Sapling", threshold: 0.30, emoji: "🌲" },
-  { name: "Branch", threshold: 0.50, emoji: "🌳" },
-  { name: "Canopy", threshold: 0.75, emoji: "🏔️" },
-  { name: "Catalyst", threshold: 0.95, emoji: "⭐" },
-];
-
-const DEMO_REFLEXES: CompiledReflex[] = [
-  { name: "file_organization", compiled_at: new Date(Date.now() - 86400000).toISOString(), avg_ihsan: 0.97, execution_count: 8, avg_latency_ms: 48 },
-  { name: "git_commit_flow", compiled_at: new Date(Date.now() - 172800000).toISOString(), avg_ihsan: 0.96, execution_count: 14, avg_latency_ms: 52 },
-];
-
-const DEMO_NEAR: NearCompile[] = [
-  { name: "test_generation", count: 2, threshold: 3, avg_ihsan: 0.97 },
-  { name: "code_review", count: 1, threshold: 3, avg_ihsan: 0.94 },
-  { name: "deploy_staging", count: 2, threshold: 3, avg_ihsan: 0.96 },
-];
+const PAT_AGENTS = PAT_AGENT_MANIFEST;
+const SAT_AGENTS = SAT_AGENT_MANIFEST;
+const TIER_DEFS = TERMINAL_TIER_DEFS;
+const LIFECYCLE_STAGES = TERMINAL_LIFECYCLE_STAGES;
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -105,7 +36,7 @@ function getCurrentTier(actions: number, ihsan: number): number {
   return tier;
 }
 
-function getLifecycleStage(score: number): typeof LIFECYCLE_STAGES[number] {
+function getLifecycleStage(score: number): LifecycleStageDef {
   let stage = LIFECYCLE_STAGES[0];
   for (const s of LIFECYCLE_STAGES) {
     if (score >= s.threshold) stage = s;
@@ -128,9 +59,27 @@ function tempBar(t: number): string {
   return "bg-teal-500";
 }
 
+function formatRecordedAt(ts: string): string {
+  if (!ts) return "Recorded in procedural memory";
+  try {
+    return new Date(ts).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return ts;
+  }
+}
+
+function formatLatency(ms: number): string {
+  return ms > 0 ? `${ms.toFixed(0)}ms` : "timing pending";
+}
+
 // ─── Sub-Components ─────────────────────────────────────────────
 
-function AgentCard({ agent }: { agent: AgentInfo }) {
+function AgentCard({ agent }: { agent: TerminalAgentDef }) {
   return (
     <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/5 transition-colors">
       <span className="text-lg">{agent.emoji}</span>
@@ -138,12 +87,13 @@ function AgentCard({ agent }: { agent: AgentInfo }) {
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-slate-200">{agent.name}</span>
           <span className="text-[10px] text-slate-500">{agent.id}</span>
+          <span className="text-[10px] font-mono text-amber-300/80">{agent.call}</span>
           <span className={`w-1.5 h-1.5 rounded-full ${statusDot(agent.status)}`} />
         </div>
         <div className="flex items-center gap-2 text-[10px] text-slate-500">
           <span>{agent.role}</span>
           <span className="text-slate-700">·</span>
-          <span className="text-slate-600">{agent.raidRole}</span>
+          <span className="text-slate-600">{agent.domain}</span>
         </div>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -159,7 +109,13 @@ function AgentCard({ agent }: { agent: AgentInfo }) {
   );
 }
 
-function TierProgress({ currentActions, currentIhsan }: { currentActions: number; currentIhsan: number }) {
+function TierProgress({
+  currentActions,
+  currentIhsan,
+}: {
+  currentActions: number;
+  currentIhsan: number;
+}) {
   const currentTier = getCurrentTier(currentActions, currentIhsan);
   const nextTier = currentTier < TIER_DEFS.length - 1 ? TIER_DEFS[currentTier + 1] : null;
   const def = TIER_DEFS[currentTier];
@@ -266,57 +222,73 @@ function LifecycleDisplay({ sovereigntyScore }: { sovereigntyScore: number }) {
   );
 }
 
-function CompiledReflexes() {
-  if (DEMO_REFLEXES.length === 0) return null;
-
+function CompiledReflexes({
+  reflexes,
+}: {
+  reflexes: MemoryProfileCompiledReflex[];
+}) {
   return (
     <div className="border border-emerald-800/30 rounded-lg p-3 mb-3 bg-emerald-950/10">
       <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
         ⚡ Compiled Reflexes (System-1)
       </h3>
-      {DEMO_REFLEXES.map((r) => (
-        <div key={r.name} className="flex items-center justify-between py-1.5 border-b border-slate-800/30 last:border-0">
-          <div>
-            <span className="text-sm text-slate-200 font-medium">"{r.name}"</span>
-            <div className="text-[10px] text-slate-500 mt-0.5">
-              {r.execution_count} executions · Ihsān {r.avg_ihsan.toFixed(2)}
+      {reflexes.length === 0 ? (
+        <div className="text-xs text-emerald-200/80">
+          No compiled reflexes yet. Three excellent repetitions will precipitate a System-1 path.
+        </div>
+      ) : (
+        reflexes.map((r) => (
+          <div key={r.name} className="flex items-center justify-between py-1.5 border-b border-slate-800/30 last:border-0">
+            <div>
+              <span className="text-sm text-slate-200 font-medium">"{r.name}"</span>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                {r.execution_count} executions · Ihsān {r.avg_ihsan.toFixed(2)} · {formatRecordedAt(r.compiled_at)}
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <div className="text-sm font-bold text-emerald-400">{formatLatency(r.avg_latency_ms)}</div>
+              <div className="text-[10px] text-emerald-600">System-1</div>
             </div>
           </div>
-          <div className="text-right flex-shrink-0">
-            <div className="text-sm font-bold text-emerald-400">{r.avg_latency_ms}ms</div>
-            <div className="text-[10px] text-emerald-600">System-1</div>
-          </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }
 
-function NearCompileList() {
-  if (DEMO_NEAR.length === 0) return null;
-
+function NearCompileList({
+  patterns,
+}: {
+  patterns: MemoryProfilePattern[];
+}) {
   return (
     <div className="border border-amber-800/30 rounded-lg p-3 mb-3 bg-amber-950/10">
       <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">
         🔥 Near-Compile Candidates
       </h3>
-      {DEMO_NEAR.map((p) => (
-        <div key={p.name} className="flex items-center justify-between py-1.5">
-          <div>
-            <span className="text-sm text-slate-200">"{p.name}"</span>
-            <span className="text-[10px] text-slate-500 ml-2">Ihsān {p.avg_ihsan.toFixed(2)}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-14 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-amber-400 rounded-full"
-                style={{ width: `${(p.count / p.threshold) * 100}%` }}
-              />
-            </div>
-            <span className="text-xs text-amber-300 font-mono font-bold">{p.count}/{p.threshold}</span>
-          </div>
+      {patterns.length === 0 ? (
+        <div className="text-xs text-amber-200/80">
+          No near-compile patterns yet. High-Ihsan repetition will appear here as the learning loop matures.
         </div>
-      ))}
+      ) : (
+        patterns.map((p) => (
+          <div key={p.name} className="flex items-center justify-between py-1.5">
+            <div>
+              <span className="text-sm text-slate-200">"{p.name}"</span>
+              <span className="text-[10px] text-slate-500 ml-2">Ihsān {p.avg_ihsan.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-14 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber-400 rounded-full"
+                  style={{ width: `${(p.count / Math.max(1, p.threshold)) * 100}%` }}
+                />
+              </div>
+              <span className="text-xs text-amber-300 font-mono font-bold">{p.count}/{p.threshold}</span>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -325,11 +297,19 @@ function NearCompileList() {
 
 export default function TerminalSkills() {
   const { data: potential } = useSeedPotential();
+  const { data: memoryProfile } = useMemoryProfile();
   const [showSAT, setShowSAT] = useState(false);
 
-  const currentActions = (potential as Record<string, unknown>)?.episodes_total as number ?? 25;
-  const currentIhsan = potential?.potential ?? 0.42;
-  const sovereigntyScore = potential?.potential ?? 0.42;
+  const currentActions = Math.max(
+    potential?.episodes_total ?? 0,
+    memoryProfile.missions.length,
+  );
+  const currentIhsan =
+    memoryProfile.missions[0]?.ihsan_score ?? potential?.reward_ema ?? 0.42;
+  const sovereigntyScore = potential?.sovereignty_score ?? 0.42;
+  const compiledReflexes = memoryProfile.compiled_reflex_summary;
+  const nearCompilePatterns = memoryProfile.near_compile_patterns;
+  const reflexCount = compiledReflexes.length;
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
@@ -337,10 +317,12 @@ export default function TerminalSkills() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-bold text-slate-100">Agents & Skills</h2>
-          <p className="text-xs text-slate-500">Your sovereign cognitive team</p>
+          <p className="text-xs text-slate-500">
+            Your sovereign cognitive topology, promoted from the design canon into the live terminal.
+          </p>
         </div>
         <div className="text-xs text-slate-600">
-          {PAT_AGENTS.length + SAT_AGENTS.length} agents · {DEMO_REFLEXES.length} reflexes
+          {PAT_AGENTS.length + SAT_AGENTS.length} agents · {reflexCount} reflexes · {memoryProfile.work_streak} streak
         </div>
       </div>
 
@@ -356,7 +338,7 @@ export default function TerminalSkills() {
           <span className="text-xs font-bold text-teal-400">
             💜 PAT-7 — Personal Agent Team
           </span>
-          <span className="text-[10px] text-slate-500">Human → DEMA → PAT → Pool → SAT</span>
+          <span className="text-[10px] text-slate-500">Human → DEMA / NEXUS → PAT → Pool → SAT</span>
         </div>
         <div className="divide-y divide-slate-800/50">
           {PAT_AGENTS.map((a) => (
@@ -386,14 +368,14 @@ export default function TerminalSkills() {
       </div>
 
       {/* §10.5: Shows compiled reflexes with avg Ihsān, count, latency */}
-      <CompiledReflexes />
+      <CompiledReflexes reflexes={compiledReflexes} />
 
       {/* §10.5: Shows near-compile candidates with N/3 threshold */}
-      <NearCompileList />
+      <NearCompileList patterns={nearCompilePatterns} />
 
       {/* Boundary model */}
       <div className="text-center mt-4 text-[10px] text-slate-700">
-        Human → DEMA → PAT-7 → Pool → SAT-5 (Boundary Model)
+        Human → DEMA → PAT-7 → Pool → SAT-5 (Boundary Model) · Reflex visibility derives from procedural memory and constitutional state.
       </div>
     </div>
   );

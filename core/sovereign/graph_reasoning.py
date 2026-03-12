@@ -15,6 +15,7 @@ quality scores from content instead of hardcoding them.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from typing import Any, Optional
@@ -23,6 +24,7 @@ from .graph_types import (
     ThoughtNode,
     ThoughtType,
 )
+from core.pci.gates import PCIGateKeeper
 
 logger = logging.getLogger(__name__)
 
@@ -534,6 +536,7 @@ class GraphReasoningMixin:
         reasoning_steps = []
         current = start_node
         depth = current_depth
+        gatekeeper = PCIGateKeeper()
 
         while depth < max_depth:
             # Generate reasoning step
@@ -573,6 +576,18 @@ class GraphReasoningMixin:
             reasoning_steps.append(step_content[:60] + "...")
             current = reasoning
             depth += 1
+
+            # INTEGRATE ALPHA-GATES: Fire dynamically at GoT branch boundaries
+            gate_result = gatekeeper.verify_thought(current)
+            if not gate_result.passed:
+                pruned_count = max(0, max_depth - depth)
+                current.metadata["gate_failed"] = gate_result.reject_code.name
+                current.metadata["reject_reason"] = gate_result.details
+                current.metadata["pruned_children"] = pruned_count
+                
+                self.stats["nodes_pruned"] += pruned_count
+                reasoning_steps.append(f"PRUNED [{gate_result.reject_code.name}]: {gate_result.details}")
+                break
 
             # Check if we should prune this branch (with higher floor)
             if current.snr_score < self.snr_threshold * 0.9:

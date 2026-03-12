@@ -77,6 +77,7 @@ This is the master index of all documentation for **Node0 (Genesis Block)**.
 | [IMPLEMENTATION-COMPLETE.md](IMPLEMENTATION-COMPLETE.md) | Status of completed implementations. |
 | [SAPE_IMPLEMENTATION_BLUEPRINT.md](SAPE_IMPLEMENTATION_BLUEPRINT.md) | SAPE (Structured Agentic Probe Engine) design. |
 | [SAPE_SOVEREIGN_REVIEW_2026.md](SAPE_SOVEREIGN_REVIEW_2026.md) | 2026 review of SAPE integration. |
+| [UNIFIED_ACTIONABLE_FRAMEWORK.md](UNIFIED_ACTIONABLE_FRAMEWORK.md) | Current execution companion joining blueprint, audits, terminal contract, and DevSecOps gates into one roadmap. |
 | [SLEEPING-BEAST-STATUS.md](SLEEPING-BEAST-STATUS.md) | Status of "sleeping" components awaiting activation. |
 
 ---

@@ -64,6 +64,33 @@ class TestOrganismNode0Boot:
         assert org._node0._boot_receipt is not None
         assert org._node0._boot_receipt.sovereignty_proven is True
 
+    def test_boot_propagates_canonical_signer_identity(
+        self, persistence_dir: Path
+    ) -> None:
+        """Canonical organism boot should bind Node0 identity to signer truth."""
+        from core.pat.identity_card import _generate_node_id
+        from core.pci.crypto import generate_keypair
+        from core.sovereign.organism import SovereignOrganism
+
+        _private_hex, public_hex = generate_keypair()
+        expected_node_id = _generate_node_id(public_hex)
+
+        org = asyncio.run(
+            SovereignOrganism.boot(
+                EchoInference(),
+                persistence_dir=persistence_dir,
+                node_id=expected_node_id,
+                identity_mode="genesis_ed25519",
+                signer_public_key_prefix=public_hex[:16],
+                signer_public_key_hex=public_hex,
+            )
+        )
+
+        assert org._node0 is not None
+        assert org._node0.node_id == expected_node_id
+        assert org._node0.health()["identity_mode"] == "genesis_ed25519"
+        assert org._node0.health()["signer_public_key_prefix"] == public_hex[:16]
+
     def test_node0_uses_organism_helix3(self, persistence_dir: Path) -> None:
         """Node0 should use organism's Helix3, not create its own."""
         from core.sovereign.organism import SovereignOrganism

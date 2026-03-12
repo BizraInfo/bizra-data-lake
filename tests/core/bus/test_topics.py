@@ -90,14 +90,15 @@ class TestTopicProperties:
 
     def test_invariant_violation_critical_priority(self) -> None:
         r = TopicRegistry()
+        assert r.get_min_priority("invariant.violation") == Priority.CRITICAL
         assert r.get_min_priority("policy.invariant.violation") == Priority.CRITICAL
 
     def test_normal_topic_normal_priority(self) -> None:
         r = TopicRegistry()
         assert r.get_min_priority("action.intent") == Priority.NORMAL
 
-    def test_registry_has_44_topics(self) -> None:
-        assert len(TOPIC_REGISTRY) == 44
+    def test_registry_has_49_topics(self) -> None:
+        assert len(TOPIC_REGISTRY) == 49
 
     def test_all_8_tiers_represented(self) -> None:
         tiers = {defn.tier for defn in TOPIC_REGISTRY.values()}
@@ -113,7 +114,7 @@ class TestExportJson:
         r = TopicRegistry()
         exported = r.export_json()
         data = json.loads(exported)
-        assert len(data) == 44
+        assert len(data) == 49
 
     def test_export_json_sorted(self) -> None:
         r = TopicRegistry()

@@ -154,7 +154,11 @@ class EventBus:
                 await self._process_event(event)
             except asyncio.TimeoutError:
                 continue
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except asyncio.CancelledError:
+                self._running = False
+                logger.info("Event bus cancelled")
+                raise
+            except (RuntimeError, OSError) as e:  # SEC-003 — async boundary
                 logger.error(f"Event bus error: {e}")
 
     def stop(self) -> None:
