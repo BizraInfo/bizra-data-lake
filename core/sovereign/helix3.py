@@ -175,6 +175,8 @@ class HeartbeatReceipt:
     evidence_hash: str
     chain_hash: str  # Links to previous heartbeat
     stats: Dict[str, Any]
+    approved_count: int = 0  # FATE-approved missions in this tick
+    rejected_count: int = 0  # FATE-rejected missions (excluded from composite)
 
     def as_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -299,23 +301,30 @@ class Helix3Scheduler:
         receipts = list(self._pending_receipts)
         self._pending_receipts.clear()
 
-        # ── Step 1: Aggregate 8D Ihsān tensor from receipts ─────
-        tensor = self._compute_aggregate_tensor(receipts)
-        composite = tensor.geometric_mean
-
-        # ── Step 2: Score and gate ──────────────────────────────
+        # ── Step 1: FATE constitutional filter (approved only) ──
+        # Standing on Giants: Shannon (1948) — rejected receipts = noise.
+        # Besta/GoT (2024) — aggregation must merge only approved branches.
+        # The aggregate tensor IS the GoT merge; noise here poisons
+        # composite, reflex, memory, and evidence downstream.
         constitutionally_approved = [
             r
             for r in receipts
             if r.get("fate_verdict", "approved") == "approved"
             and r.get("gate_passed", True)
         ]
+        rejected_count = len(receipts) - len(constitutionally_approved)
+
+        # ── Step 2: Aggregate 8D Ihsān tensor from APPROVED receipts ─
+        tensor = self._compute_aggregate_tensor(constitutionally_approved)
+        composite = tensor.geometric_mean
+
+        # ── Step 3: Score and gate ─────────────────────────────────
         passing = [r for r in constitutionally_approved if r.get("ihsan_score", 0) >= 0.85]
         excellent = [
             r for r in passing if r.get("ihsan_score", 0) >= UNIFIED_IHSAN_THRESHOLD
         ]
 
-        # ── Step 3-4: Constitutional economics ──────────────────
+        # ── Step 4-5: Constitutional economics ──────────────────
         seed_minted = 0.0
         bloom_accrued = 0.0
 
@@ -424,6 +433,8 @@ class Helix3Scheduler:
             evidence_hash=evidence_hash,
             chain_hash=chain_hash,
             stats=self._stats.as_dict(),
+            approved_count=len(constitutionally_approved),
+            rejected_count=rejected_count,
         )
 
         # ── Step 12: Callback + reset ──────────────────────────
@@ -498,9 +509,18 @@ class Helix3Scheduler:
 
         duration_ms = (time.monotonic() - start) * 1000
 
-        # Convert back to float
+        # Filter approved receipts before aggregation (same rule as simplified path)
+        constitutionally_approved = [
+            r
+            for r in receipts
+            if r.get("fate_verdict", "approved") == "approved"
+            and r.get("gate_passed", True)
+        ]
+        rejected_count = len(receipts) - len(constitutionally_approved)
+
+        # Convert back to float — tensor from APPROVED only
         gini = fp_float(tick_result.network_gini) if tick_result.network_gini else 0.0
-        tensor = self._compute_aggregate_tensor(receipts)
+        tensor = self._compute_aggregate_tensor(constitutionally_approved)
         composite = tensor.geometric_mean
 
         self._stats.total_ticks += 1
@@ -535,6 +555,8 @@ class Helix3Scheduler:
             evidence_hash=evidence_hash,
             chain_hash=chain_hash,
             stats=self._stats.as_dict(),
+            approved_count=len(constitutionally_approved),
+            rejected_count=rejected_count,
         )
 
         if self._on_heartbeat:

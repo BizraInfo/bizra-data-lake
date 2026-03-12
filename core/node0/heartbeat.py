@@ -40,7 +40,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -126,6 +126,9 @@ class BreathReceipt:
     chain_hash: str
     prev_chain_hash: str
 
+    # Raw Helix3 tick result for inspection (consequence closure audit)
+    helix_result: Dict[str, Any] = field(default_factory=dict)
+
     def as_dict(self) -> Dict[str, Any]:
         """Serialize for evidence chain."""
         return {
@@ -143,6 +146,8 @@ class BreathReceipt:
             "evidence_hash": self.evidence_hash,
             "chain_hash": self.chain_hash,
             "prev_chain_hash": self.prev_chain_hash,
+            "approved_count": self.helix_result.get("approved_count", 0),
+            "rejected_count": self.helix_result.get("rejected_count", 0),
         }
 
 
@@ -398,6 +403,7 @@ class Node0Heartbeat:
             evidence_hash=evidence_hash,
             chain_hash=chain_hash,
             prev_chain_hash=prev_chain,
+            helix_result=helix_result,
         )
 
         self._breath_history.append(receipt)
@@ -682,6 +688,8 @@ class Node0Heartbeat:
                     "reflexes_precipitated": getattr(
                         result, "reflexes_precipitated", 0
                     ),
+                    "approved_count": getattr(result, "approved_count", 0),
+                    "rejected_count": getattr(result, "rejected_count", 0),
                 }
             except Exception as exc:
                 logger.warning("Helix3 tick failed: %s", exc)
@@ -694,6 +702,8 @@ class Node0Heartbeat:
             "seed_minted": 0.0,
             "missions_processed": 0,
             "reflexes_precipitated": 0,
+            "approved_count": 0,
+            "rejected_count": 0,
         }
 
     def _record_evidence(self, helix_result: Dict[str, Any]) -> int:
@@ -757,7 +767,16 @@ class Node0Heartbeat:
         """Check if heartbeat quality warrants reflex precipitation.
 
         §2 Helix 3: Ihsān ≥ 0.90 for precipitation.
+        Standing on Giants: Kahneman (2011) — System-1 reflexes must only
+        compile from VERIFIED System-2 judgments (Self-RLVR).
+        If all missions in this tick were rejected, skip precipitation entirely.
         """
+        # Gate: if all missions were FATE-rejected, no reflex precipitation
+        rejected = helix_result.get("rejected_count", 0)
+        total = helix_result.get("missions_processed", 0)
+        if total > 0 and rejected >= total:
+            return 0
+
         ihsan = helix_result.get("ihsan_composite", 0.0)
         if ihsan < PRECIPITATION_IHSAN_FLOOR:
             return 0
