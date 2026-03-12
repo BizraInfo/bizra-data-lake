@@ -375,6 +375,19 @@ class TestHealth:
         assert "evidence" in subs
         assert "reflex_bridge" in subs
 
+    def test_health_reflex_compilation_status(self, booted_heartbeat):
+        """Health reports honest reflex compilation status.
+
+        Standing on Giants: Al-Ghazali (honest labeling, 1096).
+        """
+        h = booted_heartbeat.health()
+        rcs = h["reflex_compilation_status"]
+        assert rcs["truth_label"] == "OPTIMIZATION: PARTIAL"
+        assert rcs["feature_flag"] == "BIZRA_CLOSED_LOOP_ENABLED"
+        assert isinstance(rcs["enabled"], bool)
+        assert isinstance(rcs["reflex_bridge_wired"], bool)
+        assert "opt-in" in rcs["note"].lower()
+
 
 # ═══════════════════════════════════════════════════════════════════
 # T1: DEGRADED MODE TESTS

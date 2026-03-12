@@ -476,6 +476,34 @@ class Node0Heartbeat:
             "last_breath": (
                 self._breath_history[-1].as_dict() if self._breath_history else None
             ),
+            "reflex_compilation_status": self._get_reflex_compilation_status(),
+        }
+
+    def _get_reflex_compilation_status(self) -> Dict[str, Any]:
+        """Report the honest status of the closed-loop reflex compilation path.
+
+        Standing on Giants: Al-Ghazali (honest labeling, 1096) — label what
+        is proven vs. what is partial.
+
+        Truth label: [OPTIMIZATION: PARTIAL — feature-flagged, opt-in]
+        The closed-loop reflex path (learning_loop.py → compile_reflex) is
+        wired but gated behind BIZRA_CLOSED_LOOP_ENABLED (default=False).
+        """
+        import os
+
+        closed_loop_enabled = os.environ.get("BIZRA_CLOSED_LOOP_ENABLED", "0") == "1"
+        return {
+            "truth_label": "OPTIMIZATION: PARTIAL",
+            "feature_flag": "BIZRA_CLOSED_LOOP_ENABLED",
+            "enabled": closed_loop_enabled,
+            "reflex_bridge_wired": self._reflex_bridge is not None,
+            "total_reflexes_precipitated": self._total_reflexes,
+            "note": (
+                "Reflex precipitation from verified patterns is wired but "
+                "the closed-loop compilation cycle requires "
+                "BIZRA_CLOSED_LOOP_ENABLED=1. This is intentionally opt-in "
+                "until live proof catches up with enforcement."
+            ),
         }
 
     # ═══════════════════════════════════════════════════════════════
