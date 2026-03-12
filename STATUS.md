@@ -28,9 +28,9 @@ Updated: 2026-03-12T13:35Z
 | **CI Gate** | ✅ CANONICAL-001 | `[ENFORCEMENT: PROVEN]` | `pytest tests/core/node0/ tests/integration/test_plan_endpoint.py` in CI |
 | **GoT Signer Gate** | ✅ Canonical-gated | `[ENFORCEMENT: PROVEN]` | `got_bridge.py` rejects SimpleSigner fallback in canonical mode |
 | **Exception Audit** | ✅ SEC-003b | `[ENFORCEMENT: WIRED]` | Sovereign surfaces tracked (baseline=157), ratchet-only |
-| **Closed-Loop Reflex** | ⚠️ Opt-in | `[OPTIMIZATION: PARTIAL]` | `BIZRA_CLOSED_LOOP_ENABLED` feature-flagged, default=False |
+| **Closed-Loop Reflex** | ⚠️ Opt-in | `[OPTIMIZATION: PARTIAL]` | `BIZRA_CLOSED_LOOP_ENABLED` feature-flagged, default=False. `health()` reports status honestly. |
 | **Distributed Replay** | ⚠️ Local only | `[OPTIMIZATION: PARTIAL]` | Nonce/TTL replay protection is local; global ordering not yet proven |
-| **Empirical Validation** | ⚠️ Simulated | `[OPTIMIZATION: PARTIAL]` | `canonical_empirical_validation.py` uses MagicMock runtime |
+| **Empirical Validation** | ✅ Live mode | `[ENFORCEMENT: PROVEN]` | `canonical_empirical_validation.py --live` proves real boot→breathe→chain→mission→FATE |
 
 ### Test Evidence
 - Node0 heartbeat: **54 tests** (boot, breathe, chain, identity, FATE consequence closure)
