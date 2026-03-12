@@ -81,6 +81,7 @@ _LAZY_MODULES = {
     "CollectiveSynthesizer": (".collective_synthesizer", "CollectiveSynthesizer"),
     "GoTBridge": (".got_bridge", "GoTBridge"),
     "GoTBridgeResult": (".got_bridge", "GoTBridgeResult"),
+    "VerifiedGoTBridgeResult": (".verified_graph", "VerifiedGoTBridgeResult"),
 }
 
 
@@ -133,4 +134,5 @@ __all__ = [
     # GoT Bridge — Phase 46 (lazy-loaded)
     "GoTBridge",
     "GoTBridgeResult",
+    "VerifiedGoTBridgeResult",
 ]

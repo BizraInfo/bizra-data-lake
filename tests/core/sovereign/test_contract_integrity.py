@@ -84,8 +84,10 @@ AUTHENTICATED_TERMINAL_ROUTES = [
     ("/v1/node/lifecycle", "GET"),
     ("/v1/terminal/state", "GET"),
     ("/v1/terminal/briefing", "GET"),
+    ("/v1/memory/profile", "GET"),
     ("/v1/constitutional/status", "GET"),
     ("/v1/token/balance", "GET"),
+    ("/v1/terminal/critical-acknowledgments", "POST"),
 ]
 
 

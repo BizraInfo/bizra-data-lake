@@ -176,10 +176,18 @@ class Node0Heartbeat:
         node_id: Optional[str] = None,
         interval_s: float = HEARTBEAT_INTERVAL_S,
         helix3: Optional[Any] = None,
+        identity_mode: str = "placeholder_degraded",
+        signer_public_key_prefix: str = "",
+        signer_public_key_hex: str = "",
+        genesis_backed: bool = False,
     ) -> None:
         self._data_dir = Path(data_dir)
         self._node_id = node_id or ""
         self._interval_s = interval_s
+        self._identity_mode = identity_mode
+        self._signer_public_key_prefix = signer_public_key_prefix
+        self._signer_public_key_hex = str(signer_public_key_hex or "").lower()
+        self._genesis_backed = genesis_backed
 
         # State
         self._booted = False
@@ -224,7 +232,9 @@ class Node0Heartbeat:
         self._data_dir.mkdir(parents=True, exist_ok=True)
 
         # ── Step 1: Genesis Identity ──────────────────────────────
-        if not self._node_id:
+        if self._identity_mode == "genesis_ed25519":
+            self._bind_canonical_identity()
+        elif not self._node_id:
             self._node_id = self._generate_node_id()
 
         # ── Step 2: Asset Registry (Self-Knowledge) ──────────────
@@ -429,6 +439,9 @@ class Node0Heartbeat:
         return {
             "booted": self._booted,
             "node_id": self._node_id,
+            "identity_mode": self._identity_mode,
+            "signer_public_key_prefix": self._signer_public_key_prefix,
+            "genesis_backed": self._genesis_backed,
             "tick_number": self._tick_number,
             "chain_hash": self._chain_hash,
             "avg_ihsan": round(avg_ihsan, 4),
@@ -502,6 +515,41 @@ class Node0Heartbeat:
         hostname = os.uname().nodename if hasattr(os, "uname") else "unknown"
         seed = f"{hostname}:{time.time_ns()}:{id(self)}".encode()
         return hashlib.blake2b(seed, digest_size=16).hexdigest()
+
+    def _bind_canonical_identity(self) -> None:
+        """Bind Node0 identity to the injected Ed25519 signer truth."""
+        if len(self._signer_public_key_hex) != 64:
+            raise RuntimeError(
+                "Canonical Node0 boot requires injected genesis Ed25519 signer public key"
+            )
+
+        expected_node_id = self._derive_node_id_from_public_key(
+            self._signer_public_key_hex
+        )
+        expected_prefix = self._signer_public_key_hex[:16]
+
+        if (
+            self._signer_public_key_prefix
+            and self._signer_public_key_prefix != expected_prefix
+        ):
+            raise RuntimeError(
+                "Canonical Node0 boot signer prefix does not match injected signer public key"
+            )
+
+        self._signer_public_key_prefix = expected_prefix
+
+        if self._node_id and self._node_id != expected_node_id:
+            raise RuntimeError(
+                "Canonical Node0 boot node_id does not match injected signer public key"
+            )
+        self._node_id = expected_node_id
+
+    @staticmethod
+    def _derive_node_id_from_public_key(public_key_hex: str) -> str:
+        """Derive the canonical BIZRA node ID from an Ed25519 public key."""
+        from core.pat.identity_card import _generate_node_id
+
+        return _generate_node_id(public_key_hex)
 
     def _boot_asset_registry(self) -> Dict[str, Any]:
         """Initialize the node's self-awareness (§9)."""

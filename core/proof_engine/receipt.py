@@ -302,6 +302,7 @@ class ReceiptBuilder:
         ihsan_score: float,
         gate_failed: str,
         reason: str,
+        payload: bytes | None = None,
         metrics: Optional[Metrics] = None,
         snr_trace: Optional[SNRTrace] = None,
     ) -> Receipt:
@@ -311,7 +312,7 @@ class ReceiptBuilder:
             status=ReceiptStatus.REJECTED,
             query_digest=query.digest(),
             policy_digest=policy.digest(),
-            payload_digest=blake3_digest(b""),  # No payload on rejection
+            payload_digest=blake3_digest(payload or b""),
             snr=snr,
             ihsan_score=ihsan_score,
             gate_passed=gate_failed,  # Last gate attempted

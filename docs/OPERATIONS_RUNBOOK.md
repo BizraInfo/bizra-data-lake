@@ -232,10 +232,14 @@ python scripts/node0_standalone.py health
 Node0 documentation hierarchy for operators:
 
 1. `docs/NODE0_STANDALONE_READINESS.md` — MVSA specification
-2. `docs/constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md` — birth-gate verification
-3. `docs/OPERATIONS_RUNBOOK.md` — operator procedure
+2. `docs/constitutional/BIZRA-Node0-Activation-Planning-Principle-v1.0-DRAFT.md` — planning law and sequencing discipline
+3. `docs/constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md` — birth-gate verification
+4. `docs/OPERATIONS_RUNBOOK.md` — operator procedure
 
 `Ready Only` is the birth rule. Node0 is not complete unless `sovereign_state/node0_lifecycle.json` reports `status == "ready"`.
+
+The planning principle governs what outranks what before execution.
+The locked DoD remains the verification gate at sign-off time.
 
 The verification entrypoint is:
 

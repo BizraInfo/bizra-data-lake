@@ -28,18 +28,15 @@ Standing on Giants: pytest + unittest.mock + Shannon (SNR) + Besta (GoT)
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import os
 from collections import deque
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from types import SimpleNamespace
+from typing import Any
 from unittest.mock import (
     AsyncMock,
     MagicMock,
-    PropertyMock,
-    call,
     patch,
 )
 
@@ -50,7 +47,6 @@ from core.sovereign.runtime_types import (
     HealthStatus,
     RuntimeConfig,
     RuntimeMetrics,
-    RuntimeMode,
     SovereignQuery,
     SovereignResult,
 )
@@ -1661,7 +1657,7 @@ class TestHealth:
         rt.metrics.current_ihsan_score = 0.0
         rt.metrics.queries_processed = 0
 
-        health = rt._calculate_health()
+        rt._calculate_health()
         snr_factor = min(1.0, 1.0 / 0.85)
         assert snr_factor == 1.0  # capped
 
@@ -1881,7 +1877,7 @@ class TestExtractIhsanFromResponse:
                 "core.sovereign.omega_engine": mock_omega,
             },
         ):
-            result = rt._extract_ihsan_from_response("you should kill the process", {})
+            rt._extract_ihsan_from_response("you should kill the process", {})
 
         mock_ihsan.assert_called_once()
         call_kwargs = mock_ihsan.call_args
@@ -1899,7 +1895,7 @@ class TestExtractIhsanFromResponse:
                 "core.sovereign.omega_engine": mock_omega,
             },
         ):
-            result = rt._extract_ihsan_from_response(
+            rt._extract_ihsan_from_response(
                 "This is a perfectly safe response about cooking.", {}
             )
 
@@ -2071,6 +2067,7 @@ class TestStatus:
         assert identity["origin"]["home_base_device"] is False
         assert identity["origin"]["authority_source"] == "genesis_files"
         assert identity["origin"]["hash_validated"] is False
+        assert identity["identity_mode"] == "placeholder_degraded"
 
     def test_state_fields(self, rt: SovereignRuntime) -> None:
         rt._initialized = True
@@ -2082,6 +2079,24 @@ class TestStatus:
         assert state["initialized"] is True
         assert state["running"] is True
         assert state["mode"] == "STANDARD"
+        assert state["mission_authority"] == "legacy"
+
+    def test_canonical_status_fields(self, rt: SovereignRuntime) -> None:
+        rt._organism = MagicMock()
+        rt._node0 = MagicMock()
+        rt._canonical_mode = True
+        rt._identity_mode = "genesis_ed25519"
+        rt._signer_public_key_prefix = "abcd1234efgh5678"
+        rt._fate_mode = "enforced"
+
+        status = rt.status()
+
+        assert status["canonical"]["enabled"] is True
+        assert status["canonical"]["mission_authority"] == "organism"
+        assert status["canonical"]["authority_path"] == "runtime->organism->node0"
+        assert status["canonical"]["identity_mode"] == "genesis_ed25519"
+        assert status["canonical"]["fate_mode"] == "enforced"
+        assert status["identity"]["signer_public_key_prefix"] == "abcd1234efgh5678..."
 
     def test_with_genesis_identity(self, rt: SovereignRuntime) -> None:
         mock_genesis = MagicMock()
@@ -2253,6 +2268,132 @@ class TestStatus:
         assert chain["latest_receipt_id"] == "a" * 32
         assert isinstance(chain["latest_entry_hash"], str)
         assert len(chain["latest_entry_hash"]) == 64
+
+
+# ---------------------------------------------------------------------------
+# 29. canonical mission authority
+# ---------------------------------------------------------------------------
+
+
+class TestCanonicalMissionAuthority:
+    """Tests for runtime.mission() — runtime -> organism -> Node0 authority."""
+
+    @pytest.mark.asyncio
+    async def test_runtime_mission_delegates_to_owned_organism(
+        self, rt: SovereignRuntime
+    ) -> None:
+        rt._initialized = True
+        rt._organism = MagicMock()
+        receipt = MagicMock()
+        rt._organism.mission = AsyncMock(return_value=receipt)
+        rt._organism.tick = AsyncMock()
+        rt._action_bus = None
+        rt._canonical_mode = False
+
+        result = await rt.mission("close the loop", source="test", context={})
+
+        assert result is receipt
+        rt._organism.mission.assert_awaited_once()
+        rt._organism.tick.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_runtime_mission_requires_organism(
+        self, rt: SovereignRuntime
+    ) -> None:
+        rt._initialized = True
+        rt._organism = None
+
+        with pytest.raises(RuntimeError, match="Canonical organism mission authority"):
+            await rt.mission("fail cleanly", source="test", context={})
+
+
+class TestCanonicalIdentityBinding:
+    """Tests for runtime signer -> organism -> Node0 identity binding."""
+
+    def test_init_node_signer_derives_node_id_from_credentials_public_key(
+        self, rt: SovereignRuntime, tmp_state: Path
+    ) -> None:
+        from core.pat.identity_card import _generate_node_id
+        from core.pci.crypto import generate_keypair
+
+        private_hex, public_hex = generate_keypair()
+        identity_dir = tmp_state / "identity"
+        identity_dir.mkdir(parents=True, exist_ok=True)
+        (identity_dir / "credentials.json").write_text(
+            json.dumps(
+                {
+                    "private_key": private_hex,
+                    "public_key": public_hex,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        rt.config.state_dir = tmp_state
+        rt._canonical_mode = True
+
+        rt._init_node_signer()
+
+        assert rt._identity_mode == "genesis_ed25519"
+        assert rt._genesis_backed_identity is True
+        assert rt.config.node_id == _generate_node_id(public_hex)
+
+    def test_init_node_signer_rejects_mismatched_credentials_node_id(
+        self, rt: SovereignRuntime, tmp_state: Path
+    ) -> None:
+        from core.pci.crypto import generate_keypair
+
+        private_hex, public_hex = generate_keypair()
+        identity_dir = tmp_state / "identity"
+        identity_dir.mkdir(parents=True, exist_ok=True)
+        (identity_dir / "credentials.json").write_text(
+            json.dumps(
+                {
+                    "private_key": private_hex,
+                    "public_key": public_hex,
+                    "node_id": "BIZRA-DEADBEEF",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        rt.config.state_dir = tmp_state
+        rt._canonical_mode = True
+
+        with pytest.raises(
+            ValueError,
+            match="node_id does not match the Ed25519 public key",
+        ):
+            rt._init_node_signer()
+
+    @pytest.mark.asyncio
+    async def test_init_canonical_organism_stack_passes_signer_public_key(
+        self, rt: SovereignRuntime, tmp_path: Path
+    ) -> None:
+        rt.config.state_dir = tmp_path / "sovereign_state"
+        rt.config.state_dir.mkdir(parents=True, exist_ok=True)
+        rt.config.node_id = "BIZRA-TEST0001"
+        rt._identity_mode = "genesis_ed25519"
+        rt._signer_public_key_prefix = "abcd1234efgh5678"
+        rt._node_signer = SimpleNamespace(
+            public_key_hex="abcd1234efgh5678" + ("00" * 24)
+        )
+
+        mock_organism = MagicMock()
+        mock_organism._node0 = MagicMock()
+
+        with patch(
+            "core.sovereign.organism.SovereignOrganism.boot",
+            new=AsyncMock(return_value=mock_organism),
+        ) as mock_boot:
+            await rt._init_canonical_organism_stack()
+
+        mock_boot.assert_awaited_once()
+        kwargs = mock_boot.await_args.kwargs
+        assert kwargs["signer_public_key_hex"] == "abcd1234efgh5678" + ("00" * 24)
+        assert kwargs["signer_public_key_prefix"] == "abcd1234efgh5678"
+        assert rt._organism is mock_organism
+        assert rt._node0 is mock_organism._node0
 
 
 # ---------------------------------------------------------------------------

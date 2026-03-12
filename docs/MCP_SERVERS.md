@@ -1,35 +1,37 @@
 # MCP Server Configuration
 
-> 8 Model Context Protocol servers powering the BIZRA agentic ecosystem.
+> 10 Model Context Protocol servers configured for the BIZRA agentic ecosystem.
 
 ## Server Inventory
 
 | # | Server | Transport | Command | Tools | Status |
 |---|--------|-----------|---------|-------|--------|
-| 1 | `context7` | stdio | `npx @upstash/context7-mcp` | Library docs | Active |
-| 2 | `filesystem` | stdio | `npx @modelcontextprotocol/server-filesystem` | File ops | Active |
-| 3 | `memory` | stdio | `npx @modelcontextprotocol/server-memory` | KG memory | Active |
-| 4 | `sequential-thinking` | stdio | `npx @modelcontextprotocol/server-sequential-thinking` | Reasoning | Active |
-| 5 | `github` | stdio | `npx @modelcontextprotocol/server-github` | GitHub API | Active |
-| 6 | `brave-search` | stdio | `npx @modelcontextprotocol/server-brave-search` | Web search | Active |
-| 7 | `bizra-sovereign` | stdio | `python tools/mcp/sovereign_mcp_server.py --stdio` | 10 tools | Active |
-| 8 | `bizra-ecosystem` | stdio | `python tools/mcp/ecosystem_mcp_server.py --stdio` | 5 tools | Active |
+| 1 | `context7` | stdio | `npx @upstash/context7-mcp` | Library docs | Configured |
+| 2 | `filesystem` | stdio | `npx @modelcontextprotocol/server-filesystem` | File ops | Configured |
+| 3 | `memory` | stdio | `npx @modelcontextprotocol/server-memory` | KG memory | Configured |
+| 4 | `sequential-thinking` | stdio | `npx @modelcontextprotocol/server-sequential-thinking` | Reasoning | Configured |
+| 5 | `github` | stdio | `npx @modelcontextprotocol/server-github` | GitHub API | Configured |
+| 6 | `brave-search` | stdio | `npx @modelcontextprotocol/server-brave-search` | Web search | Configured |
+| 7 | `sqlite` | stdio | `npx @modelcontextprotocol/server-sqlite --db-path 04_GOLD/bizra.db` | SQL over BIZRA DB | Configured |
+| 8 | `claude-flow-sqlite` | stdio | `npx @modelcontextprotocol/server-sqlite --db-path .swarm/memory.db` | SQL over agent memory | Configured |
+| 9 | `bizra-sovereign` | stdio | `python tools/mcp/sovereign_mcp_server.py --stdio` | 10 tools | Configured |
+| 10 | `bizra-ecosystem` | stdio | `python tools/mcp/ecosystem_mcp_server.py --stdio` | 5 tools | Configured |
 
 ## Configuration
 
-**File**: `.mcp.json` (project root, v1.1.0)
+**Files**: `.mcp.json` (team-wide) and `.codex/config.toml` (Codex project-local)
 
-Claude Code reads this file on startup. Community servers are fetched on-demand via `npx -y`.
-Custom Python servers use `python` which resolves to `/usr/bin/python` (has `mcp` 1.26.0 + `fastmcp` 2.14.5 installed).
+Claude Code reads `.mcp.json` on startup. Codex reads `.codex/config.toml` for trusted projects.
+Community servers are fetched on-demand via `npx -y`. Custom Python servers use `python` or `/usr/bin/python3`.
 
 ### Environment Variables
 
 | Variable | Used By | Description |
 |----------|---------|-------------|
-| `GITHUB_TOKEN` | github | GitHub Personal Access Token (needs `repo` scope for push) |
+| `GITHUB_TOKEN` | github | GitHub Personal Access Token (mapped to `GITHUB_PERSONAL_ACCESS_TOKEN` for Codex) |
 | `BRAVE_API_KEY` | brave-search | Brave Search API key |
 
-Set in shell profile or `.env`. Referenced in `.mcp.json` via `${VAR}` syntax.
+Set in shell profile or `.env`. `.mcp.json` uses `${VAR}` syntax; `.codex/config.toml` forwards `BRAVE_API_KEY` directly and remaps `GITHUB_TOKEN` inside the launcher command.
 
 ## Custom Python Servers
 

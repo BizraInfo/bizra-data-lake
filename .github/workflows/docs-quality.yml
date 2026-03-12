@@ -75,6 +75,10 @@ jobs:
         run: |
           python scripts/ci_docs_quality.py --changed-files .changed_files.txt
 
+      - name: Validate docs truth gate
+        run: |
+          python scripts/ci_docs_truth_gate.py
+
       - name: Lint canonical markdown docs
         run: |
           markdownlint-cli2 \

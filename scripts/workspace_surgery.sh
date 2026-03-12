@@ -197,7 +197,7 @@ while IFS= read -r pid_file; do
     fi
 done < <(find . -name "*.pid" -not -path "./.git/*" 2>/dev/null)
 
-PYCACHE_COUNT=$(find . -type d -name "__pycache__" -not -path "./.git/*" 2>/dev/null | wc -l)
+PYCACHE_COUNT=$(find . -maxdepth 6 -type d -name "__pycache__" -not -path "./.git/*" 2>/dev/null | wc -l)
 PYTEST_CACHE=$(find . -maxdepth 2 -type d -name ".pytest_cache" -not -path "./.git/*" 2>/dev/null | wc -l)
 
 echo "  Stale PIDs: $PID_COUNT"
@@ -308,8 +308,8 @@ if [ "$MODE" = "--clean" ]; then
 
     # __pycache__ purge
     echo "  Purging __pycache__..."
-    CACHE_PURGED=$(find . -type d -name "__pycache__" -not -path "./.git/*" 2>/dev/null | wc -l)
-    find . -type d -name "__pycache__" -not -path "./.git/*" -exec rm -rf {} + 2>/dev/null || true
+    CACHE_PURGED=$(find . -maxdepth 6 -type d -name "__pycache__" -not -path "./.git/*" 2>/dev/null | wc -l)
+    find . -maxdepth 6 -type d -name "__pycache__" -not -path "./.git/*" -exec rm -rf {} + 2>/dev/null || true
     echo "    Purged $CACHE_PURGED __pycache__ directories"
     REMOVED=$((REMOVED + CACHE_PURGED))
 

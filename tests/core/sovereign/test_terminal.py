@@ -100,13 +100,15 @@ class TestTransitionTable:
         targets = TERMINAL_TRANSITIONS[TerminalState.AWAITING_ESCALATION]
         assert TerminalState.EXECUTING in targets
 
-    def test_terminal_states_reset_to_ready(self):
+    def test_recoverable_terminal_states_reset_to_ready(self):
         for state in (
             TerminalState.COMPLETED,
             TerminalState.FAILED_RECOVERABLY,
-            TerminalState.BLOCKED_CONSTITUTIONALLY,
         ):
             assert TerminalState.READY in TERMINAL_TRANSITIONS[state]
+
+    def test_blocked_state_is_restart_only(self):
+        assert TERMINAL_TRANSITIONS[TerminalState.BLOCKED_CONSTITUTIONALLY] == frozenset()
 
     def test_no_self_loops(self):
         for source, targets in TERMINAL_TRANSITIONS.items():
@@ -169,6 +171,16 @@ class TestTerminalStateController:
         assert ctrl.transition(TerminalState.EXECUTING)
         assert ctrl.complete()
 
+    def test_escalation_denial_returns_to_ready(self, ctrl):
+        ctrl.transition(TerminalState.READY)
+        ctrl.start_mission("m-003b")
+        ctrl.transition(TerminalState.PERMISSION_REVIEW)
+        ctrl.transition(TerminalState.EXECUTING)
+        assert ctrl.transition(TerminalState.AWAITING_ESCALATION)
+        assert ctrl.deny_escalation()
+        assert ctrl.state == TerminalState.READY
+        assert ctrl.mission_id == ""
+
     def test_start_mission_sets_metadata(self, ctrl):
         ctrl.transition(TerminalState.READY)
         ctrl.start_mission("m-004", ExecutionPath.SYSTEM_1_CACHE_HIT)
@@ -202,8 +214,18 @@ class TestTerminalStateController:
     def test_to_dict(self, ctrl):
         d = ctrl.to_dict()
         assert d["state"] == "boot"
-        assert d["execution_path"] == "system_2"
+        assert d["execution_path"] == "SYSTEM_2_NOVEL"
         assert d["mission_id"] == ""
+        assert d["restart_required"] is False
+
+    def test_blocked_state_requires_restart(self, ctrl):
+        ctrl.transition(TerminalState.READY)
+        ctrl.start_mission("m-006b")
+        ctrl.transition(TerminalState.PERMISSION_REVIEW)
+        ctrl.transition(TerminalState.EXECUTING)
+        assert ctrl.block()
+        assert ctrl.reset() is False
+        assert ctrl.to_dict()["restart_required"] is True
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -291,7 +313,7 @@ class TestMissionReceipt:
         assert d["status"] == "COMPLETE"
         assert d["ihsan_score"] == 0.97
         assert d["duration_ms"] == 1234.6  # rounded
-        assert d["execution_path"] == "mixed"
+        assert d["execution_path"] == "MIXED"
         assert d["action_count"] == 3
         assert d["hash_chain_ref"] == "abc123"
 
@@ -421,9 +443,9 @@ class TestExecutionPath:
         assert len(ExecutionPath) == 3
 
     def test_values(self):
-        assert ExecutionPath.SYSTEM_1_CACHE_HIT.value == "system_1"
-        assert ExecutionPath.SYSTEM_2_NOVEL.value == "system_2"
-        assert ExecutionPath.MIXED.value == "mixed"
+        assert ExecutionPath.SYSTEM_1_CACHE_HIT.value == "SYSTEM_1_CACHE_HIT"
+        assert ExecutionPath.SYSTEM_2_NOVEL.value == "SYSTEM_2_NOVEL"
+        assert ExecutionPath.MIXED.value == "MIXED"
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -538,7 +560,7 @@ class TestBuildContractCompliance:
             comparison_s2_avg_ms=1800.0,
         )
         d = r.to_dict()
-        assert d["execution_path"] == "system_1"
+        assert d["execution_path"] == "SYSTEM_1_CACHE_HIT"
         assert d["reflex_pattern"] == "file_open_analyze"
         assert d["reflex_latency_ms"] == 48.3
         assert d["comparison_s2_avg_ms"] == 1800.0

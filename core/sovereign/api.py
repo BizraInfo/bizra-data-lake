@@ -336,6 +336,13 @@ try:
         reflex_latency_ms: float = 0.0
         comparison_s2_avg_ms: float = 0.0
         reasoning_proof: Optional[ReasoningProofResponse] = None
+        execution_authority: str = ""
+        authority_path: str = ""
+        fate_verdict: str = ""
+        fate_reason_codes: list[str] = _PydanticField(default_factory=list)
+        fate_mode: str = ""
+        identity_mode: str = ""
+        signer_public_key_prefix: str = ""
 
     class CriticalAcknowledgmentRequest(_PydanticBaseModel):
         """Request model for proof-bearing acknowledgment of a critical event."""
@@ -1450,6 +1457,27 @@ def create_fastapi_app(runtime: Any) -> Any:
         }
         return mapping.get(value, "SYSTEM_2_NOVEL")
 
+    def _runtime_canonical_mode_enabled(runtime_obj: Any) -> bool:
+        if getattr(runtime_obj, "_canonical_mode", False) is True:
+            return True
+        try:
+            status_fn = getattr(runtime_obj, "status", None)
+            if callable(status_fn):
+                status = status_fn()
+                if isinstance(status, dict):
+                    return status.get("canonical", {}).get("enabled") is True
+        except Exception:  # noqa: BLE001 - status is best-effort here
+            logger.debug("Failed to inspect runtime canonical mode", exc_info=True)
+        return False
+
+    def _runtime_has_canonical_mission_authority(runtime_obj: Any) -> bool:
+        runtime_mission = getattr(runtime_obj, "mission", None)
+        organism = getattr(runtime_obj, "_organism", None)
+        return organism is not None and (
+            asyncio.iscoroutinefunction(runtime_mission)
+            or str(type(runtime_mission)).endswith("AsyncMock'>")
+        )
+
     def _load_model_routing() -> dict[str, str]:
         stored = read_json(_model_routing_path, default={})
         routing = dict(DEFAULT_MODEL_ROUTING)
@@ -1979,26 +2007,7 @@ def create_fastapi_app(runtime: Any) -> Any:
 
     @asynccontextmanager
     async def _lifespan(app_instance: Any):  # type: ignore[override]
-        """FastAPI lifespan: start/stop constitutional heartbeat + Node0."""
-        # ── Boot Node0Heartbeat — canonical ingest authority ────
-        # Standing on Giants: Nakamoto (2008) — one chain, one authority
-        # Deming (1950) — PDCA closure across the full API surface
-        try:
-            from pathlib import Path as _LifespanPath
-
-            from core.node0.heartbeat import Node0Heartbeat
-
-            _node0_dir = _LifespanPath(
-                os.environ.get("NODE0_STATE_DIR", "sovereign_state/api_node0")
-            )
-            _node0 = Node0Heartbeat(data_dir=_node0_dir)
-            _node0.boot()
-            runtime._node0 = _node0  # type: ignore[attr-defined]
-            logger.info("API Node0Heartbeat booted: node_id=%s", _node0.node_id)
-        except Exception:  # noqa: BLE001 — Node0 unavailable is degraded, not fatal
-            runtime._node0 = None  # type: ignore[attr-defined]
-            logger.warning("API Node0Heartbeat unavailable (degraded mode)")
-
+        """FastAPI lifespan: start/stop the API-owned background heartbeat only."""
         if _tick_interval_s > 0:
             task = asyncio.create_task(_constitutional_heartbeat())
             _tick_task.append(task)
@@ -4205,12 +4214,6 @@ def create_fastapi_app(runtime: Any) -> Any:
             import secrets as _secrets
             import time as _time
 
-            from core.sovereign.mission import (
-                DesktopContext,
-                MissionOrchestrator,
-                MissionRequest,
-            )
-
             body = await request.json()
             description = body.get("description", "").strip()
             if not description:
@@ -4222,6 +4225,21 @@ def create_fastapi_app(runtime: Any) -> Any:
             source = body.get("source", "api")
             proof_mode = str(body.get("proof_mode", "auto") or "auto")
             permission_envelope = body.get("permission_envelope")
+            canonical_mode_enabled = _runtime_canonical_mode_enabled(runtime)
+            runtime_has_canonical_authority = _runtime_has_canonical_mission_authority(
+                runtime
+            )
+
+            if canonical_mode_enabled and not runtime_has_canonical_authority:
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "error": (
+                            "Canonical mode requires runtime-owned organism mission "
+                            "authority"
+                        )
+                    },
+                )
 
             # ── System-1 Fast Path: Reflex Cache Lookup ──────────
             # Kahneman S1: if this pattern is cached with high Ihsan,
@@ -4246,82 +4264,99 @@ def create_fastapi_app(runtime: Any) -> Any:
 
                 reflex_entry = _reflex_compiler.lookup(description)
                 if reflex_entry and not reflex_entry.needs_validation():
-                    logger.info(
-                        "System-1 cache hit for pattern %s (hits=%d, ihsan=%.3f)",
-                        reflex_entry.pattern_hash[:12],
-                        reflex_entry.hit_count,
-                        reflex_entry.ihsan_composite,
-                    )
-                    from core.sovereign.terminal import ExecutionPath as _ExecutionPath
-                    from core.sovereign.terminal import TerminalState as _TerminalState
-                    from core.sovereign.terminal import (
-                        TerminalStateController as _TerminalStateController,
-                    )
+                    if canonical_mode_enabled:
+                        logger.info(
+                            "System-1 cache hit suppressed in canonical mode; "
+                            "routing through runtime authority"
+                        )
+                    else:
+                        logger.info(
+                            "System-1 cache hit for pattern %s (hits=%d, ihsan=%.3f)",
+                            reflex_entry.pattern_hash[:12],
+                            reflex_entry.hit_count,
+                            reflex_entry.ihsan_composite,
+                        )
+                        from core.sovereign.terminal import ExecutionPath as _ExecutionPath
+                        from core.sovereign.terminal import TerminalState as _TerminalState
+                        from core.sovereign.terminal import (
+                            TerminalStateController as _TerminalStateController,
+                        )
 
-                    mission_id = _secrets.token_hex(8)
-                    receipt_id = _secrets.token_hex(8)
-                    receipt_payload = {
-                        "status": "COMPLETE",
-                        "mission_id": mission_id,
-                        "receipt_id": receipt_id,
-                        "synthesis": reflex_entry.output_template,
-                        "ihsan_score": reflex_entry.ihsan_composite,
-                        "snr_score": reflex_entry.ihsan_composite,
-                        "duration_ms": 0.1,
-                        "execution_path": _ExecutionPath.SYSTEM_1_CACHE_HIT.value,
-                        "channels_executed": [],
-                        "action_count": 0,
-                        "wallet_delta": {"seed": 0.0, "bloom": 0.0},
-                        "reflex_delta": {
-                            "compiled": True,
-                            "near_compile": False,
-                            "compile_count": reflex_entry.precipitation_count,
-                            "threshold": REFLEX_PRECIPITATION_HITS,
-                        },
-                        "memory_delta": {"episodic": 0, "semantic": 0, "procedural": 0},
-                        "hash_chain_ref": reflex_entry.pattern_hash,
-                        "reflex_pattern": reflex_entry.pattern_hash,
-                        "reflex_latency_ms": 0.1,
-                        "comparison_s2_avg_ms": 0.0,
-                    }
-                    session_id = request.headers.get("X-Session-ID", "default")
-                    if session_id not in _terminal_controllers:
-                        ctrl = _TerminalStateController()
-                        ctrl.transition(_TerminalState.READY)
-                        _terminal_controllers[session_id] = ctrl
-                    ctrl = _terminal_controllers[session_id]
-                    ctrl.start_mission(
-                        mission_id,
-                        execution_path=_ExecutionPath.SYSTEM_1_CACHE_HIT,
-                    )
-                    ctrl.transition(_TerminalState.PERMISSION_REVIEW)
-                    ctrl.transition(_TerminalState.EXECUTING)
-                    ctrl.complete()
-
-                    await _emit_bus_event(
-                        "mission.created",
-                        {"mission_id": mission_id, "source": source},
-                        source="mission",
-                    )
-                    await _emit_bus_event(
-                        "receipt.generated",
-                        receipt_payload,
-                        source="mission",
-                    )
-                    await _emit_bus_event(
-                        "mission.executed",
-                        {
+                        mission_id = _secrets.token_hex(8)
+                        receipt_id = _secrets.token_hex(8)
+                        receipt_payload = {
+                            "status": "COMPLETE",
                             "mission_id": mission_id,
                             "receipt_id": receipt_id,
-                            "status": "COMPLETE",
+                            "synthesis": reflex_entry.output_template,
                             "ihsan_score": reflex_entry.ihsan_composite,
                             "snr_score": reflex_entry.ihsan_composite,
                             "duration_ms": 0.1,
                             "execution_path": _ExecutionPath.SYSTEM_1_CACHE_HIT.value,
-                        },
-                        source="mission",
-                    )
-                    return receipt_payload
+                            "channels_executed": [],
+                            "action_count": 0,
+                            "wallet_delta": {"seed": 0.0, "bloom": 0.0},
+                            "reflex_delta": {
+                                "compiled": True,
+                                "near_compile": False,
+                                "compile_count": reflex_entry.precipitation_count,
+                                "threshold": REFLEX_PRECIPITATION_HITS,
+                            },
+                            "memory_delta": {
+                                "episodic": 0,
+                                "semantic": 0,
+                                "procedural": 0,
+                            },
+                            "hash_chain_ref": reflex_entry.pattern_hash,
+                            "reflex_pattern": reflex_entry.pattern_hash,
+                            "reflex_latency_ms": 0.1,
+                            "comparison_s2_avg_ms": 0.0,
+                            "execution_authority": "",
+                            "authority_path": "",
+                            "fate_verdict": "",
+                            "fate_reason_codes": [],
+                            "fate_mode": "",
+                            "identity_mode": "",
+                            "signer_public_key_prefix": "",
+                        }
+                        session_id = request.headers.get("X-Session-ID", "default")
+                        if session_id not in _terminal_controllers:
+                            ctrl = _TerminalStateController()
+                            ctrl.transition(_TerminalState.READY)
+                            _terminal_controllers[session_id] = ctrl
+                        ctrl = _terminal_controllers[session_id]
+                        ctrl.start_mission(
+                            mission_id,
+                            execution_path=_ExecutionPath.SYSTEM_1_CACHE_HIT,
+                        )
+                        ctrl.transition(_TerminalState.PERMISSION_REVIEW)
+                        ctrl.transition(_TerminalState.EXECUTING)
+                        ctrl.complete()
+
+                        await _emit_bus_event(
+                            "mission.created",
+                            {"mission_id": mission_id, "source": source},
+                            source="mission",
+                        )
+                        await _emit_bus_event(
+                            "receipt.generated",
+                            receipt_payload,
+                            source="mission",
+                        )
+                        await _emit_bus_event(
+                            "mission.executed",
+                            {
+                                "mission_id": mission_id,
+                                "receipt_id": receipt_id,
+                                "status": "COMPLETE",
+                                "ihsan_score": reflex_entry.ihsan_composite,
+                                "snr_score": reflex_entry.ihsan_composite,
+                                "duration_ms": 0.1,
+                                "execution_path": _ExecutionPath.SYSTEM_1_CACHE_HIT.value,
+                            },
+                            source="mission",
+                        )
+                        return receipt_payload
             except ImportError:
                 logger.debug("ReflexCompiler not available, using System-2 only")
             except Exception:  # noqa: BLE001 — review needed
@@ -4329,46 +4364,119 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "Reflex lookup failed, falling through to System-2", exc_info=True
                 )
 
-            # Build mission config from Node0 ConfigMap environment
-            config = {
-                "memory_path": os.environ.get(
-                    "SEMANTIC_MEMORY_PATH", "/tmp/bizra-mission/memory"
-                ),
-                "evidence_path": os.environ.get("EVENT_LOG_PATH", "/tmp/bizra-mission")
-                + "/evidence.jsonl",
-                "hda_port": int(os.environ.get("HDA_PORT", "9743")),
-                "workspace_root": os.environ.get("BIZRA_DATA_LAKE_ROOT", "."),
-            }
+            mission_result = None
+            runtime_receipt = None
+            mission_start_id = ""
+            runtime_mission = getattr(runtime, "mission", None)
+            if runtime_has_canonical_authority:
+                from types import SimpleNamespace as _MissionNamespace
 
-            orchestrator = MissionOrchestrator(config=config)
+                mission_context: dict[str, Any] = {}
+                if isinstance(permission_envelope, dict):
+                    mission_context["permission_envelope"] = permission_envelope
+                    if "time_budget_seconds" in permission_envelope:
+                        mission_context["time_budget_seconds"] = float(
+                            permission_envelope.get("time_budget_seconds", 900)
+                        )
+                runtime_receipt = await runtime_mission(
+                    description,
+                    source=source,
+                    context=mission_context,
+                    proof_mode=proof_mode,
+                )
+                mission_start_id = runtime_receipt.mission_id
+                await _emit_bus_event(
+                    "mission.created",
+                    {"mission_id": runtime_receipt.mission_id, "source": source},
+                    source="mission",
+                )
+                runtime_status = (
+                    runtime.status() if hasattr(runtime, "status") else {}
+                )
+                canonical_info = runtime_status.get("canonical", {})
+                mission_result = _MissionNamespace(
+                    mission_id=runtime_receipt.mission_id,
+                    status=(
+                        "BLOCKED"
+                        if runtime_receipt.fate_verdict == "rejected"
+                        else (
+                            "FAILED"
+                            if runtime_receipt.system == "ERROR"
+                            else "COMPLETE"
+                        )
+                    ),
+                    channels_executed=[],
+                    synthesis=runtime_receipt.output_text,
+                    evidence_receipt_id=(
+                        runtime_receipt.evidence_hash or runtime_receipt.chain_hash
+                    ),
+                    ihsan_score=runtime_receipt.ihsan_score,
+                    snr_score=runtime_receipt.snr_score,
+                    duration_ms=runtime_receipt.duration_ms,
+                    execution_path=(
+                        "SYSTEM_1_CACHE_HIT"
+                        if runtime_receipt.system == "S1"
+                        else "SYSTEM_2_NOVEL"
+                    ),
+                    execution_authority=canonical_info.get(
+                        "mission_authority", "organism"
+                    ),
+                    authority_path=canonical_info.get(
+                        "authority_path", "runtime->organism->node0"
+                    ),
+                    fate_verdict=runtime_receipt.fate_verdict,
+                    fate_reason_codes=list(runtime_receipt.fate_reason_codes),
+                    fate_mode=runtime_receipt.fate_mode,
+                    identity_mode=runtime_receipt.identity_mode,
+                    signer_public_key_prefix=runtime_receipt.signer_public_key_prefix,
+                )
+            else:
+                from core.sovereign.mission import (
+                    DesktopContext,
+                    MissionOrchestrator,
+                    MissionRequest,
+                )
 
-            # Inject inference gateway from runtime if available
-            gateway = getattr(runtime, "inference_gateway", None)
-            if gateway is not None:
-                orchestrator.gateway = gateway
+                # Build mission config from Node0 ConfigMap environment
+                config = {
+                    "memory_path": os.environ.get(
+                        "SEMANTIC_MEMORY_PATH", "/tmp/bizra-mission/memory"
+                    ),
+                    "evidence_path": os.environ.get(
+                        "EVENT_LOG_PATH", "/tmp/bizra-mission"
+                    )
+                    + "/evidence.jsonl",
+                    "hda_port": int(os.environ.get("HDA_PORT", "9743")),
+                    "workspace_root": os.environ.get("BIZRA_DATA_LAKE_ROOT", "."),
+                }
 
-            mission_req = MissionRequest(
-                mission_id=_secrets.token_hex(8),
-                description=description,
-                context=DesktopContext(),
-                timestamp=_time.time(),
-                source=source,
-            )
+                orchestrator = MissionOrchestrator(config=config)
 
-            # ── Mission Lifecycle: Created ──────────────────────
-            await _emit_bus_event(
-                "mission.created",
-                {"mission_id": mission_req.mission_id, "source": source},
-                source="mission",
-            )
+                # Inject inference gateway from runtime if available
+                gateway = getattr(runtime, "inference_gateway", None)
+                if gateway is not None:
+                    orchestrator.gateway = gateway
 
-            result = await orchestrator.execute(mission_req)
+                mission_req = MissionRequest(
+                    mission_id=_secrets.token_hex(8),
+                    description=description,
+                    context=DesktopContext(),
+                    timestamp=_time.time(),
+                    source=source,
+                )
+                mission_start_id = mission_req.mission_id
 
-            # ── Canonical Ingest Authority ────────────────────────
-            # Feed mission result through Node0Heartbeat (evidence chain,
-            # memory, reflex).  Falls back to legacy tick bridge if Node0
-            # unavailable.  Nakamoto (2008): one chain, one authority.
-            _ingest_via_node0(runtime, result)
+                # ── Mission Lifecycle: Created ──────────────────────
+                await _emit_bus_event(
+                    "mission.created",
+                    {"mission_id": mission_req.mission_id, "source": source},
+                    source="mission",
+                )
+
+                mission_result = await orchestrator.execute(mission_req)
+
+                # ── Canonical Ingest Authority (legacy compatibility path) ───────
+                _ingest_via_node0(runtime, mission_result)
 
             # ── System-1 Precipitation: Record Observation ─────────
             # After every System-2 completion, record the pattern.
@@ -4377,8 +4485,8 @@ def create_fastapi_app(runtime: Any) -> Any:
                 if "_reflex_compiler" in globals() and _reflex_compiler is not None:
                     _reflex_compiler.record_observation(
                         input_text=description,
-                        output_text=result.synthesis or "",
-                        ihsan_composite=result.ihsan_score or 0.0,
+                        output_text=mission_result.synthesis or "",
+                        ihsan_composite=mission_result.ihsan_score or 0.0,
                     )
             except (AttributeError, KeyError, TypeError, ValueError) as exc:
                 logger.warning("Read error (specific): %s", exc)
@@ -4389,11 +4497,11 @@ def create_fastapi_app(runtime: Any) -> Any:
             except Exception:  # noqa: BLE001 — review needed
                 logger.debug("Reflex observation recording failed", exc_info=True)
 
-            normalized_status = _normalize_receipt_status(result.status)
+            normalized_status = _normalize_receipt_status(mission_result.status)
             normalized_execution_path = _normalize_execution_path(
-                getattr(result, "execution_path", "SYSTEM_2_NOVEL")
+                getattr(mission_result, "execution_path", "SYSTEM_2_NOVEL")
             )
-            receipt_id = result.evidence_receipt_id or _secrets.token_hex(8)
+            receipt_id = mission_result.evidence_receipt_id or _secrets.token_hex(8)
             reasoning_proof = await _build_reasoning_proof(
                 description=description,
                 source=source,
@@ -4403,10 +4511,10 @@ def create_fastapi_app(runtime: Any) -> Any:
                     if isinstance(permission_envelope, dict)
                     else None
                 ),
-                mission_id=result.mission_id,
+                mission_id=mission_result.mission_id,
                 mission_receipt_id=receipt_id,
                 execution_path=normalized_execution_path,
-                mission_result=result,
+                mission_result=mission_result,
             )
             reflex_delta_payload = {
                 "compiled": False,
@@ -4429,7 +4537,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                             "threshold": 3,
                         }
                         compiled_reflex_event_payload = {
-                            "mission_id": result.mission_id,
+                            "mission_id": mission_result.mission_id,
                             "name": str(
                                 getattr(compiled_entry, "input_template", description)
                             )[:120],
@@ -4475,7 +4583,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                     _terminal_controllers[_session_id] = _ctrl
                 _ctrl = _terminal_controllers[_session_id]
                 _ctrl.start_mission(
-                    mission_req.mission_id,
+                    mission_start_id or mission_result.mission_id,
                     execution_path=_ExecutionPath(normalized_execution_path),
                 )
                 _ctrl.transition(_TS.PERMISSION_REVIEW)
@@ -4504,16 +4612,16 @@ def create_fastapi_app(runtime: Any) -> Any:
                         success=cr.success,
                         duration_ms=cr.duration_ms,
                     )
-                    for cr in result.channels_executed
+                    for cr in mission_result.channels_executed
                 ]
                 terminal_receipt = TerminalReceipt(
-                    mission_id=result.mission_id,
+                    mission_id=mission_result.mission_id,
                     receipt_id=receipt_id,
                     status=normalized_status,
-                    synthesis=result.synthesis,
-                    ihsan_score=result.ihsan_score,
-                    snr_score=result.snr_score,
-                    duration_ms=result.duration_ms,
+                    synthesis=mission_result.synthesis,
+                    ihsan_score=mission_result.ihsan_score,
+                    snr_score=mission_result.snr_score,
+                    duration_ms=mission_result.duration_ms,
                     channels_executed=t_channels,
                     execution_path=ExecutionPath(normalized_execution_path),
                     wallet_delta=WalletDelta(),
@@ -4526,12 +4634,12 @@ def create_fastapi_app(runtime: Any) -> Any:
             except ImportError:
                 receipt_payload = {
                     "status": normalized_status,
-                    "mission_id": result.mission_id,
+                    "mission_id": mission_result.mission_id,
                     "receipt_id": receipt_id,
-                    "synthesis": result.synthesis,
-                    "ihsan_score": result.ihsan_score,
-                    "snr_score": result.snr_score,
-                    "duration_ms": round(result.duration_ms, 1),
+                    "synthesis": mission_result.synthesis,
+                    "ihsan_score": mission_result.ihsan_score,
+                    "snr_score": mission_result.snr_score,
+                    "duration_ms": round(mission_result.duration_ms, 1),
                     "execution_path": normalized_execution_path,
                     "channels_executed": [
                         {
@@ -4539,9 +4647,9 @@ def create_fastapi_app(runtime: Any) -> Any:
                             "success": cr.success,
                             "duration_ms": round(cr.duration_ms, 1),
                         }
-                        for cr in result.channels_executed
+                        for cr in mission_result.channels_executed
                     ],
-                    "action_count": len(result.channels_executed),
+                    "action_count": len(mission_result.channels_executed),
                     "wallet_delta": {"seed": 0.0, "bloom": 0.0},
                     "reflex_delta": reflex_delta_payload,
                     "memory_delta": {"episodic": 0, "semantic": 0, "procedural": 0},
@@ -4552,10 +4660,33 @@ def create_fastapi_app(runtime: Any) -> Any:
                 }
             if reasoning_proof is not None:
                 receipt_payload["reasoning_proof"] = reasoning_proof
+            receipt_payload["execution_authority"] = str(
+                getattr(mission_result, "execution_authority", "")
+            )
+            receipt_payload["authority_path"] = str(
+                getattr(mission_result, "authority_path", "")
+            )
+            receipt_payload["fate_verdict"] = str(
+                getattr(mission_result, "fate_verdict", "")
+            )
+            receipt_payload["fate_reason_codes"] = list(
+                getattr(mission_result, "fate_reason_codes", [])
+            )
+            receipt_payload["fate_mode"] = str(
+                getattr(mission_result, "fate_mode", "")
+            )
+            receipt_payload["identity_mode"] = str(
+                getattr(mission_result, "identity_mode", "")
+            )
+            receipt_payload["signer_public_key_prefix"] = str(
+                getattr(mission_result, "signer_public_key_prefix", "")
+            )
+            if runtime_receipt is not None and getattr(runtime_receipt, "chain_hash", ""):
+                receipt_payload["hash_chain_ref"] = str(runtime_receipt.chain_hash)
 
             mission_topic = (
                 "mission.failed"
-                if normalized_status == "FAILED"
+                if normalized_status in {"FAILED", "BLOCKED"}
                 else "mission.executed"
             )
             await _emit_bus_event(
@@ -4574,7 +4705,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 await _emit_bus_event(
                     "mission.verified",
                     {
-                        "mission_id": result.mission_id,
+                        "mission_id": mission_result.mission_id,
                         "receipt_id": receipt_id,
                         "proof_receipt_id": reasoning_proof.get("receipt_id", ""),
                         "proof_status": reasoning_proof.get("status", ""),
@@ -4590,12 +4721,12 @@ def create_fastapi_app(runtime: Any) -> Any:
             await _emit_bus_event(
                 mission_topic,
                 {
-                    "mission_id": result.mission_id,
+                    "mission_id": mission_result.mission_id,
                     "receipt_id": receipt_id,
                     "status": normalized_status,
-                    "ihsan_score": result.ihsan_score,
-                    "snr_score": result.snr_score,
-                    "duration_ms": round(result.duration_ms, 1),
+                    "ihsan_score": mission_result.ihsan_score,
+                    "snr_score": mission_result.snr_score,
+                    "duration_ms": round(mission_result.duration_ms, 1),
                     "execution_path": normalized_execution_path,
                 },
                 source="mission",

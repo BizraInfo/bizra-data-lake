@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import json
 import logging
 import os
 import signal
@@ -129,6 +130,126 @@ def _conservative_fallback_check(ctx: dict[str, Any]) -> bool:
     return True
 
 
+class _RuntimeInferenceBackend:
+    """Inference adapter that lets the runtime-owned organism use the gateway."""
+
+    def __init__(self, runtime: "SovereignRuntime") -> None:
+        self._runtime = runtime
+
+    async def infer(self, prompt: str, **kwargs: Any) -> str:
+        gateway = getattr(self._runtime, "_gateway", None)
+        if gateway is not None and hasattr(gateway, "infer"):
+            result = await gateway.infer(
+                prompt,
+                max_tokens=kwargs.get("max_tokens"),
+                temperature=float(kwargs.get("temperature", 0.3)),
+            )
+            return str(getattr(result, "content", result))
+        return (
+            "[runtime-degraded] Canonical organism inference backend unavailable. "
+            f"Prompt summary: {prompt[:240]}"
+        )
+
+
+class _MissionPreflightChannel:
+    """No-op ActionBus channel used to enforce TeleScript + FATE before mission run."""
+
+    async def execute(self, action: Any) -> Any:
+        from core.bus.channels import ChannelResult
+
+        outcome_hash = _hex_digest(
+            f"{action.action_id}:{action.kind}:{action.channel}".encode("utf-8")
+        )
+        return ChannelResult(
+            success=True,
+            outcome_hash=outcome_hash,
+            ihsan_score=float(action.payload.get("ihsan", 1.0)),
+        )
+
+
+class _RuntimeFATEGateAdapter:
+    """Mission-level FATE adapter built on top of the runtime's current guardrails."""
+
+    _HIGH_RISK_TERMS = (
+        "rm -rf",
+        "drop table",
+        "delete production",
+        "format disk",
+        "shutdown",
+        "wipe",
+        "credential",
+        "secret",
+        "password",
+        "token exfiltration",
+    )
+
+    def __init__(self, *, canonical_mode: bool) -> None:
+        self._canonical_mode = canonical_mode
+        self._z3_gate: Any | None = None
+        self.enforced = False
+        try:
+            from core.sovereign.z3_fate_gate import Z3_AVAILABLE, Z3FATEGate
+
+            if Z3_AVAILABLE:
+                self._z3_gate = Z3FATEGate()
+                self.enforced = True
+        except Exception:
+            self._z3_gate = None
+            self.enforced = False
+
+    def evaluate(self, action: Any) -> Any:
+        from core.bus.action_bus import FATEResult
+
+        payload = dict(getattr(action, "payload", {}) or {})
+        ctx = self._build_context(payload)
+
+        if self._z3_gate is not None:
+            proof = self._z3_gate.generate_proof(ctx)
+            if proof.satisfiable:
+                return FATEResult(denied=False)
+            reason = proof.counterexample or "fate_veto"
+            codes = tuple(
+                code.strip().replace(" ", "_")
+                for code in reason.split(";")
+                if code.strip()
+            ) or ("fate_veto",)
+            return FATEResult(
+                denied=True,
+                reason=reason,
+                reason_codes=codes,
+            )
+
+        allowed = _conservative_fallback_check(ctx)
+        return FATEResult(
+            denied=not allowed,
+            reason="" if allowed else "conservative_fallback_denied",
+            reason_codes=() if allowed else ("conservative_fallback_denied",),
+        )
+
+    def _build_context(self, payload: dict[str, Any]) -> dict[str, Any]:
+        description = str(payload.get("description", "") or "").lower()
+        risk_level = float(payload.get("risk_level", self._classify_risk(description)))
+        time_budget_s = float(payload.get("time_budget_seconds", 900.0))
+        autonomy_limit = float(payload.get("autonomy_limit", time_budget_s))
+        cost = float(payload.get("cost", min(time_budget_s, autonomy_limit)))
+        return {
+            "ihsan": float(payload.get("ihsan", 1.0)),
+            "snr": float(payload.get("snr", 1.0)),
+            "risk_level": risk_level,
+            "reversible": bool(payload.get("reversible", risk_level <= 0.3)),
+            "human_approved": bool(payload.get("human_approved", False)),
+            "cost": cost,
+            "autonomy_limit": autonomy_limit,
+        }
+
+    def _classify_risk(self, description: str) -> float:
+        if any(term in description for term in self._HIGH_RISK_TERMS):
+            return 0.9
+        if any(term in description for term in ("deploy", "publish", "push", "write")):
+            return 0.45
+        return 0.2
+
+
 class SovereignRuntime:
     """
     The Unified Sovereign Runtime.
@@ -208,6 +329,14 @@ class SovereignRuntime:
 
         # Unified Node0 Signer (Ed25519) — single identity for all subsystems
         self._node_signer: Optional[object] = None  # Ed25519Signer
+        self._organism: Optional[object] = None  # SovereignOrganism
+        self._node0: Optional[object] = None  # Node0Heartbeat
+        self._canonical_mode = False
+        self._identity_mode = "placeholder_degraded"
+        self._signer_public_key_prefix = ""
+        self._genesis_backed_identity = False
+        self._fate_mode = "degraded"
+        self._fate_gate: Optional[object] = None
 
         # IHSAN_FLOOR Watchdog — governance invariant enforcer (MCG Layer 7)
         self._ihsan_watchdog: Optional[object] = None  # IhsanFloorWatchdog
@@ -401,6 +530,235 @@ class SovereignRuntime:
             "proactive_kernel_attention_recovery_per_cycle",
         )
 
+    def _resolve_canonical_mode(self) -> bool:
+        """Return whether runtime-canonical mode is explicitly enabled."""
+        explicit = os.getenv("BIZRA_CANONICAL_MODE", "").strip().lower()
+        if explicit in {"1", "true", "yes", "on"}:
+            return True
+        return os.getenv("BIZRA_ENV", "").strip().lower() == "production"
+
+    def _load_identity_credentials(self) -> dict[str, str] | None:
+        """Load genesis-backed Ed25519 credentials if available."""
+        creds_path = self.config.state_dir / "identity" / "credentials.json"
+        if not creds_path.exists():
+            return None
+
+        with open(creds_path, encoding="utf-8") as handle:
+            creds = json.load(handle)
+
+        private_hex = str(creds.get("private_key", "") or "")
+        public_hex = str(creds.get("public_key", "") or "")
+        node_id = str(creds.get("node_id", "") or "")
+        if len(private_hex) != 64 or len(public_hex) != 64:
+            raise ValueError(
+                "identity/credentials.json is missing a valid Ed25519 keypair"
+            )
+        derived_node_id = self._derive_node_id_from_public_key(public_hex)
+        if node_id and node_id != derived_node_id:
+            if self._canonical_mode:
+                raise ValueError(
+                    "identity/credentials.json node_id does not match the Ed25519 public key"
+                )
+        else:
+            node_id = derived_node_id
+        return {
+            "private_key_hex": private_hex,
+            "public_key_hex": public_hex,
+            "node_id": node_id,
+        }
+
+    def _signer_public_key_prefix_for(self, signer: object | None) -> str:
+        if signer is None:
+            return ""
+        if hasattr(signer, "public_key_hex"):
+            value = str(getattr(signer, "public_key_hex", "") or "")
+            return value[:16]
+        if hasattr(signer, "public_key_bytes"):
+            try:
+                return getattr(signer, "public_key_bytes")().hex()[:16]
+            except Exception:
+                return ""
+        return ""
+
+    def _signer_public_key_hex_for(self, signer: object | None) -> str:
+        if signer is None:
+            return ""
+        if hasattr(signer, "public_key_hex"):
+            return str(getattr(signer, "public_key_hex", "") or "").lower()
+        if hasattr(signer, "public_key_bytes"):
+            try:
+                return getattr(signer, "public_key_bytes")().hex()
+            except Exception:
+                return ""
+        return ""
+
+    @staticmethod
+    def _derive_node_id_from_public_key(public_key_hex: str) -> str:
+        from core.pat.identity_card import _generate_node_id
+
+        return _generate_node_id(public_key_hex)
+
+    def _configure_canonical_action_bus(self) -> None:
+        """Rewire ActionBus for canonical mission preflight semantics."""
+        try:
+            from core.bus.sovereign_wiring import wire_action_bus, wire_telescript_engine
+
+            telescript = self._telescript_engine or wire_telescript_engine()
+            self._telescript_engine = telescript
+            self._fate_gate = _RuntimeFATEGateAdapter(
+                canonical_mode=self._canonical_mode
+            )
+            self._fate_mode = (
+                "enforced"
+                if getattr(self._fate_gate, "enforced", False)
+                else "degraded"
+            )
+            self._action_bus = wire_action_bus(
+                event_bus=self._event_bus,
+                telescript=telescript,
+                channels={"mission_gate": _MissionPreflightChannel()},
+                fate_gate=self._fate_gate,
+            )
+            if self._canonical_mode and self._fate_mode != "enforced":
+                raise RuntimeError(
+                    "Canonical mode requires an enforced FATE gate on the mission spine"
+                )
+        except Exception:
+            self._fate_mode = "degraded"
+            if self._canonical_mode:
+                raise
+            self.logger.warning(
+                "Canonical ActionBus mission preflight unavailable; degraded mode active",
+                exc_info=True,
+            )
+
+    async def _init_canonical_organism_stack(self) -> None:
+        """Boot one runtime-owned organism + Node0 stack."""
+        try:
+            from core.sovereign.organism import SovereignOrganism
+
+            organism = await SovereignOrganism.boot(
+                inference=_RuntimeInferenceBackend(self),
+                persistence_dir=self.config.state_dir / "node0",
+                start_heartbeat=False,
+                node_id=self.config.node_id,
+                identity_mode=self._identity_mode,
+                signer_public_key_prefix=self._signer_public_key_prefix,
+                signer_public_key_hex=self._signer_public_key_hex_for(
+                    self._node_signer
+                ),
+            )
+            self._organism = organism
+            self._node0 = getattr(organism, "_node0", None)
+        except Exception:
+            self._organism = None
+            self._node0 = None
+            if self._canonical_mode:
+                raise
+            self.logger.warning(
+                "Runtime-owned organism stack unavailable; mission authority degraded",
+                exc_info=True,
+            )
+
+    async def _preflight_mission(
+        self,
+        description: str,
+        *,
+        source: str,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Run the canonical TeleScript + FATE preflight for a mission."""
+        context = dict(context or {})
+        action_bus = self._action_bus
+        if action_bus is None:
+            if self._canonical_mode:
+                raise RuntimeError("Canonical mission authority requires ActionBus")
+            return {
+                "allow_execution": True,
+                "fate_verdict": "degraded",
+                "fate_reason_codes": ["action_bus_unavailable"],
+                "fate_mode": "degraded",
+                "action_receipt_refs": [],
+            }
+
+        from core.bus.telescript import Capability
+        from core.bus.types import ActionBudget, ActionEnvelope, ActionStatus
+        from core.proof_engine.canonical import canonical_bytes
+
+        mission_id = _hex_digest(
+            canonical_bytes(
+                {
+                    "description": description,
+                    "source": source,
+                    "context": context,
+                }
+            )
+        )
+        actor_id = b""
+        if self._node_signer is not None and hasattr(
+            self._node_signer, "public_key_bytes"
+        ):
+            try:
+                actor_id = getattr(self._node_signer, "public_key_bytes")()
+            except Exception:
+                actor_id = b""
+
+        time_budget_seconds = float(context.get("time_budget_seconds", 900.0))
+        payload = {
+            "description": description,
+            "source": source,
+            "context": context,
+            "ihsan": 1.0,
+            "snr": 1.0,
+            "time_budget_seconds": time_budget_seconds,
+            "autonomy_limit": time_budget_seconds,
+            "cost": min(time_budget_seconds, float(context.get("estimated_cost", 1.0))),
+            "risk_level": context.get("risk_level"),
+            "reversible": context.get("reversible", True),
+            "human_approved": context.get("human_approved", False),
+        }
+        if payload["risk_level"] is None:
+            payload.pop("risk_level")
+
+        receipt = await action_bus.propose(
+            ActionEnvelope(
+                action_id=mission_id,
+                kind="mission.execute",
+                channel="mission_gate",
+                payload=payload,
+                capabilities=(Capability.LLM_QUERY.value,),
+                budget=ActionBudget(time_ms=int(time_budget_seconds * 1000)),
+                correlation_id=mission_id,
+                actor_id=actor_id,
+                timestamp=int(time.time() * 1000),
+            )
+        )
+        status_value = getattr(getattr(receipt, "status", None), "value", "")
+        denied = status_value in {
+            ActionStatus.DENIED.value,
+            ActionStatus.FAILED.value,
+        }
+        if denied:
+            reason = str(getattr(receipt, "error_message", "") or "fate_veto")
+            return {
+                "allow_execution": False,
+                "mission_id": mission_id,
+                "fate_verdict": "rejected",
+                "fate_reason_codes": [reason],
+                "fate_mode": self._fate_mode,
+                "action_receipt_refs": [str(getattr(receipt, "receipt_id", ""))],
+            }
+        return {
+            "allow_execution": True,
+            "mission_id": mission_id,
+            "fate_verdict": (
+                "approved" if self._fate_mode == "enforced" else "degraded"
+            ),
+            "fate_reason_codes": [],
+            "fate_mode": self._fate_mode,
+            "action_receipt_refs": [str(getattr(receipt, "receipt_id", ""))],
+        }
+
     @classmethod
     @asynccontextmanager
     async def create(
@@ -422,6 +780,7 @@ class SovereignRuntime:
         # Load env vars from sovereign_state/.env (API keys, endpoints)
         self._load_env_vars()
         self._apply_env_overrides()
+        self._canonical_mode = self._resolve_canonical_mode()
         self._node_role = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
         enforce_node0_fail_closed(self.config.state_dir, self._node_role)
         self._origin_snapshot = resolve_origin_snapshot(
@@ -469,6 +828,9 @@ class SovereignRuntime:
 
         # Initialize unified Node0 signer (Ed25519 identity)
         self._init_node_signer()
+
+        # Rewire ActionBus so canonical missions pass through TeleScript + FATE once.
+        self._configure_canonical_action_bus()
 
         # Initialize IHSAN_FLOOR watchdog (MCG Layer 7 governance)
         try:
@@ -530,6 +892,9 @@ class SovereignRuntime:
 
         # Phase 58: Initialize Equalizer Agent + Unified Model Router
         self._init_equalizer_and_router()
+
+        # Runtime-canonical organism authority — one organism, one Node0, one signer.
+        await self._init_canonical_organism_stack()
 
         self._initialized = True
         self._running = True
@@ -893,20 +1258,55 @@ class SovereignRuntime:
         """
         try:
             from core.proof_engine.receipt import Ed25519Signer
+            signer_material = self._load_identity_credentials()
+            if signer_material is not None:
+                self._node_signer = Ed25519Signer(
+                    private_key_hex=signer_material["private_key_hex"],
+                    public_key_hex=signer_material["public_key_hex"],
+                )
+                self._identity_mode = "genesis_ed25519"
+                self._genesis_backed_identity = True
+                if signer_material["node_id"]:
+                    self.config.node_id = signer_material["node_id"]
+            else:
+                if self._canonical_mode:
+                    raise RuntimeError(
+                        "Canonical mode requires sovereign_state/identity/credentials.json"
+                    )
+                from core.sovereign.mission import _load_or_create_node_signer
 
-            self._node_signer = Ed25519Signer.generate()
-            self.logger.info(
-                f"Node0 Ed25519 signer initialized: "
-                f"{self._node_signer.public_key_hex[:16]}..."
+                private_hex, public_hex = _load_or_create_node_signer(
+                    {"sovereign_state_dir": str(self.config.state_dir)}
+                )
+                self._node_signer = Ed25519Signer(
+                    private_key_hex=private_hex,
+                    public_key_hex=public_hex,
+                )
+                self._identity_mode = "placeholder_degraded"
+                self._genesis_backed_identity = False
+            self._signer_public_key_prefix = self._signer_public_key_prefix_for(
+                self._node_signer
             )
-        except (ImportError, RuntimeError, ValueError, OSError) as e:
+            self.logger.info(
+                "Node0 signer initialized: %s... (mode=%s)",
+                self._signer_public_key_prefix,
+                self._identity_mode,
+            )
+        except (ImportError, RuntimeError, ValueError, OSError, json.JSONDecodeError) as e:
+            if self._canonical_mode:
+                raise
             self.logger.warning(
-                f"Ed25519 signer init failed, falling back to HMAC: {e}"
+                f"Ed25519 signer init degraded, falling back to HMAC: {e}"
             )
             from core.proof_engine.receipt import SimpleSigner
 
             self._node_signer = SimpleSigner(
                 secret=self.config.node_id.encode("utf-8") + b"_node0_v1"
+            )
+            self._identity_mode = "placeholder_degraded"
+            self._genesis_backed_identity = False
+            self._signer_public_key_prefix = self._signer_public_key_prefix_for(
+                self._node_signer
             )
 
     def _init_gate_chain(self) -> None:
@@ -2450,12 +2850,55 @@ class SovereignRuntime:
         if self._memory_coordinator:
             await self._memory_coordinator.stop()
 
+        if self._organism and hasattr(self._organism, "shutdown"):
+            try:
+                await self._organism.shutdown()
+            except (RuntimeError, ValueError, TypeError, AttributeError, OSError):
+                self.logger.warning(
+                    "Failed to shutdown runtime-owned organism cleanly",
+                    exc_info=True,
+                )
+
         self._shutdown_event.set()
         self.logger.info("Sovereign Runtime shutdown complete")
 
     async def wait_for_shutdown(self) -> None:
         """Wait until shutdown is complete."""
         await self._shutdown_event.wait()
+
+    async def mission(
+        self,
+        description: str,
+        *,
+        source: str,
+        context: Any | None = None,
+        proof_mode: str = "verified",
+    ) -> Any:
+        """Execute one canonical mission through the runtime-owned organism."""
+        del proof_mode  # Proof selection remains an API/UI concern; authority stays here.
+
+        if not self._initialized:
+            raise RuntimeError("Runtime not initialized. Call initialize() first.")
+        if self._organism is None:
+            raise RuntimeError("Canonical organism mission authority unavailable")
+
+        mission_context = dict(context or {})
+        preflight = await self._preflight_mission(
+            description,
+            source=source,
+            context=mission_context,
+        )
+        receipt = await self._organism.mission(description, preflight=preflight)
+        try:
+            await self._organism.tick()
+        except Exception:
+            if self._canonical_mode:
+                raise
+            self.logger.warning(
+                "Canonical organism breath failed after mission execution",
+                exc_info=True,
+            )
+        return receipt
 
     # -------------------------------------------------------------------------
     # QUERY PROCESSING
@@ -3637,7 +4080,13 @@ class SovereignRuntime:
             "node_id": self.config.node_id,
             "version": _ELITE_VERSION,
             "origin": dict(self._origin_snapshot),
+            "identity_mode": self._identity_mode,
+            "genesis_backed": self._genesis_backed_identity,
         }
+        if self._signer_public_key_prefix:
+            identity_info["signer_public_key_prefix"] = (
+                self._signer_public_key_prefix + "..."
+            )
         if self._node_signer and hasattr(self._node_signer, "public_key_hex"):
             identity_info["signer_public_key"] = (
                 self._node_signer.public_key_hex[:16] + "..."
@@ -3687,6 +4136,22 @@ class SovereignRuntime:
                 "mode": self.config.mode.name,
                 "sat_mode": self.config.sat_mode,
                 "strict_gate_passed": self._strict_gate_passed,
+                "mission_authority": "organism" if self._organism is not None else "legacy",
+                "fate_mode": self._fate_mode,
+            },
+            "canonical": {
+                "enabled": self._canonical_mode,
+                "mission_authority": "organism" if self._organism is not None else "legacy",
+                "authority_path": (
+                    "runtime->organism->node0"
+                    if self._organism is not None and self._node0 is not None
+                    else ""
+                ),
+                "runtime_owned_organism": self._organism is not None,
+                "runtime_owned_node0": self._node0 is not None,
+                "identity_mode": self._identity_mode,
+                "signer_public_key_prefix": self._signer_public_key_prefix,
+                "fate_mode": self._fate_mode,
             },
             "health": {
                 "status": self._health_status().value,

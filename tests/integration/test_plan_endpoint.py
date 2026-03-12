@@ -11,7 +11,6 @@ Standing on Giants:
 
 from __future__ import annotations
 
-import os
 from types import SimpleNamespace
 
 import pytest
@@ -47,6 +46,8 @@ def plan_client(tmp_path, monkeypatch):
     runtime.inference_gateway = None
     # Disable Node0 so legacy tests exercise _submit_mission_to_tick fallback
     runtime._node0 = None
+    runtime._organism = None
+    runtime._canonical_mode = False
 
     from core.sovereign.api import create_fastapi_app
 
@@ -148,6 +149,8 @@ def plan_runtime(tmp_path, monkeypatch):
     runtime.inference_gateway = None
     # Disable Node0 so this fixture tests the legacy _submit_mission_to_tick path
     runtime._node0 = None
+    runtime._organism = None
+    runtime._canonical_mode = False
 
     from core.sovereign.api import create_fastapi_app
 
@@ -324,6 +327,8 @@ def plan_client_with_node0(tmp_path, monkeypatch):
     runtime._constitutional_event_log = []
     runtime._constitutional_reflex_cache = {}
     runtime.inference_gateway = None
+    runtime._organism = None
+    runtime._canonical_mode = False
 
     # Boot Node0 — mirrors what _lifespan() does in production
     node0 = Node0Heartbeat(data_dir=tmp_path / "api_node0")
@@ -382,3 +387,172 @@ async def test_plan_feeds_node0_canonical_authority(plan_client_with_node0):
             "Legacy _submit_mission_to_tick was called alongside Node0 — "
             "should be bypassed when Node0 is active."
         )
+
+
+@pytest.fixture
+def canonical_plan_client(tmp_path, monkeypatch):
+    """Client backed by a runtime that exposes canonical organism authority."""
+    from httpx import ASGITransport, AsyncClient
+    from unittest.mock import AsyncMock, MagicMock
+
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+
+    runtime = MagicMock()
+    runtime.config = MagicMock()
+    runtime.config.state_dir = tmp_path / "state"
+    runtime.config.state_dir.mkdir(parents=True, exist_ok=True)
+    runtime._constitutional_wallets = []
+    runtime._constitutional_receipts = []
+    runtime._constitutional_proposals = []
+    runtime._constitutional_event_log = []
+    runtime._constitutional_reflex_cache = {}
+    runtime._node0 = object()
+    runtime._organism = object()
+    runtime._canonical_mode = True
+    runtime.status.return_value = {
+        "canonical": {
+            "enabled": True,
+            "mission_authority": "organism",
+            "authority_path": "runtime->organism->node0",
+        }
+    }
+    runtime.mission = AsyncMock(
+        return_value=SimpleNamespace(
+            mission_id="org-mission-001",
+            output_text="Canonical organism mission complete.",
+            system="S2",
+            ihsan_score=0.97,
+            snr_score=0.93,
+            duration_ms=42.5,
+            evidence_hash="e" * 64,
+            chain_hash="c" * 64,
+            fate_verdict="approved",
+            fate_reason_codes=[],
+            fate_mode="enforced",
+            identity_mode="genesis_ed25519",
+            signer_public_key_prefix="abcd1234efgh5678",
+        )
+    )
+
+    from core.sovereign.api import create_fastapi_app
+
+    app = create_fastapi_app(runtime)
+    transport = ASGITransport(app=app)
+    return AsyncClient(transport=transport, base_url="http://testserver"), runtime
+
+
+@pytest.mark.integration
+async def test_plan_routes_through_runtime_owned_organism(canonical_plan_client):
+    """POST /v1/plan should use runtime.mission when canonical organism exists."""
+    client, runtime = canonical_plan_client
+
+    async with client:
+        resp = await client.post(
+            "/v1/plan",
+            json={
+                "description": "Run the canonical organism path",
+                "source": "terminal",
+            },
+        )
+
+    assert resp.status_code == 200
+    runtime.mission.assert_awaited_once()
+    data = resp.json()
+    assert data["mission_id"] == "org-mission-001"
+    assert data["execution_authority"] == "organism"
+    assert data["authority_path"] == "runtime->organism->node0"
+    assert data["fate_verdict"] == "approved"
+    assert data["identity_mode"] == "genesis_ed25519"
+    assert data["signer_public_key_prefix"] == "abcd1234efgh5678"
+    assert data["hash_chain_ref"] == "c" * 64
+
+
+@pytest.fixture
+def canonical_plan_client_without_authority(tmp_path, monkeypatch):
+    """Client in canonical mode without runtime organism authority."""
+    from httpx import ASGITransport, AsyncClient
+    from unittest.mock import MagicMock
+
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+
+    runtime = MagicMock()
+    runtime.config = MagicMock()
+    runtime.config.state_dir = tmp_path / "state"
+    runtime.config.state_dir.mkdir(parents=True, exist_ok=True)
+    runtime._constitutional_wallets = []
+    runtime._constitutional_receipts = []
+    runtime._constitutional_proposals = []
+    runtime._constitutional_event_log = []
+    runtime._constitutional_reflex_cache = {}
+    runtime._node0 = None
+    runtime._organism = None
+    runtime._canonical_mode = True
+    runtime.status.return_value = {
+        "canonical": {
+            "enabled": True,
+            "mission_authority": "legacy",
+            "authority_path": "",
+        }
+    }
+
+    from core.sovereign.api import create_fastapi_app
+
+    app = create_fastapi_app(runtime)
+    transport = ASGITransport(app=app)
+    return AsyncClient(transport=transport, base_url="http://testserver"), runtime
+
+
+@pytest.mark.integration
+async def test_plan_fails_closed_in_canonical_mode_without_runtime_authority(
+    canonical_plan_client_without_authority,
+):
+    """Canonical mode must not fall back to legacy orchestrator execution."""
+    client, _runtime = canonical_plan_client_without_authority
+
+    async with client:
+        resp = await client.post(
+            "/v1/plan",
+            json={"description": "Do not bypass the canonical mission authority"},
+        )
+
+    assert resp.status_code == 503
+    assert "Canonical mode requires runtime-owned organism mission authority" in resp.json()[
+        "error"
+    ]
+
+
+@pytest.mark.integration
+async def test_plan_canonical_mode_suppresses_direct_system1_cache_path(
+    canonical_plan_client, monkeypatch
+):
+    """Canonical mode must not let the API return directly from the reflex cache."""
+    import core.sovereign.api as api_module
+    from core.sovereign.reflex_compiler import ReflexCompiler
+
+    client, runtime = canonical_plan_client
+    compiler = ReflexCompiler()
+    compiler.compile_from_candidate(
+        pattern_id=compiler._hash_input("what is autopoiesis?"),
+        input_template="what is autopoiesis?",
+        output_template="Autopoiesis is the self-creation property of living systems.",
+        ihsan_score=0.97,
+        observation_count=5,
+    )
+    original = getattr(api_module, "_reflex_compiler", None)
+    api_module._reflex_compiler = compiler
+    try:
+        async with client:
+            resp = await client.post(
+                "/v1/plan",
+                json={"description": "what is autopoiesis?", "source": "terminal"},
+            )
+    finally:
+        api_module._reflex_compiler = original
+
+    assert resp.status_code == 200
+    runtime.mission.assert_awaited_once()
+    data = resp.json()
+    assert data["mission_id"] == "org-mission-001"
+    assert data["execution_authority"] == "organism"
+    assert data["authority_path"] == "runtime->organism->node0"
+    assert data["execution_path"] == "SYSTEM_2_NOVEL"

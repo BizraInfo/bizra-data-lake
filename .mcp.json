@@ -1,7 +1,7 @@
 {
   "_comment": "BIZRA Team MCP Configuration — checked into repo for team-wide consistency",
-  "_version": "1.1.0",
-  "_updated": "2026-02-24 — Fixed: wrong npm scope (@anthropic-ai → @modelcontextprotocol), python3→python on Windows, missing data/bizra.db, empty API keys",
+  "_version": "1.2.0",
+  "_updated": "2026-03-11 — Expanded to 10 servers; added SQLite knowledge access and Codex parity",
 
   "mcpServers": {
     "context7": {
@@ -44,6 +44,18 @@
         "BRAVE_API_KEY": "${BRAVE_API_KEY}"
       },
       "description": "Web search — requires BRAVE_API_KEY env var"
+    },
+
+    "sqlite": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sqlite@latest", "--db-path", "/mnt/c/BIZRA-DATA-LAKE/04_GOLD/bizra.db"],
+      "description": "Structured query access to the primary BIZRA SQLite knowledge base"
+    },
+
+    "claude-flow-sqlite": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sqlite@latest", "--db-path", "/mnt/c/BIZRA-DATA-LAKE/.swarm/memory.db"],
+      "description": "Structured query access to Claude-Flow memory.db for sessions, patterns, and memory entries"
     },
 
     "bizra-sovereign": {

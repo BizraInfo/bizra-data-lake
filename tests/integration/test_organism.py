@@ -154,6 +154,34 @@ class TestMission:
         assert len(received) == 1
         assert received[0].mission_id != ""
 
+    def test_preflight_rejection_blocks_execution_but_preserves_evidence(self) -> None:
+        echo = EchoInference()
+        org = asyncio.run(SovereignOrganism.boot(inference=echo))
+
+        receipt = asyncio.run(
+            org.mission(
+                "dangerous action",
+                preflight={
+                    "allow_execution": False,
+                    "mission_id": "blocked-mission-001",
+                    "fate_verdict": "rejected",
+                    "fate_reason_codes": ["policy_denied"],
+                    "fate_mode": "enforced",
+                    "action_receipt_refs": ["action-receipt-001"],
+                },
+            )
+        )
+
+        assert receipt.system == "BLOCKED"
+        assert receipt.gate_passed is False
+        assert receipt.fate_verdict == "rejected"
+        assert receipt.fate_reason_codes == ["policy_denied"]
+        assert echo.call_count == 0
+
+        breath = asyncio.run(org.tick())
+        assert breath.missions_processed >= 1
+        assert breath.seed_minted == 0.0
+
 
 # ═══════════════════════════════════════════════════════════════════
 # §2: EVOLUTIONARY TICK (Helix 3)

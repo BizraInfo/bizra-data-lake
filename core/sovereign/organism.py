@@ -53,7 +53,7 @@ import asyncio
 import hashlib
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol
 
@@ -113,6 +113,12 @@ class OrganismReceipt:
     duration_ms: float  # Total wall time
     tick_count: int  # Organism heartbeat count at time of mission
     frozen_agents: List[str]  # Agents excluded from learning
+    fate_verdict: str = "approved"
+    fate_reason_codes: List[str] = field(default_factory=list)
+    fate_mode: str = "enforced"
+    action_receipt_refs: List[str] = field(default_factory=list)
+    identity_mode: str = "placeholder_degraded"
+    signer_public_key_prefix: str = ""
 
 
 @dataclass
@@ -188,6 +194,9 @@ class SovereignOrganism:
         self._heartbeat_task: Optional[asyncio.Task] = None  # type: ignore[type-arg]
         self._heartbeat_active = False
         self._shutdown_requested = False
+        self._identity_mode = "placeholder_degraded"
+        self._signer_public_key_prefix = ""
+        self._signer_public_key_hex = ""
 
         # Callbacks
         self._on_receipt: Optional[Callable[[OrganismReceipt], None]] = None
@@ -205,6 +214,10 @@ class SovereignOrganism:
         on_receipt: Optional[Callable[[OrganismReceipt], None]] = None,
         on_heartbeat: Optional[Callable[[Any], None]] = None,
         start_heartbeat: bool = False,
+        node_id: Optional[str] = None,
+        identity_mode: str = "placeholder_degraded",
+        signer_public_key_prefix: str = "",
+        signer_public_key_hex: str = "",
     ) -> "SovereignOrganism":
         """Bootstrap the Living Organism — the Genesis Ceremony.
 
@@ -238,6 +251,9 @@ class SovereignOrganism:
         org._boot_time = time.monotonic()
         org._on_receipt = on_receipt
         org._on_heartbeat = on_heartbeat
+        org._identity_mode = identity_mode
+        org._signer_public_key_prefix = signer_public_key_prefix
+        org._signer_public_key_hex = signer_public_key_hex
 
         # Step 1: Create NervousSystem with all Phase 80 modules
         org._nervous_system = SovereignNervousSystem.create(
@@ -261,7 +277,7 @@ class SovereignOrganism:
         # Step 5: Wire Node0Heartbeat — the ONE canonical ingest authority.
         # Passes the organism's NervousSystem-wired Helix3 so there is
         # exactly one Helix3 instance (no duplication).
-        org._boot_node0(persistence_dir)
+        org._boot_node0(persistence_dir, node_id=node_id)
 
         # Step 6: Start heartbeat if requested
         if start_heartbeat:
@@ -417,7 +433,12 @@ class SovereignOrganism:
 
     # ─── Node0 Heartbeat (P0 Closure — ONE canonical ingest) ──────
 
-    def _boot_node0(self, persistence_dir: Optional[Path]) -> None:
+    def _boot_node0(
+        self,
+        persistence_dir: Optional[Path],
+        *,
+        node_id: Optional[str] = None,
+    ) -> None:
         """Wire Node0Heartbeat with the organism's Helix3.
 
         This makes Node0Heartbeat the single authority for:
@@ -436,7 +457,12 @@ class SovereignOrganism:
             data_dir = persistence_dir or Path("sovereign_state") / "node0"
             self._node0 = Node0Heartbeat(
                 data_dir=data_dir,
+                node_id=node_id,
                 helix3=self._helix3,
+                identity_mode=self._identity_mode,
+                signer_public_key_prefix=self._signer_public_key_prefix,
+                signer_public_key_hex=self._signer_public_key_hex,
+                genesis_backed=self._identity_mode == "genesis_ed25519",
             )
             self._node0.boot()
 
@@ -481,6 +507,12 @@ class SovereignOrganism:
                     "agent_id": ",".join(receipt.agent_chain) or "organism",
                     "gate_passed": receipt.gate_passed,
                     "duration_ms": receipt.duration_ms,
+                    "fate_verdict": receipt.fate_verdict,
+                    "fate_reason_codes": list(receipt.fate_reason_codes),
+                    "fate_mode": receipt.fate_mode,
+                    "action_receipt_refs": list(receipt.action_receipt_refs),
+                    "identity_mode": receipt.identity_mode,
+                    "signer_public_key_prefix": receipt.signer_public_key_prefix,
                 }
             )
         except Exception as exc:  # noqa: BLE001 — ingest must not crash mission return
@@ -488,7 +520,12 @@ class SovereignOrganism:
 
     # ─── Mission Execution (§6 Mode 2) ───────────────────────────
 
-    async def mission(self, text: str) -> OrganismReceipt:
+    async def mission(
+        self,
+        text: str,
+        *,
+        preflight: Optional[Dict[str, Any]] = None,
+    ) -> OrganismReceipt:
         """Submit a mission to the Living Organism.
 
         Flow (§6 Mode 2):
@@ -508,8 +545,56 @@ class SovereignOrganism:
         """
         t0 = time.monotonic()
         self._mission_counter += 1
+        preflight = dict(preflight or {})
+        fate_verdict = str(preflight.get("fate_verdict", "approved") or "approved")
+        fate_reason_codes = [
+            str(code) for code in list(preflight.get("fate_reason_codes", []))
+        ]
+        fate_mode = str(preflight.get("fate_mode", "enforced") or "enforced")
+        action_receipt_refs = [
+            str(ref) for ref in list(preflight.get("action_receipt_refs", []))
+        ]
 
         try:
+            if not preflight.get("allow_execution", True):
+                duration_ms = round((time.monotonic() - t0) * 1000, 2)
+                mission_id = str(
+                    preflight.get("mission_id", f"org-blocked-{self._mission_counter:06d}")
+                )
+                evidence_data = f"{self._chain_hash}:{mission_id}:rejected"
+                self._chain_hash = hashlib.sha256(evidence_data.encode()).hexdigest()
+                receipt = OrganismReceipt(
+                    mission_id=mission_id,
+                    input_text=text[:500],
+                    output_text="[BLOCKED] Mission rejected by pre-execution FATE gate.",
+                    system="BLOCKED",
+                    complexity="blocked",
+                    agents_activated=0,
+                    agent_chain=[],
+                    ihsan_score=0.0,
+                    snr_score=0.0,
+                    gate_passed=False,
+                    gate_reasons=fate_reason_codes or ["fate_rejected"],
+                    rewarded=False,
+                    reward_amount=0.0,
+                    evidence_hash="",
+                    chain_hash=self._chain_hash,
+                    duration_ms=duration_ms,
+                    tick_count=self._helix3.stats.total_ticks if self._helix3 else 0,
+                    frozen_agents=[],
+                    fate_verdict="rejected",
+                    fate_reason_codes=fate_reason_codes or ["fate_rejected"],
+                    fate_mode=fate_mode,
+                    action_receipt_refs=action_receipt_refs,
+                    identity_mode=self._identity_mode,
+                    signer_public_key_prefix=self._signer_public_key_prefix,
+                )
+                if self._on_receipt:
+                    self._on_receipt(receipt)
+                self._emit_cqrs_receipt(receipt)
+                self._ingest_to_node0(receipt)
+                return receipt
+
             # Run through NervousSystem → Pipeline → 12 agents
             ns_receipt = await self._nervous_system.run(text)
 
@@ -564,6 +649,12 @@ class SovereignOrganism:
                 duration_ms=duration_ms,
                 tick_count=self._helix3.stats.total_ticks if self._helix3 else 0,
                 frozen_agents=frozen_agents,
+                fate_verdict=fate_verdict,
+                fate_reason_codes=fate_reason_codes,
+                fate_mode=fate_mode,
+                action_receipt_refs=action_receipt_refs,
+                identity_mode=self._identity_mode,
+                signer_public_key_prefix=self._signer_public_key_prefix,
             )
 
             if self._on_receipt:
@@ -592,7 +683,7 @@ class SovereignOrganism:
             logger.error("Mission failed: %s", exc)
 
             # Return a degraded receipt rather than crashing
-            return OrganismReceipt(
+            receipt = OrganismReceipt(
                 mission_id=f"org-fail-{self._mission_counter:06d}",
                 input_text=text[:500],
                 output_text=f"[DEGRADED] Mission failed: {exc}",
@@ -611,7 +702,18 @@ class SovereignOrganism:
                 duration_ms=round((time.monotonic() - t0) * 1000, 2),
                 tick_count=0,
                 frozen_agents=[],
+                fate_verdict=fate_verdict,
+                fate_reason_codes=fate_reason_codes or [f"organism_error: {exc}"],
+                fate_mode=fate_mode,
+                action_receipt_refs=action_receipt_refs,
+                identity_mode=self._identity_mode,
+                signer_public_key_prefix=self._signer_public_key_prefix,
             )
+            if self._on_receipt:
+                self._on_receipt(receipt)
+            self._emit_cqrs_receipt(receipt)
+            self._ingest_to_node0(receipt)
+            return receipt
 
     # ─── CQRS Bus Emission ──────────────────────────────────────────
 

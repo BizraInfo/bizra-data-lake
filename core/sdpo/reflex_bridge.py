@@ -65,6 +65,7 @@ class ReflexCandidate:
     reproducibility: float  # Fraction of consistent outcomes
     observation_count: int
     impact_score: float  # Normalized impact (0.0–1.0)
+    required_observations: int = REFLEX_MIN_OBSERVATIONS
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
@@ -73,7 +74,7 @@ class ReflexCandidate:
         return (
             self.avg_ihsan >= REFLEX_IHSAN_THRESHOLD
             and self.reproducibility >= REFLEX_REPRODUCIBILITY_THRESHOLD
-            and self.observation_count >= REFLEX_MIN_OBSERVATIONS
+            and self.observation_count >= self.required_observations
             and self.impact_score > REFLEX_IMPACT_FLOOR
         )
 
@@ -86,6 +87,7 @@ class ReflexCandidate:
             "avg_snr": self.avg_snr,
             "reproducibility": self.reproducibility,
             "observation_count": self.observation_count,
+            "required_observations": self.required_observations,
             "impact_score": self.impact_score,
             "eligible": self.eligible,
             "created_at": self.created_at.isoformat(),
@@ -191,10 +193,25 @@ class SDPOReflexBridge:
                 continue
 
             candidate = self._evaluate_pattern(pattern_id, observations)
-            if candidate.eligible:
+            if self._candidate_eligible(candidate):
                 candidates.append(candidate)
 
         return sorted(candidates, key=lambda c: c.avg_ihsan, reverse=True)
+
+    def _candidate_eligible(self, candidate: ReflexCandidate) -> bool:
+        """Apply bridge-local thresholds to a candidate.
+
+        ReflexCandidate.eligible encodes the default constitutional thresholds.
+        The bridge must still honor its configured thresholds so tests, dry runs,
+        and staged rollout policies can tighten or relax observation counts
+        without drifting from the candidate dataclass defaults.
+        """
+        return (
+            candidate.avg_ihsan >= self._ihsan_threshold
+            and candidate.reproducibility >= self._repro_threshold
+            and candidate.observation_count >= self._min_obs
+            and candidate.impact_score > REFLEX_IMPACT_FLOOR
+        )
 
     def mark_compiled(self, pattern_id: str) -> None:
         """Mark a pattern as compiled (prevents re-compilation)."""
@@ -262,6 +279,7 @@ class SDPOReflexBridge:
             avg_snr=avg_snr,
             reproducibility=reproducibility,
             observation_count=len(observations),
+            required_observations=self._min_obs,
             impact_score=impact_score,
         )
 

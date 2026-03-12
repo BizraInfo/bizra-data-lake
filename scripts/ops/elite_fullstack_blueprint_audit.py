@@ -143,6 +143,34 @@ def _check_readme_patterns(
     return score, checks
 
 
+def _check_required_patterns(
+    reader: RepoReader,
+    pattern_cfg: dict[str, Any],
+    *,
+    prefix: str,
+) -> tuple[float, list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    total = 0
+    passed = 0
+
+    for rel_file, patterns in pattern_cfg.items():
+        text = reader.text(rel_file)
+        for pattern in patterns or []:
+            ok = pattern in text
+            checks.append(
+                {
+                    "name": f"{prefix}:pattern:{rel_file}:{pattern}",
+                    "passed": ok,
+                    "expected": "present",
+                    "actual": "present" if ok else "missing",
+                }
+            )
+            total += 1
+            passed += int(ok)
+
+    return (passed / total) if total else 1.0, checks
+
+
 def _check_phase65_thresholds(
     reader: RepoReader,
     expected: dict[str, Any],
@@ -302,23 +330,112 @@ def _check_pipeline_automation(
             total += 1
             passed += int(ok_any)
 
-    pattern_cfg = pipeline_cfg.get("required_patterns") or {}
-    for rel_file, patterns in pattern_cfg.items():
-        text = reader.text(rel_file)
-        for pattern in patterns or []:
-            ok = pattern in text
-            checks.append(
-                {
-                    "name": f"pipeline:pattern:{rel_file}:{pattern}",
-                    "passed": ok,
-                    "expected": "present",
-                    "actual": "present" if ok else "missing",
-                }
-            )
-            total += 1
-            passed += int(ok)
+    pattern_score, pattern_checks = _check_required_patterns(
+        reader,
+        pipeline_cfg.get("required_patterns") or {},
+        prefix="pipeline",
+    )
+    checks.extend(pattern_checks)
+    total += len(pattern_checks)
+    passed += sum(1 for check in pattern_checks if check["passed"])
 
     return (passed / total) if total else 1.0, checks
+
+
+def _check_docs_truth(
+    reader: RepoReader, docs_truth_cfg: dict[str, Any]
+) -> tuple[float, list[dict[str, Any]]]:
+    if not docs_truth_cfg:
+        return 1.0, []
+
+    file_score, file_checks = _check_files(
+        reader, [str(x) for x in (docs_truth_cfg.get("required_files") or [])]
+    )
+    pattern_score, pattern_checks = _check_required_patterns(
+        reader,
+        docs_truth_cfg.get("required_patterns") or {},
+        prefix="docs_truth",
+    )
+
+    checks = file_checks + pattern_checks
+    if not checks:
+        return 1.0, []
+
+    weighted_score = 0.0
+    weighted_parts = 0.0
+    if file_checks:
+        weighted_score += file_score
+        weighted_parts += 1.0
+    if pattern_checks:
+        weighted_score += pattern_score
+        weighted_parts += 1.0
+    return (weighted_score / weighted_parts) if weighted_parts else 1.0, checks
+
+
+def _check_control_plane(
+    reader: RepoReader,
+    plane_cfg: dict[str, Any],
+    *,
+    prefix: str,
+) -> tuple[float, list[dict[str, Any]]]:
+    if not plane_cfg:
+        return 1.0, []
+
+    file_score, raw_file_checks = _check_files(
+        reader, [str(x) for x in (plane_cfg.get("required_files") or [])]
+    )
+    file_checks = [
+        {
+            **check,
+            "name": f"{prefix}:{check['name']}",
+        }
+        for check in raw_file_checks
+    ]
+    job_score, raw_job_checks = _check_jobs(
+        reader, plane_cfg.get("required_jobs") or {}
+    )
+    job_checks = [
+        {
+            **check,
+            "name": f"{prefix}:{check['name']}",
+        }
+        for check in raw_job_checks
+    ]
+    pattern_score, pattern_checks = _check_required_patterns(
+        reader,
+        plane_cfg.get("required_patterns") or {},
+        prefix=prefix,
+    )
+
+    checks = file_checks + job_checks + pattern_checks
+    if not checks:
+        return 1.0, []
+
+    weighted_score = 0.0
+    weighted_parts = 0.0
+    if file_checks:
+        weighted_score += file_score
+        weighted_parts += 1.0
+    if job_checks:
+        weighted_score += job_score
+        weighted_parts += 1.0
+    if pattern_checks:
+        weighted_score += pattern_score
+        weighted_parts += 1.0
+
+    return (weighted_score / weighted_parts) if weighted_parts else 1.0, checks
+
+
+def _check_terminal_contract(
+    reader: RepoReader, terminal_cfg: dict[str, Any]
+) -> tuple[float, list[dict[str, Any]]]:
+    return _check_control_plane(reader, terminal_cfg, prefix="terminal")
+
+
+def _check_performance_controls(
+    reader: RepoReader, perf_cfg: dict[str, Any]
+) -> tuple[float, list[dict[str, Any]]]:
+    return _check_control_plane(reader, perf_cfg, prefix="performance")
 
 
 def _check_qa_controls(
@@ -419,39 +536,87 @@ def _check_ethical_integrity(
 
 
 def _recommendation_from_check(check_name: str) -> dict[str, str]:
+    if check_name.startswith("config:"):
+        return {
+            "priority": "P0",
+            "owner": "program-management",
+            "dimension": "governance",
+            "action": "Repair blueprint config integrity before trusting any downstream score.",
+        }
     if check_name.startswith("phase65:") or check_name.startswith("ethics:"):
         return {
             "priority": "P0",
             "owner": "governance",
+            "dimension": "ethical_integrity",
             "action": "Restore constitutional thresholds/invariants before any release.",
+        }
+    if check_name.startswith("security:"):
+        return {
+            "priority": "P0",
+            "owner": "security-architecture",
+            "dimension": "security",
+            "action": "Restore trust-boundary coherence, signing, auth, and hardening controls.",
+        }
+    if check_name.startswith("architecture:"):
+        return {
+            "priority": "P1",
+            "owner": "systems-architecture",
+            "dimension": "architecture",
+            "action": "Realign architectural control planes, proof bridges, and canonical interfaces.",
+        }
+    if check_name.startswith("performance:"):
+        return {
+            "priority": "P1",
+            "owner": "performance-engineering",
+            "dimension": "performance",
+            "action": "Restore measurable performance gates, scripts, and workflow enforcement.",
+        }
+    if check_name.startswith("terminal:"):
+        return {
+            "priority": "P1",
+            "owner": "frontend-runtime",
+            "dimension": "operator_experience",
+            "action": "Restore terminal contract files, patterns, and evidence-backed UI wiring.",
+        }
+    if check_name.startswith("docs_truth:"):
+        return {
+            "priority": "P1",
+            "owner": "documentation-platform",
+            "dimension": "documentation",
+            "action": "Restore docs truth enforcement across scripts, tests, workflows, and canon docs.",
         }
     if check_name.startswith("pipeline:") or check_name.startswith("job:"):
         return {
             "priority": "P1",
             "owner": "devops",
+            "dimension": "devops",
             "action": "Fix CI/CD orchestration and job dependency chain.",
         }
     if check_name.startswith("qa:"):
         return {
             "priority": "P1",
             "owner": "quality",
+            "dimension": "quality",
             "action": "Recover required test and quality-control coverage.",
         }
     if check_name.startswith("pmbok:"):
         return {
             "priority": "P2",
             "owner": "program-management",
+            "dimension": "governance",
             "action": "Restore PMBOK artifact traceability for lifecycle control.",
         }
     if check_name.startswith("file:"):
         return {
             "priority": "P2",
             "owner": "architecture",
+            "dimension": "architecture",
             "action": "Restore missing blueprint dependencies (files/scripts/docs).",
         }
     return {
         "priority": "P3",
         "owner": "docs",
+        "dimension": "documentation",
         "action": "Fix visibility/README hygiene requirements.",
     }
 
@@ -467,12 +632,110 @@ def _build_optimization_roadmap(
             {
                 "priority": rec["priority"],
                 "owner": rec["owner"],
+                "dimension": rec["dimension"],
                 "check": str(check.get("name", "")),
                 "action": rec["action"],
             }
         )
     roadmap.sort(key=lambda item: priority_order.get(item["priority"], 99))
     return roadmap
+
+
+def _risk_profile_from_check(check_name: str) -> dict[str, str]:
+    if check_name.startswith("config:") or check_name.startswith("phase65:"):
+        return {
+            "dimension": "governance",
+            "cascade": "Blueprint scoring becomes untrustworthy and release decisions drift from constitutional truth.",
+            "prevention": "Repair config integrity and restore contractual thresholds before promotion.",
+            "sape_phase": "symbolic",
+        }
+    if check_name.startswith("ethics:"):
+        return {
+            "dimension": "ethical_integrity",
+            "cascade": "Ihsan, Adl, or Amanah controls degrade and unsafe power concentration reaches release paths.",
+            "prevention": "Reinstate explicit invariants and validate them in CI before any deployment decision.",
+            "sape_phase": "symbolic",
+        }
+    if check_name.startswith("security:"):
+        return {
+            "dimension": "security",
+            "cascade": "Trust-boundary mismatch cascades into forged privilege, weak evidence, or incoherent transport security.",
+            "prevention": "Restore signing, authentication, atomic persistence, and hardening evidence as one chain.",
+            "sape_phase": "probe",
+        }
+    if check_name.startswith("architecture:") or check_name.startswith("file:"):
+        return {
+            "dimension": "architecture",
+            "cascade": "Module drift propagates across runtime, proof, and terminal layers and breaks compositional guarantees.",
+            "prevention": "Reconcile canonical files, interface bridges, and proof-carrying flow across system boundaries.",
+            "sape_phase": "abstraction",
+        }
+    if check_name.startswith("terminal:"):
+        return {
+            "dimension": "operator_experience",
+            "cascade": "Users see misleading mission state, broken proof surfaces, or non-contractual interaction flow.",
+            "prevention": "Keep terminal views event-native and matrix-bound to runtime truth.",
+            "sape_phase": "elevation",
+        }
+    if check_name.startswith("performance:"):
+        return {
+            "dimension": "performance",
+            "cascade": "Latency optimization bypasses constitutional proof or regressions ship without measurable evidence.",
+            "prevention": "Keep benchmark gates, performance attestations, and SNR budgets in the release chain.",
+            "sape_phase": "probe",
+        }
+    if check_name.startswith("pipeline:") or check_name.startswith("job:"):
+        return {
+            "dimension": "devops",
+            "cascade": "Broken orchestration allows incomplete evidence or partial gates to masquerade as release readiness.",
+            "prevention": "Restore dependency integrity and fail-closed CI/CD choreography.",
+            "sape_phase": "probe",
+        }
+    if check_name.startswith("docs_truth:") or check_name.startswith("readme:"):
+        return {
+            "dimension": "documentation",
+            "cascade": "Operational claims outrun implementation and create planning, audit, and operator mistakes.",
+            "prevention": "Bind docs to code, tests, and locked contracts through truth CI and historical labeling.",
+            "sape_phase": "abstraction",
+        }
+    if check_name.startswith("qa:"):
+        return {
+            "dimension": "quality",
+            "cascade": "Regression risk compounds because interfaces change without sufficient verification depth.",
+            "prevention": "Raise coverage ratchets, test targets, and fuzz/benchmark probes for touched surfaces.",
+            "sape_phase": "probe",
+        }
+    return {
+        "dimension": "documentation",
+        "cascade": "Low-signal hygiene debt obscures real system state.",
+        "prevention": "Repair visibility markers and align public-facing status surfaces.",
+        "sape_phase": "elevation",
+    }
+
+
+def _build_risk_register(
+    failed_checks: list[dict[str, Any]]
+) -> list[dict[str, str]]:
+    risks: list[dict[str, str]] = []
+    priority_order = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
+    for index, check in enumerate(failed_checks, start=1):
+        check_name = str(check.get("name", ""))
+        recommendation = _recommendation_from_check(check_name)
+        profile = _risk_profile_from_check(check_name)
+        risks.append(
+            {
+                "risk_id": f"R{index:03d}",
+                "priority": recommendation["priority"],
+                "dimension": recommendation["dimension"],
+                "source_check": check_name,
+                "owner": recommendation["owner"],
+                "cascade": profile["cascade"],
+                "prevention": profile["prevention"],
+                "sape_phase": profile["sape_phase"],
+            }
+        )
+    risks.sort(key=lambda item: priority_order.get(item["priority"], 99))
+    return risks
 
 
 def _normalize_weights(raw_weights: dict[str, Any]) -> tuple[dict[str, float], list[str]]:
@@ -579,6 +842,33 @@ def _build_snr(total_checks: int, failed_checks: int) -> dict[str, Any]:
     }
 
 
+def _status_for_score(score: float) -> str:
+    if score >= 0.95:
+        return "PASS"
+    if score >= 0.85:
+        return "ATTENTION"
+    return "BLOCKED"
+
+
+def _build_control_planes(
+    sections: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    control_planes: list[dict[str, Any]] = []
+    for name, payload in sections.items():
+        checks = payload.get("checks") or []
+        failed = sum(1 for check in checks if not check.get("passed"))
+        control_planes.append(
+            {
+                "id": name,
+                "score": round(float(payload.get("score", 0.0)), 4),
+                "status": _status_for_score(float(payload.get("score", 0.0))),
+                "failed_checks": failed,
+                "check_count": len(checks),
+            }
+        )
+    return control_planes
+
+
 def _build_graph_of_thought(
     sections: dict[str, dict[str, Any]],
     gate_passed: bool,
@@ -601,12 +891,24 @@ def _build_graph_of_thought(
 
     edges = [
         {"from": "pmbok", "to": "files"},
+        {"from": "architecture", "to": "terminal"},
+        {"from": "architecture", "to": "security"},
         {"from": "files", "to": "jobs"},
         {"from": "files", "to": "pipeline"},
+        {"from": "docs_truth", "to": "readme"},
+        {"from": "docs_truth", "to": "architecture"},
+        {"from": "docs_truth", "to": "pmbok"},
+        {"from": "terminal", "to": "docs_truth"},
+        {"from": "security", "to": "ethics"},
         {"from": "jobs", "to": "thresholds"},
         {"from": "pipeline", "to": "qa"},
+        {"from": "pipeline", "to": "security"},
+        {"from": "pipeline", "to": "performance"},
         {"from": "qa", "to": "thresholds"},
+        {"from": "performance", "to": "thresholds"},
         {"from": "thresholds", "to": "ethics"},
+        {"from": "terminal", "to": "release_readiness"},
+        {"from": "security", "to": "release_readiness"},
         {"from": "ethics", "to": "release_readiness"},
         {"from": "readme", "to": "release_readiness"},
     ]
@@ -621,12 +923,73 @@ def _build_interdisciplinary_lenses(
         return round(sum(values) / len(values), 4) if values else 0.0
 
     return {
-        "architecture": _avg("files", "jobs"),
-        "devops": _avg("pipeline", "jobs"),
-        "quality": _avg("qa", "thresholds"),
-        "governance": _avg("pmbok", "ethics"),
-        "documentation": _avg("readme"),
-        "performance": _avg("thresholds", "qa"),
+        "architecture": _avg("architecture", "files", "terminal"),
+        "security": _avg("security", "ethics", "pipeline"),
+        "devops": _avg("pipeline", "jobs", "performance"),
+        "quality": _avg("qa", "thresholds", "performance"),
+        "governance": _avg("pmbok", "ethics", "security"),
+        "documentation": _avg("readme", "docs_truth"),
+        "performance": _avg("thresholds", "performance", "qa"),
+        "operator_experience": _avg("terminal", "docs_truth"),
+        "ethical_integrity": _avg("ethics", "security", "thresholds"),
+    }
+
+
+def _build_ethical_integrity_posture(
+    sections: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
+    def _avg(*names: str) -> float:
+        values = [float(sections[name]["score"]) for name in names if name in sections]
+        return round(sum(values) / len(values), 4) if values else 0.0
+
+    ihsan = _avg("thresholds", "qa", "performance")
+    adl = _avg("ethics", "security", "terminal")
+    amanah = _avg("docs_truth", "security", "files")
+    overall = round((ihsan + adl + amanah) / 3.0, 4)
+
+    return {
+        "ihsan": {"score": ihsan, "status": _status_for_score(ihsan)},
+        "adl": {"score": adl, "status": _status_for_score(adl)},
+        "amanah": {"score": amanah, "status": _status_for_score(amanah)},
+        "overall": {"score": overall, "status": _status_for_score(overall)},
+    }
+
+
+def _build_implementation_strategy(
+    optimization_roadmap: list[dict[str, str]],
+    risk_register: list[dict[str, str]],
+    gate_passed: bool,
+) -> dict[str, Any]:
+    immediate = [item for item in optimization_roadmap if item.get("priority") in {"P0", "P1"}][:5]
+    next_actions = [item for item in optimization_roadmap if item.get("priority") == "P2"][:5]
+    later_actions = [item for item in optimization_roadmap if item.get("priority") == "P3"][:5]
+
+    if gate_passed:
+        current_phase = "promote_release_evidence"
+        phase_objective = "Promote the synchronized blueprint into protected release evidence."
+    elif any(item.get("priority") == "P0" for item in optimization_roadmap):
+        current_phase = "stabilize_truth_and_trust"
+        phase_objective = "Resolve constitutional, security, and config blockers before further feature expansion."
+    else:
+        current_phase = "lock_and_elevate"
+        phase_objective = "Close remaining P1/P2 control-plane gaps and raise proof quality."
+
+    return {
+        "program": "MASTERPIECE-2026: Provably Constitutional Runtime",
+        "current_phase": current_phase,
+        "phase_objective": phase_objective,
+        "priority_sequence": {
+            "immediate": immediate,
+            "next": next_actions,
+            "later": later_actions,
+        },
+        "sape_execution": {
+            "symbolic": "Repair invariants, thresholds, schemas, and config integrity first.",
+            "abstraction": "Realign architecture, documentation, and terminal truth-state against canonical contracts.",
+            "probe": "Validate with CI/CD gates, fuzz, benchmarks, and security checks before promotion.",
+            "elevation": "Promote only changes that improve SNR, preserve Ihsan, and reduce cascade risk.",
+        },
+        "priority_risks": risk_register[:5],
     }
 
 
@@ -688,6 +1051,25 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     pipeline_score, pipeline_checks = _check_pipeline_automation(
         reader, checks_cfg.get("pipeline_automation") or {}
     )
+    docs_truth_score, docs_truth_checks = _check_docs_truth(
+        reader, checks_cfg.get("docs_truth") or {}
+    )
+    architecture_score, architecture_checks = _check_control_plane(
+        reader,
+        checks_cfg.get("architecture_coherence") or {},
+        prefix="architecture",
+    )
+    security_score, security_checks = _check_control_plane(
+        reader,
+        checks_cfg.get("security_coherence") or {},
+        prefix="security",
+    )
+    terminal_score, terminal_checks = _check_terminal_contract(
+        reader, checks_cfg.get("terminal_contract") or {}
+    )
+    performance_score, performance_checks = _check_performance_controls(
+        reader, checks_cfg.get("performance_controls") or {}
+    )
     qa_score, qa_checks = _check_qa_controls(reader, checks_cfg.get("qa") or {})
     ethics_score, ethics_checks = _check_ethical_integrity(
         reader, checks_cfg.get("ethical_integrity") or {}
@@ -709,6 +1091,23 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "thresholds": {"score": round(threshold_score, 4), "checks": threshold_checks},
         "pmbok": {"score": round(pmbok_score, 4), "checks": pmbok_checks},
         "pipeline": {"score": round(pipeline_score, 4), "checks": pipeline_checks},
+        "docs_truth": {
+            "score": round(docs_truth_score, 4),
+            "checks": docs_truth_checks,
+        },
+        "architecture": {
+            "score": round(architecture_score, 4),
+            "checks": architecture_checks,
+        },
+        "security": {
+            "score": round(security_score, 4),
+            "checks": security_checks,
+        },
+        "terminal": {"score": round(terminal_score, 4), "checks": terminal_checks},
+        "performance": {
+            "score": round(performance_score, 4),
+            "checks": performance_checks,
+        },
         "qa": {"score": round(qa_score, 4), "checks": qa_checks},
         "ethics": {"score": round(ethics_score, 4), "checks": ethics_checks},
         "config": {"score": round(config_score, 4), "checks": config_checks},
@@ -732,9 +1131,17 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     gate_passed = (not hard_fail) and (weighted_score >= min_score)
     failed_checks = [c for c in all_checks if not c["passed"]]
     optimization_roadmap = _build_optimization_roadmap(failed_checks)
+    risk_register = _build_risk_register(failed_checks)
     snr = _build_snr(len(all_checks), len(failed_checks))
+    control_planes = _build_control_planes(sections)
     graph_of_thought = _build_graph_of_thought(sections, gate_passed)
     interdisciplinary_lenses = _build_interdisciplinary_lenses(sections)
+    ethical_integrity_posture = _build_ethical_integrity_posture(sections)
+    implementation_strategy = _build_implementation_strategy(
+        optimization_roadmap,
+        risk_register,
+        gate_passed,
+    )
     autonomous_next_step = _derive_autonomous_next_step(
         gate_passed, optimization_roadmap
     )
@@ -755,8 +1162,12 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "min_score": min_score,
         "weights_total": weights_total,
         "snr": snr,
+        "control_planes": control_planes,
         "graph_of_thought": graph_of_thought,
         "interdisciplinary_lenses": interdisciplinary_lenses,
+        "ethical_integrity_posture": ethical_integrity_posture,
+        "implementation_strategy": implementation_strategy,
+        "risk_register": risk_register,
         "standing_on_giants_protocol": giants_protocol,
         "autonomous_next_step": autonomous_next_step,
         "sections": sections,

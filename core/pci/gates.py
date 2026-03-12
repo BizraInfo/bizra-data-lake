@@ -46,7 +46,9 @@ import hmac
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
+if TYPE_CHECKING:
+    from core.sovereign.graph_types import ThoughtNode
 
 # Import unified thresholds from authoritative source
 from core.integration.constants import (
@@ -219,5 +221,32 @@ class PCIGateKeeper:
                     f"Policy hash mismatch: expected {self.constitution_hash[:16]}...",
                 )
         gates_passed.append("POLICY")
+
+        return VerificationResult(True, RejectCode.SUCCESS, "Verified", gates_passed)
+
+    def verify_thought(self, node: "ThoughtNode") -> VerificationResult:
+        """
+        Dynamically fires α-gates at GoT branch boundaries.
+        Evaluates internal ThoughtNodes against core Ihsān and SNR thresholds.
+        """
+        gates_passed = []
+
+        # Ihsan Gate
+        if node.ihsan_score < IHSAN_MINIMUM_THRESHOLD:
+            return VerificationResult(
+                False,
+                RejectCode.REJECT_IHSAN_BELOW_MIN,
+                f"Ihsan {node.ihsan_score:.3f} < {IHSAN_MINIMUM_THRESHOLD}",
+            )
+        gates_passed.append("IHSAN")
+
+        # SNR Gate (SEC-020: Shannon signal quality)
+        if node.snr_score < SNR_MINIMUM_THRESHOLD:
+            return VerificationResult(
+                False,
+                RejectCode.REJECT_SNR_BELOW_MIN,
+                f"SNR {node.snr_score:.3f} < {SNR_MINIMUM_THRESHOLD}",
+            )
+        gates_passed.append("SNR")
 
         return VerificationResult(True, RejectCode.SUCCESS, "Verified", gates_passed)

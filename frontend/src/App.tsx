@@ -8,7 +8,7 @@ const Splash = lazy(() => import('./phases/Splash'));
 const Genesis = lazy(() => import('./phases/Genesis'));
 const TeachSteps = lazy(() => import('./phases/TeachSteps'));
 const Assembly = lazy(() => import('./phases/Assembly'));
-const Dashboard = lazy(() => import('./phases/Dashboard'));
+const TerminalShell = lazy(() => import('./components/terminal/terminal-shell'));
 
 function LoadingFallback() {
   return (
@@ -88,7 +88,7 @@ export function App() {
         {session.phase === 'assembly' && (
           <Assembly userName={session.userName} config={session.config} onDone={handleAssemblyDone} />
         )}
-        {session.phase === 'dashboard' && <Dashboard userName={session.userName} config={session.config} />}
+        {session.phase === 'dashboard' && <TerminalShell />}
       </Suspense>
     </div>
   );

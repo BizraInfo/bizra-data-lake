@@ -3,6 +3,11 @@ BIZRA Sovereign Terminal — The Command Center
 ==============================================
 Drop into: core/terminal/sovereign_terminal.py
 
+This is a legacy/debug sovereignty interface.
+The canonical operator surface for Terminal v1 is the frontend TerminalShell
+over `/v1/plan`; this module remains useful for local debugging and internal
+inspection, but should not be treated as the production terminal authority.
+
 This is not a CLI wrapper. This is the sovereignty interface.
 Every command available here works offline, on-device, with zero
 cloud dependency. This is what makes "every human a node" real

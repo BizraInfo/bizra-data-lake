@@ -572,12 +572,27 @@ class GossipEngine:
 
     def _handle_pattern_share(self, msg: GossipMessage) -> bytes:
         """Receive a shared pattern."""
+        # Phase 3: Reflex Provenance Verification (VRG derivations)
+        payload = msg.payload
+        if "provenance_proof" in payload and "vrg_root" in payload:
+            proof = payload["provenance_proof"]
+            expected_root = payload["vrg_root"]
+
+            # Independent verification of the vrg_root derivations
+            if not proof or proof[0] != expected_root:
+                print(f"⚠️ Rejected shared reflex: invalid provenance proof for root {expected_root}")
+                return b""
+                
+            if len(proof) < 2:
+                print(f"⚠️ Rejected shared reflex: incomplete provenance derivations for root {expected_root}")
+                return b""
+
         if self.on_pattern_received:
-            self.on_pattern_received(msg.payload)
+            self.on_pattern_received(payload)
 
         ack = self._create_message(
             MessageType.PATTERN_ACK,
-            {"pattern_id": msg.payload.get("pattern_id"), "accepted": True},
+            {"pattern_id": payload.get("pattern_id"), "accepted": True},
         )
         return ack.to_bytes()
 

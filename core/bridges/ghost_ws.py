@@ -56,7 +56,14 @@ def _production_mode_enabled() -> bool:
 def _allowed_origins() -> list[str]:
     """Return the explicit CORS allowlist for the current mode."""
     if not _production_mode_enabled():
-        return ["*"]
+        return [
+            "http://127.0.0.1",
+            "http://localhost",
+            "http://127.0.0.1:5173",
+            "http://localhost:5173",
+            "http://127.0.0.1:9743",
+            "http://localhost:9743",
+        ]
     raw = os.getenv(
         "GHOST_WS_ALLOWED_ORIGINS",
         "http://127.0.0.1,http://localhost,http://127.0.0.1:9743,http://localhost:9743,null",

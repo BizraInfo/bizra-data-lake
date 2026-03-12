@@ -20,6 +20,9 @@ pyo3 = { version = "0.24", features = ["extension-module"] }
 serde_json = "1.0"
 tokio = { workspace = true }
 uuid = { workspace = true }
+pqcrypto-mldsa = { workspace = true }
+pqcrypto-traits = { workspace = true }
+hex = { workspace = true }
 
 [build-dependencies]
 pyo3-build-config = "0.24"

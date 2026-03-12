@@ -1,0 +1,37 @@
+{
+  "program": {
+    "id": "masterpiece_program_board",
+    "name": "BIZRA Masterpiece Program Board",
+    "version": "1.1.0",
+    "date": "2026-03-12",
+    "status": "active",
+    "objective": "Fuse blueprint governance, autonomous engine readiness, canonical empirical validation, ethical posture, and execution workstreams into one machine-readable masterpiece board."
+  },
+  "source_artifacts": {
+    "genesis_execution_framework": "config/genesis_execution_framework.json",
+    "mastery_framework": "config/mastery_framework_roadmap.json",
+    "optimization_blueprint": "config/bizra_unified_optimization_blueprint.json"
+  },
+  "score_weights": {
+    "blueprint": 0.35,
+    "autonomous": 0.25,
+    "snr": 0.15,
+    "empirical": 0.25
+  },
+  "thresholds": {
+    "min_board_score": 0.93,
+    "require_blueprint_gate": true,
+    "require_autonomous_gate": true,
+    "require_canonical_empirical_gate": true
+  },
+  "max_top_workstreams": 10,
+  "giants_protocol": [
+    "Shannon:SNR maximization",
+    "Besta:graph-of-thought reasoning topology",
+    "Boyd:OODA fast loops",
+    "Lamport:deterministic evidence ordering",
+    "Deming:PDCA quality ratchet",
+    "PMBOK:lifecycle governance",
+    "Al-Ghazali:Ihsan as hard floor"
+  ]
+}
