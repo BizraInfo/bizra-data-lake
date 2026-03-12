@@ -12,6 +12,7 @@ Standing on Giants:
 from __future__ import annotations
 
 import os
+from types import SimpleNamespace
 
 import pytest
 
@@ -44,6 +45,8 @@ def plan_client(tmp_path, monkeypatch):
     runtime._constitutional_event_log = []
     runtime._constitutional_reflex_cache = {}
     runtime.inference_gateway = None
+    # Disable Node0 so legacy tests exercise _submit_mission_to_tick fallback
+    runtime._node0 = None
 
     from core.sovereign.api import create_fastapi_app
 
@@ -74,7 +77,7 @@ async def test_plan_returns_receipted_result(plan_client):
         assert "synthesis" in data
         assert "ihsan_score" in data
         assert "snr_score" in data
-        assert "evidence_receipt_id" in data or "receipt_id" in data
+        assert "receipt_id" in data
         assert "duration_ms" in data
         assert isinstance(data["channels_executed"], list)
         # Contract §8.1: enriched receipt fields always present
@@ -143,6 +146,8 @@ def plan_runtime(tmp_path, monkeypatch):
     runtime._constitutional_event_log = []
     runtime._constitutional_reflex_cache = {}
     runtime.inference_gateway = None
+    # Disable Node0 so this fixture tests the legacy _submit_mission_to_tick path
+    runtime._node0 = None
 
     from core.sovereign.api import create_fastapi_app
 
@@ -180,7 +185,7 @@ async def test_plan_system1_reflex_cache_hit(plan_client, monkeypatch):
             )
             assert resp.status_code == 200
             data = resp.json()
-            assert data["execution_path"] == "system_1_reflex"
+            assert data["execution_path"] == "SYSTEM_1_CACHE_HIT"
             assert "autopoiesis" in data["synthesis"].lower()
             assert data["ihsan_score"] == 0.97
             assert data["duration_ms"] < 1.0
@@ -207,12 +212,10 @@ async def test_plan_system2_records_observation(plan_client, monkeypatch):
             assert resp.status_code == 200
             data = resp.json()
             # Should have gone through System-2
-            assert data["execution_path"] in ("system_2", "SYSTEM_2")
+            assert data["execution_path"] == "SYSTEM_2_NOVEL"
 
             # Compiler should have recorded the observation
-            pattern_hash = compiler._hash_input(
-                "a unique test query for precipitation"
-            )
+            pattern_hash = compiler._hash_input("a unique test query for precipitation")
             assert pattern_hash in compiler._candidates
             candidate = compiler._candidates[pattern_hash]
             assert len(candidate.observations) == 1
@@ -239,3 +242,143 @@ async def test_plan_feeds_constitutional_tick_queue(plan_runtime):
     assert receipt.action_type == "mission"
     assert receipt.intent_score > 0
     assert receipt.impact_score > 0
+
+
+@pytest.mark.integration
+async def test_plan_verified_proof_mode_returns_reasoning_proof(plan_runtime):
+    """Verified missions should surface VRG proof metadata on the receipt."""
+    client, runtime = plan_runtime
+
+    async def _reason_verified(query, context=None):
+        del query, context
+        return SimpleNamespace(
+            vrg_root="vrg-root-001",
+            verified=True,
+            branch_certificates=[
+                {"included_in_root": True},
+                {"included_in_root": True},
+                {"included_in_root": False},
+            ],
+            receipt=SimpleNamespace(
+                receipt_id="proof-receipt-001",
+                status=SimpleNamespace(value="ACCEPTED"),
+                payload_digest=bytes.fromhex("11" * 32),
+                reason="",
+            ),
+        )
+
+    runtime._got_bridge = SimpleNamespace(reason_verified=_reason_verified)
+
+    async with client:
+        resp = await client.post(
+            "/v1/plan",
+            json={
+                "description": "Generate a verified reasoning proof for this mission",
+                "source": "terminal",
+                "proof_mode": "verified",
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+
+    assert data["reasoning_proof"]["vrg_root"] == "vrg-root-001"
+    assert data["reasoning_proof"]["verified"] is True
+    assert data["reasoning_proof"]["receipt_id"] == "proof-receipt-001"
+    assert data["reasoning_proof"]["surviving_branches"] == 2
+    assert data["reasoning_proof"]["branch_count"] == 3
+
+
+# ─── Node0 Canonical Ingest Authority ────────────────────────────────
+
+
+@pytest.fixture
+def plan_client_with_node0(tmp_path, monkeypatch):
+    """Test client with Node0Heartbeat booted and wired to runtime.
+
+    ASGITransport does not trigger lifespan events, so we boot Node0
+    in the fixture and wire it to runtime._node0 directly — matching
+    what the lifespan does in production.
+    """
+    from httpx import ASGITransport, AsyncClient
+
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+    monkeypatch.setenv("SEMANTIC_MEMORY_PATH", str(tmp_path / "memory"))
+    monkeypatch.setenv("EVENT_LOG_PATH", str(tmp_path / "events"))
+    monkeypatch.setenv("NODE0_STATE_DIR", str(tmp_path / "api_node0"))
+    monkeypatch.setenv(
+        "BIZRA_RECEIPT_PRIVATE_KEY_HEX",
+        "1111111111111111111111111111111111111111111111111111111111111111",
+    )
+
+    from unittest.mock import MagicMock
+
+    from core.node0.heartbeat import Node0Heartbeat
+
+    runtime = MagicMock()
+    runtime.config = MagicMock()
+    runtime.config.state_dir = tmp_path / "state"
+    runtime.config.state_dir.mkdir(parents=True, exist_ok=True)
+    runtime._constitutional_wallets = []
+    runtime._constitutional_receipts = []
+    runtime._constitutional_proposals = []
+    runtime._constitutional_event_log = []
+    runtime._constitutional_reflex_cache = {}
+    runtime.inference_gateway = None
+
+    # Boot Node0 — mirrors what _lifespan() does in production
+    node0 = Node0Heartbeat(data_dir=tmp_path / "api_node0")
+    node0.boot()
+    runtime._node0 = node0
+
+    from core.sovereign.api import create_fastapi_app
+
+    app = create_fastapi_app(runtime)
+    transport = ASGITransport(app=app)
+    return AsyncClient(transport=transport, base_url="http://testserver"), runtime
+
+
+@pytest.mark.integration
+async def test_plan_feeds_node0_canonical_authority(plan_client_with_node0):
+    """POST /v1/plan feeds Node0Heartbeat — the canonical ingest authority.
+
+    Proves: API mission → receipt → Node0.ingest_mission_receipt()
+    instead of the legacy parallel _submit_mission_to_tick() bridge.
+
+    Standing on Giants:
+      Nakamoto (2008) — one chain, one authority
+      Deming (1950)   — PDCA: every mission closes through one loop
+    """
+    client, runtime = plan_client_with_node0
+    async with client:
+        # After lifespan, runtime._node0 should be a real Node0Heartbeat
+        node0 = runtime._node0
+        assert node0 is not None, "Node0Heartbeat not booted in API lifespan"
+        assert node0._booted is True
+
+        # Record pending receipts before mission
+        helix3 = node0._helix3
+        before = len(helix3._pending_receipts) if helix3 else 0
+
+        resp = await client.post(
+            "/v1/plan",
+            json={
+                "description": "Test canonical Node0 ingest from API",
+                "source": "test",
+            },
+        )
+        assert resp.status_code == 200
+
+        # Verify Node0 received exactly one receipt (not zero, not two)
+        if helix3:
+            after = len(helix3._pending_receipts)
+            added = after - before
+            assert added == 1, (
+                f"Expected 1 pending receipt in Node0 Helix3, got {added}. "
+                f"API is not feeding Node0 canonical authority."
+            )
+
+        # Verify legacy tick bridge was NOT called (receipts list unchanged)
+        assert runtime._constitutional_receipts == [], (
+            "Legacy _submit_mission_to_tick was called alongside Node0 — "
+            "should be bypassed when Node0 is active."
+        )
