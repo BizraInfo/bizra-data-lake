@@ -1,0 +1,91 @@
+{
+  "anti_gaming_message": "All checks passed",
+  "anti_gaming_passed": true,
+  "benchmark": "hle",
+  "campaign_report": {
+    "agent_id": "bizra-sovereign",
+    "avg_kami_score": 0.929604574676706,
+    "benchmarks_attempted": [
+      "hle"
+    ],
+    "completed": 1,
+    "sota_benchmarks": [
+      "hle"
+    ],
+    "sota_count": 1,
+    "submissions": [
+      {
+        "benchmark": "hle",
+        "kami": 0.929604574676706,
+        "rank": 1,
+        "score": 0.862037
+      }
+    ],
+    "total_cost_usd": 0.000636,
+    "total_submissions": 1
+  },
+  "gate_status": {
+    "budget": {
+      "passed": true,
+      "reason": "per-task and campaign budget policy",
+      "threshold": {
+        "max_cost_per_task_usd": 1.5,
+        "max_p95_latency_ms": 45000,
+        "max_tokens_per_task": 120000,
+        "max_tokens_total": 600000,
+        "max_total_campaign_cost_usd": 15.0
+      },
+      "value": {
+        "cost_mean_usd": 0.001007,
+        "latency_p95_ms": 1607.039,
+        "running_total_cost": 0.001084,
+        "running_total_tokens": 3137,
+        "tokens_mean": 504
+      }
+    },
+    "integrity": {
+      "passed": true,
+      "reason": "ABC validation and integrity profile checks",
+      "threshold": true,
+      "value": true
+    },
+    "reproducibility": {
+      "passed": true,
+      "reason": "seed sweep and variance check",
+      "threshold": 0.02,
+      "value": 1.1e-05
+    },
+    "submission": {
+      "passed": true,
+      "reason": "anti-gaming submission validation",
+      "threshold": true,
+      "value": true
+    }
+  },
+  "mode": "strict",
+  "responses_hash": "cfbb56aa3fdf308b1a66ad436727bec9b20b34f1bb047890af3420b1d13d16ad",
+  "result": {
+    "cost_usd": 0.000636,
+    "is_sota": true,
+    "kami_score": 0.929605,
+    "latency_total_ms": 2077.73,
+    "normalized_score": 0.862037,
+    "rank": 1,
+    "raw_score": 0.862037,
+    "tokens_used": 318,
+    "total_participants": 1
+  },
+  "run_id": "7f9f635793b6",
+  "sota_comparison": {
+    "beats_sota": true,
+    "benchmark": "hle",
+    "gap": 0.36203700000000005,
+    "kami_score": 0.929604574676706,
+    "our_score": 0.862037,
+    "pct_of_sota": 172.40740000000002,
+    "sota_2025": 0.5
+  },
+  "submission_id": "023e9ea1-594",
+  "target": "hle",
+  "timestamp_utc": "2026-03-12T20:30:53.974467+00:00"
+}

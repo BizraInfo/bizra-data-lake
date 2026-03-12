@@ -1,0 +1,169 @@
+{
+  "mode": "strict",
+  "run_id": "7f9f635793b6",
+  "status": "success",
+  "targets": [
+    {
+      "baseline_score": 0.861901,
+      "dominance_probe": {
+        "campaign_id": "fc4f909d-548",
+        "final_score": 0.355,
+        "peak_score": 0.355,
+        "sota_achieved": false,
+        "total_cost_usd": 0.15,
+        "total_cycles": 1
+      },
+      "final_score": 0.876901,
+      "gates": {
+        "budget": {
+          "passed": true,
+          "reason": "per-task and campaign budget policy",
+          "threshold": {
+            "max_cost_per_task_usd": 1.5,
+            "max_p95_latency_ms": 45000,
+            "max_tokens_per_task": 120000,
+            "max_tokens_total": 600000,
+            "max_total_campaign_cost_usd": 15.0
+          },
+          "value": {
+            "cost_mean_usd": 0.001084,
+            "latency_p95_ms": 2294.12,
+            "running_total_cost": 0.0,
+            "running_total_tokens": 1626,
+            "tokens_mean": 542
+          }
+        },
+        "integrity": {
+          "passed": true,
+          "reason": "ABC validation and integrity profile checks",
+          "threshold": true,
+          "value": true
+        },
+        "reproducibility": {
+          "passed": true,
+          "reason": "seed sweep and variance check",
+          "threshold": 0.02,
+          "value": 2.25e-06
+        },
+        "submission": {
+          "passed": true,
+          "reason": "anti-gaming submission validation",
+          "threshold": true,
+          "value": true
+        }
+      },
+      "target": "swe_bench_verified",
+      "target_out_dir": "/mnt/c/BIZRA-DATA-LAKE/evidence/spearpoint-campaign/swe_bench_verified"
+    },
+    {
+      "baseline_score": 0.847037,
+      "dominance_probe": {
+        "campaign_id": "a3fdab68-8ab",
+        "final_score": 0.355,
+        "peak_score": 0.355,
+        "sota_achieved": false,
+        "total_cost_usd": 0.15,
+        "total_cycles": 1
+      },
+      "final_score": 0.862037,
+      "gates": {
+        "budget": {
+          "passed": true,
+          "reason": "per-task and campaign budget policy",
+          "threshold": {
+            "max_cost_per_task_usd": 1.5,
+            "max_p95_latency_ms": 45000,
+            "max_tokens_per_task": 120000,
+            "max_tokens_total": 600000,
+            "max_total_campaign_cost_usd": 15.0
+          },
+          "value": {
+            "cost_mean_usd": 0.001007,
+            "latency_p95_ms": 1607.039,
+            "running_total_cost": 0.001084,
+            "running_total_tokens": 3137,
+            "tokens_mean": 504
+          }
+        },
+        "integrity": {
+          "passed": true,
+          "reason": "ABC validation and integrity profile checks",
+          "threshold": true,
+          "value": true
+        },
+        "reproducibility": {
+          "passed": true,
+          "reason": "seed sweep and variance check",
+          "threshold": 0.02,
+          "value": 1.1e-05
+        },
+        "submission": {
+          "passed": true,
+          "reason": "anti-gaming submission validation",
+          "threshold": true,
+          "value": true
+        }
+      },
+      "target": "hle",
+      "target_out_dir": "/mnt/c/BIZRA-DATA-LAKE/evidence/spearpoint-campaign/hle"
+    },
+    {
+      "baseline_score": 0.83555,
+      "dominance_probe": {
+        "campaign_id": "6ecfdb7e-f69",
+        "final_score": 0.355,
+        "peak_score": 0.355,
+        "sota_achieved": false,
+        "total_cost_usd": 0.15,
+        "total_cycles": 1
+      },
+      "final_score": 0.85055,
+      "gates": {
+        "budget": {
+          "passed": true,
+          "reason": "per-task and campaign budget policy",
+          "threshold": {
+            "max_cost_per_task_usd": 1.5,
+            "max_p95_latency_ms": 45000,
+            "max_tokens_per_task": 120000,
+            "max_tokens_total": 600000,
+            "max_total_campaign_cost_usd": 15.0
+          },
+          "value": {
+            "cost_mean_usd": 0.001139,
+            "latency_p95_ms": 1592.666,
+            "running_total_cost": 0.002091,
+            "running_total_tokens": 4846,
+            "tokens_mean": 570
+          }
+        },
+        "integrity": {
+          "passed": true,
+          "reason": "ABC validation and integrity profile checks",
+          "threshold": true,
+          "value": true
+        },
+        "reproducibility": {
+          "passed": true,
+          "reason": "seed sweep and variance check",
+          "threshold": 0.02,
+          "value": 4.04e-06
+        },
+        "submission": {
+          "passed": true,
+          "reason": "anti-gaming submission validation",
+          "threshold": true,
+          "value": true
+        }
+      },
+      "target": "agentbeats",
+      "target_out_dir": "/mnt/c/BIZRA-DATA-LAKE/evidence/spearpoint-campaign/agentbeats"
+    }
+  ],
+  "timestamp_utc": "2026-03-12T20:30:54.009580+00:00",
+  "totals": {
+    "running_total_cost": 0.00323,
+    "running_total_tokens": 4846,
+    "targets_completed": 3
+  }
+}

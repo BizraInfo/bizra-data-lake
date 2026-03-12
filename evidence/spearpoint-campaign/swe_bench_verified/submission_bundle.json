@@ -1,0 +1,91 @@
+{
+  "anti_gaming_message": "All checks passed",
+  "anti_gaming_passed": true,
+  "benchmark": "swe-bench",
+  "campaign_report": {
+    "agent_id": "bizra-sovereign",
+    "avg_kami_score": 0.9354790216013551,
+    "benchmarks_attempted": [
+      "swe-bench"
+    ],
+    "completed": 1,
+    "sota_benchmarks": [
+      "swe-bench"
+    ],
+    "sota_count": 1,
+    "submissions": [
+      {
+        "benchmark": "swe-bench",
+        "kami": 0.9354790216013551,
+        "rank": 1,
+        "score": 0.876901
+      }
+    ],
+    "total_cost_usd": 0.00047,
+    "total_submissions": 1
+  },
+  "gate_status": {
+    "budget": {
+      "passed": true,
+      "reason": "per-task and campaign budget policy",
+      "threshold": {
+        "max_cost_per_task_usd": 1.5,
+        "max_p95_latency_ms": 45000,
+        "max_tokens_per_task": 120000,
+        "max_tokens_total": 600000,
+        "max_total_campaign_cost_usd": 15.0
+      },
+      "value": {
+        "cost_mean_usd": 0.001084,
+        "latency_p95_ms": 2294.12,
+        "running_total_cost": 0.0,
+        "running_total_tokens": 1626,
+        "tokens_mean": 542
+      }
+    },
+    "integrity": {
+      "passed": true,
+      "reason": "ABC validation and integrity profile checks",
+      "threshold": true,
+      "value": true
+    },
+    "reproducibility": {
+      "passed": true,
+      "reason": "seed sweep and variance check",
+      "threshold": 0.02,
+      "value": 2.25e-06
+    },
+    "submission": {
+      "passed": true,
+      "reason": "anti-gaming submission validation",
+      "threshold": true,
+      "value": true
+    }
+  },
+  "mode": "strict",
+  "responses_hash": "fb55339bc3f8be6888ac50cf0d56fa5f15223f9102bfd24053b19a42946dd2c9",
+  "result": {
+    "cost_usd": 0.00047,
+    "is_sota": true,
+    "kami_score": 0.935479,
+    "latency_total_ms": 2107.851,
+    "normalized_score": 0.876901,
+    "rank": 1,
+    "raw_score": 0.876901,
+    "tokens_used": 235,
+    "total_participants": 1
+  },
+  "run_id": "7f9f635793b6",
+  "sota_comparison": {
+    "beats_sota": true,
+    "benchmark": "swe-bench",
+    "gap": 0.45690100000000006,
+    "kami_score": 0.9354790216013551,
+    "our_score": 0.876901,
+    "pct_of_sota": 208.7859523809524,
+    "sota_2025": 0.42
+  },
+  "submission_id": "312aeb20-7f8",
+  "target": "swe_bench_verified",
+  "timestamp_utc": "2026-03-12T20:30:53.944275+00:00"
+}

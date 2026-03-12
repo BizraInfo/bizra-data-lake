@@ -1,0 +1,89 @@
+{
+  "abc": {
+    "passed": true,
+    "report": "\u2550\u2550\u2550 AGENTIC BENCHMARK CHECKLIST (ABC) \u2550\u2550\u2550\n\n  \u2705 sufficient_test_cases: Minimum 100 test cases per task type\n  \u2705 diverse_task_distribution: Tasks span multiple difficulty levels\n  \u2705 no_reward_hacking: Reward signal resistant to gaming\n  \u2705 temporal_holdout: Test data from after training cutoff\n  \u2705 adversarial_probes: Includes adversarial perturbations\n  \u2705 null_model_baseline: Generic response baseline computed\n  \u2705 human_baseline: Human performance benchmark available\n  \u2705 multi_run_consistency: Results averaged across 3+ runs\n  \u2705 cost_tracking: Full cost accounting enabled\n  \u2705 failure_analysis: Failure modes categorized and reported\n\nABC Score: 100.0%\nStatus: PASSED"
+  },
+  "clear": {
+    "aggregate_score": 0.83555,
+    "count": 3,
+    "ihsan_rate": 0.0,
+    "std_dev": 0.00246
+  },
+  "gate_status": {
+    "budget": {
+      "passed": true,
+      "reason": "per-task and campaign budget policy",
+      "threshold": {
+        "max_cost_per_task_usd": 1.5,
+        "max_p95_latency_ms": 45000,
+        "max_tokens_per_task": 120000,
+        "max_tokens_total": 600000,
+        "max_total_campaign_cost_usd": 15.0
+      },
+      "value": {
+        "cost_mean_usd": 0.001139,
+        "latency_p95_ms": 1592.666,
+        "running_total_cost": 0.002091,
+        "running_total_tokens": 4846,
+        "tokens_mean": 570
+      }
+    },
+    "integrity": {
+      "passed": true,
+      "reason": "ABC validation and integrity profile checks",
+      "threshold": true,
+      "value": true
+    },
+    "reproducibility": {
+      "passed": true,
+      "reason": "seed sweep and variance check",
+      "threshold": 0.02,
+      "value": 4.04e-06
+    },
+    "submission": {
+      "passed": true,
+      "reason": "anti-gaming submission validation",
+      "threshold": true,
+      "value": true
+    }
+  },
+  "mode": "strict",
+  "run_id": "7f9f635793b6",
+  "seed_statistics": {
+    "cost_mean_usd": 0.001139,
+    "latency_p95_ms": 1592.666,
+    "score_mean": 0.83555,
+    "score_variance": 4.04e-06,
+    "seed_count": 3,
+    "tokens_mean": 570,
+    "tokens_total": 1709
+  },
+  "seed_sweep": [
+    {
+      "accuracy": 0.645075,
+      "clear_score": 0.834748,
+      "cost_usd": 0.001404,
+      "latency_ms": 1028.871,
+      "seed": 0,
+      "tokens": 702
+    },
+    {
+      "accuracy": 0.643469,
+      "clear_score": 0.833591,
+      "cost_usd": 0.000704,
+      "latency_ms": 1592.666,
+      "seed": 1,
+      "tokens": 352
+    },
+    {
+      "accuracy": 0.649275,
+      "clear_score": 0.838312,
+      "cost_usd": 0.00131,
+      "latency_ms": 1559.968,
+      "seed": 2,
+      "tokens": 655
+    }
+  ],
+  "target": "agentbeats",
+  "timestamp_utc": "2026-03-12T20:30:53.986570+00:00"
+}
