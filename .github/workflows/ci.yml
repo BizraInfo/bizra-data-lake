@@ -95,6 +95,9 @@ jobs:
       - name: "SEC-003: Exception specificity gate (boundary modules)"
         run: python scripts/ci_exception_audit.py --scan-dirs core/agentic core/a2a core/bus --baseline 20
 
+      - name: "SEC-003b: Exception specificity gate (sovereign surfaces)"
+        run: python scripts/ci_exception_audit.py --scan-dirs core/sovereign core/node0 core/reasoning --baseline 157
+
   lint-rust:
     name: Lint Rust
     runs-on: ubuntu-24.04
