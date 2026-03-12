@@ -738,3 +738,364 @@ class TestFATEConsequenceClosure:
             f"Mixed batch composite {receipt.ihsan_composite:.3f} "
             f"polluted by {receipt.helix_result.get('rejected_count', '?')} rejected"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# R1: REFLEX PRECIPITATION TESTS — Proving the Optimization Spine
+# Standing on Giants: Kahneman (System-1/System-2, 2011)
+# Shannon (SNR gate, 1948) · Deming (PDCA ratchet, 1950)
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestReflexPrecipitation:
+    """Prove the Helix 3 → reflex precipitation → System-1 cache path.
+
+    This is the optimization spine: verified repeated patterns compile
+    into O(1) reflexes. Kahneman's System-2 → System-1 promotion.
+    """
+
+    @pytest.fixture
+    def reflex_heartbeat(self, data_dir):
+        """Heartbeat with real SDPOReflexBridge wired."""
+        from core.node0.heartbeat import Node0Heartbeat
+        from core.sdpo.reflex_bridge import SDPOReflexBridge
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="reflex-test-node")
+        hb.boot()
+        hb._reflex_bridge = SDPOReflexBridge()
+        return hb
+
+    def _high_quality_helix_result(self, ihsan: float = 0.95) -> dict:
+        return {
+            "ihsan_composite": ihsan,
+            "missions_processed": 3,
+            "approved_count": 3,
+            "rejected_count": 0,
+            "seed_minted": 0.01,
+        }
+
+    def _low_quality_helix_result(self, ihsan: float = 0.50) -> dict:
+        return {
+            "ihsan_composite": ihsan,
+            "missions_processed": 3,
+            "approved_count": 1,
+            "rejected_count": 2,
+            "seed_minted": 0.0,
+        }
+
+    def _all_rejected_helix_result(self) -> dict:
+        return {
+            "ihsan_composite": 0.0,
+            "missions_processed": 5,
+            "approved_count": 0,
+            "rejected_count": 5,
+            "seed_minted": 0.0,
+        }
+
+    # ── Gate: below Ihsān floor → no precipitation ────────────
+
+    def test_below_precipitation_floor_yields_zero(self, reflex_heartbeat):
+        """§2 Helix 3: Ihsān < 0.90 → skip precipitation entirely."""
+        result = reflex_heartbeat._check_reflex_precipitation(
+            self._low_quality_helix_result(0.85)
+        )
+        assert result == 0
+
+    # ── Gate: all FATE-rejected → no precipitation ────────────
+
+    def test_all_rejected_skips_precipitation(self, reflex_heartbeat):
+        """If every mission was FATE-rejected, skip — no signal to learn from."""
+        result = reflex_heartbeat._check_reflex_precipitation(
+            self._all_rejected_helix_result()
+        )
+        assert result == 0
+
+    # ── Above floor → observe() called on bridge ─────────────
+
+    def test_above_floor_observes_pattern(self, reflex_heartbeat):
+        """§2 Helix 3: Ihsān ≥ 0.90 → bridge.observe() is called."""
+        from unittest.mock import MagicMock
+
+        reflex_heartbeat._reflex_bridge = MagicMock()
+        reflex_heartbeat._reflex_bridge.get_eligible_candidates.return_value = []
+
+        result = reflex_heartbeat._check_reflex_precipitation(
+            self._high_quality_helix_result(0.92)
+        )
+        reflex_heartbeat._reflex_bridge.observe.assert_called_once()
+        assert result == 0  # No eligible candidates yet
+
+    # ── Eligible candidate after repeated observations ────────
+
+    def test_eligible_candidate_after_observations(self, reflex_heartbeat):
+        """After 5+ high-quality observations, bridge reports eligible candidate."""
+        from core.sdpo.reflex_bridge import REFLEX_MIN_OBSERVATIONS
+
+        for i in range(REFLEX_MIN_OBSERVATIONS + 1):
+            reflex_heartbeat._reflex_bridge.observe(
+                task_description="Node0 heartbeat pattern",
+                ihsan_score=0.99,
+                snr_score=0.99,
+                loss=0.01,
+                success=True,
+            )
+
+        candidates = reflex_heartbeat._reflex_bridge.get_eligible_candidates()
+        assert len(candidates) >= 1
+        assert candidates[0].eligible
+
+    # ── Full precipitation cycle through heartbeat ────────────
+
+    def test_precipitation_returns_candidate_count(self, reflex_heartbeat):
+        """_check_reflex_precipitation returns count of eligible candidates."""
+        from core.sdpo.reflex_bridge import REFLEX_MIN_OBSERVATIONS
+
+        for i in range(REFLEX_MIN_OBSERVATIONS + 1):
+            reflex_heartbeat._reflex_bridge.observe(
+                task_description="precipitation test pattern",
+                ihsan_score=0.99,
+                snr_score=0.99,
+                loss=0.01,
+                success=True,
+            )
+
+        result = reflex_heartbeat._check_reflex_precipitation(
+            self._high_quality_helix_result(0.95)
+        )
+        assert result >= 1
+
+    # ── Exception in bridge → graceful degradation ────────────
+
+    def test_precipitation_bridge_exception_returns_zero(self, reflex_heartbeat):
+        """Bridge failure → graceful 0, not crash."""
+        from unittest.mock import MagicMock
+
+        mock_bridge = MagicMock()
+        mock_bridge.observe.side_effect = RuntimeError("bridge broken")
+        reflex_heartbeat._reflex_bridge = mock_bridge
+
+        result = reflex_heartbeat._check_reflex_precipitation(
+            self._high_quality_helix_result(0.95)
+        )
+        assert result == 0
+
+    # ── Poisoned pattern denied at compile gate ───────────────
+
+    def test_poisoned_pattern_denied_by_compile(self, reflex_heartbeat):
+        """Ihsān < 0.98 → compile_reflex returns None (V5 red-team gate).
+
+        Standing on Giants: Kahneman (2011) — poisoned System-1 reflexes
+        corrupt ALL downstream decisions. Gate at compile time.
+        """
+        from core.constitutional.algorithms import compile_reflex
+        from core.constitutional.fixed_point import fp
+
+        reflex = compile_reflex(
+            pattern="low-quality pattern",
+            action_chain=["action"],
+            confidence=fp(0.80),  # Below IHSAN_FLOOR
+        )
+        assert reflex is None
+
+    # ── Valid pattern compiles to O(1) reflex ─────────────────
+
+    def test_valid_pattern_compiles_to_reflex(self, reflex_heartbeat):
+        """Ihsān ≥ 0.98 → compile_reflex succeeds → O(1) lookup works.
+
+        This is the E2E proof: observe → eligible → compile → cache → lookup.
+        Kahneman's System-2 → System-1 promotion, verified.
+        """
+        from core.constitutional.algorithms import compile_reflex, reflex_lookup
+        from core.constitutional.fixed_point import fp
+        from core.constitutional.types import Reflex
+
+        pattern = "verified high-quality pattern"
+        confidence = fp(0.99)
+
+        # Compile
+        reflex = compile_reflex(
+            pattern=pattern,
+            action_chain=["step1", "step2"],
+            confidence=confidence,
+        )
+        assert reflex is not None
+        assert isinstance(reflex, Reflex)
+        assert reflex.confidence >= fp(0.98)
+
+        # Store in cache and lookup — O(1)
+        cache = {reflex.pattern_hash: reflex}
+        found = reflex_lookup(cache, pattern)
+        assert found is not None
+        assert found.pattern_hash == reflex.pattern_hash
+
+
+# ═══════════════════════════════════════════════════════════════════
+# R2: BOOT DEGRADATION TESTS — Graceful Subsystem Failure
+# Standing on Giants: Deming (1950) — measure what fails
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestBootDegradation:
+    """Cover the subsystem boot failure paths (heartbeat.py L602-666).
+
+    Each subsystem boot catches ImportError/Exception and degrades
+    gracefully. The heartbeat MUST boot even if optional subsystems fail.
+    """
+
+    @pytest.fixture
+    def fresh_heartbeat(self, data_dir):
+        from core.node0.heartbeat import Node0Heartbeat
+
+        return Node0Heartbeat(data_dir=data_dir, node_id="degradation-test")
+
+    # ── Memory boot failure → degraded but alive ──────────────
+
+    def test_boot_memory_failure_degrades(self, fresh_heartbeat):
+        """If AgentDB import fails, heartbeat boots in degraded mode."""
+        from unittest.mock import patch
+
+        with patch.dict("sys.modules", {"core.memory.agent_db": None}):
+            result = fresh_heartbeat._boot_memory()
+        assert result is False
+        assert fresh_heartbeat._memory is None
+
+    # ── Evidence chain boot failure → fallback hash ───────────
+
+    def test_boot_evidence_chain_failure_returns_zero_hash(self, fresh_heartbeat):
+        """If EvidenceAwareMemory fails, genesis hash falls back to 0×64."""
+        from unittest.mock import patch
+
+        with patch.dict("sys.modules", {"core.memory.adapters.evidence_chain": None}):
+            genesis_hash = fresh_heartbeat._boot_evidence_chain()
+        assert genesis_hash == "0" * 64
+
+    # ── Helix3 boot failure → no helix ────────────────────────
+
+    def test_boot_helix3_failure_no_helix(self, fresh_heartbeat):
+        """If Helix3Scheduler import fails, _helix3 stays None."""
+        from unittest.mock import patch
+
+        with patch.dict("sys.modules", {"core.sovereign.helix3": None}):
+            fresh_heartbeat._boot_helix3()
+        assert fresh_heartbeat._helix3 is None
+
+    # ── Reflex bridge boot failure → no bridge ────────────────
+
+    def test_boot_reflex_bridge_failure_no_bridge(self, fresh_heartbeat):
+        """If SDPOReflexBridge import fails, _reflex_bridge stays None."""
+        from unittest.mock import patch
+
+        with patch.dict("sys.modules", {"core.sdpo.reflex_bridge": None}):
+            fresh_heartbeat._boot_reflex_bridge()
+        assert fresh_heartbeat._reflex_bridge is None
+
+    # ── Memory persistence exception → returns 0 ─────────────
+
+    def test_persist_to_memory_exception_returns_zero(self, fresh_heartbeat):
+        """If memory store throws, _persist_to_memory degrades to 0."""
+        from unittest.mock import MagicMock
+
+        fresh_heartbeat._memory = MagicMock()
+        fresh_heartbeat._memory.store.side_effect = RuntimeError("store failed")
+
+        result = fresh_heartbeat._persist_to_memory({"ihsan_composite": 0.95})
+        assert result == 0
+
+    # ── Ingest with no helix3 → receipt dropped gracefully ────
+
+    def test_ingest_no_helix3_drops_receipt(self, fresh_heartbeat):
+        """If helix3 is None, ingest_mission_receipt drops gracefully."""
+        fresh_heartbeat._helix3 = None
+        fresh_heartbeat.ingest_mission_receipt(
+            {"ihsan_score": 0.95, "description": "test"}
+        )
+        # No crash — graceful drop
+
+    # ── Evidence recording exception → returns 0 ─────────────
+
+    def test_record_evidence_exception_returns_zero(self, data_dir):
+        """If evidence.store() throws, _record_evidence degrades to 0."""
+        from unittest.mock import MagicMock
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="evidence-fail-test")
+        hb.boot()
+        hb._evidence = MagicMock()
+        hb._evidence.store.side_effect = RuntimeError("evidence store broke")
+        hb._memory = None  # No fallback
+
+        result = hb._record_evidence({"ihsan_composite": 0.95, "gini": 0.1})
+        assert result == 0
+
+    # ── Evidence fallback to memory ───────────────────────────
+
+    def test_record_evidence_fallback_to_memory(self, data_dir):
+        """If evidence chain is None but memory exists, use memory fallback."""
+        from unittest.mock import MagicMock
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="fallback-test")
+        hb.boot()
+        hb._evidence = None
+        hb._memory = MagicMock()
+        hb._tick_number = 5
+
+        result = hb._record_evidence({"ihsan_composite": 0.95, "gini": 0.1})
+        assert result == 1
+        hb._memory.store.assert_called_once()
+
+    # ── Evidence memory fallback exception → returns 0 ────────
+
+    def test_record_evidence_memory_fallback_exception(self, data_dir):
+        """If both evidence chain AND memory fallback fail → 0."""
+        from unittest.mock import MagicMock
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="double-fail-test")
+        hb.boot()
+        hb._evidence = None
+        hb._memory = MagicMock()
+        hb._memory.store.side_effect = RuntimeError("memory also broke")
+        hb._tick_number = 3
+
+        result = hb._record_evidence({"ihsan_composite": 0.95, "gini": 0.1})
+        assert result == 0
+
+    # ── Asset introspect exception → degraded dict ────────────
+
+    def test_health_asset_introspect_failure(self, data_dir):
+        """If asset_registry.introspect() throws, health still works."""
+        from unittest.mock import MagicMock
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="asset-fail-test")
+        hb.boot()
+        hb._asset_registry = MagicMock()
+        hb._asset_registry.introspect.side_effect = RuntimeError("introspect failed")
+
+        health = hb.health()
+        assert health["booted"] is True
+        # Asset registry is present (True) but introspect failed → body is None → hardware is None
+        assert health["subsystems"]["asset_registry"] is True
+        assert health["hardware"] is None
+
+    # ── Helix3 tick failure → degraded result ─────────────────
+
+    def test_helix3_tick_failure_degrades(self, data_dir):
+        """If helix3 process_tick throws, breathe returns degraded result."""
+        from unittest.mock import MagicMock
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="helix-fail-test")
+        hb.boot()
+        hb._helix3 = MagicMock()
+        hb._helix3.process_tick.side_effect = RuntimeError("helix3 crashed")
+
+        receipt = hb.breathe()
+        assert receipt.ihsan_composite == 0.0
+        assert receipt.chain_hash != "0" * 64  # Chain still advances

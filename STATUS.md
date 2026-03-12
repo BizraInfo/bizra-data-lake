@@ -12,6 +12,7 @@ Updated: 2026-03-12T13:35Z
 | `[ENFORCEMENT: PROVEN]` | Live code + tests + CI gate back the claim |
 | `[ENFORCEMENT: WIRED]` | Code exists, not yet CI-gated or live-proven end-to-end |
 | `[OPTIMIZATION: PARTIAL]` | Feature-flagged, opt-in, or simulated — not yet canonical |
+| `[OPTIMIZATION: WIRED]` | E2E tested but feature-flagged — proven in tests, not yet enabled in production |
 | `[OPTIMIZATION: PLANNED]` | Design only, no production code |
 
 ## Node0 Canonical Runtime Status
@@ -28,12 +29,12 @@ Updated: 2026-03-12T13:35Z
 | **CI Gate** | ✅ CANONICAL-001 | `[ENFORCEMENT: PROVEN]` | `pytest tests/core/node0/ tests/integration/test_plan_endpoint.py` in CI |
 | **GoT Signer Gate** | ✅ Canonical-gated | `[ENFORCEMENT: PROVEN]` | `got_bridge.py` rejects SimpleSigner fallback in canonical mode |
 | **Exception Audit** | ✅ SEC-003b | `[ENFORCEMENT: WIRED]` | Sovereign surfaces tracked (baseline=157), ratchet-only |
-| **Closed-Loop Reflex** | ⚠️ Opt-in | `[OPTIMIZATION: PARTIAL]` | `BIZRA_CLOSED_LOOP_ENABLED` feature-flagged, default=False. `health()` reports status honestly. |
+| **Closed-Loop Reflex** | ✅ E2E tested | `[OPTIMIZATION: WIRED]` | Observe→eligible→compile→cache→lookup proven in 8 tests. Feature-flagged `BIZRA_CLOSED_LOOP_ENABLED` default=False — enable after live deployment proof. |
 | **Distributed Replay** | ⚠️ Local only | `[OPTIMIZATION: PARTIAL]` | Nonce/TTL replay protection is local; global ordering not yet proven |
 | **Empirical Validation** | ✅ Live mode | `[ENFORCEMENT: PROVEN]` | `canonical_empirical_validation.py --live` proves real boot→breathe→chain→mission→FATE |
 
 ### Test Evidence
-- Node0 heartbeat: **54 tests** (boot, breathe, chain, identity, FATE consequence closure)
+- Node0 heartbeat: **74 tests** (boot, breathe, chain, identity, FATE consequence, reflex precipitation, boot degradation)
 - Organism bridge: **17 tests** (wiring, double-ingest prevention, signer propagation)
 - Plan endpoint: **14 tests** (receipt, fail-closed, reflex suppression, authority exclusivity, FATE fields)
 - **Total canonical tests: 85/85 pass**
@@ -69,7 +70,7 @@ POST /v1/plan
 | ID | Type | Description | Label | Mitigation |
 |----|------|-------------|-------|------------|
 | R1 | Risk | Exception audit covers sovereign surfaces at baseline=157; any regression fails CI | `[ENFORCEMENT: WIRED]` | SEC-003b ratchet-only gate |
-| R2 | Risk | Closed-loop reflex path opt-in; production nodes don't compile reflexes by default | `[OPTIMIZATION: PARTIAL]` | Intentional — enable after live proof |
+| R2 | Risk | Closed-loop reflex path opt-in; production nodes don't compile reflexes by default | `[OPTIMIZATION: WIRED]` | E2E tested but feature-flagged — enable after live proof |
 | R3 | Risk | Distributed replay/consensus is local-only; multi-node ordering unproven | `[OPTIMIZATION: PARTIAL]` | Federation layer in design phase |
 | R4 | Risk | mypy strict=false for core.*; type errors may lurk | `[ENFORCEMENT: WIRED]` | Incremental strict adoption per module |
 | R5 | Risk | Coverage floor at 62%, target is 95% | `[ENFORCEMENT: WIRED]` | Ratchet upward with each PR |

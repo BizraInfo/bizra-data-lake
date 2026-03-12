@@ -124,7 +124,7 @@ exclude_lines = [
 # Coverage gate: ratcheted in CI (Deming PDCA — never regress)
 # History: 30% → 55% → 60% → 65% → 38% (new modules) → 62% (Week 2 ratchet)
 # Actual coverage: 64.57% (v0.80.0 lock). Floor = measured - 2% headroom.
-fail_under = 62
+fail_under = 70
 show_missing = true
 precision = 2
 
@@ -230,6 +230,11 @@ exclude = [
 # Per-Module Overrides  (last matching section wins)
 # Strategy: relax ALL core.* by default, then promote clean modules to strict.
 # =============================================================================
+
+[[tool.mypy.overrides]]
+# core.node0 — newest module, fully typed from birth. Strict enforced.
+module = "core.node0.*"
+strict = true
 
 [[tool.mypy.overrides]]
 # Catch-all: every core.* module starts gradually-typed.
