@@ -310,10 +310,51 @@ def _check_blueprint_truth(
     return issues
 
 
+TRUTH_LABEL_PATTERN = re.compile(
+    r"\[(?:ENFORCEMENT|OPTIMIZATION):\s*(?:PROVEN|WIRED|PARTIAL|PLANNED)\]"
+)
+
+# Minimum truth labels required in STATUS.md (ratchet-only)
+MIN_TRUTH_LABELS_STATUS = 8
+
+
+def _check_truth_labels(root: Path) -> list[str]:
+    """Check that STATUS.md contains truth labels (honest labeling gate).
+
+    Standing on Giants: Al-Ghazali (honest labeling, 1096) — no doc claims
+    'proven' for what is 'wired but partial'.
+    """
+    issues: list[str] = []
+    status_path = root / "STATUS.md"
+    if not status_path.exists():
+        issues.append("STATUS.md not found")
+        return issues
+
+    content = status_path.read_text(encoding="utf-8")
+    labels = TRUTH_LABEL_PATTERN.findall(content)
+
+    if len(labels) < MIN_TRUTH_LABELS_STATUS:
+        issues.append(
+            f"STATUS.md has {len(labels)} truth labels, "
+            f"minimum required is {MIN_TRUTH_LABELS_STATUS}. "
+            "Each subsystem row must carry an [ENFORCEMENT: X] or [OPTIMIZATION: X] label."
+        )
+
+    # Check vocabulary section exists
+    if "Truth-Label Vocabulary" not in content:
+        issues.append(
+            "STATUS.md is missing the 'Truth-Label Vocabulary' section. "
+            "This section defines the meaning of each label."
+        )
+
+    return issues
+
+
 def main() -> int:
     issues = [
         *_check_readme_thresholds(ROOT),
         *_check_blueprint_truth(ROOT),
+        *_check_truth_labels(ROOT),
     ]
     if issues:
         print("[DOCS-TRUTH-GATE] FAILED")

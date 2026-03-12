@@ -1,19 +1,36 @@
 # BIZRA Implementation Status
 
-Updated: 2026-03-12T12:20Z
+Updated: 2026-03-12T13:35Z
+
+## Truth-Label Vocabulary
+
+> Every claim in this document carries one of these labels.
+> Standing on Giants: Al-Ghazali (honest labeling, 1096) · Deming (verify the document, 1950)
+
+| Label | Meaning |
+|-------|---------|
+| `[ENFORCEMENT: PROVEN]` | Live code + tests + CI gate back the claim |
+| `[ENFORCEMENT: WIRED]` | Code exists, not yet CI-gated or live-proven end-to-end |
+| `[OPTIMIZATION: PARTIAL]` | Feature-flagged, opt-in, or simulated — not yet canonical |
+| `[OPTIMIZATION: PLANNED]` | Design only, no production code |
 
 ## Node0 Canonical Runtime Status
 
-| Subsystem | Status | Evidence |
-|---|---|---|
-| **Canonical Mode** | ✅ Fail-closed | `_runtime_canonical_mode_enabled()` → 503 if no authority |
-| **Mission Authority** | ✅ Exclusive | `/v1/plan` → `runtime.mission()` → `organism.mission()` → `tick()` → `breathe()` |
-| **Ed25519 Identity** | ✅ Bound | `_bind_canonical_identity()` validates genesis signer at boot |
-| **FATE Veto** | ✅ Consequence-carrying | Rejected receipts excluded from Ihsān tensor, SEED, BLOOM, reflex |
-| **Evidence Chain** | ✅ Hash-chained | `chain_hash = Hash(prev ∥ evidence_hash)` on every breath |
-| **Legacy Gating** | ✅ Blocked in canonical | `_ingest_via_node0()` refuses fallback, `_submit_mission_to_tick()` deprecated |
-| **Node0 Heartbeat** | ✅ Wired | `SovereignOrganism` → `Node0Heartbeat` → `Helix3Scheduler` |
-| **CI Gate** | ✅ CANONICAL-001 | `pytest tests/core/node0/ tests/integration/test_plan_endpoint.py` in CI |
+| Subsystem | Status | Label | Evidence |
+|---|---|---|---|
+| **Canonical Mode** | ✅ Fail-closed | `[ENFORCEMENT: PROVEN]` | `_runtime_canonical_mode_enabled()` → 503 if no authority |
+| **Mission Authority** | ✅ Exclusive | `[ENFORCEMENT: PROVEN]` | `/v1/plan` → `runtime.mission()` → `organism.mission()` → `tick()` → `breathe()` |
+| **Ed25519 Identity** | ✅ Bound | `[ENFORCEMENT: PROVEN]` | `_bind_canonical_identity()` validates genesis signer at boot |
+| **FATE Veto** | ✅ Consequence-carrying | `[ENFORCEMENT: PROVEN]` | Rejected receipts excluded from Ihsān tensor, SEED, BLOOM, reflex |
+| **Evidence Chain** | ✅ Hash-chained | `[ENFORCEMENT: PROVEN]` | `chain_hash = Hash(prev ∥ evidence_hash)` on every breath |
+| **Legacy Gating** | ✅ Blocked in canonical | `[ENFORCEMENT: PROVEN]` | `_ingest_via_node0()` refuses fallback, `_submit_mission_to_tick()` deprecated |
+| **Node0 Heartbeat** | ✅ Wired | `[ENFORCEMENT: PROVEN]` | `SovereignOrganism` → `Node0Heartbeat` → `Helix3Scheduler` |
+| **CI Gate** | ✅ CANONICAL-001 | `[ENFORCEMENT: PROVEN]` | `pytest tests/core/node0/ tests/integration/test_plan_endpoint.py` in CI |
+| **GoT Signer Gate** | ✅ Canonical-gated | `[ENFORCEMENT: PROVEN]` | `got_bridge.py` rejects SimpleSigner fallback in canonical mode |
+| **Exception Audit** | ✅ SEC-003b | `[ENFORCEMENT: WIRED]` | Sovereign surfaces tracked (baseline=157), ratchet-only |
+| **Closed-Loop Reflex** | ⚠️ Opt-in | `[OPTIMIZATION: PARTIAL]` | `BIZRA_CLOSED_LOOP_ENABLED` feature-flagged, default=False |
+| **Distributed Replay** | ⚠️ Local only | `[OPTIMIZATION: PARTIAL]` | Nonce/TTL replay protection is local; global ordering not yet proven |
+| **Empirical Validation** | ⚠️ Simulated | `[OPTIMIZATION: PARTIAL]` | `canonical_empirical_validation.py` uses MagicMock runtime |
 
 ### Test Evidence
 - Node0 heartbeat: **54 tests** (boot, breathe, chain, identity, FATE consequence closure)

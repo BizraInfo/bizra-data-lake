@@ -14,12 +14,21 @@ This document is the professional next step after the multi-lens BIZRA review co
 
 ### Current truth-state
 
-- The canonical unified blueprint reports the system at **78% built**, with strongest maturity in constitutional logic, knowledge layer, infrastructure, and runtime foundations.
-- Infrastructure is materially ahead of several higher-level surfaces: CI/CD, rollouts, monitoring, and release evidence already exist, while frontend surfaces, protocol depth, and some security controls remain partial.
-- Terminal v1 now has a usable spine and partial contract alignment, but **lock condition is not yet achieved** because Phase B trust-boundary blockers, event-native live wiring, and full permission-envelope enforcement remain incomplete.
-- Proof-carrying cognition is no longer theoretical: a Python **Verified Reasoning Graph vertical slice** exists, but it is not yet the governing bridge between mutable cognition, constitutional gates, receipts, and federation.
-- Security is strong in depth, but not yet coherent across layers: node identity is Ed25519-based, while other critical proofs already point toward stronger post-quantum and formally verified patterns.
-- Documentation quality is high in volume but still vulnerable to **truth drift** because historical documents, operational reality, and newly locked contracts are not yet continuously reconciled.
+> **Truth-label reconciliation (2026-03-12T13:35Z):**
+> Since this document was written, the Node0 canonical enforcement spine has been
+> proven end-to-end (see `STATUS.md` § Node0 Canonical Runtime Status).
+> The statements below remain accurate for the **overall system** but no longer
+> reflect the Node0 subsystem, which has moved from `[ENFORCEMENT: WIRED]` to
+> `[ENFORCEMENT: PROVEN]` across 8 subsystems (85/85 tests, 7 commits).
+> The closed-loop reflex path remains `[OPTIMIZATION: PARTIAL]` (feature-flagged).
+> See `STATUS.md` for the authoritative truth-label table.
+
+- The canonical unified blueprint reports the system at **78% built**, with strongest maturity in constitutional logic, knowledge layer, infrastructure, and runtime foundations. `[ENFORCEMENT: WIRED]` — overall system; Node0 enforcement is now `[ENFORCEMENT: PROVEN]`.
+- Infrastructure is materially ahead of several higher-level surfaces: CI/CD, rollouts, monitoring, and release evidence already exist, while frontend surfaces, protocol depth, and some security controls remain partial. `[ENFORCEMENT: WIRED]`
+- Terminal v1 now has a usable spine and partial contract alignment, but **lock condition is not yet achieved** because Phase B trust-boundary blockers, event-native live wiring, and full permission-envelope enforcement remain incomplete. `[OPTIMIZATION: PARTIAL]`
+- Proof-carrying cognition is no longer theoretical: a Python **Verified Reasoning Graph vertical slice** exists, but it is not yet the governing bridge between mutable cognition, constitutional gates, receipts, and federation. `[ENFORCEMENT: WIRED]` — VRG exists; GoT bridge signer now gated in canonical mode.
+- Security is strong in depth, but not yet coherent across layers: node identity is Ed25519-based, while other critical proofs already point toward stronger post-quantum and formally verified patterns. `[ENFORCEMENT: WIRED]`
+- Documentation quality is high in volume but still vulnerable to **truth drift** because historical documents, operational reality, and newly locked contracts are not yet continuously reconciled. `[OPTIMIZATION: PARTIAL]` — truth labels now introduced but not yet enforced by CI gate.
 - The next execution artifact is no longer just a document. It is a machine-checkable synthesis report that fuses architecture, security, performance, documentation, terminal contract, PMBOK traceability, and ethical posture into one prioritized implementation queue.
 
 ### North-star target

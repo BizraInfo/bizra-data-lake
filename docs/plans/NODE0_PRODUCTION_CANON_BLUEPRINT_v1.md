@@ -23,6 +23,13 @@ It is the execution framework for turning Node0 into a certified production cano
 
 ## Current Proven State
 
+> **Truth-label reconciliation (2026-03-12T13:35Z):**
+> The statements below remain accurate. Additionally, the Node0 canonical
+> enforcement spine is now `[ENFORCEMENT: PROVEN]` with 85/85 tests, fail-closed
+> API, FATE consequence closure, Ed25519 identity binding, and exception audit
+> CI gate covering sovereign surfaces. See `STATUS.md` for the authoritative
+> truth-label table. The closed-loop reflex path remains `[OPTIMIZATION: PARTIAL]`.
+
 The following conditions are already true in the repo:
 
 - Node0 birth gate passed
