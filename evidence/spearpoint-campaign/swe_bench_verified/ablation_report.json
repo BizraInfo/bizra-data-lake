@@ -1,0 +1,131 @@
+{
+  "architecture_actions": [
+    "Optimize Solver for cost/latency.",
+    "Review Router; candidate for simplification.",
+    "Review Planner; candidate for simplification.",
+    "Review Verifier; candidate for simplification.",
+    "Review Retrieval; candidate for simplification.",
+    "Review Memory; candidate for simplification."
+  ],
+  "baseline_score": 0.861901,
+  "essential_components": [],
+  "gate_status": {
+    "budget": {
+      "passed": true,
+      "reason": "per-task and campaign budget policy",
+      "threshold": {
+        "max_cost_per_task_usd": 1.5,
+        "max_p95_latency_ms": 45000,
+        "max_tokens_per_task": 120000,
+        "max_tokens_total": 600000,
+        "max_total_campaign_cost_usd": 15.0
+      },
+      "value": {
+        "cost_mean_usd": 0.001084,
+        "latency_p95_ms": 2294.12,
+        "running_total_cost": 0.0,
+        "running_total_tokens": 1626,
+        "tokens_mean": 542
+      }
+    },
+    "integrity": {
+      "passed": true,
+      "reason": "ABC validation and integrity profile checks",
+      "threshold": true,
+      "value": true
+    },
+    "reproducibility": {
+      "passed": true,
+      "reason": "seed sweep and variance check",
+      "threshold": 0.02,
+      "value": 2.25e-06
+    },
+    "submission": {
+      "passed": true,
+      "reason": "anti-gaming submission validation",
+      "threshold": true,
+      "value": true
+    }
+  },
+  "harmful_components": [],
+  "mode": "strict",
+  "ranking": [
+    {
+      "component": "Solver",
+      "contribution": 0.066426,
+      "verdict": "BENEFICIAL"
+    },
+    {
+      "component": "Router",
+      "contribution": 0.038749,
+      "verdict": "MARGINAL"
+    },
+    {
+      "component": "Planner",
+      "contribution": 0.037575,
+      "verdict": "MARGINAL"
+    },
+    {
+      "component": "Verifier",
+      "contribution": 0.033096,
+      "verdict": "MARGINAL"
+    },
+    {
+      "component": "Retrieval",
+      "contribution": 0.031862,
+      "verdict": "MARGINAL"
+    },
+    {
+      "component": "Memory",
+      "contribution": 0.019757,
+      "verdict": "MARGINAL"
+    }
+  ],
+  "run_id": "7f9f635793b6",
+  "study_id": "37de798a",
+  "summary": {
+    "ablation_coverage": 1.0,
+    "baseline_score": 0.861901,
+    "components_tested": 6,
+    "essential_components": [],
+    "experiments_run": 6,
+    "harmful_components": [],
+    "id": "37de798a",
+    "name": "swe_bench_verified-ablation",
+    "ranking": [
+      [
+        "Solver",
+        0.0664264091914073,
+        "BENEFICIAL"
+      ],
+      [
+        "Router",
+        0.0387487243558452,
+        "MARGINAL"
+      ],
+      [
+        "Planner",
+        0.03757472621496083,
+        "MARGINAL"
+      ],
+      [
+        "Verifier",
+        0.03309550770674685,
+        "MARGINAL"
+      ],
+      [
+        "Retrieval",
+        0.03186188393118072,
+        "MARGINAL"
+      ],
+      [
+        "Memory",
+        0.0197565468047205,
+        "MARGINAL"
+      ]
+    ],
+    "status": "completed"
+  },
+  "target": "swe_bench_verified",
+  "timestamp_utc": "2026-03-12T20:30:53.936920+00:00"
+}
