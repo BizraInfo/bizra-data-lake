@@ -260,3 +260,78 @@ class TestOrganismNode0ChainIntegrity:
         stats = organism.stats
         assert "node0" in stats
         assert stats["node0"]["booted"] is True
+
+
+# ─── Regression: one mission → exactly one pending receipt ──────────
+
+
+class TestNoDoubleIngest:
+    """Prove Nakamoto invariant: one mission, one receipt in Helix3.
+
+    The double-ingest bug occurred because wire_helix3() auto-ingested
+    every NervousSystem receipt into Helix3, AND _ingest_to_node0() fed
+    the same receipt a second time through Node0.  The fix detaches the
+    wire_helix3 callback after Node0 boots, making Node0 the sole
+    ingestion authority.
+
+    Standing on Giants:
+      Nakamoto (2008) — one chain, one authority
+      Deming (1950)   — measure the process, not just the output
+    """
+
+    @pytest.fixture()
+    def organism(self, tmp_path: Path) -> Any:
+        from core.sovereign.organism import SovereignOrganism
+
+        org = asyncio.run(
+            SovereignOrganism.boot(
+                EchoInference(),
+                persistence_dir=tmp_path,
+            )
+        )
+        return org
+
+    def test_wire_helix3_callback_detached_when_node0_active(
+        self, organism: Any
+    ) -> None:
+        """After Node0 boots, NervousSystem._on_receipt must be None."""
+        if organism._node0 is None:
+            pytest.skip("Node0 did not boot")
+        assert organism._nervous_system._on_receipt is None
+
+    def test_one_mission_one_pending_receipt(self, organism: Any) -> None:
+        """One mission must produce exactly one pending Helix3 receipt."""
+        if organism._node0 is None:
+            pytest.skip("Node0 did not boot")
+
+        helix3 = organism._helix3
+        before = len(helix3._pending_receipts)
+
+        asyncio.run(organism.mission("single ingest test"))
+
+        after = len(helix3._pending_receipts)
+        added = after - before
+
+        assert added == 1, (
+            f"Expected exactly 1 new pending receipt, got {added}. "
+            f"Double-ingest bug: wire_helix3 callback not detached."
+        )
+
+    def test_three_missions_three_pending_receipts(self, organism: Any) -> None:
+        """N missions → exactly N pending receipts (no doubling)."""
+        if organism._node0 is None:
+            pytest.skip("Node0 did not boot")
+
+        helix3 = organism._helix3
+        before = len(helix3._pending_receipts)
+
+        for i in range(3):
+            asyncio.run(organism.mission(f"mission {i}"))
+
+        after = len(helix3._pending_receipts)
+        added = after - before
+
+        assert added == 3, (
+            f"Expected 3 pending receipts, got {added}. "
+            f"Indicates double-ingest or dropped receipts."
+        )

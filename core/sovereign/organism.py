@@ -439,6 +439,16 @@ class SovereignOrganism:
                 helix3=self._helix3,
             )
             self._node0.boot()
+
+            # Transfer ingest authority: Node0 is now the SOLE feeder
+            # of Helix3.  wire_helix3() patched ns._on_receipt to auto-
+            # call scheduler.ingest_receipt() on every NervousSystem
+            # receipt.  With Node0 active, _ingest_to_node0() handles
+            # that feed — keeping the callback would double-count every
+            # mission.  Nakamoto (2008): one chain, one authority.
+            if self._nervous_system is not None:
+                self._nervous_system._on_receipt = None
+
             logger.info(
                 "Node0Heartbeat wired: node_id=%s, sovereignty=%s",
                 self._node0.node_id,
