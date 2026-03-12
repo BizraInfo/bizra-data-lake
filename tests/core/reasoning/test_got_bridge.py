@@ -11,6 +11,7 @@ Test classes:
 6. TestSearchIntegration      - mock search engine providing evidence
 7. TestConvergenceGate        - SNR threshold enforcement
 8. TestEvidenceHelpers        - _evidence_to_facts, _search_for_evidence
+9. TestCanonicalSignerGate    - signer fallback gated in canonical mode
 """
 
 from dataclasses import FrozenInstanceError
@@ -559,3 +560,51 @@ class TestEvidenceHelpers:
         """_build_fallback_result without facts returns query as answer."""
         result = GoTBridge._build_fallback_result("my query", [], [])
         assert result.answer == "my query"
+
+
+# ── TestCanonicalSignerGate ───────────────────────────────────────────────
+# Standing on Giants: Al-Ghazali (intent gate, 1096) — cover the full
+# intent surface, not just the edge.
+
+
+class TestCanonicalSignerGate:
+    """Signer fallback behaviour changes under canonical mode."""
+
+    def test_non_canonical_falls_back_to_simple_signer(self):
+        """Without canonical_mode, Ed25519 failure falls back to SimpleSigner."""
+        with patch(
+            "core.proof_engine.receipt.Ed25519Signer.generate",
+            side_effect=ImportError("no ed25519"),
+        ):
+            signer = GoTBridge._resolve_receipt_signer(None, canonical_mode=False)
+        # SimpleSigner has a .key_bytes attribute with the default key
+        assert hasattr(signer, "sign") or hasattr(signer, "key_bytes")
+
+    def test_canonical_mode_rejects_simple_signer_fallback(self):
+        """In canonical mode, Ed25519 failure raises RuntimeError."""
+        with patch(
+            "core.proof_engine.receipt.Ed25519Signer.generate",
+            side_effect=ImportError("no ed25519"),
+        ):
+            with pytest.raises(RuntimeError, match="canonical mode"):
+                GoTBridge._resolve_receipt_signer(None, canonical_mode=True)
+
+    def test_canonical_mode_accepts_ed25519(self):
+        """Canonical mode succeeds when Ed25519Signer is available."""
+        bridge = GoTBridge(canonical_mode=True)
+        # Should not raise — Ed25519Signer.generate() works in test env
+        assert bridge._receipt_signer is not None
+
+    def test_explicit_signer_bypasses_gate(self):
+        """Providing an explicit signer skips resolution in any mode."""
+        custom_signer = MagicMock()
+        bridge = GoTBridge(receipt_signer=custom_signer, canonical_mode=True)
+        assert bridge._receipt_signer is custom_signer
+
+    def test_canonical_mode_flag_stored(self):
+        """The canonical_mode flag is stored on the bridge instance."""
+        bridge = GoTBridge(canonical_mode=True)
+        assert bridge._canonical_mode is True
+
+        bridge2 = GoTBridge(canonical_mode=False)
+        assert bridge2._canonical_mode is False

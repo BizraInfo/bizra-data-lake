@@ -95,13 +95,17 @@ class GoTBridge:
         convergence_snr: float = GOT_CONVERGENCE_SNR,
         max_depth: int = GOT_MAX_DEPTH,
         receipt_signer: Optional[Any] = None,
+        canonical_mode: bool = False,
     ) -> None:
         self._search_engine = search_engine
         self._got_engine = got_engine
         self._max_hypotheses = max_hypotheses
         self._convergence_snr = convergence_snr
         self._max_depth = max_depth
-        self._receipt_signer = self._resolve_receipt_signer(receipt_signer)
+        self._canonical_mode = canonical_mode
+        self._receipt_signer = self._resolve_receipt_signer(
+            receipt_signer, canonical_mode=canonical_mode
+        )
 
         # P1: Degradation transparency
         from core.protocols.degradation import DegradationEmitter
@@ -113,8 +117,20 @@ class GoTBridge:
         self._degraded = self._degradation_event is not None
 
     @staticmethod
-    def _resolve_receipt_signer(receipt_signer: Optional[Any]) -> Any:
-        """Resolve the signer used for proof-bearing reasoning receipts."""
+    def _resolve_receipt_signer(
+        receipt_signer: Optional[Any],
+        *,
+        canonical_mode: bool = False,
+    ) -> Any:
+        """Resolve the signer used for proof-bearing reasoning receipts.
+
+        In canonical mode, ``SimpleSigner`` fallback is forbidden — the GoT
+        bridge MUST use a cryptographically valid ``Ed25519Signer``.  Silent
+        degradation to a default signer would violate proof-chain integrity.
+
+        Standing on Giants: Al-Ghazali (intent gate, 1096) — cover the full
+        intent surface, not just the edge.
+        """
         if receipt_signer is not None:
             return receipt_signer
 
@@ -123,6 +139,12 @@ class GoTBridge:
         try:
             return Ed25519Signer.generate()
         except Exception:
+            if canonical_mode:
+                raise RuntimeError(
+                    "GoT bridge: Ed25519Signer unavailable in canonical mode. "
+                    "SimpleSigner fallback is forbidden when canonical_mode=True. "
+                    "Ensure ed25519 dependencies are installed."
+                )
             return SimpleSigner(b"got_bridge_vrg_default_signer")
 
     # ------------------------------------------------------------------
