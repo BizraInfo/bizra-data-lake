@@ -1099,3 +1099,206 @@ class TestBootDegradation:
         receipt = hb.breathe()
         assert receipt.ihsan_composite == 0.0
         assert receipt.chain_hash != "0" * 64  # Chain still advances
+
+
+# ═══════════════════════════════════════════════════════════════════
+# T3: NERVOUS SYSTEM BRIDGE — EventBus Integration
+# Standing on Giants:
+#   Hewitt (1973): Actor model — receipts as messages
+#   Kahneman (2011): System-2 → System-1 learning pathway
+#   Shannon (1948): Signal (Ihsān) propagated through the bus
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestNervousSystemBridge:
+    """Test the EventBus bridge connecting heartbeat to intelligence subscribers.
+
+    The peak hidden flow: Node0 breathe → BreathReceipt → EventBus →
+    12 Subscribers → HHMM promotion + reflex compile + PoI credit.
+    """
+
+    def test_breathe_emits_event_to_bus(self, data_dir):
+        """breathe() emits action.receipt to the EventBus."""
+        from core.bus.subscribers import EventBus, EventType
+        from core.node0.heartbeat import Node0Heartbeat
+
+        bus = EventBus()
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="bus-test", event_bus=bus)
+        hb.boot()
+        hb.breathe()
+
+        assert bus.chain_height == 1
+        event = bus._chain[0]
+        assert event.event_type == EventType.ACTION_RECEIPT
+        assert event.payload["source"] == "node0:heartbeat"
+        assert "ihsan_composite" in event.payload
+        assert "chain_hash" in event.payload
+
+    def test_breathe_without_bus_still_works(self, data_dir):
+        """Heartbeat without EventBus continues to function (graceful degradation)."""
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="no-bus")
+        hb.boot()
+        receipt = hb.breathe()
+
+        assert receipt.tick_number == 1
+        assert receipt.chain_hash != "0" * 64
+
+    def test_multiple_breaths_emit_chained_events(self, data_dir):
+        """Multiple breathe() calls emit hash-chained events to bus."""
+        from core.bus.subscribers import EventBus
+        from core.node0.heartbeat import Node0Heartbeat
+
+        bus = EventBus()
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="chain-test", event_bus=bus)
+        hb.boot()
+
+        hb.breathe()
+        hb.breathe()
+        hb.breathe()
+
+        assert bus.chain_height == 3
+        assert bus.verify_chain()
+        ticks = [e.payload["tick"] for e in bus._chain]
+        assert ticks == [1, 2, 3]
+
+    def test_ingest_receipt_emits_event(self, data_dir):
+        """ingest_mission_receipt() emits action.receipt to the bus."""
+        from unittest.mock import MagicMock
+
+        from core.bus.subscribers import EventBus, EventType
+        from core.node0.heartbeat import Node0Heartbeat
+
+        bus = EventBus()
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="ingest-bus", event_bus=bus)
+        hb.boot()
+
+        mock_helix = MagicMock()
+        hb._helix3 = mock_helix
+
+        hb.ingest_mission_receipt({
+            "ihsan_score": 0.96,
+            "description": "test mission",
+            "fate_verdict": "approved",
+        })
+
+        assert bus.chain_height == 1
+        event = bus._chain[0]
+        assert event.event_type == EventType.ACTION_RECEIPT
+        assert event.payload["source"] == "node0:ingest"
+        assert event.payload["ihsan_score"] == 0.96
+        assert event.payload["fate_verdict"] == "approved"
+
+    def test_breath_event_carries_approved_rejected_counts(self, data_dir):
+        """Breath event payload includes FATE approved/rejected counts."""
+        from unittest.mock import MagicMock, PropertyMock
+
+        from core.bus.subscribers import EventBus
+        from core.node0.heartbeat import Node0Heartbeat
+
+        bus = EventBus()
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="counts-test", event_bus=bus)
+        hb.boot()
+
+        # Mock Helix3 to return specific counts
+        mock_helix = MagicMock()
+        mock_result = MagicMock()
+        mock_result.ihsan_composite = 0.95
+        mock_result.gini_coefficient = 0.2
+        mock_result.gini_ok = True
+        mock_result.seed_minted = 1.0
+        mock_result.missions_processed = 5
+        mock_result.reflexes_precipitated = 0
+        mock_result.approved_count = 4
+        mock_result.rejected_count = 1
+        mock_helix.process_tick.return_value = mock_result
+        hb._helix3 = mock_helix
+
+        hb.breathe()
+
+        event = bus._chain[0]
+        assert event.payload["approved_count"] == 4
+        assert event.payload["rejected_count"] == 1
+        assert event.payload["missions_processed"] == 5
+
+    def test_health_reports_event_bus_status(self, data_dir):
+        """health() includes event_bus in subsystems and total_events_emitted."""
+        from core.bus.subscribers import EventBus
+        from core.node0.heartbeat import Node0Heartbeat
+
+        bus = EventBus()
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="health-bus", event_bus=bus)
+        hb.boot()
+        hb.breathe()
+
+        health = hb.health()
+        assert health["subsystems"]["event_bus"] is True
+        assert health["total_events_emitted"] == 1
+
+    def test_health_reports_no_bus(self, data_dir):
+        """health() reports event_bus=False when not wired."""
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="no-bus-health")
+        hb.boot()
+
+        health = hb.health()
+        assert health["subsystems"]["event_bus"] is False
+        assert health["total_events_emitted"] == 0
+
+    def test_bus_failure_does_not_crash_breathe(self, data_dir):
+        """If EventBus.publish() throws, breathe() still succeeds."""
+        from unittest.mock import MagicMock
+
+        from core.node0.heartbeat import Node0Heartbeat
+
+        broken_bus = MagicMock()
+        broken_bus.publish.side_effect = RuntimeError("bus on fire")
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="crash-test", event_bus=broken_bus)
+        hb.boot()
+
+        receipt = hb.breathe()
+        assert receipt.tick_number == 1
+        assert receipt.chain_hash != "0" * 64
+
+    def test_subscriber_receives_breath_event(self, data_dir):
+        """End-to-end: a wired subscriber receives the heartbeat event."""
+        from core.bus.subscribers import EventBus, EventType
+        from core.node0.heartbeat import Node0Heartbeat
+
+        bus = EventBus()
+        received_events = []
+
+        class HeartbeatListener:
+            event_types = [EventType.ACTION_RECEIPT]
+
+            def handle(self, event):
+                received_events.append(event)
+
+        bus.subscribe(HeartbeatListener())
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="sub-test", event_bus=bus)
+        hb.boot()
+        hb.breathe()
+
+        assert len(received_events) == 1
+        assert received_events[0].payload["source"] == "node0:heartbeat"
+        assert received_events[0].payload["tick"] == 1
+
+    def test_dual_bus_chain_integrity(self, data_dir):
+        """Both bus chain and heartbeat chain maintain independent integrity."""
+        from core.bus.subscribers import EventBus
+        from core.node0.heartbeat import Node0Heartbeat
+
+        bus = EventBus()
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="dual-chain", event_bus=bus)
+        hb.boot()
+
+        r1 = hb.breathe()
+        r2 = hb.breathe()
+
+        # Heartbeat chain
+        assert r2.prev_chain_hash == r1.chain_hash
+        # Bus chain
+        assert bus.verify_chain()
+        assert bus._chain[1].prev_hash == bus._chain[0].event_hash
