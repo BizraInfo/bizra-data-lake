@@ -1,6 +1,49 @@
 # BIZRA Implementation Status
 
-Updated: 2026-02-22T17:20Z
+Updated: 2026-03-12T12:20Z
+
+## Node0 Canonical Runtime Status
+
+| Subsystem | Status | Evidence |
+|---|---|---|
+| **Canonical Mode** | ✅ Fail-closed | `_runtime_canonical_mode_enabled()` → 503 if no authority |
+| **Mission Authority** | ✅ Exclusive | `/v1/plan` → `runtime.mission()` → `organism.mission()` → `tick()` → `breathe()` |
+| **Ed25519 Identity** | ✅ Bound | `_bind_canonical_identity()` validates genesis signer at boot |
+| **FATE Veto** | ✅ Consequence-carrying | Rejected receipts excluded from Ihsān tensor, SEED, BLOOM, reflex |
+| **Evidence Chain** | ✅ Hash-chained | `chain_hash = Hash(prev ∥ evidence_hash)` on every breath |
+| **Legacy Gating** | ✅ Blocked in canonical | `_ingest_via_node0()` refuses fallback, `_submit_mission_to_tick()` deprecated |
+| **Node0 Heartbeat** | ✅ Wired | `SovereignOrganism` → `Node0Heartbeat` → `Helix3Scheduler` |
+| **CI Gate** | ✅ CANONICAL-001 | `pytest tests/core/node0/ tests/integration/test_plan_endpoint.py` in CI |
+
+### Test Evidence
+- Node0 heartbeat: **54 tests** (boot, breathe, chain, identity, FATE consequence closure)
+- Organism bridge: **17 tests** (wiring, double-ingest prevention, signer propagation)
+- Plan endpoint: **14 tests** (receipt, fail-closed, reflex suppression, authority exclusivity, FATE fields)
+- **Total canonical tests: 85/85 pass**
+
+### Canonical Flow (single truth surface)
+```
+POST /v1/plan
+  → _runtime_canonical_mode_enabled() check
+  → _runtime_has_canonical_mission_authority() check
+  → runtime.mission(description, source, context, proof_mode)
+    → organism.mission()
+      → FATE preflight veto
+      → NervousSystem execute
+      → organism receipt (fate_verdict, reason_codes, signer identity)
+    → organism.tick()
+      → Helix3 process_tick()
+        → constitutionally_approved filter (FATE gate)
+        → _compute_aggregate_tensor(approved_only)  ← Shannon: noise excluded
+        → SEED minting (approved + Ihsān ≥ 0.95)
+        → BLOOM accrual (approved + Ihsān ≥ 0.85)
+    → organism.breathe()
+      → Node0Heartbeat.breathe()
+        → evidence chain
+        → memory persistence
+        → reflex precipitation (approved-only composite)
+  → canonical response with full lineage fields
+```
 
 ## Measured Snapshot
 1. SAP conformance: `22/22` passing.
