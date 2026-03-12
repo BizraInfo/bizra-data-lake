@@ -2296,7 +2296,13 @@ def create_fastapi_app(runtime: Any) -> Any:
     # mission → receipt → tick Step 10 → reflex compilation for ihsan ≥ 0.98.
 
     def _submit_mission_to_tick(rt: Any, mission_result: Any) -> None:
-        """Bridge mission results into the constitutional tick queue."""
+        """Bridge mission results into the constitutional tick queue.
+
+        .. deprecated::
+            Legacy path — only used when Node0 is not booted AND canonical
+            mode is disabled. In canonical mode, all missions route through
+            Node0 ingest authority via _ingest_via_node0().
+        """
         try:
             import hashlib
             import time as _time
@@ -2363,10 +2369,14 @@ def create_fastapi_app(runtime: Any) -> Any:
         evidence chain → memory → reflex path.  Falls back to the
         legacy _submit_mission_to_tick() when Node0 is not booted.
 
+        In canonical mode, fallback to legacy tick bridge is forbidden
+        (fail-closed per Nakamoto single-authority principle).
+
         Standing on Giants:
           Nakamoto (2008) — one chain, one authority
           Deming (1950)   — PDCA: every mission closes through one loop
         """
+        canonical = _runtime_canonical_mode_enabled(rt)
         node0 = getattr(rt, "_node0", None)
         if node0 is not None:
             try:
@@ -2389,12 +2399,24 @@ def create_fastapi_app(runtime: Any) -> Any:
                 )
                 return
             except Exception:  # noqa: BLE001 — fall through to legacy
+                if canonical:
+                    logger.error(
+                        "Node0 ingest failed in canonical mode — "
+                        "refusing fallback to legacy tick bridge"
+                    )
+                    return
                 logger.debug(
                     "Node0 ingest failed, falling back to legacy tick bridge",
                     exc_info=True,
                 )
 
         # Fallback: legacy tick bridge (when Node0 not available)
+        if canonical:
+            logger.warning(
+                "Canonical mode: legacy tick bridge suppressed "
+                "(Node0 unavailable — mission receipt dropped)"
+            )
+            return
         _submit_mission_to_tick(rt, mission_result)
 
     # ── Health Endpoint Tiering (Phase 60 Step 3) ─────────────────────
