@@ -29,7 +29,7 @@ python -c "from core.node0.heartbeat import Node0Heartbeat; print('OK')"
 
 # 4. Verify health
 curl -s http://localhost:8000/v1/health | python -m json.tool
-# Check: "booted": true, "identity_mode": "genesis_signer"
+# Check: "booted": true, "identity_mode": "genesis_ed25519"
 ```
 
 ## Failure Scenarios
@@ -96,7 +96,7 @@ except (ValueError, KeyError, ConnectionError) as exc:
 | Field | Expected | Action if Wrong |
 |-------|----------|-----------------|
 | `booted` | `true` | Check boot sequence, signer key |
-| `identity_mode` | `genesis_signer` | Check organism stack wiring |
+| `identity_mode` | `genesis_ed25519` | Check organism stack wiring |
 | `chain_hash` | 64-char hex | Check breathe() is running |
 | `avg_ihsan` | ≥ 0.85 | Review mission quality |
 | `reflex_compilation_status.enabled` | `false` (default) | Intentional — see E5 |
