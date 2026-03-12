@@ -96,7 +96,10 @@ jobs:
         run: python scripts/ci_exception_audit.py --scan-dirs core/agentic core/a2a core/bus --baseline 20
 
       - name: "SEC-003b: Exception specificity gate (sovereign surfaces)"
-        run: python scripts/ci_exception_audit.py --scan-dirs core/sovereign core/node0 core/reasoning --baseline 157
+        run: python scripts/ci_exception_audit.py --scan-dirs core/sovereign core/node0 core/reasoning --baseline 138
+
+      - name: "PERF-E2E: Canonical spine latency benchmark"
+        run: python scripts/ci_canonical_e2e_benchmark.py
 
   lint-rust:
     name: Lint Rust
@@ -1382,6 +1385,8 @@ jobs:
             tests/scripts/test_masterpiece_program_board.py \
             tests/scripts/test_canonical_empirical_validation.py \
             tests/scripts/test_learning_loop_closure_gate.py \
+            tests/scripts/test_runtime_canon_lock_gate.py \
+            tests/core/sovereign/test_main_cli.py \
             tests/core/elite/test_self_harness_engine.py
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -1445,6 +1450,17 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Run runtime canon lock gate
+        id: runtime_canon_lock_outputs
+        run: |
+          python scripts/ops/runtime_canon_lock_gate.py \
+            --config config/runtime_canon_lock_gate.json \
+            --report /tmp/phase65/runtime_canon_lock_gate.json \
+            --markdown-report /tmp/phase65/runtime_canon_lock_gate.md \
+            --github-output "$GITHUB_OUTPUT"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Build masterpiece program board
         id: masterpiece_board_outputs
         run: |
@@ -1487,6 +1503,8 @@ jobs:
             /tmp/phase65/canonical_empirical_validation.md
             /tmp/phase65/learning_loop_closure_gate.json
             /tmp/phase65/learning_loop_closure_gate.md
+            /tmp/phase65/runtime_canon_lock_gate.json
+            /tmp/phase65/runtime_canon_lock_gate.md
             /tmp/phase65/self_harness_report.json
           retention-days: 30
 

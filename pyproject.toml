@@ -122,9 +122,9 @@ exclude_lines = [
     "@(abc\\.)?abstractmethod",
 ]
 # Coverage gate: ratcheted in CI (Deming PDCA — never regress)
-# History: 30% → 55% → 60% → 65% → 38% (new modules) → 62% (Week 2 ratchet)
-# Actual coverage: 64.57% (v0.80.0 lock). Floor = measured - 2% headroom.
-fail_under = 70
+# History: 30% → 55% → 60% → 65% → 38% (new modules) → 62% → 70% → 75%
+# Ratchet: 70→75 (peak masterpiece sprint — exception hardening + E2E benchmark)
+fail_under = 75
 show_missing = true
 precision = 2
 
@@ -234,6 +234,11 @@ exclude = [
 [[tool.mypy.overrides]]
 # core.node0 — newest module, fully typed from birth. Strict enforced.
 module = "core.node0.*"
+strict = true
+
+[[tool.mypy.overrides]]
+# core.proof_engine — receipt/canonical/evidence layer. Strict enforced.
+module = "core.proof_engine.*"
 strict = true
 
 [[tool.mypy.overrides]]

@@ -119,6 +119,7 @@ class OrganismReceipt:
     action_receipt_refs: List[str] = field(default_factory=list)
     identity_mode: str = "placeholder_degraded"
     signer_public_key_prefix: str = ""
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -424,7 +425,7 @@ class SovereignOrganism:
                 len(self._subscribers),
                 bus.chain_height,
             )
-        except Exception as exc:  # noqa: BLE001 — bus wiring must not block boot
+        except (ImportError, AttributeError, RuntimeError, OSError) as exc:
             logger.warning(
                 "CQRS subscriber wiring failed (degraded): %s", exc, exc_info=True
             )
@@ -484,7 +485,7 @@ class SovereignOrganism:
                     else "unknown"
                 ),
             )
-        except Exception as exc:  # noqa: BLE001 — Node0 wiring must not block boot
+        except (ImportError, AttributeError, RuntimeError, OSError) as exc:
             logger.warning("Node0Heartbeat unavailable (degraded): %s", exc)
             self._node0 = None
 
@@ -515,7 +516,7 @@ class SovereignOrganism:
                     "signer_public_key_prefix": receipt.signer_public_key_prefix,
                 }
             )
-        except Exception as exc:  # noqa: BLE001 — ingest must not crash mission return
+        except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
             logger.warning("Node0 ingest failed: %s", exc)
 
     # ─── Mission Execution (§6 Mode 2) ───────────────────────────
@@ -588,6 +589,7 @@ class SovereignOrganism:
                     action_receipt_refs=action_receipt_refs,
                     identity_mode=self._identity_mode,
                     signer_public_key_prefix=self._signer_public_key_prefix,
+                    metadata={},
                 )
                 if self._on_receipt:
                     self._on_receipt(receipt)
@@ -655,6 +657,7 @@ class SovereignOrganism:
                 action_receipt_refs=action_receipt_refs,
                 identity_mode=self._identity_mode,
                 signer_public_key_prefix=self._signer_public_key_prefix,
+                metadata=dict(ns_receipt.metadata or {}),
             )
 
             if self._on_receipt:
@@ -678,7 +681,7 @@ class SovereignOrganism:
 
             return receipt
 
-        except Exception as exc:  # noqa: BLE001 — organism-level catch
+        except (RuntimeError, AttributeError, TypeError, ValueError, OSError) as exc:
             self._missions_failed += 1
             logger.error("Mission failed: %s", exc)
 
@@ -708,6 +711,7 @@ class SovereignOrganism:
                 action_receipt_refs=action_receipt_refs,
                 identity_mode=self._identity_mode,
                 signer_public_key_prefix=self._signer_public_key_prefix,
+                metadata={},
             )
             if self._on_receipt:
                 self._on_receipt(receipt)
@@ -756,7 +760,7 @@ class SovereignOrganism:
                     },
                 )
 
-        except Exception as exc:  # noqa: BLE001 — CQRS emission must not crash missions
+        except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
             logger.warning("CQRS receipt emission failed: %s", exc, exc_info=True)
 
     # ─── Evolutionary Heartbeat (§2 Helix 3) ─────────────────────
@@ -792,7 +796,7 @@ class SovereignOrganism:
                     breath.reflexes_precipitated,
                 )
                 return breath
-            except Exception as exc:  # noqa: BLE001 — degrade to direct Helix3
+            except (RuntimeError, AttributeError, TypeError, OSError) as exc:
                 logger.warning("Node0 breathe failed, falling back to Helix3: %s", exc)
 
         # Fallback: direct Helix3 tick (no evidence/memory/reflex closure)
@@ -826,7 +830,7 @@ class SovereignOrganism:
                     break
                 try:
                     await self.tick()
-                except Exception as exc:  # noqa: BLE001 — heartbeat must not crash
+                except (RuntimeError, AttributeError, TypeError, OSError) as exc:
                     logger.error("Heartbeat tick failed: %s", exc)
 
         self._heartbeat_task = asyncio.create_task(_heartbeat_loop())
