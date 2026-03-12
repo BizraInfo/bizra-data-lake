@@ -433,7 +433,7 @@ class Node0Heartbeat:
         if self._asset_registry is not None:
             try:
                 body = self._asset_registry.introspect()
-            except Exception as exc:
+            except (RuntimeError, AttributeError, TypeError, OSError) as exc:
                 logger.warning("Asset introspection failed: %s", exc)
 
         avg_ihsan = 0.0
@@ -599,7 +599,7 @@ class Node0Heartbeat:
                 "contribution_potential": round(body.contribution_potential, 3),
                 "sovereignty_tier": body.sovereignty_tier,
             }
-        except Exception as exc:
+        except (ImportError, AttributeError, OSError) as exc:
             logger.warning("AssetRegistry unavailable: %s", exc)
             return {"hostname": "unknown", "asset_count": 0, "degraded": True}
 
@@ -616,7 +616,7 @@ class Node0Heartbeat:
             self._memory = AgentDB(config)
             self._memory.initialize()
             return True
-        except Exception as exc:
+        except (ImportError, AttributeError, OSError) as exc:
             logger.warning("Memory subsystem unavailable: %s", exc)
             return False
 
@@ -635,7 +635,7 @@ class Node0Heartbeat:
                     digest_size=32,
                 ).hexdigest()
                 return genesis_hash
-        except Exception as exc:
+        except (ImportError, AttributeError, OSError) as exc:
             logger.warning("Evidence chain unavailable: %s", exc)
 
         return "0" * 64
@@ -653,7 +653,7 @@ class Node0Heartbeat:
             from core.sovereign.helix3 import Helix3Scheduler
 
             self._helix3 = Helix3Scheduler(interval_s=self._interval_s)
-        except Exception as exc:
+        except (ImportError, AttributeError) as exc:
             logger.warning("Helix3 unavailable: %s", exc)
 
     def _boot_reflex_bridge(self) -> None:
@@ -662,7 +662,7 @@ class Node0Heartbeat:
             from core.sdpo.reflex_bridge import SDPOReflexBridge
 
             self._reflex_bridge = SDPOReflexBridge()
-        except Exception as exc:
+        except (ImportError, AttributeError) as exc:
             logger.warning("ReflexBridge unavailable: %s", exc)
 
     # ═══════════════════════════════════════════════════════════════
@@ -719,7 +719,7 @@ class Node0Heartbeat:
                     "approved_count": getattr(result, "approved_count", 0),
                     "rejected_count": getattr(result, "rejected_count", 0),
                 }
-            except Exception as exc:
+            except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
                 logger.warning("Helix3 tick failed: %s", exc)
 
         # Degraded mode: return minimal valid result
@@ -751,7 +751,7 @@ class Node0Heartbeat:
                 )
                 self._total_evidence_entries += 1
                 return 1
-            except Exception as exc:
+            except (RuntimeError, AttributeError, TypeError, OSError) as exc:
                 logger.warning("Evidence recording failed: %s", exc)
         elif self._memory is not None:
             # Fallback: store directly in AgentDB
@@ -764,7 +764,7 @@ class Node0Heartbeat:
                 )
                 self._total_evidence_entries += 1
                 return 1
-            except Exception as exc:
+            except (RuntimeError, AttributeError, TypeError, OSError) as exc:
                 logger.warning("Memory evidence fallback failed: %s", exc)
         return 0
 
@@ -787,7 +787,7 @@ class Node0Heartbeat:
             )
             self._total_memories_stored += 1
             return 1
-        except Exception as exc:
+        except (RuntimeError, AttributeError, TypeError, OSError) as exc:
             logger.warning("Memory persistence failed: %s", exc)
             return 0
 
@@ -821,7 +821,7 @@ class Node0Heartbeat:
                 candidates = self._reflex_bridge.get_eligible_candidates()
                 self._total_reflexes += len(candidates)
                 return len(candidates)
-            except Exception as exc:
+            except (RuntimeError, AttributeError, TypeError) as exc:
                 logger.debug("Reflex precipitation check: %s", exc)
         return 0
 
