@@ -138,7 +138,7 @@ class GoTBridge:
 
         try:
             return Ed25519Signer.generate()
-        except Exception:
+        except (ImportError, AttributeError, OSError):
             if canonical_mode:
                 raise RuntimeError(
                     "GoT bridge: Ed25519Signer unavailable in canonical mode. "
@@ -159,7 +159,7 @@ class GoTBridge:
 
                 self._got_engine = GraphOfThoughts()
                 logger.info("GoTBridge: lazily initialised GraphOfThoughts engine")
-            except Exception:  # noqa: BLE001 — boundary boundary
+            except (ImportError, AttributeError, RuntimeError):
                 logger.warning(
                     "GoTBridge: GraphOfThoughts unavailable -- "
                     "falling back to template mode"
@@ -192,7 +192,7 @@ class GoTBridge:
                 len(results),
             )
             return results
-        except Exception as exc:  # noqa: BLE001 — boundary boundary
+        except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
             logger.warning("GoTBridge: evidence search failed -- %s", exc)
             return []
 
@@ -415,7 +415,7 @@ class GoTBridge:
                     logger.info("Precipitated VRG reflex for query: %s (Ihsan: %.3f)", query, ihsan)
                 except ImportError:
                     logger.debug("bizra native module unavailable; skipping reflex compilation")
-        except Exception as exc:
+        except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
             logger.warning("Failed to precipitate VRG reflex: %s", exc)
 
         return result

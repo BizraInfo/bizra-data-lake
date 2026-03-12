@@ -29,7 +29,7 @@ Updated: 2026-03-12T13:35Z
 | **Nervous System Bridge** | ✅ EventBus wired | `[ENFORCEMENT: PROVEN]` | Heartbeat emits `action.receipt` → 12 subscribers (HHMM, reflex, PoI). Dual chain integrity proven. |
 | **CI Gate** | ✅ CANONICAL-001 | `[ENFORCEMENT: PROVEN]` | `pytest tests/core/node0/ tests/integration/test_plan_endpoint.py` in CI |
 | **GoT Signer Gate** | ✅ Canonical-gated | `[ENFORCEMENT: PROVEN]` | `got_bridge.py` rejects SimpleSigner fallback in canonical mode |
-| **Exception Audit** | ✅ SEC-003b | `[ENFORCEMENT: WIRED]` | Sovereign surfaces tracked (baseline=157), ratchet-only |
+| **Exception Audit** | ✅ SEC-003b | `[ENFORCEMENT: PROVEN]` | Sovereign surfaces tracked (baseline=138, down from 157), organism/runtime/got_bridge hardened to 0 |
 | **Closed-Loop Reflex** | ✅ E2E tested | `[OPTIMIZATION: WIRED]` | Observe→eligible→compile→cache→lookup proven in 8 tests. Feature-flagged `BIZRA_CLOSED_LOOP_ENABLED` default=False — enable after live deployment proof. |
 | **Distributed Replay** | ⚠️ Local only | `[OPTIMIZATION: PARTIAL]` | Nonce/TTL replay protection is local; global ordering not yet proven |
 | **Empirical Validation** | ✅ Live mode | `[ENFORCEMENT: PROVEN]` | `canonical_empirical_validation.py --live` proves real boot→breathe→chain→mission→FATE |
@@ -71,13 +71,13 @@ POST /v1/plan
 
 | ID | Type | Description | Label | Mitigation |
 |----|------|-------------|-------|------------|
-| R1 | Risk | Exception audit covers sovereign surfaces at baseline=157; any regression fails CI | `[ENFORCEMENT: WIRED]` | SEC-003b ratchet-only gate |
+| R1 | Risk | Exception audit covers sovereign surfaces at baseline=138; organism.py/runtime_core.py/got_bridge.py hardened to 0 broad catches | `[ENFORCEMENT: PROVEN]` | SEC-003b ratchet from 157→138 |
 | R2 | Risk | Closed-loop reflex path opt-in; production nodes don't compile reflexes by default | `[OPTIMIZATION: WIRED]` | E2E tested but feature-flagged — enable after live proof |
 | R3 | Risk | Distributed replay/consensus is local-only; multi-node ordering unproven | `[OPTIMIZATION: PARTIAL]` | Federation layer in design phase |
 | R4 | Risk | mypy strict=false for core.*; type errors may lurk | `[ENFORCEMENT: WIRED]` | Incremental strict adoption per module |
 | R5 | Risk | Coverage floor at 62%, target is 95% | `[ENFORCEMENT: WIRED]` | Ratchet upward with each PR |
 | A1 | Assumption | Single-node deployment for Node0/User Zero | Valid | Multi-node deferred to post-Genesis-100 |
-| I1 | Issue | 71 broad except handlers in api.py | `[ENFORCEMENT: WIRED]` | SEC-003b tracks; targeted hardening per PR |
+| I1 | Issue | 71 broad except handlers in api.py (down from 157 across sovereign) | `[ENFORCEMENT: WIRED]` | SEC-003b ratchet; organism/runtime/got_bridge done |
 | D1 | Decision | FATE rejection excludes from ALL downstream (tensor, SEED, BLOOM, reflex) | `[ENFORCEMENT: PROVEN]` | Tested in 8 consequence closure tests |
 
 ## Enforcement Doctrine

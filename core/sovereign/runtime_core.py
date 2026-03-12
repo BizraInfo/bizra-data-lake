@@ -193,7 +193,7 @@ class _RuntimeFATEGateAdapter:
             if Z3_AVAILABLE:
                 self._z3_gate = Z3FATEGate()
                 self.enforced = True
-        except Exception:
+        except (ImportError, AttributeError, OSError):
             self._z3_gate = None
             self.enforced = False
 
@@ -576,7 +576,7 @@ class SovereignRuntime:
         if hasattr(signer, "public_key_bytes"):
             try:
                 return getattr(signer, "public_key_bytes")().hex()[:16]
-            except Exception:
+            except (AttributeError, TypeError, ValueError):
                 return ""
         return ""
 
@@ -588,7 +588,7 @@ class SovereignRuntime:
         if hasattr(signer, "public_key_bytes"):
             try:
                 return getattr(signer, "public_key_bytes")().hex()
-            except Exception:
+            except (AttributeError, TypeError, ValueError):
                 return ""
         return ""
 
@@ -623,7 +623,7 @@ class SovereignRuntime:
                 raise RuntimeError(
                     "Canonical mode requires an enforced FATE gate on the mission spine"
                 )
-        except Exception:
+        except (ImportError, AttributeError, RuntimeError, OSError):
             self._fate_mode = "degraded"
             if self._canonical_mode:
                 raise
@@ -650,7 +650,7 @@ class SovereignRuntime:
             )
             self._organism = organism
             self._node0 = getattr(organism, "_node0", None)
-        except Exception:
+        except (ImportError, AttributeError, RuntimeError, OSError):
             self._organism = None
             self._node0 = None
             if self._canonical_mode:
@@ -700,7 +700,7 @@ class SovereignRuntime:
         ):
             try:
                 actor_id = getattr(self._node_signer, "public_key_bytes")()
-            except Exception:
+            except (AttributeError, TypeError):
                 actor_id = b""
 
         time_budget_seconds = float(context.get("time_budget_seconds", 900.0))
@@ -1038,7 +1038,7 @@ class SovereignRuntime:
                 self.logger.info(
                     "Equalizer RESUME: recovery detected, resuming normal ops"
                 )
-        except Exception as e:  # noqa: BLE001 — boundary handler
+        except (RuntimeError, AttributeError, TypeError, ValueError) as e:
             self.logger.debug("Equalizer dispatch error: %s", e)
 
     @staticmethod
@@ -2891,7 +2891,7 @@ class SovereignRuntime:
         receipt = await self._organism.mission(description, preflight=preflight)
         try:
             await self._organism.tick()
-        except Exception:
+        except (RuntimeError, AttributeError, TypeError, OSError):
             if self._canonical_mode:
                 raise
             self.logger.warning(
