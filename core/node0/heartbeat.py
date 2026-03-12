@@ -175,6 +175,7 @@ class Node0Heartbeat:
         data_dir: Path,
         node_id: Optional[str] = None,
         interval_s: float = HEARTBEAT_INTERVAL_S,
+        helix3: Optional[Any] = None,
     ) -> None:
         self._data_dir = Path(data_dir)
         self._node_id = node_id or ""
@@ -189,7 +190,8 @@ class Node0Heartbeat:
 
         # Subsystem handles (wired at boot)
         self._asset_registry: Optional[Any] = None
-        self._helix3: Optional[Any] = None
+        self._helix3: Optional[Any] = helix3  # External Helix3 (e.g. from organism)
+        self._external_helix3 = helix3 is not None
         self._memory: Optional[Any] = None
         self._evidence: Optional[Any] = None
         self._reflex_bridge: Optional[Any] = None
@@ -557,7 +559,14 @@ class Node0Heartbeat:
         return "0" * 64
 
     def _boot_helix3(self) -> None:
-        """Initialize Helix3 evolutionary scheduler."""
+        """Initialize Helix3 evolutionary scheduler.
+
+        If an external Helix3 was provided at construction (e.g. from
+        SovereignOrganism with NervousSystem wiring), skip standalone creation.
+        """
+        if self._external_helix3:
+            logger.info("Using externally-provided Helix3 scheduler")
+            return
         try:
             from core.sovereign.helix3 import Helix3Scheduler
 

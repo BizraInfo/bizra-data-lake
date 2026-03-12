@@ -171,6 +171,10 @@ class SovereignOrganism:
         self._helix3: Any = None
         self._inference: Any = None
 
+        # Node0 Heartbeat — the ONE canonical ingest authority
+        # Wired at boot(); all mission receipts flow through here.
+        self._node0: Any = None
+
         # CQRS EventBus with 12 subscribers (§1: "You ARE 12 agents")
         self._cqrs_bus: Any = None
         self._subscribers: List[Any] = []
@@ -254,13 +258,18 @@ class SovereignOrganism:
         # Step 4: Wire 12 CQRS bus subscribers — the nervous system
         org._wire_subscribers()
 
-        # Step 5: Start heartbeat if requested
+        # Step 5: Wire Node0Heartbeat — the ONE canonical ingest authority.
+        # Passes the organism's NervousSystem-wired Helix3 so there is
+        # exactly one Helix3 instance (no duplication).
+        org._boot_node0(persistence_dir)
+
+        # Step 6: Start heartbeat if requested
         if start_heartbeat:
             await org.start_heartbeat()
 
         logger.info(
             "Organism booted: NervousSystem + Pipeline (12 agents) "
-            "+ Helix3 (60s tick) + %d CQRS subscribers",
+            "+ Helix3 (60s tick) + Node0 Heartbeat + %d CQRS subscribers",
             len(org._subscribers),
         )
 
@@ -406,6 +415,67 @@ class SovereignOrganism:
             self._cqrs_bus = None
             self._subscribers = []
 
+    # ─── Node0 Heartbeat (P0 Closure — ONE canonical ingest) ──────
+
+    def _boot_node0(self, persistence_dir: Optional[Path]) -> None:
+        """Wire Node0Heartbeat with the organism's Helix3.
+
+        This makes Node0Heartbeat the single authority for:
+        - Mission receipt ingestion
+        - Evidence chain persistence
+        - Memory persistence
+        - Reflex precipitation checking
+
+        Standing on Giants:
+          Deming (1950) — PDCA closure: boot→ingest→breathe→improve
+          Nakamoto (2008) — One hash chain, one authority
+        """
+        try:
+            from core.node0.heartbeat import Node0Heartbeat
+
+            data_dir = persistence_dir or Path("sovereign_state") / "node0"
+            self._node0 = Node0Heartbeat(
+                data_dir=data_dir,
+                helix3=self._helix3,
+            )
+            self._node0.boot()
+            logger.info(
+                "Node0Heartbeat wired: node_id=%s, sovereignty=%s",
+                self._node0.node_id,
+                (
+                    self._node0._boot_receipt.sovereignty_proven
+                    if self._node0._boot_receipt
+                    else "unknown"
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001 — Node0 wiring must not block boot
+            logger.warning("Node0Heartbeat unavailable (degraded): %s", exc)
+            self._node0 = None
+
+    def _ingest_to_node0(self, receipt: "OrganismReceipt") -> None:
+        """Bridge organism receipt into Node0Heartbeat — the ONE ingest path.
+
+        Every mission, regardless of origin (API, CLI, terminal), must
+        flow through this single authority for evidence + memory + reflex.
+        """
+        if self._node0 is None:
+            return
+
+        try:
+            self._node0.ingest_mission_receipt(
+                {
+                    "mission_id": receipt.mission_id,
+                    "description": receipt.input_text[:200],
+                    "ihsan_score": receipt.ihsan_score,
+                    "snr_score": receipt.snr_score,
+                    "agent_id": ",".join(receipt.agent_chain) or "organism",
+                    "gate_passed": receipt.gate_passed,
+                    "duration_ms": receipt.duration_ms,
+                }
+            )
+        except Exception as exc:  # noqa: BLE001 — ingest must not crash mission return
+            logger.warning("Node0 ingest failed: %s", exc)
+
     # ─── Mission Execution (§6 Mode 2) ───────────────────────────
 
     async def mission(self, text: str) -> OrganismReceipt:
@@ -491,6 +561,10 @@ class SovereignOrganism:
 
             # Emit to CQRS bus — fires 12 subscribers
             self._emit_cqrs_receipt(receipt)
+
+            # Bridge to Node0Heartbeat — THE canonical ingest authority
+            # Evidence chain, memory persistence, reflex check all happen here.
+            self._ingest_to_node0(receipt)
 
             logger.info(
                 "Mission %s: %s, ihsan=%.4f, %s, %.1fms",
@@ -581,12 +655,35 @@ class SovereignOrganism:
         Normally called automatically every 60 seconds by the heartbeat.
         Can be called manually for testing or on-demand evolution.
 
+        When Node0Heartbeat is wired, delegates to breathe() which wraps
+        the Helix3 tick with evidence persistence, memory storage, and
+        reflex precipitation — the full organism breath cycle.
+
         Returns:
-            HeartbeatReceipt from Helix3Scheduler
+            HeartbeatReceipt from Helix3Scheduler (or BreathReceipt if Node0 active)
         """
         if self._helix3 is None:
             raise RuntimeError("Organism not booted — call boot() first")
 
+        # If Node0 is wired, breathe() is the canonical tick path:
+        # it runs Helix3 tick + evidence + memory + reflex in one atomic cycle.
+        if self._node0 is not None:
+            try:
+                breath = self._node0.breathe()
+                logger.info(
+                    "Tick %d (via Node0 breathe): ihsan=%.4f, missions=%d, "
+                    "evidence=%d, reflexes=%d",
+                    breath.tick_number,
+                    breath.ihsan_composite,
+                    breath.missions_processed,
+                    breath.evidence_entries,
+                    breath.reflexes_precipitated,
+                )
+                return breath
+            except Exception as exc:  # noqa: BLE001 — degrade to direct Helix3
+                logger.warning("Node0 breathe failed, falling back to Helix3: %s", exc)
+
+        # Fallback: direct Helix3 tick (no evidence/memory/reflex closure)
         receipt = self._helix3.process_tick()
         logger.info(
             "Tick %d: ihsan=%.4f, minted=%d, halted=%s",
@@ -742,6 +839,8 @@ class SovereignOrganism:
                 "chain_height": self._cqrs_bus.chain_height,
                 "chain_valid": self._cqrs_bus.verify_chain(),
             }
+        if self._node0:
+            result["node0"] = self._node0.health()
         return result
 
     # ─── Constitutional Invariant Checks ──────────────────────────
