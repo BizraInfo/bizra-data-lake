@@ -211,6 +211,10 @@ class Node0Heartbeat:
         self._reflex_bridge: Optional[Any] = None
         self._event_bus: Optional[Any] = event_bus  # Nervous system bridge
         self._reasoning_bank: Optional[Any] = None  # ReasoningBank Intelligence
+        self._learning_loop: Optional[Any] = None  # Closed-loop learning orchestrator
+        self._federation_ambassador: Optional[Any] = (
+            None  # Distributed Receipt Verification
+        )
 
         # Cumulative stats
         self._total_memories_stored = 0
@@ -218,6 +222,7 @@ class Node0Heartbeat:
         self._total_reflexes = 0
         self._total_events_emitted = 0
         self._total_rb_experiences = 0
+        self._total_learning_cycles = 0
 
     # ═══════════════════════════════════════════════════════════════
     # §9 BOOT — Genesis Ceremony (Block Zero)
@@ -264,6 +269,12 @@ class Node0Heartbeat:
 
         # ── Step 6b: ReasoningBank Intelligence ──────────────────
         self._boot_reasoning_bank()
+
+        # ── Step 6c: Learning Loop Orchestrator (Helix 3 closure) ─
+        self._boot_learning_loop()
+
+        # ── Step 6d: Federation Ambassador (Phase 48) ────────────
+        self._boot_federation_ambassador()
 
         # ── Step 7: Sovereignty Proof ────────────────────────────
         checks = self._verify_sovereignty(asset_summary, memory_ok, evidence_genesis)
@@ -377,6 +388,9 @@ class Node0Heartbeat:
         # ── Step 4b: ReasoningBank Experience Recording ───────────
         self._record_rb_experience(helix_result)
 
+        # ── Step 4c: Learning Loop Compilation Cycle ──────────────
+        self._run_learning_cycle(helix_result)
+
         # ── Step 5: Chain Integrity ──────────────────────────────
         duration_ms = (time.monotonic() - start) * 1000
 
@@ -421,6 +435,10 @@ class Node0Heartbeat:
 
         # ── Step 6: Nervous System Bridge (EventBus) ──────────────
         self._emit_breath_event(receipt)
+
+        # ── Step 7: Distributed Receipt Verification (Federation) ─
+        if self._federation_ambassador is not None:
+            self._federation_ambassador.broadcast_heartbeat_receipt(receipt.as_dict())
 
         logger.info(
             "Node0 BREATH #%d | ihsan=%.3f | gini=%.4f | mem=%d | ev=%d | %.1fms",
@@ -470,6 +488,7 @@ class Node0Heartbeat:
             "total_evidence_entries": self._total_evidence_entries,
             "total_reflexes_precipitated": self._total_reflexes,
             "total_rb_experiences": self._total_rb_experiences,
+            "total_learning_cycles": self._total_learning_cycles,
             "total_events_emitted": self._total_events_emitted,
             "subsystems": {
                 "asset_registry": self._asset_registry is not None,
@@ -479,6 +498,8 @@ class Node0Heartbeat:
                 "reflex_bridge": self._reflex_bridge is not None,
                 "event_bus": self._event_bus is not None,
                 "reasoning_bank": self._reasoning_bank is not None,
+                "learning_loop": self._learning_loop is not None,
+                "federation_ambassador": self._federation_ambassador is not None,
             },
             "hardware": (
                 {
@@ -511,14 +532,16 @@ class Node0Heartbeat:
 
         closed_loop_enabled = os.environ.get("BIZRA_CLOSED_LOOP_ENABLED", "0") == "1"
         return {
-            "truth_label": "OPTIMIZATION: PARTIAL",
+            "truth_label": "OPTIMIZATION: WIRED",
             "feature_flag": "BIZRA_CLOSED_LOOP_ENABLED",
             "enabled": closed_loop_enabled,
             "reflex_bridge_wired": self._reflex_bridge is not None,
+            "learning_loop_wired": self._learning_loop is not None,
             "total_reflexes_precipitated": self._total_reflexes,
+            "total_learning_cycles": self._total_learning_cycles,
             "note": (
-                "Reflex precipitation from verified patterns is wired but "
-                "the closed-loop compilation cycle requires "
+                "The learning loop orchestrator is wired (observe → compile → "
+                "cache) but the closed-loop compilation cycle requires "
                 "BIZRA_CLOSED_LOOP_ENABLED=1. This is intentionally opt-in "
                 "until live proof catches up with enforcement."
             ),
@@ -700,6 +723,78 @@ class Node0Heartbeat:
             logger.info("ReasoningBank Intelligence wired to heartbeat")
         except (ImportError, AttributeError) as exc:
             logger.warning("ReasoningBank unavailable: %s", exc)
+
+    def _boot_learning_loop(self) -> None:
+        """Initialize LearningLoopOrchestrator — the Helix 3 closure.
+
+        Standing on Giants:
+        - Deming (PDCA, 1950) — closed loop as quality driver
+        - Kahneman (System 1/2, 2011) — reflex = compiled deliberation
+        - Holland (Genetic Algorithms, 1975) — evolutionary discovery
+
+        Wires the autopoiesis → SDPO → reflex pipeline into a single
+        orchestrator. The loop respects BIZRA_CLOSED_LOOP_ENABLED: when
+        disabled, it still collects telemetry (dry-run) but does not
+        execute training or compilation.
+
+        The reflex_bridge already wired at Step 6 is shared with the
+        learning loop so compiled reflexes land in the same cache.
+        """
+        try:
+            from core.orchestration.learning_loop import LearningLoopOrchestrator
+
+            self._learning_loop = LearningLoopOrchestrator(
+                reflex_bridge=self._reflex_bridge,
+            )
+            logger.info(
+                "LearningLoop wired to heartbeat — enabled=%s",
+                self._learning_loop.enabled,
+            )
+        except (ImportError, AttributeError, TypeError) as exc:
+            logger.warning("LearningLoop unavailable: %s", exc)
+
+    def _run_learning_cycle(self, helix_result: Dict[str, Any]) -> None:
+        """Execute one compilation cycle of the learning loop.
+
+        Called every breath. The orchestrator checks for eligible reflex
+        candidates and compiles them if BIZRA_CLOSED_LOOP_ENABLED=1.
+
+        This is the Helix 3 closure: process_tick → learn → precipitate → cache.
+        """
+        if self._learning_loop is None:
+            return
+        try:
+            compiled = self._learning_loop.run_compilation_cycle()
+            self._total_learning_cycles += 1
+            if compiled:
+                self._total_reflexes += len(compiled)
+                logger.info(
+                    "Learning loop compiled %d reflexes (cycle #%d)",
+                    len(compiled),
+                    self._total_learning_cycles,
+                )
+        except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
+            logger.warning("Learning cycle error: %s", exc)
+
+    def _boot_federation_ambassador(self) -> None:
+        """Initialize Federation Ambassador for distributed receipt verification.
+
+        Phase 48: Bridges the standalone Node0 into the P2P PBFT/SWIM network.
+        """
+        try:
+            from core.federation.interaction_boundary import FederationAmbassador
+
+            self._federation_ambassador = FederationAmbassador(
+                node_id=self._node_id,
+                public_key=self._signer_public_key_hex,
+                private_key="",  # Fallback to generated if missing
+            )
+            # Bind to port 0 for automatic port assignment
+            # to prevent EADDRINUSE during local simulation
+            self._federation_ambassador.start(bind_address="0.0.0.0:0")
+            logger.info("Federation Ambassador wired to Node0 Heartbeat")
+        except (ImportError, AttributeError) as exc:
+            logger.warning("Federation Ambassador unavailable: %s", exc)
 
     # ═══════════════════════════════════════════════════════════════
     # PRIVATE: Sovereignty Verification
@@ -923,19 +1018,22 @@ class Node0Heartbeat:
         This bridges the enforcement spine (heartbeat) to the intelligence spine
         (12 EventBus subscribers: HHMM promotion, reflex compilation, PoI credit).
         """
-        self._emit_event("action.receipt", {
-            "source": "node0:heartbeat",
-            "tick": receipt.tick_number,
-            "ihsan_composite": receipt.ihsan_composite,
-            "gini_coefficient": receipt.gini_coefficient,
-            "gini_ok": receipt.gini_ok,
-            "seed_minted": receipt.seed_minted,
-            "missions_processed": receipt.missions_processed,
-            "reflexes_precipitated": receipt.reflexes_precipitated,
-            "chain_hash": receipt.chain_hash,
-            "approved_count": receipt.helix_result.get("approved_count", 0),
-            "rejected_count": receipt.helix_result.get("rejected_count", 0),
-        })
+        self._emit_event(
+            "action.receipt",
+            {
+                "source": "node0:heartbeat",
+                "tick": receipt.tick_number,
+                "ihsan_composite": receipt.ihsan_composite,
+                "gini_coefficient": receipt.gini_coefficient,
+                "gini_ok": receipt.gini_ok,
+                "seed_minted": receipt.seed_minted,
+                "missions_processed": receipt.missions_processed,
+                "reflexes_precipitated": receipt.reflexes_precipitated,
+                "chain_hash": receipt.chain_hash,
+                "approved_count": receipt.helix_result.get("approved_count", 0),
+                "rejected_count": receipt.helix_result.get("rejected_count", 0),
+            },
+        )
 
     def _emit_event(self, event_type_name: str, payload: Dict[str, Any]) -> None:
         """Emit an event to the EventBus if connected.
@@ -984,12 +1082,15 @@ class Node0Heartbeat:
             logger.debug("Helix3 not available — receipt dropped")
 
         # Emit to nervous system for downstream learning
-        self._emit_event("action.receipt", {
-            "source": "node0:ingest",
-            "ihsan_score": receipt.get("ihsan_score", 0.0),
-            "description": receipt.get("description", ""),
-            "fate_verdict": receipt.get("fate_verdict", "unknown"),
-        })
+        self._emit_event(
+            "action.receipt",
+            {
+                "source": "node0:ingest",
+                "ihsan_score": receipt.get("ihsan_score", 0.0),
+                "description": receipt.get("description", ""),
+                "fate_verdict": receipt.get("fate_verdict", "unknown"),
+            },
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════
