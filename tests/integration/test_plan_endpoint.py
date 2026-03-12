@@ -556,3 +556,78 @@ async def test_plan_canonical_mode_suppresses_direct_system1_cache_path(
     assert data["execution_authority"] == "organism"
     assert data["authority_path"] == "runtime->organism->node0"
     assert data["execution_path"] == "SYSTEM_2_NOVEL"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# E2E: CANONICAL AUTHORITY EXCLUSIVITY
+# Standing on Giants:
+#   Nakamoto (2008) — single authority, no parallel path
+#   Lamport (1978) — total ordering, one truth surface
+# ═══════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.integration
+async def test_plan_canonical_mode_never_calls_mission_orchestrator(
+    canonical_plan_client, monkeypatch
+):
+    """In canonical mode, MissionOrchestrator.execute() must NEVER be reached.
+
+    This proves exclusivity (one authority), not just preference.
+    """
+    from unittest.mock import AsyncMock
+
+    client, runtime = canonical_plan_client
+
+    # Patch MissionOrchestrator to trap any direct invocation
+    orchestrator_sentinel = AsyncMock(side_effect=AssertionError(
+        "MissionOrchestrator.execute() was called in canonical mode — truth fork!"
+    ))
+    monkeypatch.setattr(
+        "core.sovereign.api.MissionOrchestrator",
+        type("MockOrchestrator", (), {"execute": orchestrator_sentinel}),
+        raising=False,
+    )
+
+    async with client:
+        resp = await client.post(
+            "/v1/plan",
+            json={"description": "Prove single authority", "source": "terminal"},
+        )
+
+    assert resp.status_code == 200
+    runtime.mission.assert_awaited_once()
+    orchestrator_sentinel.assert_not_awaited()
+    data = resp.json()
+    assert data["execution_authority"] == "organism"
+
+
+@pytest.mark.integration
+async def test_plan_canonical_response_includes_fate_fields(canonical_plan_client):
+    """Canonical response must carry full FATE lineage fields.
+
+    These fields enable downstream evidence chain, memory, and reflex.
+    """
+    client, runtime = canonical_plan_client
+
+    async with client:
+        resp = await client.post(
+            "/v1/plan",
+            json={"description": "Check FATE lineage", "source": "terminal"},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # All consequence-carrying fields must be present
+    assert "fate_verdict" in data
+    assert "fate_mode" in data
+    assert "identity_mode" in data
+    assert "signer_public_key_prefix" in data
+    assert "hash_chain_ref" in data
+    assert "execution_authority" in data
+    assert "authority_path" in data
+
+    # Values must match canonical runtime mock
+    assert data["fate_verdict"] == "approved"
+    assert data["fate_mode"] == "enforced"
+    assert data["identity_mode"] == "genesis_ed25519"
