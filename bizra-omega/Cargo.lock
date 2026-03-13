@@ -617,12 +617,16 @@ dependencies = [
 name = "bizra-python"
 version = "2.0.0"
 dependencies = [
+ "bizra-action",
  "bizra-autopoiesis",
  "bizra-core",
  "bizra-federation",
  "bizra-hooks",
  "bizra-inference",
  "bizra-memory",
+ "hex",
+ "pqcrypto-mldsa",
+ "pqcrypto-traits",
  "pyo3",
  "pyo3-build-config",
  "serde_json",

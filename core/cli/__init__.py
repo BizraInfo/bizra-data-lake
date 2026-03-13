@@ -11,6 +11,6 @@ Standing on Giants:
 - Deming (1950): Measure everything, ratchet quality
 """
 
-from .registry import CommandRegistry, CommandResult, BaseCommand
+from .registry import BaseCommand, CommandRegistry, CommandResult
 
 __all__ = ["CommandRegistry", "CommandResult", "BaseCommand"]

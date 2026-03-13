@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import List
 
 from ..registry import CommandResult
-from ..shared import C, CODENAME, VERSION
+from ..shared import CODENAME, VERSION, C
 
 
 class VersionCommand:
