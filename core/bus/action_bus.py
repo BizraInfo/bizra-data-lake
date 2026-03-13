@@ -228,7 +228,11 @@ class ActionBus:
                 action.budget.time_ms,
             )
             return ChannelResult(success=False, reason="timeout")
-        except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ):  # SEC-003 — async boundary
             logger.exception("Action %s execution failed", action.action_id)
             return ChannelResult(success=False, reason="execution_error")
 

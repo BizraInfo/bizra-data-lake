@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from core.memory.types import SearchResult
     from .got_bridge import GoTBridgeResult
 
+
 @dataclass(frozen=True)
 class PCICertificate:
     depth: int
@@ -56,6 +57,7 @@ class PCICertificate:
             "certificate_hash": self.certificate_hash,
             "pruned_children": self.pruned_children,
         }
+
 
 @dataclass(frozen=True)
 class GoTNode:
@@ -120,7 +122,9 @@ class VerifiedReasoningGraphBuilder:
         """Build the VRG artifact, root, and signed receipt."""
         canon_query = self._build_query(query, context, evidence)
         policy = self._build_policy()
-        graph_artifact = self._build_graph_artifact(got_engine, canon_query.hex_digest())
+        graph_artifact = self._build_graph_artifact(
+            got_engine, canon_query.hex_digest()
+        )
         got_nodes = self._build_branch_certificates(got_engine)
         branch_certificates = [n.certificate.to_dict() for n in got_nodes]
         vrg_root = self._compute_vrg_root(
@@ -257,7 +261,9 @@ class VerifiedReasoningGraphBuilder:
                 "roots": [],
             }
         )
-        empty_graph_hash = hashlib.blake2b(empty_graph_bytes, digest_size=32).hexdigest()
+        empty_graph_hash = hashlib.blake2b(
+            empty_graph_bytes, digest_size=32
+        ).hexdigest()
         return {
             "build_id": build_id,
             "config": {
@@ -279,7 +285,9 @@ class VerifiedReasoningGraphBuilder:
 
         reverse_adj = getattr(got_engine, "reverse_adj", {})
         adjacency = getattr(got_engine, "adjacency", {})
-        ordered_node_ids = sorted(nodes, key=lambda node_id: (nodes[node_id].depth, node_id))
+        ordered_node_ids = sorted(
+            nodes, key=lambda node_id: (nodes[node_id].depth, node_id)
+        )
         certificates_by_id: dict[str, PCICertificate] = {}
         got_nodes: list[GoTNode] = []
 
@@ -292,7 +300,11 @@ class VerifiedReasoningGraphBuilder:
                 if parent_id in nodes
                 and nodes[parent_id].thought_type in _SURVIVING_THOUGHT_TYPES
             ]
-            parent_hashes = [nodes[parent_id].content_hash for parent_id in parent_ids if parent_id in nodes]
+            parent_hashes = [
+                nodes[parent_id].content_hash
+                for parent_id in parent_ids
+                if parent_id in nodes
+            ]
             terminal = not any(
                 child_id in nodes
                 and nodes[child_id].thought_type in _SURVIVING_THOUGHT_TYPES
@@ -307,7 +319,9 @@ class VerifiedReasoningGraphBuilder:
             if "gate_failed" in node.metadata:
                 gate_passed = node.metadata["gate_failed"]
                 included_in_root = False
-                reject_reason = node.metadata.get("reject_reason", "Gate failed dynamically")
+                reject_reason = node.metadata.get(
+                    "reject_reason", "Gate failed dynamically"
+                )
                 pruned_children = node.metadata.get("pruned_children", 0)
             elif node.thought_type not in _SURVIVING_THOUGHT_TYPES:
                 gate_passed = "INFO_ONLY"
@@ -349,7 +363,7 @@ class VerifiedReasoningGraphBuilder:
             }
             canonical_cert = canonical_bytes(cert_data)
             cert_hash = hashlib.blake2b(canonical_cert, digest_size=32).hexdigest()
-            
+
             certificate = PCICertificate(**cert_data, certificate_hash=cert_hash)
             certificates_by_id[node_id] = certificate
             got_nodes.append(GoTNode(thought=node, certificate=certificate))
@@ -391,9 +405,7 @@ class VerifiedReasoningGraphBuilder:
             and node.certificate.terminal
         ]
         surviving_terminals = [
-            cert
-            for cert in terminal_candidates
-            if cert.included_in_root
+            cert for cert in terminal_candidates if cert.included_in_root
         ]
 
         best_snr = base_result.snr_score

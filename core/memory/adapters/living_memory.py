@@ -127,9 +127,7 @@ class LivingMemoryAdapter:
                     "emotional_weight": getattr(entry, "emotional_weight", 0.5),
                     "confidence": getattr(entry, "confidence", 1.0),
                     "parent_id": getattr(entry, "parent_id", None),
-                    "reinforcement_count": getattr(
-                        entry, "reinforcement_count", 1
-                    ),
+                    "reinforcement_count": getattr(entry, "reinforcement_count", 1),
                     "origin": "living_memory",
                 },
             )
@@ -166,9 +164,11 @@ class LivingMemoryAdapter:
             "snr_score": record.snr_score,
             "confidence": meta.get("confidence", 1.0),
             "state": lm_state,
-            "source": record.source.replace("living_memory:", "", 1)
-            if record.source.startswith("living_memory:")
-            else record.source,
+            "source": (
+                record.source.replace("living_memory:", "", 1)
+                if record.source.startswith("living_memory:")
+                else record.source
+            ),
             "related_ids": record.related_ids,
             "importance": record.importance,
             "emotional_weight": meta.get("emotional_weight", 0.5),
@@ -330,9 +330,9 @@ class LivingMemoryBridge:
         db_stats = self._db.stats() if hasattr(self._db, "stats") else {}
         return {
             "living_memory_entries": lm_count,
-            "agentdb_total": db_stats.get("total_records", 0)
-            if isinstance(db_stats, dict)
-            else 0,
+            "agentdb_total": (
+                db_stats.get("total_records", 0) if isinstance(db_stats, dict) else 0
+            ),
             "synced_ids": len(self._synced_ids),
             "bridge_active": True,
         }

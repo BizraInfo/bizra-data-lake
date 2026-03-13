@@ -346,7 +346,11 @@ class InferenceConnector(SubsystemConnector):
             response.latency_ms = (time.perf_counter() - start_time) * 1000
             self.health.last_success = datetime.now()
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             response.success = False
             response.error = str(e)
             self.health.error_count += 1
@@ -609,7 +613,11 @@ class MemoryConnector(SubsystemConnector):
         if state_file.exists():
             try:
                 self._session_memory = json.loads(state_file.read_text())
-            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ) as e:  # SEC-003 — json boundary
                 logger.error(f"Memory load failed: {e}")
 
     async def _persist(self, key: str, value: Any) -> None:

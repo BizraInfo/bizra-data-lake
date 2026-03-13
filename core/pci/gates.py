@@ -47,6 +47,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, TYPE_CHECKING
+
 if TYPE_CHECKING:
     from core.sovereign.graph_types import ThoughtNode
 

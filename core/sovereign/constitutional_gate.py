@@ -206,7 +206,11 @@ class ConstitutionalGate:
                 with open(keypair_path) as f:
                     data = json.load(f)
                 return data.get("public_key", "").strip()
-            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ) as e:  # SEC-003 — json boundary
                 logger.warning(f"Failed to load trusted Z3 pubkey: {e}")
 
         return ""
@@ -295,7 +299,11 @@ class ConstitutionalGate:
                 )
                 self._z3_cache[candidate_id] = cert
                 return cert
-            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ) as e:  # SEC-003 — json boundary
                 logger.warning(f"Failed to load Z3 certificate: {e}")
 
         # Try Rust FFI for Z3 verification (when available)
@@ -364,7 +372,11 @@ class ConstitutionalGate:
                         f,
                     )
                 logger.info(f"Queued {candidate_id} for background Z3 proofing")
-            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ) as e:  # SEC-003 — json boundary
                 logger.warning(f"Failed to queue for proofing: {e}")
 
     def get_runtime_count(self) -> int:

@@ -260,7 +260,11 @@ class GoTBridge:
             raw: dict[str, Any] = await got.reason(
                 query, context_with_facts, self._max_depth
             )
-        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as exc:  # SEC-003 — async boundary
             logger.error("GoTBridge: GoT engine raised -- %s", exc)
             return self._build_fallback_result(query, evidence, merged_facts)
 
@@ -403,7 +407,9 @@ class GoTBridge:
                     import bizra
 
                     ledger = bizra.ReflexLedger(1000)
-                    proof_certs = [c["certificate_hash"] for c in result.branch_certificates]
+                    proof_certs = [
+                        c["certificate_hash"] for c in result.branch_certificates
+                    ]
 
                     ledger.compile_vrg_reflex(
                         task_description=query,
@@ -412,9 +418,15 @@ class GoTBridge:
                         vrg_root=result.vrg_root,
                         branch_certificates=proof_certs,
                     )
-                    logger.info("Precipitated VRG reflex for query: %s (Ihsan: %.3f)", query, ihsan)
+                    logger.info(
+                        "Precipitated VRG reflex for query: %s (Ihsan: %.3f)",
+                        query,
+                        ihsan,
+                    )
                 except ImportError:
-                    logger.debug("bizra native module unavailable; skipping reflex compilation")
+                    logger.debug(
+                        "bizra native module unavailable; skipping reflex compilation"
+                    )
         except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
             logger.warning("Failed to precipitate VRG reflex: %s", exc)
 

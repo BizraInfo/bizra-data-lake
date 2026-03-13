@@ -403,7 +403,11 @@ class ProactiveSovereignEntity:
                 )
                 self._knowledge_initialized = True
                 knowledge_status = "BIZRA Data Lake + MoMo R&D connected"
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.warning(f"Knowledge integration unavailable: {e}")
                 knowledge_status = "Unavailable (standalone mode)"
         else:
@@ -466,7 +470,11 @@ class ProactiveSovereignEntity:
                         f"ihsan={result.ihsan_score:.3f}"
                     )
 
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Main loop error: {e}")
 
             await asyncio.sleep(self.config.cycle_interval)

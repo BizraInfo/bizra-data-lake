@@ -466,7 +466,11 @@ class ShadowEnvironment:
             logger.info(f"Shadow environment {self.env_id} initialized successfully")
             return True
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(f"Failed to initialize shadow environment: {e}")
             return False
 
@@ -580,7 +584,11 @@ class ShadowEnvironment:
                     error=f"Timeout after {self.resource_limits.timeout_seconds}s",
                 )
 
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 self._error_count += 1
                 latency_ms = (
                     datetime.now(timezone.utc) - start_time
@@ -1075,7 +1083,11 @@ class ShadowDeployer:
                     ihsan_score=getattr(prod_result, "ihsan_score", 1.0),
                     snr_score=getattr(prod_result, "snr_score", 1.0),
                 )
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 deployment.errors_prod += 1
                 production_response = ShadowResponse(
                     request_id=request.request_id,
@@ -1426,7 +1438,11 @@ class ShadowDeployer:
 
             return True
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             self._log_audit(
                 "promote_failed",
                 deployment.deployment_id,
@@ -1539,7 +1555,11 @@ class ShadowDeployer:
                     # Check kill switch conditions
                     await self._check_kill_switch(deployment)
 
-                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+                except (
+                    asyncio.CancelledError,
+                    RuntimeError,
+                    OSError,
+                ) as e:  # SEC-003 — async boundary
                     logger.error(f"Error monitoring deployment {deployment_id}: {e}")
 
             await asyncio.sleep(interval)

@@ -602,7 +602,11 @@ class DualAgenticBridge:
                     veto_reason=None,
                     comments="Timeout",
                 )
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Validator {role.value} error: {e}")
                 return Vote(
                     validator_role=role,

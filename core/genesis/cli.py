@@ -319,8 +319,13 @@ def handle_activate(args: argparse.Namespace) -> None:
         import os
 
         seed = os.urandom(32)
-        print("Warning: using ephemeral random seed (not reproducible)", file=sys.stderr)
-        print("For reproducible activation, use --seed-file or --seed-phrase", file=sys.stderr)
+        print(
+            "Warning: using ephemeral random seed (not reproducible)", file=sys.stderr
+        )
+        print(
+            "For reproducible activation, use --seed-file or --seed-phrase",
+            file=sys.stderr,
+        )
 
     data_dir = Path(args.data_dir)
 

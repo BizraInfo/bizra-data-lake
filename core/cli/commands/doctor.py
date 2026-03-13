@@ -51,7 +51,9 @@ class DoctorCommand:
             print_status("Frontend", str(frontend), True)
         else:
             print_status("Frontend", "NOT FOUND", False)
-            print_warn("Set BIZRA_FRONTEND env var to your award-winner-design directory")
+            print_warn(
+                "Set BIZRA_FRONTEND env var to your award-winner-design directory"
+            )
             issues += 1
 
         ollama_path = shutil.which("ollama")
@@ -93,7 +95,9 @@ class DoctorCommand:
         if BIZRA_IDENTITY.exists():
             print_status("Node identity", "Exists", True)
         else:
-            print_status("Node identity", "Not created (will generate on first run)", False)
+            print_status(
+                "Node identity", "Not created (will generate on first run)", False
+            )
 
         print(f"\n{C.GRAY}{'─' * 50}{C.RESET}")
         if issues == 0:

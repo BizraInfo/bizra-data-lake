@@ -475,7 +475,11 @@ class MultiModelManager:
             )
             return True
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(f"Failed to initialize MultiModelManager: {e}")
             return False
 
@@ -575,7 +579,11 @@ class MultiModelManager:
 
             except asyncio.CancelledError:
                 break
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Health check loop error: {e}")
                 self._pool_metrics.health_check_failures += 1
 
@@ -745,7 +753,11 @@ class MultiModelManager:
             logger.info(f"Loaded model: {model_id}")
             return True
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             model.status = ModelStatus.ERROR
             logger.error(f"Failed to load model {model_id}: {e}")
             return False
@@ -771,7 +783,11 @@ class MultiModelManager:
             logger.info(f"Unloaded model: {model_id}")
             return True
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             model.status = ModelStatus.ERROR
             logger.error(f"Failed to unload model {model_id}: {e}")
             return False
@@ -948,7 +964,11 @@ class MultiModelManager:
                 logger.warning(
                     f"Connection drain timed out after {drain_timeout}s, forcing close"
                 )
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Error during connection pool close: {e}")
             finally:
                 self._client = None

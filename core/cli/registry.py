@@ -28,7 +28,9 @@ class CommandResult:
     data: Optional[Dict[str, Any]] = None
 
     @classmethod
-    def ok(cls, message: str = "", data: Optional[Dict[str, Any]] = None) -> "CommandResult":
+    def ok(
+        cls, message: str = "", data: Optional[Dict[str, Any]] = None
+    ) -> "CommandResult":
         return cls(success=True, message=message, exit_code=0, data=data)
 
     @classmethod
@@ -110,7 +112,9 @@ class CommandRegistry:
         self._aliases: Dict[str, str] = {}
         self._categories: Dict[str, List[str]] = {}
         self._pre_hooks: List[Callable[[str, List[str]], None]] = []
-        self._post_hooks: List[Callable[[str, List[str], CommandResult, float], None]] = []
+        self._post_hooks: List[
+            Callable[[str, List[str], CommandResult, float], None]
+        ] = []
 
     def register(self, command: BaseCommand) -> None:
         """Register a command and its aliases."""
@@ -161,7 +165,9 @@ class CommandRegistry:
             CommandResult from the matched command.
         """
         if not argv:
-            return CommandResult.error("No command provided. Use 'bizra help' for usage.")
+            return CommandResult.error(
+                "No command provided. Use 'bizra help' for usage."
+            )
 
         cmd_name = argv[0]
         cmd_args = argv[1:]

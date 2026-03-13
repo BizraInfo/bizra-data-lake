@@ -508,7 +508,13 @@ mod tests {
         let actions = vec![BizraAction::AhkPerceive];
         let desc = "rename invoice files by date";
         ledger
-            .compile(desc, actions, IhsanScore::new(0.98), ActionTimestamp(100), vec![])
+            .compile(
+                desc,
+                actions,
+                IhsanScore::new(0.98),
+                ActionTimestamp(100),
+                vec![],
+            )
             .unwrap();
 
         let hash = ReflexLedger::task_signature(desc);
@@ -522,7 +528,13 @@ mod tests {
         let mut ledger = ReflexLedger::new(10);
         let desc = "task";
         ledger
-            .compile(desc, vec![], IhsanScore::new(0.99), ActionTimestamp(100), vec![])
+            .compile(
+                desc,
+                vec![],
+                IhsanScore::new(0.99),
+                ActionTimestamp(100),
+                vec![],
+            )
             .unwrap();
 
         let hash = ReflexLedger::task_signature(desc);
@@ -577,7 +589,13 @@ mod tests {
         let mut ledger = ReflexLedger::new(10);
         let desc = "known_task";
         ledger
-            .compile(desc, vec![], IhsanScore::new(0.99), ActionTimestamp(100), vec![])
+            .compile(
+                desc,
+                vec![],
+                IhsanScore::new(0.99),
+                ActionTimestamp(100),
+                vec![],
+            )
             .unwrap();
 
         let hash = ReflexLedger::task_signature(desc);
@@ -596,7 +614,13 @@ mod tests {
         let mut ledger = ReflexLedger::new(10);
         let desc = "sort_invoices";
         ledger
-            .compile(desc, vec![], IhsanScore::new(0.99), ActionTimestamp(100), vec![])
+            .compile(
+                desc,
+                vec![],
+                IhsanScore::new(0.99),
+                ActionTimestamp(100),
+                vec![],
+            )
             .unwrap();
 
         let hash = ReflexLedger::task_signature(desc);

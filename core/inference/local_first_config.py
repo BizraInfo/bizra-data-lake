@@ -752,7 +752,11 @@ class HealthMonitor:
                 await asyncio.sleep(self.check_interval_s)
             except asyncio.CancelledError:
                 break
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Health monitor error: {e}")
                 await asyncio.sleep(5.0)  # Brief pause on error
 
@@ -1094,7 +1098,11 @@ class BicameralOrchestrator:
             response.raise_for_status()
             data = response.json()
             return data["choices"][0]["message"]["content"]
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(f"Model call failed: {e}")
             return f"[Error: {str(e)[:100]}]"
 

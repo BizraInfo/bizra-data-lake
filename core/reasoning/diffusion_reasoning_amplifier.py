@@ -26,7 +26,6 @@ from core.integration.constants import (
 from core.prediction import HMMState, PredictionResult
 from core.prediction.hierarchical_hmm import HierarchicalPredictionResult, StrategicGoal
 
-
 _WORD_RE: Final[re.Pattern[str]] = re.compile(r"[a-zA-Z0-9_]+")
 
 _SYMBOL_KEYWORDS: Final[dict[str, tuple[str, ...]]] = {
@@ -114,6 +113,7 @@ _STRATEGIC_BIAS: Final[dict[StrategicGoal, dict[str, float]]] = {
     StrategicGoal.IDLE: {"depth_mult": 1.0, "hyp_mult": 1.0},
 }
 
+
 class DiffusionReasoningAmplifier:
     """Translate T1 prediction signals into deterministic T2 control hints."""
 
@@ -139,7 +139,6 @@ class DiffusionReasoningAmplifier:
         prediction: Optional[PredictionResult | HierarchicalPredictionResult],
         observation_symbol: str = "",
     ) -> AmplifiedReasoningContext:
-
         """Compute fail-closed amplification context from an HMM prediction."""
         symbol = observation_symbol or self.query_to_observation_symbol(query)
         if prediction is None:
@@ -191,11 +190,16 @@ class DiffusionReasoningAmplifier:
             )
 
         # 4. Multi-Layer Modulation
-        strat_bias = _STRATEGIC_BIAS.get(strategic_goal, {"depth_mult": 1.0, "hyp_mult": 1.0})
-        
+        strat_bias = _STRATEGIC_BIAS.get(
+            strategic_goal, {"depth_mult": 1.0, "hyp_mult": 1.0}
+        )
+
         complexity_hint = min(
             self.config.max_complexity_hint,
-            confidence * self.config.max_complexity_hint * strat_bias["depth_mult"] / 2.0,
+            confidence
+            * self.config.max_complexity_hint
+            * strat_bias["depth_mult"]
+            / 2.0,
         )
 
         got_hypotheses = max(
@@ -217,13 +221,12 @@ class DiffusionReasoningAmplifier:
                 self.config.max_depth,
                 int(
                     round(
-                        (1 + confidence * (self.config.max_depth - 1)) * strat_bias["depth_mult"]
+                        (1 + confidence * (self.config.max_depth - 1))
+                        * strat_bias["depth_mult"]
                     )
                 ),
             ),
         )
-
-
 
         if confidence >= 0.98:
             snr_target = SNR_THRESHOLD_T0_ELITE
@@ -246,7 +249,6 @@ class DiffusionReasoningAmplifier:
             focus=str(profile["focus"]),
             reasons=("hmm_diffusion_amplified",),
         )
-
 
     @staticmethod
     def augment_query(query: str, ctx: AmplifiedReasoningContext) -> str:
@@ -280,4 +282,3 @@ class DiffusionReasoningAmplifier:
             "strategic_goal": ctx.strategic_goal,
             "diffusion_active": ctx.activated,
         }
-

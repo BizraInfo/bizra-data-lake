@@ -173,7 +173,11 @@ class RecursiveLoop:
             # Run one cycle (fail-closed: exceptions -> log + continue)
             try:
                 await self._run_cycle(observation_fn)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Cycle {cycle} error (continuing): {e}")
                 self._metrics.errors += 1
 
@@ -242,7 +246,11 @@ class RecursiveLoop:
                     observation = await obs_result
                 else:
                     observation = obs_result
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.warning(f"Observation function error: {e}")
 
         # Step 3: Run researcher

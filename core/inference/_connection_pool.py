@@ -237,7 +237,11 @@ class ConnectionPool:
         for _ in range(self.config.min_size):
             try:
                 await self._create_connection()
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 print(f"[ConnectionPool] Pre-warm failed: {e}")
                 break
 
@@ -462,13 +466,21 @@ class ConnectionPool:
                     try:
                         await self._create_connection()
                         healthy_count += 1
-                    except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+                    except (
+                        asyncio.CancelledError,
+                        RuntimeError,
+                        OSError,
+                    ) as e:  # SEC-003 — async boundary
                         logger.debug("Connection pool replenishment failed: %s", e)
                         break
 
             except asyncio.CancelledError:
                 break
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 print(f"[ConnectionPool] Health check error: {e}")
                 await asyncio.sleep(5)  # Backoff on error
 

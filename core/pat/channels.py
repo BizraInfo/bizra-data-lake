@@ -171,7 +171,11 @@ class ChannelAdapter(ABC):
             response = await self._query_fn(content, context)
             self._metrics.messages_sent += 1
             return response
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             self._metrics.errors += 1
             logger.error(f"Query error for {platform_user_id}: {e}")
             return "I encountered an error processing your request. Please try again."

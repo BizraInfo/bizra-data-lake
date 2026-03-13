@@ -46,7 +46,9 @@ class StartCommand:
 
         root = find_bizra_root()
         if not root:
-            print_error("Cannot find BIZRA source. Set BIZRA_ROOT environment variable.")
+            print_error(
+                "Cannot find BIZRA source. Set BIZRA_ROOT environment variable."
+            )
             return CommandResult.error("BIZRA source not found")
 
         health = api_health()
@@ -80,11 +82,16 @@ class StartCommand:
         env["BIZRA_ENV"] = os.environ.get("BIZRA_ENV", "development")
 
         api_cmd = [
-            py, "-m", "uvicorn",
+            py,
+            "-m",
+            "uvicorn",
             "core.sovereign.api:app",
-            "--host", "0.0.0.0",
-            "--port", str(API_PORT),
-            "--log-level", "info",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            str(API_PORT),
+            "--log-level",
+            "info",
         ]
 
         if foreground:
@@ -112,7 +119,10 @@ class StartCommand:
             sys.stdout.flush()
 
         print()
-        print_warn("Runtime started but not yet healthy. Check logs: " + str(BIZRA_LOGS / "api.log"))
+        print_warn(
+            "Runtime started but not yet healthy. Check logs: "
+            + str(BIZRA_LOGS / "api.log")
+        )
         return CommandResult.ok("Started (pending health)")
 
 

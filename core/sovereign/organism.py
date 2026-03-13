@@ -560,7 +560,9 @@ class SovereignOrganism:
             if not preflight.get("allow_execution", True):
                 duration_ms = round((time.monotonic() - t0) * 1000, 2)
                 mission_id = str(
-                    preflight.get("mission_id", f"org-blocked-{self._mission_counter:06d}")
+                    preflight.get(
+                        "mission_id", f"org-blocked-{self._mission_counter:06d}"
+                    )
                 )
                 evidence_data = f"{self._chain_hash}:{mission_id}:rejected"
                 self._chain_hash = hashlib.sha256(evidence_data.encode()).hexdigest()

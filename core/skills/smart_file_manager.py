@@ -614,7 +614,11 @@ class SmartFileHandler:
                             if fn not in seen_fields:
                                 all_fields.append(fn)
                                 seen_fields.add(fn)
-            except (OSError, UnicodeDecodeError, ValueError) as exc:  # SEC-003 — CSV read boundary
+            except (
+                OSError,
+                UnicodeDecodeError,
+                ValueError,
+            ) as exc:  # SEC-003 — CSV read boundary
                 return {"error": f"Cannot read CSV {p}: {exc}"}
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -645,7 +649,11 @@ class SmartFileHandler:
                     line = line.strip()
                     if line:
                         all_lines.append(line)
-            except (OSError, UnicodeDecodeError, ValueError) as exc:  # SEC-003 — JSONL read boundary
+            except (
+                OSError,
+                UnicodeDecodeError,
+                ValueError,
+            ) as exc:  # SEC-003 — JSONL read boundary
                 return {"error": f"Cannot read JSONL {p}: {exc}"}
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -722,7 +730,11 @@ class SmartFileHandler:
 
             try:
                 snippet = fp.read_bytes()[:512].decode("utf-8", errors="replace")
-            except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ):  # SEC-003 — async boundary
                 snippet = ""
 
             ai_result: Optional[Dict[str, Any]] = None
@@ -744,7 +756,11 @@ class SmartFileHandler:
                     end = raw.rfind("}") + 1
                     if start >= 0 and end > start:
                         ai_result = json.loads(raw[start:end])
-                except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
+                except (
+                    json.JSONDecodeError,
+                    OSError,
+                    ValueError,
+                ):  # SEC-003 — json boundary
                     pass
 
             if ai_result:

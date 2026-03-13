@@ -75,6 +75,7 @@ def _loopback_client(host: Optional[str]) -> bool:
     """Return True when a client host resolves to a loopback interface."""
     return host in {"127.0.0.1", "::1", "localhost"}
 
+
 # ---------------------------------------------------------------------------
 # Configuration (from env, never hardcoded)
 # ---------------------------------------------------------------------------
@@ -193,7 +194,11 @@ class GhostConnectionManager:
                 await ws.send_text(payload)
                 sent += 1
                 self._message_count += 1
-            except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ):  # SEC-003 — json boundary
                 stale.append(ws)
 
         for ws in stale:
@@ -291,9 +296,7 @@ app.add_middleware(
     allow_origins=GHOST_WS_ALLOWED_ORIGINS,
     allow_methods=["GET", "POST"],
     allow_headers=(
-        ["*"]
-        if not _production_mode_enabled()
-        else ["Content-Type", "X-BIZRA-TOKEN"]
+        ["*"] if not _production_mode_enabled() else ["Content-Type", "X-BIZRA-TOKEN"]
     ),
 )
 
@@ -423,7 +426,11 @@ async def http_rpc_proxy(request: Request) -> JSONResponse:
                 status_code=502,
             )
         return JSONResponse(json.loads(raw.decode()))
-    except (json.JSONDecodeError, OSError, ValueError) as exc:  # SEC-003 — json boundary
+    except (
+        json.JSONDecodeError,
+        OSError,
+        ValueError,
+    ) as exc:  # SEC-003 — json boundary
         logger.warning("http_rpc_proxy error: %s", exc)
         return JSONResponse(
             {
@@ -468,8 +475,10 @@ async def ghost_overlay_ws(ws: WebSocket) -> None:
         return
 
     client_host = getattr(getattr(ws, "client", None), "host", None)
-    if _production_mode_enabled() and GHOST_WS_ENABLED and not _loopback_client(
-        client_host
+    if (
+        _production_mode_enabled()
+        and GHOST_WS_ENABLED
+        and not _loopback_client(client_host)
     ):
         await ws.close(code=4403, reason="Loopback-only in production")
         return

@@ -421,7 +421,10 @@ class RustProcessManager:
                 return await self._wait_for_health()
             return True
 
-        except (OSError, subprocess.SubprocessError) as e:  # noqa: BLE001 — process start boundary
+        except (
+            OSError,
+            subprocess.SubprocessError,
+        ) as e:  # noqa: BLE001 — process start boundary
             logger.error("Failed to start Rust API: %s", e)
             return False
 
@@ -687,7 +690,11 @@ class RustLifecycleManager:
             assert self._pyo3_module is not None
             memory = self._pyo3_module.PatternMemory(node_id)
             return memory.learn(content, embedding, tags or [])
-        except (AttributeError, RuntimeError, OSError) as e:  # noqa: BLE001 — PyO3 interop boundary
+        except (
+            AttributeError,
+            RuntimeError,
+            OSError,
+        ) as e:  # noqa: BLE001 — PyO3 interop boundary
             logger.warning("PyO3 pattern learn failed: %s", e)
             return None
 
@@ -708,7 +715,11 @@ class RustLifecycleManager:
             assert self._pyo3_module is not None
             memory = self._pyo3_module.PatternMemory(node_id)
             return memory.recall(embedding, limit)
-        except (AttributeError, RuntimeError, OSError) as e:  # noqa: BLE001 — PyO3 interop boundary
+        except (
+            AttributeError,
+            RuntimeError,
+            OSError,
+        ) as e:  # noqa: BLE001 — PyO3 interop boundary
             logger.warning("PyO3 pattern recall failed: %s", e)
             return None
 
@@ -731,7 +742,11 @@ class RustLifecycleManager:
                 self._pyo3_pref_tracker = self._pyo3_module.PreferenceTracker()
             self._pyo3_pref_tracker.observe(pref_type, key, value)  # type: ignore[has-type]
             return True
-        except (AttributeError, RuntimeError, OSError) as e:  # noqa: BLE001 — PyO3 interop boundary
+        except (
+            AttributeError,
+            RuntimeError,
+            OSError,
+        ) as e:  # noqa: BLE001 — PyO3 interop boundary
             logger.warning("PyO3 preference observe failed: %s", e)
             return False
 
@@ -745,7 +760,11 @@ class RustLifecycleManager:
 
         try:
             return self._pyo3_pref_tracker.apply_to_prompt(prompt)  # type: ignore[has-type]
-        except (AttributeError, RuntimeError, OSError) as e:  # noqa: BLE001 — PyO3 interop boundary
+        except (
+            AttributeError,
+            RuntimeError,
+            OSError,
+        ) as e:  # noqa: BLE001 — PyO3 interop boundary
             logger.warning("PyO3 preference apply failed: %s", e)
             return prompt
 

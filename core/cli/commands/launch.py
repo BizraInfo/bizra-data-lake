@@ -18,7 +18,6 @@ from ..shared import (
     print_info,
 )
 
-
 # ASCII banner for launch
 _LAUNCH_BANNER = f"""
 {C.TEAL}╔══════════════════════════════════════════════════════════════╗
@@ -53,6 +52,7 @@ class LaunchCommand:
         if not port_in_use(API_PORT) and root:
             print_info("Starting sovereign runtime...")
             from .lifecycle import StartCommand
+
             StartCommand().execute([])
 
         # Start frontend if available
@@ -78,6 +78,7 @@ class LaunchCommand:
             print_info(f"Terminal: {C.WHITE}{url}{C.RESET}")
             try:
                 import webbrowser
+
                 webbrowser.open(url)
             except Exception:
                 pass

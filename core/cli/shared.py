@@ -144,6 +144,7 @@ def api_health() -> Optional[Dict[str, Any]]:
     """Check the sovereign API health endpoint."""
     try:
         import urllib.request
+
         req = urllib.request.Request(
             f"http://127.0.0.1:{API_PORT}/health",
             headers={"Accept": "application/json"},

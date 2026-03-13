@@ -129,7 +129,11 @@ class PatternCodebook:
                     embedding=pattern.embedding,
                     metadata={"type": "synthesized_pattern", **pattern.metadata},
                 )
-            except (json.JSONDecodeError, OSError, ValueError):  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ):  # SEC-003 — json boundary
                 logger.warning(
                     "Failed to persist pattern %s to agent_db", pattern.pattern_id
                 )

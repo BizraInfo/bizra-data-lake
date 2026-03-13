@@ -147,7 +147,11 @@ class LocalInferenceBridge:
         except ImportError as e:
             logger.warning(f"MultiModelManager not available: {e}")
             return False
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(f"Failed to initialize LocalInferenceBridge: {e}")
             return False
 

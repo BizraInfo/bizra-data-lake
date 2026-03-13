@@ -94,7 +94,11 @@ class CognitiveResonance:
                 else:
                     reasoning_result = await self._reasoning.reason(query, ctx)
                 path.append("reasoning:ok")
-            except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as exc:  # SEC-003 — async boundary
                 logger.warning("Resonance reasoning failed: %s", exc)
                 path.append("reasoning:error")
 
@@ -105,7 +109,11 @@ class CognitiveResonance:
                 symbol = _query_to_symbol(query)
                 prediction_result = self._prediction.observe(symbol)
                 path.append(f"prediction:{prediction_result.most_likely_state.value}")
-            except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as exc:  # SEC-003 — async boundary
                 logger.warning("Resonance prediction failed: %s", exc)
                 path.append("prediction:error")
 

@@ -201,9 +201,7 @@ class _StrategyStats:
         """Fraction of outcomes above Ihsān threshold."""
         if self.total_count == 0:
             return 0.0
-        above = sum(
-            1 for q in self.quality_scores if q >= RECOMMENDATION_MIN_IHSAN
-        )
+        above = sum(1 for q in self.quality_scores if q >= RECOMMENDATION_MIN_IHSAN)
         return above / self.total_count
 
 
@@ -305,7 +303,9 @@ class ReasoningBankEngine:
             self._total_flagged += 1
             logger.debug(
                 "Experience %s flagged (Ihsān %.3f < %.3f)",
-                exp_id, ihsan_score, EXPERIENCE_MIN_IHSAN,
+                exp_id,
+                ihsan_score,
+                EXPERIENCE_MIN_IHSAN,
             )
         else:
             self._update_strategy_stats(exp)
@@ -314,13 +314,16 @@ class ReasoningBankEngine:
         if len(self._experiences) % self._meta_window == 0:
             self._run_meta_learning()
 
-        self._emit_event("reasoning.experience_recorded", {
-            "experience_id": exp_id,
-            "task_type": task_type,
-            "approach": approach,
-            "ihsan_score": ihsan_score,
-            "flagged": flagged,
-        })
+        self._emit_event(
+            "reasoning.experience_recorded",
+            {
+                "experience_id": exp_id,
+                "task_type": task_type,
+                "approach": approach,
+                "ihsan_score": ihsan_score,
+                "flagged": flagged,
+            },
+        )
 
         return exp
 
@@ -386,8 +389,10 @@ class ReasoningBankEngine:
         if best_stats.avg_ihsan < RECOMMENDATION_MIN_IHSAN:
             logger.debug(
                 "Best strategy %s/%s has Ihsān %.3f < %.3f — suppressed",
-                task_type, best_approach,
-                best_stats.avg_ihsan, RECOMMENDATION_MIN_IHSAN,
+                task_type,
+                best_approach,
+                best_stats.avg_ihsan,
+                RECOMMENDATION_MIN_IHSAN,
             )
             return None
 
@@ -438,9 +443,7 @@ class ReasoningBankEngine:
             return []
 
         results: List[StrategyRecommendation] = []
-        total_pulls = sum(
-            s.total_count for s in self._strategies[task_type].values()
-        )
+        total_pulls = sum(s.total_count for s in self._strategies[task_type].values())
 
         for approach, stats in self._strategies[task_type].items():
             if stats.total_count == 0:
@@ -456,18 +459,20 @@ class ReasoningBankEngine:
 
             confidence = min(1.0, stats.total_count / 20.0)
 
-            results.append(StrategyRecommendation(
-                task_type=task_type,
-                approach=approach,
-                score=quality + exploration,
-                confidence=confidence,
-                avg_ihsan=stats.avg_ihsan,
-                avg_duration_ms=stats.avg_duration,
-                success_rate=stats.success_rate,
-                observation_count=stats.total_count,
-                reason=f"Compared: {stats.total_count} obs, "
-                       f"quality={quality:.3f}",
-            ))
+            results.append(
+                StrategyRecommendation(
+                    task_type=task_type,
+                    approach=approach,
+                    score=quality + exploration,
+                    confidence=confidence,
+                    avg_ihsan=stats.avg_ihsan,
+                    avg_duration_ms=stats.avg_duration,
+                    success_rate=stats.success_rate,
+                    observation_count=stats.total_count,
+                    reason=f"Compared: {stats.total_count} obs, "
+                    f"quality={quality:.3f}",
+                )
+            )
 
         results.sort(key=lambda r: r.score, reverse=True)
         return results
@@ -502,16 +507,18 @@ class ReasoningBankEngine:
 
                 if eligible or stats.total_count >= 10:
                     pattern_id = self._pattern_hash(task_type, approach)
-                    patterns.append(PatternMatch(
-                        pattern_id=pattern_id,
-                        task_type=task_type,
-                        approach=approach,
-                        frequency=stats.total_count,
-                        avg_ihsan=stats.avg_ihsan,
-                        reproducibility=stats.reproducibility,
-                        eligible_for_reflex=eligible,
-                        evidence=stats.experience_ids[-10:],
-                    ))
+                    patterns.append(
+                        PatternMatch(
+                            pattern_id=pattern_id,
+                            task_type=task_type,
+                            approach=approach,
+                            frequency=stats.total_count,
+                            avg_ihsan=stats.avg_ihsan,
+                            reproducibility=stats.reproducibility,
+                            eligible_for_reflex=eligible,
+                            evidence=stats.experience_ids[-10:],
+                        )
+                    )
 
         # Sort: eligible first, then by frequency
         patterns.sort(
@@ -581,12 +588,15 @@ class ReasoningBankEngine:
             self._total_promoted += 1
 
         if transferred > 0:
-            self._emit_event("reasoning.knowledge_transferred", {
-                "from_task": from_task,
-                "to_task": to_task,
-                "similarity": similarity,
-                "strategies_transferred": transferred,
-            })
+            self._emit_event(
+                "reasoning.knowledge_transferred",
+                {
+                    "from_task": from_task,
+                    "to_task": to_task,
+                    "similarity": similarity,
+                    "strategies_transferred": transferred,
+                },
+            )
 
         return transferred
 
@@ -603,12 +613,12 @@ class ReasoningBankEngine:
 
         Standing on Giants: Boyd (OODA, 1976) — observe the observation loop.
         """
-        window = self._experiences[-self._meta_window:]
+        window = self._experiences[-self._meta_window :]
         if len(window) < self._meta_window:
             return None
 
         first_half = window[: self._meta_window // 2]
-        second_half = window[self._meta_window // 2:]
+        second_half = window[self._meta_window // 2 :]
 
         avg_ihsan_first = statistics.mean(e.ihsan_score for e in first_half)
         avg_ihsan_second = statistics.mean(e.ihsan_score for e in second_half)
@@ -645,11 +655,14 @@ class ReasoningBankEngine:
         )
         self._meta_insights.append(insight)
 
-        self._emit_event("reasoning.meta_learning", {
-            "insight_id": insight.insight_id,
-            "improvement_rate": improvement,
-            "confidence": confidence,
-        })
+        self._emit_event(
+            "reasoning.meta_learning",
+            {
+                "insight_id": insight.insight_id,
+                "improvement_rate": improvement,
+                "confidence": confidence,
+            },
+        )
 
         return insight
 
@@ -664,10 +677,9 @@ class ReasoningBankEngine:
         total_strategies = sum(
             len(approaches) for approaches in self._strategies.values()
         )
-        precipitable = len([
-            p for p in self.get_precipitable_patterns()
-            if p.eligible_for_reflex
-        ])
+        precipitable = len(
+            [p for p in self.get_precipitable_patterns() if p.eligible_for_reflex]
+        )
 
         avg_ihsan = 0.0
         if self._experiences:

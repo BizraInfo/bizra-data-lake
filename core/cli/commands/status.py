@@ -52,7 +52,10 @@ class StatusCommand:
         # Sovereignty score
         try:
             import urllib.request
-            req = urllib.request.Request(f"http://127.0.0.1:{API_PORT}/v1/seed/potential")
+
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{API_PORT}/v1/seed/potential"
+            )
             with urllib.request.urlopen(req, timeout=3) as resp:
                 pot = json.loads(resp.read())
                 score = pot.get("sovereignty_score", 0)
@@ -65,7 +68,10 @@ class StatusCommand:
         # Token balance
         try:
             import urllib.request
-            req = urllib.request.Request(f"http://127.0.0.1:{API_PORT}/v1/token/balance")
+
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{API_PORT}/v1/token/balance"
+            )
             with urllib.request.urlopen(req, timeout=3) as resp:
                 bal = json.loads(resp.read())
                 balances = bal.get("balances", {})

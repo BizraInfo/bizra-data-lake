@@ -323,7 +323,11 @@ class HealthMonitor:
                 else:
                     status = HealthStatus.DEGRADED
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.warning(f"Health check failed for {agent.id}: {e}")
             agent.consecutive_failures += 1
             status = HealthStatus.UNHEALTHY
@@ -708,7 +712,11 @@ class SwarmOrchestrator:
 
             except asyncio.CancelledError:
                 break
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Health loop error: {e}")
                 await asyncio.sleep(1)
 
@@ -741,7 +749,11 @@ class SwarmOrchestrator:
 
             except asyncio.CancelledError:
                 break
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Scaling loop error: {e}")
                 await asyncio.sleep(1)
 

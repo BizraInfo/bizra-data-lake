@@ -403,7 +403,11 @@ class BountyBridge:
             try:
                 submission = await self.submit(proof, platform)
                 submissions.append(submission)
-            except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ):  # SEC-003 — async boundary
                 # Log error but continue with other platforms
                 pass
 

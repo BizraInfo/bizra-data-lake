@@ -113,6 +113,7 @@ class ThoughtNode:
             separators=(",", ":"),
         ).encode("utf-8")
         import hashlib
+
         return hashlib.blake2b(canonical, digest_size=32).hexdigest()
 
     @property

@@ -196,7 +196,11 @@ class BrowserMCPClient:
 
                 response.raise_for_status()
                 return response.text
-        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as exc:  # SEC-003 — async boundary
             logger.warning("Page fetch failed for %s (%s)", url, exc)
             return ""
 
@@ -227,7 +231,11 @@ class BrowserMCPClient:
 
         try:
             raw = await client.search(query=query, limit=limit)
-        except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ):  # SEC-003 — async boundary
             return []
 
         normalized: list[SearchResult] = []

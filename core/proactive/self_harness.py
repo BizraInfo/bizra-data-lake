@@ -358,7 +358,11 @@ class GhostPusher:
                     return sent
             except ImportError:
                 pass
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.debug("GhostPusher in-process failed: %s", e)
 
         # Fallback: WebSocket client
@@ -421,7 +425,11 @@ class GhostPusher:
         if self._ws:
             try:
                 await self._ws.close()
-            except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ):  # SEC-003 — async boundary
                 pass
             self._ws = None
             self._connected = False

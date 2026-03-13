@@ -4360,8 +4360,12 @@ def create_fastapi_app(runtime: Any) -> Any:
                             reflex_entry.hit_count,
                             reflex_entry.ihsan_composite,
                         )
-                        from core.sovereign.terminal import ExecutionPath as _ExecutionPath
-                        from core.sovereign.terminal import TerminalState as _TerminalState
+                        from core.sovereign.terminal import (
+                            ExecutionPath as _ExecutionPath,
+                        )
+                        from core.sovereign.terminal import (
+                            TerminalState as _TerminalState,
+                        )
                         from core.sovereign.terminal import (
                             TerminalStateController as _TerminalStateController,
                         )
@@ -4475,9 +4479,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                     {"mission_id": runtime_receipt.mission_id, "source": source},
                     source="mission",
                 )
-                runtime_status = (
-                    runtime.status() if hasattr(runtime, "status") else {}
-                )
+                runtime_status = runtime.status() if hasattr(runtime, "status") else {}
                 canonical_info = runtime_status.get("canonical", {})
                 mission_result = _MissionNamespace(
                     mission_id=runtime_receipt.mission_id,
@@ -4776,23 +4778,21 @@ def create_fastapi_app(runtime: Any) -> Any:
             receipt_payload["fate_reason_codes"] = list(
                 getattr(mission_result, "fate_reason_codes", [])
             )
-            receipt_payload["fate_mode"] = str(
-                getattr(mission_result, "fate_mode", "")
-            )
+            receipt_payload["fate_mode"] = str(getattr(mission_result, "fate_mode", ""))
             receipt_payload["identity_mode"] = str(
                 getattr(mission_result, "identity_mode", "")
             )
             receipt_payload["signer_public_key_prefix"] = str(
                 getattr(mission_result, "signer_public_key_prefix", "")
             )
-            if runtime_receipt is not None and getattr(runtime_receipt, "chain_hash", ""):
+            if runtime_receipt is not None and getattr(
+                runtime_receipt, "chain_hash", ""
+            ):
                 receipt_payload["hash_chain_ref"] = str(runtime_receipt.chain_hash)
             if runtime_receipt is not None:
                 receipt_payload["reflex_pattern"] = runtime_reflex_pattern
                 receipt_payload["reflex_latency_ms"] = runtime_reflex_latency_ms
-                receipt_payload["comparison_s2_avg_ms"] = (
-                    runtime_comparison_s2_avg_ms
-                )
+                receipt_payload["comparison_s2_avg_ms"] = runtime_comparison_s2_avg_ms
 
             mission_topic = (
                 "mission.failed"

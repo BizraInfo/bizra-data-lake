@@ -284,7 +284,11 @@ class DataImporter:
                         try:
                             count = await self._import_single_conversation(jf)
                             sub_total += count
-                        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+                        except (
+                            asyncio.CancelledError,
+                            RuntimeError,
+                            OSError,
+                        ) as e:  # SEC-003 — async boundary
                             logger.warning(f"Skipping {jf.name}: {e}")
                             self._stats["errors"] += 1
                     if sub_total:
@@ -667,7 +671,11 @@ async def ingest_chat_history(
                     count = await importer._import_single_conversation(jf)
                     if count:
                         all_results[f"individual/{jf.stem[:40]}"] = count
-                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+                except (
+                    asyncio.CancelledError,
+                    RuntimeError,
+                    OSError,
+                ) as e:  # SEC-003 — async boundary
                     logger.warning(f"Skipping {jf.name}: {e}")
 
     stats = importer.get_stats()

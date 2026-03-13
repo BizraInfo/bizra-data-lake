@@ -291,7 +291,11 @@ class MetricsCollector:
                 self.series["error_rate"].add(snapshot.error_rate)
                 self.series["health_score"].add(snapshot.health_score())
 
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Metrics collection error: {e}")
 
             await asyncio.sleep(self.collection_interval)

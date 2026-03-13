@@ -295,7 +295,11 @@ class ChannelDispatcher:
                 "method": method,
                 "result": result,
             }
-        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as exc:  # SEC-003 — async boundary
             return {
                 "success": False,
                 "channel": Channel.DESKTOP.value,
@@ -318,7 +322,11 @@ class ChannelDispatcher:
                 "channel": Channel.BROWSER.value,
                 "result": result,
             }
-        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as exc:  # SEC-003 — async boundary
             return {
                 "success": False,
                 "channel": Channel.BROWSER.value,
@@ -345,7 +353,11 @@ class ChannelDispatcher:
                 "tier": output.tier,
                 "warning": output.warning,
             }
-        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as exc:  # SEC-003 — async boundary
             return {
                 "success": False,
                 "channel": Channel.VOICE.value,
@@ -377,7 +389,11 @@ class ChannelDispatcher:
                 "action": action,
                 "warning": "" if ok else "proof_action_failed",
             }
-        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as exc:  # SEC-003 — async boundary
             return {
                 "success": False,
                 "channel": Channel.PROOF.value,
@@ -396,7 +412,11 @@ class ChannelDispatcher:
                 from core.bridges.browser_mcp_client import BrowserMCPClient
 
                 self._browser = BrowserMCPClient(mode="mock")
-            except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as exc:  # SEC-003 — async boundary
                 logger.debug("Browser channel unavailable: %s", exc)
 
         if self._voice is None:
