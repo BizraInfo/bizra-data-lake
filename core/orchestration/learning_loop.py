@@ -151,7 +151,6 @@ class LearningLoopOrchestrator:
         reflex_bridge: Optional[SDPOReflexBridge] = None,
         hmm_engine: Optional[HierarchicalHMMEngine] = None,
         context_cache: Optional[CognitiveHashTable] = None,
-
         enabled: Optional[bool] = None,
     ) -> None:
         self._trainer = sdpo_trainer

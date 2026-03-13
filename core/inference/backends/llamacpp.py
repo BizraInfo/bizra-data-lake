@@ -111,7 +111,11 @@ class LlamaCppBackend(InferenceBackendBase):
             with self._lock:
                 self._model("test", max_tokens=1)
             return True
-        except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ):  # SEC-003 — async boundary
             return False
 
     def get_loaded_model(self) -> Optional[str]:

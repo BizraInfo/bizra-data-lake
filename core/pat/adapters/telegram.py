@@ -254,7 +254,11 @@ class TelegramAdapter(ChannelAdapter):
                     await self._process_update(update)
             except asyncio.CancelledError:
                 break
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 self._metrics.errors += 1
                 logger.error(f"Poll loop error: {e}")
                 await asyncio.sleep(1.0)

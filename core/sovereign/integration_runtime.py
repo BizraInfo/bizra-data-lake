@@ -306,7 +306,11 @@ class SovereignRuntime:
                 logger.info(
                     f"Loaded {len(self.registry.list_all())} models from registry"
                 )
-            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ) as e:  # SEC-003 — json boundary
                 logger.warning(f"Failed to load registry: {e}")
 
     async def _save_registry(self) -> None:
@@ -319,7 +323,11 @@ class SovereignRuntime:
             with open(registry_path, "w") as f:
                 json.dump({"cards": cards}, f, indent=2)
             logger.info(f"Saved {len(cards)} models to registry")
-        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+        except (
+            json.JSONDecodeError,
+            OSError,
+            ValueError,
+        ) as e:  # SEC-003 — json boundary
             logger.warning(f"Failed to save registry: {e}")
 
     # -------------------------------------------------------------------------
@@ -356,7 +364,11 @@ class SovereignRuntime:
         except ImportError as e:
             logger.warning(f"Federation layer unavailable: {e}")
             self._federation_node = None
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(f"Federation layer failed to start: {e}")
             self._federation_node = None
 
@@ -483,7 +495,11 @@ class SovereignRuntime:
                 public_key = data.get("public_key", "")
                 if private_key and public_key and len(public_key) >= 64:
                     return private_key, public_key
-            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ) as e:  # SEC-003 — json boundary
                 logger.warning(f"Failed to load keypair: {e}")
 
         private_key, public_key = generate_keypair()
@@ -494,7 +510,11 @@ class SovereignRuntime:
                 json.dump(
                     {"private_key": private_key, "public_key": public_key}, f, indent=2
                 )
-        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+        except (
+            json.JSONDecodeError,
+            OSError,
+            ValueError,
+        ) as e:  # SEC-003 — json boundary
             logger.warning(f"Failed to save keypair: {e}")
 
         return private_key, public_key
@@ -505,7 +525,11 @@ class SovereignRuntime:
             try:
                 await self._federation_node.stop()
                 logger.info("Federation layer stopped")
-            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ) as e:  # SEC-003 — json boundary
                 logger.error(f"Error stopping federation: {e}")
             finally:
                 self._federation_node = None

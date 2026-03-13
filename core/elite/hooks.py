@@ -733,7 +733,11 @@ class HookExecutor:
 
             return self._create_result(True, context, phase_results, start_time)
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.exception(f"Hook execution error: {e}")
             context.error = str(e)
             return self._create_result(False, context, phase_results, start_time)

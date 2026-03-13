@@ -7,12 +7,14 @@ import logging
 
 from core.prediction.hmm_engine import HMMEngine, HMMState
 
+
 class StrategicGoal(Enum):
     DEBUGGING = 0
     DEVELOPING = 1
     REFACTORING = 2
     SYNCING = 3
     IDLE = 4
+
 
 @dataclass
 class HierarchicalPredictionResult:
@@ -21,18 +23,22 @@ class HierarchicalPredictionResult:
     tactical_confidence: float
     strategic_confidence: float
 
+
 class HierarchicalHMMEngine:
     """
     Hierarchical HMM for multi-layer strategic goal estimation.
     L2 (Strategic) states supervise L1 (Tactical) state transitions.
     """
+
     def __init__(self):
         self.logger = logging.getLogger("HierarchicalHMMEngine")
 
         # L2: Strategic Layer
         self.strategic_states = [g for g in StrategicGoal]
         self.num_strategic = len(self.strategic_states)
-        self.strategic_transitions = np.full((self.num_strategic, self.num_strategic), 1.0 / self.num_strategic)
+        self.strategic_transitions = np.full(
+            (self.num_strategic, self.num_strategic), 1.0 / self.num_strategic
+        )
         self.strategic_priors = np.full(self.num_strategic, 1.0 / self.num_strategic)
 
         # L1: Tactical Layer (Conditioned on L2)
@@ -51,7 +57,9 @@ class HierarchicalHMMEngine:
         Uses a Bayesian update for the strategic layer based on tactical likelihoods.
         """
         if not observations:
-            return HierarchicalPredictionResult(HMMState.IDLE, StrategicGoal.IDLE, 0.5, 0.5)
+            return HierarchicalPredictionResult(
+                HMMState.IDLE, StrategicGoal.IDLE, 0.5, 0.5
+            )
 
         # 1. Get tactical likelihoods for each strategic context
         tactical_likelihoods = []
@@ -69,13 +77,17 @@ class HierarchicalHMMEngine:
 
         # 2. Update Strategic Belief (L2)
         # P(S | O) \propto P(O | S) * P(S)
-        unnormalized_belief = np.array(tactical_likelihoods) * self.current_strategic_belief
+        unnormalized_belief = (
+            np.array(tactical_likelihoods) * self.current_strategic_belief
+        )
         total = np.sum(unnormalized_belief)
 
         if total > 0:
             self.current_strategic_belief = unnormalized_belief / total
         else:
-            self.current_strategic_belief = np.full(self.num_strategic, 1.0 / self.num_strategic)
+            self.current_strategic_belief = np.full(
+                self.num_strategic, 1.0 / self.num_strategic
+            )
 
         # 3. Decision
         strategic_idx = np.argmax(self.current_strategic_belief)
@@ -85,12 +97,15 @@ class HierarchicalHMMEngine:
         return HierarchicalPredictionResult(
             tactical_state=best_tactical,
             strategic_goal=best_goal,
-            tactical_confidence=float(np.max(self.current_strategic_belief)), # Simplified
-            strategic_confidence=float(np.max(self.current_strategic_belief))
+            tactical_confidence=float(
+                np.max(self.current_strategic_belief)
+            ),  # Simplified
+            strategic_confidence=float(np.max(self.current_strategic_belief)),
         )
 
-
-    def learn(self, observations: List[str], assumed_goal: Optional[StrategicGoal] = None):
+    def learn(
+        self, observations: List[str], assumed_goal: Optional[StrategicGoal] = None
+    ):
         """
         Learns both layers from observation data.
         """
@@ -113,11 +128,12 @@ class HierarchicalHMMEngine:
         """
         # This is a placeholder for the full forward-algorithm likelihood
         # In HMMEngine, predict_state uses Viterbi. For likelihood, we'd want the Alpha sum.
-        # For now, we use a mock likelihood proportional to the 'learnability' 
+        # For now, we use a mock likelihood proportional to the 'learnability'
         # or consistency with the existing tactical priors.
-        return 1.0 # Implement full log-likelihood in production version
+        return 1.0  # Implement full log-likelihood in production version
 
     def _normalize_matrices(self):
-        self.strategic_transitions /= self.strategic_transitions.sum(axis=1)[:, np.newaxis]
+        self.strategic_transitions /= self.strategic_transitions.sum(axis=1)[
+            :, np.newaxis
+        ]
         self.strategic_priors /= self.strategic_priors.sum()
-

@@ -178,7 +178,11 @@ class BicameralReasoningEngine:
                     )
                 )
                 self._metrics["generations"] += 1
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error("Fallback generation failed: %s", e)
 
         logger.info("Generated %d/%d candidates", len(candidates), num_candidates)
@@ -208,7 +212,11 @@ class BicameralReasoningEngine:
                 result.get("critique", ""),
                 adj,
             )
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error("Verification error: %s", e)
             return VerificationResult(
                 candidate.candidate_id,
@@ -320,5 +328,9 @@ class BicameralReasoningEngine:
             return ReasoningCandidate(
                 str(uuid.uuid4())[:8], content.strip(), "r1", min(conf, 1.0), trace
             )
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             raise RuntimeError(f"Gen {idx} failed: {e}")

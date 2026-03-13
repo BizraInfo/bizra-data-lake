@@ -196,7 +196,11 @@ class LocalFirstDetector:
                     else "llama.cpp unavailable"
                 ),
             )
-        except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as exc:  # SEC-003 — async boundary
             _err_reason = str(exc)[:40]
             latency = (time.perf_counter() - start) * 1000
 

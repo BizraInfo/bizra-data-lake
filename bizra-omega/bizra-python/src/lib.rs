@@ -1825,7 +1825,11 @@ impl PyDilithiumKeypair {
 }
 
 #[pyfunction]
-fn verify_dilithium_signature(public_key: &[u8], message: &[u8], signature: &[u8]) -> PyResult<bool> {
+fn verify_dilithium_signature(
+    public_key: &[u8],
+    message: &[u8],
+    signature: &[u8],
+) -> PyResult<bool> {
     use pqcrypto_traits::sign::PublicKey;
     let pk = pqcrypto_mldsa::mldsa87::PublicKey::from_bytes(public_key)
         .map_err(|_| PyValueError::new_err("Invalid public key"))?;

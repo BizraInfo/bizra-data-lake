@@ -196,7 +196,11 @@ class GraphReasoningMixin:
                 return None
 
             return content.strip()
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.warning(f"GoT LLM call failed: {e}")
             return None
 
@@ -584,9 +588,11 @@ class GraphReasoningMixin:
                 current.metadata["gate_failed"] = gate_result.reject_code.name
                 current.metadata["reject_reason"] = gate_result.details
                 current.metadata["pruned_children"] = pruned_count
-                
+
                 self.stats["nodes_pruned"] += pruned_count
-                reasoning_steps.append(f"PRUNED [{gate_result.reject_code.name}]: {gate_result.details}")
+                reasoning_steps.append(
+                    f"PRUNED [{gate_result.reject_code.name}]: {gate_result.details}"
+                )
                 break
 
             # Check if we should prune this branch (with higher floor)

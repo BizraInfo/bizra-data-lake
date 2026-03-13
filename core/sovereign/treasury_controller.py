@@ -236,7 +236,11 @@ class TreasuryController:
                     iaas_score=0.85,
                 )
                 return min(1.0, snr_result.snr / 0.95)
-            except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+            except (
+                json.JSONDecodeError,
+                OSError,
+                ValueError,
+            ) as e:  # SEC-003 — json boundary
                 logger.warning(f"SNR calculation failed: {e}")
         return market_data.get("ihsan_alignment", 0.80)
 

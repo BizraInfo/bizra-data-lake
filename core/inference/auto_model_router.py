@@ -111,7 +111,11 @@ class AutoModelRouter:
         # Refresh what's already in VRAM
         try:
             self._loaded_models = await self._get_loaded_models()
-        except (asyncio.CancelledError, RuntimeError, OSError):  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ):  # SEC-003 — async boundary
             pass  # proceed with stale cache
 
         status: Dict[str, bool] = {}
@@ -222,7 +226,11 @@ class AutoModelRouter:
                         model_id,
                         resp.status_code,
                     )
-            except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as exc:  # SEC-003 — async boundary
                 logger.warning(
                     "Model load error (attempt %d): %s -> %s",
                     attempt + 1,

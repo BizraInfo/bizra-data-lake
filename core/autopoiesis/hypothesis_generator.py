@@ -1191,7 +1191,11 @@ class HypothesisGenerator:
         try:
             with open(state_path, "w") as f:
                 json.dump(state, f, indent=2)
-        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+        except (
+            json.JSONDecodeError,
+            OSError,
+            ValueError,
+        ) as e:  # SEC-003 — json boundary
             logger.warning(f"Failed to save hypothesis generator state: {e}")
 
     def _load_state(self) -> None:

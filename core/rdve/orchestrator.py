@@ -556,7 +556,11 @@ class RDVEOrchestrator:
                         f"RDVE Verify REJECTED: {eh.hypothesis.description[:60]}... "
                         f"reason={result.rejection_reason}"
                     )
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.warning(f"RDVE Verify error for hypothesis: {e}")
 
         duration = (time.time() - start) * 1000
@@ -641,7 +645,11 @@ class RDVEOrchestrator:
                 artifacts={"integrated": True},
             )
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             duration = (time.time() - start) * 1000
             return StageResult(
                 stage=RDVEStage.INTEGRATE,

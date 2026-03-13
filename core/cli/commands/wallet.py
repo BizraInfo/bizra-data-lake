@@ -27,7 +27,10 @@ class WalletCommand:
 
         try:
             import urllib.request
-            req = urllib.request.Request(f"http://127.0.0.1:{API_PORT}/v1/token/balance")
+
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{API_PORT}/v1/token/balance"
+            )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read())
 
@@ -40,7 +43,9 @@ class WalletCommand:
             print(f"\n  {C.GRAY}SEED: liquid utility token (100% yours){C.RESET}")
             print(f"  {C.GRAY}BLOOM: soulbound reputation (non-transferable){C.RESET}")
             print()
-            return CommandResult.ok(data={"seed": seed.get("balance", 0), "bloom": bloom.get("balance", 0)})
+            return CommandResult.ok(
+                data={"seed": seed.get("balance", 0), "bloom": bloom.get("balance", 0)}
+            )
 
         except Exception as exc:
             print(f"  {C.RED}✗ Could not fetch balance: {exc}{C.RESET}\n")
@@ -65,11 +70,14 @@ class BriefingCommand:
 
         try:
             import urllib.request
+
             req = urllib.request.Request(f"http://127.0.0.1:{API_PORT}/v1/briefing")
             with urllib.request.urlopen(req, timeout=30) as resp:
                 data = json.loads(resp.read())
 
-            briefing_text = data.get("briefing", data.get("message", "No briefing available."))
+            briefing_text = data.get(
+                "briefing", data.get("message", "No briefing available.")
+            )
             print(f"  {C.TEAL}{briefing_text}{C.RESET}")
             print()
             return CommandResult.ok()

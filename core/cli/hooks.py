@@ -85,7 +85,7 @@ class CLIHooksManager:
         """Store in local history ring buffer."""
         self._history.append(event)
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
     def _emit(self, event: CLIEvent) -> None:
         """Forward event to EventBus if wired."""

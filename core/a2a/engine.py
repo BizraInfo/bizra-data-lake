@@ -325,7 +325,11 @@ class A2AEngine:
                 task.mark_failed("No task handler registered")
         except (TypeError, ValueError, RuntimeError, asyncio.TimeoutError) as e:
             task.mark_failed(str(e))
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             task.mark_failed(f"{type(e).__name__}: {e}")
 
         # Send result via transport layer
@@ -346,7 +350,11 @@ class A2AEngine:
                 print(f"📤 Task {task.task_id} result sent to {requester_id}")
             except (OSError, asyncio.TimeoutError) as e:
                 print(f"⚠️ Failed to send result for {task.task_id}: {e}")
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 print(
                     f"⚠️ Unexpected error sending result for {task.task_id}: {type(e).__name__}: {e}"
                 )

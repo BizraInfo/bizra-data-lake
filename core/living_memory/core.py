@@ -370,7 +370,11 @@ class LivingMemoryCore:
                 self._type_index[entry.memory_type].add(entry_id)
                 if entry.embedding is not None:
                     self._embedding_index[entry_id] = entry.embedding
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(f"Failed to load memories from SQLite: {e}")
 
     async def _save_memories(self) -> None:
@@ -383,7 +387,11 @@ class LivingMemoryCore:
                 e for e in self._memories.values() if e.state != MemoryState.DELETED
             ]
             self._store.save_batch(active)
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(f"Failed to save memories to SQLite: {e}")
 
     async def _save_entry(self, entry: MemoryEntry) -> None:
@@ -391,7 +399,11 @@ class LivingMemoryCore:
         if self._store is not None:
             try:
                 self._store.save_entry(entry)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Failed to save entry {entry.id[:8]}: {e}")
 
     def _generate_id(self, content: str) -> str:
@@ -405,7 +417,11 @@ class LivingMemoryCore:
         if self.embedding_fn:
             try:
                 return self.embedding_fn(content)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.warning(f"Embedding computation failed: {e}")
         return None
 

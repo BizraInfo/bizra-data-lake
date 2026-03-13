@@ -272,7 +272,11 @@ class ProactiveExecutionKernel:
                 self._cycle_count += 1
                 self._metrics["cycles"] = self._cycle_count
 
-            except (ValueError, RuntimeError, OSError) as e:  # SEC-003 — signal boundary
+            except (
+                ValueError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — signal boundary
                 self._last_error = str(e)
                 logger.error("PEK loop error: %s", e)
 

@@ -432,7 +432,11 @@ Respond with YES if all conditions are met, NO otherwise."""
             self._total_tasks += 1
 
             return False
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(
                 f"Unexpected error in task '{task.name}': {type(e).__name__}: {e}"
             )
@@ -512,7 +516,11 @@ class SimpleAgent(AutonomousAgent):
                 return True, result
             except (TypeError, ValueError, RuntimeError, OSError) as e:
                 return False, str(e)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Unexpected error in LLM call: {type(e).__name__}: {e}")
                 return False, f"{type(e).__name__}: {e}"
 

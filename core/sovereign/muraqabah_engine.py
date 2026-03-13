@@ -452,7 +452,11 @@ class MuraqabahEngine:
                         # PERF FIX: deque with maxlen auto-discards oldest (O(1))
                         self._readings[domain].append(reading)
 
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Sensor {sensor_id} error: {e}")
                 self._sensor_states[sensor_id] = SensorState.ERROR
 

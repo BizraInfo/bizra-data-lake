@@ -38,6 +38,7 @@ def _production_mode_enabled() -> bool:
     """Return True when the runtime is explicitly in production mode."""
     return os.environ.get("BIZRA_ENV", "").strip().lower() == "production"
 
+
 # ==============================================================================
 # CONSTANTS
 # ==============================================================================

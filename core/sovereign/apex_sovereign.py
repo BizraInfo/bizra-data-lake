@@ -404,7 +404,11 @@ class ApexSovereignEntity:
 
             except asyncio.CancelledError:
                 raise
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"OODA cycle error: {e}", exc_info=True)
                 await self._handle_cycle_error(e)
                 self.current_state = ApexOODAState.OBSERVE
@@ -461,14 +465,22 @@ class ApexSovereignEntity:
         # Get swarm health
         try:
             observation.swarm_health = await self.swarm.check_all_health()
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.warning(f"Swarm health check failed: {e}")
             observation.swarm_health = {}
 
         # Get social metrics
         try:
             observation.social_metrics = self.social_bridge.get_network_metrics()
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.warning(f"Social metrics failed: {e}")
             observation.social_metrics = {}
 

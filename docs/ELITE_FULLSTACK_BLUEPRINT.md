@@ -221,6 +221,10 @@ python -m core.sovereign activate --verify --data-dir sovereign_state/genesis
 
 Pipeline: ceremony (BLAKE3 identity) -> orchestrator (12-step bootstrap) -> heartbeat (boot + first breath) -> activation receipt (evidence artifact).
 
+## CI Resilience
+
+Coverage ratchet gates (`quality-spine.yml`, `quality-management.yml`) guard against missing `coverage.xml` — if tests fail to produce coverage data, the gate emits a warning and exits cleanly instead of hard-failing with exit code 3. This prevents cascading CI failures when test collection errors occur upstream.
+
 ## Definition of Elite Readiness
 
 Elite readiness is achieved only when:

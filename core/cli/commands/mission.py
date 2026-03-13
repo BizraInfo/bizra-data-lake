@@ -33,6 +33,7 @@ class MissionCommand:
 
         try:
             import urllib.request
+
             data = json.dumps({"description": text}).encode("utf-8")
             req = urllib.request.Request(
                 f"http://127.0.0.1:{API_PORT}/v1/plan",
@@ -44,14 +45,18 @@ class MissionCommand:
                 result = json.loads(resp.read())
 
             status = result.get("status", "unknown")
-            receipt = result.get("receipt_hash", result.get("receipt", {}).get("hash", ""))
+            receipt = result.get(
+                "receipt_hash", result.get("receipt", {}).get("hash", "")
+            )
 
             print(f"  {C.GREEN}✓ Status: {status}{C.RESET}")
             if receipt:
                 short = receipt[:16] + "..." if len(receipt) > 16 else receipt
                 print(f"  {C.GRAY}Receipt: {short}{C.RESET}")
 
-            ihsan = result.get("ihsan_score", result.get("receipt", {}).get("ihsan_score"))
+            ihsan = result.get(
+                "ihsan_score", result.get("receipt", {}).get("ihsan_score")
+            )
             if ihsan is not None:
                 color = C.GREEN if ihsan >= 0.95 else C.GOLD if ihsan >= 0.85 else C.RED
                 print(f"  {color}Ihsān: {ihsan:.4f}{C.RESET}")

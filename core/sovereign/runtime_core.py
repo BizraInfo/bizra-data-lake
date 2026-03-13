@@ -601,7 +601,10 @@ class SovereignRuntime:
     def _configure_canonical_action_bus(self) -> None:
         """Rewire ActionBus for canonical mission preflight semantics."""
         try:
-            from core.bus.sovereign_wiring import wire_action_bus, wire_telescript_engine
+            from core.bus.sovereign_wiring import (
+                wire_action_bus,
+                wire_telescript_engine,
+            )
 
             telescript = self._telescript_engine or wire_telescript_engine()
             self._telescript_engine = telescript
@@ -1258,6 +1261,7 @@ class SovereignRuntime:
         """
         try:
             from core.proof_engine.receipt import Ed25519Signer
+
             signer_material = self._load_identity_credentials()
             if signer_material is not None:
                 self._node_signer = Ed25519Signer(
@@ -1292,7 +1296,13 @@ class SovereignRuntime:
                 self._signer_public_key_prefix,
                 self._identity_mode,
             )
-        except (ImportError, RuntimeError, ValueError, OSError, json.JSONDecodeError) as e:
+        except (
+            ImportError,
+            RuntimeError,
+            ValueError,
+            OSError,
+            json.JSONDecodeError,
+        ) as e:
             if self._canonical_mode:
                 raise
             self.logger.warning(
@@ -4136,12 +4146,16 @@ class SovereignRuntime:
                 "mode": self.config.mode.name,
                 "sat_mode": self.config.sat_mode,
                 "strict_gate_passed": self._strict_gate_passed,
-                "mission_authority": "organism" if self._organism is not None else "legacy",
+                "mission_authority": (
+                    "organism" if self._organism is not None else "legacy"
+                ),
                 "fate_mode": self._fate_mode,
             },
             "canonical": {
                 "enabled": self._canonical_mode,
-                "mission_authority": "organism" if self._organism is not None else "legacy",
+                "mission_authority": (
+                    "organism" if self._organism is not None else "legacy"
+                ),
                 "authority_path": (
                     "runtime->organism->node0"
                     if self._organism is not None and self._node0 is not None

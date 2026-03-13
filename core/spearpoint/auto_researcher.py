@@ -341,7 +341,11 @@ class AutoResearcher:
 
             return result.status.value
 
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.warning(f"Constitutional gate error: {e}")
             return "error"
 

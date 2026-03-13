@@ -300,7 +300,11 @@ class CircuitBreaker:
         try:
             yield
             await self.record_success()
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             await self.record_failure(e)
             raise
 

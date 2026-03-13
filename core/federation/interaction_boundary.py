@@ -66,9 +66,9 @@ REQUIRES_IDENTITY_MITIGATION: frozenset[AttackClass] = frozenset({AttackClass.SY
 assert ELIMINATED_BY_BOUNDARY | REQUIRES_IDENTITY_MITIGATION == frozenset(
     AttackClass
 ), "Attack class partition is incomplete"
-assert ELIMINATED_BY_BOUNDARY & REQUIRES_IDENTITY_MITIGATION == frozenset(), (
-    "Attack class partition overlaps"
-)
+assert (
+    ELIMINATED_BY_BOUNDARY & REQUIRES_IDENTITY_MITIGATION == frozenset()
+), "Attack class partition overlaps"
 
 
 # ---------------------------------------------------------------------------

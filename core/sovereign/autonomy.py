@@ -319,7 +319,11 @@ class AutonomousLoop:
         for observer in self._observers:
             try:
                 await observer(metrics)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Observer error: {e}")
 
         self.observations.append(metrics)
@@ -396,7 +400,11 @@ class AutonomousLoop:
                 pred_result = await predictor(metrics, predictions)
                 if pred_result:
                     predictions.update(pred_result)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Predictor error: {e}")
 
         return predictions
@@ -445,7 +453,11 @@ class AutonomousLoop:
                 coord_result = await coordinator(metrics, predictions, coordination)
                 if coord_result:
                     coordination.update(coord_result)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Coordinator error: {e}")
 
         return coordination
@@ -494,7 +506,11 @@ class AutonomousLoop:
             try:
                 new_candidates = await analyzer(metrics)
                 candidates.extend(new_candidates)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Analyzer error: {e}")
 
         # Limit candidates per cycle
@@ -561,7 +577,11 @@ class AutonomousLoop:
             except asyncio.TimeoutError:
                 outcome.error_message = "Execution timeout"
                 outcome.success = False
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 outcome.error_message = str(e)
                 outcome.success = False
                 logger.error(f"Execution error for {decision.id}: {e}")
@@ -667,7 +687,11 @@ class AutonomousLoop:
                 learn_result = await learner(outcomes, reflection, learning)
                 if learn_result:
                     learning.update(learn_result)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Learner error: {e}")
 
         return learning
@@ -745,7 +769,11 @@ class AutonomousLoop:
             try:
                 result = await self.run_cycle()
                 logger.debug(f"Cycle {result['cycle']}: {result['executed']} decisions")
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.error(f"Cycle error: {e}")
                 self.state = LoopState.EMERGENCY
 

@@ -327,7 +327,11 @@ class ZeroPointKernel:
             if pcrs is not None and not isinstance(pcrs, dict):
                 pcrs = None
             return tpm_quote, pcrs
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.warning("TPM quote collection failed: %s", e)
             return None, None
 
@@ -721,7 +725,11 @@ class ZeroPointKernel:
                     health={"attempts": attempt, "last_error": None},
                     rollback_used=rollback_used,
                 )
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 last_error = str(e)
                 logger.warning("worker attempt %d failed: %s", attempt, e)
 
@@ -877,7 +885,11 @@ class ZeroPointKernel:
                 publish_result = self._event_bus.publish(event)
                 if inspect.isawaitable(publish_result):
                     await publish_result
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.debug("Receipt event publish failed: %s", e)
 
     @staticmethod

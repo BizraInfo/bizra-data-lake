@@ -174,7 +174,11 @@ class MemoryCoordinator:
                         state["living_memory"] = (
                             stats.to_dict() if hasattr(stats, "to_dict") else {}
                         )
-                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+                except (
+                    asyncio.CancelledError,
+                    RuntimeError,
+                    OSError,
+                ) as e:  # SEC-003 — async boundary
                     logger.warning(f"Living memory save failed: {e}")
 
             # Create versioned checkpoint

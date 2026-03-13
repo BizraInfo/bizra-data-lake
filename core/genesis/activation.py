@@ -167,8 +167,8 @@ class GenesisActivation:
         orchestrator_reason_codes: List[str] = []
 
         if not self._skip_orchestrator:
-            orchestrator_success, orchestrator_reason_codes = (
-                self._run_orchestrator(node_id, genesis_hash)
+            orchestrator_success, orchestrator_reason_codes = self._run_orchestrator(
+                node_id, genesis_hash
             )
 
         # ── Step 4: Boot Heartbeat ────────────────────────────────
@@ -183,7 +183,9 @@ class GenesisActivation:
         activation_hash = self._compute_activation_hash(
             genesis_hash=genesis_hash,
             boot_hash=boot_receipt_dict.get("boot_hash", ""),
-            breath_hash=first_breath_dict.get("chain_hash", "") if first_breath_dict else "",
+            breath_hash=(
+                first_breath_dict.get("chain_hash", "") if first_breath_dict else ""
+            ),
             timestamp=timestamp,
         )
 

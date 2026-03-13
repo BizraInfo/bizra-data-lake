@@ -33,7 +33,9 @@ class IdentityCommand:
             print_status("Public Key", pub_key, True)
             print_status("Node ID", node_id, True)
             print_status("Created", created, True)
-            print(f"\n  {C.GRAY}Identity is Ed25519 + BLAKE2b (L1 protocol layer){C.RESET}")
+            print(
+                f"\n  {C.GRAY}Identity is Ed25519 + BLAKE2b (L1 protocol layer){C.RESET}"
+            )
             print()
             return CommandResult.ok(data={"public_key": pub_key, "node_id": node_id})
 

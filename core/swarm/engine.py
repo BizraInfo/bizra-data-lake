@@ -242,7 +242,11 @@ class SwarmEngine:
                 loaded = sum(1 for v in fleet.values() if v)
                 logger.info("Pre-loaded %d/%d models", loaded, len(fleet))
                 self._emit(SwarmEventKind.MODEL_PRELOADED, data=fleet)
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.debug("Pre-load skipped: %s", e)
 
         # -- Phase: EXECUTING --
@@ -259,7 +263,11 @@ class SwarmEngine:
                 )
                 self._emit(kind, agent_id=agent.id, data=result)
                 return result
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 self._emit(
                     SwarmEventKind.AGENT_FAILED,
                     agent_id=agent.id,
@@ -295,7 +303,11 @@ class SwarmEngine:
                     self._emit(
                         SwarmEventKind.EQUALIZER_ACTION, data={"action": eq_action}
                     )
-            except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+            except (
+                asyncio.CancelledError,
+                RuntimeError,
+                OSError,
+            ) as e:  # SEC-003 — async boundary
                 logger.debug("Equalizer check skipped: %s", e)
 
         # -- Phase: COMPLETE --

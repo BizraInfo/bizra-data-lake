@@ -275,7 +275,11 @@ class SovereignVault:
             return json.loads(plaintext.decode("utf-8"))
         except InvalidToken:
             raise ValueError("Decryption failed - incorrect master secret")
-        except (json.JSONDecodeError, OSError, ValueError) as e:  # SEC-003 — json boundary
+        except (
+            json.JSONDecodeError,
+            OSError,
+            ValueError,
+        ) as e:  # SEC-003 — json boundary
             raise ValueError(f"Decryption failed: {e}")
 
     def delete(self, key: str) -> bool:

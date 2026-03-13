@@ -284,7 +284,11 @@ class EnhancedTeamPlanner(TeamPlanner):
                             priority=EventPriority.NORMAL,
                         )
 
-                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+                except (
+                    asyncio.CancelledError,
+                    RuntimeError,
+                    OSError,
+                ) as e:  # SEC-003 — async boundary
                     logger.error(f"Task execution error: {e}")
                     result.tasks_failed += 1
 
@@ -345,7 +349,11 @@ class EnhancedTeamPlanner(TeamPlanner):
 
         try:
             return handler(task)
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(f"Task handler error: {e}")
             return False
 

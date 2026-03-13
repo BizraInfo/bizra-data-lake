@@ -195,7 +195,11 @@ class GhostOverlayDaemon:
                     candidate.ihsan_score = getattr(result, "ihsan_score", 0.0)
                     if not result.approved:
                         candidate.block_reason = getattr(result, "reason", "Ihsan gate")
-                except (asyncio.CancelledError, RuntimeError, OSError) as exc:  # SEC-003 — async boundary
+                except (
+                    asyncio.CancelledError,
+                    RuntimeError,
+                    OSError,
+                ) as exc:  # SEC-003 — async boundary
                     logger.warning("ConstitutionalGate error: %s", exc)
                     candidate.ihsan_precheck = "blocked"
                     candidate.block_reason = "Gate unavailable"

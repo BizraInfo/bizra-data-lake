@@ -483,9 +483,7 @@ class SovereignNervousSystem:
                         4,
                     ),
                     "execution_count": int(precipitated_entry.hit_count),
-                    "precipitation_count": int(
-                        precipitated_entry.precipitation_count
-                    ),
+                    "precipitation_count": int(precipitated_entry.precipitation_count),
                 }
             else:
                 candidate = getattr(self._reflex, "_candidates", {}).get(pattern_hash)

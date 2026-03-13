@@ -200,7 +200,11 @@ class AgentOrchestrator:
 
         except asyncio.CancelledError:
             pass
-        except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+        except (
+            asyncio.CancelledError,
+            RuntimeError,
+            OSError,
+        ) as e:  # SEC-003 — async boundary
             logger.error(f"Agent {agent.id} crashed: {e}")
             self._agent_health[agent.id].is_alive = False
             self._agent_health[agent.id].error_count += 1
@@ -358,7 +362,11 @@ class AgentOrchestrator:
                 except (RuntimeError, asyncio.CancelledError, OSError) as e:
                     logger.error(f"Failed to heal agent {agent_id}: {e}")
                     await self.unregister_agent(agent_id)
-                except (asyncio.CancelledError, RuntimeError, OSError) as e:  # SEC-003 — async boundary
+                except (
+                    asyncio.CancelledError,
+                    RuntimeError,
+                    OSError,
+                ) as e:  # SEC-003 — async boundary
                     logger.error(
                         f"Unexpected failure healing agent {agent_id}: {type(e).__name__}: {e}"
                     )
