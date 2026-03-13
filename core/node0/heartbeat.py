@@ -215,6 +215,8 @@ class Node0Heartbeat:
         self._federation_ambassador: Optional[Any] = (
             None  # Distributed Receipt Verification
         )
+        self._urp_bridge: Optional[Any] = None  # URP Rust Bridge (Level 0 safe)
+        self._last_urp_receipt: Optional[Dict[str, Any]] = None
 
         # Cumulative stats
         self._total_memories_stored = 0
@@ -439,6 +441,9 @@ class Node0Heartbeat:
         # ── Step 7: Distributed Receipt Verification (Federation) ─
         if self._federation_ambassador is not None:
             self._federation_ambassador.broadcast_heartbeat_receipt(receipt.as_dict())
+
+        # ── Step 8: URP Witness Contribution (Level 0 safe) ────────
+        self._contribute_urp_witness(receipt)
 
         logger.info(
             "Node0 BREATH #%d | ihsan=%.3f | gini=%.4f | mem=%d | ev=%d | %.1fms",
@@ -1006,6 +1011,37 @@ class Node0Heartbeat:
     # ═══════════════════════════════════════════════════════════════
     # NERVOUS SYSTEM BRIDGE — EventBus Integration
     # ═══════════════════════════════════════════════════════════════
+
+    def _contribute_urp_witness(self, receipt: BreathReceipt) -> None:
+        """Contribute witness heartbeat to Rust pool (Level 0 safe).
+
+        Each breath is a proof-of-liveness — the node witnesses its own
+        constitutional heartbeat and earns SEED tokens for doing so.
+        Fails silently if bridge unavailable.
+        """
+        if self._urp_bridge is None:
+            try:
+                from core.bridges.urp_rust_bridge import URPRustBridge
+
+                self._urp_bridge = URPRustBridge()
+            except ImportError:
+                return
+
+        if not self._urp_bridge.available:
+            return
+
+        try:
+            urp_receipt = self._urp_bridge.contribute(
+                node_id=self._node_id,
+                resource_type="witness",
+                amount=1.0,
+                duration_ms=int(self._interval_s * 1000),
+                proof_hash=receipt.chain_hash,
+            )
+            if urp_receipt:
+                self._last_urp_receipt = urp_receipt
+        except (RuntimeError, TypeError, ValueError):
+            pass  # Level 0 — never crash the heartbeat
 
     def _emit_breath_event(self, receipt: BreathReceipt) -> None:
         """Emit a BreathReceipt to the EventBus nervous system.

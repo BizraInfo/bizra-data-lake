@@ -145,7 +145,7 @@ class TestRustGateChain:
         assert "schema" in result["gates"]
         assert "ihsan" in result["gates"]
         assert "snr" in result["gates"]
-        mock_chain.verify.assert_called_once_with("test content", 0.96, 0.97)
+        mock_chain.verify.assert_called_once_with(b"test content", 0.96, 0.97)
 
     def test_validate_rust_gates_detects_failure(self) -> None:
         """_validate_rust_gates reports failed gates."""

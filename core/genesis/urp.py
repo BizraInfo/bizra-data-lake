@@ -225,3 +225,38 @@ def verify_pledge_signature(pledge: URPPledge) -> bool:
     if pledge_hash != pledge.pledge_hash:
         return False
     return verify_signature(payload_digest, pledge.signature, pledge.signer_public_key)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Rust Bridge Conversion Layer (Level 0 safe)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def pledge_to_rust(pledge: URPPledge) -> "Optional[Any]":
+    """Convert Python URPPledge to Rust PyURPPledge for validation.
+
+    Returns None if Rust bridge unavailable (Level 0 degradation).
+    """
+    try:
+        from bizra import PyURPPledge  # type: ignore[import-untyped]
+
+        if PyURPPledge is None:
+            return None
+        return PyURPPledge.from_dict(pledge.to_dict())
+    except (ImportError, RuntimeError, TypeError, AttributeError):
+        return None
+
+
+def rust_verify_pledge(pledge: URPPledge) -> Optional[bool]:
+    """Verify pledge signature using Rust (authoritative).
+
+    Returns None if Rust bridge unavailable (Level 0 degradation).
+    Returns True/False if Rust verification succeeded.
+    """
+    rust_pledge = pledge_to_rust(pledge)
+    if rust_pledge is None:
+        return None
+    try:
+        return rust_pledge.verify_signature()
+    except (RuntimeError, TypeError, AttributeError):
+        return None

@@ -57,6 +57,7 @@ _LAZY_MODULES = {
     "PredictionDebouncer": (".ghost_ws", "PredictionDebouncer"),
     "OverlayEvent": (".ghost_ws", "OverlayEvent"),
     "OverlaySuggestion": (".ghost_ws", "OverlaySuggestion"),
+    "URPRustBridge": (".urp_rust_bridge", "URPRustBridge"),
 }
 
 
@@ -97,6 +98,8 @@ __all__ = [
     "PredictionDebouncer",
     "OverlayEvent",
     "OverlaySuggestion",
+    # URP Rust Bridge
+    "URPRustBridge",
     # Protocol (for type checking)
     "BridgeProtocol",
     "BridgeHealth",

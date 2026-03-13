@@ -211,6 +211,9 @@ class GenesisActivation:
             genesis_hash=genesis_hash,
         )
 
+        # ── Step 8: Submit URP Pledge to Rust Pool (Level 0 safe) ──
+        self._submit_urp_pledge(ceremony_result)
+
         # Write activation receipt
         self._write_activation_receipt(result)
         self._result = result
@@ -333,6 +336,33 @@ class GenesisActivation:
             }
         )
         return blake3_digest(preimage).hex()
+
+    def _submit_urp_pledge(self, ceremony_result: CeremonyResult) -> None:
+        """Submit URP pledge to Rust pool if available (Level 0 safe).
+
+        This is opportunistic — if the Rust bridge isn't built,
+        the pledge stays Python-only. No failure path.
+        """
+        try:
+            from core.bridges.urp_rust_bridge import URPRustBridge
+            from core.genesis.urp import pledge_resources
+
+            hardware = ceremony_result.genesis_json.get("hardware", {})
+            node_id = ceremony_result.genesis_json.get("identity", {}).get("node_id", "")
+            if not node_id or not hardware:
+                return
+
+            pledge = pledge_resources(node_id, hardware)
+            bridge = URPRustBridge()
+            if bridge.available and pledge.signed:
+                result = bridge.submit_pledge(pledge)
+                if result:
+                    logger.info(
+                        "URP pledge submitted to Rust pool: %s",
+                        result.get("id", "unknown"),
+                    )
+        except (ImportError, RuntimeError, TypeError):
+            pass  # Level 0 — Python-only mode
 
     def _write_activation_receipt(self, result: GenesisActivationResult) -> None:
         """Write the activation receipt to disk."""
