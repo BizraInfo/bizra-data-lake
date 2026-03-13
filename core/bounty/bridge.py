@@ -13,6 +13,7 @@ Also handles:
 - Cross-platform reputation aggregation
 """
 
+import asyncio
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field

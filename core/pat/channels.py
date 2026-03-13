@@ -11,6 +11,7 @@ build, operate, or customize one."
 Standing on Giants: Adapter Pattern (GoF) + Hexagonal Architecture (Cockburn)
 """
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
