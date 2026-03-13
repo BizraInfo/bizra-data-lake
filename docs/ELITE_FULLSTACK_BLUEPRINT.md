@@ -1,6 +1,6 @@
 # Elite Full-Stack Blueprint
 
-Last updated: 2026-03-12
+Last updated: 2026-03-13
 
 ## Objective
 
@@ -208,6 +208,18 @@ The audit is now expected to do more than fail or pass. It must synthesize:
 5. Ethical findings into explicit Ihsan, Adl, and Amanah posture.
 
 That synthesis is the actionable bridge between PMBOK planning, DevSecOps execution, CI/CD enforcement, and elite release readiness.
+
+## Genesis Activation CLI
+
+The `activate` command provides the single entry point for full node genesis:
+
+```bash
+python -m core.sovereign activate --seed-phrase "my-seed" --data-dir sovereign_state/genesis
+python -m core.sovereign activate --seed-file ~/.bizra/seed.bin --skip-breath
+python -m core.sovereign activate --verify --data-dir sovereign_state/genesis
+```
+
+Pipeline: ceremony (BLAKE3 identity) -> orchestrator (12-step bootstrap) -> heartbeat (boot + first breath) -> activation receipt (evidence artifact).
 
 ## Definition of Elite Readiness
 
