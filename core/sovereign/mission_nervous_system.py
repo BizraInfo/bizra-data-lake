@@ -59,6 +59,7 @@ logger = logging.getLogger("bizra.sovereign.nervous_system")
 
 from core.integration.constants import (
     ADL_GINI_THRESHOLD,
+    REFLEX_PRECIPITATION_HITS,
     UNIFIED_IHSAN_THRESHOLD,
 )
 
@@ -151,6 +152,7 @@ class NervousSystemStats:
     gini_halts: int = 0
     avg_ihsan: float = 0.0
     avg_duration_ms: float = 0.0
+    s2_avg_duration_ms: float = 0.0
 
     @property
     def s1_hit_rate(self) -> float:
@@ -403,6 +405,7 @@ class SovereignNervousSystem:
         self._mission_counter += 1
         mission_id = f"m-{self._mission_counter:06d}"
         events_published: List[str] = []
+        metadata: Dict[str, Any] = {}
 
         # ── S1 PROBE: Reflex cache lookup (Kahneman System 1) ────
         reflex_hit = False
@@ -414,6 +417,13 @@ class SovereignNervousSystem:
                 output_text = entry.output_template
                 reflex_hit = True
                 self._stats.s1_hits += 1
+                metadata["reflex_delta"] = {
+                    "compiled": True,
+                    "near_compile": False,
+                    "compile_count": int(entry.precipitation_count),
+                    "threshold": REFLEX_PRECIPITATION_HITS,
+                }
+                metadata["reflex_pattern"] = str(entry.pattern_hash)
                 logger.info(
                     "S1 HIT | mission=%s hit_count=%d ihsan=%.3f",
                     mission_id,
@@ -451,11 +461,42 @@ class SovereignNervousSystem:
 
         # ── RECORD: Observation for future S1 (Deming PDCA) ─────
         if not reflex_hit and self._reflex is not None:
-            self._reflex.record_observation(
+            precipitated_entry = self._reflex.record_observation(
                 input_text=mission_text,
                 output_text=output_text,
                 ihsan_composite=ihsan,
             )
+            pattern_hash = self._reflex._hash_input(mission_text)
+            if precipitated_entry is not None:
+                metadata["reflex_delta"] = {
+                    "compiled": True,
+                    "near_compile": False,
+                    "compile_count": int(precipitated_entry.precipitation_count),
+                    "threshold": REFLEX_PRECIPITATION_HITS,
+                }
+                metadata["reflex_pattern"] = str(precipitated_entry.pattern_hash)
+                metadata["compiled_reflex_event"] = {
+                    "name": str(precipitated_entry.input_template)[:120],
+                    "pattern_hash": str(precipitated_entry.pattern_hash),
+                    "avg_ihsan": round(
+                        float(precipitated_entry.ihsan_composite),
+                        4,
+                    ),
+                    "execution_count": int(precipitated_entry.hit_count),
+                    "precipitation_count": int(
+                        precipitated_entry.precipitation_count
+                    ),
+                }
+            else:
+                candidate = getattr(self._reflex, "_candidates", {}).get(pattern_hash)
+                if candidate is not None:
+                    consecutive = int(candidate.consecutive_high_quality())
+                    metadata["reflex_delta"] = {
+                        "compiled": False,
+                        "near_compile": consecutive > 0,
+                        "compile_count": consecutive,
+                        "threshold": REFLEX_PRECIPITATION_HITS,
+                    }
 
         # ── REWARD: BLOOM token minting (Ostrom Commons) ────────
         rewarded = False
@@ -511,6 +552,17 @@ class SovereignNervousSystem:
         self._stats.avg_duration_ms = (
             self._stats.avg_duration_ms * (self._stats.total_missions - 1) + duration_ms
         ) / self._stats.total_missions
+        if not reflex_hit:
+            prior_s2 = max(self._stats.s2_executions - 1, 0)
+            self._stats.s2_avg_duration_ms = (
+                self._stats.s2_avg_duration_ms * prior_s2 + duration_ms
+            ) / max(self._stats.s2_executions, 1)
+        elif metadata:
+            metadata["reflex_latency_ms"] = round(duration_ms, 2)
+            metadata["comparison_s2_avg_ms"] = round(
+                float(self._stats.s2_avg_duration_ms),
+                2,
+            )
 
         receipt = NervousSystemReceipt(
             mission_id=mission_id,
@@ -529,6 +581,7 @@ class SovereignNervousSystem:
             reflex_hit=reflex_hit,
             gini_ok=gini_ok,
             events_published=events_published,
+            metadata=metadata,
         )
 
         if self._on_receipt:

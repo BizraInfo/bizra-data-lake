@@ -438,6 +438,12 @@ def _check_performance_controls(
     return _check_control_plane(reader, perf_cfg, prefix="performance")
 
 
+def _check_runtime_canon_lock(
+    reader: RepoReader, canon_cfg: dict[str, Any]
+) -> tuple[float, list[dict[str, Any]]]:
+    return _check_control_plane(reader, canon_cfg, prefix="runtime_canon_lock")
+
+
 def _check_qa_controls(
     reader: RepoReader, qa_cfg: dict[str, Any]
 ) -> tuple[float, list[dict[str, Any]]]:
@@ -564,6 +570,13 @@ def _recommendation_from_check(check_name: str) -> dict[str, str]:
             "dimension": "architecture",
             "action": "Realign architectural control planes, proof bridges, and canonical interfaces.",
         }
+    if check_name.startswith("runtime_canon_lock:"):
+        return {
+            "priority": "P1",
+            "owner": "runtime-platform",
+            "dimension": "architecture",
+            "action": "Restore single-lineage runtime authority across API, CLI, and canonical operator surfaces.",
+        }
     if check_name.startswith("performance:"):
         return {
             "priority": "P1",
@@ -669,6 +682,13 @@ def _risk_profile_from_check(check_name: str) -> dict[str, str]:
             "cascade": "Module drift propagates across runtime, proof, and terminal layers and breaks compositional guarantees.",
             "prevention": "Reconcile canonical files, interface bridges, and proof-carrying flow across system boundaries.",
             "sape_phase": "abstraction",
+        }
+    if check_name.startswith("runtime_canon_lock:"):
+        return {
+            "dimension": "architecture",
+            "cascade": "Parallel mission authority surfaces reappear and split proof, identity, and reflex truth across operator paths.",
+            "prevention": "Keep API, CLI, and runtime mission execution bound to one organism-owned lineage with CI-backed canon lock.",
+            "sape_phase": "probe",
         }
     if check_name.startswith("terminal:"):
         return {
@@ -892,12 +912,15 @@ def _build_graph_of_thought(
     edges = [
         {"from": "pmbok", "to": "files"},
         {"from": "architecture", "to": "terminal"},
+        {"from": "architecture", "to": "runtime_canon_lock"},
         {"from": "architecture", "to": "security"},
         {"from": "files", "to": "jobs"},
         {"from": "files", "to": "pipeline"},
         {"from": "docs_truth", "to": "readme"},
         {"from": "docs_truth", "to": "architecture"},
         {"from": "docs_truth", "to": "pmbok"},
+        {"from": "runtime_canon_lock", "to": "terminal"},
+        {"from": "runtime_canon_lock", "to": "performance"},
         {"from": "terminal", "to": "docs_truth"},
         {"from": "security", "to": "ethics"},
         {"from": "jobs", "to": "thresholds"},
@@ -907,6 +930,7 @@ def _build_graph_of_thought(
         {"from": "qa", "to": "thresholds"},
         {"from": "performance", "to": "thresholds"},
         {"from": "thresholds", "to": "ethics"},
+        {"from": "runtime_canon_lock", "to": "release_readiness"},
         {"from": "terminal", "to": "release_readiness"},
         {"from": "security", "to": "release_readiness"},
         {"from": "ethics", "to": "release_readiness"},
@@ -923,14 +947,14 @@ def _build_interdisciplinary_lenses(
         return round(sum(values) / len(values), 4) if values else 0.0
 
     return {
-        "architecture": _avg("architecture", "files", "terminal"),
+        "architecture": _avg("architecture", "runtime_canon_lock", "files", "terminal"),
         "security": _avg("security", "ethics", "pipeline"),
-        "devops": _avg("pipeline", "jobs", "performance"),
-        "quality": _avg("qa", "thresholds", "performance"),
+        "devops": _avg("pipeline", "jobs", "runtime_canon_lock", "performance"),
+        "quality": _avg("qa", "thresholds", "runtime_canon_lock", "performance"),
         "governance": _avg("pmbok", "ethics", "security"),
         "documentation": _avg("readme", "docs_truth"),
-        "performance": _avg("thresholds", "performance", "qa"),
-        "operator_experience": _avg("terminal", "docs_truth"),
+        "performance": _avg("thresholds", "performance", "runtime_canon_lock", "qa"),
+        "operator_experience": _avg("terminal", "docs_truth", "runtime_canon_lock"),
         "ethical_integrity": _avg("ethics", "security", "thresholds"),
     }
 
@@ -1070,6 +1094,9 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     performance_score, performance_checks = _check_performance_controls(
         reader, checks_cfg.get("performance_controls") or {}
     )
+    runtime_canon_lock_score, runtime_canon_lock_checks = _check_runtime_canon_lock(
+        reader, checks_cfg.get("runtime_canon_lock") or {}
+    )
     qa_score, qa_checks = _check_qa_controls(reader, checks_cfg.get("qa") or {})
     ethics_score, ethics_checks = _check_ethical_integrity(
         reader, checks_cfg.get("ethical_integrity") or {}
@@ -1107,6 +1134,10 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "performance": {
             "score": round(performance_score, 4),
             "checks": performance_checks,
+        },
+        "runtime_canon_lock": {
+            "score": round(runtime_canon_lock_score, 4),
+            "checks": runtime_canon_lock_checks,
         },
         "qa": {"score": round(qa_score, 4), "checks": qa_checks},
         "ethics": {"score": round(ethics_score, 4), "checks": ethics_checks},

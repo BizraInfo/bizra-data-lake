@@ -95,6 +95,7 @@ Audit engine:
 - `scripts/ops/masterpiece_program_board.py`
 - `scripts/ops/canonical_empirical_validation.py`
 - `scripts/ops/learning_loop_closure_gate.py`
+- `scripts/ops/runtime_canon_lock_gate.py`
 
 Validation tests:
 
@@ -102,6 +103,8 @@ Validation tests:
 - `tests/scripts/test_masterpiece_program_board.py`
 - `tests/scripts/test_canonical_empirical_validation.py`
 - `tests/scripts/test_learning_loop_closure_gate.py`
+- `tests/scripts/test_runtime_canon_lock_gate.py`
+- `tests/core/sovereign/test_main_cli.py`
 
 Run locally:
 
@@ -126,6 +129,11 @@ python scripts/ops/learning_loop_closure_gate.py \
   --config config/learning_loop_closure_gate.json \
   --report /tmp/phase65/learning_loop_closure_gate.json \
   --markdown-report /tmp/phase65/learning_loop_closure_gate.md
+
+python scripts/ops/runtime_canon_lock_gate.py \
+  --config config/runtime_canon_lock_gate.json \
+  --report /tmp/phase65/runtime_canon_lock_gate.json \
+  --markdown-report /tmp/phase65/runtime_canon_lock_gate.md
 ```
 
 ## v4 Control Extensions
@@ -136,6 +144,7 @@ It adds two explicit control planes on top of the v3 audit:
 
 1. Architecture coherence (`checks.architecture_coherence`)
 2. Security coherence (`checks.security_coherence`)
+3. Runtime canon lock (`checks.runtime_canon_lock`)
 
 These sit alongside the existing planes:
 
@@ -152,8 +161,9 @@ These additions align the audit with the repo's current masterpiece state:
 - the masterpiece board now also fuses canonical empirical validation, so release synthesis is grounded in measured proof rather than design intent alone.
 - the canonical empirical validation packet is now the flagship evidence artifact that proves simulation, metabolism, receipt contract, and sovereignty composition as one status.
 - the learning loop closure gate now proves the board-selected P0 workstream end to end: candidates retain SNR through training and can compile into a reflex with receipt-backed evidence.
+- the runtime canon lock gate now proves that API and CLI canonical missions stay bound to one organism-owned authority path instead of drifting into parallel truth surfaces.
 
-The blueprint now enforces nine machine-checkable control planes:
+The blueprint now enforces ten machine-checkable control planes:
 
 1. PMBOK artifact traceability (`checks.pmbok_artifacts`)
 2. Pipeline dependency integrity (`checks.pipeline_automation`)
@@ -162,8 +172,9 @@ The blueprint now enforces nine machine-checkable control planes:
 5. Documentation truth enforcement (`checks.docs_truth`)
 6. Architecture coherence enforcement (`checks.architecture_coherence`)
 7. Security coherence enforcement (`checks.security_coherence`)
-8. Terminal contract enforcement (`checks.terminal_contract`)
-9. Performance control enforcement (`checks.performance_controls`)
+8. Runtime canon lock enforcement (`checks.runtime_canon_lock`)
+9. Terminal contract enforcement (`checks.terminal_contract`)
+10. Performance control enforcement (`checks.performance_controls`)
 
 The audit now emits an `optimization_roadmap` with prioritized remediation:
 

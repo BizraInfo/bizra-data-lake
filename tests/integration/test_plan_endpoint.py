@@ -558,6 +558,88 @@ async def test_plan_canonical_mode_suppresses_direct_system1_cache_path(
     assert data["execution_path"] == "SYSTEM_2_NOVEL"
 
 
+@pytest.mark.integration
+async def test_plan_canonical_mode_system1_cache_hit_flows_through_runtime(
+    canonical_plan_client,
+):
+    """Canonical System-1 hits must still come from runtime mission authority."""
+    client, runtime = canonical_plan_client
+    runtime.mission.return_value = SimpleNamespace(
+        mission_id="org-mission-s1-001",
+        output_text="Autopoiesis is the self-creation property of living systems.",
+        system="S1",
+        ihsan_score=0.98,
+        snr_score=0.96,
+        duration_ms=0.42,
+        evidence_hash="e" * 64,
+        chain_hash="f" * 64,
+        fate_verdict="approved",
+        fate_reason_codes=[],
+        fate_mode="enforced",
+        identity_mode="genesis_ed25519",
+        signer_public_key_prefix="abcd1234efgh5678",
+        metadata={
+            "reflex_delta": {
+                "compiled": True,
+                "near_compile": False,
+                "compile_count": 5,
+                "threshold": 3,
+            },
+            "reflex_pattern": "hash-autopoiesis-001",
+            "reflex_latency_ms": 0.42,
+            "comparison_s2_avg_ms": 18.6,
+        },
+    )
+
+    async with client:
+        resp = await client.post(
+            "/v1/plan",
+            json={"description": "what is autopoiesis?", "source": "terminal"},
+        )
+
+    assert resp.status_code == 200
+    runtime.mission.assert_awaited_once()
+    data = resp.json()
+    assert data["mission_id"] == "org-mission-s1-001"
+    assert data["execution_authority"] == "organism"
+    assert data["execution_path"] == "SYSTEM_1_CACHE_HIT"
+    assert data["reflex_delta"]["compiled"] is True
+    assert data["reflex_delta"]["compile_count"] == 5
+    assert data["reflex_pattern"] == "hash-autopoiesis-001"
+    assert data["reflex_latency_ms"] == 0.42
+    assert data["comparison_s2_avg_ms"] == 18.6
+
+
+@pytest.mark.integration
+async def test_plan_canonical_mode_does_not_mutate_api_local_reflex_compiler(
+    canonical_plan_client, monkeypatch
+):
+    """Canonical runtime authority must own reflex observations and telemetry."""
+    import core.sovereign.api as api_module
+    from core.sovereign.reflex_compiler import ReflexCompiler
+
+    client, runtime = canonical_plan_client
+    compiler = ReflexCompiler()
+    original = getattr(api_module, "_reflex_compiler", None)
+    api_module._reflex_compiler = compiler
+    try:
+        async with client:
+            resp = await client.post(
+                "/v1/plan",
+                json={
+                    "description": "a unique canonical runtime mission",
+                    "source": "terminal",
+                },
+            )
+    finally:
+        api_module._reflex_compiler = original
+
+    assert resp.status_code == 200
+    runtime.mission.assert_awaited_once()
+    assert compiler._candidates == {}
+    assert compiler._cache == {}
+
+
 # ═══════════════════════════════════════════════════════════════════
 # E2E: CANONICAL AUTHORITY EXCLUSIVITY
 # Standing on Giants:

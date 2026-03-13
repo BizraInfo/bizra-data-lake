@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useSovereignHealth, useSeedPotential, useTokenBalance } from "@/hooks/use-sovereign-api";
+import { TERMINAL_VIEW_META } from "./terminal-manifest";
 
 // ─── Lazy-load views ────────────────────────────────────────────
 const TerminalDashboard = lazy(() => import("./terminal-dashboard"));
@@ -24,17 +25,25 @@ interface ViewDef {
   component: React.LazyExoticComponent<() => JSX.Element>;
 }
 
-// ─── Constants ──────────────────────────────────────────────────
+// ─── Constants (canonical view metadata from terminal-manifest) ──
 
-const VIEWS: ViewDef[] = [
-  { id: "dashboard", label: "Dashboard", shortcut: "1", emoji: "📊", component: TerminalDashboard },
-  { id: "mission", label: "Mission", shortcut: "2", emoji: "🎯", component: TerminalMission },
-  { id: "timeline", label: "Timeline", shortcut: "3", emoji: "📜", component: TerminalTimeline },
-  { id: "memory", label: "Memory", shortcut: "4", emoji: "🧠", component: TerminalMemory },
-  { id: "skills", label: "Skills", shortcut: "5", emoji: "⚡", component: TerminalSkills },
-  { id: "network", label: "Network", shortcut: "6", emoji: "🌳", component: TerminalNetwork },
-  { id: "settings", label: "Settings", shortcut: "7", emoji: "⚙️", component: TerminalSettings },
-];
+const LAZY_COMPONENTS: Record<ViewId, React.LazyExoticComponent<() => JSX.Element>> = {
+  dashboard: TerminalDashboard,
+  mission: TerminalMission,
+  timeline: TerminalTimeline,
+  memory: TerminalMemory,
+  skills: TerminalSkills,
+  network: TerminalNetwork,
+  settings: TerminalSettings,
+};
+
+const VIEWS: ViewDef[] = TERMINAL_VIEW_META.map((meta) => ({
+  id: meta.id as ViewId,
+  label: meta.label,
+  shortcut: meta.shortcut,
+  emoji: meta.emoji,
+  component: LAZY_COMPONENTS[meta.id as ViewId],
+}));
 
 // ─── Loading Fallback ───────────────────────────────────────────
 

@@ -56,6 +56,13 @@ from core.genesis.types import (
 )
 from core.genesis.urp import URPPledge, pledge_resources, verify_pledge_signature
 
+# Genesis Activation Pipeline (wires ceremony + orchestrator + heartbeat)
+try:
+    from core.genesis.activation import GenesisActivation, GenesisActivationResult
+except ImportError:
+    GenesisActivation = None  # type: ignore[assignment,misc]
+    GenesisActivationResult = None  # type: ignore[assignment,misc]
+
 __version__ = "1.0.0"
 
 __all__ = [
@@ -70,6 +77,9 @@ __all__ = [
     # Engine
     "GenesisOrchestrator",
     "HardwareScanner",
+    # Activation Pipeline
+    "GenesisActivation",
+    "GenesisActivationResult",
     # State persistence
     "SovereignState",
     "save_sovereign_state",

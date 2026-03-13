@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   useSeedPotential,
 } from "@/hooks/use-sovereign-api";
+import { PAT_AGENT_MANIFEST, SAT_AGENT_MANIFEST } from "./terminal-manifest";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -45,25 +46,21 @@ interface TierDef {
 
 type LifecycleStage = "Seedling" | "Sprout" | "Sapling" | "Branch" | "Canopy" | "Catalyst";
 
-// ─── Constants ──────────────────────────────────────────────────
+// ─── Constants (canonical agent roster from terminal-manifest) ───
 
-const PAT_AGENTS: AgentInfo[] = [
-  { id: "P1", name: "Atlas", role: "Planner", emoji: "🗺️", temperature: 0.2, status: "active", team: "PAT", raidRole: "Strategist" },
-  { id: "P2", name: "Oracle", role: "Researcher", emoji: "🔭", temperature: 0.7, status: "active", team: "PAT", raidRole: "Scout" },
-  { id: "P3", name: "Forge", role: "Coder", emoji: "⚒️", temperature: 0.3, status: "active", team: "PAT", raidRole: "DPS" },
-  { id: "P4", name: "Judge", role: "Evaluator", emoji: "⚖️", temperature: 0.1, status: "active", team: "PAT", raidRole: "Healer" },
-  { id: "P5", name: "Crown", role: "Ethicist", emoji: "👑", temperature: 0.1, status: "active", team: "PAT", raidRole: "Tank" },
-  { id: "P6", name: "Herald", role: "Publisher", emoji: "📢", temperature: 0.4, status: "idle", team: "PAT", raidRole: "Bard" },
-  { id: "P7", name: "DEMA", role: "Nexus", emoji: "💜", temperature: 0.2, status: "active", team: "PAT", raidRole: "Raid Leader" },
-];
+const toAgentInfo = (a: typeof PAT_AGENT_MANIFEST[number]): AgentInfo => ({
+  id: a.id,
+  name: a.name,
+  role: a.role,
+  emoji: a.emoji,
+  temperature: a.temperature,
+  status: a.status,
+  team: a.team,
+  raidRole: a.raidRole,
+});
 
-const SAT_AGENTS: AgentInfo[] = [
-  { id: "S1", name: "Sentinel", role: "Security", emoji: "🛡️", temperature: 0.05, status: "active", team: "SAT", raidRole: "Anti-Cheat" },
-  { id: "S2", name: "Oracle-S", role: "Forest Health", emoji: "🌳", temperature: 0.3, status: "active", team: "SAT", raidRole: "World State" },
-  { id: "S3", name: "Ledger", role: "Economy", emoji: "📊", temperature: 0.05, status: "active", team: "SAT", raidRole: "Economy Mgr" },
-  { id: "S4", name: "Conductor", role: "Capacity", emoji: "🎵", temperature: 0.2, status: "active", team: "SAT", raidRole: "Load Balancer" },
-  { id: "S5", name: "Ambassador", role: "Federation", emoji: "🤝", temperature: 0.4, status: "standby", team: "SAT", raidRole: "Diplomacy" },
-];
+const PAT_AGENTS: AgentInfo[] = PAT_AGENT_MANIFEST.map(toAgentInfo);
+const SAT_AGENTS: AgentInfo[] = SAT_AGENT_MANIFEST.map(toAgentInfo);
 
 const TIER_DEFS: TierDef[] = [
   { name: "Novice", min_actions: 0, min_ihsan: 0, unlocks: ["Read files", "Clipboard", "Basic queries"], color: "text-slate-400" },

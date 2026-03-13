@@ -66,9 +66,9 @@ REQUIRES_IDENTITY_MITIGATION: frozenset[AttackClass] = frozenset({AttackClass.SY
 assert ELIMINATED_BY_BOUNDARY | REQUIRES_IDENTITY_MITIGATION == frozenset(
     AttackClass
 ), "Attack class partition is incomplete"
-assert (
-    ELIMINATED_BY_BOUNDARY & REQUIRES_IDENTITY_MITIGATION == frozenset()
-), "Attack class partition overlaps"
+assert ELIMINATED_BY_BOUNDARY & REQUIRES_IDENTITY_MITIGATION == frozenset(), (
+    "Attack class partition overlaps"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -207,3 +207,107 @@ class PoolMediatedMessage:
             positive pool_timestamp, indicating Pool mediation.
         """
         return len(self.pool_signature) > 0 and self.pool_timestamp > 0
+
+
+# ---------------------------------------------------------------------------
+# Federation Ambassador (Phase 48: Node0 Integration)
+# ---------------------------------------------------------------------------
+
+import threading
+import asyncio
+import json
+from typing import Optional, Dict, Any, TYPE_CHECKING
+import logging
+
+if TYPE_CHECKING:
+    from core.federation.node import FederationNode
+
+logger = logging.getLogger("bizra.federation.ambassador")
+
+
+class FederationAmbassador:
+    """The canonical integration point between Node0 and the Federation Pool.
+
+    Wraps the asynchronous FederationNode in a background thread so that
+    the synchronous Node0 heartbeat can securely broadcast receipts without
+    blocking its 60-second cycle.
+    """
+
+    def __init__(self, node_id: str, public_key: str, private_key: str):
+        self.node_id = node_id
+        self.public_key = public_key
+        self.private_key = private_key
+        self._node: Optional["FederationNode"] = None
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._thread: Optional[threading.Thread] = None
+
+    def start(
+        self, bind_address: str = "0.0.0.0:7654", seed_nodes: Optional[list[str]] = None
+    ) -> None:
+        """Start the federation node in a dedicated background thread."""
+        if self._thread is not None and self._thread.is_alive():
+            logger.warning("FederationAmbassador is already running.")
+            return
+
+        def _run_loop():
+            from core.federation.node import FederationNode
+
+            self._loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop)
+
+            self._node = FederationNode(
+                node_id=self.node_id,
+                bind_address=bind_address,
+                public_key=self.public_key,
+                private_key=self.private_key,
+                ihsan_score=1.0,  # Node0 genesis perfection
+            )
+
+            self._loop.run_until_complete(self._node.start(seed_nodes=seed_nodes))
+            # Keep loop running forever to handle gossip and background tasks
+            try:
+                self._loop.run_forever()
+            finally:
+                self._loop.run_until_complete(self._node.stop())
+                self._loop.close()
+
+        self._thread = threading.Thread(
+            target=_run_loop, daemon=True, name="FederationLoop"
+        )
+        self._thread.start()
+        logger.info(f"FederationAmbassador started for node {self.node_id}")
+
+    def stop(self) -> None:
+        """Stop the background federation loop."""
+        if self._loop is not None and self._loop.is_running():
+            self._loop.call_soon_threadsafe(self._loop.stop)
+        if self._thread is not None:
+            self._thread.join(timeout=5.0)
+
+    def broadcast_heartbeat_receipt(self, receipt_dict: Dict[str, Any]) -> None:
+        """Broadcast a BreathReceipt to the federation via gossip.
+
+        This satisfies the Distributed Receipt Verification gap, sharing
+        the proof of the breath with the PBFT/SWIM network.
+        """
+        if self._node is None or self._loop is None or not self._loop.is_running():
+            logger.warning(
+                "Cannot broadcast receipt: FederationAmbassador not fully running"
+            )
+            return
+
+        # Fire and forget into the async loop
+        async def _do_broadcast():
+            # We wrap it in a standard pattern-like struct or protocol message
+            # For now, we use the gossip broadcast directly
+            msg = json.dumps(
+                {"type": "HEARTBEAT_RECEIPT", "node_id": self.node_id, **receipt_dict}
+            ).encode("utf-8")
+
+            if hasattr(self._node, "_broadcast_pattern"):
+                self._node._broadcast_pattern(msg)
+                logger.debug(
+                    f"Broadcasted heartbeat {receipt_dict.get('tick_number')} evidence."
+                )
+
+        asyncio.run_coroutine_threadsafe(_do_broadcast(), self._loop)
