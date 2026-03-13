@@ -939,6 +939,7 @@ export function useTerminalStream(topics: string[] = ["*"], historyLimit = 100) 
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const retriesRef = useRef(0);
   const wsRef = useRef<WebSocket | null>(null);
+  const topicsKey = JSON.stringify(topics);
 
   useEffect(() => {
     topicsRef.current = topics;
@@ -1030,7 +1031,7 @@ export function useTerminalStream(topics: string[] = ["*"], historyLimit = 100) 
         ws.close();
       }
     };
-  }, [historyLimit, JSON.stringify(topics)]);
+  }, [historyLimit, topicsKey]);
 
   return { events, connected };
 }
