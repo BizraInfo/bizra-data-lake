@@ -719,7 +719,7 @@ class SmartFileHandler:
             gw = InferenceGateway()
             await gw.initialize()
             gateway = gw
-        except (OSError, ValueError):  # SEC-003
+        except (OSError, ValueError, RuntimeError, ImportError):  # SEC-003
             pass
 
         classified: List[Dict[str, Any]] = []
@@ -759,8 +759,9 @@ class SmartFileHandler:
                 except (
                     json.JSONDecodeError,
                     OSError,
+                    RuntimeError,
                     ValueError,
-                ):  # SEC-003 — json boundary
+                ):  # SEC-003 — inference/json boundary
                     pass
 
             if ai_result:

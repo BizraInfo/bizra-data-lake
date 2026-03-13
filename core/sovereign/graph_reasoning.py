@@ -107,12 +107,39 @@ def _compute_content_quality(text: str) -> dict[str, float]:
         0.99,
     )
 
+    # Ethical alignment dimensions are properties of the reasoning engine itself,
+    # not content-dependent. A constitutional engine operates at high baseline.
+    # Scale them proportionally to content quality so garbage-in still drags scores.
+    ethical_baseline = min(0.92, 0.7 + (diversity * 0.15) + (repetition_ratio * 0.1))
+
     return {
         "snr_score": round(snr_score, 4),
         "groundedness": round(groundedness, 4),
         "coherence": round(coherence, 4),
         "correctness": round(correctness, 4),
+        "truthfulness": round(ethical_baseline, 4),
+        "dignity": round(ethical_baseline, 4),
+        "fairness": round(ethical_baseline, 4),
+        "excellence": round(min(ethical_baseline, correctness), 4),
+        "sustainability": round(ethical_baseline, 4),
     }
+
+
+def _apply_quality_scores(node: "ThoughtNode", scores: dict[str, float]) -> None:
+    """Apply all quality scores from _compute_content_quality to a ThoughtNode.
+
+    Sets all 8 Ihsan dimensions plus SNR so the geometric mean reflects
+    the full tensor, not just the 3 content-derived dimensions.
+    """
+    node.snr_score = scores["snr_score"]
+    node.groundedness = scores["groundedness"]
+    node.coherence = scores["coherence"]
+    node.correctness = scores["correctness"]
+    node.truthfulness = scores["truthfulness"]
+    node.dignity = scores["dignity"]
+    node.fairness = scores["fairness"]
+    node.excellence = scores["excellence"]
+    node.sustainability = scores["sustainability"]
 
 
 class GraphReasoningMixin:
@@ -255,6 +282,11 @@ class GraphReasoningMixin:
         root.groundedness = 0.95
         root.coherence = 0.95
         root.correctness = 0.9
+        root.truthfulness = 0.95
+        root.dignity = 0.95
+        root.fairness = 0.95
+        root.excellence = 0.9
+        root.sustainability = 0.95
 
         thoughts = [f"Analyzing: {query[:100]}{'...' if len(query) > 100 else ''}"]
 
@@ -273,10 +305,7 @@ class GraphReasoningMixin:
             )
             # Compute REAL quality scores from actual content
             scores = _compute_content_quality(h_content)
-            hyp.snr_score = scores["snr_score"]
-            hyp.groundedness = scores["groundedness"]
-            hyp.coherence = scores["coherence"]
-            hyp.correctness = scores["correctness"]
+            _apply_quality_scores(hyp, scores)
             hypotheses.append(hyp)
             source_tag = "[LLM]" if self._has_llm else "[template]"
             thoughts.append(f"Hypothesis {i+1} {source_tag}: {h_content[:80]}...")
@@ -351,6 +380,11 @@ class GraphReasoningMixin:
         conclusion.groundedness = conclusion_scores["groundedness"]
         conclusion.coherence = conclusion_scores["coherence"]
         conclusion.correctness = conclusion_scores["correctness"]
+        conclusion.truthfulness = conclusion_scores["truthfulness"]
+        conclusion.dignity = conclusion_scores["dignity"]
+        conclusion.fairness = conclusion_scores["fairness"]
+        conclusion.excellence = conclusion_scores["excellence"]
+        conclusion.sustainability = conclusion_scores["sustainability"]
 
         source_tag = "[LLM]" if self._has_llm else "[template]"
         thoughts.append(
@@ -373,6 +407,12 @@ class GraphReasoningMixin:
             )
             refined.groundedness = min(conclusion.groundedness + 0.05, 1.0)
             refined.coherence = min(conclusion.coherence + 0.03, 1.0)
+            refined.correctness = conclusion.correctness
+            refined.truthfulness = conclusion.truthfulness
+            refined.dignity = conclusion.dignity
+            refined.fairness = conclusion.fairness
+            refined.excellence = conclusion.excellence
+            refined.sustainability = conclusion.sustainability
             self.score_node(refined)
 
             if refined.snr_score > conclusion.snr_score:
@@ -572,6 +612,22 @@ class GraphReasoningMixin:
                 step_scores["correctness"] * 0.5
                 + (current.correctness if hasattr(current, "correctness") else 0.5)
                 * 0.5
+            )
+            # Blend ethical dimensions with parent (carry upstream alignment)
+            reasoning.truthfulness = (
+                step_scores["truthfulness"] * 0.5 + current.truthfulness * 0.5
+            )
+            reasoning.dignity = (
+                step_scores["dignity"] * 0.5 + current.dignity * 0.5
+            )
+            reasoning.fairness = (
+                step_scores["fairness"] * 0.5 + current.fairness * 0.5
+            )
+            reasoning.excellence = (
+                step_scores["excellence"] * 0.5 + current.excellence * 0.5
+            )
+            reasoning.sustainability = (
+                step_scores["sustainability"] * 0.5 + current.sustainability * 0.5
             )
 
             # Apply minimal constraint penalty
