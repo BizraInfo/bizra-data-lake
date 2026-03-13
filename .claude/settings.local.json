@@ -169,7 +169,8 @@
       "Bash(__NEW_LINE_99cbf27ce1944c3c__ python3:*)",
       "Bash(__NEW_LINE_68db96acc7ade155__ python3:*)",
       "Bash(do echo:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(python:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
