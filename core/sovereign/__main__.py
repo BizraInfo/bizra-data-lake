@@ -909,9 +909,12 @@ Examples:
     subparsers.add_parser("tokens", help="View token supply and stats")
 
     # Genesis command (one-command node bootstrap)
-    from core.genesis.cli import build_genesis_parser
+    from core.genesis.cli import build_activate_parser, build_genesis_parser
 
     build_genesis_parser(subparsers)
+
+    # Activate command (full genesis activation pipeline)
+    build_activate_parser(subparsers)
 
     # Sovereignty command (Phase 67 Constitutional CLI)
     sovereignty_parser = subparsers.add_parser(
@@ -1115,6 +1118,10 @@ Examples:
         from core.genesis.cli import handle_genesis
 
         handle_genesis(args)
+    elif args.command == "activate":
+        from core.genesis.cli import handle_activate
+
+        handle_activate(args)
     elif args.command == "wallet":
         _handle_wallet_command()
     elif args.command == "tokens":

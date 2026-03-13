@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 from typing import Any
 
 from .orchestrator import GenesisOrchestrator
@@ -222,3 +223,145 @@ def handle_genesis(args: argparse.Namespace) -> None:
 
     # Exit with appropriate code
     sys.exit(0 if result.success else 1)
+
+
+def build_activate_parser(subparsers: Any) -> argparse.ArgumentParser:
+    """Add the 'activate' subcommand — full genesis activation pipeline.
+
+    Usage:
+        python -m core.sovereign activate --seed-file ~/.bizra/seed.bin
+        python -m core.sovereign activate --seed-phrase "my secret phrase"
+        python -m core.sovereign activate --skip-orchestrator --skip-breath
+    """
+    activate_parser = subparsers.add_parser(
+        "activate",
+        help="Full genesis activation: ceremony + orchestrator + heartbeat",
+        description=(
+            "Run the complete BIZRA genesis activation pipeline.\n"
+            "Wires: ceremony (cryptographic root) -> orchestrator (12-step bootstrap) "
+            "-> heartbeat (boot + first breath) -> evidence (activation receipt)."
+        ),
+    )
+
+    # Seed source (mutually exclusive)
+    seed_group = activate_parser.add_mutually_exclusive_group()
+    seed_group.add_argument(
+        "--seed-file",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Path to 32+ byte seed file",
+    )
+    seed_group.add_argument(
+        "--seed-phrase",
+        type=str,
+        default=None,
+        metavar="PHRASE",
+        help="Passphrase to derive seed via BLAKE3",
+    )
+
+    # Output directory
+    activate_parser.add_argument(
+        "--data-dir",
+        type=str,
+        default="sovereign_state/genesis",
+        help="Output directory for genesis artifacts (default: sovereign_state/genesis)",
+    )
+
+    # Pipeline control
+    activate_parser.add_argument(
+        "--skip-orchestrator",
+        action="store_true",
+        help="Skip 12-step orchestrator (ceremony + heartbeat only)",
+    )
+    activate_parser.add_argument(
+        "--skip-breath",
+        action="store_true",
+        help="Skip first breath (boot only, no Helix3 tick)",
+    )
+
+    # Output format
+    activate_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output result as JSON",
+    )
+    activate_parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verify existing activation artifacts instead of creating new ones",
+    )
+
+    return activate_parser
+
+
+def handle_activate(args: argparse.Namespace) -> None:
+    """Handle the 'activate' subcommand — full genesis activation pipeline."""
+    from core.genesis.activation import GenesisActivation
+    from core.proof_engine.canonical import blake3_digest
+
+    # Resolve seed
+    seed: bytes | None = None
+
+    if args.seed_file:
+        seed_path = Path(args.seed_file).expanduser()
+        if not seed_path.exists():
+            print(f"Error: seed file not found: {seed_path}", file=sys.stderr)
+            sys.exit(1)
+        seed = seed_path.read_bytes()
+        if len(seed) < 16:
+            print("Error: seed file must be at least 16 bytes", file=sys.stderr)
+            sys.exit(1)
+    elif args.seed_phrase:
+        seed = blake3_digest(args.seed_phrase.encode("utf-8"))
+    else:
+        # Generate ephemeral seed (for development/testing)
+        import os
+
+        seed = os.urandom(32)
+        print("Warning: using ephemeral random seed (not reproducible)", file=sys.stderr)
+        print("For reproducible activation, use --seed-file or --seed-phrase", file=sys.stderr)
+
+    data_dir = Path(args.data_dir)
+
+    activation = GenesisActivation(
+        node_seed=seed,
+        data_dir=data_dir,
+        skip_orchestrator=getattr(args, "skip_orchestrator", False),
+        skip_breath=getattr(args, "skip_breath", False),
+    )
+
+    # Verify mode
+    if getattr(args, "verify", False):
+        valid, reasons = activation.verify()
+        if getattr(args, "json", False):
+            import json
+
+            print(json.dumps({"valid": valid, "reasons": reasons}, indent=2))
+        else:
+            if valid:
+                print("Activation artifacts verified: all checks passed")
+            else:
+                print("Activation verification FAILED:")
+                for r in reasons:
+                    print(f"  - {r}")
+        sys.exit(0 if valid else 1)
+
+    # Activate
+    result = activation.activate()
+
+    if getattr(args, "json", False):
+        import json
+
+        print(json.dumps(result.as_dict(), indent=2, default=str))
+    else:
+        print(f"Node ID:          {result.node_id}")
+        print(f"Genesis Hash:     {result.genesis_hash[:16]}...")
+        print(f"Activation Hash:  {result.activation_hash[:16]}...")
+        print(f"Evidence Valid:   {result.evidence_chain_valid}")
+        print(f"Duration:         {result.duration_ms:.1f}ms")
+        print(f"Artifacts:        {data_dir}")
+        if result.orchestrator_reason_codes:
+            print(f"Reason Codes:     {', '.join(result.orchestrator_reason_codes)}")
+
+    sys.exit(0 if result.evidence_chain_valid else 1)
