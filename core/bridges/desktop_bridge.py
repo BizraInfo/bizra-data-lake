@@ -625,13 +625,14 @@ class DesktopBridge:
         if chain is None:
             return {}
         try:
-            results = chain.verify(content, snr_score, ihsan_score)
+            content_bytes = content.encode("utf-8") if isinstance(content, str) else content
+            results = chain.verify(content_bytes, snr_score, ihsan_score)
             gates = {
                 name: {"passed": passed, "code": code} for name, passed, code in results
             }
             all_passed = all(passed for _, passed, _ in results)
             return {"gates": gates, "passed": all_passed, "engine": "rust"}
-        except (RuntimeError, OSError, ValueError) as exc:
+        except (RuntimeError, OSError, ValueError, TypeError) as exc:
             logger.warning(f"Rust gate verification failed: {exc}")
             return {}
 

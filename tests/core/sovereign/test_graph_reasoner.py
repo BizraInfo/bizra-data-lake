@@ -66,7 +66,11 @@ def basic_thought_node():
 
 @pytest.fixture
 def high_quality_thought():
-    """Create a high-quality thought that passes Ihsan threshold."""
+    """Create a high-quality thought that passes Ihsan threshold.
+
+    All 8 Ihsan tensor dimensions must be set high — the geometric mean
+    penalizes any dimension left at the 0.5 default.
+    """
     return ThoughtNode(
         id="high_quality_001",
         content="Well-reasoned conclusion with strong evidence.",
@@ -74,6 +78,11 @@ def high_quality_thought():
         confidence=0.98,
         snr_score=0.97,
         depth=2,
+        truthfulness=0.97,
+        dignity=0.96,
+        fairness=0.96,
+        excellence=0.97,
+        sustainability=0.96,
         correctness=0.98,
         groundedness=0.97,
         coherence=0.99,
@@ -216,18 +225,23 @@ class TestThoughtNodeIhsanScore:
     """Tests for Ihsan score calculation (geometric mean of dimensions)."""
 
     def test_ihsan_score_geometric_mean(self):
-        """Ihsan score should be geometric mean of dimensions."""
+        """Ihsan score should be geometric mean of all 8 dimensions."""
         node = ThoughtNode(
             id="ihsan_test",
             content="Testing Ihsan calculation",
             thought_type=ThoughtType.CONCLUSION,
             confidence=0.9,
+            truthfulness=0.9,
+            dignity=0.9,
+            fairness=0.9,
+            excellence=0.9,
+            sustainability=0.9,
             correctness=0.9,
             groundedness=0.9,
             coherence=0.9,
         )
 
-        # Geometric mean of [0.9, 0.9, 0.9, 0.9] = 0.9
+        # Geometric mean of [0.9]*8 = 0.9
         expected = 0.9
         assert abs(node.ihsan_score - expected) < 0.001
 

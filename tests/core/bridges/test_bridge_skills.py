@@ -134,6 +134,11 @@ class TestInvokeSkill:
         port = _free_port()
         bridge = DesktopBridge(host="127.0.0.1", port=port)
 
+        # Bypass auth middleware and Rust gates (no real infra in test)
+        bridge._validate_auth = MagicMock(return_value=None)
+        bridge._load_auth_token = MagicMock(return_value="test-token")
+        bridge._validate_rust_gates = MagicMock(return_value={})
+
         # Mock FATE gate to pass
         bridge._fate_gate = MagicMock()
         mock_score = MagicMock()
@@ -202,6 +207,11 @@ class TestInvokeSkill:
 
         # No skill router
         bridge._get_skill_router = lambda: None
+
+        # Bypass auth middleware and Rust gates (no real infra in test)
+        bridge._validate_auth = MagicMock(return_value=None)
+        bridge._load_auth_token = MagicMock(return_value="test-token")
+        bridge._validate_rust_gates = MagicMock(return_value={})
 
         await bridge.start()
         try:
