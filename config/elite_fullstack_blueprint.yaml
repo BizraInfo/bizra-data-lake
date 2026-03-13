@@ -35,7 +35,9 @@ checks:
       - "scripts/ops/phase65_kpi_pack.py"
       - "scripts/ops/phase65_alpha_launch_packet.py"
       - "scripts/ops/autonomous_engine_gate.py"
+      - "scripts/ops/runtime_canon_lock_gate.py"
       - "config/autonomous_engine_gate.yaml"
+      - "config/runtime_canon_lock_gate.json"
     docs:
       - "docs/specs/phase_65_lifecycle_protocol/phase_65_09_masterpiece_blueprint.md"
       - "ROADMAP.md"
@@ -183,6 +185,24 @@ checks:
       ".github/workflows/ci.yml":
         - "needs.performance-gate.result"
         - "Gate 12: Performance Gate"
+  runtime_canon_lock:
+    required_files:
+      - "scripts/ops/runtime_canon_lock_gate.py"
+      - "config/runtime_canon_lock_gate.json"
+      - "tests/scripts/test_runtime_canon_lock_gate.py"
+      - "tests/core/sovereign/test_main_cli.py"
+    required_patterns:
+      ".github/workflows/ci.yml":
+        - "scripts/ops/runtime_canon_lock_gate.py"
+        - "config/runtime_canon_lock_gate.json"
+      ".github/workflows/phase65-masterpiece.yml":
+        - "scripts/ops/runtime_canon_lock_gate.py"
+        - "config/runtime_canon_lock_gate.json"
+      "core/sovereign/api.py":
+        - "if not runtime_has_canonical_authority:"
+        - "runtime_receipt = await runtime_mission("
+      "core/sovereign/__main__.py":
+        - "receipt = await runtime.mission(description, source=source, context={})"
   qa:
     required_test_targets:
       - "tests/scripts/test_phase65_blueprint_gate.py"
@@ -213,7 +233,8 @@ scoring:
     qa: 0.09
     ethics: 0.04
     docs_truth: 0.08
-    architecture: 0.05
+    architecture: 0.04
     security: 0.05
-    terminal: 0.07
-    performance: 0.07
+    terminal: 0.05
+    performance: 0.05
+    runtime_canon_lock: 0.05

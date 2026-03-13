@@ -1478,6 +1478,73 @@ def create_fastapi_app(runtime: Any) -> Any:
             or str(type(runtime_mission)).endswith("AsyncMock'>")
         )
 
+    def _runtime_reflex_lineage_payload(
+        runtime_receipt: Any,
+    ) -> tuple[dict[str, Any], dict[str, Any] | None, str, float, float]:
+        from core.integration.constants import REFLEX_PRECIPITATION_HITS
+
+        reflex_delta = {
+            "compiled": False,
+            "near_compile": False,
+            "compile_count": 0,
+            "threshold": REFLEX_PRECIPITATION_HITS,
+        }
+        compiled_event: dict[str, Any] | None = None
+        reflex_pattern = ""
+        reflex_latency_ms = 0.0
+        comparison_s2_avg_ms = 0.0
+
+        metadata = getattr(runtime_receipt, "metadata", {}) or {}
+        if not isinstance(metadata, dict):
+            return (
+                reflex_delta,
+                compiled_event,
+                reflex_pattern,
+                reflex_latency_ms,
+                comparison_s2_avg_ms,
+            )
+
+        raw_delta = metadata.get("reflex_delta")
+        if isinstance(raw_delta, dict):
+            reflex_delta = {
+                "compiled": bool(raw_delta.get("compiled", False)),
+                "near_compile": bool(raw_delta.get("near_compile", False)),
+                "compile_count": int(raw_delta.get("compile_count", 0) or 0),
+                "threshold": int(
+                    raw_delta.get("threshold", REFLEX_PRECIPITATION_HITS)
+                    or REFLEX_PRECIPITATION_HITS
+                ),
+            }
+
+        raw_event = metadata.get("compiled_reflex_event")
+        if isinstance(raw_event, dict):
+            compiled_event = {
+                "name": str(raw_event.get("name", ""))[:120],
+                "pattern_hash": str(raw_event.get("pattern_hash", "")),
+                "avg_ihsan": round(float(raw_event.get("avg_ihsan", 0.0) or 0.0), 4),
+                "execution_count": int(raw_event.get("execution_count", 0) or 0),
+                "precipitation_count": int(
+                    raw_event.get("precipitation_count", 0) or 0
+                ),
+            }
+
+        reflex_pattern = str(metadata.get("reflex_pattern", "") or "")
+        reflex_latency_ms = round(
+            float(metadata.get("reflex_latency_ms", 0.0) or 0.0),
+            2,
+        )
+        comparison_s2_avg_ms = round(
+            float(metadata.get("comparison_s2_avg_ms", 0.0) or 0.0),
+            2,
+        )
+        return (
+            reflex_delta,
+            compiled_event,
+            reflex_pattern,
+            reflex_latency_ms,
+            comparison_s2_avg_ms,
+        )
+
     def _load_model_routing() -> dict[str, str]:
         stored = read_json(_model_routing_path, default={})
         routing = dict(DEFAULT_MODEL_ROUTING)
@@ -4264,34 +4331,29 @@ def create_fastapi_app(runtime: Any) -> Any:
                 )
 
             # ── System-1 Fast Path: Reflex Cache Lookup ──────────
-            # Kahneman S1: if this pattern is cached with high Ihsan,
-            # return O(1) cached response instead of full pipeline.
-            try:
-                from core.integration.constants import REFLEX_PRECIPITATION_HITS
-                from core.sovereign.reflex_compiler import ReflexCompiler
+            # Noncanonical runtimes may still use the API-local reflex compiler.
+            # Canonical runtimes must route S1/S2 through runtime.mission().
+            if not runtime_has_canonical_authority:
+                try:
+                    from core.integration.constants import REFLEX_PRECIPITATION_HITS
+                    from core.sovereign.reflex_compiler import ReflexCompiler
 
-                global _reflex_compiler  # noqa: PLW0603
-                if _reflex_compiler is None:
-                    with _reflex_compiler_lock:
-                        if _reflex_compiler is None:  # double-check under lock
-                            _persistence = os.environ.get(
-                                "REFLEX_PERSISTENCE_PATH",
-                                "/tmp/bizra-mission/reflexes.json",
-                            )
-                            from pathlib import Path
+                    global _reflex_compiler  # noqa: PLW0603
+                    if _reflex_compiler is None:
+                        with _reflex_compiler_lock:
+                            if _reflex_compiler is None:  # double-check under lock
+                                _persistence = os.environ.get(
+                                    "REFLEX_PERSISTENCE_PATH",
+                                    "/tmp/bizra-mission/reflexes.json",
+                                )
+                                from pathlib import Path
 
-                            _reflex_compiler = ReflexCompiler(
-                                persistence_path=Path(_persistence),
-                            )
+                                _reflex_compiler = ReflexCompiler(
+                                    persistence_path=Path(_persistence),
+                                )
 
-                reflex_entry = _reflex_compiler.lookup(description)
-                if reflex_entry and not reflex_entry.needs_validation():
-                    if canonical_mode_enabled:
-                        logger.info(
-                            "System-1 cache hit suppressed in canonical mode; "
-                            "routing through runtime authority"
-                        )
-                    else:
+                    reflex_entry = _reflex_compiler.lookup(description)
+                    if reflex_entry and not reflex_entry.needs_validation():
                         logger.info(
                             "System-1 cache hit for pattern %s (hits=%d, ihsan=%.3f)",
                             reflex_entry.pattern_hash[:12],
@@ -4379,12 +4441,13 @@ def create_fastapi_app(runtime: Any) -> Any:
                             source="mission",
                         )
                         return receipt_payload
-            except ImportError:
-                logger.debug("ReflexCompiler not available, using System-2 only")
-            except Exception:  # noqa: BLE001 — review needed
-                logger.debug(
-                    "Reflex lookup failed, falling through to System-2", exc_info=True
-                )
+                except ImportError:
+                    logger.debug("ReflexCompiler not available, using System-2 only")
+                except Exception:  # noqa: BLE001 — review needed
+                    logger.debug(
+                        "Reflex lookup failed, falling through to System-2",
+                        exc_info=True,
+                    )
 
             mission_result = None
             runtime_receipt = None
@@ -4504,7 +4567,11 @@ def create_fastapi_app(runtime: Any) -> Any:
             # After every System-2 completion, record the pattern.
             # After K consecutive high-Ihsan observations, precipitate.
             try:
-                if "_reflex_compiler" in globals() and _reflex_compiler is not None:
+                if (
+                    not runtime_has_canonical_authority
+                    and "_reflex_compiler" in globals()
+                    and _reflex_compiler is not None
+                ):
                     _reflex_compiler.record_observation(
                         input_text=description,
                         output_text=mission_result.synthesis or "",
@@ -4545,8 +4612,23 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "threshold": 3,
             }
             compiled_reflex_event_payload: dict[str, Any] | None = None
+            runtime_reflex_pattern = ""
+            runtime_reflex_latency_ms = 0.0
+            runtime_comparison_s2_avg_ms = 0.0
+            if runtime_receipt is not None:
+                (
+                    reflex_delta_payload,
+                    compiled_reflex_event_payload,
+                    runtime_reflex_pattern,
+                    runtime_reflex_latency_ms,
+                    runtime_comparison_s2_avg_ms,
+                ) = _runtime_reflex_lineage_payload(runtime_receipt)
             try:
-                if "_reflex_compiler" in globals() and _reflex_compiler is not None:
+                if (
+                    runtime_receipt is None
+                    and "_reflex_compiler" in globals()
+                    and _reflex_compiler is not None
+                ):
                     pattern_hash = _reflex_compiler._hash_input(description)
                     if pattern_hash in getattr(_reflex_compiler, "_cache", {}):
                         compiled_entry = _reflex_compiler._cache[pattern_hash]
@@ -4676,9 +4758,9 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "reflex_delta": reflex_delta_payload,
                     "memory_delta": {"episodic": 0, "semantic": 0, "procedural": 0},
                     "hash_chain_ref": receipt_id,
-                    "reflex_pattern": "",
-                    "reflex_latency_ms": 0.0,
-                    "comparison_s2_avg_ms": 0.0,
+                    "reflex_pattern": runtime_reflex_pattern,
+                    "reflex_latency_ms": runtime_reflex_latency_ms,
+                    "comparison_s2_avg_ms": runtime_comparison_s2_avg_ms,
                 }
             if reasoning_proof is not None:
                 receipt_payload["reasoning_proof"] = reasoning_proof
@@ -4705,6 +4787,12 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
             if runtime_receipt is not None and getattr(runtime_receipt, "chain_hash", ""):
                 receipt_payload["hash_chain_ref"] = str(runtime_receipt.chain_hash)
+            if runtime_receipt is not None:
+                receipt_payload["reflex_pattern"] = runtime_reflex_pattern
+                receipt_payload["reflex_latency_ms"] = runtime_reflex_latency_ms
+                receipt_payload["comparison_s2_avg_ms"] = (
+                    runtime_comparison_s2_avg_ms
+                )
 
             mission_topic = (
                 "mission.failed"

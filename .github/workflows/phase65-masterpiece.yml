@@ -20,6 +20,7 @@ on:
       - "scripts/ops/autonomous_engine_gate.py"
       - "scripts/ops/canonical_empirical_validation.py"
       - "scripts/ops/learning_loop_closure_gate.py"
+      - "scripts/ops/runtime_canon_lock_gate.py"
       - "config/phase65_masterpiece_roadmap.yaml"
       - "config/phase65_alpha_manual_checks.template.json"
       - "config/elite_fullstack_blueprint.yaml"
@@ -27,6 +28,7 @@ on:
       - "config/autonomous_engine_gate.yaml"
       - "config/canonical_empirical_validation.json"
       - "config/learning_loop_closure_gate.json"
+      - "config/runtime_canon_lock_gate.json"
       - "README.md"
       - "ROADMAP.md"
       - "COMMUNITY.md"
@@ -45,6 +47,12 @@ on:
       - "tests/scripts/test_masterpiece_program_board.py"
       - "tests/scripts/test_canonical_empirical_validation.py"
       - "tests/scripts/test_learning_loop_closure_gate.py"
+      - "tests/scripts/test_runtime_canon_lock_gate.py"
+      - "tests/core/sovereign/test_main_cli.py"
+      - "core/sovereign/api.py"
+      - "core/sovereign/__main__.py"
+      - "core/sovereign/organism.py"
+      - "core/sovereign/mission_nervous_system.py"
       - "core/constitutional/energy_functions.py"
       - "core/proof_engine/thermodynamic_gate.py"
       - "core/proof_engine/ihsan_computer.py"
@@ -149,6 +157,8 @@ jobs:
             tests/scripts/test_masterpiece_program_board.py \
             tests/scripts/test_canonical_empirical_validation.py \
             tests/scripts/test_learning_loop_closure_gate.py \
+            tests/scripts/test_runtime_canon_lock_gate.py \
+            tests/core/sovereign/test_main_cli.py \
             tests/core/constitutional/test_energy_functions.py \
             tests/core/proof_engine/test_thermodynamic_gate.py
 
@@ -203,6 +213,17 @@ jobs:
             --config config/learning_loop_closure_gate.json \
             --report /tmp/phase65/learning_loop_closure_gate.json \
             --markdown-report /tmp/phase65/learning_loop_closure_gate.md \
+            --github-output "$GITHUB_OUTPUT"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Run runtime canon lock gate
+        id: runtime_canon_lock_outputs
+        run: |
+          python scripts/ops/runtime_canon_lock_gate.py \
+            --config config/runtime_canon_lock_gate.json \
+            --report /tmp/phase65/runtime_canon_lock_gate.json \
+            --markdown-report /tmp/phase65/runtime_canon_lock_gate.md \
             --github-output "$GITHUB_OUTPUT"
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -268,4 +289,6 @@ jobs:
             /tmp/phase65/canonical_empirical_validation.md
             /tmp/phase65/learning_loop_closure_gate.json
             /tmp/phase65/learning_loop_closure_gate.md
+            /tmp/phase65/runtime_canon_lock_gate.json
+            /tmp/phase65/runtime_canon_lock_gate.md
           retention-days: 30

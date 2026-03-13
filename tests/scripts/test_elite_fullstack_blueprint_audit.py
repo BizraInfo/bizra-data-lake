@@ -534,3 +534,82 @@ def test_elite_blueprint_audit_emits_architecture_security_risks_and_strategy(
     assert any(risk["dimension"] == "security" for risk in report["risk_register"])
     assert report["implementation_strategy"]["current_phase"] == "stabilize_truth_and_trust"
     assert "ihsan" in report["ethical_integrity_posture"]
+
+
+def test_elite_blueprint_audit_checks_runtime_canon_lock_plane(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".github/workflows/ci.yml",
+        yaml.safe_dump({"jobs": {"phase65-masterpiece-gate": {}}}, sort_keys=False)
+        + "\n# scripts/ops/runtime_canon_lock_gate.py\n# config/runtime_canon_lock_gate.json\n",
+    )
+    _write(
+        repo / ".github/workflows/phase65-masterpiece.yml",
+        yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False)
+        + "\n# scripts/ops/runtime_canon_lock_gate.py\n# config/runtime_canon_lock_gate.json\n",
+    )
+    _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
+    _write(repo / "scripts/ops/runtime_canon_lock_gate.py", "# canon lock gate\n")
+    _write(repo / "config/runtime_canon_lock_gate.json", "{}\n")
+    _write(repo / "tests/scripts/test_runtime_canon_lock_gate.py", "# tests\n")
+    _write(repo / "tests/core/sovereign/test_main_cli.py", "# cli tests\n")
+    _write(
+        repo / "core/sovereign/api.py",
+        "\n".join(
+            [
+                "if not runtime_has_canonical_authority:",
+                "    pass",
+                "runtime_receipt = await runtime_mission(description)",
+            ]
+        ),
+    )
+    _write(
+        repo / "core/sovereign/__main__.py",
+        "receipt = await runtime.mission(description, source=source, context={})\n",
+    )
+    _write(
+        repo / "README.md",
+        "\n".join(["[![CI Status]", "[![Roadmap]", "## Community"]),
+    )
+    _write(repo / "ROADMAP.md", "# roadmap\n")
+    _write(repo / "COMMUNITY.md", "# community\n")
+    _seed_phase65_config(repo)
+
+    cfg = _minimal_cfg()
+    cfg["checks"]["runtime_canon_lock"] = {
+        "required_files": [
+            "scripts/ops/runtime_canon_lock_gate.py",
+            "config/runtime_canon_lock_gate.json",
+            "tests/scripts/test_runtime_canon_lock_gate.py",
+            "tests/core/sovereign/test_main_cli.py",
+        ],
+        "required_patterns": {
+            ".github/workflows/ci.yml": [
+                "scripts/ops/runtime_canon_lock_gate.py",
+                "config/runtime_canon_lock_gate.json",
+            ],
+            ".github/workflows/phase65-masterpiece.yml": [
+                "scripts/ops/runtime_canon_lock_gate.py",
+                "config/runtime_canon_lock_gate.json",
+            ],
+            "core/sovereign/api.py": [
+                "if not runtime_has_canonical_authority:",
+                "runtime_receipt = await runtime_mission(",
+            ],
+            "core/sovereign/__main__.py": [
+                "receipt = await runtime.mission(description, source=source, context={})"
+            ],
+        },
+    }
+    cfg["scoring"]["weights"]["files"] = 0.25
+    cfg["scoring"]["weights"]["runtime_canon_lock"] = 0.05
+
+    report = audit_repo(repo, cfg)
+
+    assert report["gate_passed"] is True
+    assert report["sections"]["runtime_canon_lock"]["score"] == 1.0
+    plane_ids = {plane["id"] for plane in report["control_planes"]}
+    assert "runtime_canon_lock" in plane_ids
+    assert report["interdisciplinary_lenses"]["architecture"] == 1.0

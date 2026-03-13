@@ -57,6 +57,10 @@ from core.sdpo.training.bizra_sdpo_trainer import (
     TrainingBatch,
     TrainingResult,
 )
+from core.prediction.hierarchical_hmm import HierarchicalHMMEngine
+
+
+from core.hashtable.cognitive_hash_table import CognitiveHashTable
 
 logger = logging.getLogger(__name__)
 
@@ -145,12 +149,18 @@ class LearningLoopOrchestrator:
         reflex_cache: Optional[Dict[bytes, Reflex]] = None,
         evolution_bridge: Optional[AutopoiesisSDPOBridge] = None,
         reflex_bridge: Optional[SDPOReflexBridge] = None,
+        hmm_engine: Optional[HierarchicalHMMEngine] = None,
+        context_cache: Optional[CognitiveHashTable] = None,
+
         enabled: Optional[bool] = None,
     ) -> None:
         self._trainer = sdpo_trainer
         self._reflex_cache = reflex_cache if reflex_cache is not None else {}
         self._evo_bridge = evolution_bridge or AutopoiesisSDPOBridge()
         self._reflex_bridge = reflex_bridge or SDPOReflexBridge()
+        self._hmm = hmm_engine or HierarchicalHMMEngine()
+        self._context_cache = context_cache or CognitiveHashTable()
+
         self._enabled = enabled if enabled is not None else CLOSED_LOOP_ENABLED
         self._metrics = LoopMetrics()
         self._events: List[LoopEvent] = []
@@ -463,6 +473,7 @@ class LearningLoopOrchestrator:
 
         # Store in reflex cache
         self._reflex_cache[reflex.pattern_hash] = reflex
+        self._context_cache.put(candidate.pattern_id, reflex)  # High-perf O(1) access
         self._reflex_bridge.mark_compiled(candidate.pattern_id)
         self._metrics.reflexes_compiled += 1
 

@@ -557,15 +557,142 @@ class HMMEngine:
         # Termination: log P(O | model) = log sum_i alpha_T[i]
         return _log_sum_exp(log_alpha)
 
-    def learn(self, observations: list[str]) -> None:
+    def learn(self, observations: list[str]) -> float:
         """Baum-Welch (EM) parameter re-estimation.
 
-        Deferred to Phase 47 — Cognitive Resonance Training.
+        Phase 47 — Cognitive Resonance Training.
+        Iteratively improves lambda = (pi, A, B) to maximize P(O | lambda).
+
+        Args:
+            observations: Sequence of observation symbols to learn from.
+
+        Returns:
+            The final log-likelihood after convergence or max iterations.
 
         Raises:
-            NotImplementedError: Always.
+            ValueError: If observations is empty or contains unknown symbols.
         """
-        raise NotImplementedError("Baum-Welch training deferred to Phase 47")
+        if not observations:
+            raise ValueError("observations must be a non-empty list for learning")
+
+        obs_indices = self._resolve_observation_indices(observations)
+        T = len(obs_indices)
+        N = self._n_hidden
+        M = self._n_obs
+
+        with self._lock:
+            old_log_likelihood = -np.inf
+
+            for iteration in range(self._max_iterations):
+                # 1. Forward-Backward Algorithm
+                log_alpha = self._compute_forward(obs_indices)
+                log_beta = self._compute_backward(obs_indices)
+
+                # Current log-likelihood P(O | lambda)
+                current_log_likelihood = _log_sum_exp(log_alpha[T - 1, :])
+
+                # Check convergence
+                if (
+                    abs(current_log_likelihood - old_log_likelihood)
+                    < self._convergence_threshold
+                ):
+                    logger.info(
+                        f"Baum-Welch converged at iteration {iteration} (LL={current_log_likelihood:.4f})"
+                    )
+                    break
+
+                old_log_likelihood = current_log_likelihood
+
+                # 2. Compute Gamma (state occupancy) and Xi (transition occupancy)
+                # gamma[t, i] = P(q_t = S_i | O, lambda)
+                # xi[t, i, j] = P(q_t = S_i, q_{t+1} = S_j | O, lambda)
+                gamma = np.zeros((T, N))
+                xi = np.zeros((T - 1, N, N))
+
+                for t in range(T):
+                    log_gamma_t = log_alpha[t, :] + log_beta[t, :]
+                    log_gamma_t -= _log_sum_exp(log_gamma_t)
+                    gamma[t, :] = np.exp(log_gamma_t)
+
+                for t in range(T - 1):
+                    # log_xi[t, i, j] = log_alpha[t, i] + log_A[i, j] + log_B[j, o_{t+1}] + log_beta[t+1, j]
+                    # We normalize by P(O | lambda)
+                    for i in range(N):
+                        for j in range(N):
+                            log_xi_val = (
+                                log_alpha[t, i]
+                                + _safe_log(np.array([self._A[i, j]]))[0]
+                                + _safe_log(np.array([self._B[j, obs_indices[t + 1]]]))[
+                                    0
+                                ]
+                                + log_beta[t + 1, j]
+                            )
+                            xi[t, i, j] = np.exp(log_xi_val - current_log_likelihood)
+
+                # 3. Re-estimation (M-Step)
+                # New Pi
+                self._pi = gamma[0, :]
+
+                # New A (Transitions)
+                # A_ij = sum_t=0 to T-2 xi_t(i,j) / sum_t=0 to T-2 gamma_t(i)
+                num_A = np.sum(xi, axis=0)
+                den_A = np.sum(gamma[:-1, :], axis=0).reshape(-1, 1)
+                # Prevent divide by zero with small epsilon
+                self._A = num_A / (den_A + 1e-12)
+
+                # New B (Emissions)
+                # B_jk = sum_t=0 to T-1, o_t=v_k gamma_t(j) / sum_t=0 to T-1 gamma_t(j)
+                den_B = np.sum(gamma, axis=0).reshape(-1, 1)
+                num_B = np.zeros((N, M))
+                for k in range(M):
+                    mask = np.array(obs_indices) == k
+                    num_B[:, k] = np.sum(gamma[mask, :], axis=0)
+
+                self._B = num_B / (den_B + 1e-12)
+
+                # Row normalization (enforce stochasticity)
+                self._A /= self._A.sum(axis=1, keepdims=True)
+                self._B /= self._B.sum(axis=1, keepdims=True)
+
+            return old_log_likelihood
+
+    def _compute_forward(self, obs_indices: list[int]) -> np.ndarray:
+        """Compute the log-alpha matrix for the forward algorithm."""
+        T = len(obs_indices)
+        N = self._n_hidden
+        log_alpha = np.full((T, N), _LOG_ZERO, dtype=np.float64)
+
+        log_pi = _safe_log(self._pi)
+        log_A = _safe_log(self._A)
+        log_B = _safe_log(self._B)
+
+        log_alpha[0, :] = log_pi + log_B[:, obs_indices[0]]
+
+        for t in range(1, T):
+            for j in range(N):
+                terms = log_alpha[t - 1, :] + log_A[:, j]
+                log_alpha[t, j] = _log_sum_exp(terms) + log_B[j, obs_indices[t]]
+
+        return log_alpha
+
+    def _compute_backward(self, obs_indices: list[int]) -> np.ndarray:
+        """Compute the log-beta matrix for the backward algorithm."""
+        T = len(obs_indices)
+        N = self._n_hidden
+        log_beta = np.full((T, N), _LOG_ZERO, dtype=np.float64)
+
+        log_A = _safe_log(self._A)
+        log_B = _safe_log(self._B)
+
+        # Initialization: beta_T(i) = 1 (log(1) = 0)
+        log_beta[T - 1, :] = 0.0
+
+        for t in range(T - 2, -1, -1):
+            for i in range(N):
+                terms = log_A[i, :] + log_B[:, obs_indices[t + 1]] + log_beta[t + 1, :]
+                log_beta[t, i] = _log_sum_exp(terms)
+
+        return log_beta
 
     # ───────────────────────────────────────────────────────────────────────
     # Serialization

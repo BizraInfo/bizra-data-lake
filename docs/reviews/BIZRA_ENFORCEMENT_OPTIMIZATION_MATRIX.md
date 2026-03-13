@@ -21,21 +21,21 @@
 
 | Surface | nonlinear_thought | receipt_emitted | identity_bound | policy_bound | single_node_replay_safe | distributed_replay_safe | Enforcement Verdict |
 |---------|------------------|-----------------|----------------|-------------|------------------------|------------------------|-------------------|
-| **runtime.mission** | live | live | live | live | live | narrative_only | **PROVEN (single-node)** |
-| **/v1/plan** | live | live | live | live | live | narrative_only | **PROVEN (single-node)** |
-| **organism receipt path** | live | live | live | live | live | narrative_only | **PROVEN (single-node)** |
-| **Node0 ingest / breathe** | live | live | live | live | live | narrative_only | **PROVEN (single-node)** |
-| **proof-engine receipt** | live | live | live | live | live | narrative_only | **PROVEN (single-node)** |
-| **GoT / VRG path** | live | live | live | live | partial | narrative_only | **PROVEN (receipt chain)** |
-| **canonical empirical validation** | live | live | simulated | live | partial | narrative_only | **PARTIAL (simulated identity)** |
-| **lifecycle artifact path** | live | live | partial | live | partial | narrative_only | **PARTIAL** |
-| **docs truth surfaces** | live | live | n/a | live | n/a | n/a | **PROVEN (CI-gated)** |
-| **legacy terminal path** | live | partial | contradicted | contradicted | contradicted | contradicted | **CONTRADICTED (non-canonical)** |
-| **bizra-node0 release gate** | live | live | partial | live | partial | narrative_only | **PARTIAL** |
+| **runtime.mission** | live | live | live | live | live | narrative_only | **live** |
+| **/v1/plan** | live | live | live | live | live | narrative_only | **live** |
+| **organism receipt path** | live | live | live | live | live | narrative_only | **live** |
+| **Node0 ingest / breathe** | live | live | live | live | live | narrative_only | **live** |
+| **proof-engine receipt** | live | live | live | live | live | narrative_only | **live** |
+| **GoT / VRG path** | live | live | live | live | partial | narrative_only | **live** |
+| **canonical empirical validation** | live | live | simulated | live | partial | narrative_only | **partial** |
+| **lifecycle artifact path** | live | live | partial | live | partial | narrative_only | **partial** |
+| **docs truth surfaces** | live | live | n/a | live | n/a | n/a | **live** |
+| **legacy terminal path** | live | partial | contradicted | contradicted | contradicted | contradicted | **contradicted** |
+| **bizra-node0 release gate** | live | live | partial | live | partial | narrative_only | **partial** |
 
 ### Enforcement Findings
 
-**6 of 11 surfaces are PROVEN at single-node level.** This is the system's strongest plane.
+**6 of 11 surfaces are `live` at single-node level.** This is the system's strongest plane.
 
 Key enforcement proofs:
 - `runtime.mission()` → Node0 `breathe()` → `BreathReceipt` with Ed25519 signature → hash chain → EventBus emission
@@ -68,15 +68,15 @@ Key enforcement gaps:
 
 | Surface | truth_repetition | deterministic_reflex | Optimization Verdict |
 |---------|-----------------|---------------------|---------------------|
-| **learning loop** | live | partial | **WIRED** |
-| **reflex bridge** | live | partial | **WIRED** |
-| **runtime fast-path / cache-hit** | simulated | partial | **PARTIAL** |
-| **heartbeat reflex reporting** | live | partial | **WIRED (honestly labeled)** |
-| **documentation claims** | narrative_only | narrative_only | **OVERCLAIMED** |
+| **learning loop** | live | partial | **partial** |
+| **reflex bridge** | live | partial | **partial** |
+| **runtime fast-path / cache-hit** | simulated | partial | **partial** |
+| **heartbeat reflex reporting** | live | partial | **partial** |
+| **documentation claims** | narrative_only | narrative_only | **narrative_only** |
 
 ### Optimization Findings
 
-**0 of 5 surfaces are PROVEN at the optimization level.** The optimization plane is WIRED but not PRODUCTION-LIVE.
+**0 of 5 surfaces are `live` at the optimization level.** The optimization plane is still `partial`, even where it is strongly wired and E2E tested.
 
 Key optimization proofs (simulated):
 - `SDPOReflexBridge.observe()` → `get_eligible_candidates()` → `compile_reflex()` → `SkillCache` → E2E proven in tests
@@ -107,9 +107,9 @@ Key optimization gaps:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  ENFORCEMENT: PROVEN (single-node, 6/11 surfaces live)       │
-│  OPTIMIZATION: WIRED (0/5 surfaces production-live)          │
-│  DISTRIBUTED:  NOT PROVEN (no surface has live consensus)    │
+│  ENFORCEMENT: live/partial split (6/11 surfaces live)        │
+│  OPTIMIZATION: partial (0/5 surfaces production-live)        │
+│  DISTRIBUTED:  narrative_only/partial (no live consensus)    │
 │  IHSĀN ALIGNMENT: STRONG for enforcement, MIXED for optim.  │
 └──────────────────────────────────────────────────────────────┘
 ```
