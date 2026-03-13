@@ -119,9 +119,7 @@ export function useWallet(nodeState: NodeState) {
     };
 
     try {
-      // Partial merge: fetch all three independently via allSettled.
-      // Any success → live: true with available fields merged.
-      // Only total failure falls back to offline.
+      // Fetch all three independently — partial success is handled
       const results = await Promise.allSettled([
         api.tokenBalance(),
         api.tokenSupply(),
@@ -132,11 +130,14 @@ export function useWallet(nodeState: NodeState) {
 
       // Version check: has a newer fetch already landed?
       if (myVersion < versionRef.current) {
+        // A newer fetch was initiated while we were waiting.
+        // Discard this result — the newer one will win.
         return;
       }
 
       const [balanceResult, supplyResult, potentialResult] = results;
 
+      // Track partial failures
       const balance = balanceResult.status === 'fulfilled' ? balanceResult.value : null;
       const supply = supplyResult.status === 'fulfilled' ? supplyResult.value : null;
       const potential = potentialResult.status === 'fulfilled' ? potentialResult.value : null;
@@ -148,15 +149,18 @@ export function useWallet(nodeState: NodeState) {
       const anySuccess = balance || supply || potential;
 
       if (!anySuccess) {
-        // Total failure — fall back to offline, preserving recent live state
+        // Total failure — fall back to offline, but only if no live state exists
         setWallet(prev => {
+          // CRITICAL: Do not overwrite live state with offline fallback
+          // if we already have live data from a recent successful fetch.
           if (prev.live && prev.lastSync && (Date.now() - prev.lastSync) < POLL_INTERVAL_MS * 2) {
+            // Recent live data exists — keep it, just mark the fetch status
             return { ...prev, fetchStatus };
           }
-          return { ...deriveOffline(nodeState, myVersion), lastSync: prev.lastSync, fetchStatus };
+          return { ...deriveOffline(nodeState, myVersion), fetchStatus };
         });
       } else {
-        // Partial or full success — merge available fields, retain prior for failed
+        // Partial or full success — merge what we got
         setWallet(prev => {
           const grossSeed = (balance?.seed ?? prev.seed) / (1 - THRESHOLDS.ZAKAT_RATE);
 
@@ -179,11 +183,11 @@ export function useWallet(nodeState: NodeState) {
         });
       }
     } catch {
-      // Safety net (allSettled shouldn't throw)
+      // Shouldn't reach here (allSettled doesn't throw), but safety net
       if (mountedRef.current && myVersion >= versionRef.current) {
         setWallet(prev => {
           if (prev.live) return { ...prev, fetchStatus };
-          return { ...deriveOffline(nodeState, myVersion), lastSync: prev.lastSync, fetchStatus };
+          return { ...deriveOffline(nodeState, myVersion), fetchStatus };
         });
       }
     } finally {

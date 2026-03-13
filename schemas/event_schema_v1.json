@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/event/v1",
+  "title": "BIZRA Event Schema v1",
+  "description": "Canonical event vocabulary for the sovereign terminal. Every meaningful state transition emits one of these events. No event type exists outside this schema.",
+  "version": "1.0.0",
+  "locked": "2026-03-07",
+
+  "definitions": {
+    "base_event": {
+      "type": "object",
+      "required": ["event_type", "event_id", "timestamp", "prev_hash", "event_hash", "payload"],
+      "properties": {
+        "event_type": { "type": "string" },
+        "event_id": { "type": "string", "pattern": "^evt_[0-9]+_[0-9]{4}$" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "prev_hash": { "type": "string", "minLength": 64, "maxLength": 64 },
+        "event_hash": { "type": "string", "minLength": 64, "maxLength": 64 },
+        "node_id": { "type": "string" },
+        "session_id": { "type": "string" },
+        "payload": { "type": "object" }
+      }
+    }
+  },
+
+  "event_types": {
+    "identity": {
+      "description": "Node lifecycle and identity events",
+      "events": {
+        "genesis.created": {
+          "description": "Node identity established. Ed25519 keypair generated. Declaration hash anchored.",
+          "payload": {
+            "node_id": "string",
+            "public_key": "string",
+            "declaration_hash": "string",
+            "covenant_version": "string"
+          }
+        },
+        "node.unlocked": {
+          "description": "Node unlocked for a session.",
+          "payload": { "session_id": "string", "unlock_method": "string" }
+        },
+        "signer.rotated": {
+          "description": "Ed25519 signer key rotated.",
+          "payload": { "old_public_key": "string", "new_public_key": "string", "reason": "string" }
+        }
+      }
+    },
+
+    "mission": {
+      "description": "Mission lifecycle events — the core OODA loop",
+      "events": {
+        "mission.submitted": {
+          "description": "User submitted a mission. Touch 1 of 2.",
+          "payload": { "mission_id": "string", "intent": "string", "context": "object" }
+        },
+        "mission.classified": {
+          "description": "System classified mission novelty and route.",
+          "payload": {
+            "mission_id": "string",
+            "novelty_score": "number",
+            "route": { "enum": ["reflex", "bounded", "planned"] },
+            "estimated_duration_ms": "number"
+          }
+        },
+        "mission.routed": {
+          "description": "Mission routed to specific agent(s).",
+          "payload": { "mission_id": "string", "agents": ["string"], "plan_hash": "string" }
+        },
+        "mission.started": {
+          "description": "Mission execution began.",
+          "payload": { "mission_id": "string", "start_time": "string" }
+        },
+        "mission.completed": {
+          "description": "Mission completed successfully. Touch 2 of 2.",
+          "payload": {
+            "mission_id": "string",
+            "result_summary": "string",
+            "ihsan_composite": "number",
+            "duration_ms": "number",
+            "receipt_hash": "string",
+            "seed_earned": "number",
+            "reflex_candidate": "boolean"
+          }
+        },
+        "mission.rejected": {
+          "description": "Mission rejected by constitutional gate.",
+          "payload": {
+            "mission_id": "string",
+            "gate": "string",
+            "reason": "string",
+            "ihsan_score": "number",
+            "violation_dimensions": ["string"]
+          }
+        },
+        "mission.escalated": {
+          "description": "Mission requires human confirmation (non-trivial risk).",
+          "payload": {
+            "mission_id": "string",
+            "reason": "string",
+            "risk_level": { "enum": ["confirmation_required", "permission_boundary", "irreversible"] }
+          }
+        },
+        "mission.rolled_back": {
+          "description": "Mission execution rolled back due to failure.",
+          "payload": {
+            "mission_id": "string",
+            "failed_step": "string",
+            "reason": "string",
+            "steps_completed": "number",
+            "healing_strategy": "string"
+          }
+        }
+      }
+    },
+
+    "action": {
+      "description": "ActionBus events — gated kinetic execution",
+      "events": {
+        "action.requested": {
+          "description": "Action requested through ActionBus.",
+          "payload": {
+            "action_id": "string",
+            "action_type": "string",
+            "required_tier": "string",
+            "permission_scope": "string",
+            "reversible": "boolean"
+          }
+        },
+        "action.blocked": {
+          "description": "Action blocked by gate (TeleScript, Tier, or FATE).",
+          "payload": {
+            "action_id": "string",
+            "blocked_by": { "enum": ["telescript", "skill_tier", "fate_gate"] },
+            "reason": "string"
+          }
+        },
+        "action.executed": {
+          "description": "Action executed successfully.",
+          "payload": {
+            "action_id": "string",
+            "pre_state_hash": "string",
+            "post_state_hash": "string",
+            "duration_ms": "number"
+          }
+        },
+        "action.verified": {
+          "description": "Action result verified against expected state.",
+          "payload": {
+            "action_id": "string",
+            "verification_method": { "enum": ["uia_diff", "hash_compare", "semantic_check"] },
+            "verified": "boolean"
+          }
+        },
+        "action.failed": {
+          "description": "Action execution failed.",
+          "payload": { "action_id": "string", "error": "string", "recovery_attempted": "boolean" }
+        }
+      }
+    },
+
+    "receipt": {
+      "description": "Proof and receipt events — cryptographic evidence",
+      "events": {
+        "receipt.emitted": {
+          "description": "PoI receipt generated for completed action.",
+          "payload": {
+            "receipt_id": "string",
+            "mission_id": "string",
+            "ihsan_composite": "number",
+            "ihsan_components": "object",
+            "cpva": "number",
+            "seed_yield": "number",
+            "pool_share": "number"
+          }
+        },
+        "receipt.signed": {
+          "description": "Receipt signed with node's Ed25519 key.",
+          "payload": { "receipt_id": "string", "signature": "string", "signer_public_key": "string" }
+        },
+        "receipt.audited": {
+          "description": "Receipt audited by peer or self-check.",
+          "payload": { "receipt_id": "string", "auditor": "string", "verdict": { "enum": ["valid", "invalid", "inconclusive"] } }
+        }
+      }
+    },
+
+    "memory": {
+      "description": "Living memory events — learning and forgetting",
+      "events": {
+        "memory.semantic_updated": {
+          "description": "User model updated with new semantic knowledge.",
+          "payload": { "field": "string", "old_value": "any", "new_value": "any" }
+        },
+        "memory.episode_stored": {
+          "description": "New episodic memory entry stored.",
+          "payload": { "episode_id": "string", "mission_id": "string", "summary": "string" }
+        },
+        "memory.reflex_candidate_raised": {
+          "description": "Action pattern identified as reflex candidate.",
+          "payload": { "pattern": "string", "occurrences": "number", "avg_ihsan": "number", "threshold": "number" }
+        },
+        "memory.reflex_compiled": {
+          "description": "Reflex precipitated — pattern compiled to System-1.",
+          "payload": { "pattern": "string", "ihsan": "number", "execution_count": "number", "latency_reduction": "string" }
+        },
+        "memory.reflex_pruned": {
+          "description": "Reflex removed from cache (quality decay or disuse).",
+          "payload": { "pattern": "string", "reason": "string" }
+        }
+      }
+    },
+
+    "economy": {
+      "description": "Token and economic events",
+      "events": {
+        "economy.seed_minted": {
+          "description": "SEED tokens minted from verified work. 50% to community pool (البذرة p.19).",
+          "payload": {
+            "amount": "number",
+            "node_share": "number",
+            "pool_share": "number",
+            "ihsan": "number",
+            "evidence_hash": "string"
+          }
+        },
+        "economy.bloom_accrued": {
+          "description": "BLOOM governance tokens earned (soulbound).",
+          "payload": { "amount": "number", "contribution_type": "string", "governance_weight": "number" }
+        },
+        "economy.zakat_collected": {
+          "description": "Zakat (2.5%) collected from SEED minting.",
+          "payload": { "amount": "number", "source": "string" }
+        },
+        "economy.supply_cap_hit": {
+          "description": "Yearly SEED supply cap reached.",
+          "payload": { "cap": "number", "minted_this_year": "number" }
+        }
+      }
+    },
+
+    "social": {
+      "description": "Network and marketplace events",
+      "events": {
+        "social.attestation_given": {
+          "description": "Peer attestation provided for another node's work.",
+          "payload": { "target_node": "string", "attestation_type": "string", "score": "number" }
+        },
+        "social.skill_published": {
+          "description": "Reflex published to marketplace as SkillNFT.",
+          "payload": { "skill_id": "string", "pattern": "string", "price_seed": "number" }
+        },
+        "social.skill_purchased": {
+          "description": "SkillNFT purchased from marketplace.",
+          "payload": { "skill_id": "string", "seller_node": "string", "price_seed": "number" }
+        },
+        "social.reflex_imported": {
+          "description": "Peer reflex imported into local cache after verification.",
+          "payload": { "pattern": "string", "source_node": "string", "ihsan_verified": "number" }
+        }
+      }
+    }
+  },
+
+  "constants": {
+    "hash_algorithm": "BLAKE2b-256",
+    "hash_domain_prefix": "EVENTBUS_DOMAIN:",
+    "genesis_prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "signature_algorithm": "Ed25519"
+  }
+}
