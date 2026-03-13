@@ -9,9 +9,9 @@ from typing import List
 from ..registry import CommandResult
 from ..shared import (
     API_PORT,
-    C,
     DEMA_GREETING,
     WEB_PORT,
+    C,
     find_bizra_root,
     find_frontend_root,
     port_in_use,

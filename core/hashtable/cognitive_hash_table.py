@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Any, Optional, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("bizra.hashtable.cognitive")
 

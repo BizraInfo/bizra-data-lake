@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -15,8 +16,8 @@ from ..shared import (
     BIZRA_HOME,
     BIZRA_LOGS,
     BIZRA_MODELS,
-    C,
     OLLAMA_PORT,
+    C,
     api_health,
     clear_pids,
     ensure_dirs,
@@ -30,8 +31,6 @@ from ..shared import (
     print_warn,
     save_pid,
 )
-
-import shutil
 
 
 class StartCommand:

@@ -47,20 +47,18 @@ from core.autopoiesis.sdpo_bridge import AutopoiesisSDPOBridge, EvolutionTrace
 from core.constitutional.algorithms import compile_reflex
 from core.constitutional.fixed_point import fp
 from core.constitutional.types import Reflex
+from core.hashtable.cognitive_hash_table import CognitiveHashTable
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
+from core.prediction.hierarchical_hmm import HierarchicalHMMEngine
 from core.sdpo.reflex_bridge import ReflexCandidate, SDPOReflexBridge
 from core.sdpo.training.bizra_sdpo_trainer import (
     BIZRASDPOTrainer,
     TrainingBatch,
     TrainingResult,
 )
-from core.prediction.hierarchical_hmm import HierarchicalHMMEngine
-
-
-from core.hashtable.cognitive_hash_table import CognitiveHashTable
 
 logger = logging.getLogger(__name__)
 

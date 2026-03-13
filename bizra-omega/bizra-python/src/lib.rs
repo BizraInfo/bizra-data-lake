@@ -1794,6 +1794,7 @@ pub struct PyDilithiumKeypair {
 impl PyDilithiumKeypair {
     #[staticmethod]
     fn generate() -> PyResult<Self> {
+        use pqcrypto_traits::sign::{PublicKey, SecretKey};
         let (pk, sk) = pqcrypto_mldsa::mldsa87::keypair();
         Ok(Self {
             public_key: pk.as_bytes().to_vec(),
@@ -1807,7 +1808,7 @@ impl PyDilithiumKeypair {
     }
 
     fn sign(&self, message: &[u8]) -> PyResult<Vec<u8>> {
-        use pqcrypto_traits::sign::SecretKey;
+        use pqcrypto_traits::sign::{DetachedSignature, SecretKey};
         let sk = pqcrypto_mldsa::mldsa87::SecretKey::from_bytes(&self.secret_key)
             .map_err(|_| PyValueError::new_err("Invalid secret key"))?;
         let signature = pqcrypto_mldsa::mldsa87::detached_sign(message, &sk);
@@ -1815,7 +1816,7 @@ impl PyDilithiumKeypair {
     }
 
     fn verify(&self, message: &[u8], signature: &[u8]) -> PyResult<bool> {
-        use pqcrypto_traits::sign::PublicKey;
+        use pqcrypto_traits::sign::{DetachedSignature, PublicKey};
         let pk = pqcrypto_mldsa::mldsa87::PublicKey::from_bytes(&self.public_key)
             .map_err(|_| PyValueError::new_err("Invalid public key"))?;
         let sig = pqcrypto_mldsa::mldsa87::DetachedSignature::from_bytes(signature)
@@ -1830,7 +1831,7 @@ fn verify_dilithium_signature(
     message: &[u8],
     signature: &[u8],
 ) -> PyResult<bool> {
-    use pqcrypto_traits::sign::PublicKey;
+    use pqcrypto_traits::sign::{DetachedSignature, PublicKey};
     let pk = pqcrypto_mldsa::mldsa87::PublicKey::from_bytes(public_key)
         .map_err(|_| PyValueError::new_err("Invalid public key"))?;
     let sig = pqcrypto_mldsa::mldsa87::DetachedSignature::from_bytes(signature)

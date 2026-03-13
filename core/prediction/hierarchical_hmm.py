@@ -1,9 +1,9 @@
-import numpy as np
-from dataclasses import dataclass
-from typing import List, Dict, Optional
-
-from enum import Enum
 import logging
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Optional
+
+import numpy as np
 
 from core.prediction.hmm_engine import HMMEngine, HMMState
 

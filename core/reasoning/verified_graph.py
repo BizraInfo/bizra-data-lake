@@ -11,17 +11,18 @@ The graph artifact remains the source of truth; this module adds:
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
-import hashlib
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.proof_engine.canonical import CanonPolicy, CanonQuery, canonical_bytes
 from core.proof_engine.receipt import Metrics, Receipt, ReceiptBuilder, SovereignSigner
-from core.sovereign.graph_types import ThoughtType, ThoughtNode
+from core.sovereign.graph_types import ThoughtNode, ThoughtType
 
 if TYPE_CHECKING:
     from core.memory.types import SearchResult
+
     from .got_bridge import GoTBridgeResult
 
 

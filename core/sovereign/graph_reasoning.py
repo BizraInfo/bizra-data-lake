@@ -20,11 +20,12 @@ import logging
 import re
 from typing import Any, Optional
 
+from core.pci.gates import PCIGateKeeper
+
 from .graph_types import (
     ThoughtNode,
     ThoughtType,
 )
-from core.pci.gates import PCIGateKeeper
 
 logger = logging.getLogger(__name__)
 

@@ -9,11 +9,11 @@ Commands register themselves with the central CommandRegistry.
 from .doctor import DoctorCommand
 from .identity import IdentityCommand
 from .launch import LaunchCommand
-from .lifecycle import StartCommand, StopCommand, ResetCommand
+from .lifecycle import ResetCommand, StartCommand, StopCommand
 from .mission import MissionCommand
 from .status import StatusCommand
 from .version import VersionCommand
-from .wallet import WalletCommand, BriefingCommand
+from .wallet import BriefingCommand, WalletCommand
 
 ALL_COMMANDS = [
     DoctorCommand,
