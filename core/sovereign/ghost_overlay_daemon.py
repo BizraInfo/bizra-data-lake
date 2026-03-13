@@ -20,6 +20,7 @@ Created: 2026-02-25 | BIZRA Ghost Overlay Daemon v0.1
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from dataclasses import asdict

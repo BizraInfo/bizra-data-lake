@@ -124,7 +124,7 @@ class LocalFirstDetector:
                         latency_ms=latency,
                         reason="LM Studio v1 API responsive",
                     )
-        except (OSError, ValueError):  # SEC-003 — network boundary
+        except (OSError, ValueError) as _e:  # SEC-003 — network boundary
             _err_reason = str(_e)[:40]
             latency = (time.perf_counter() - start) * 1000
 

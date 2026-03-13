@@ -6,6 +6,7 @@ Embedded inference via llama-cpp-python.
 Primary backend for sovereign inference. No external dependencies, works offline.
 """
 
+import asyncio
 import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, AsyncIterator, Optional

@@ -30,6 +30,7 @@ Created: 2026-02-27 | BIZRA Self-Proactive Harness v1.0
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging

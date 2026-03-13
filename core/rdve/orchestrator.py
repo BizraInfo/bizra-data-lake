@@ -24,6 +24,7 @@ Artifacts:
     core/integration/constants.py — Constitutional thresholds (SSOT)
 """
 
+import asyncio
 import logging
 import time
 import uuid

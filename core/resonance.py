@@ -8,6 +8,7 @@ Standing on Giants: Shannon (1948) · Besta (GoT, 2024) · Rabiner (HMM, 1989)
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from dataclasses import dataclass

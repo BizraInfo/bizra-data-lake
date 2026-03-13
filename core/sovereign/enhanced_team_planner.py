@@ -7,6 +7,7 @@ autonomy-aware execution, and integration with the Muraqabah engine.
 Standing on Giants: HTN Planning + Proactive Computing + GOAP
 """
 
+import asyncio
 import logging
 import uuid
 from dataclasses import dataclass, field
