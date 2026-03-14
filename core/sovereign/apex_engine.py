@@ -1469,7 +1469,7 @@ class ApexSovereignEngine:
                         "depth_reached": bridge_result.reasoning_depth,
                         "best_path": bridge_result.convergence_path,
                     }
-                except (ImportError, ValueError, RuntimeError) as bridge_exc:  # SEC-003
+                except (ImportError, ValueError, RuntimeError, AttributeError) as bridge_exc:  # SEC-003
                     self._phase46_metrics.inc("got_fallback")
                     logger.warning(
                         "GoT Bridge failed, falling back to direct GoT: %s",

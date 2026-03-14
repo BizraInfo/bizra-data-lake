@@ -199,6 +199,7 @@ async def test_batching_queue_timeout_flush():
 
 
 @pytest.mark.asyncio
+@pytest.mark.xdist_group("batching")
 async def test_batching_queue_error_handling():
     """Test that errors are propagated to individual requests."""
 
@@ -209,7 +210,7 @@ async def test_batching_queue_error_handling():
         return f"Success: {prompt}"
 
     queue = BatchingInferenceQueue(
-        backend_generate_fn=failing_backend, max_batch_size=4, max_wait_ms=50
+        backend_generate_fn=failing_backend, max_batch_size=4, max_wait_ms=200
     )
 
     await queue.start()

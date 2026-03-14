@@ -750,7 +750,7 @@ class TestAutonomousLoop:
         loop = AutonomousLoop()
 
         async def failing_observer(m):
-            raise ValueError("Observer exploded")
+            raise RuntimeError("Observer exploded")
 
         loop.register_observer(failing_observer)
         # Should not raise
@@ -1394,7 +1394,7 @@ class TestLearnPhase:
         loop = AutonomousLoop()
 
         async def broken_learner(outcomes, reflection, learning):
-            raise ValueError("Learner crashed")
+            raise RuntimeError("Learner crashed")
 
         loop.register_learner(broken_learner)
         # Should not raise

@@ -381,11 +381,27 @@ class TestLikelihood:
 
 
 class TestLearn:
-    """learn() raises NotImplementedError for Phase 47."""
+    """learn() performs Baum-Welch EM training (Phase 47 implemented)."""
 
-    def test_learn_raises(self, engine: HMMEngine):
-        with pytest.raises(NotImplementedError, match="Phase 47"):
-            engine.learn(["search", "edit"])
+    def test_learn_returns_log_likelihood(self, engine: HMMEngine):
+        """learn() now returns a finite log-likelihood after EM convergence."""
+        ll = engine.learn(["search", "edit", "compile", "test", "review"])
+        assert isinstance(ll, float)
+        assert math.isfinite(ll)
+        assert ll <= 0.0  # log-likelihood is always non-positive
+
+    def test_learn_empty_raises(self, engine: HMMEngine):
+        with pytest.raises(ValueError, match="non-empty"):
+            engine.learn([])
+
+    def test_learn_improves_likelihood(self, engine: HMMEngine):
+        """Training on repeated data should not decrease likelihood."""
+        obs = ["search", "navigate", "edit", "compile", "test"] * 3
+        ll_before = engine.likelihood(obs)
+        engine.learn(obs)
+        ll_after = engine.likelihood(obs)
+        # After training on this data, likelihood should not decrease
+        assert ll_after >= ll_before - 1e-6
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
