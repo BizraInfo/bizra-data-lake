@@ -216,5 +216,7 @@ Path-scoped rules are auto-loaded by Claude Code:
 
 - Ruff ignores `E402` (deferred imports for performance) and `E501` (Black handles line length)
 - MyPy: strict mode globally, relaxed for `core.*` and `tests.*` — strict enforcement adopted incrementally
-- Clippy `uninlined_format_args` is a Rust 1.88 lint — pre-existing across workspace
+- Clippy `uninlined_format_args` is a Rust 1.91 lint — pre-existing across workspace
+- MyPy overrides: catch-all `core.*` MUST come before strict module overrides (last-match-wins)
+- pytest `timeout_method = "signal"` — reliably kills stuck async tests on Linux/WSL
 - `# noqa: SEC-001` marks intentional legacy SHA-256 usage (BLAKE3 gate)
