@@ -1,0 +1,27 @@
+[Unit]
+Description=BIZRA Sovereign Kernel Daemon v3.1.0
+Documentation=file:///mnt/c/BIZRA-DATA-LAKE/docs/plans/GENESIS_CLOSURE_SPRINT_v1.md
+After=network.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/mnt/c/BIZRA-DATA-LAKE
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/mnt/c/BIZRA-DATA-LAKE
+ExecStartPre=/mnt/c/BIZRA-DATA-LAKE/.venv-linux/bin/python -c "import core.sovereign.kernel_daemon"
+ExecStart=/mnt/c/BIZRA-DATA-LAKE/.venv-linux/bin/python -m core.sovereign.kernel_daemon
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/mnt/c/BIZRA-DATA-LAKE/sovereign_state
+ReadWritePaths=/mnt/c/BIZRA-DATA-LAKE/logs
+
+[Install]
+WantedBy=multi-user.target
