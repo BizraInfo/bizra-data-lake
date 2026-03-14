@@ -68,6 +68,17 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# Skip non-test directories that pytest would otherwise walk during collection.
+# This reduces collection time from ~110s to ~30s on WSL /mnt/c/ filesystem.
+norecursedirs = [
+    ".git", ".venv*", "venv", "node_modules", "__pycache__",
+    "*.egg-info", "build", "dist", "target", "htmlcov",
+    "00_INTAKE", "01_RAW", "02_PROCESSED", "03_INDEXED", "04_GOLD",
+    "99_QUARANTINE", "sovereign_state", "logs", ".proof-forge",
+    ".claude", ".swarm", "bizra-omega", "frontend", "deploy",
+    "evidence", "New folder", "xtr-warp", "bizra-sovereign-os",
+    ".ruff_cache", ".mypy_cache", ".pytest_cache",
+]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 timeout = 60
