@@ -666,6 +666,120 @@ def _verify_genesis(state: "SovereignState") -> dict[str, Any]:
 
 
 # ═══════════════════════════════════════════════════════════
+#  KNOWLEDGE SURFACE — GOLD corpus statistics + search
+# ═══════════════════════════════════════════════════════════
+
+
+def _get_knowledge_stats() -> dict[str, Any]:
+    """Return statistics about the GOLD knowledge corpus.
+
+    Standing on Giants: Shannon (information density) · Deming (measurement)
+    """
+    gold_dir = PROJECT_ROOT / "04_GOLD"
+    if not gold_dir.exists():
+        return {"available": False, "reason": "04_GOLD directory not found"}
+
+    try:
+        import pandas as pd
+
+        tables: list[dict[str, Any]] = []
+        total_rows = 0
+        total_bytes = 0
+
+        for f in sorted(gold_dir.iterdir()):
+            if f.suffix == ".parquet":
+                df = pd.read_parquet(f)
+                size = f.stat().st_size
+                tables.append(
+                    {
+                        "name": f.stem,
+                        "rows": len(df),
+                        "columns": len(df.columns),
+                        "size_mb": round(size / 1024 / 1024, 1),
+                    }
+                )
+                total_rows += len(df)
+                total_bytes += size
+
+        return {
+            "available": True,
+            "tables": tables,
+            "total_rows": total_rows,
+            "total_size_mb": round(total_bytes / 1024 / 1024, 1),
+            "table_count": len(tables),
+            "gold_path": str(gold_dir),
+        }
+    except ImportError:
+        return {"available": False, "reason": "pandas not installed"}
+    except (OSError, ValueError) as e:
+        return {"available": False, "reason": str(e)}
+
+
+def _search_knowledge(query: str, limit: int = 10) -> dict[str, Any]:
+    """Search the GOLD knowledge corpus for relevant chunks.
+
+    Simple keyword search across chunks + research_chunks + golden_gems.
+    Future: vector similarity via FAISS embeddings.
+
+    Standing on Giants: Shannon (information retrieval) · Robertson (BM25)
+    """
+    gold_dir = PROJECT_ROOT / "04_GOLD"
+    if not gold_dir.exists():
+        return {"results": [], "error": "04_GOLD not found"}
+
+    try:
+        import pandas as pd
+
+        results: list[dict[str, Any]] = []
+        query_lower = query.lower()
+        search_files = [
+            "golden_gems_chunks.parquet",
+            "research_chunks.parquet",
+            "chunks.parquet",
+        ]
+
+        for fname in search_files:
+            fpath = gold_dir / fname
+            if not fpath.exists():
+                continue
+            df = pd.read_parquet(fpath)
+            if "chunk_text" not in df.columns:
+                continue
+            # Simple keyword match (upgrade to vector search later)
+            mask = df["chunk_text"].str.lower().str.contains(query_lower, na=False)
+            matches = df[mask].head(limit)
+            for _, row in matches.iterrows():
+                text = str(row["chunk_text"])
+                results.append(
+                    {
+                        "source": fname.replace(".parquet", ""),
+                        "chunk_id": str(row.get("chunk_id", "")),
+                        "text": text[:500] + ("..." if len(text) > 500 else ""),
+                        "snr_score": (
+                            float(row["snr_score"])
+                            if "snr_score" in row.index
+                            else None
+                        ),
+                    }
+                )
+                if len(results) >= limit:
+                    break
+            if len(results) >= limit:
+                break
+
+        return {
+            "query": query,
+            "results": results,
+            "count": len(results),
+            "search_type": "keyword",
+        }
+    except ImportError:
+        return {"results": [], "error": "pandas not installed"}
+    except (OSError, ValueError) as e:
+        return {"results": [], "error": str(e)}
+
+
+# ═══════════════════════════════════════════════════════════
 #  SELF-DIAGNOSIS — deep readiness probe (K8s pattern)
 # ═══════════════════════════════════════════════════════════
 
@@ -756,7 +870,10 @@ def _run_readiness_probe(state: "SovereignState") -> dict[str, Any]:
 
     # Probe 6: Identity module
     try:
-        from core.identity.genesis import IdentityGenesis, SovereigntyClass  # noqa: F401
+        from core.identity.genesis import (  # noqa: F401
+            IdentityGenesis,
+            SovereigntyClass,
+        )
 
         probes.append(
             {
@@ -890,6 +1007,19 @@ class KernelHandler(SimpleHTTPRequestHandler):
             )
         elif path == "/api/readiness":
             self._json_response(_run_readiness_probe(self.sovereign_state))
+        elif path == "/api/knowledge":
+            self._json_response(_get_knowledge_stats())
+        elif path.startswith("/api/knowledge/search"):
+            qs = self.path.split("?")[1] if "?" in self.path else ""
+            params = dict(p.split("=", 1) for p in qs.split("&") if "=" in p)
+            q = params.get("q", "")
+            n = min(int(params.get("n", "10")), 50)
+            if q:
+                self._json_response(_search_knowledge(q, limit=n))
+            else:
+                self._json_response(
+                    {"error": "query parameter 'q' required"}, status=400
+                )
         elif path == "/api/constitution":
             self._json_response(_get_constitution())
         elif path == "/api/genesis/verify":
