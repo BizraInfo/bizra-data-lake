@@ -413,5 +413,7 @@ class TestModuleExports:
             "load_constitution",
             "resolve_constitution_path",
             "validate_constitution",
+            "ThresholdRegistry",
+            "registry",
         }
         assert set(integration_module.__all__) == expected
