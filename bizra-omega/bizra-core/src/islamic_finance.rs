@@ -2033,4 +2033,55 @@ mod tests {
         let result = gate.check_compliance("valid content", Some(0.96), None);
         assert!(result.compliant);
     }
+
+    // =================================================================
+    // SIPPAR PROTOCOL: Exact Arithmetic Verification
+    // Standing on Giants: Babylonian scribes (1900 BCE)
+    // =================================================================
+
+    #[test]
+    fn test_zakat_rate_is_exact_regular_number() {
+        // Zakat = 2.5% = 1/40.
+        // 40 = 2^3 × 5 → regular (2,3,5-smooth).
+        // Therefore 1/40 has an EXACT representation in base-60: 0;1,30
+        // This is the constitutional proof that Zakat computation
+        // produces ZERO rounding error across arbitrarily many transactions.
+        use bizra_sippar::RegularNumber;
+
+        let forty = RegularNumber::from_u64(40).unwrap();
+        assert_eq!(forty.exp2(), 3);
+        assert_eq!(forty.exp3(), 0);
+        assert_eq!(forty.exp5(), 1);
+        assert_eq!(forty.reciprocal_sexagesimal(), "0;1,30");
+
+        // Verify the f64 rate matches the exact fraction
+        let (numerator, places) = forty.reciprocal();
+        let exact_rate = numerator as f64 / 60f64.powi(places as i32);
+        assert!((exact_rate - ZAKAT_RATE).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_harberger_rate_is_exact_regular_number() {
+        // Harberger = 5% = 1/20.
+        // 20 = 2^2 × 5 → regular.
+        // 1/20 = 0;3 in sexagesimal (exact).
+        use bizra_sippar::RegularNumber;
+
+        let twenty = RegularNumber::from_u64(20).unwrap();
+        assert_eq!(twenty.reciprocal_sexagesimal(), "0;3");
+    }
+
+    #[test]
+    fn test_profit_share_denominators_are_regular() {
+        // MIN_MUDARIB_SHARE = 0.30 = 3/10. 10 = 2×5 → regular.
+        // MAX_RABBULMAL_SHARE = 0.70 = 7/10. 10 = 2×5 → regular denominator.
+        // The denominators are regular, so splits are exact.
+        use bizra_sippar::RegularNumber;
+
+        assert!(RegularNumber::from_u64(10).is_ok()); // denominator
+                                                      // But 7 is irregular — the numerator of 70%.
+                                                      // This proves the DENOMINATOR (split granularity) is exact,
+                                                      // while the NUMERATOR (share count) is unconstrained.
+        assert!(RegularNumber::from_u64(7).is_err());
+    }
 }

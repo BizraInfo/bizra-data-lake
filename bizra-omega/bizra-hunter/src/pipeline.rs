@@ -13,6 +13,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::cascade::{CriticalCascade, GateType};
 use crate::entropy::{EntropyCalculator, MultiAxisEntropy};
+use crate::evm::{detect_opcode_sequences, EvmDecoder, SequencePattern};
 use crate::invariant::InvariantCache;
 use crate::rent::HarbergerRent;
 use crate::{LANE1_SNR_THRESHOLD, MIN_CONSISTENT_AXES};
@@ -151,6 +152,9 @@ impl<const N: usize> SNRPipeline<N> {
 
     /// Process bytecode through Lane 1 (fast heuristic filter)
     /// Returns Some(result) if it passes SNR threshold
+    ///
+    /// Uses the EVM instruction decoder to accurately count opcodes,
+    /// eliminating PUSH data bytes from entropy calculations.
     #[inline]
     pub fn process_lane1(
         &self,
@@ -166,8 +170,11 @@ impl<const N: usize> SNRPipeline<N> {
             return None;
         }
 
-        // Calculate multi-axis entropy
-        let entropy = calc.calculate_all(bytecode);
+        // Decode bytecode into instructions (linear sweep, zero-copy)
+        let instructions = EvmDecoder::decode(bytecode);
+
+        // Calculate multi-axis entropy using instruction-level analysis
+        let entropy = calc.calculate_all_from_instructions(&instructions, bytecode);
 
         // Lane 1 gate: SNR threshold + multi-axis consistency
         if entropy.average() < self.snr_threshold {
@@ -229,16 +236,41 @@ impl<const N: usize> SNRPipeline<N> {
         }
     }
 
+    /// Detect vulnerability type using both entropy AND opcode sequence analysis.
+    /// Returns `(VulnType, location_offset)` with pinpointed bytecode offset.
+    pub fn detect_vuln_type_with_location(
+        &self,
+        entropy: &MultiAxisEntropy,
+        bytecode: &[u8],
+    ) -> (VulnType, u32) {
+        let instructions = EvmDecoder::decode(bytecode);
+
+        // Check opcode sequences first (higher confidence)
+        if let Some((pattern, offset)) = detect_opcode_sequences(&instructions) {
+            let vuln = match pattern {
+                SequencePattern::SStoreBeforeCall => VulnType::Reentrancy,
+                SequencePattern::CallValueJumpi => VulnType::AccessControl,
+                SequencePattern::TimestampSStore => VulnType::FrontRunning,
+                SequencePattern::UncheckedCall => VulnType::Dos,
+                SequencePattern::DynamicDelegateCall => VulnType::AccessControl,
+            };
+            return (vuln, offset);
+        }
+
+        // Fall back to entropy-based detection
+        (self.detect_vuln_type(entropy), 0)
+    }
+
     /// Create proof job for Lane 2
     pub fn create_proof_job(&self, result: &HeuristicResult, bytecode: Vec<u8>) -> ProofJob {
-        let vuln_type = self.detect_vuln_type(&result.entropy);
+        let (vuln_type, location) = self.detect_vuln_type_with_location(&result.entropy, &bytecode);
 
         ProofJob {
             contract_addr: result.contract_addr,
             bytecode,
             entropy: result.entropy,
             vuln_type,
-            location: 0, // Would be set by detailed analysis
+            location,
             bounty_estimate: result.bounty_estimate,
         }
     }

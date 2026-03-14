@@ -52,9 +52,15 @@ tracing-subscriber = "0.3"
 # Synchronization (non-poisoning RwLock — eliminates panic cascades)
 parking_lot = "0.12"
 
+# LRU cache (proper eviction for invariant dedup)
+lru = "0.12"
+
 # Error handling
 thiserror = "1.0"
 anyhow = "1.0"
+
+# Hex encoding/decoding
+hex = "0.4"
 
 # Cryptography
 ed25519-dalek = "2.1"
@@ -68,6 +74,7 @@ clap = { version = "4.4", features = ["derive"] }
 [dev-dependencies]
 criterion = "0.5"
 proptest = "1.4"
+tempfile = "3"
 
 [[bench]]
 name = "snr_pipeline"

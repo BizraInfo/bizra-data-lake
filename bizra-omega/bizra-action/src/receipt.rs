@@ -20,10 +20,21 @@ use crate::types::*;
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /// Deterministic 256-bit hash for receipt content.
-/// Uses 4-lane FNV-1a variant with cross-lane mixing.
 ///
-/// NOTE: Placeholder for dev/test. Production MUST use BLAKE3.
-/// The API is designed so swapping is a single-function replacement.
+/// With `production` feature: BLAKE3 (cryptographic, 256-bit, parallel).
+/// Without: 4-lane FNV-1a placeholder (deterministic but NOT cryptographic).
+///
+/// Build for production: `cargo build --release --features production`
+#[cfg(feature = "production")]
+pub fn content_hash(data: &[u8]) -> [u8; 32] {
+    *blake3::hash(data).as_bytes()
+}
+
+/// Dev/test placeholder — deterministic but NOT cryptographic.
+/// # Safety note
+/// Do NOT use for any security-critical receipt chain in production.
+/// Build with `--features production` for BLAKE3.
+#[cfg(not(feature = "production"))]
 pub fn content_hash(data: &[u8]) -> [u8; 32] {
     let mut h: [u64; 4] = [
         0x6a09e667f3bcc908,

@@ -9,7 +9,7 @@
 //!
 //! Auto-resume disabled for critical gates (manual intervention required).
 
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 
 /// Gate types in the critical cascade
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,8 +50,8 @@ struct GateState {
     failures: AtomicU32,
     /// Whether gate is open (allowing operations)
     open: AtomicBool,
-    /// Timestamp of last failure (nanoseconds)
-    last_failure: AtomicU32, // Store as seconds for simplicity
+    /// Timestamp of last failure in seconds since UNIX epoch
+    last_failure: AtomicU64,
 }
 
 impl GateState {
@@ -59,7 +59,7 @@ impl GateState {
         Self {
             failures: AtomicU32::new(0),
             open: AtomicBool::new(true),
-            last_failure: AtomicU32::new(0),
+            last_failure: AtomicU64::new(0),
         }
     }
 }
@@ -148,10 +148,10 @@ impl CriticalCascade {
             let last_failure = state.last_failure.load(Ordering::Relaxed);
             let now = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs() as u32)
-                .unwrap_or(0);
+                .map(|d| d.as_secs())
+                .unwrap_or(u64::MAX);
 
-            if now > last_failure + config.reset_period_secs as u32 {
+            if now.saturating_sub(last_failure) > config.reset_period_secs {
                 // Auto-resume: reset gate
                 state.open.store(true, Ordering::Relaxed);
                 state.failures.store(0, Ordering::Relaxed);
@@ -180,8 +180,8 @@ impl CriticalCascade {
         // Update last failure timestamp
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_secs() as u32)
-            .unwrap_or(0);
+            .map(|d| d.as_secs())
+            .unwrap_or(u64::MAX);
         state.last_failure.store(now, Ordering::Relaxed);
 
         // Check threshold

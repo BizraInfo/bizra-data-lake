@@ -84,9 +84,15 @@ def _websocket_endpoint(app):
     return route.endpoint
 
 
+class _URL:
+    def __init__(self, path: str = "/test"):
+        self.path = path
+
+
 class _Request:
     def __init__(self, headers: dict[str, str] | None = None):
         self.headers = headers or {}
+        self.url = _URL()
 
 
 @pytest.mark.asyncio

@@ -1,0 +1,13 @@
+[package]
+name = "bizra-sippar"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Regular number arithmetic for exact economic computation (Sippar Protocol)"
+
+# Zero external dependencies — sovereign by design.
+# Standing on Giants: Babylonian scribes (1900 BCE), Hamming (1986).
+[dependencies]
+
+[dev-dependencies]

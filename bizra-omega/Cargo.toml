@@ -29,6 +29,8 @@ members = [
     # ━━━ Advanced Bindings ━━━
     "fate-binding",
     "iceoryx-bridge",
+    # ━━━ Exact Arithmetic (Sippar Protocol — Babylonian regular numbers) ━━━
+    "bizra-sippar",
 ]
 
 [workspace.package]

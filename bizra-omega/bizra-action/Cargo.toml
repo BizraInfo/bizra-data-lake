@@ -32,14 +32,15 @@ name = "bizra_action"
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
-# ZERO external dependencies.
-# The muscle system depends on nothing external.
-# bizra-hooks is a workspace sibling, not an external crate.
-# When used standalone (outside workspace), types are re-defined locally.
+# The muscle system has ZERO required dependencies.
+# blake3 is optional — enabled via `production` feature for cryptographic receipts.
+blake3 = { workspace = true, optional = true }
 
 [dev-dependencies]
 
 [features]
 default = []
+# Enable for production-grade BLAKE3 receipt hashing (replaces dev placeholder)
+production = ["blake3"]
 # Enable when used within bizra-omega workspace alongside bizra-hooks
 # workspace = ["dep:bizra-hooks"]

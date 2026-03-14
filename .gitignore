@@ -279,3 +279,6 @@ BIZRA-Sprint2-4-Execution-Playbook-v1.1.md
 
 # Canon binaries should live under docs/canon, not terminal/
 terminal/*.docx
+vectors.db
+preview-1.jpg
+replace_script.py

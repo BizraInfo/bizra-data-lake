@@ -1,0 +1,361 @@
+[
+  {
+    "claim_id": "AUR-ENF-001",
+    "claim_text": "BIZRA wins when nonlinear thought is carried by real graph-structured reasoning surfaces rather than pure linear prompting.",
+    "claim_class": "architecture",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "partial",
+    "enforcement_stage": "nonlinear_thought",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/reasoning/got_bridge.py",
+      "c:/BIZRA-DATA-LAKE/core/reasoning/verified_graph.py"
+    ],
+    "confidence": "medium",
+    "recommended_rewrite": "Graph-structured reasoning surfaces are real in the repo, but they are not yet proven as the universal live reasoning path for every authoritative mission.",
+    "enforcement_verdict": "partial",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-002",
+    "claim_text": "Receipt emission uses canonical or deterministic serialization rather than ad hoc text blobs.",
+    "claim_class": "proof",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "proven_live",
+    "enforcement_stage": "receipt_emitted",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/proof_engine/canonical.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Deterministic canonical serialization is implemented in the proof engine and should be treated as live receipt infrastructure.",
+    "enforcement_verdict": "live",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-003",
+    "claim_text": "BIZRA emits signed or cryptographically bound receipts rather than unverifiable textual summaries.",
+    "claim_class": "proof",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "proven_live",
+    "enforcement_stage": "receipt_emitted",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/proof_engine/receipt.py",
+      "c:/BIZRA-DATA-LAKE/core/reasoning/verified_graph.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Signed or cryptographically bound receipts are real in the proof layer and VRG path.",
+    "enforcement_verdict": "live",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-004",
+    "claim_text": "Receipts carry policy binding such as policy digests or policy hashes.",
+    "claim_class": "governance",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "proven_live",
+    "enforcement_stage": "policy_bound",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/proof_engine/receipt.py",
+      "c:/BIZRA-DATA-LAKE/tests/integration/test_fate_gate_pipeline.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Policy binding through receipt digests and explicit policy_hash checks is live on the reviewed proof and gate surfaces.",
+    "enforcement_verdict": "live",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-005",
+    "claim_text": "The authoritative plan path exposes canonical authority and identity metadata on the live runtime path.",
+    "claim_class": "runtime",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "proven_live",
+    "enforcement_stage": "identity_bound",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/sovereign/api.py",
+      "c:/BIZRA-DATA-LAKE/tests/integration/test_plan_endpoint.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "The canonical /v1/plan path surfaces authority_path, mission_authority, identity_mode, and signer_public_key_prefix in live code and tests.",
+    "enforcement_verdict": "live",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-006",
+    "claim_text": "Identity binding is complete across the authoritative runtime path.",
+    "claim_class": "security",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "partial",
+    "enforcement_stage": "identity_bound",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/sovereign/runtime_core.py",
+      "c:/BIZRA-DATA-LAKE/core/node0/heartbeat.py",
+      "c:/BIZRA-DATA-LAKE/core/sovereign/organism.py"
+    ],
+    "confidence": "medium",
+    "recommended_rewrite": "Identity metadata and signer-derived node identity are real on the local authoritative path, but external registry-grade or distributed identity closure is not yet fully proven here.",
+    "enforcement_verdict": "partial",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-007",
+    "claim_text": "FATE or equivalent policy gating is live on the reviewed runtime path rather than merely described in documents.",
+    "claim_class": "governance",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "partial",
+    "enforcement_stage": "policy_bound",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/tests/integration/test_fate_gate_pipeline.py",
+      "c:/BIZRA-DATA-LAKE/core/sovereign/runtime_core.py"
+    ],
+    "confidence": "medium",
+    "recommended_rewrite": "Policy gating is concretely tested and wired in reviewed slices, but broader end-to-end solver-in-the-loop or universal FATE enforcement remains narrower than some rhetoric suggests.",
+    "enforcement_verdict": "partial",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-008",
+    "claim_text": "Single-node anti-replay protection exists through nonce, counter, cache, or TTL style enforcement.",
+    "claim_class": "security",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "proven_live",
+    "enforcement_stage": "single_node_replay_safe",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/proof_engine/canonical.py",
+      "c:/BIZRA-DATA-LAKE/tests/integration/test_fate_gate_pipeline.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Single-node replay protection is live in the reviewed proof and FATE gate surfaces.",
+    "enforcement_verdict": "live",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-009",
+    "claim_text": "Distributed replay safety, global ordering, or network-grade consensus is already proven.",
+    "claim_class": "security",
+    "scope_surface": "both",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "partial",
+    "enforcement_stage": "distributed_replay_safe",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/tests/integration/test_fate_gate_pipeline.py",
+      "c:/BIZRA-DATA-LAKE/bizra-node0/docs/GENESIS_100_GATE.md"
+    ],
+    "confidence": "medium",
+    "recommended_rewrite": "Distributed replay and consensus claims should stay partial until global ordering and networked multi-node proof move beyond local simulation and downstream gate language.",
+    "enforcement_verdict": "partial",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-010",
+    "claim_text": "The reviewed authoritative path is a live runtime path rather than a purely simulated or mocked lane.",
+    "claim_class": "runtime",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "partial",
+    "enforcement_stage": "receipt_emitted",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/sovereign/api.py",
+      "c:/BIZRA-DATA-LAKE/tests/integration/test_plan_endpoint.py",
+      "c:/BIZRA-DATA-LAKE/scripts/ops/canonical_empirical_validation.py"
+    ],
+    "confidence": "medium",
+    "recommended_rewrite": "The authoritative runtime path is real in code and tests, but some review and validation lanes still rely on mocks or synthetic harnesses.",
+    "enforcement_verdict": "partial",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-011",
+    "claim_text": "Canonical empirical validation proves fully live runtime canonicality without simulated lanes.",
+    "claim_class": "proof",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "proven_simulated",
+    "enforcement_stage": "receipt_emitted",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/scripts/ops/canonical_empirical_validation.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Canonical empirical validation is useful evidence, but key parts are still simulation or mock-backed and should be labeled accordingly.",
+    "enforcement_verdict": "simulated",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-012",
+    "claim_text": "Node0 lifecycle ready is a real machine artifact, not only a narrative claim.",
+    "claim_class": "lifecycle",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "proven_live",
+    "enforcement_stage": "receipt_emitted",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/sovereign_state/node0_lifecycle.json"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Node0 lifecycle readiness is real as a local lifecycle artifact, but it should not be equated with full end-to-end production canon by itself.",
+    "enforcement_verdict": "live",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-013",
+    "claim_text": "The legacy Python terminal is a canonical operator surface.",
+    "claim_class": "status_verdict",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "false_or_stale",
+    "enforcement_stage": "nonlinear_thought",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/sovereign/sovereign_terminal.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "The legacy Python terminal is explicitly noncanonical and should be treated as debug or compatibility surface only.",
+    "enforcement_verdict": "contradicted",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-014",
+    "claim_text": "BIZRA is already fully canonical on the evidence currently reviewed.",
+    "claim_class": "status_verdict",
+    "scope_surface": "both",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "false_or_stale",
+    "enforcement_stage": "distributed_replay_safe",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md",
+      "c:/BIZRA-DATA-LAKE/docs/plans/NODE0_PRODUCTION_CANON_BLUEPRINT_v1.md",
+      "c:/BIZRA-DATA-LAKE/scripts/ops/canonical_empirical_validation.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Current evidence supports a stronger enforcement spine than full canon closure. Full-canonical language should remain downgraded until live authoritative proof closes the remaining gaps.",
+    "enforcement_verdict": "contradicted",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-ENF-015",
+    "claim_text": "End-to-end production canon and Genesis-100 readiness are already satisfied in the present review state.",
+    "claim_class": "status_verdict",
+    "scope_surface": "bizra-node0",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "false_or_stale",
+    "enforcement_stage": "distributed_replay_safe",
+    "reflex_stage": "",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/bizra-node0/docs/GENESIS_100_GATE.md",
+      "c:/BIZRA-DATA-LAKE/docs/plans/NODE0_PRODUCTION_CANON_BLUEPRINT_v1.md"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Genesis-100 remains downstream of sealed Node0 production canon and should not be described as already authorized by the reviewed evidence.",
+    "enforcement_verdict": "contradicted",
+    "reflex_verdict": "narrative_only"
+  },
+  {
+    "claim_id": "AUR-REF-001",
+    "claim_text": "Repeated verified truth is recognized as a distinct optimization concern separate from first-stage enforcement.",
+    "claim_class": "architecture",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "partial",
+    "enforcement_stage": "",
+    "reflex_stage": "truth_repetition",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/orchestration/learning_loop.py",
+      "c:/BIZRA-DATA-LAKE/core/sdpo/reflex_bridge.py"
+    ],
+    "confidence": "medium",
+    "recommended_rewrite": "The repo supports treating repetition and reflex as a second-stage optimization plane, but not every repeated signal is yet proven to flow through a universal verified path.",
+    "enforcement_verdict": "narrative_only",
+    "reflex_verdict": "partial"
+  },
+  {
+    "claim_id": "AUR-REF-002",
+    "claim_text": "The repo has live repetition tracking or candidate extraction for reflex compilation.",
+    "claim_class": "learning",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "proven_live",
+    "enforcement_stage": "",
+    "reflex_stage": "truth_repetition",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/sdpo/reflex_bridge.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Repetition tracking and reflex-candidate extraction are real in the SDPO bridge.",
+    "enforcement_verdict": "narrative_only",
+    "reflex_verdict": "live"
+  },
+  {
+    "claim_id": "AUR-REF-003",
+    "claim_text": "Closed-loop learning from verified receipts is live by default on the canonical path.",
+    "claim_class": "learning",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "partial",
+    "enforcement_stage": "",
+    "reflex_stage": "truth_repetition",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/orchestration/learning_loop.py"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "Closed-loop learning exists but is feature-flagged and should not be described as universal default canon behavior.",
+    "enforcement_verdict": "narrative_only",
+    "reflex_verdict": "partial"
+  },
+  {
+    "claim_id": "AUR-REF-004",
+    "claim_text": "Deterministic reflex compilation from verified receipts is fully proven on the authoritative path.",
+    "claim_class": "learning",
+    "scope_surface": "root",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "partial",
+    "enforcement_stage": "",
+    "reflex_stage": "deterministic_reflex",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/sdpo/reflex_bridge.py",
+      "c:/BIZRA-DATA-LAKE/core/orchestration/learning_loop.py",
+      "c:/BIZRA-DATA-LAKE/core/sovereign/api.py"
+    ],
+    "confidence": "medium",
+    "recommended_rewrite": "Reflex compilation is materially present but should still be labeled partial until determinism, verified-input exclusivity, and universal runtime coverage are proven more directly.",
+    "enforcement_verdict": "narrative_only",
+    "reflex_verdict": "partial"
+  },
+  {
+    "claim_id": "AUR-REF-005",
+    "claim_text": "Reflex canon is complete and should be treated as equal in maturity to the enforcement spine.",
+    "claim_class": "status_verdict",
+    "scope_surface": "both",
+    "source_origin": "aurelle_transcript",
+    "evidence_status": "false_or_stale",
+    "enforcement_stage": "",
+    "reflex_stage": "deterministic_reflex",
+    "evidence_refs": [
+      "c:/BIZRA-DATA-LAKE/core/orchestration/learning_loop.py",
+      "c:/BIZRA-DATA-LAKE/core/sdpo/reflex_bridge.py",
+      "c:/BIZRA-DATA-LAKE/docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md"
+    ],
+    "confidence": "high",
+    "recommended_rewrite": "The enforcement plane is stronger than the reflex plane in current evidence. Reflex canon should remain a partial second-stage claim.",
+    "enforcement_verdict": "narrative_only",
+    "reflex_verdict": "contradicted"
+  }
+]

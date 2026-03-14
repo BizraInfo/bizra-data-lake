@@ -26,5 +26,8 @@ tracing.workspace = true
 tokio.workspace = true
 rayon.workspace = true
 
+# Exact arithmetic for constitutional economic computation (Sippar Protocol)
+bizra-sippar = { path = "../bizra-sippar" }
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }

@@ -9,8 +9,15 @@
 //! 4. Economic entropy (value flow patterns)
 //! 5. Temporal entropy (timestamp dependencies)
 //! 6. Memory entropy (memory access patterns)
+//!
+//! Supports two modes:
+//! - **Raw byte mode** (legacy): operates on `&[u8]` directly
+//! - **Instruction mode** (accurate): operates on decoded `&[Instruction]`,
+//!   eliminating PUSH data noise from opcode counts
 
 use std::f32::consts::LN_2;
+
+use crate::evm::Instruction;
 
 /// Multi-axis entropy measurement (6 axes)
 #[derive(Debug, Clone, Copy, Default)]
@@ -297,6 +304,142 @@ impl EntropyCalculator {
             memory: self.memory_entropy(bytecode),
         }
     }
+
+    // ── Instruction-level methods (accurate, PUSH-data-aware) ──────────
+
+    /// Calculate CFG entropy from decoded instructions (no PUSH data noise)
+    pub fn cfg_entropy_from_instructions(&self, instructions: &[Instruction]) -> f32 {
+        if instructions.is_empty() {
+            return 0.0;
+        }
+
+        let mut jumps = 0u32;
+        let mut jumpdests = 0u32;
+        let mut calls = 0u32;
+        let mut halts = 0u32;
+
+        for inst in instructions {
+            if inst.opcode.is_jump() {
+                if inst.opcode == crate::evm::OpCode::JumpDest {
+                    jumpdests += 1;
+                } else {
+                    jumps += 1;
+                }
+            } else if inst.opcode.is_call() {
+                calls += 1;
+            } else if inst.opcode.is_halt() {
+                halts += 1;
+            }
+        }
+
+        let total = instructions.len() as f32;
+        let jump_density = (jumps + jumpdests) as f32 / total;
+        let call_density = calls as f32 / total;
+        let halt_density = halts as f32 / total;
+
+        ((jump_density * 100.0) + (call_density * 50.0) + (halt_density * 20.0)).min(1.0)
+    }
+
+    /// Calculate state entropy from decoded instructions
+    pub fn state_entropy_from_instructions(&self, instructions: &[Instruction]) -> f32 {
+        if instructions.is_empty() {
+            return 0.0;
+        }
+
+        let mut sloads = 0u32;
+        let mut sstores = 0u32;
+
+        for inst in instructions {
+            match inst.opcode {
+                crate::evm::OpCode::SLoad => sloads += 1,
+                crate::evm::OpCode::SStore => sstores += 1,
+                _ => {}
+            }
+        }
+
+        let total_storage = (sloads + sstores) as f32;
+        if total_storage == 0.0 {
+            return 0.0;
+        }
+
+        let read_ratio = sloads as f32 / total_storage;
+        let write_ratio = sstores as f32 / total_storage;
+        let imbalance = (read_ratio - write_ratio).abs();
+        let density = total_storage / instructions.len() as f32;
+
+        (imbalance + density * 10.0).min(1.0)
+    }
+
+    /// Calculate economic entropy from decoded instructions
+    pub fn economic_entropy_from_instructions(&self, instructions: &[Instruction]) -> f32 {
+        if instructions.is_empty() {
+            return 0.0;
+        }
+
+        let mut count = 0u32;
+        for inst in instructions {
+            if inst.opcode.is_value() {
+                count += 1;
+            }
+        }
+
+        let density = count as f32 / instructions.len() as f32;
+        (density * 100.0).min(1.0)
+    }
+
+    /// Calculate temporal entropy from decoded instructions
+    pub fn temporal_entropy_from_instructions(&self, instructions: &[Instruction]) -> f32 {
+        if instructions.is_empty() {
+            return 0.0;
+        }
+
+        let mut count = 0u32;
+        for inst in instructions {
+            if inst.opcode.is_temporal() {
+                count += 1;
+            }
+        }
+
+        let density = count as f32 / instructions.len() as f32;
+        (density * 500.0).min(1.0)
+    }
+
+    /// Calculate memory entropy from decoded instructions
+    pub fn memory_entropy_from_instructions(&self, instructions: &[Instruction]) -> f32 {
+        if instructions.is_empty() {
+            return 0.0;
+        }
+
+        let mut count = 0u32;
+        for inst in instructions {
+            if inst.opcode.is_memory() {
+                count += 1;
+            }
+        }
+
+        let density = count as f32 / instructions.len() as f32;
+        (density * 20.0).min(1.0)
+    }
+
+    /// Calculate all entropy axes using decoded instructions for accuracy.
+    ///
+    /// `bytecode_entropy` still uses raw bytes (Shannon entropy of byte distribution
+    /// is intentionally a Level-0 signal). All other axes use the instruction stream
+    /// which correctly excludes PUSH data bytes from opcode counts.
+    pub fn calculate_all_from_instructions(
+        &mut self,
+        instructions: &[Instruction],
+        raw_bytecode: &[u8],
+    ) -> MultiAxisEntropy {
+        MultiAxisEntropy {
+            bytecode: self.bytecode_entropy(raw_bytecode),
+            cfg: self.cfg_entropy_from_instructions(instructions),
+            state: self.state_entropy_from_instructions(instructions),
+            economic: self.economic_entropy_from_instructions(instructions),
+            temporal: self.temporal_entropy_from_instructions(instructions),
+            memory: self.memory_entropy_from_instructions(instructions),
+        }
+    }
 }
 
 impl Default for EntropyCalculator {
@@ -356,5 +499,58 @@ mod tests {
         let bytecode = vec![0x56, 0x57, 0x5b, 0x56, 0x57, 0x5b, 0x60, 0x60];
         let entropy = calc.cfg_entropy(&bytecode);
         assert!(entropy > 0.5, "CFG entropy: {entropy}");
+    }
+
+    #[test]
+    fn test_instruction_level_removes_push_noise() {
+        use crate::evm::EvmDecoder;
+
+        let calc = EntropyCalculator::new();
+
+        // Build bytecode where PUSH data contains bytes that look like
+        // SLOAD (0x54) and SSTORE (0x55) to state_entropy — those specific
+        // counters won't saturate to 1.0 as easily as CFG counters.
+        let mut bytecode = vec![0x7f]; // PUSH32
+                                       // 32 data bytes: alternate 0x54 (SLOAD) and 0x55 (SSTORE)
+        bytecode.extend_from_slice(&[
+            0x54, 0x55, 0x54, 0x55, 0x54, 0x55, 0x54, 0x55, 0x54, 0x55, 0x54, 0x55, 0x54, 0x55,
+            0x54, 0x55, 0x54, 0x55, 0x54, 0x55, 0x54, 0x55, 0x54, 0x55, 0x54, 0x55, 0x54, 0x55,
+            0x54, 0x55, 0x54, 0x55,
+        ]);
+        bytecode.push(0x00); // STOP
+
+        // Raw byte mode: falsely counts PUSH data as SLOAD/SSTORE
+        let raw_state = calc.state_entropy(&bytecode);
+
+        // Instruction mode: correctly sees only PUSH32, STOP (no storage ops)
+        let instructions = EvmDecoder::decode(&bytecode);
+        let instr_state = calc.state_entropy_from_instructions(&instructions);
+
+        // Raw should be higher due to false SLOAD/SSTORE counts in PUSH data
+        assert!(
+            raw_state > instr_state,
+            "Raw state ({raw_state}) should exceed instruction state ({instr_state}) \
+             because raw mode falsely counts PUSH data bytes as storage opcodes"
+        );
+        assert_eq!(instr_state, 0.0, "No storage ops in actual instructions");
+    }
+
+    #[test]
+    fn test_calculate_all_from_instructions() {
+        use crate::evm::EvmDecoder;
+
+        let mut calc = EntropyCalculator::new();
+        // Simple bytecode: PUSH1 0x00, SLOAD, PUSH1 0x01, SSTORE, TIMESTAMP, STOP
+        let bytecode = [0x60, 0x00, 0x54, 0x60, 0x01, 0x55, 0x42, 0x00];
+        let instructions = EvmDecoder::decode(&bytecode);
+
+        let entropy = calc.calculate_all_from_instructions(&instructions, &bytecode);
+
+        // bytecode entropy should be non-zero (raw bytes)
+        assert!(entropy.bytecode > 0.0);
+        // state entropy should be non-zero (SLOAD + SSTORE present)
+        assert!(entropy.state > 0.0);
+        // temporal entropy should be non-zero (TIMESTAMP present)
+        assert!(entropy.temporal > 0.0);
     }
 }

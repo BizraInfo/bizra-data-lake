@@ -367,6 +367,9 @@ dependencies = [
 [[package]]
 name = "bizra-action"
 version = "2.0.0"
+dependencies = [
+ "blake3",
+]
 
 [[package]]
 name = "bizra-agent"
@@ -451,6 +454,7 @@ dependencies = [
 name = "bizra-core"
 version = "2.0.0"
 dependencies = [
+ "bizra-sippar",
  "blake3",
  "chrono",
  "ed25519-dalek",
@@ -498,6 +502,8 @@ dependencies = [
  "crossbeam",
  "crossbeam-queue",
  "ed25519-dalek",
+ "hex",
+ "lru 0.12.5",
  "parking_lot",
  "proptest",
  "rand 0.8.5",
@@ -505,6 +511,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "toml",
@@ -624,11 +631,16 @@ dependencies = [
  "bizra-hooks",
  "bizra-inference",
  "bizra-memory",
+ "bizra-resourcepool",
+ "chrono",
+ "ed25519-dalek",
  "hex",
  "pqcrypto-mldsa",
  "pqcrypto-traits",
  "pyo3",
  "pyo3-build-config",
+ "rand 0.8.5",
+ "rust_decimal",
  "serde_json",
  "tokio",
  "uuid",
@@ -663,6 +675,10 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
 ]
+
+[[package]]
+name = "bizra-sippar"
+version = "2.0.0"
 
 [[package]]
 name = "bizra-telescript"
@@ -1863,6 +1879,8 @@ version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
+ "allocator-api2",
+ "equivalent",
  "foldhash 0.1.5",
 ]
 
@@ -2695,6 +2713,15 @@ name = "log"
 version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+
+[[package]]
+name = "lru"
+version = "0.12.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "234cf4f4a04dc1f57e24b96cc0cd600cf2af460d4161ac5ecdd0af8e1f3b2a38"
+dependencies = [
+ "hashbrown 0.15.5",
+]
 
 [[package]]
 name = "lru"
@@ -3741,7 +3768,7 @@ dependencies = [
  "indoc",
  "itertools 0.14.0",
  "kasuari",
- "lru",
+ "lru 0.16.3",
  "strum",
  "thiserror 2.0.18",
  "unicode-segmentation",
