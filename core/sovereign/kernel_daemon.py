@@ -257,7 +257,14 @@ _metrics = RequestMetrics()
 
 
 class SovereignState:
-    """Atomic state persistence to sovereign_state/kernel_initialized.json."""
+    """Atomic state persistence with Ed25519 genesis identity.
+
+    Standing on Giants: Bernstein (Ed25519) · Aumasson (BLAKE2b) · Lamport (domain separation)
+
+    On first initialization, generates a sovereign Ed25519 keypair and creates
+    a signed genesis identity — the birth certificate of this node.
+    The private key stays on-device (P2 Self-Sovereignty).
+    """
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -283,6 +290,9 @@ class SovereignState:
 
     def initialize(self, data: dict[str, Any]) -> None:
         with self._lock:
+            # ── Genesis Identity: create Ed25519 keypair and signed identity ──
+            genesis_data = self._create_genesis_identity(data)
+
             self._state = {
                 "version": KERNEL_VERSION,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -290,9 +300,91 @@ class SovereignState:
                 "lang": data.get("lang", "en"),
                 "model": data.get("model", "auto"),
                 "deviceProfile": data.get("deviceProfile", {}),
+                **genesis_data,
             }
             self._persist()
-            log.info("Kernel initialized for user: %s", self._state["userName"])
+            log.info(
+                "Kernel initialized for user: %s | identity: %s",
+                self._state["userName"],
+                self._state.get("identity_id", "unknown")[:16] + "...",
+            )
+
+    @staticmethod
+    def _create_genesis_identity(data: dict[str, Any]) -> dict[str, Any]:
+        """Generate Ed25519 keypair and signed genesis block.
+
+        The private key is stored locally in sovereign_state/node.key.
+        The public key and genesis signature are stored in the state file.
+        This is the birth certificate of Node0.
+        """
+        try:
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+                Ed25519PrivateKey,
+            )
+
+            from core.identity.genesis import (
+                HumanAttestation,
+                IdentityGenesis,
+                PersonaSeed,
+                SovereigntyScope,
+            )
+
+            # Generate keypair — sk stays on-device
+            private_key = Ed25519PrivateKey.generate()
+            public_key = private_key.public_key().public_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PublicFormat.Raw,
+            )
+            private_bytes = private_key.private_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PrivateFormat.Raw,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+
+            # Store private key on-device only
+            key_path = STATE_DIR / "node.key"
+            key_path.write_bytes(private_bytes)
+            key_path.chmod(0o600)
+            log.info("Node keypair generated — private key at %s", key_path)
+
+            # Create signed genesis identity
+            user_name = data.get("userName", "Sovereign")
+            genesis = IdentityGenesis.create(
+                public_key,
+                persona_seed=PersonaSeed(
+                    display_name=user_name,
+                    mission_statement=data.get(
+                        "mission", "Sovereign node — standing alone"
+                    ),
+                    locale=data.get("lang", "en"),
+                ),
+                human_attestation=HumanAttestation.DEVICE_WITNESSED,
+                sovereignty_scope=SovereigntyScope.DEVICE_LOCAL,
+                genesis_signing_key=private_bytes,
+            )
+
+            log.info(
+                "Genesis identity created: %s | signature verified: %s",
+                genesis.identity_id[:16],
+                genesis.verify_genesis_signature(),
+            )
+
+            return {
+                "identity_id": genesis.identity_id,
+                "public_key_hex": public_key.hex(),
+                "genesis_hash": genesis.genesis_hash,
+                "genesis_signature": genesis.genesis_signature,
+                "sovereignty_class": genesis.sovereignty_class.name,
+                "genesis_verified": genesis.verify_genesis_signature(),
+            }
+
+        except ImportError as e:
+            log.warning("Genesis identity unavailable (missing dep): %s", e)
+            return {"identity_id": "pending", "genesis_verified": False}
+        except (OSError, ValueError) as e:
+            log.error("Genesis identity creation failed: %s", e)
+            return {"identity_id": "error", "genesis_verified": False}
 
     def read(self) -> dict[str, Any]:
         with self._lock:
@@ -303,6 +395,7 @@ class SovereignState:
             self._state = {}
             if INIT_FILE.exists():
                 INIT_FILE.unlink()
+            # Keep the keypair — identity persists across resets
             log.info("Kernel state reset -- next boot will show installer")
 
 

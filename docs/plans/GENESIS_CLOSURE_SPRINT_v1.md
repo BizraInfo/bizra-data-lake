@@ -162,3 +162,4 @@ Start with Task 1 and Task 2 together:
 That is the shortest path from architectural intention to operational closure.
 
 
+
