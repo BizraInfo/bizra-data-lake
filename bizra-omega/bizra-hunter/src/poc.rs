@@ -13,22 +13,43 @@
 
 use crate::pipeline::VulnType;
 
+/// Validate an Ethereum address string.
+/// Must be \"0x\" followed by exactly 40 hex characters.
+fn validate_address(addr: &str) -> Result<&str, &'static str> {
+    if addr.len() != 42 {
+        return Err("address must be 42 characters (0x + 40 hex)");
+    }
+    if !addr.starts_with("0x") && !addr.starts_with("0X") {
+        return Err("address must start with 0x");
+    }
+    if !addr[2..].chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("address must contain only hex characters after 0x");
+    }
+    Ok(addr)
+}
+
 /// Safe PoC generator
 pub struct SafePoC;
 
 impl SafePoC {
-    /// Generate safe PoC code for a vulnerability type
-    pub fn generate(vuln_type: VulnType, target_addr: &str, location: u32) -> String {
-        match vuln_type {
-            VulnType::Reentrancy => Self::reentrancy_poc(target_addr, location),
-            VulnType::Overflow => Self::overflow_poc(target_addr, location),
-            VulnType::AccessControl => Self::access_control_poc(target_addr, location),
-            VulnType::OracleManipulation => Self::oracle_poc(target_addr, location),
-            VulnType::FlashLoan => Self::flash_loan_poc(target_addr, location),
-            VulnType::FrontRunning => Self::front_running_poc(target_addr, location),
-            VulnType::Dos => Self::dos_poc(target_addr, location),
-            VulnType::Unknown => Self::generic_poc(target_addr, location),
-        }
+    /// Generate safe PoC code for a vulnerability type.
+    /// Returns `Err` if `target_addr` is not a valid Ethereum address.
+    pub fn generate(
+        vuln_type: VulnType,
+        target_addr: &str,
+        location: u32,
+    ) -> Result<String, &'static str> {
+        let addr = validate_address(target_addr)?;
+        Ok(match vuln_type {
+            VulnType::Reentrancy => Self::reentrancy_poc(addr, location),
+            VulnType::Overflow => Self::overflow_poc(addr, location),
+            VulnType::AccessControl => Self::access_control_poc(addr, location),
+            VulnType::OracleManipulation => Self::oracle_poc(addr, location),
+            VulnType::FlashLoan => Self::flash_loan_poc(addr, location),
+            VulnType::FrontRunning => Self::front_running_poc(addr, location),
+            VulnType::Dos => Self::dos_poc(addr, location),
+            VulnType::Unknown => Self::generic_poc(addr, location),
+        })
     }
 
     /// Reentrancy PoC (detection only, no exploitation)
@@ -437,20 +458,22 @@ contract GenericAnalyzer {{
         )
     }
 
-    /// Generate Foundry test for PoC
-    pub fn generate_test(vuln_type: VulnType, target_addr: &str) -> String {
-        format!(
+    /// Generate Foundry test for PoC.
+    /// Returns `Err` if `target_addr` is not a valid Ethereum address.
+    pub fn generate_test(vuln_type: VulnType, target_addr: &str) -> Result<String, &'static str> {
+        let addr = validate_address(target_addr)?;
+        Ok(format!(
             r#"// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 
 // Foundry test for SAFE vulnerability verification
-// Target: {target_addr}
+// Target: {addr}
 // Type: {vuln_type:?}
 
 contract VulnerabilityTest is Test {{
-    address target = {target_addr};
+    address target = {addr};
 
     function setUp() public {{
         // Fork mainnet at current block
@@ -471,7 +494,7 @@ contract VulnerabilityTest is Test {{
 
 // Run with: forge test --match-test testVulnerabilityExists -vvvv
 "#
-        )
+        ))
     }
 }
 
@@ -481,7 +504,12 @@ mod tests {
 
     #[test]
     fn test_reentrancy_poc_generation() {
-        let poc = SafePoC::generate(VulnType::Reentrancy, "0x1234", 100);
+        let poc = SafePoC::generate(
+            VulnType::Reentrancy,
+            "0x1234567890abcdef1234567890abcdef12345678",
+            100,
+        )
+        .unwrap();
         assert!(poc.contains("ReentrancyDetector"));
         assert!(poc.contains("SAFE"));
         assert!(poc.contains("NO VALUE IS EXTRACTED"));
@@ -500,8 +528,9 @@ mod tests {
             VulnType::Unknown,
         ];
 
+        let addr = "0x1234567890abcdef1234567890abcdef12345678";
         for vuln_type in types {
-            let poc = SafePoC::generate(vuln_type, "0xtest", 0);
+            let poc = SafePoC::generate(vuln_type, addr, 0).unwrap();
             assert!(poc.contains("SAFE"));
             assert!(poc.len() > 100);
         }
@@ -509,8 +538,26 @@ mod tests {
 
     #[test]
     fn test_foundry_test_generation() {
-        let test = SafePoC::generate_test(VulnType::Reentrancy, "0x1234");
+        let test = SafePoC::generate_test(
+            VulnType::Reentrancy,
+            "0x1234567890abcdef1234567890abcdef12345678",
+        )
+        .unwrap();
         assert!(test.contains("forge-std/Test.sol"));
         assert!(test.contains("createSelectFork"));
+    }
+
+    #[test]
+    fn test_invalid_address_rejected() {
+        assert!(SafePoC::generate(VulnType::Reentrancy, "0x1234", 0).is_err());
+        assert!(
+            SafePoC::generate(VulnType::Reentrancy, "not_an_address_at_all_with_pad!", 0).is_err()
+        );
+        assert!(SafePoC::generate(
+            VulnType::Reentrancy,
+            "1234567890abcdef1234567890abcdef1234567890",
+            0
+        )
+        .is_err());
     }
 }

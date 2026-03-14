@@ -8,8 +8,9 @@
 //! - Bounty estimate (for prioritization)
 
 use blake3::Hasher;
+use lru::LruCache;
 use parking_lot::RwLock;
-use rustc_hash::FxHashMap;
+use std::num::NonZeroUsize;
 
 /// Metadata for cached invariants
 #[derive(Debug, Clone, Copy)]
@@ -24,21 +25,16 @@ pub struct InvariantMeta {
 
 /// Thread-safe invariant deduplication cache
 pub struct InvariantCache {
-    /// Hash → Metadata map (fixed capacity)
-    cache: RwLock<FxHashMap<[u8; 32], InvariantMeta>>,
-    /// Maximum capacity
-    capacity: usize,
+    /// LRU cache: Hash → Metadata (automatic eviction of least-recently-used)
+    cache: RwLock<LruCache<[u8; 32], InvariantMeta>>,
 }
 
 impl InvariantCache {
     /// Create new cache with fixed capacity
     pub fn new(capacity: usize) -> Self {
+        let cap = NonZeroUsize::new(capacity).expect("capacity must be > 0");
         Self {
-            cache: RwLock::new(FxHashMap::with_capacity_and_hasher(
-                capacity,
-                Default::default(),
-            )),
-            capacity,
+            cache: RwLock::new(LruCache::new(cap)),
         }
     }
 
@@ -59,31 +55,13 @@ impl InvariantCache {
 
         // Fast path: read lock check
         {
-            let cache = self.cache.read();
-            if cache.contains_key(&hash) {
-                return false; // Duplicate
-            }
-        }
-
-        // Slow path: write lock insert
-        {
             let mut cache = self.cache.write();
-
-            // Double-check after acquiring write lock
-            if cache.contains_key(&hash) {
-                return false;
+            if cache.get(&hash).is_some() {
+                return false; // Duplicate (also promotes to MRU)
             }
 
-            // Check capacity (evict oldest if needed)
-            if cache.len() >= self.capacity {
-                // Simple eviction: remove first entry (in practice, use LRU)
-                if let Some(key) = cache.keys().next().copied() {
-                    cache.remove(&key);
-                }
-            }
-
-            // Insert new entry
-            cache.insert(
+            // LruCache handles eviction automatically when at capacity
+            cache.put(
                 hash,
                 InvariantMeta {
                     first_seen: crate::pipeline::now_nanos(),
@@ -99,12 +77,12 @@ impl InvariantCache {
     /// Check if hash exists (read-only)
     pub fn contains(&self, hash: &[u8; 32]) -> bool {
         let cache = self.cache.read();
-        cache.contains_key(hash)
+        cache.contains(hash)
     }
 
     /// Get metadata for hash
     pub fn get(&self, hash: &[u8; 32]) -> Option<InvariantMeta> {
-        let cache = self.cache.read();
+        let mut cache = self.cache.write();
         cache.get(hash).copied()
     }
 
@@ -144,7 +122,7 @@ impl InvariantCache {
     /// Get all hashes (for export)
     pub fn get_all_hashes(&self) -> Vec<[u8; 32]> {
         let cache = self.cache.read();
-        cache.keys().copied().collect()
+        cache.iter().map(|(k, _)| *k).collect()
     }
 }
 

@@ -69,9 +69,15 @@ def _runtime(tmp_path) -> MagicMock:
     return runtime
 
 
+class _URL:
+    def __init__(self, path: str = "/test"):
+        self.path = path
+
+
 class _Request:
     def __init__(self, headers: dict[str, str] | None = None):
         self.headers = headers or {}
+        self.url = _URL()
 
 
 def _endpoint(app, path: str, method: str = "POST"):

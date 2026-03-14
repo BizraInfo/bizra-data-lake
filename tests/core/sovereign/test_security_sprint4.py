@@ -70,11 +70,17 @@ def _runtime(tmp_path) -> MagicMock:
     return runtime
 
 
+class _URL:
+    def __init__(self, path: str = "/test"):
+        self.path = path
+
+
 class _Request:
     """Fake HTTP request for testing endpoint auth."""
 
     def __init__(self, headers: dict[str, str] | None = None):
         self.headers = headers or {}
+        self.url = _URL()
 
 
 def _get_endpoint(app, path: str, method: str = "GET"):
