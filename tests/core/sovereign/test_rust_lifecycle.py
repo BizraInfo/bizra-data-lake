@@ -222,6 +222,7 @@ class TestFactory:
     """Tests for factory functions."""
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_create_rust_lifecycle(self):
         """Test factory function."""
         manager = await create_rust_lifecycle(
