@@ -888,6 +888,8 @@ class KernelHandler(SimpleHTTPRequestHandler):
                     "total_captured": _memory_handler.total,
                 }
             )
+        elif path == "/api/readiness":
+            self._json_response(_run_readiness_probe(self.sovereign_state))
         elif path == "/api/constitution":
             self._json_response(_get_constitution())
         elif path == "/api/genesis/verify":
