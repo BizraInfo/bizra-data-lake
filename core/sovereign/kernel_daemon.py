@@ -666,6 +666,145 @@ def _verify_genesis(state: "SovereignState") -> dict[str, Any]:
 
 
 # ═══════════════════════════════════════════════════════════
+#  SELF-DIAGNOSIS — deep readiness probe (K8s pattern)
+# ═══════════════════════════════════════════════════════════
+
+
+def _run_readiness_probe(state: "SovereignState") -> dict[str, Any]:
+    """Deep self-diagnosis: verify critical subsystems are operational.
+
+    Standing on Giants: Deming (PDCA check) · Burns (K8s readiness probes)
+
+    Returns structured results for each subsystem with pass/fail + detail.
+    """
+    t0 = time.monotonic()
+    probes: list[dict[str, Any]] = []
+
+    # Probe 1: Core imports
+    try:
+        from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+
+        probes.append(
+            {"name": "core_imports", "pass": True, "detail": "constants loaded"}
+        )
+    except Exception as e:
+        probes.append({"name": "core_imports", "pass": False, "detail": str(e)})
+
+    # Probe 2: Constitutional thresholds
+    try:
+        from core.integration.constants import (
+            ADL_GINI_THRESHOLD,
+            KERNEL_INVARIANTS,
+            UNIFIED_IHSAN_THRESHOLD,
+            UNIFIED_SNR_THRESHOLD,
+        )
+
+        valid = (
+            UNIFIED_IHSAN_THRESHOLD == 0.95
+            and UNIFIED_SNR_THRESHOLD == 0.85
+            and ADL_GINI_THRESHOLD == 0.35
+            and len(KERNEL_INVARIANTS) == 3
+        )
+        probes.append(
+            {
+                "name": "constitution",
+                "pass": valid,
+                "detail": f"ihsan={UNIFIED_IHSAN_THRESHOLD} snr={UNIFIED_SNR_THRESHOLD} gini={ADL_GINI_THRESHOLD} invariants={len(KERNEL_INVARIANTS)}",
+            }
+        )
+    except Exception as e:
+        probes.append({"name": "constitution", "pass": False, "detail": str(e)})
+
+    # Probe 3: Genesis identity
+    s = state.read()
+    genesis_ok = (
+        s.get("genesis_verified") is True and len(s.get("identity_id", "")) == 64
+    )
+    probes.append(
+        {
+            "name": "genesis_identity",
+            "pass": genesis_ok,
+            "detail": f"id={s.get('identity_id', 'none')[:16]}... verified={s.get('genesis_verified')}",
+        }
+    )
+
+    # Probe 4: Genesis signature re-verification
+    verify_result = _verify_genesis(state)
+    probes.append(
+        {
+            "name": "genesis_signature",
+            "pass": verify_result.get("verified") is True,
+            "detail": f"hash={verify_result.get('genesis_hash', 'none')[:16]}...",
+        }
+    )
+
+    # Probe 5: Threshold registry
+    try:
+        from core.integration.threshold_registry import registry
+
+        sealed = registry._sealed
+        count = len(registry.all_thresholds())
+        probes.append(
+            {
+                "name": "threshold_registry",
+                "pass": sealed and count >= 20,
+                "detail": f"sealed={sealed} count={count}",
+            }
+        )
+    except Exception as e:
+        probes.append({"name": "threshold_registry", "pass": False, "detail": str(e)})
+
+    # Probe 6: Identity module
+    try:
+        from core.identity.genesis import IdentityGenesis, SovereigntyClass
+
+        probes.append(
+            {
+                "name": "identity_module",
+                "pass": True,
+                "detail": "Ed25519 + BLAKE2b available",
+            }
+        )
+    except Exception as e:
+        probes.append({"name": "identity_module", "pass": False, "detail": str(e)})
+
+    # Probe 7: Heartbeat alive
+    hb_ok = len(_heartbeat_history) > 0
+    probes.append(
+        {
+            "name": "heartbeat",
+            "pass": hb_ok,
+            "detail": f"beats={len(_heartbeat_history)} latest={'yes' if hb_ok else 'none'}",
+        }
+    )
+
+    # Probe 8: PCI gate module
+    try:
+        from core.pci.gates import PCIGateKeeper
+
+        probes.append(
+            {"name": "pci_gates", "pass": True, "detail": "PCIGateKeeper available"}
+        )
+    except Exception as e:
+        probes.append({"name": "pci_gates", "pass": False, "detail": str(e)})
+
+    elapsed_ms = round((time.monotonic() - t0) * 1000, 1)
+    passed = sum(1 for p in probes if p["pass"])
+    total = len(probes)
+    ready = passed == total
+
+    return {
+        "ready": ready,
+        "passed": passed,
+        "total": total,
+        "score": round(passed / total, 3) if total else 0.0,
+        "probes": probes,
+        "elapsed_ms": elapsed_ms,
+        "version": KERNEL_VERSION,
+    }
+
+
+# ═══════════════════════════════════════════════════════════
 #  HTTP REQUEST HANDLER — serves frontend + API
 # ═══════════════════════════════════════════════════════════
 
@@ -755,9 +894,12 @@ class KernelHandler(SimpleHTTPRequestHandler):
             self._json_response(_verify_genesis(self.sovereign_state))
         elif path == "/api/heartbeat":
             beats = list(_heartbeat_history)
+            latest = beats[-1] if beats else None
             self._json_response(
                 {
-                    "latest": beats[-1] if beats else None,
+                    "health": latest["health"] if latest else "unknown",
+                    "anomalies": latest["anomalies"] if latest else [],
+                    "latest": latest,
                     "count": len(beats),
                     "interval_s": HEARTBEAT_INTERVAL_S,
                 }
@@ -978,20 +1120,88 @@ def _uptime() -> float:
 HEARTBEAT_INTERVAL_S = 30
 _heartbeat_history: deque[dict[str, Any]] = deque(maxlen=120)  # 1 hour at 30s
 
+# Anomaly thresholds — reflex arc triggers
+_ANOMALY_ERROR_RATE = 0.05  # > 5% error rate
+_ANOMALY_P95_LATENCY_MS = 5000.0  # > 5s p95
+_ANOMALY_RSS_GROWTH_MB = 100.0  # > 100 MB growth from baseline
+_ANOMALY_MISSED_BACKENDS = 1  # any backend down
+
+
+def _read_live_rss_mb() -> float:
+    """Read current VmRSS from /proc/self/status (Linux/WSL).
+
+    Returns live resident set size in MB, not peak watermark.
+    Falls back to ru_maxrss if /proc is unavailable.
+    """
+    try:
+        with open("/proc/self/status", "r") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    # Format: "VmRSS:    12345 kB"
+                    return round(int(line.split()[1]) / 1024, 1)
+    except (FileNotFoundError, ValueError, IndexError, OSError):
+        pass
+    # Fallback: peak RSS from resource module
+    import resource
+
+    return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
+
+
+def _read_peak_rss_mb() -> float:
+    """Read peak RSS (ru_maxrss) for watermark tracking."""
+    import resource
+
+    return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
+
+
+def _classify_health(
+    error_rate: float,
+    p95_ms: float,
+    rss_mb: float,
+    baseline_rss_mb: float,
+    alive_count: int,
+    total_backends: int,
+) -> tuple[str, list[str]]:
+    """Classify organism health from vitals. Returns (state, anomalies).
+
+    States: healthy | degraded | critical
+    """
+    anomalies: list[str] = []
+
+    if error_rate > _ANOMALY_ERROR_RATE:
+        anomalies.append(f"error_rate={error_rate:.3f}>{_ANOMALY_ERROR_RATE}")
+    if p95_ms > _ANOMALY_P95_LATENCY_MS:
+        anomalies.append(f"p95={p95_ms:.0f}ms>{_ANOMALY_P95_LATENCY_MS:.0f}ms")
+    if rss_mb - baseline_rss_mb > _ANOMALY_RSS_GROWTH_MB:
+        anomalies.append(
+            f"rss_growth={rss_mb - baseline_rss_mb:.1f}MB>{_ANOMALY_RSS_GROWTH_MB}MB"
+        )
+    if alive_count < total_backends:
+        anomalies.append(f"backends={alive_count}/{total_backends}")
+
+    if len(anomalies) >= 3:
+        return "critical", anomalies
+    elif len(anomalies) >= 1:
+        return "degraded", anomalies
+    return "healthy", anomalies
+
 
 def _heartbeat_loop(
     state: "SovereignState",
     watchdog: "SubprocessWatchdog",
     shutdown: threading.Event,
+    main_loop: Any = None,  # asyncio event loop from main thread
 ) -> None:
     """Background thread emitting system vitals every HEARTBEAT_INTERVAL_S.
+
+    Phase N.1 Reflex Arc: truthful pulse → anomaly classification → bus propagation.
 
     Standing on Giants: Deming (PDCA continuous observation) · Boyd (OODA orient)
     """
     import platform
-    import resource
 
     beat_count = 0
+    baseline_rss_mb = _read_live_rss_mb()
 
     while not shutdown.is_set():
         shutdown.wait(timeout=HEARTBEAT_INTERVAL_S)
@@ -999,56 +1209,81 @@ def _heartbeat_loop(
             break
 
         beat_count += 1
-        rusage = resource.getrusage(resource.RUSAGE_SELF)
+        rss_mb = _read_live_rss_mb()
+        peak_rss_mb = _read_peak_rss_mb()
         backends = watchdog.status()
         alive_count = sum(1 for b in backends if b["alive"])
         metrics_snap = _metrics.snapshot()
+        error_rate = metrics_snap["error_rate"]
+        p95_ms = metrics_snap["latency_ms"]["p95"]
+
+        # Reflex arc: classify health from vitals
+        health_state, anomalies = _classify_health(
+            error_rate, p95_ms, rss_mb, baseline_rss_mb, alive_count, len(backends)
+        )
 
         heartbeat = {
             "beat": beat_count,
             "ts": datetime.now(timezone.utc).isoformat(),
             "uptime_s": _uptime(),
+            "health": health_state,
+            "anomalies": anomalies,
             "initialized": state.is_initialized,
             "backends_alive": alive_count,
             "backends_total": len(backends),
             "requests_total": metrics_snap["requests_total"],
-            "error_rate": metrics_snap["error_rate"],
-            "latency_p95_ms": metrics_snap["latency_ms"]["p95"],
-            "memory_rss_mb": round(rusage.ru_maxrss / 1024, 1),
-            "cpu_user_s": round(rusage.ru_utime, 2),
-            "cpu_sys_s": round(rusage.ru_stime, 2),
+            "error_rate": error_rate,
+            "latency_p95_ms": p95_ms,
+            "memory_rss_mb": rss_mb,
+            "memory_peak_rss_mb": peak_rss_mb,
+            "cpu_user_s": round(
+                __import__("resource")
+                .getrusage(__import__("resource").RUSAGE_SELF)
+                .ru_utime,
+                2,
+            ),
+            "cpu_sys_s": round(
+                __import__("resource")
+                .getrusage(__import__("resource").RUSAGE_SELF)
+                .ru_stime,
+                2,
+            ),
             "python_version": platform.python_version(),
         }
 
         _heartbeat_history.append(heartbeat)
 
-        # Emit to EventBus if available (graceful fallback)
-        try:
-            from core.bus.event_bus import get_global_bus
+        # Emit to EventBus via main loop (thread-safe bridge)
+        if main_loop is not None:
+            try:
+                from core.bus.event_bus import get_global_bus
 
-            bus = get_global_bus()
-            if bus is not None:
-                import asyncio
+                bus = get_global_bus()
+                if bus is not None:
+                    import asyncio
 
-                try:
-                    loop = asyncio.get_running_loop()
-                    loop.call_soon_threadsafe(
+                    main_loop.call_soon_threadsafe(
                         asyncio.ensure_future,
                         bus.emit("kernel.heartbeat", heartbeat),
                     )
-                except RuntimeError:
-                    pass  # No running loop — skip emission
-        except ImportError:
-            pass  # EventBus not available — heartbeat still recorded locally
+            except (ImportError, RuntimeError):
+                pass  # EventBus or loop not available
 
-        if beat_count % 10 == 0:  # Log every 5 minutes
+        # Log anomalies immediately, healthy every 5 minutes
+        if health_state != "healthy":
+            log.warning(
+                "Heartbeat #%d %s | %s",
+                beat_count,
+                health_state.upper(),
+                ", ".join(anomalies),
+            )
+        elif beat_count % 10 == 0:
             log.info(
-                "Heartbeat #%d | uptime=%.0fs rss=%.1fMB reqs=%d err_rate=%.3f backends=%d/%d",
+                "Heartbeat #%d healthy | uptime=%.0fs rss=%.1fMB reqs=%d backends=%d/%d",
                 beat_count,
                 heartbeat["uptime_s"],
-                heartbeat["memory_rss_mb"],
+                rss_mb,
                 heartbeat["requests_total"],
-                heartbeat["error_rate"],
                 alive_count,
                 len(backends),
             )
@@ -1120,15 +1355,28 @@ def main() -> None:
         # Non-main thread (e.g., test harness) — skip signal registration
         log.warning("Signal handlers skipped (non-main thread)")
 
+    # ── Capture main event loop for thread-safe EventBus emission ──
+    import asyncio
+
+    try:
+        main_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(main_loop)
+    except Exception:
+        main_loop = None
+
     # ── Start heartbeat thread (continuous self-observation) ──
     heartbeat_thread = threading.Thread(
         target=_heartbeat_loop,
-        args=(state, watchdog, _shutdown_event),
+        args=(state, watchdog, _shutdown_event, main_loop),
         daemon=True,
         name="heartbeat",
     )
     heartbeat_thread.start()
-    log.info("Heartbeat thread started (interval=%ds)", HEARTBEAT_INTERVAL_S)
+    log.info(
+        "Heartbeat thread started (interval=%ds, bus=%s)",
+        HEARTBEAT_INTERVAL_S,
+        "wired" if main_loop else "local",
+    )
 
     # ── Start HTTP server ──
     handler_factory = partial(KernelHandler, state=state, watchdog=watchdog)
