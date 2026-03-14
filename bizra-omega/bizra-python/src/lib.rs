@@ -3,6 +3,8 @@
 //! Exposes Rust bizra-core to Python for 10-100x performance boost.
 //! Giants: PyO3 team, Rust-Python interop pioneers
 
+mod urp_bridge;
+
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 
@@ -1893,6 +1895,9 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Post-Quantum Cryptography
     m.add_class::<PyDilithiumKeypair>()?;
+
+    // URP Bridge: ResourcePool types and operations
+    urp_bridge::register_urp_types(m)?;
 
     // Module metadata
     m.add("__version__", "2.0.0")?;

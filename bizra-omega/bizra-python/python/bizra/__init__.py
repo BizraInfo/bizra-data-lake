@@ -45,6 +45,18 @@ try:
         IHSAN_THRESHOLD,
         SNR_THRESHOLD,
         __version__,
+        # URP Bridge: ResourcePool types and operations (Phase 82)
+        PyResourcePool,
+        PyURPPledge,
+        PyPoolNode,
+        PyContributionReceipt,
+        PyPoolStats,
+        submit_pledge,
+        contribute_resources,
+        get_rewards,
+        process_zakat,
+        check_adl,
+        pool_stats,
     )
 except ImportError:
     # Fallback for development without compiled Rust
@@ -143,4 +155,16 @@ __all__ = [
     "IHSAN_THRESHOLD",
     "SNR_THRESHOLD",
     "__version__",
+    # URP Bridge (Phase 82)
+    "PyResourcePool",
+    "PyURPPledge",
+    "PyPoolNode",
+    "PyContributionReceipt",
+    "PyPoolStats",
+    "submit_pledge",
+    "contribute_resources",
+    "get_rewards",
+    "process_zakat",
+    "check_adl",
+    "pool_stats",
 ]
