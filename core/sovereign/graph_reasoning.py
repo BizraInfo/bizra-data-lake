@@ -617,12 +617,8 @@ class GraphReasoningMixin:
             reasoning.truthfulness = (
                 step_scores["truthfulness"] * 0.5 + current.truthfulness * 0.5
             )
-            reasoning.dignity = (
-                step_scores["dignity"] * 0.5 + current.dignity * 0.5
-            )
-            reasoning.fairness = (
-                step_scores["fairness"] * 0.5 + current.fairness * 0.5
-            )
+            reasoning.dignity = step_scores["dignity"] * 0.5 + current.dignity * 0.5
+            reasoning.fairness = step_scores["fairness"] * 0.5 + current.fairness * 0.5
             reasoning.excellence = (
                 step_scores["excellence"] * 0.5 + current.excellence * 0.5
             )
