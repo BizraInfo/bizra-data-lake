@@ -160,3 +160,4 @@ Start with Task 1 and Task 2 together:
 - implement `core/bus/subscribers.py`
 
 That is the shortest path from architectural intention to operational closure.
+

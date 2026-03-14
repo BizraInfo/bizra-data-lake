@@ -81,8 +81,14 @@ class ThresholdRegistry:
                 cls._instance = instance
             return cls._instance
 
-    def register(self, name: str, value: float, category: str = "general",
-                 constitutional: bool = True, description: str = "") -> None:
+    def register(
+        self,
+        name: str,
+        value: float,
+        category: str = "general",
+        constitutional: bool = True,
+        description: str = "",
+    ) -> None:
         """Register a threshold. Raises SealedRegistryError if sealed."""
         if self._sealed:
             raise SealedRegistryError(
@@ -165,7 +171,10 @@ class ThresholdRegistry:
 
         # Patterns that indicate a threshold definition (not import)
         threshold_patterns = {
-            "IHSAN", "SNR_THRESHOLD", "ADL_GINI", "GATE_MINIMUM",
+            "IHSAN",
+            "SNR_THRESHOLD",
+            "ADL_GINI",
+            "GATE_MINIMUM",
         }
 
         for root, _dirs, files in os.walk(core_dir):
@@ -199,14 +208,18 @@ class ThresholdRegistry:
                         # Check if it's a numeric assignment (shadow)
                         if isinstance(node.value, (ast.Constant, ast.Dict)):
                             rel_path = os.path.relpath(fpath, core_dir.parent)
-                            shadows.append({
-                                "file": rel_path.replace("\\", "/"),
-                                "name": name,
-                                "line": node.lineno,
-                                "type": "numeric_shadow" if isinstance(
-                                    node.value, ast.Constant
-                                ) else "dict_shadow",
-                            })
+                            shadows.append(
+                                {
+                                    "file": rel_path.replace("\\", "/"),
+                                    "name": name,
+                                    "line": node.lineno,
+                                    "type": (
+                                        "numeric_shadow"
+                                        if isinstance(node.value, ast.Constant)
+                                        else "dict_shadow"
+                                    ),
+                                }
+                            )
 
         return shadows
 
@@ -220,21 +233,25 @@ class ThresholdRegistry:
         drifts: list[dict[str, Any]] = []
         for name, expected in CANONICAL_THRESHOLDS.items():
             if not self.has(name):
-                drifts.append({
-                    "name": name,
-                    "expected": expected,
-                    "actual": None,
-                    "status": "missing",
-                })
+                drifts.append(
+                    {
+                        "name": name,
+                        "expected": expected,
+                        "actual": None,
+                        "status": "missing",
+                    }
+                )
                 continue
             actual = self.get(name)
             if abs(actual - expected) > 1e-9:
-                drifts.append({
-                    "name": name,
-                    "expected": expected,
-                    "actual": actual,
-                    "status": "drift",
-                })
+                drifts.append(
+                    {
+                        "name": name,
+                        "expected": expected,
+                        "actual": actual,
+                        "status": "drift",
+                    }
+                )
         return drifts
 
     @classmethod
@@ -275,7 +292,11 @@ def _boot_registry() -> ThresholdRegistry:
         ("IHSAN_POI_CONSENSUS", C.IHSAN_POI_CONSENSUS, "PoI attestation minimum"),
         ("IHSAN_BLOOM_ELIGIBILITY", C.IHSAN_BLOOM_ELIGIBILITY, "BLOOM minting gate"),
         ("IHSAN_CONFORMANCE_JOIN", C.IHSAN_CONFORMANCE_JOIN, "Network join gate"),
-        ("REFLEX_PRECIPITATION_IHSAN", C.REFLEX_PRECIPITATION_IHSAN, "Cache precipitation"),
+        (
+            "REFLEX_PRECIPITATION_IHSAN",
+            C.REFLEX_PRECIPITATION_IHSAN,
+            "Cache precipitation",
+        ),
     ]:
         reg.register(name, value, category="ihsan", description=desc)
 
