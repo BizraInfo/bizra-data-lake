@@ -10,12 +10,20 @@ from __future__ import annotations
 import hashlib
 import os
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 import pytest
 
 from core.identity.genesis import (
+    GENESIS_SIGNATURE_DOMAIN,
+    GenesisWalletState,
+    HumanAttestation,
     IdentityGenesis,
     NodeBody,
+    PersonaSeed,
     SovereigntyClass,
+    SovereigntyScope,
     derive_agent_keypairs,
     derive_identity_id,
 )
@@ -207,6 +215,7 @@ class TestIdentityGenesisDataclass:
         genesis = IdentityGenesis.create(pk)
         assert genesis.wallet_seed_balance == 0.0
         assert genesis.wallet_bloom_balance == 0.0
+        assert genesis.genesis_wallet_state == GenesisWalletState()
 
     def test_assert_uniqueness_same_pk(self):
         pk = os.urandom(32)
@@ -220,3 +229,91 @@ class TestIdentityGenesisDataclass:
         g1 = IdentityGenesis.create(pk1)
         g2 = IdentityGenesis.create(pk2)
         g1.assert_uniqueness(g2)
+
+
+class TestIdentityGenesisExtensions:
+    """IDG §1.2 extensions for persona, attestation, and signed genesis."""
+
+    def test_persona_attestation_scope_and_wallet_state(self):
+        pk = os.urandom(32)
+        persona = PersonaSeed(
+            display_name="Mumo",
+            mission_statement="Stand on giants without forking authority",
+            locale="en-AE",
+        )
+        wallet_state = GenesisWalletState(seed_balance=3.5, bloom_balance=1.25)
+
+        genesis = IdentityGenesis.create(
+            pk,
+            persona_seed=persona,
+            human_attestation=HumanAttestation.DEVICE_WITNESSED,
+            sovereignty_scope=SovereigntyScope.NODE_LOCAL,
+            wallet_state=wallet_state,
+            created_at=1_700_000_000.0,
+        )
+
+        assert genesis.persona_seed == persona
+        assert genesis.human_attestation is HumanAttestation.DEVICE_WITNESSED
+        assert genesis.sovereignty_scope is SovereigntyScope.NODE_LOCAL
+        assert genesis.genesis_wallet_state == wallet_state
+        assert genesis.wallet_seed_balance == 3.5
+        assert genesis.wallet_bloom_balance == 1.25
+
+    def test_genesis_hash_is_stable_for_fixed_payload_and_changes_with_persona(self):
+        pk = os.urandom(32)
+        persona = PersonaSeed(display_name="Mumo", mission_statement="BIZRA", locale="en")
+        same_1 = IdentityGenesis.create(pk, persona_seed=persona, created_at=1234.5)
+        same_2 = IdentityGenesis.create(pk, persona_seed=persona, created_at=1234.5)
+        changed = IdentityGenesis.create(
+            pk,
+            persona_seed=PersonaSeed(display_name="DEMA", mission_statement="BIZRA", locale="en"),
+            created_at=1234.5,
+        )
+
+        assert same_1.genesis_hash == same_2.genesis_hash
+        assert len(same_1.genesis_hash) == 64
+        assert same_1.genesis_hash != changed.genesis_hash
+
+    def test_genesis_signature_verifies_with_domain_separation(self):
+        private_key = Ed25519PrivateKey.generate()
+        public_key = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        private_bytes = private_key.private_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+
+        genesis = IdentityGenesis.create(
+            public_key,
+            persona_seed=PersonaSeed(display_name="Mumo", mission_statement="BIZRA", locale="en"),
+            created_at=1234.5,
+            genesis_signing_key=private_bytes,
+        )
+
+        assert genesis.genesis_signature_domain == GENESIS_SIGNATURE_DOMAIN
+        assert len(genesis.genesis_signature) == 128
+        assert genesis.verify_genesis_signature()
+
+        verifier = private_key.public_key()
+        verifier.verify(bytes.fromhex(genesis.genesis_signature), genesis.signable_payload())
+        with pytest.raises(InvalidSignature):
+            verifier.verify(bytes.fromhex(genesis.genesis_signature), genesis.genesis_hash.encode("ascii"))
+
+    def test_genesis_signature_rejects_mismatched_signing_key(self):
+        expected_private_key = Ed25519PrivateKey.generate()
+        wrong_private_key = Ed25519PrivateKey.generate()
+        public_key = expected_private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        wrong_private_bytes = wrong_private_key.private_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+
+        with pytest.raises(ValueError, match="does not match"):
+            IdentityGenesis.create(public_key, genesis_signing_key=wrong_private_bytes)

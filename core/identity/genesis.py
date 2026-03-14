@@ -9,10 +9,19 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import time
-from dataclasses import dataclass, field
-from enum import IntEnum
+from dataclasses import dataclass, field, replace
+from enum import IntEnum, StrEnum
 from typing import Any, Optional
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+
+from core.integration.constants import DOMAIN_IDENTITY_GENESIS
+
+GENESIS_SIGNATURE_DOMAIN = DOMAIN_IDENTITY_GENESIS
 
 
 class SovereigntyClass(IntEnum):
@@ -31,6 +40,44 @@ class SovereigntyClass(IntEnum):
     SPROUT = 1
     TREE = 2
     FOREST = 3
+
+
+class HumanAttestation(StrEnum):
+    """Lightweight human attestation posture at genesis time."""
+
+    SELF_ASSERTED = "self_asserted"
+    DEVICE_WITNESSED = "device_witnessed"
+    PEER_ATTESTED = "peer_attested"
+    VERIFIED_HUMAN = "verified_human"
+
+
+class SovereigntyScope(StrEnum):
+    """How far the genesis identity is intended to operate."""
+
+    DEVICE_LOCAL = "device_local"
+    USER_LOCAL = "user_local"
+    NODE_LOCAL = "node_local"
+    FEDERATION_ELIGIBLE = "federation_eligible"
+
+
+@dataclass(frozen=True)
+class PersonaSeed:
+    """Initial persona material carried into genesis formalization."""
+
+    display_name: str = ""
+    mission_statement: str = ""
+    locale: str = "en"
+
+
+@dataclass(frozen=True)
+class GenesisWalletState:
+    """Lightweight wallet stub for SEED/BLOOM bootstrapping."""
+
+    seed_balance: float = 0.0
+    bloom_balance: float = 0.0
+    seed_retention_ratio: float = 1.0
+    zakat_due_ratio: float = 0.025
+    bloom_transferable: bool = False
 
 
 def derive_identity_id(public_key: bytes) -> str:
@@ -64,6 +111,22 @@ def derive_agent_keypairs(seed: bytes, count: int = 12) -> list[tuple[bytes, byt
     return keypairs
 
 
+def _canonical_json(payload: dict[str, Any]) -> bytes:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _signable_genesis_message(genesis_hash: str) -> bytes:
+    return f"{GENESIS_SIGNATURE_DOMAIN}:{genesis_hash}".encode("utf-8")
+
+
+def _public_key_from_private_key(private_key: bytes) -> bytes:
+    signer = Ed25519PrivateKey.from_private_bytes(private_key)
+    return signer.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+
+
 @dataclass(frozen=True)
 class IdentityGenesis:
     """Definition 1.6: BIZRA Identity.
@@ -86,21 +149,124 @@ class IdentityGenesis:
     sovereignty_class: SovereigntyClass
     wallet_seed_balance: float = 0.0
     wallet_bloom_balance: float = 0.0
+    human_attestation: HumanAttestation = HumanAttestation.SELF_ASSERTED
+    sovereignty_scope: SovereigntyScope = SovereigntyScope.DEVICE_LOCAL
+    persona_seed: PersonaSeed = field(default_factory=PersonaSeed)
+    genesis_wallet_state: GenesisWalletState = field(default_factory=GenesisWalletState)
+    genesis_signature: str = ""
     created_at: float = field(default_factory=time.time)
 
+    def __post_init__(self) -> None:
+        if (
+            self.genesis_wallet_state.seed_balance != self.wallet_seed_balance
+            or self.genesis_wallet_state.bloom_balance != self.wallet_bloom_balance
+        ):
+            object.__setattr__(
+                self,
+                "genesis_wallet_state",
+                GenesisWalletState(
+                    seed_balance=self.wallet_seed_balance,
+                    bloom_balance=self.wallet_bloom_balance,
+                    seed_retention_ratio=self.genesis_wallet_state.seed_retention_ratio,
+                    zakat_due_ratio=self.genesis_wallet_state.zakat_due_ratio,
+                    bloom_transferable=self.genesis_wallet_state.bloom_transferable,
+                ),
+            )
+
     @staticmethod
-    def create(public_key: bytes) -> IdentityGenesis:
+    def create(
+        public_key: bytes,
+        *,
+        persona_seed: Optional[PersonaSeed] = None,
+        human_attestation: HumanAttestation = HumanAttestation.SELF_ASSERTED,
+        sovereignty_scope: SovereigntyScope = SovereigntyScope.DEVICE_LOCAL,
+        wallet_state: Optional[GenesisWalletState] = None,
+        created_at: Optional[float] = None,
+        genesis_signing_key: Optional[bytes] = None,
+    ) -> IdentityGenesis:
         """Genesis creation from public key.
 
         The secret key (sk) stays on-device and is never passed
-        to this constructor, enforcing P2 (Self-Sovereignty).
+        to this constructor unless a local genesis signature is explicitly
+        requested, enforcing P2 (Self-Sovereignty).
         """
         identity_id = derive_identity_id(public_key)
-        return IdentityGenesis(
+        genesis_wallet_state = wallet_state or GenesisWalletState()
+        genesis = IdentityGenesis(
             public_key=public_key,
             identity_id=identity_id,
             sovereignty_class=SovereigntyClass.SEED,
+            wallet_seed_balance=genesis_wallet_state.seed_balance,
+            wallet_bloom_balance=genesis_wallet_state.bloom_balance,
+            human_attestation=human_attestation,
+            sovereignty_scope=sovereignty_scope,
+            persona_seed=persona_seed or PersonaSeed(),
+            genesis_wallet_state=genesis_wallet_state,
+            created_at=time.time() if created_at is None else created_at,
         )
+        if genesis_signing_key is None:
+            return genesis
+        return genesis.with_genesis_signature(genesis_signing_key)
+
+    def genesis_payload(self) -> dict[str, Any]:
+        """Canonical payload used for genesis hashing and signature derivation."""
+        return {
+            "public_key_hex": self.public_key.hex(),
+            "identity_id": self.identity_id,
+            "sovereignty_class": self.sovereignty_class.name,
+            "human_attestation": self.human_attestation.value,
+            "sovereignty_scope": self.sovereignty_scope.value,
+            "persona_seed": {
+                "display_name": self.persona_seed.display_name,
+                "mission_statement": self.persona_seed.mission_statement,
+                "locale": self.persona_seed.locale,
+            },
+            "wallet_state": {
+                "seed_balance": self.genesis_wallet_state.seed_balance,
+                "bloom_balance": self.genesis_wallet_state.bloom_balance,
+                "seed_retention_ratio": self.genesis_wallet_state.seed_retention_ratio,
+                "zakat_due_ratio": self.genesis_wallet_state.zakat_due_ratio,
+                "bloom_transferable": self.genesis_wallet_state.bloom_transferable,
+            },
+            "created_at": round(float(self.created_at), 6),
+        }
+
+    @property
+    def genesis_hash(self) -> str:
+        """Canonical BLAKE2b hash of the genesis payload."""
+        return hashlib.blake2b(
+            _canonical_json(self.genesis_payload()),
+            digest_size=32,
+        ).hexdigest()
+
+    @property
+    def genesis_signature_domain(self) -> str:
+        """Explicit domain separation tag for genesis signatures."""
+        return GENESIS_SIGNATURE_DOMAIN
+
+    def signable_payload(self) -> bytes:
+        """Domain-separated payload for local genesis signing."""
+        return _signable_genesis_message(self.genesis_hash)
+
+    def with_genesis_signature(self, genesis_signing_key: bytes) -> IdentityGenesis:
+        """Return a copy with an Ed25519 genesis signature attached."""
+        expected_public_key = _public_key_from_private_key(genesis_signing_key)
+        if expected_public_key != self.public_key:
+            raise ValueError("Genesis signing key does not match public key")
+        signer = Ed25519PrivateKey.from_private_bytes(genesis_signing_key)
+        signature = signer.sign(self.signable_payload()).hex()
+        return replace(self, genesis_signature=signature)
+
+    def verify_genesis_signature(self) -> bool:
+        """Verify the current genesis signature against the public key."""
+        if not self.genesis_signature:
+            return False
+        verifier = Ed25519PublicKey.from_public_bytes(self.public_key)
+        try:
+            verifier.verify(bytes.fromhex(self.genesis_signature), self.signable_payload())
+        except (InvalidSignature, ValueError):
+            return False
+        return True
 
     def assert_uniqueness(self, other: IdentityGenesis) -> None:
         """P1: id_i = id_j implies pk_i = pk_j."""

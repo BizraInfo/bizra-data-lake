@@ -24,6 +24,7 @@ from .constitution_parser import (
     resolve_constitution_path,
     validate_constitution,
 )
+from .threshold_registry import ThresholdRegistry, registry
 
 
 # Lazy import bridge to avoid circular imports with PCI
@@ -50,4 +51,6 @@ __all__ = [
     "load_constitution",
     "resolve_constitution_path",
     "validate_constitution",
+    "ThresholdRegistry",
+    "registry",
 ]
