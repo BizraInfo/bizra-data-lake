@@ -72,12 +72,20 @@ _SUB_QUESTION_PATTERNS = [
     r"\b(step[- ]by[- ]step)\b",
     r"\b(pros? and cons?)\b",
     r"\b(trade[- ]?offs?)\b",
+    # Phase 80: architectural/engineering complexity signals
+    r"\b(redesign|refactor|architect|implement|migrate)\b",
+    r"\b(thread[- ]?safe|lock[- ]?free|concurrent|async)\b",
+    r"\b(while maintaining|without breaking|backward.?compat)\b",
 ]
 
 _MULTI_DOMAIN_PATTERNS = [
     r"\b(and also|additionally|furthermore|moreover)\b",
     r"\b(from .+ perspective)\b",
     r"\b(considering .+ and .+)\b",
+    # Phase 80: multi-constraint architectural signals
+    r"\b(while .+ing)\b",
+    r"\b(with .+ and .+)\b",
+    r"\b(show me .+ and .+)\b",
 ]
 
 
@@ -126,10 +134,19 @@ class EntropyRouter:
         q_marks = query_text.count("?")
         q_score = min(q_marks / 3.0, 1.0)
 
-        # 6. Explicit complexity hint from context
+        # 6. Imperative action verbs (instructions without ? still complex)
+        _IMPERATIVE_VERBS = re.compile(
+            r"\b(create|build|design|write|implement|show me|generate|deploy"
+            r"|configure|set up|wire|connect|fix|debug|optimize|execute)\b",
+            re.IGNORECASE,
+        )
+        imperative_count = len(_IMPERATIVE_VERBS.findall(query_text))
+        imperative_score = min(imperative_count / 2.0, 1.0)
+
+        # 7. Explicit complexity hint from context
         hint = float(context.get("complexity_hint", 0.0))
 
-        # Weighted combination
+        # Weighted combination (original 6 signals)
         score = (
             0.25 * entropy
             + 0.15 * length_score
@@ -138,6 +155,8 @@ class EntropyRouter:
             + 0.10 * q_score
             + 0.15 * hint
         )
+        # Bonus: imperative verbs boost complexity (additive, max +0.15)
+        score = min(score + 0.15 * imperative_score, 1.0)
         return min(max(score, 0.0), 1.0)
 
     @staticmethod
