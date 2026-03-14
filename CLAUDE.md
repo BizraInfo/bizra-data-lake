@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **BIZRA-DATA-LAKE** is the persistent memory and knowledge layer of the BIZRA ecosystem — a decentralized agentic system built on Proof-Carrying Inference, FATE gates, and constitutional AI governance. The repo contains a Python sovereignty infrastructure (`core/`) and a high-performance Rust workspace (`bizra-omega/`, 23 crates).
 
-**Environment:** WSL Ubuntu on Windows | Python 3.11+ | Rust stable (1.88+)
+**Environment:** WSL Ubuntu on Windows | Python 3.11+ | Rust stable (1.91+)
 
 ## Common Commands
 
@@ -133,7 +133,7 @@ Defined in `.github/workflows/ci.yml`. Stages:
 6. **Security** — bandit, pip-audit, cargo-audit, Trivy
 7. **Docker Build** — `deploy/Dockerfile.elite` (Python), `bizra-omega/Dockerfile` (Rust)
 
-Coverage floor: **38%** enforced in pyproject.toml (ratcheting toward 95%).
+Coverage floor: **75%** enforced in pyproject.toml (ratcheted from 38%).
 
 ## Test Organization
 

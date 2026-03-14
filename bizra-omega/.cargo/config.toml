@@ -1,0 +1,3 @@
+# Build acceleration for 32-core i9-14900HX
+[build]
+jobs = 32
