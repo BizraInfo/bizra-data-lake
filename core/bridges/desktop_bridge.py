@@ -625,7 +625,9 @@ class DesktopBridge:
         if chain is None:
             return {}
         try:
-            content_bytes = content.encode("utf-8") if isinstance(content, str) else content
+            content_bytes = (
+                content.encode("utf-8") if isinstance(content, str) else content
+            )
             results = chain.verify(content_bytes, snr_score, ihsan_score)
             gates = {
                 name: {"passed": passed, "code": code} for name, passed, code in results
