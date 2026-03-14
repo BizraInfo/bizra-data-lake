@@ -753,6 +753,15 @@ class KernelHandler(SimpleHTTPRequestHandler):
             self._json_response(_get_constitution())
         elif path == "/api/genesis/verify":
             self._json_response(_verify_genesis(self.sovereign_state))
+        elif path == "/api/heartbeat":
+            beats = list(_heartbeat_history)
+            self._json_response(
+                {
+                    "latest": beats[-1] if beats else None,
+                    "count": len(beats),
+                    "interval_s": HEARTBEAT_INTERVAL_S,
+                }
+            )
         # ── Frontend Routes ──
         elif path == "/" or path == "":
             if self.sovereign_state.is_initialized:
@@ -963,6 +972,91 @@ def _uptime() -> float:
 
 
 # ═══════════════════════════════════════════════════════════
+#  HEARTBEAT — continuous self-observation (Deming PDCA)
+# ═══════════════════════════════════════════════════════════
+
+HEARTBEAT_INTERVAL_S = 30
+_heartbeat_history: deque[dict[str, Any]] = deque(maxlen=120)  # 1 hour at 30s
+
+
+def _heartbeat_loop(
+    state: "SovereignState",
+    watchdog: "SubprocessWatchdog",
+    shutdown: threading.Event,
+) -> None:
+    """Background thread emitting system vitals every HEARTBEAT_INTERVAL_S.
+
+    Standing on Giants: Deming (PDCA continuous observation) · Boyd (OODA orient)
+    """
+    import platform
+    import resource
+
+    beat_count = 0
+
+    while not shutdown.is_set():
+        shutdown.wait(timeout=HEARTBEAT_INTERVAL_S)
+        if shutdown.is_set():
+            break
+
+        beat_count += 1
+        rusage = resource.getrusage(resource.RUSAGE_SELF)
+        backends = watchdog.status()
+        alive_count = sum(1 for b in backends if b["alive"])
+        metrics_snap = _metrics.snapshot()
+
+        heartbeat = {
+            "beat": beat_count,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "uptime_s": _uptime(),
+            "initialized": state.is_initialized,
+            "backends_alive": alive_count,
+            "backends_total": len(backends),
+            "requests_total": metrics_snap["requests_total"],
+            "error_rate": metrics_snap["error_rate"],
+            "latency_p95_ms": metrics_snap["latency_ms"]["p95"],
+            "memory_rss_mb": round(rusage.ru_maxrss / 1024, 1),
+            "cpu_user_s": round(rusage.ru_utime, 2),
+            "cpu_sys_s": round(rusage.ru_stime, 2),
+            "python_version": platform.python_version(),
+        }
+
+        _heartbeat_history.append(heartbeat)
+
+        # Emit to EventBus if available (graceful fallback)
+        try:
+            from core.bus.event_bus import get_global_bus
+
+            bus = get_global_bus()
+            if bus is not None:
+                import asyncio
+
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.call_soon_threadsafe(
+                        asyncio.ensure_future,
+                        bus.emit("kernel.heartbeat", heartbeat),
+                    )
+                except RuntimeError:
+                    pass  # No running loop — skip emission
+        except ImportError:
+            pass  # EventBus not available — heartbeat still recorded locally
+
+        if beat_count % 10 == 0:  # Log every 5 minutes
+            log.info(
+                "Heartbeat #%d | uptime=%.0fs rss=%.1fMB reqs=%d err_rate=%.3f backends=%d/%d",
+                beat_count,
+                heartbeat["uptime_s"],
+                heartbeat["memory_rss_mb"],
+                heartbeat["requests_total"],
+                heartbeat["error_rate"],
+                alive_count,
+                len(backends),
+            )
+
+    log.info("Heartbeat thread stopped after %d beats", beat_count)
+
+
+# ═══════════════════════════════════════════════════════════
 #  SIGNAL HANDLING — graceful shutdown
 # ═══════════════════════════════════════════════════════════
 
@@ -1026,6 +1120,16 @@ def main() -> None:
         # Non-main thread (e.g., test harness) — skip signal registration
         log.warning("Signal handlers skipped (non-main thread)")
 
+    # ── Start heartbeat thread (continuous self-observation) ──
+    heartbeat_thread = threading.Thread(
+        target=_heartbeat_loop,
+        args=(state, watchdog, _shutdown_event),
+        daemon=True,
+        name="heartbeat",
+    )
+    heartbeat_thread.start()
+    log.info("Heartbeat thread started (interval=%ds)", HEARTBEAT_INTERVAL_S)
+
     # ── Start HTTP server ──
     handler_factory = partial(KernelHandler, state=state, watchdog=watchdog)
     server = HTTPServer(("127.0.0.1", KERNEL_PORT), handler_factory)
@@ -1039,6 +1143,9 @@ def main() -> None:
     log.info("  /rpc          -> reverse proxy to bridge (:9742)")
     log.info("  /api/health   -> health check")
     log.info("  /api/status   -> subsystem status")
+    log.info("  /api/constitution -> constitutional thresholds")
+    log.info("  /api/genesis/verify -> genesis signature verification")
+    log.info("  /api/heartbeat -> system vitals (30s pulse)")
     log.info("  /api/metrics  -> request metrics + latency")
     log.info("  /api/logs     -> structured log stream")
 
