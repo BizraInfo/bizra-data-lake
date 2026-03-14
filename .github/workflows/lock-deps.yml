@@ -35,6 +35,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install governance dependencies
+        run: pip install packaging
+
       - name: Validate source dependency contract
         run: python scripts/ci_dependency_governance.py --skip-lock
         env:
