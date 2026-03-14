@@ -348,7 +348,9 @@ class GenesisActivation:
             from core.genesis.urp import pledge_resources
 
             hardware = ceremony_result.genesis_json.get("hardware", {})
-            node_id = ceremony_result.genesis_json.get("identity", {}).get("node_id", "")
+            node_id = ceremony_result.genesis_json.get("identity", {}).get(
+                "node_id", ""
+            )
             if not node_id or not hardware:
                 return
 

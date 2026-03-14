@@ -1,8 +1,10 @@
 """
-Tests for URP Rust Bridge — graceful degradation path.
+Tests for URP Rust Bridge — both degraded and live paths.
 
-These tests run WITHOUT PyO3/Rust. They verify that URPRustBridge
-returns None for every operation when the Rust backend is unavailable.
+Tests are structured to pass regardless of whether PyO3 is built:
+- Degradation tests force-disable the bridge to verify None returns
+- Live tests run when PyO3 IS available (skipif not)
+- Mocked tests verify the wrapper logic independent of backend
 
 Standing on Giants: Liskov (substitution), Meszaros (test doubles)
 """
@@ -16,6 +18,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from core.bridges.urp_rust_bridge import URPRustBridge
+
+# Detect whether the real Rust backend is available
+_RUST_AVAILABLE = URPRustBridge().available
 
 
 # -------------------------------------------------------------------------
@@ -56,41 +61,49 @@ def fake_pledge() -> FakePledge:
     return FakePledge()
 
 
+def _make_disabled_bridge() -> URPRustBridge:
+    """Create a bridge with Rust explicitly disabled."""
+    bridge = URPRustBridge.__new__(URPRustBridge)
+    bridge._available = False
+    bridge._pool = None
+    return bridge
+
+
 # -------------------------------------------------------------------------
-# Test: Bridge unavailable (Level 0 degradation)
+# Test: Bridge unavailable (Level 0 degradation — forced off)
 # -------------------------------------------------------------------------
 
 
 class TestURPRustBridgeDegradation:
-    """All operations return None when Rust is unavailable."""
+    """All operations return None when Rust is forced unavailable."""
 
     def test_bridge_not_available(self) -> None:
-        bridge = URPRustBridge()
+        bridge = _make_disabled_bridge()
         assert bridge.available is False
 
     def test_submit_pledge_returns_none(self, fake_pledge: FakePledge) -> None:
-        bridge = URPRustBridge()
+        bridge = _make_disabled_bridge()
         assert bridge.submit_pledge(fake_pledge) is None
 
     def test_contribute_returns_none(self) -> None:
-        bridge = URPRustBridge()
+        bridge = _make_disabled_bridge()
         result = bridge.contribute("node1", "cpu", 2.0, 3600000, "hash123")
         assert result is None
 
     def test_get_rewards_returns_none(self) -> None:
-        bridge = URPRustBridge()
+        bridge = _make_disabled_bridge()
         assert bridge.get_rewards("node1") is None
 
     def test_process_zakat_returns_none(self) -> None:
-        bridge = URPRustBridge()
+        bridge = _make_disabled_bridge()
         assert bridge.process_zakat() is None
 
     def test_check_adl_returns_none(self) -> None:
-        bridge = URPRustBridge()
+        bridge = _make_disabled_bridge()
         assert bridge.check_adl() is None
 
     def test_stats_returns_none(self) -> None:
-        bridge = URPRustBridge()
+        bridge = _make_disabled_bridge()
         assert bridge.stats() is None
 
 
@@ -205,6 +218,54 @@ class TestURPRustBridgeMocked:
 
 
 # -------------------------------------------------------------------------
+# Test: Live Rust backend (only when PyO3 built)
+# -------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(not _RUST_AVAILABLE, reason="PyO3 bizra not built")
+class TestURPRustBridgeLive:
+    """Integration tests using the real Rust ResourcePool."""
+
+    def test_bridge_available(self) -> None:
+        bridge = URPRustBridge()
+        assert bridge.available is True
+
+    def test_pool_stats_returns_dict(self) -> None:
+        bridge = URPRustBridge()
+        result = bridge.stats()
+        assert result is not None
+        assert "total_nodes" in result
+        assert "gini_coefficient" in result
+        assert "adl_compliant" in result
+
+    def test_check_adl_returns_dict(self) -> None:
+        bridge = URPRustBridge()
+        result = bridge.check_adl()
+        assert result is not None
+        assert result["compliant"] is True
+        assert result["gini_coefficient"] >= 0.0
+
+    def test_process_zakat_returns_dict(self) -> None:
+        bridge = URPRustBridge()
+        result = bridge.process_zakat()
+        assert result is not None
+        assert "total_collected" in result
+
+    def test_unsigned_pledge_returns_none(self, fake_pledge: FakePledge) -> None:
+        """Unsigned pledge fails at Rust validation, bridge returns None."""
+        bridge = URPRustBridge()
+        result = bridge.submit_pledge(fake_pledge)
+        # Unsigned pledge → Rust rejects → wrapper catches → None
+        assert result is None
+
+    def test_get_rewards_unknown_node(self) -> None:
+        bridge = URPRustBridge()
+        result = bridge.get_rewards("nonexistent-node-xyz")
+        # Unknown node → Rust returns error → wrapper catches → None
+        assert result is None
+
+
+# -------------------------------------------------------------------------
 # Test: Pledge conversion helpers
 # -------------------------------------------------------------------------
 
@@ -212,19 +273,41 @@ class TestURPRustBridgeMocked:
 class TestPledgeConversion:
     """Tests for pledge_to_rust / rust_verify_pledge helpers."""
 
-    def test_pledge_to_rust_returns_none_no_pyO3(self) -> None:
+    def test_pledge_to_rust_forced_unavailable(self) -> None:
+        """With bizra mocked as ImportError, returns None."""
+        from core.genesis.urp import pledge_to_rust
+
+        pledge = FakePledge()
+        with patch.dict("sys.modules", {"bizra": None}):
+            result = pledge_to_rust(pledge)
+            assert result is None
+
+    @pytest.mark.skipif(not _RUST_AVAILABLE, reason="PyO3 bizra not built")
+    def test_pledge_to_rust_with_pyO3(self) -> None:
+        """With real PyO3, converts successfully."""
         from core.genesis.urp import pledge_to_rust
 
         pledge = FakePledge()
         result = pledge_to_rust(pledge)
-        assert result is None
+        assert result is not None
+        assert result.node_id == "test-node-001"
 
-    def test_rust_verify_pledge_returns_none_no_pyO3(self) -> None:
+    def test_rust_verify_pledge_forced_unavailable(self) -> None:
         from core.genesis.urp import rust_verify_pledge
 
         pledge = FakePledge()
+        with patch.dict("sys.modules", {"bizra": None}):
+            result = rust_verify_pledge(pledge)
+            assert result is None
+
+    @pytest.mark.skipif(not _RUST_AVAILABLE, reason="PyO3 bizra not built")
+    def test_rust_verify_unsigned_returns_false(self) -> None:
+        """Unsigned pledge → Rust verify returns False."""
+        from core.genesis.urp import rust_verify_pledge
+
+        pledge = FakePledge(signed=False)
         result = rust_verify_pledge(pledge)
-        assert result is None
+        assert result is False
 
     def test_pledge_to_dict_passed_correctly(self, fake_pledge: FakePledge) -> None:
         d = fake_pledge.to_dict()
@@ -241,15 +324,23 @@ class TestPledgeConversion:
 class TestEdgeCases:
     """Edge cases for bridge robustness."""
 
-    def test_submit_raw_dict_pledge(self) -> None:
-        """Bridge handles a raw dict (no to_dict method)."""
-        bridge = URPRustBridge()
+    def test_submit_raw_dict_pledge_degraded(self) -> None:
+        """Disabled bridge handles a raw dict (no to_dict method)."""
+        bridge = _make_disabled_bridge()
         result = bridge.submit_pledge({"node_id": "x", "ram_gb": 8})
         assert result is None
 
     def test_multiple_bridge_instances_independent(self) -> None:
-        b1 = URPRustBridge()
-        b2 = URPRustBridge()
+        b1 = _make_disabled_bridge()
+        b2 = _make_disabled_bridge()
         assert b1.available is False
         assert b2.available is False
+        assert b1 is not b2
+
+    @pytest.mark.skipif(not _RUST_AVAILABLE, reason="PyO3 bizra not built")
+    def test_multiple_live_bridges(self) -> None:
+        b1 = URPRustBridge()
+        b2 = URPRustBridge()
+        assert b1.available is True
+        assert b2.available is True
         assert b1 is not b2
