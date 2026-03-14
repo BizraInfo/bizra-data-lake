@@ -17,7 +17,10 @@ from typing import Any, Optional
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
 
 from core.integration.constants import DOMAIN_IDENTITY_GENESIS
 
@@ -263,7 +266,9 @@ class IdentityGenesis:
             return False
         verifier = Ed25519PublicKey.from_public_bytes(self.public_key)
         try:
-            verifier.verify(bytes.fromhex(self.genesis_signature), self.signable_payload())
+            verifier.verify(
+                bytes.fromhex(self.genesis_signature), self.signable_payload()
+            )
         except (InvalidSignature, ValueError):
             return False
         return True
