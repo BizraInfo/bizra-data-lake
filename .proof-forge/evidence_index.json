@@ -1,10 +1,10 @@
 {
   "project": "BIZRA-DATA-LAKE",
   "created": "2026-02-10T01:15:06.460894+00:00",
-  "last_updated": "2026-03-12T21:02:52.428834+00:00",
-  "chain_length": 3,
-  "latest_receipt": "receipt-1773349372.json",
-  "latest_chain_hash": "9928757e76ad2489d1572e4e9fa67f13f2c52f2e8c3f2569fb5a6e6d394daad5",
+  "last_updated": "2026-03-14T09:07:21.144595+00:00",
+  "chain_length": 4,
+  "latest_receipt": "receipt-1773479241.json",
+  "latest_chain_hash": "2fa6465d45546f6bf7a9db3e20d3fddc3b79fe48f81e54ddc3a4af1be839e586",
   "genesis_hash": "5aa9996c2e878adcd06dc97db984e80516320d7ebdf01fbfdfb65cb66ed70cf2",
   "receipts": [
     {
@@ -27,6 +27,23 @@
       "chain_hash": "9928757e76ad2489d1572e4e9fa67f13f2c52f2e8c3f2569fb5a6e6d394daad5",
       "confidence": 5,
       "description": "Session Sprint: Node0 Heartbeat (951L, 84 tests, 94.77% cov) + Organism Bridge (17 tests) + FATE Aggregate Fix (helix3 L303/L503) + Enforcement Closure E1-E6 (6 commits) + Optimization Spine R1-R4 (74..."
+    },
+    {
+      "id": "receipt-1773479241",
+      "timestamp": "2026-03-14T09:07:21.144595+00:00",
+      "chain_hash": "2fa6465d45546f6bf7a9db3e20d3fddc3b79fe48f81e54ddc3a4af1be839e586",
+      "confidence": 4,
+      "description": "ThresholdRegistry: sealed-after-boot constitutional enforcement singleton (31 thresholds across 5 categories: ihsan/snr/..."
+    },
+    {
+      "run_id": "phase-s-n-20260314-154441",
+      "timestamp": "2026-03-14T15:44:41.796560+00:00",
+      "description": "Phase S+N: Node0 Sovereign Activation \u2014 15 commits, Birth through Reflex Arc",
+      "evidence_hash": "b72a0b369742ec36c25f2f96d7829ac28e03883fc359f7f469a1aa92068a4d01",
+      "confidence": "Strong",
+      "receipt_file": "receipt-1773503081.json"
     }
-  ]
+  ],
+  "latest_hash": "b72a0b369742ec36c25f2f96d7829ac28e03883fc359f7f469a1aa92068a4d01",
+  "total_receipts": 5
 }
