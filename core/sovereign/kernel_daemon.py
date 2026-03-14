@@ -756,7 +756,7 @@ def _run_readiness_probe(state: "SovereignState") -> dict[str, Any]:
 
     # Probe 6: Identity module
     try:
-        from core.identity.genesis import IdentityGenesis, SovereigntyClass
+        from core.identity.genesis import IdentityGenesis, SovereigntyClass  # noqa: F401
 
         probes.append(
             {
@@ -780,7 +780,7 @@ def _run_readiness_probe(state: "SovereignState") -> dict[str, Any]:
 
     # Probe 8: PCI gate module
     try:
-        from core.pci.gates import PCIGateKeeper
+        from core.pci.gates import PCIGateKeeper  # noqa: F401
 
         probes.append(
             {"name": "pci_gates", "pass": True, "detail": "PCIGateKeeper available"}
