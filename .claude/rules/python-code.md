@@ -2,7 +2,7 @@
 paths:
   - "**/*.py"
   - "core/**"
-  - "lib/**"
+  - "tests/**"
 ---
 
 # Python Code Standards

@@ -282,3 +282,8 @@ terminal/*.docx
 vectors.db
 preview-1.jpg
 replace_script.py
+
+# Linter/tool caches
+.ruff_cache/
+*.sarif
+*.whl

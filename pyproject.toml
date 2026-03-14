@@ -36,7 +36,7 @@ bizra = "core.sovereign.__main__:main"
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
+    "pytest-asyncio>=0.23.0",
     "pytest-cov>=4.1.0",
     "pytest-timeout>=2.2.0",
     "pytest-xdist>=3.5.0",
@@ -45,7 +45,7 @@ dev = [
     "black>=23.7.0",
     "isort>=5.12.0",
     "mypy>=1.5.0",
-    "ruff>=0.1.0",
+    "ruff>=0.4.0",
     "hypothesis>=6.100.0",
     "pyyaml>=6.0",
 ]
@@ -71,7 +71,7 @@ python_functions = ["test_*"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 timeout = 60
-timeout_method = "thread"
+timeout_method = "signal"
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
@@ -229,22 +229,13 @@ exclude = [
 # =============================================================================
 # Per-Module Overrides  (last matching section wins)
 # Strategy: relax ALL core.* by default, then promote clean modules to strict.
+# IMPORTANT: catch-all MUST come first — mypy uses last-match-wins.
 # =============================================================================
-
-[[tool.mypy.overrides]]
-# core.node0 — newest module, fully typed from birth. Strict enforced.
-module = "core.node0.*"
-strict = true
-
-[[tool.mypy.overrides]]
-# core.proof_engine — receipt/canonical/evidence layer. Strict enforced.
-module = "core.proof_engine.*"
-strict = true
 
 [[tool.mypy.overrides]]
 # Catch-all: every core.* module starts gradually-typed.
 # This silences annotation-coverage checks while keeping real type-checking on.
-# TODO: As modules gain full annotations, move them to the strict section below.
+# As modules gain full annotations, add them to the strict sections below.
 module = "core.*"
 strict = false
 disallow_untyped_defs = false
@@ -255,6 +246,16 @@ warn_unreachable = false
 disallow_untyped_calls = false
 allow_redefinition = true      # suppress no-redef (variable re-binding is common)
 warn_unused_ignores = false    # suppress unused-ignore from newly relaxed checks
+
+[[tool.mypy.overrides]]
+# core.node0 — newest module, fully typed from birth. Strict enforced.
+module = "core.node0.*"
+strict = true
+
+[[tool.mypy.overrides]]
+# core.proof_engine — receipt/canonical/evidence layer. Strict enforced.
+module = "core.proof_engine.*"
+strict = true
 
 [[tool.mypy.overrides]]
 # Test modules — relaxed for test fixtures and mocks

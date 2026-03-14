@@ -26,6 +26,6 @@ paths:
 - Loading/error states explicit
 
 ## Testing
-- Jest + React Testing Library
+- Vitest + React Testing Library
 - Test behavior, not implementation
 - Integration tests for critical paths
