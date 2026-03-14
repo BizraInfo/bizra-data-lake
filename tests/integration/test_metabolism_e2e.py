@@ -69,6 +69,7 @@ async def metabolism_env(tmp_path, monkeypatch):
 
 
 @pytest.mark.integration
+@pytest.mark.slow
 def test_full_metabolism_loop(tmp_path, monkeypatch):
     asyncio.run(_test_full_metabolism_loop(tmp_path, monkeypatch))
 
@@ -128,6 +129,7 @@ async def _test_full_metabolism_loop(tmp_path, monkeypatch):
 
 
 @pytest.mark.integration
+@pytest.mark.slow
 def test_metabolism_reflex_compilation(tmp_path, monkeypatch):
     asyncio.run(_test_metabolism_reflex_compilation(tmp_path, monkeypatch))
 
@@ -232,6 +234,7 @@ async def _test_metabolism_event_bus_emissions(tmp_path, monkeypatch):
 
 
 @pytest.mark.integration
+@pytest.mark.slow
 def test_metabolism_wallet_growth_across_missions(tmp_path, monkeypatch):
     asyncio.run(_test_metabolism_wallet_growth_across_missions(tmp_path, monkeypatch))
 

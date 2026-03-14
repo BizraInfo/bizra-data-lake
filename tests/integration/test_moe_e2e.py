@@ -242,6 +242,13 @@ class TestFullPipeline:
                 observations.append(kwargs)
                 return None
 
+            @staticmethod
+            def _hash_input(input_text: str) -> str:
+                import hashlib
+
+                normalized = " ".join(input_text.lower().split())
+                return hashlib.sha256(normalized.encode()).hexdigest()
+
         with patch.object(bridge, "_ollama_generate", new_callable=AsyncMock) as mock:
             mock.return_value = (
                 "The system uses constitutional governance with Ihsan threshold "

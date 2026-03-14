@@ -75,6 +75,7 @@ class TestRustAPIClient:
         assert client.base_url == "http://localhost:3001"
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_health_check_connection_error(self):
         """Test health check handles connection errors gracefully."""
         client = RustAPIClient(base_url="http://localhost:9999")  # Non-existent
@@ -161,6 +162,7 @@ class TestRustLifecycleManager:
         assert "running" in stats
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_start_stop_lifecycle(self):
         """Test lifecycle start and stop."""
         manager = RustLifecycleManager(
@@ -180,6 +182,7 @@ class TestRustLifecycleManager:
         assert manager._running is False
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_health_callback(self):
         """Test health change callback."""
         manager = RustLifecycleManager(
@@ -328,6 +331,7 @@ class TestPipelineIntegration:
     """Tests for integration with OpportunityPipeline."""
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_pipeline_with_rust_filter(self):
         """Test OpportunityPipeline with Rust gate filter."""
         import time

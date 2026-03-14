@@ -1114,7 +1114,7 @@ class TestFederationStubs:
     async def test_stop_federation_handles_exception(self, tmp_path):
         rt = _build_runtime(tmp_path)
         mock_node = AsyncMock()
-        mock_node.stop.side_effect = RuntimeError("network error")
+        mock_node.stop.side_effect = OSError("network error")
         rt._federation_node = mock_node
         await rt._stop_federation()  # should not raise
         assert rt._federation_node is None

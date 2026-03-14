@@ -64,12 +64,12 @@ async def test_pooled_http_client_preserves_original_request_error(monkeypatch) 
     client = PooledHttpClient(pool=pool, base_url="http://localhost")
 
     async def _raise_from_executor(_executor, _fn):
-        raise RuntimeError("boom")
+        raise OSError("boom")
 
     loop = asyncio.get_running_loop()
     monkeypatch.setattr(loop, "run_in_executor", _raise_from_executor)
 
-    with pytest.raises(RuntimeError, match="boom"):
+    with pytest.raises(OSError, match="boom"):
         await client.request("GET", "/health")
 
     assert len(pool._pool) == 1
