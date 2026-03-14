@@ -589,6 +589,83 @@ class SubprocessWatchdog:
 
 
 # ═══════════════════════════════════════════════════════════
+#  CONSTITUTION & GENESIS VERIFICATION — self-describing node
+# ═══════════════════════════════════════════════════════════
+
+
+def _get_constitution() -> dict[str, Any]:
+    """Return the node's constitutional thresholds and kernel invariants.
+
+    Standing on Giants: Al-Ghazali (Ihsan) · Shannon (SNR) · Lamport (invariants)
+    """
+    try:
+        from core.integration.constants import (
+            ADL_GINI_THRESHOLD,
+            ADL_HARBERGER_TAX_RATE,
+            KERNEL_INVARIANTS,
+            SNR_THRESHOLD_T0_ELITE,
+            SNR_THRESHOLD_T1_HIGH,
+            STRICT_IHSAN_THRESHOLD,
+            UNIFIED_IHSAN_THRESHOLD,
+            UNIFIED_SNR_THRESHOLD,
+        )
+
+        return {
+            "thresholds": {
+                "ihsan_production": UNIFIED_IHSAN_THRESHOLD,
+                "ihsan_strict": STRICT_IHSAN_THRESHOLD,
+                "snr_minimum": UNIFIED_SNR_THRESHOLD,
+                "snr_t1_high": SNR_THRESHOLD_T1_HIGH,
+                "snr_t0_elite": SNR_THRESHOLD_T0_ELITE,
+                "adl_gini": ADL_GINI_THRESHOLD,
+                "adl_harberger": ADL_HARBERGER_TAX_RATE,
+            },
+            "kernel_invariants": list(KERNEL_INVARIANTS),
+            "source": "core/integration/constants.py",
+            "version": KERNEL_VERSION,
+        }
+    except ImportError as e:
+        return {"error": f"constants unavailable: {e}"}
+
+
+def _verify_genesis(state: "SovereignState") -> dict[str, Any]:
+    """Re-verify the genesis signature from stored state.
+
+    Uses the stored genesis_hash to reconstruct the exact signable payload,
+    then verifies the Ed25519 signature against the public key.
+
+    Standing on Giants: Bernstein (Ed25519) · Aumasson (BLAKE2b)
+    """
+    s = state.read()
+    if not s.get("genesis_signature") or not s.get("public_key_hex"):
+        return {"verified": False, "reason": "no genesis identity"}
+
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+            Ed25519PublicKey,
+        )
+
+        from core.identity.genesis import GENESIS_SIGNATURE_DOMAIN
+
+        public_key = bytes.fromhex(s["public_key_hex"])
+        genesis_hash = s["genesis_hash"]
+
+        # Reconstruct the exact domain-separated message that was signed
+        signable = f"{GENESIS_SIGNATURE_DOMAIN}:{genesis_hash}".encode("utf-8")
+
+        verifier = Ed25519PublicKey.from_public_bytes(public_key)
+        verifier.verify(bytes.fromhex(s["genesis_signature"]), signable)
+        return {
+            "verified": True,
+            "identity_id": s["identity_id"],
+            "sovereignty_class": s.get("sovereignty_class", "SEED"),
+            "genesis_hash": genesis_hash,
+        }
+    except Exception as e:
+        return {"verified": False, "reason": str(e)}
+
+
+# ═══════════════════════════════════════════════════════════
 #  HTTP REQUEST HANDLER — serves frontend + API
 # ═══════════════════════════════════════════════════════════
 
@@ -607,6 +684,8 @@ class KernelHandler(SimpleHTTPRequestHandler):
       GET  /api/state        -> sovereign initialization state
       GET  /api/metrics      -> request metrics + latency percentiles
       GET  /api/logs         -> recent structured log entries (ring buffer)
+      GET  /api/constitution -> constitutional thresholds + kernel invariants
+      GET  /api/genesis/verify -> re-verify genesis Ed25519 signature
       POST /api/initialize   -> mark kernel as initialized
       POST /api/reset        -> reset to first-run state
       POST /api/backends     -> restart a backend  {"action":"restart","name":"..."}
@@ -670,6 +749,10 @@ class KernelHandler(SimpleHTTPRequestHandler):
                     "total_captured": _memory_handler.total,
                 }
             )
+        elif path == "/api/constitution":
+            self._json_response(_get_constitution())
+        elif path == "/api/genesis/verify":
+            self._json_response(_verify_genesis(self.sovereign_state))
         # ── Frontend Routes ──
         elif path == "/" or path == "":
             if self.sovereign_state.is_initialized:
