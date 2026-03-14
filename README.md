@@ -80,7 +80,7 @@ BIZRA stands on the shoulders of giants: Shannon (information theory), Lamport (
 | `core/bridges/` | Desktop Bridge (TCP 9742), Sci-Reasoning, Rust lifecycle | Python |
 | `core/skills/` | Skill router + registry (Smart Files, RDVE, 43 skills) | Python |
 | `core/token/` | Token ledger, minting, Ed25519-signed transactions | Python |
-| `bizra-omega/` | High-performance core (22 Rust crates) | Rust |
+| `bizra-omega/` | High-performance core (23 Rust crates) | Rust |
 | `bizra-omega/bizra-core/` | Constitution, identity, FATE gates, Islamic finance | Rust |
 | `bizra-omega/bizra-federation/` | Federation protocol with gossip and signed messages | Rust |
 | `bizra-omega/bizra-cli/` | Terminal UI with real-time dashboards | Rust |
