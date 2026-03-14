@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**BIZRA-DATA-LAKE** is the persistent memory and knowledge layer of the BIZRA ecosystem — a decentralized agentic system built on Proof-Carrying Inference, FATE gates, and constitutional AI governance. The repo contains a Python sovereignty infrastructure (`core/`) and a high-performance Rust workspace (`bizra-omega/`, 22 crates).
+**BIZRA-DATA-LAKE** is the persistent memory and knowledge layer of the BIZRA ecosystem — a decentralized agentic system built on Proof-Carrying Inference, FATE gates, and constitutional AI governance. The repo contains a Python sovereignty infrastructure (`core/`) and a high-performance Rust workspace (`bizra-omega/`, 23 crates).
 
 **Environment:** WSL Ubuntu on Windows | Python 3.11+ | Rust stable (1.88+)
 
@@ -80,7 +80,7 @@ React 18 + TypeScript + Vite. Phase state machine (trust→splash→genesis→te
 ### Python (`core/`) and Rust (`bizra-omega/`) Mirror
 
 ```
-Python (core/)                          Rust (bizra-omega/ — 22 crates)
+Python (core/)                          Rust (bizra-omega/ — 23 crates)
 ├── pci/        Proof-Carrying Inference    bizra-core/        Constitution + FATE + Identity
 ├── federation/ P2P gossip + BFT consensus  bizra-federation/  Gossip + signed messages
 ├── inference/  Tiered LLM gateway          bizra-inference/   Inference backends
@@ -188,13 +188,14 @@ tests/
 
 ## Rust Workspace (bizra-omega/)
 
-22 crates in a unified workspace (v2.0.0). Five layers:
+23 crates in a unified workspace (v2.0.0). Six layers:
 
 - **Platform** (14): bizra-core, hypergraph, inference, autopoiesis, federation, installer, python, api, tests, hunter, telescript, proofspace, resourcepool, cli
 - **Cognitive** (2): bizra-hooks (nervous system), bizra-memory (synthesis pipeline)
 - **Action** (1): bizra-action (Event→Action→Receipt bus)
 - **TTRL** (1): bizra-ttrl (on-device RL with SSO spectral norm)
 - **Desktop** (2): bizra-agent (OmniKernel), bizra-node (sovereign binary)
+- **Numeric** (1): bizra-sippar (exact regular number arithmetic for token splits)
 - **Bindings** (2): fate-binding (Z3 + Dilithium post-quantum), iceoryx-bridge (zero-copy IPC)
 
 Key deps: `ed25519-dalek` (crypto), `tokio` (async), `blake3` (hashing+rayon), `z3` (formal verification), `pyo3` (Python bindings), `iceoryx2` (IPC), `pqcrypto-mldsa` (post-quantum).
