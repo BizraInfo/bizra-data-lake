@@ -188,17 +188,17 @@ impl OpCode {
         // Safety: all defined variants match their discriminant.
         // Undefined opcodes (gaps) are mapped to Invalid.
         match byte {
-            0x00..=0x0b => unsafe { std::mem::transmute(byte) },
-            0x10..=0x1d => unsafe { std::mem::transmute(byte) },
+            0x00..=0x0b => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
+            0x10..=0x1d => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
             0x20 => Self::Keccak256,
-            0x30..=0x3f => unsafe { std::mem::transmute(byte) },
-            0x40..=0x4a => unsafe { std::mem::transmute(byte) },
-            0x50..=0x5f => unsafe { std::mem::transmute(byte) },
-            0x60..=0x7f => unsafe { std::mem::transmute(byte) },
-            0x80..=0x8f => unsafe { std::mem::transmute(byte) },
-            0x90..=0x9f => unsafe { std::mem::transmute(byte) },
-            0xa0..=0xa4 => unsafe { std::mem::transmute(byte) },
-            0xf0..=0xf5 => unsafe { std::mem::transmute(byte) },
+            0x30..=0x3f => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
+            0x40..=0x4a => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
+            0x50..=0x5f => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
+            0x60..=0x7f => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
+            0x80..=0x8f => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
+            0x90..=0x9f => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
+            0xa0..=0xa4 => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
+            0xf0..=0xf5 => unsafe { std::mem::transmute::<u8, OpCode>(byte) },
             0xfa => Self::StaticCall,
             0xfd => Self::Revert,
             0xfe => Self::Invalid,
@@ -211,7 +211,7 @@ impl OpCode {
     #[inline]
     pub fn is_push(&self) -> bool {
         let b = *self as u8;
-        b >= 0x5f && b <= 0x7f
+        (0x5f..=0x7f).contains(&b)
     }
 
     /// Number of immediate data bytes following this instruction.
@@ -219,7 +219,7 @@ impl OpCode {
     #[inline]
     pub fn push_size(&self) -> usize {
         let b = *self as u8;
-        if b >= 0x60 && b <= 0x7f {
+        if (0x60..=0x7f).contains(&b) {
             (b - 0x5f) as usize
         } else {
             0
@@ -409,7 +409,7 @@ pub fn detect_opcode_sequences(instructions: &[Instruction]) -> Option<(Sequence
         if let Some((pattern, offset, priority)) = candidate {
             if best
                 .as_ref()
-                .map_or(true, |(_, _, best_p)| priority > *best_p)
+                .is_none_or(|(_, _, best_p)| priority > *best_p)
             {
                 best = Some((pattern, offset, priority));
             }
