@@ -666,31 +666,54 @@ def _verify_genesis(state: "SovereignState") -> dict[str, Any]:
 
 
 # ═══════════════════════════════════════════════════════════
-#  KNOWLEDGE SURFACE — GOLD corpus statistics + search
+#  KNOWLEDGE SURFACE — cached GOLD corpus (boot-time load)
 # ═══════════════════════════════════════════════════════════
 
+# In-memory cache: loaded once at first access, eliminates 12.8s NTFS I/O per query.
+_knowledge_cache: dict[str, Any] = {}
+_knowledge_cache_lock = threading.Lock()
 
-def _get_knowledge_stats() -> dict[str, Any]:
-    """Return statistics about the GOLD knowledge corpus.
 
-    Standing on Giants: Shannon (information density) · Deming (measurement)
+def _ensure_knowledge_loaded() -> bool:
+    """Load GOLD parquet files into memory on first access.
+
+    Standing on Giants: Shannon (information density) · Amdahl (amortized I/O)
+
+    Returns True if cache is populated, False if unavailable.
     """
-    gold_dir = PROJECT_ROOT / "04_GOLD"
-    if not gold_dir.exists():
-        return {"available": False, "reason": "04_GOLD directory not found"}
+    if _knowledge_cache.get("loaded"):
+        return True
 
-    try:
-        import pandas as pd
+    with _knowledge_cache_lock:
+        if _knowledge_cache.get("loaded"):
+            return True  # Double-check after lock
 
-        tables: list[dict[str, Any]] = []
-        total_rows = 0
-        total_bytes = 0
+        gold_dir = PROJECT_ROOT / "04_GOLD"
+        if not gold_dir.exists():
+            _knowledge_cache["error"] = "04_GOLD directory not found"
+            return False
 
-        for f in sorted(gold_dir.iterdir()):
-            if f.suffix == ".parquet":
+        try:
+            import pandas as pd
+
+            t0 = time.monotonic()
+            tables_meta: list[dict[str, Any]] = []
+            total_rows = 0
+            total_bytes = 0
+
+            search_order = [
+                "golden_gems_chunks.parquet",
+                "research_chunks.parquet",
+                "chunks.parquet",
+            ]
+
+            for f in sorted(gold_dir.iterdir()):
+                if f.suffix != ".parquet":
+                    continue
                 df = pd.read_parquet(f)
                 size = f.stat().st_size
-                tables.append(
+                _knowledge_cache[f"df:{f.name}"] = df
+                tables_meta.append(
                     {
                         "name": f.stem,
                         "rows": len(df),
@@ -701,82 +724,95 @@ def _get_knowledge_stats() -> dict[str, Any]:
                 total_rows += len(df)
                 total_bytes += size
 
-        return {
-            "available": True,
-            "tables": tables,
-            "total_rows": total_rows,
-            "total_size_mb": round(total_bytes / 1024 / 1024, 1),
-            "table_count": len(tables),
-            "gold_path": str(gold_dir),
-        }
-    except ImportError:
-        return {"available": False, "reason": "pandas not installed"}
-    except (OSError, ValueError) as e:
-        return {"available": False, "reason": str(e)}
+            load_ms = round((time.monotonic() - t0) * 1000)
+            _knowledge_cache["tables"] = tables_meta
+            _knowledge_cache["total_rows"] = total_rows
+            _knowledge_cache["total_bytes"] = total_bytes
+            _knowledge_cache["search_order"] = search_order
+            _knowledge_cache["gold_path"] = str(gold_dir)
+            _knowledge_cache["load_ms"] = load_ms
+            _knowledge_cache["loaded"] = True
+
+            log.info(
+                "Knowledge cache loaded: %d tables, %d rows, %.1f MB in %dms",
+                len(tables_meta),
+                total_rows,
+                total_bytes / 1024 / 1024,
+                load_ms,
+            )
+            return True
+
+        except ImportError:
+            _knowledge_cache["error"] = "pandas not installed"
+            return False
+        except (OSError, ValueError) as e:
+            _knowledge_cache["error"] = str(e)
+            return False
+
+
+def _get_knowledge_stats() -> dict[str, Any]:
+    """Return statistics about the GOLD knowledge corpus (from cache)."""
+    if not _ensure_knowledge_loaded():
+        return {"available": False, "reason": _knowledge_cache.get("error", "unknown")}
+
+    return {
+        "available": True,
+        "tables": _knowledge_cache["tables"],
+        "total_rows": _knowledge_cache["total_rows"],
+        "total_size_mb": round(_knowledge_cache["total_bytes"] / 1024 / 1024, 1),
+        "table_count": len(_knowledge_cache["tables"]),
+        "gold_path": _knowledge_cache["gold_path"],
+        "cache_load_ms": _knowledge_cache["load_ms"],
+        "cached": True,
+    }
 
 
 def _search_knowledge(query: str, limit: int = 10) -> dict[str, Any]:
-    """Search the GOLD knowledge corpus for relevant chunks.
+    """Search the cached GOLD corpus for relevant chunks.
 
-    Simple keyword search across chunks + research_chunks + golden_gems.
-    Future: vector similarity via FAISS embeddings.
+    First access loads all parquet into memory (~100 MB RSS).
+    Subsequent searches are pure in-memory scans (~300ms).
 
     Standing on Giants: Shannon (information retrieval) · Robertson (BM25)
     """
-    gold_dir = PROJECT_ROOT / "04_GOLD"
-    if not gold_dir.exists():
-        return {"results": [], "error": "04_GOLD not found"}
+    if not _ensure_knowledge_loaded():
+        return {"results": [], "error": _knowledge_cache.get("error", "unknown")}
 
-    try:
-        import pandas as pd
+    t0 = time.monotonic()
+    results: list[dict[str, Any]] = []
+    query_lower = query.lower()
 
-        results: list[dict[str, Any]] = []
-        query_lower = query.lower()
-        search_files = [
-            "golden_gems_chunks.parquet",
-            "research_chunks.parquet",
-            "chunks.parquet",
-        ]
-
-        for fname in search_files:
-            fpath = gold_dir / fname
-            if not fpath.exists():
-                continue
-            df = pd.read_parquet(fpath)
-            if "chunk_text" not in df.columns:
-                continue
-            # Simple keyword match (upgrade to vector search later)
-            mask = df["chunk_text"].str.lower().str.contains(query_lower, na=False)
-            matches = df[mask].head(limit)
-            for _, row in matches.iterrows():
-                text = str(row["chunk_text"])
-                results.append(
-                    {
-                        "source": fname.replace(".parquet", ""),
-                        "chunk_id": str(row.get("chunk_id", "")),
-                        "text": text[:500] + ("..." if len(text) > 500 else ""),
-                        "snr_score": (
-                            float(row["snr_score"])
-                            if "snr_score" in row.index
-                            else None
-                        ),
-                    }
-                )
-                if len(results) >= limit:
-                    break
+    for fname in _knowledge_cache.get("search_order", []):
+        df = _knowledge_cache.get(f"df:{fname}")
+        if df is None or "chunk_text" not in df.columns:
+            continue
+        mask = df["chunk_text"].str.lower().str.contains(query_lower, na=False)
+        matches = df[mask].head(limit)
+        for _, row in matches.iterrows():
+            text = str(row["chunk_text"])
+            results.append(
+                {
+                    "source": fname.replace(".parquet", ""),
+                    "chunk_id": str(row.get("chunk_id", "")),
+                    "text": text[:500] + ("..." if len(text) > 500 else ""),
+                    "snr_score": (
+                        float(row["snr_score"]) if "snr_score" in row.index else None
+                    ),
+                }
+            )
             if len(results) >= limit:
                 break
+        if len(results) >= limit:
+            break
 
-        return {
-            "query": query,
-            "results": results,
-            "count": len(results),
-            "search_type": "keyword",
-        }
-    except ImportError:
-        return {"results": [], "error": "pandas not installed"}
-    except (OSError, ValueError) as e:
-        return {"results": [], "error": str(e)}
+    search_ms = round((time.monotonic() - t0) * 1000)
+    return {
+        "query": query,
+        "results": results,
+        "count": len(results),
+        "search_type": "keyword_cached",
+        "search_ms": search_ms,
+    }
 
 
 # ═══════════════════════════════════════════════════════════
