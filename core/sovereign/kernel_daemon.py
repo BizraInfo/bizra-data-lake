@@ -767,21 +767,109 @@ def _get_knowledge_stats() -> dict[str, Any]:
     }
 
 
+def _ensure_faiss_loaded() -> bool:
+    """Load FAISS index + sentence-transformer on first access."""
+    if _knowledge_cache.get("faiss_loaded"):
+        return True
+
+    with _knowledge_cache_lock:
+        if _knowledge_cache.get("faiss_loaded"):
+            return True
+        try:
+            import faiss
+
+            index_path = PROJECT_ROOT / "04_GOLD" / "faiss_chunks.index"
+            ids_path = PROJECT_ROOT / "04_GOLD" / "faiss_chunk_ids.json"
+            if not index_path.exists():
+                return False
+
+            t0 = time.monotonic()
+            _knowledge_cache["faiss_index"] = faiss.read_index(str(index_path))
+            _knowledge_cache["faiss_ids"] = json.loads(ids_path.read_text())
+
+            try:
+                from sentence_transformers import SentenceTransformer
+
+                _knowledge_cache["encoder"] = SentenceTransformer("all-MiniLM-L6-v2")
+                _knowledge_cache["faiss_encoder_ok"] = True
+            except (ImportError, OSError):
+                _knowledge_cache["faiss_encoder_ok"] = False
+
+            _knowledge_cache["faiss_loaded"] = True
+            log.info(
+                "FAISS loaded: %d vectors, encoder=%s in %dms",
+                _knowledge_cache["faiss_index"].ntotal,
+                _knowledge_cache["faiss_encoder_ok"],
+                round((time.monotonic() - t0) * 1000),
+            )
+            return True
+        except (ImportError, OSError) as e:
+            log.warning("FAISS unavailable: %s", e)
+            return False
+
+
 def _search_knowledge(query: str, limit: int = 10) -> dict[str, Any]:
-    """Search the cached GOLD corpus for relevant chunks.
+    """Search GOLD — FAISS semantic if available, keyword fallback.
 
-    First access loads all parquet into memory (~100 MB RSS).
-    Subsequent searches are pure in-memory scans (~300ms).
-
-    Standing on Giants: Shannon (information retrieval) · Robertson (BM25)
+    Standing on Giants: Johnson (FAISS) · Shannon (retrieval) · Reimers (SBERT)
     """
     if not _ensure_knowledge_loaded():
         return {"results": [], "error": _knowledge_cache.get("error", "unknown")}
 
     t0 = time.monotonic()
-    results: list[dict[str, Any]] = []
-    query_lower = query.lower()
 
+    # FAISS semantic search path
+    if _ensure_faiss_loaded() and _knowledge_cache.get("faiss_encoder_ok"):
+        try:
+            import faiss
+            import numpy as np  # noqa: F401 — used by faiss.normalize_L2
+
+            encoder = _knowledge_cache["encoder"]
+            index = _knowledge_cache["faiss_index"]
+            chunk_ids = _knowledge_cache["faiss_ids"]
+            chunks_df = _knowledge_cache.get("df:chunks.parquet")
+
+            qvec = encoder.encode([query]).astype("float32")
+            faiss.normalize_L2(qvec)
+            index.nprobe = 16
+            D, I = index.search(qvec, limit)
+
+            results: list[dict[str, Any]] = []
+            for score, idx in zip(D[0], I[0]):
+                if idx < 0 or idx >= len(chunk_ids):
+                    continue
+                cid = chunk_ids[idx]
+                if chunks_df is not None:
+                    row = chunks_df[chunks_df["chunk_id"] == cid]
+                    if len(row) > 0:
+                        text = str(row.iloc[0]["chunk_text"])
+                        results.append(
+                            {
+                                "source": "chunks",
+                                "chunk_id": cid,
+                                "text": text[:500] + ("..." if len(text) > 500 else ""),
+                                "similarity": round(float(score), 4),
+                                "snr_score": (
+                                    float(row.iloc[0]["snr_score"])
+                                    if "snr_score" in row.columns
+                                    else None
+                                ),
+                            }
+                        )
+
+            return {
+                "query": query,
+                "results": results,
+                "count": len(results),
+                "search_type": "faiss_semantic",
+                "search_ms": round((time.monotonic() - t0) * 1000),
+            }
+        except Exception as e:
+            log.warning("FAISS search failed, keyword fallback: %s", e)
+
+    # Keyword fallback
+    results = []
+    query_lower = query.lower()
     for fname in _knowledge_cache.get("search_order", []):
         df = _knowledge_cache.get(f"df:{fname}")
         if df is None or "chunk_text" not in df.columns:
@@ -805,13 +893,12 @@ def _search_knowledge(query: str, limit: int = 10) -> dict[str, Any]:
         if len(results) >= limit:
             break
 
-    search_ms = round((time.monotonic() - t0) * 1000)
     return {
         "query": query,
         "results": results,
         "count": len(results),
         "search_type": "keyword_cached",
-        "search_ms": search_ms,
+        "search_ms": round((time.monotonic() - t0) * 1000),
     }
 
 
@@ -1686,6 +1773,16 @@ def main() -> None:
         asyncio.set_event_loop(main_loop)
     except Exception:
         main_loop = None
+
+    # ── Eager background warmup: knowledge cache + FAISS index ──
+    def _warmup() -> None:
+        _ensure_knowledge_loaded()
+        _ensure_faiss_loaded()
+        log.info("Knowledge + FAISS warmup complete")
+
+    warmup_thread = threading.Thread(target=_warmup, daemon=True, name="warmup")
+    warmup_thread.start()
+    log.info("Background warmup started (parquet + FAISS + encoder)")
 
     # ── Start heartbeat thread (continuous self-observation) ──
     heartbeat_thread = threading.Thread(
