@@ -816,6 +816,144 @@ def _search_knowledge(query: str, limit: int = 10) -> dict[str, Any]:
 
 
 # ═══════════════════════════════════════════════════════════
+#  MISSION EXECUTION — PAT-powered question answering
+# ═══════════════════════════════════════════════════════════
+
+# Lazy singleton — created on first mission, reused thereafter.
+_mission_ns: Any = None
+_mission_lock = threading.Lock()
+
+
+def _get_or_create_ns() -> Any:
+    """Get or create the SovereignNervousSystem singleton.
+
+    Uses MOEBridge as inference provider. Created lazily on first mission.
+    """
+    global _mission_ns
+    if _mission_ns is not None:
+        return _mission_ns
+
+    with _mission_lock:
+        if _mission_ns is not None:
+            return _mission_ns
+
+        try:
+            from core.sovereign.mission_nervous_system import SovereignNervousSystem
+            from core.sovereign.moe_bridge import MOEBridge
+
+            bridge = MOEBridge.create()
+            _mission_ns = SovereignNervousSystem(inference=bridge)
+            log.info("SovereignNervousSystem created with MOEBridge")
+            return _mission_ns
+        except (ImportError, OSError, ValueError) as e:
+            log.error("Failed to create NervousSystem: %s", e)
+            return None
+
+
+async def _run_mission(mission_text: str) -> dict[str, Any]:
+    """Execute a mission through the SovereignNervousSystem.
+
+    Standing on Giants: Kahneman (S1/S2 routing) · Boyd (OODA execute) · Al-Ghazali (Ihsan gate)
+
+    Enriches the mission with knowledge context from the GOLD cache before execution.
+    """
+    t0 = time.monotonic()
+
+    # Enrich with knowledge context — extract key terms for search
+    knowledge_context = ""
+    if _ensure_knowledge_loaded():
+        # Extract meaningful keywords (skip stop words, min 4 chars)
+        stop = {
+            "what",
+            "are",
+            "the",
+            "and",
+            "how",
+            "does",
+            "this",
+            "that",
+            "with",
+            "from",
+            "have",
+            "been",
+            "will",
+            "would",
+            "could",
+            "should",
+            "which",
+            "where",
+            "when",
+            "about",
+            "into",
+            "they",
+            "their",
+            "there",
+            "these",
+            "those",
+            "than",
+            "then",
+            "also",
+            "more",
+            "most",
+            "some",
+            "each",
+            "every",
+            "between",
+        }
+        words = [w.lower().strip("?.,!") for w in mission_text.split() if len(w) >= 4]
+        keywords = [w for w in words if w not in stop][:5]
+
+        all_results: list[dict[str, Any]] = []
+        for kw in keywords:
+            sr = _search_knowledge(kw, limit=2)
+            for r in sr.get("results", []):
+                if r["chunk_id"] not in {x["chunk_id"] for x in all_results}:
+                    all_results.append(r)
+            if len(all_results) >= 3:
+                break
+
+        if all_results:
+            snippets = [r["text"][:200] for r in all_results[:3]]
+            knowledge_context = (
+                "\n\nRelevant knowledge from your BIZRA corpus:\n"
+                + "\n---\n".join(snippets)
+            )
+
+    ns = _get_or_create_ns()
+    if ns is None:
+        return {
+            "status": "error",
+            "error": "NervousSystem unavailable (check LM Studio connectivity)",
+            "duration_ms": round((time.monotonic() - t0) * 1000),
+        }
+
+    try:
+        enriched_text = mission_text + knowledge_context
+        receipt = await ns.run(enriched_text)
+
+        return {
+            "status": "complete",
+            "mission_id": str(receipt.mission_id),
+            "system": receipt.system,
+            "output": receipt.output_text[:2000],
+            "ihsan_score": round(float(receipt.ihsan_score), 4),
+            "snr_score": round(float(receipt.snr_score), 4),
+            "duration_ms": round(float(receipt.duration_ms), 1),
+            "rewarded": receipt.rewarded,
+            "reward_amount": round(float(receipt.reward_amount), 4),
+            "evidence_hash": receipt.evidence_hash,
+            "reflex_hit": receipt.reflex_hit,
+            "knowledge_enriched": bool(knowledge_context),
+        }
+    except (RuntimeError, OSError, ValueError) as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "duration_ms": round((time.monotonic() - t0) * 1000),
+        }
+
+
+# ═══════════════════════════════════════════════════════════
 #  SELF-DIAGNOSIS — deep readiness probe (K8s pattern)
 # ═══════════════════════════════════════════════════════════
 
@@ -1119,6 +1257,23 @@ class KernelHandler(SimpleHTTPRequestHandler):
             else:
                 self._json_response({"error": "action and name required"}, status=400)
                 status = 400
+        elif path == "/api/mission":
+            body = self._read_body()
+            mission_text = body.get("text", body.get("mission", ""))
+            if not mission_text:
+                self._json_response({"error": "field 'text' required"}, status=400)
+                status = 400
+            else:
+                import asyncio
+
+                try:
+                    result = asyncio.run(_run_mission(mission_text))
+                    self._json_response(result)
+                except (RuntimeError, OSError) as e:
+                    self._json_response(
+                        {"status": "error", "error": str(e)}, status=500
+                    )
+                    status = 500
         elif path == "/rpc":
             self._proxy_rpc()
             _metrics.record("POST", path, 200, (time.monotonic() - t0) * 1000)
