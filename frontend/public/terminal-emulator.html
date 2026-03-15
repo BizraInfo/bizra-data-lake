@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIZRA Terminal v3.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   BIZRA TERMINAL EMULATOR — CRT Aerospace Edition
+   ═══════════════════════════════════════════════════ */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* Phosphor palette */
+  --phosphor:        #33ff33;
+  --phosphor-dim:    #1a8a1a;
+  --phosphor-bright: #66ff66;
+  --phosphor-glow:   rgba(51, 255, 51, 0.15);
+
+  /* Amber system */
+  --amber:        #ff8800;
+  --amber-dim:    #994f00;
+  --amber-bright: #ffaa33;
+
+  /* Cyan accent */
+  --cyan:        #00ccff;
+  --cyan-dim:    #006688;
+  --cyan-bright: #33ddff;
+
+  /* Red alert */
+  --red:         #ff3333;
+  --red-dim:     #881a1a;
+
+  /* Bezel & hardware */
+  --bezel-dark:    #111214;
+  --bezel-mid:     #1c1e22;
+  --bezel-light:   #2a2d33;
+  --bezel-edge:    #0a0b0c;
+  --screw-color:   #3a3d44;
+
+  /* Screen */
+  --screen-bg:     #030a03;
+  --screen-border: #0d0f0d;
+
+  /* Dimensions */
+  --bezel-radius:  18px;
+  --screen-radius: 6px;
+  --bezel-padding: 28px;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: #080808;
+  overflow: hidden;
+  font-family: 'IBM Plex Mono', monospace;
+  cursor: default;
+  user-select: none;
+}
+
+/* ── Outer Shell ── */
+.terminal-unit {
+  width: 100vw; height: 100vh;
+  display: flex; flex-direction: column;
+  background: var(--bezel-dark);
+  position: relative;
+}
+
+/* ── Top Bezel Bar ── */
+.bezel-top {
+  height: 52px; min-height: 52px;
+  background: linear-gradient(180deg, var(--bezel-light) 0%, var(--bezel-mid) 40%, var(--bezel-dark) 100%);
+  border-bottom: 1px solid #0a0a0a;
+  display: flex; align-items: center;
+  padding: 0 20px;
+  position: relative;
+  -webkit-app-region: drag;
+}
+
+.bezel-top::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0.06) 70%, transparent);
+}
+
+/* Ventilation grille */
+.vent-grille {
+  display: flex; gap: 2px; margin-right: 16px;
+}
+.vent-grille .slot {
+  width: 22px; height: 3px;
+  background: #0a0a0a;
+  border-radius: 1px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+/* Model badge */
+.model-badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #555;
+  margin-right: auto;
+  display: flex; align-items: center; gap: 10px;
+}
+.model-badge .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--phosphor-dim);
+  box-shadow: 0 0 6px var(--phosphor-glow);
+  animation: led-pulse 2s ease-in-out infinite;
+}
+.model-badge .dot.active {
+  background: var(--phosphor);
+  box-shadow: 0 0 8px var(--phosphor), 0 0 16px var(--phosphor-glow);
+}
+
+@keyframes led-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Status LEDs */
+.status-leds {
+  display: flex; gap: 8px; margin-right: 16px;
+}
+.led {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.5);
+  position: relative;
+}
+.led::after {
+  content: '';
+  position: absolute; top: 1px; left: 1px;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+}
+.led-pwr  { background: var(--phosphor); box-shadow: 0 0 6px var(--phosphor-glow); }
+.led-hdd  { background: var(--amber-dim); animation: hdd-blink 0.3s ease infinite; }
+.led-net  { background: var(--cyan-dim); }
+.led-net.online { background: var(--cyan); box-shadow: 0 0 6px rgba(0,204,255,0.3); }
+
+@keyframes hdd-blink {
+  0%, 40% { background: var(--amber); box-shadow: 0 0 4px rgba(255,136,0,0.3); }
+  50%, 100% { background: var(--amber-dim); box-shadow: none; }
+}
+
+/* Window controls */
+.win-controls {
+  display: flex; gap: 2px;
+  -webkit-app-region: no-drag;
+}
+.win-btn {
+  width: 40px; height: 28px;
+  border: none; background: transparent;
+  color: #666; font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Rajdhani', sans-serif;
+  transition: all 0.15s;
+}
+.win-btn:hover { background: rgba(255,255,255,0.06); color: #aaa; }
+.win-btn.close:hover { background: #c42b1c; color: #fff; }
+
+/* ── Tab Bar ── */
+.tab-bar {
+  height: 36px; min-height: 36px;
+  background: var(--bezel-dark);
+  display: flex; align-items: flex-end;
+  padding: 0 20px;
+  gap: 1px;
+  border-bottom: 1px solid #0a0a0a;
+}
+
+.tab {
+  height: 30px;
+  padding: 0 16px;
+  background: #0e0f11;
+  border: 1px solid #1a1b1e;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  color: #556;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  transition: all 0.2s;
+  position: relative;
+}
+.tab:hover { background: #141518; color: #889; }
+.tab.active {
+  background: var(--screen-bg);
+  color: var(--phosphor);
+  border-color: #1a2a1a;
+}
+.tab.active::after {
+  content: '';
+  position: absolute; bottom: -1px; left: 0; right: 0;
+  height: 1px;
+  background: var(--screen-bg);
+}
+.tab .close-tab {
+  width: 14px; height: 14px;
+  border: none; background: transparent;
+  color: inherit; cursor: pointer;
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 3px;
+  opacity: 0;
+  transition: all 0.15s;
+}
+.tab:hover .close-tab { opacity: 0.6; }
+.tab .close-tab:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+
+.tab-new {
+  width: 28px; height: 28px;
+  background: transparent;
+  border: 1px dashed #2a2b2e;
+  border-radius: 4px;
+  color: #445;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  margin-left: 4px;
+  margin-bottom: 2px;
+  transition: all 0.2s;
+}
+.tab-new:hover { border-color: var(--phosphor-dim); color: var(--phosphor-dim); }
+
+/* ── CRT Screen Area ── */
+.screen-housing {
+  flex: 1;
+  padding: 4px 20px 0 20px;
+  background: var(--bezel-dark);
+  position: relative;
+  overflow: hidden;
+}
+
+.crt-screen {
+  width: 100%; height: 100%;
+  background: var(--screen-bg);
+  border-radius: var(--screen-radius);
+  border: 1px solid var(--screen-border);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 80px rgba(0, 255, 0, 0.02),
+    inset 0 0 20px rgba(0, 0, 0, 0.8),
+    0 0 2px rgba(0, 255, 0, 0.05);
+}
+
+/* Scan lines */
+.crt-screen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Vignette */
+.crt-screen::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%);
+  pointer-events: none;
+  z-index: 11;
+}
+
+/* Screen flicker */
+.screen-flicker {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  opacity: 0;
+  background: rgba(51, 255, 51, 0.03);
+  animation: flicker 8s linear infinite;
+}
+
+@keyframes flicker {
+  0%, 95%, 100% { opacity: 0; }
+  96% { opacity: 1; }
+  97% { opacity: 0; }
+  98% { opacity: 0.5; }
+}
+
+/* Scrolling beam */
+.scan-beam {
+  position: absolute;
+  left: 0; right: 0;
+  height: 40px;
+  background: linear-gradient(180deg, transparent, rgba(51, 255, 51, 0.04), transparent);
+  pointer-events: none;
+  z-index: 9;
+  animation: scan-down 6s linear infinite;
+}
+
+@keyframes scan-down {
+  0% { top: -40px; }
+  100% { top: 100%; }
+}
+
+/* Terminal content */
+.terminal-viewport {
+  position: absolute; inset: 0;
+  padding: 16px 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 5;
+  scrollbar-width: thin;
+  scrollbar-color: var(--phosphor-dim) transparent;
+}
+.terminal-viewport::-webkit-scrollbar { width: 6px; }
+.terminal-viewport::-webkit-scrollbar-track { background: transparent; }
+.terminal-viewport::-webkit-scrollbar-thumb {
+  background: var(--phosphor-dim);
+  border-radius: 3px;
+}
+
+/* Output lines */
+.output-line {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--phosphor);
+  white-space: pre-wrap;
+  word-break: break-all;
+  text-shadow: 0 0 4px var(--phosphor-glow);
+  animation: line-appear 0.08s ease-out;
+}
+
+@keyframes line-appear {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.output-line.system {
+  color: var(--cyan);
+  text-shadow: 0 0 4px rgba(0, 204, 255, 0.15);
+}
+.output-line.error {
+  color: var(--red);
+  text-shadow: 0 0 4px rgba(255, 51, 51, 0.15);
+}
+.output-line.warning {
+  color: var(--amber);
+  text-shadow: 0 0 4px rgba(255, 136, 0, 0.15);
+}
+.output-line.muted {
+  color: var(--phosphor-dim);
+  text-shadow: none;
+}
+.output-line.header {
+  color: var(--amber-bright);
+  font-weight: 600;
+  text-shadow: 0 0 6px rgba(255, 170, 51, 0.2);
+}
+
+/* Input line */
+.input-row {
+  display: flex;
+  align-items: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--phosphor);
+  text-shadow: 0 0 4px var(--phosphor-glow);
+  margin-top: 2px;
+}
+
+.prompt-text {
+  color: var(--cyan);
+  text-shadow: 0 0 4px rgba(0, 204, 255, 0.15);
+  white-space: pre;
+  flex-shrink: 0;
+}
+
+.input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--phosphor);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  caret-color: var(--phosphor);
+  text-shadow: 0 0 4px var(--phosphor-glow);
+  user-select: text;
+}
+
+/* Block cursor */
+.cursor-block {
+  display: inline-block;
+  width: 8px; height: 16px;
+  background: var(--phosphor);
+  animation: cursor-blink 1s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+  box-shadow: 0 0 4px var(--phosphor-glow);
+}
+
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ── Bottom Status Bar ── */
+.status-bar {
+  height: 26px; min-height: 26px;
+  background: linear-gradient(180deg, var(--bezel-dark) 0%, var(--bezel-mid) 100%);
+  border-top: 1px solid #0a0a0a;
+  display: flex; align-items: center;
+  padding: 0 20px;
+  gap: 20px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: #556;
+}
+
+.status-bar::before {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.03) 70%, transparent);
+}
+
+.stat-item {
+  display: flex; align-items: center; gap: 5px;
+}
+.stat-item .label { color: #445; }
+.stat-item .value { color: #778; }
+.stat-item .value.green { color: var(--phosphor-dim); }
+.stat-item .value.amber { color: var(--amber-dim); }
+
+.status-bar .spacer { flex: 1; }
+
+/* Screws */
+.screw {
+  position: absolute;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #4a4d55, #2a2d33 60%, #1a1b1e);
+  border: 1px solid #0a0a0a;
+  z-index: 50;
+}
+.screw::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 1px;
+  width: 8px; height: 1px;
+  background: #1a1a1a;
+  transform: rotate(35deg);
+}
+.screw.tl { top: 8px; left: 8px; }
+.screw.tr { top: 8px; right: 8px; }
+.screw.bl { bottom: 8px; left: 8px; }
+.screw.br { bottom: 8px; right: 8px; }
+
+/* ── Boot Sequence ── */
+.boot-overlay {
+  position: fixed; inset: 0;
+  background: #000;
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  transition: opacity 0.8s ease;
+}
+.boot-overlay.fade-out { opacity: 0; pointer-events: none; }
+
+.boot-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  color: var(--phosphor);
+  text-shadow: 0 0 8px var(--phosphor-glow);
+  text-align: left;
+  width: 600px;
+  line-height: 1.8;
+}
+.boot-text .line { opacity: 0; animation: boot-line 0.3s ease forwards; }
+.boot-progress {
+  width: 600px; height: 3px;
+  background: #111;
+  margin-top: 16px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.boot-progress .fill {
+  height: 100%;
+  background: var(--phosphor);
+  box-shadow: 0 0 8px var(--phosphor-glow);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+@keyframes boot-line {
+  to { opacity: 1; }
+}
+
+/* ── Selection ── */
+::selection {
+  background: rgba(51, 255, 51, 0.2);
+  color: var(--phosphor-bright);
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .bezel-top { padding: 0 10px; height: 42px; min-height: 42px; }
+  .vent-grille { display: none; }
+  .screen-housing { padding: 2px 8px 0; }
+  .terminal-viewport { padding: 10px 12px; }
+  .status-bar { padding: 0 10px; font-size: 10px; }
+}
+
+/* ── Context menu ── */
+.ctx-menu {
+  position: fixed;
+  background: var(--bezel-mid);
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 180px;
+  z-index: 999;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  display: none;
+}
+.ctx-menu.show { display: block; }
+.ctx-item {
+  padding: 6px 14px;
+  color: #aab;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  transition: background 0.1s;
+}
+.ctx-item:hover { background: rgba(51, 255, 51, 0.08); color: var(--phosphor); }
+.ctx-item .shortcut { margin-left: auto; color: #556; font-size: 10px; }
+.ctx-sep { height: 1px; background: #2a2a2a; margin: 3px 0; }
+</style>
+</head>
+<body>
+
+<!-- Boot Sequence -->
+<div class="boot-overlay" id="bootOverlay">
+  <div class="boot-text" id="bootText"></div>
+  <div class="boot-progress"><div class="fill" id="bootFill"></div></div>
+</div>
+
+<!-- Terminal Unit -->
+<div class="terminal-unit" id="terminalUnit" style="display:none;">
+  <!-- Decorative screws -->
+  <div class="screw tl"></div>
+  <div class="screw tr"></div>
+  <div class="screw bl"></div>
+  <div class="screw br"></div>
+
+  <!-- Top bezel -->
+  <div class="bezel-top">
+    <div class="vent-grille">
+      <div class="slot"></div><div class="slot"></div><div class="slot"></div>
+      <div class="slot"></div><div class="slot"></div><div class="slot"></div>
+    </div>
+    <div class="model-badge">
+      <div class="dot active" id="pwrDot"></div>
+      BIZRA TERMINAL &mdash; SERIES 3
+    </div>
+    <div class="status-leds">
+      <div class="led led-pwr" title="Power"></div>
+      <div class="led led-hdd" id="hddLed" title="Disk"></div>
+      <div class="led led-net online" id="netLed" title="Network"></div>
+    </div>
+    <div class="win-controls">
+      <button class="win-btn" onclick="minimizeWin()" title="Minimize">&#x2500;</button>
+      <button class="win-btn" onclick="maximizeWin()" title="Maximize">&#x25A1;</button>
+      <button class="win-btn close" onclick="closeWin()" title="Close">&#x2715;</button>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar" id="tabBar">
+    <div class="tab active" data-tab="0">
+      <span>bash</span>
+      <button class="close-tab" onclick="closeTab(event, 0)">&times;</button>
+    </div>
+    <button class="tab-new" onclick="newTab()" title="New tab">+</button>
+  </div>
+
+  <!-- CRT Screen -->
+  <div class="screen-housing">
+    <div class="crt-screen">
+      <div class="scan-beam"></div>
+      <div class="screen-flicker"></div>
+      <div class="terminal-viewport" id="viewport">
+        <!-- Output lines injected here -->
+        <div class="input-row" id="inputRow">
+          <span class="prompt-text" id="promptText">bizra@sovereign:~$ </span>
+          <input class="input-field" id="cmdInput" type="text" spellcheck="false" autocomplete="off" autofocus>
+          <span class="cursor-block" id="cursorBlock"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <div class="stat-item">
+      <span class="label">SHELL</span>
+      <span class="value green">BASH 5.2</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">PID</span>
+      <span class="value" id="pidVal">—</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">SESSION</span>
+      <span class="value green" id="sessionVal">ACTIVE</span>
+    </div>
+    <span class="spacer"></span>
+    <div class="stat-item">
+      <span class="label">LINES</span>
+      <span class="value" id="lineCount">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">MEM</span>
+      <span class="value" id="memVal">—</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">UPTIME</span>
+      <span class="value amber" id="uptimeVal">00:00:00</span>
+    </div>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div class="ctx-menu" id="ctxMenu">
+  <div class="ctx-item" onclick="ctxCopy()">Copy <span class="shortcut">Ctrl+Shift+C</span></div>
+  <div class="ctx-item" onclick="ctxPaste()">Paste <span class="shortcut">Ctrl+Shift+V</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="ctxClear()">Clear Screen <span class="shortcut">Ctrl+L</span></div>
+  <div class="ctx-item" onclick="ctxReset()">Reset Terminal</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="newTab()">New Tab <span class="shortcut">Ctrl+T</span></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  BIZRA TERMINAL ENGINE
+// ═══════════════════════════════════════════════════
+
+const BOOT_LINES = [
+  ['BIOS POST .......... OK', 80],
+  ['Memory Test: 32768 MB .......... PASS', 120],
+  ['BIZRA Sovereign Kernel v3.0.0-GENESIS', 100],
+  ['Loading constitutional firmware ...', 200],
+  ['FATE gate array .......... ONLINE', 150],
+  ['Ihsan threshold locked: 0.95', 80],
+  ['SNR floor: 0.85 | T0 elite: 0.98', 80],
+  ['Proof engine .......... ARMED', 120],
+  ['Federation mesh .......... STANDBY', 100],
+  ['Identity: BIZRA-NODE-0 @ sovereign.local', 80],
+  ['Mounting data lake at /bizra-data-lake ...', 200],
+  ['Pipeline: INTAKE → RAW → PROCESSED → GOLD', 100],
+  ['Inference tiers: LM_STUDIO > OLLAMA > CLOUD', 80],
+  ['Shell ready. Welcome, Sovereign.', 150],
+];
+
+// ── State ──
+const state = {
+  tabs: [],
+  activeTab: 0,
+  tabCounter: 0,
+  startTime: Date.now(),
+  lineCount: 0,
+  pid: 10000 + Math.floor(Math.random() * 50000),
+};
+
+// ── Filesystem ──
+const FS = {
+  '~': {
+    type: 'dir',
+    children: {
+      'core': { type: 'dir', children: {
+        'sovereign': { type: 'dir', children: { 'api.py': { type: 'file', size: '4.2K' }, 'mission_nervous_system.py': { type: 'file', size: '8.1K' } }},
+        'pci': { type: 'dir', children: { 'gates.py': { type: 'file', size: '3.7K' }, 'verifier.py': { type: 'file', size: '2.1K' } }},
+        'federation': { type: 'dir', children: { 'gossip.py': { type: 'file', size: '5.5K' }, 'bft_consensus.py': { type: 'file', size: '6.3K' } }},
+        'inference': { type: 'dir', children: { 'gateway.py': { type: 'file', size: '7.8K' } }},
+        'proof_engine': { type: 'dir', children: { 'evidence_ledger.py': { type: 'file', size: '4.9K' }, 'receipt.py': { type: 'file', size: '3.2K' } }},
+      }},
+      'docs': { type: 'dir', children: { 'ARCHITECTURE.md': { type: 'file', size: '12K' }, 'CONSTITUTIONAL.md': { type: 'file', size: '8.4K' } }},
+      'tests': { type: 'dir', children: { 'conftest.py': { type: 'file', size: '1.8K' } }},
+      '.env': { type: 'file', size: '0.3K' },
+      'CLAUDE.md': { type: 'file', size: '14K' },
+      'pyproject.toml': { type: 'file', size: '2.1K' },
+    }
+  }
+};
+
+function resolvePath(cwd, target) {
+  if (!target || target === '~') return '~';
+  if (target === '/') return '~';
+  let base = target.startsWith('/') || target.startsWith('~') ? '~' : cwd;
+  let parts = base.split('/').filter(Boolean);
+  let segs = target.replace(/^~\/?/, '').split('/').filter(Boolean);
+  for (const s of segs) {
+    if (s === '..') parts.pop();
+    else if (s !== '.') parts.push(s);
+  }
+  return parts.join('/') || '~';
+}
+
+function getNode(path) {
+  let parts = path.split('/').filter(Boolean);
+  let node = FS['~'];
+  if (parts[0] === '~') parts.shift();
+  for (const p of parts) {
+    if (!node || node.type !== 'dir' || !node.children[p]) return null;
+    node = node.children[p];
+  }
+  return node;
+}
+
+// ── Commands ──
+const COMMANDS = {
+  help(args, tab) {
+    return [
+      { text: 'BIZRA Terminal v3.0 — Available Commands:', cls: 'header' },
+      { text: '' },
+      { text: '  help              Show this help message', cls: 'system' },
+      { text: '  clear / cls       Clear the terminal screen', cls: 'system' },
+      { text: '  echo <text>       Print text to terminal', cls: 'system' },
+      { text: '  ls [path]         List directory contents', cls: 'system' },
+      { text: '  cd <path>         Change directory', cls: 'system' },
+      { text: '  pwd               Print working directory', cls: 'system' },
+      { text: '  cat <file>        Display file contents', cls: 'system' },
+      { text: '  whoami            Current user identity', cls: 'system' },
+      { text: '  date              Current date and time', cls: 'system' },
+      { text: '  uptime            System uptime', cls: 'system' },
+      { text: '  uname [-a]        System information', cls: 'system' },
+      { text: '  history           Command history', cls: 'system' },
+      { text: '  neofetch          System info display', cls: 'system' },
+      { text: '  status            BIZRA subsystem status', cls: 'system' },
+      { text: '  tree [path]       Directory tree view', cls: 'system' },
+      { text: '  theme <name>      Switch theme (green/amber/cyan/white)', cls: 'system' },
+      { text: '  matrix            Toggle matrix rain effect', cls: 'system' },
+      { text: '  exit              Close current tab', cls: 'system' },
+      { text: '' },
+    ];
+  },
+
+  clear(args, tab) { return '__CLEAR__'; },
+  cls(args, tab) { return '__CLEAR__'; },
+
+  echo(args) { return [{ text: args.join(' ') }]; },
+
+  pwd(args, tab) { return [{ text: tab.cwd === '~' ? '/home/bizra' : tab.cwd.replace('~', '/home/bizra') }]; },
+
+  whoami() { return [{ text: 'bizra@sovereign (uid=1000 gid=1000) — Node0 Operator' }]; },
+
+  date() { return [{ text: new Date().toString() }]; },
+
+  uptime() {
+    const s = Math.floor((Date.now() - state.startTime) / 1000);
+    const h = String(Math.floor(s/3600)).padStart(2,'0');
+    const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+    const sec = String(s%60).padStart(2,'0');
+    return [{ text: `up ${h}:${m}:${sec}, 1 user, load average: 0.42, 0.38, 0.31` }];
+  },
+
+  uname(args) {
+    if (args.includes('-a')) {
+      return [{ text: 'BIZRA sovereign 3.0.0-genesis #1 SMP x86_64 GNU/Linux' }];
+    }
+    return [{ text: 'BIZRA' }];
+  },
+
+  history(args, tab) {
+    return tab.history.map((cmd, i) => ({
+      text: `  ${String(i + 1).padStart(4)}  ${cmd}`,
+      cls: 'muted'
+    }));
+  },
+
+  ls(args, tab) {
+    const target = args[0] || tab.cwd;
+    const path = resolvePath(tab.cwd, target);
+    const node = getNode(path);
+    if (!node) return [{ text: `ls: cannot access '${target}': No such file or directory`, cls: 'error' }];
+    if (node.type !== 'dir') return [{ text: target }];
+    const entries = Object.entries(node.children);
+    if (!entries.length) return [];
+    let out = [];
+    const dirs = entries.filter(([,v]) => v.type === 'dir').sort();
+    const files = entries.filter(([,v]) => v.type === 'file').sort();
+    let line = '';
+    for (const [name] of dirs) {
+      const entry = `\x1b[34m${name}/\x1b[0m  `;
+      line += name + '/  ';
+    }
+    for (const [name] of files) {
+      line += name + '  ';
+    }
+    // Simple columnar output
+    const items = [...dirs.map(([n]) => n + '/'), ...files.map(([n]) => n)];
+    const colW = Math.max(...items.map(i => i.length)) + 2;
+    const cols = Math.max(1, Math.floor(72 / colW));
+    let row = '';
+    items.forEach((item, i) => {
+      const isDir = item.endsWith('/');
+      row += item.padEnd(colW);
+      if ((i + 1) % cols === 0) { out.push({ text: row, cls: isDir ? '' : '' }); row = ''; }
+    });
+    if (row) out.push({ text: row });
+    return out;
+  },
+
+  cd(args, tab) {
+    const target = args[0] || '~';
+    const path = resolvePath(tab.cwd, target);
+    const node = getNode(path);
+    if (!node) return [{ text: `cd: no such directory: ${target}`, cls: 'error' }];
+    if (node.type !== 'dir') return [{ text: `cd: not a directory: ${target}`, cls: 'error' }];
+    tab.cwd = path;
+    return [];
+  },
+
+  cat(args, tab) {
+    if (!args.length) return [{ text: 'cat: missing operand', cls: 'error' }];
+    const path = resolvePath(tab.cwd, args[0]);
+    const node = getNode(path);
+    if (!node) return [{ text: `cat: ${args[0]}: No such file or directory`, cls: 'error' }];
+    if (node.type === 'dir') return [{ text: `cat: ${args[0]}: Is a directory`, cls: 'error' }];
+    // Simulated file content
+    const name = args[0].split('/').pop();
+    if (name === '.env') return [{ text: '# BIZRA Environment', cls: 'muted' }, { text: 'LMSTUDIO_HOST=172.28.x.x:1234' }, { text: 'BIZRA_DATA_LAKE_ROOT=/bizra-data-lake' }, { text: 'BIZRA_BRIDGE_TOKEN=••••••••' }];
+    return [{ text: `# ${name}`, cls: 'muted' }, { text: `# Size: ${node.size || '?'}`, cls: 'muted' }, { text: `# [simulated — connect a real shell for live content]`, cls: 'muted' }];
+  },
+
+  tree(args, tab) {
+    const target = args[0] || tab.cwd;
+    const path = resolvePath(tab.cwd, target);
+    const node = getNode(path);
+    if (!node || node.type !== 'dir') return [{ text: `tree: '${target}' not a directory`, cls: 'error' }];
+    let out = [{ text: path === '~' ? '.' : path.split('/').pop(), cls: 'header' }];
+    let dirs = 0, files = 0;
+    function walk(n, prefix) {
+      const entries = Object.entries(n.children || {}).sort();
+      entries.forEach(([name, child], i) => {
+        const last = i === entries.length - 1;
+        const connector = last ? '└── ' : '├── ';
+        const isDir = child.type === 'dir';
+        if (isDir) dirs++;
+        else files++;
+        out.push({ text: prefix + connector + name + (isDir ? '/' : ''), cls: isDir ? 'system' : '' });
+        if (isDir) walk(child, prefix + (last ? '    ' : '│   '));
+      });
+    }
+    walk(node, '');
+    out.push({ text: '' });
+    out.push({ text: `${dirs} directories, ${files} files`, cls: 'muted' });
+    return out;
+  },
+
+  neofetch() {
+    const s = Math.floor((Date.now() - state.startTime) / 1000);
+    const upStr = `${Math.floor(s/60)}m ${s%60}s`;
+    return [
+      { text: '        ██████╗ ██╗███████╗██████╗  █████╗', cls: 'system' },
+      { text: '        ██╔══██╗██║╚══███╔╝██╔══██╗██╔══██╗', cls: 'system' },
+      { text: '        ██████╔╝██║  ███╔╝ ██████╔╝███████║    bizra@sovereign', cls: 'system' },
+      { text: '        ██╔══██╗██║ ███╔╝  ██╔══██╗██╔══██║    ───────────────', cls: 'system' },
+      { text: '        ██████╔╝██║███████╗██║  ██║██║  ██║    OS: BIZRA Sovereign 3.0', cls: '' },
+      { text: '        ╚═════╝ ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝    Kernel: 3.0.0-GENESIS', cls: '' },
+      { text: `                                                  Uptime: ${upStr}`, cls: '' },
+      { text: '                                                  Shell: bash 5.2', cls: '' },
+      { text: `                                                  Terminal: BIZRA CRT v3`, cls: '' },
+      { text: '                                                  CPU: Sovereign vCPU x8', cls: '' },
+      { text: '                                                  Memory: 32768 MB', cls: '' },
+      { text: '                                                  Theme: Phosphor Green', cls: '' },
+      { text: '' },
+      { text: '        ████████████████████████████████████', cls: '' },
+      { text: '' },
+    ];
+  },
+
+  status() {
+    return [
+      { text: '╔══════════════════════════════════════════════════╗', cls: 'system' },
+      { text: '║          BIZRA SUBSYSTEM STATUS REPORT           ║', cls: 'system' },
+      { text: '╠══════════════════════════════════════════════════╣', cls: 'system' },
+      { text: '║  FATE Gate Array          ██████████  ARMED      ║', cls: '' },
+      { text: '║  Proof Engine             ██████████  ONLINE     ║', cls: '' },
+      { text: '║  Inference Gateway        ████████░░  LM_STUDIO  ║', cls: '' },
+      { text: '║  Federation Mesh          ██████░░░░  STANDBY    ║', cls: 'warning' },
+      { text: '║  Constitutional Kernel    ██████████  LOCKED     ║', cls: '' },
+      { text: '║  Evidence Ledger          ██████████  SYNCED     ║', cls: '' },
+      { text: '║  Living Memory            ████████░░  INDEXING   ║', cls: 'warning' },
+      { text: '║  Spearpoint Bench         ██████████  READY      ║', cls: '' },
+      { text: '║  Data Pipeline            ██████████  FLOWING    ║', cls: '' },
+      { text: '╠══════════════════════════════════════════════════╣', cls: 'system' },
+      { text: '║  Ihsan: 0.95  │  SNR: 0.92  │  Gini: 0.28      ║', cls: '' },
+      { text: '╚══════════════════════════════════════════════════╝', cls: 'system' },
+      { text: '' },
+    ];
+  },
+
+  theme(args) {
+    const themes = {
+      green:  { phosphor: '#33ff33', dim: '#1a8a1a', bright: '#66ff66', glow: 'rgba(51,255,51,0.15)' },
+      amber:  { phosphor: '#ffaa33', dim: '#996611', bright: '#ffcc66', glow: 'rgba(255,170,51,0.15)' },
+      cyan:   { phosphor: '#00ccff', dim: '#006688', bright: '#33ddff', glow: 'rgba(0,204,255,0.15)' },
+      white:  { phosphor: '#cccccc', dim: '#666666', bright: '#eeeeee', glow: 'rgba(200,200,200,0.1)' },
+    };
+    const name = (args[0] || '').toLowerCase();
+    if (!themes[name]) return [{ text: `theme: unknown '${name}'. Available: green, amber, cyan, white`, cls: 'error' }];
+    const t = themes[name];
+    document.documentElement.style.setProperty('--phosphor', t.phosphor);
+    document.documentElement.style.setProperty('--phosphor-dim', t.dim);
+    document.documentElement.style.setProperty('--phosphor-bright', t.bright);
+    document.documentElement.style.setProperty('--phosphor-glow', t.glow);
+    return [{ text: `Theme set to ${name}.`, cls: 'system' }];
+  },
+
+  exit() { return '__EXIT__'; },
+
+  matrix() { return '__MATRIX__'; },
+};
+
+// Unknown command handler
+function unknownCmd(cmd) {
+  return [{ text: `${cmd}: command not found. Type 'help' for available commands.`, cls: 'error' }];
+}
+
+// ── Tab Management ──
+function createTab() {
+  const id = state.tabCounter++;
+  const tab = {
+    id,
+    name: 'bash',
+    cwd: '~',
+    history: [],
+    historyIdx: -1,
+    output: [],
+  };
+  state.tabs.push(tab);
+  return tab;
+}
+
+function getActiveTab() {
+  return state.tabs.find(t => t.id === state.activeTab);
+}
+
+function renderTabs() {
+  const bar = document.getElementById('tabBar');
+  const btnNew = bar.querySelector('.tab-new');
+  bar.querySelectorAll('.tab').forEach(el => el.remove());
+  state.tabs.forEach((tab) => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.id === state.activeTab ? ' active' : '');
+    el.dataset.tab = tab.id;
+    el.innerHTML = `<span>${tab.name}</span><button class="close-tab" onclick="closeTab(event, ${tab.id})">&times;</button>`;
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('close-tab')) return;
+      switchTab(tab.id);
+    });
+    bar.insertBefore(el, btnNew);
+  });
+}
+
+function switchTab(id) {
+  state.activeTab = id;
+  renderTabs();
+  renderOutput();
+  focusInput();
+}
+
+function newTab() {
+  const tab = createTab();
+  tab.output.push(
+    { text: 'BIZRA Terminal v3.0 — New session', cls: 'system' },
+    { text: `PID ${state.pid + tab.id} allocated. Type 'help' for commands.`, cls: 'muted' },
+    { text: '' },
+  );
+  state.activeTab = tab.id;
+  renderTabs();
+  renderOutput();
+  focusInput();
+}
+
+function closeTab(e, id) {
+  e.stopPropagation();
+  state.tabs = state.tabs.filter(t => t.id !== id);
+  if (!state.tabs.length) { newTab(); return; }
+  if (state.activeTab === id) {
+    state.activeTab = state.tabs[state.tabs.length - 1].id;
+  }
+  renderTabs();
+  renderOutput();
+}
+
+// ── Rendering ──
+function renderOutput() {
+  const vp = document.getElementById('viewport');
+  const inputRow = document.getElementById('inputRow');
+  // Remove old lines
+  vp.querySelectorAll('.output-line').forEach(el => el.remove());
+  const tab = getActiveTab();
+  if (!tab) return;
+
+  const frag = document.createDocumentFragment();
+  tab.output.forEach(line => {
+    const div = document.createElement('div');
+    div.className = 'output-line' + (line.cls ? ' ' + line.cls : '');
+    div.textContent = line.text;
+    frag.appendChild(div);
+  });
+  vp.insertBefore(frag, inputRow);
+
+  // Update prompt
+  const prompt = document.getElementById('promptText');
+  const cwdDisplay = tab.cwd === '~' ? '~' : tab.cwd.split('/').pop();
+  prompt.textContent = `bizra@sovereign:${cwdDisplay}$ `;
+
+  state.lineCount = tab.output.length;
+  document.getElementById('lineCount').textContent = state.lineCount;
+  document.getElementById('pidVal').textContent = state.pid + tab.id;
+
+  // Scroll to bottom
+  vp.scrollTop = vp.scrollHeight;
+}
+
+function focusInput() {
+  document.getElementById('cmdInput').focus();
+}
+
+// ── Command Execution ──
+function executeCommand(raw) {
+  const tab = getActiveTab();
+  if (!tab) return;
+  const trimmed = raw.trim();
+
+  // Add to output as typed line
+  const prompt = document.getElementById('promptText').textContent;
+  tab.output.push({ text: prompt + trimmed });
+
+  if (!trimmed) { renderOutput(); return; }
+
+  tab.history.push(trimmed);
+  tab.historyIdx = tab.history.length;
+
+  const parts = trimmed.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const args = parts.slice(1);
+
+  // Flash HDD LED
+  flashHDD();
+
+  if (COMMANDS[cmd]) {
+    const result = COMMANDS[cmd](args, tab);
+    if (result === '__CLEAR__') {
+      tab.output = [];
+    } else if (result === '__EXIT__') {
+      closeTab(new Event('click'), tab.id);
+      return;
+    } else if (result === '__MATRIX__') {
+      toggleMatrix();
+    } else if (Array.isArray(result)) {
+      tab.output.push(...result);
+    }
+  } else {
+    tab.output.push(...unknownCmd(cmd));
+  }
+
+  renderOutput();
+}
+
+function flashHDD() {
+  const led = document.getElementById('hddLed');
+  led.style.animation = 'none';
+  led.offsetHeight; // reflow
+  led.style.animation = 'hdd-blink 0.15s ease 3';
+  setTimeout(() => { led.style.animation = 'hdd-blink 0.3s ease infinite'; }, 500);
+}
+
+// ── Matrix Rain ──
+let matrixCanvas = null;
+let matrixAnimId = null;
+
+function toggleMatrix() {
+  if (matrixCanvas) {
+    cancelAnimationFrame(matrixAnimId);
+    matrixCanvas.remove();
+    matrixCanvas = null;
+    const tab = getActiveTab();
+    if (tab) tab.output.push({ text: 'Matrix rain disabled.', cls: 'system' });
+    renderOutput();
+    return;
+  }
+  const screen = document.querySelector('.crt-screen');
+  matrixCanvas = document.createElement('canvas');
+  matrixCanvas.style.cssText = 'position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0.12;';
+  screen.appendChild(matrixCanvas);
+  const ctx = matrixCanvas.getContext('2d');
+  matrixCanvas.width = screen.clientWidth;
+  matrixCanvas.height = screen.clientHeight;
+  const cols = Math.floor(matrixCanvas.width / 14);
+  const drops = Array(cols).fill(1);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZアイウエオカキクケコ0123456789@#$%^&*'.split('');
+
+  function draw() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--phosphor');
+    ctx.font = '12px "Share Tech Mono", monospace';
+    for (let i = 0; i < drops.length; i++) {
+      const char = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillText(char, i * 14, drops[i] * 14);
+      if (drops[i] * 14 > matrixCanvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+    matrixAnimId = requestAnimationFrame(draw);
+  }
+  draw();
+  const tab = getActiveTab();
+  if (tab) tab.output.push({ text: 'Matrix rain enabled. Run "matrix" again to disable.', cls: 'system' });
+  renderOutput();
+}
+
+// ── Input Handling ──
+const cmdInput = document.getElementById('cmdInput');
+const cursorBlock = document.getElementById('cursorBlock');
+
+cmdInput.addEventListener('focus', () => { cursorBlock.style.display = 'none'; });
+cmdInput.addEventListener('blur', () => { cursorBlock.style.display = 'inline-block'; });
+
+cmdInput.addEventListener('keydown', (e) => {
+  const tab = getActiveTab();
+  if (!tab) return;
+
+  if (e.key === 'Enter') {
+    executeCommand(cmdInput.value);
+    cmdInput.value = '';
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (tab.historyIdx > 0) {
+      tab.historyIdx--;
+      cmdInput.value = tab.history[tab.historyIdx] || '';
+    }
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (tab.historyIdx < tab.history.length - 1) {
+      tab.historyIdx++;
+      cmdInput.value = tab.history[tab.historyIdx] || '';
+    } else {
+      tab.historyIdx = tab.history.length;
+      cmdInput.value = '';
+    }
+  } else if (e.key === 'l' && e.ctrlKey) {
+    e.preventDefault();
+    tab.output = [];
+    renderOutput();
+  } else if (e.key === 'c' && e.ctrlKey && !e.shiftKey) {
+    // Ctrl+C — cancel current input
+    tab.output.push({ text: document.getElementById('promptText').textContent + cmdInput.value + '^C' });
+    cmdInput.value = '';
+    renderOutput();
+  } else if (e.key === 't' && e.ctrlKey) {
+    e.preventDefault();
+    newTab();
+  } else if (e.key === 'Tab') {
+    e.preventDefault();
+    // Basic tab completion
+    const val = cmdInput.value;
+    const parts = val.split(/\s+/);
+    if (parts.length === 1) {
+      const matches = Object.keys(COMMANDS).filter(c => c.startsWith(parts[0]));
+      if (matches.length === 1) cmdInput.value = matches[0] + ' ';
+    }
+  }
+});
+
+// Click anywhere focuses input
+document.getElementById('viewport').addEventListener('click', (e) => {
+  if (window.getSelection().toString()) return;
+  focusInput();
+});
+
+// ── Context Menu ──
+const ctxMenu = document.getElementById('ctxMenu');
+
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  ctxMenu.style.left = e.clientX + 'px';
+  ctxMenu.style.top = e.clientY + 'px';
+  ctxMenu.classList.add('show');
+});
+
+document.addEventListener('click', () => ctxMenu.classList.remove('show'));
+
+function ctxCopy() {
+  const sel = window.getSelection().toString();
+  if (sel) navigator.clipboard.writeText(sel);
+}
+function ctxPaste() {
+  navigator.clipboard.readText().then(t => {
+    cmdInput.value += t;
+    focusInput();
+  });
+}
+function ctxClear() {
+  const tab = getActiveTab();
+  if (tab) { tab.output = []; renderOutput(); }
+}
+function ctxReset() {
+  const tab = getActiveTab();
+  if (tab) {
+    tab.output = [];
+    tab.history = [];
+    tab.historyIdx = -1;
+    tab.cwd = '~';
+    tab.output.push(
+      { text: 'Terminal reset.', cls: 'system' },
+      { text: '' },
+    );
+    renderOutput();
+  }
+}
+
+// ── Window Controls ──
+function minimizeWin() {}
+function maximizeWin() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen();
+}
+function closeWin() { window.close(); }
+
+// ── Uptime Ticker ──
+setInterval(() => {
+  const s = Math.floor((Date.now() - state.startTime) / 1000);
+  const h = String(Math.floor(s/3600)).padStart(2,'0');
+  const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+  const sec = String(s%60).padStart(2,'0');
+  document.getElementById('uptimeVal').textContent = `${h}:${m}:${sec}`;
+  // Fake memory
+  const mem = (180 + Math.random() * 40).toFixed(0);
+  document.getElementById('memVal').textContent = `${mem} MB`;
+}, 1000);
+
+// ── Boot Sequence ──
+async function bootSequence() {
+  const bootText = document.getElementById('bootText');
+  const bootFill = document.getElementById('bootFill');
+  const overlay = document.getElementById('bootOverlay');
+
+  for (let i = 0; i < BOOT_LINES.length; i++) {
+    const [text, delay] = BOOT_LINES[i];
+    const lineEl = document.createElement('div');
+    lineEl.className = 'line';
+    lineEl.textContent = text;
+    lineEl.style.animationDelay = '0s';
+    bootText.appendChild(lineEl);
+    bootFill.style.width = ((i + 1) / BOOT_LINES.length * 100) + '%';
+    bootText.scrollTop = bootText.scrollHeight;
+    await sleep(delay);
+  }
+
+  await sleep(400);
+  overlay.classList.add('fade-out');
+  document.getElementById('terminalUnit').style.display = 'flex';
+
+  // Initialize first tab
+  const tab = createTab();
+  state.activeTab = tab.id;
+  tab.output.push(
+    { text: '╔══════════════════════════════════════════════════════╗', cls: 'system' },
+    { text: '║                                                      ║', cls: 'system' },
+    { text: '║   ██████╗ ██╗███████╗██████╗  █████╗                 ║', cls: 'system' },
+    { text: '║   ██╔══██╗██║╚══███╔╝██╔══██╗██╔══██╗                ║', cls: 'system' },
+    { text: '║   ██████╔╝██║  ███╔╝ ██████╔╝███████║                ║', cls: 'system' },
+    { text: '║   ██╔══██╗██║ ███╔╝  ██╔══██╗██╔══██║                ║', cls: 'system' },
+    { text: '║   ██████╔╝██║███████╗██║  ██║██║  ██║                ║', cls: 'system' },
+    { text: '║   ╚═════╝ ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝                ║', cls: 'system' },
+    { text: '║                                                      ║', cls: 'system' },
+    { text: '║   Sovereign Terminal v3.0.0-GENESIS                  ║', cls: 'system' },
+    { text: '║   Constitutional AI • Proof-Carrying Inference       ║', cls: 'system' },
+    { text: '║                                                      ║', cls: 'system' },
+    { text: '╚══════════════════════════════════════════════════════╝', cls: 'system' },
+    { text: '' },
+    { text: `Welcome, ${window._sovereignName || 'Sovereign'}. Session started ${new Date().toLocaleDateString()}.`, cls: '' },
+    { text: "Type 'help' for available commands, 'status' for subsystems.", cls: 'muted' },
+    { text: '' },
+  );
+
+  renderTabs();
+  renderOutput();
+  focusInput();
+
+  setTimeout(() => overlay.remove(), 1000);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Daemon API ──
+const DAEMON = 'http://127.0.0.1:9740';
+
+// ── Kernel Gate: redirect to installer if not initialized ──
+(function kernelGate() {
+  // Check localStorage first (instant)
+  const flag = localStorage.getItem('bizra_kernel_initialized');
+  if (!flag) {
+    if (!window.location.search.includes('dev')) {
+      console.log('[BIZRA] Kernel not initialized — redirecting to installer');
+      window.location.replace(
+        window.location.port === '9740' ? '/installer' : 'bizra-installer.html'
+      );
+      return;
+    }
+    console.log('[BIZRA] Dev mode — skipping kernel gate');
+  } else {
+    try {
+      const init = JSON.parse(flag);
+      console.log('[BIZRA] Kernel initialized:', init.version, '| User:', init.userName);
+      window._sovereignName = init.userName || 'Sovereign';
+      window._sovereignLang = init.lang || 'en';
+    } catch (e) { /* proceed with defaults */ }
+  }
+})();
+
+// ── Live Backend Status (connects to daemon API) ──
+async function fetchDaemonStatus() {
+  try {
+    const res = await fetch(`${DAEMON}/api/status`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    window._daemonStatus = data;
+    console.log('[BIZRA] Daemon status:', data.kernel?.version, '| Backends:', data.backends?.length);
+    return data;
+  } catch (e) {
+    console.log('[BIZRA] Daemon unreachable — running in standalone mode');
+    return null;
+  }
+}
+
+// Also try to get sovereign state from daemon (supplements localStorage)
+async function fetchSovereignState() {
+  try {
+    const res = await fetch(`${DAEMON}/api/state`);
+    if (!res.ok) return;
+    const state = await res.json();
+    if (state.userName) {
+      window._sovereignName = state.userName;
+      window._sovereignLang = state.lang || 'en';
+    }
+  } catch (e) { /* daemon unreachable, use localStorage values */ }
+}
+
+// Fetch daemon status on load (non-blocking)
+fetchDaemonStatus();
+fetchSovereignState();
+
+// Periodic health poll (updates status bar if daemon is live)
+setInterval(async () => {
+  const status = await fetchDaemonStatus();
+  if (status && document.getElementById('statusVal')) {
+    const alive = status.backends?.filter(b => b.alive).length || 0;
+    const total = status.backends?.length || 0;
+    document.getElementById('statusVal').textContent = `${alive}/${total} backends`;
+  }
+}, 30000);
+
+// ── Launch ──
+bootSequence();
+</script>
+</body>
+</html>
