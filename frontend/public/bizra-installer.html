@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIZRA — Sovereign Installer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Arabic:wght@300;400;500;600;700&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   BIZRA UNIVERSAL SOVEREIGN INSTALLER
+   Islamic Geometric + Glass Morphism + CRT Heritage
+   ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* BIZRA Palette */
+  --navy:       #0A1628;
+  --navy-deep:  #050B14;
+  --navy-mid:   #0F1F35;
+  --gold:       #C9A962;
+  --gold-dim:   #8A7342;
+  --gold-bright:#E2C882;
+  --gold-glow:  rgba(201, 169, 98, 0.15);
+  --warm-white: #F5F0E8;
+  --cool-white: #E8ECF2;
+  --green:      #33CC77;
+  --green-dim:  #1A7A44;
+  --amber:      #FF8800;
+  --red:        #FF4444;
+  --cyan:       #00BBDD;
+
+  /* Glass */
+  --glass-bg:     rgba(15, 31, 53, 0.6);
+  --glass-border: rgba(201, 169, 98, 0.15);
+  --glass-blur:   20px;
+
+  /* Phosphor (terminal) */
+  --phosphor:     #33ff33;
+  --phosphor-dim: #1a8a1a;
+  --phosphor-glow:rgba(51,255,51,0.15);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  font-family: 'Noto Sans Arabic', 'Noto Sans', sans-serif;
+  background: var(--navy-deep);
+  color: var(--warm-white);
+  overflow: hidden;
+  cursor: default;
+  -webkit-font-smoothing: antialiased;
+}
+
+html[dir="ltr"] { font-family: 'Noto Sans', 'Noto Sans Arabic', sans-serif; }
+
+/* ── Geometric Background ── */
+.geo-bg {
+  position: fixed; inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.geo-bg .pattern {
+  position: absolute; inset: -50%;
+  width: 200%; height: 200%;
+  background-image:
+    repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      transparent 0deg 88deg,
+      rgba(201, 169, 98, 0.015) 88deg 92deg,
+      transparent 92deg 180deg
+    );
+  background-size: 120px 120px;
+  animation: geo-rotate 120s linear infinite;
+}
+
+@keyframes geo-rotate {
+  to { transform: rotate(360deg); }
+}
+
+.geo-bg .radial {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, rgba(201,169,98,0.06) 0%, transparent 60%);
+}
+
+.geo-bg .vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, var(--navy-deep) 100%);
+}
+
+/* Floating geometric particles */
+.geo-particle {
+  position: absolute;
+  border: 1px solid rgba(201, 169, 98, 0.08);
+  animation: float-particle 20s ease-in-out infinite;
+  pointer-events: none;
+}
+.geo-particle.octagon { clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%); }
+.geo-particle.diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+.geo-particle.star { clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+
+@keyframes float-particle {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
+  25% { transform: translateY(-30px) rotate(45deg); opacity: 0.6; }
+  50% { transform: translateY(-10px) rotate(90deg); opacity: 0.3; }
+  75% { transform: translateY(-40px) rotate(135deg); opacity: 0.5; }
+}
+
+/* ── Installer Container ── */
+.installer {
+  position: relative;
+  z-index: 10;
+  width: 100vw; height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Step Container ── */
+.step {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 680px;
+  padding: 0 32px;
+  animation: step-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+.step.active { display: flex; }
+
+@keyframes step-enter {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Glass Card ── */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 48px 40px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,169,98,0.3) 30%, rgba(201,169,98,0.3) 70%, transparent);
+}
+
+/* ── Logo ── */
+.bizra-logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.bizra-logo .arabic-name {
+  font-family: 'Amiri', serif;
+  font-size: 52px;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: 0 0 40px var(--gold-glow), 0 2px 8px rgba(0,0,0,0.3);
+  letter-spacing: 2px;
+  line-height: 1.2;
+}
+.bizra-logo .sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-top: 6px;
+}
+
+/* ── Step Progress ── */
+.step-progress {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 36px;
+  direction: ltr; /* always LTR for progress */
+}
+.step-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(201, 169, 98, 0.2);
+  border: 1.5px solid rgba(201, 169, 98, 0.3);
+  transition: all 0.4s;
+  position: relative;
+}
+.step-dot.completed {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 8px var(--gold-glow);
+}
+.step-dot.active {
+  background: var(--gold);
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 12px var(--gold-glow);
+  transform: scale(1.3);
+}
+.step-line {
+  width: 32px; height: 1.5px;
+  background: rgba(201, 169, 98, 0.15);
+  transition: background 0.4s;
+}
+.step-line.completed { background: var(--gold-dim); }
+
+/* ── Typography ── */
+.step-title {
+  font-family: 'Amiri', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--warm-white);
+  text-align: center;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.step-subtitle {
+  font-size: 15px;
+  font-weight: 400;
+  color: rgba(245, 240, 232, 0.6);
+  text-align: center;
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%);
+  color: var(--navy-deep);
+  border: none;
+  border-radius: 12px;
+  padding: 14px 36px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(201, 169, 98, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 180px;
+  justify-content: center;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(201, 169, 98, 0.3);
+}
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--gold-dim);
+  border: 1px solid rgba(201, 169, 98, 0.2);
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.btn-secondary:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(201, 169, 98, 0.05);
+}
+
+.btn-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Detection Metrics ── */
+.detect-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 24px 0;
+}
+.detect-item {
+  background: rgba(10, 22, 40, 0.5);
+  border: 1px solid rgba(201, 169, 98, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: detect-scan 0.8s ease forwards;
+  opacity: 0;
+}
+
+@keyframes detect-scan {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.detect-item .icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: rgba(201, 169, 98, 0.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.detect-item .info { flex: 1; min-width: 0; }
+.detect-item .label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  font-family: 'Rajdhani', sans-serif;
+}
+.detect-item .value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--warm-white);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detect-item .check {
+  color: var(--green);
+  font-size: 16px;
+  opacity: 0;
+  animation: check-pop 0.3s ease forwards;
+}
+@keyframes check-pop {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Language Picker ── */
+.lang-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 20px 0;
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-dim) transparent;
+}
+.lang-option {
+  background: rgba(10, 22, 40, 0.4);
+  border: 1.5px solid rgba(201, 169, 98, 0.1);
+  border-radius: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  direction: ltr;
+  text-align: left;
+}
+.lang-option:hover {
+  border-color: rgba(201, 169, 98, 0.3);
+  background: rgba(201, 169, 98, 0.05);
+}
+.lang-option.selected {
+  border-color: var(--gold);
+  background: rgba(201, 169, 98, 0.1);
+  box-shadow: 0 0 16px var(--gold-glow);
+}
+.lang-option .flag { font-size: 24px; }
+.lang-option .lang-name { font-weight: 500; font-size: 14px; color: var(--warm-white); }
+.lang-option .lang-native { font-size: 13px; color: var(--gold-dim); }
+.lang-option .lang-detected {
+  margin-inline-start: auto;
+  font-size: 10px;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+}
+
+/* ── Model Tier Selector ── */
+.model-tiers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 20px 0;
+}
+.tier-option {
+  background: rgba(10, 22, 40, 0.4);
+  border: 1.5px solid rgba(201, 169, 98, 0.08);
+  border-radius: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.tier-option:hover { border-color: rgba(201, 169, 98, 0.2); background: rgba(201, 169, 98, 0.03); }
+.tier-option.selected { border-color: var(--gold); background: rgba(201, 169, 98, 0.08); }
+.tier-option.recommended { position: relative; }
+.tier-option.recommended::after {
+  content: 'RECOMMENDED';
+  position: absolute;
+  top: -8px;
+  inset-inline-end: 16px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--navy-deep);
+  background: var(--gold);
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+.tier-radio {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(201, 169, 98, 0.3);
+  flex-shrink: 0;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.tier-option.selected .tier-radio {
+  border-color: var(--gold);
+}
+.tier-option.selected .tier-radio::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+.tier-info { flex: 1; }
+.tier-name { font-weight: 600; font-size: 15px; color: var(--warm-white); }
+.tier-desc { font-size: 12px; color: rgba(245,240,232,0.5); margin-top: 2px; }
+.tier-size {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: var(--gold-dim);
+  white-space: nowrap;
+}
+
+/* ── Install Progress ── */
+.install-progress {
+  margin: 28px 0;
+}
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(10, 22, 40, 0.6);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold), var(--gold-bright));
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.5s ease;
+  position: relative;
+  box-shadow: 0 0 12px var(--gold-glow);
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 40px; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.progress-message {
+  text-align: center;
+  font-size: 14px;
+  color: rgba(245, 240, 232, 0.7);
+  min-height: 24px;
+  transition: opacity 0.3s;
+}
+
+.progress-pct {
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.install-checklist {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(245,240,232,0.4);
+  transition: color 0.3s;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.check-item.done { color: var(--green); }
+.check-item.active { color: var(--gold); }
+.check-item .ci-icon { width: 18px; text-align: center; }
+
+/* ── Identity Form ── */
+.identity-form {
+  margin: 24px 0;
+}
+.form-field {
+  margin-bottom: 20px;
+}
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-dim);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.form-input {
+  width: 100%;
+  background: rgba(10, 22, 40, 0.6);
+  border: 1.5px solid rgba(201, 169, 98, 0.15);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--warm-white);
+  outline: none;
+  transition: border-color 0.3s;
+}
+.form-input:focus { border-color: var(--gold); box-shadow: 0 0 16px var(--gold-glow); }
+.form-input::placeholder { color: rgba(245, 240, 232, 0.25); }
+
+.avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.avatar-circle {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy-mid), var(--navy));
+  border: 2px solid rgba(201, 169, 98, 0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  color: var(--gold-dim);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+.avatar-circle:hover { border-color: var(--gold); }
+.avatar-circle.has-initial { font-family: 'Amiri', serif; font-weight: 700; color: var(--gold); font-size: 32px; }
+
+/* ── Resource Sliders ── */
+.resource-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 24px 0;
+}
+.resource-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.resource-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: rgba(201, 169, 98, 0.06);
+  border: 1px solid rgba(201, 169, 98, 0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.resource-info { flex: 1; }
+.resource-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warm-white);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.resource-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--gold);
+}
+
+/* Custom range slider */
+.slider-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(10, 22, 40, 0.6);
+  position: relative;
+  cursor: pointer;
+}
+.slider-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--green-dim), var(--green));
+  transition: width 0.1s;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  background: transparent;
+  position: absolute;
+  top: 0; left: 0;
+  margin: 0;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--gold-bright);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  cursor: grab;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--gold-bright);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  cursor: grab;
+}
+
+.schedule-select {
+  width: 100%;
+  background: rgba(10, 22, 40, 0.6);
+  border: 1px solid rgba(201, 169, 98, 0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--warm-white);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  margin-top: 12px;
+  cursor: pointer;
+}
+.schedule-select option { background: var(--navy); color: var(--warm-white); }
+
+.seed-estimate {
+  text-align: center;
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(51, 204, 119, 0.05);
+  border: 1px solid rgba(51, 204, 119, 0.15);
+  border-radius: 10px;
+}
+.seed-estimate .amount {
+  font-family: 'Amiri', serif;
+  font-size: 24px;
+  color: var(--green);
+  font-weight: 700;
+}
+.seed-estimate .label {
+  font-size: 12px;
+  color: rgba(51, 204, 119, 0.6);
+  margin-top: 4px;
+}
+
+/* ── DEMA Alive ── */
+.dema-bubble {
+  background: rgba(10, 22, 40, 0.6);
+  border: 1px solid rgba(201, 169, 98, 0.12);
+  border-radius: 16px 16px 4px 16px;
+  padding: 24px 28px;
+  margin: 20px 0;
+  font-family: 'Amiri', serif;
+  font-size: 18px;
+  line-height: 1.8;
+  color: var(--warm-white);
+  position: relative;
+}
+html[dir="rtl"] .dema-bubble { border-radius: 16px 16px 16px 4px; }
+.dema-bubble::before {
+  content: 'DEMA';
+  position: absolute;
+  top: -10px;
+  inset-inline-start: 16px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--gold);
+  background: var(--navy-deep);
+  padding: 2px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(201, 169, 98, 0.2);
+}
+
+.dema-typing {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px 0;
+}
+.dema-typing .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  animation: typing-bounce 1.4s ease-in-out infinite;
+}
+.dema-typing .dot:nth-child(2) { animation-delay: 0.2s; }
+.dema-typing .dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ── Alive Metrics ── */
+.alive-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+.alive-metric {
+  text-align: center;
+  padding: 12px;
+  background: rgba(10, 22, 40, 0.4);
+  border-radius: 10px;
+  border: 1px solid rgba(201, 169, 98, 0.06);
+}
+.alive-metric .val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--green);
+}
+.alive-metric .lbl {
+  font-size: 10px;
+  color: var(--gold-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Rajdhani', sans-serif;
+  margin-top: 4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .glass-card { padding: 32px 24px; border-radius: 16px; }
+  .step { padding: 0 16px; }
+  .detect-grid { grid-template-columns: 1fr; }
+  .lang-grid { grid-template-columns: 1fr; }
+  .bizra-logo .arabic-name { font-size: 38px; }
+  .alive-metrics { grid-template-columns: 1fr; }
+}
+
+/* ── Transition to Terminal ── */
+.terminal-transition {
+  position: fixed; inset: 0;
+  background: #000;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.terminal-transition.active { display: flex; opacity: 1; }
+.terminal-transition .logo-flash {
+  font-family: 'Amiri', serif;
+  font-size: 48px;
+  color: var(--gold);
+  text-shadow: 0 0 60px var(--gold-glow);
+  animation: logo-pulse 1.5s ease-in-out;
+}
+@keyframes logo-pulse {
+  0% { opacity: 0; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+/* ── Key generation animation ── */
+.keygen-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 16px 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--phosphor-dim);
+  min-height: 28px;
+}
+.keygen-visual .hash {
+  animation: hash-scroll 0.5s steps(4) infinite;
+  color: var(--phosphor);
+  text-shadow: 0 0 6px var(--phosphor-glow);
+}
+@keyframes hash-scroll {
+  0% { content: '0xA3B5'; }
+  25% { content: '0xF1D2'; }
+  50% { content: '0x9E7C'; }
+  75% { content: '0x4A2F'; }
+}
+
+/* Win chrome bar (replicated from terminal) */
+.win-chrome {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 36px;
+  background: rgba(10, 22, 40, 0.95);
+  border-bottom: 1px solid rgba(201, 169, 98, 0.08);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  z-index: 100;
+  -webkit-app-region: drag;
+}
+.win-chrome .title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gold-dim);
+  letter-spacing: 2px;
+  flex: 1;
+  text-align: center;
+}
+.win-chrome .wc-btns {
+  display: flex; gap: 2px;
+  -webkit-app-region: no-drag;
+}
+.win-chrome .wc-btn {
+  width: 36px; height: 28px;
+  border: none; background: transparent;
+  color: #556; font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.win-chrome .wc-btn:hover { background: rgba(255,255,255,0.06); color: #aaa; }
+.win-chrome .wc-btn.close:hover { background: #c42b1c; color: #fff; }
+
+body { padding-top: 36px; }
+.installer { height: calc(100vh - 36px); }
+</style>
+</head>
+<body>
+
+<!-- Window Chrome -->
+<div class="win-chrome">
+  <div class="title">BIZRA SOVEREIGN INSTALLER</div>
+  <div class="wc-btns">
+    <button class="wc-btn">&#x2500;</button>
+    <button class="wc-btn">&#x25A1;</button>
+    <button class="wc-btn close" onclick="window.close()">&#x2715;</button>
+  </div>
+</div>
+
+<!-- Geometric Background -->
+<div class="geo-bg">
+  <div class="pattern"></div>
+  <div class="radial"></div>
+  <div class="vignette"></div>
+  <div class="geo-particle octagon" style="width:60px;height:60px;top:12%;left:8%;animation-delay:-3s;"></div>
+  <div class="geo-particle diamond" style="width:40px;height:40px;top:25%;right:12%;animation-delay:-7s;"></div>
+  <div class="geo-particle star" style="width:50px;height:50px;bottom:20%;left:15%;animation-delay:-11s;"></div>
+  <div class="geo-particle octagon" style="width:35px;height:35px;top:60%;right:8%;animation-delay:-5s;"></div>
+  <div class="geo-particle diamond" style="width:45px;height:45px;bottom:35%;left:75%;animation-delay:-9s;"></div>
+</div>
+
+<div class="installer">
+
+  <!-- ═══ STEP 1: DETECT ═══ -->
+  <div class="step active" id="step-detect">
+    <div class="bizra-logo">
+      <div class="arabic-name">بِذْرَة</div>
+      <div class="sub">SOVEREIGN INSTALLER</div>
+    </div>
+    <div class="glass-card">
+      <div class="step-title" id="detectTitle">جارٍ فحص الجهاز...</div>
+      <div class="step-subtitle" id="detectSub">نكتشف أفضل إعداد لجهازك تلقائياً</div>
+      <div class="detect-grid" id="detectGrid"></div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: GREET (Language) ═══ -->
+  <div class="step" id="step-greet">
+    <div class="bizra-logo">
+      <div class="arabic-name">بِذْرَة</div>
+      <div class="sub">SOVEREIGN INSTALLER</div>
+    </div>
+    <div class="step-progress" id="progress2"></div>
+    <div class="glass-card">
+      <div class="step-title" id="greetTitle">اختر لغتك</div>
+      <div class="step-subtitle" id="greetSub">لغتك هي سيادتك — بذرة تتحدث بلغتك</div>
+      <div class="lang-grid" id="langGrid"></div>
+      <div class="btn-row">
+        <button class="btn-primary" id="greetConfirm" onclick="goStep(3)">تأكيد ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3: ADAPT (Model) ═══ -->
+  <div class="step" id="step-adapt">
+    <div class="step-progress" id="progress3"></div>
+    <div class="glass-card">
+      <div class="step-title" id="adaptTitle">اختيار نموذج الذكاء</div>
+      <div class="step-subtitle" id="adaptSub">اخترنا الأفضل لجهازك — يمكنك التغيير</div>
+      <div class="model-tiers" id="modelTiers"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goStep(2)">← <span data-i18n="back">رجوع</span></button>
+        <button class="btn-primary" id="adaptConfirm" onclick="goStep(4)"><span data-i18n="install-btn">تثبيت</span> ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 4: INSTALL (Progress) ═══ -->
+  <div class="step" id="step-install">
+    <div class="step-progress" id="progress4"></div>
+    <div class="glass-card">
+      <div class="step-title" id="installTitle">جارٍ التثبيت</div>
+      <div class="install-progress">
+        <div class="progress-pct" id="installPct">0%</div>
+        <div class="progress-track">
+          <div class="progress-fill" id="installFill"></div>
+        </div>
+        <div class="progress-message" id="installMsg">جارٍ إعداد النظام الأساسي...</div>
+      </div>
+      <div class="install-checklist" id="installChecklist"></div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 5: IDENTITY ═══ -->
+  <div class="step" id="step-identity">
+    <div class="step-progress" id="progress5"></div>
+    <div class="glass-card">
+      <div class="step-title" id="identityTitle">هويتك السيادية</div>
+      <div class="step-subtitle" id="identitySub">اسمك ومفتاحك — لا أحد يملكها غيرك</div>
+      <div class="identity-form">
+        <div class="avatar-row">
+          <div class="avatar-circle" id="avatarCircle">👤</div>
+          <div style="flex:1">
+            <div class="form-field" style="margin:0">
+              <label class="form-label" id="nameLabel">الاسم</label>
+              <input class="form-input" type="text" id="nameInput" placeholder="أدخل اسمك" autofocus>
+            </div>
+          </div>
+        </div>
+        <div class="keygen-visual" id="keygenVisual" style="display:none;">
+          <span>Ed25519</span>
+          <span class="hash" id="keygenHash">0x0000...0000</span>
+          <span>→ مفتاحك</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="identityConfirm" onclick="createIdentity()"><span data-i18n="create-node">إنشاء عقدتي</span> ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 5.5: SHARE (Resources) ═══ -->
+  <div class="step" id="step-share">
+    <div class="step-progress" id="progress55"></div>
+    <div class="glass-card">
+      <div class="step-title" id="shareTitle">شارك مع الغابة 🌳</div>
+      <div class="step-subtitle" id="shareSub">جهازك يمكنه مساعدة الآخرين — وكسب SEED</div>
+      <div class="resource-grid" id="resourceGrid"></div>
+      <div>
+        <label class="form-label" id="scheduleLabel" style="margin-top:8px;">الجدول</label>
+        <select class="schedule-select" id="scheduleSelect">
+          <option value="idle" data-i18n-opt="when-idle">عند الخمول</option>
+          <option value="always" data-i18n-opt="always">دائماً</option>
+          <option value="scheduled" data-i18n-opt="scheduled">مجدول</option>
+          <option value="manual" data-i18n-opt="manual">يدوي</option>
+          <option value="never" data-i18n-opt="never">لا مشاركة</option>
+        </select>
+      </div>
+      <div class="seed-estimate" id="seedEstimate">
+        <div class="amount">~0.48 SEED</div>
+        <div class="label" data-i18n="estimated-daily">التقدير اليومي</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goStep(6)"><span data-i18n="skip">تخطي</span> →</button>
+        <button class="btn-primary" onclick="goStep(6)"><span data-i18n="share-earn">شارك واكسب</span> ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 6: ALIVE ═══ -->
+  <div class="step" id="step-alive">
+    <div class="step-progress" id="progress6"></div>
+    <div class="glass-card">
+      <div class="step-title" style="color:var(--green);" id="aliveTitle">✓ عقدتك حية</div>
+      <div class="dema-bubble" id="demaBubble">
+        <div class="dema-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </div>
+      <div class="alive-metrics">
+        <div class="alive-metric">
+          <div class="val" id="ihsanVal">0.95</div>
+          <div class="lbl">IHSAN</div>
+        </div>
+        <div class="alive-metric">
+          <div class="val" id="agentsVal">12</div>
+          <div class="lbl">AGENTS</div>
+        </div>
+        <div class="alive-metric">
+          <div class="val" id="heartbeatVal">●</div>
+          <div class="lbl">HEARTBEAT</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="launchTerminal()" id="launchBtn"><span data-i18n="open-terminal">افتح الطرفية</span> →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Terminal Transition -->
+<div class="terminal-transition" id="termTransition">
+  <div class="logo-flash">بِذْرَة</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  BIZRA UNIVERSAL SOVEREIGN INSTALLER ENGINE
+// ═══════════════════════════════════════════════════════════
+
+// ── Daemon API base (kernel_daemon.py serves on :9740) ──
+const DAEMON = 'http://127.0.0.1:9740';
+
+// ── Auto-Route: If already initialized, skip straight to terminal ──
+(function checkAlreadyInitialized() {
+  // Check localStorage first (instant, works offline)
+  const flag = localStorage.getItem('bizra_kernel_initialized');
+  if (flag) {
+    try {
+      const init = JSON.parse(flag);
+      if (init.version && init.timestamp) {
+        console.log('[BIZRA] Kernel initialized (localStorage):', init.version);
+        window.location.replace(
+          window.location.port === '9740' ? '/terminal' : 'terminal-emulator.html'
+        );
+        return;
+      }
+    } catch (e) { /* corrupted, re-run installer */ }
+  }
+
+  // Also check daemon API (if served by daemon)
+  if (window.location.port === '9740') {
+    fetch('/api/state').then(r => r.json()).then(s => {
+      if (s.version && s.timestamp) {
+        console.log('[BIZRA] Kernel initialized (daemon API):', s.version);
+        window.location.replace('/terminal');
+      }
+    }).catch(() => { /* daemon API unreachable, continue installer */ });
+  }
+
+  console.log('[BIZRA] First boot detected — launching installer');
+})();
+
+// ── i18n Database ──
+const I18N = {
+  ar: {
+    dir: 'rtl',
+    detectTitle: 'جارٍ فحص الجهاز...',
+    detectSub: 'نكتشف أفضل إعداد لجهازك تلقائياً',
+    detectDone: 'تم اكتشاف الجهاز ✓',
+    greetTitle: 'اختر لغتك',
+    greetSub: 'لغتك هي سيادتك — بذرة تتحدث بلغتك',
+    confirm: 'تأكيد ✓',
+    adaptTitle: 'اختيار نموذج الذكاء',
+    adaptSub: 'اخترنا الأفضل لجهازك — يمكنك التغيير',
+    installBtn: 'تثبيت ✓',
+    back: '← رجوع',
+    installTitle: 'جارٍ التثبيت',
+    msgs: ['جارٍ إعداد النظام الأساسي...', 'جارٍ تحميل نموذج الذكاء...', 'جارٍ توليد الهوية...', 'جارٍ تهيئة البوابات الدستورية...', 'جارٍ بدء نبض القلب...', 'مكتمل!'],
+    checks: ['محرك التشغيل', 'نموذج الذكاء', 'بوابات FATE', 'سلسلة الأدلة', 'نبض القلب'],
+    identityTitle: 'هويتك السيادية',
+    identitySub: 'اسمك ومفتاحك — لا أحد يملكها غيرك',
+    nameLabel: 'الاسم',
+    namePlaceholder: 'أدخل اسمك',
+    createNode: 'إنشاء عقدتي ✓',
+    shareTitle: 'شارك مع الغابة 🌳',
+    shareSub: 'جهازك يمكنه مساعدة الآخرين — وكسب SEED',
+    scheduleLabel: 'الجدول',
+    schedOpts: { idle: 'عند الخمول', always: 'دائماً', scheduled: 'مجدول', manual: 'يدوي', never: 'لا مشاركة' },
+    estimatedDaily: 'التقدير اليومي',
+    skip: 'تخطي →',
+    shareEarn: 'شارك واكسب ✓',
+    aliveTitle: '✓ عقدتك حية',
+    openTerminal: 'افتح الطرفية →',
+    demaGreet: name => `مرحباً يا ${name}! أنا ديما، مساعدتك الشخصية.\nأنت الآن عقدة رقمية سيادية. كل شيء يعمل محلياً على جهازك. لا شيء يغادر.\nمستعد للمهمة الأولى؟`,
+    cpu: 'المعالج', ram: 'الذاكرة', gpu: 'كرت الشاشة', disk: 'التخزين', os: 'نظام التشغيل', locale: 'اللغة', network: 'الشبكة', arch: 'المعمارية',
+  },
+  en: {
+    dir: 'ltr',
+    detectTitle: 'Detecting your device...',
+    detectSub: 'Automatically finding the best setup for your hardware',
+    detectDone: 'Device detected ✓',
+    greetTitle: 'Choose your language',
+    greetSub: 'Your language is your sovereignty — BIZRA speaks your language',
+    confirm: 'Confirm ✓',
+    adaptTitle: 'Choose intelligence model',
+    adaptSub: 'We picked the best for your device — you can change it',
+    installBtn: 'Install ✓',
+    back: '← Back',
+    installTitle: 'Installing',
+    msgs: ['Preparing core runtime...', 'Loading intelligence model...', 'Generating identity...', 'Initializing constitutional gates...', 'Starting heartbeat...', 'Complete!'],
+    checks: ['Core runtime', 'Intelligence model', 'FATE gates', 'Evidence chain', 'Heartbeat'],
+    identityTitle: 'Your sovereign identity',
+    identitySub: 'Your name and your key — nobody owns them but you',
+    nameLabel: 'Name',
+    namePlaceholder: 'Enter your name',
+    createNode: 'Create my node ✓',
+    shareTitle: 'Share with the forest 🌳',
+    shareSub: 'Your device can help others — and earn SEED',
+    scheduleLabel: 'Schedule',
+    schedOpts: { idle: 'When idle', always: 'Always', scheduled: 'Scheduled', manual: 'Manual', never: 'No sharing' },
+    estimatedDaily: 'Estimated daily',
+    skip: 'Skip →',
+    shareEarn: 'Share & earn ✓',
+    aliveTitle: '✓ Your node is alive',
+    openTerminal: 'Open terminal →',
+    demaGreet: name => `Hello ${name}! I'm DEMA, your personal assistant.\nYou are now a sovereign digital node. Everything runs locally on your device. Nothing leaves.\nReady for your first mission?`,
+    cpu: 'CPU', ram: 'RAM', gpu: 'GPU', disk: 'Storage', os: 'OS', locale: 'Locale', network: 'Network', arch: 'Architecture',
+  }
+};
+
+// ── Languages Available ──
+const LANGUAGES = [
+  { code: 'ar', flag: '🇦🇪', name: 'Arabic', native: 'العربية' },
+  { code: 'en', flag: '🇬🇧', name: 'English', native: 'English' },
+  { code: 'es', flag: '🇪🇸', name: 'Spanish', native: 'Español' },
+  { code: 'fr', flag: '🇫🇷', name: 'French', native: 'Français' },
+  { code: 'zh', flag: '🇨🇳', name: 'Chinese', native: '中文' },
+  { code: 'hi', flag: '🇮🇳', name: 'Hindi', native: 'हिन्दी' },
+  { code: 'pt', flag: '🇧🇷', name: 'Portuguese', native: 'Português' },
+  { code: 'id', flag: '🇮🇩', name: 'Indonesian', native: 'Indonesia' },
+  { code: 'bn', flag: '🇧🇩', name: 'Bengali', native: 'বাংলা' },
+  { code: 'ru', flag: '🇷🇺', name: 'Russian', native: 'Русский' },
+  { code: 'ja', flag: '🇯🇵', name: 'Japanese', native: '日本語' },
+  { code: 'ko', flag: '🇰🇷', name: 'Korean', native: '한국어' },
+  { code: 'de', flag: '🇩🇪', name: 'German', native: 'Deutsch' },
+  { code: 'tr', flag: '🇹🇷', name: 'Turkish', native: 'Türkçe' },
+  { code: 'ur', flag: '🇵🇰', name: 'Urdu', native: 'اردو' },
+  { code: 'sw', flag: '🇰🇪', name: 'Swahili', native: 'Kiswahili' },
+];
+
+// ── Model Tiers ──
+const MODEL_TIERS = [
+  { id: 'micro',    name: 'Micro',    model: 'TinyLlama 1.1B Q2',    size: '500 MB',  minRam: 1 },
+  { id: 'compact',  name: 'Compact',  model: 'TinyLlama 1.1B Q4',    size: '650 MB',  minRam: 2 },
+  { id: 'standard', name: 'Standard', model: 'Phi-3 Mini 3.8B Q4',   size: '2.3 GB',  minRam: 4 },
+  { id: 'enhanced', name: 'Enhanced', model: 'Llama 3.1 8B Q4',      size: '4.7 GB',  minRam: 8 },
+  { id: 'full',     name: 'Full',     model: 'Qwen 2.5 14B Q4',      size: '8.5 GB',  minRam: 16 },
+  { id: 'premium',  name: 'Premium',  model: 'Llama 3.1 70B Q4',     size: '40 GB',   minRam: 32 },
+];
+
+// ── State ──
+const state = {
+  lang: 'ar',
+  step: 1,
+  deviceProfile: {},
+  selectedModel: 'standard',
+  userName: '',
+};
+
+function t(key) {
+  const lang = I18N[state.lang] || I18N.en;
+  return lang[key] || I18N.en[key] || key;
+}
+
+// ── Simulated Device Detection ──
+function simulateDeviceProfile() {
+  return {
+    os: navigator.platform.includes('Win') ? 'Windows 11' : navigator.platform.includes('Mac') ? 'macOS 14' : 'Linux',
+    arch: 'x86_64',
+    cpu: '8 cores / 16 threads',
+    ram: '16 GB DDR5',
+    gpu: 'NVIDIA RTX 3060 (6 GB)',
+    disk: '250 GB free',
+    locale: navigator.language || 'ar-AE',
+    network: navigator.onLine ? 'Online (85 Mbps)' : 'Offline',
+  };
+}
+
+// ── Step 1: DETECT ──
+async function runDetection() {
+  const grid = document.getElementById('detectGrid');
+  const profile = simulateDeviceProfile();
+  state.deviceProfile = profile;
+
+  const items = [
+    { icon: '💻', label: t('os'),      value: profile.os },
+    { icon: '⚡', label: t('arch'),    value: profile.arch },
+    { icon: '🧠', label: t('cpu'),     value: profile.cpu },
+    { icon: '📊', label: t('ram'),     value: profile.ram },
+    { icon: '🎮', label: t('gpu'),     value: profile.gpu },
+    { icon: '💾', label: t('disk'),    value: profile.disk },
+    { icon: '🌐', label: t('locale'),  value: profile.locale },
+    { icon: '📡', label: t('network'), value: profile.network },
+  ];
+
+  for (let i = 0; i < items.length; i++) {
+    await sleep(200 + Math.random() * 200);
+    const it = items[i];
+    const el = document.createElement('div');
+    el.className = 'detect-item';
+    el.style.animationDelay = '0s';
+    el.innerHTML = `
+      <div class="icon">${it.icon}</div>
+      <div class="info">
+        <div class="label">${it.label}</div>
+        <div class="value">${it.value}</div>
+      </div>
+      <span class="check" style="animation-delay:0.3s">✓</span>
+    `;
+    grid.appendChild(el);
+  }
+
+  await sleep(600);
+  document.getElementById('detectTitle').textContent = t('detectDone');
+  await sleep(800);
+  goStep(2);
+}
+
+// ── Step 2: GREET (Language) ──
+function buildLangGrid() {
+  const grid = document.getElementById('langGrid');
+  grid.innerHTML = '';
+  const detectedLang = (navigator.language || 'en').split('-')[0];
+
+  LANGUAGES.forEach(lang => {
+    const el = document.createElement('div');
+    el.className = 'lang-option' + (lang.code === state.lang ? ' selected' : '');
+    el.innerHTML = `
+      <span class="flag">${lang.flag}</span>
+      <div>
+        <div class="lang-name">${lang.native}</div>
+        <div class="lang-native">${lang.name}</div>
+      </div>
+      ${lang.code === detectedLang ? '<span class="lang-detected">DETECTED</span>' : ''}
+    `;
+    el.addEventListener('click', () => {
+      grid.querySelectorAll('.lang-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      state.lang = lang.code;
+      applyLanguage();
+    });
+    grid.appendChild(el);
+  });
+}
+
+function applyLanguage() {
+  const dir = (state.lang === 'ar' || state.lang === 'ur') ? 'rtl' : 'ltr';
+  document.documentElement.dir = dir;
+  document.documentElement.lang = state.lang;
+
+  // Update all translatable elements
+  const lang = I18N[state.lang] || I18N.en;
+  if (lang.greetTitle) document.getElementById('greetTitle').textContent = lang.greetTitle;
+  if (lang.greetSub)   document.getElementById('greetSub').textContent = lang.greetSub;
+  document.getElementById('greetConfirm').innerHTML = lang.confirm || I18N.en.confirm;
+  if (lang.adaptTitle) document.getElementById('adaptTitle').textContent = lang.adaptTitle;
+  if (lang.adaptSub)   document.getElementById('adaptSub').textContent = lang.adaptSub;
+  if (lang.installTitle) document.getElementById('installTitle').textContent = lang.installTitle;
+  if (lang.identityTitle) document.getElementById('identityTitle').textContent = lang.identityTitle;
+  if (lang.identitySub) document.getElementById('identitySub').textContent = lang.identitySub;
+  if (lang.nameLabel) document.getElementById('nameLabel').textContent = lang.nameLabel;
+  document.getElementById('nameInput').placeholder = lang.namePlaceholder || I18N.en.namePlaceholder;
+  document.getElementById('identityConfirm').innerHTML = lang.createNode || I18N.en.createNode;
+  if (lang.shareTitle) document.getElementById('shareTitle').textContent = lang.shareTitle;
+  if (lang.shareSub) document.getElementById('shareSub').textContent = lang.shareSub;
+  if (lang.scheduleLabel) document.getElementById('scheduleLabel').textContent = lang.scheduleLabel;
+  if (lang.aliveTitle) document.getElementById('aliveTitle').textContent = '✓ ' + (lang.aliveTitle || '').replace('✓ ', '');
+  document.getElementById('launchBtn').innerHTML = lang.openTerminal || I18N.en.openTerminal;
+
+  // Schedule options
+  const sel = document.getElementById('scheduleSelect');
+  const opts = lang.schedOpts || I18N.en.schedOpts;
+  sel.options[0].text = opts.idle;
+  sel.options[1].text = opts.always;
+  sel.options[2].text = opts.scheduled;
+  sel.options[3].text = opts.manual;
+  sel.options[4].text = opts.never;
+}
+
+// ── Step 3: ADAPT (Model) ──
+function buildModelTiers() {
+  const container = document.getElementById('modelTiers');
+  container.innerHTML = '';
+  const ram = 16; // simulated
+  let recommended = MODEL_TIERS.filter(t => t.minRam <= ram).pop();
+  state.selectedModel = recommended.id;
+
+  MODEL_TIERS.forEach(tier => {
+    if (tier.minRam > ram * 2) return; // hide tiers way beyond capability
+    const el = document.createElement('div');
+    const isRec = tier.id === recommended.id;
+    const isSel = tier.id === state.selectedModel;
+    el.className = 'tier-option' + (isSel ? ' selected' : '') + (isRec ? ' recommended' : '');
+    el.innerHTML = `
+      <div class="tier-radio"></div>
+      <div class="tier-info">
+        <div class="tier-name">${tier.name}</div>
+        <div class="tier-desc">${tier.model}</div>
+      </div>
+      <div class="tier-size">${tier.size}</div>
+    `;
+    el.addEventListener('click', () => {
+      container.querySelectorAll('.tier-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      state.selectedModel = tier.id;
+    });
+    container.appendChild(el);
+  });
+}
+
+// ── Step 4: INSTALL (Progress) ──
+async function runInstall() {
+  const fill = document.getElementById('installFill');
+  const pct = document.getElementById('installPct');
+  const msg = document.getElementById('installMsg');
+  const checklist = document.getElementById('installChecklist');
+  const msgs = t('msgs') || I18N.en.msgs;
+  const checks = t('checks') || I18N.en.checks;
+
+  // Build checklist
+  checklist.innerHTML = '';
+  checks.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'check-item';
+    el.innerHTML = `<span class="ci-icon">○</span> ${c}`;
+    checklist.appendChild(el);
+  });
+
+  const checkEls = checklist.querySelectorAll('.check-item');
+  const stages = [
+    { pct: 15, msg: msgs[0], check: 0 },
+    { pct: 45, msg: msgs[1], check: 1 },
+    { pct: 65, msg: msgs[2], check: 2 },
+    { pct: 82, msg: msgs[3], check: 3 },
+    { pct: 95, msg: msgs[4], check: 4 },
+    { pct: 100, msg: msgs[5], check: -1 },
+  ];
+
+  for (const stage of stages) {
+    msg.textContent = stage.msg;
+    // Animate to target
+    const start = parseInt(fill.style.width) || 0;
+    const target = stage.pct;
+    const steps = 20;
+    for (let i = 1; i <= steps; i++) {
+      const v = start + (target - start) * (i / steps);
+      fill.style.width = v + '%';
+      pct.textContent = Math.round(v) + '%';
+      await sleep(40);
+    }
+    // Mark check
+    if (stage.check >= 0 && checkEls[stage.check]) {
+      checkEls[stage.check].classList.add('done');
+      checkEls[stage.check].querySelector('.ci-icon').textContent = '✓';
+    }
+    if (stage.check >= 0 && stage.check + 1 < checkEls.length) {
+      checkEls[stage.check + 1].classList.add('active');
+    }
+    await sleep(400 + Math.random() * 400);
+  }
+
+  await sleep(600);
+  goStep(5);
+}
+
+// ── Step 5: IDENTITY ──
+const nameInput = document.getElementById('nameInput');
+const avatarCircle = document.getElementById('avatarCircle');
+
+nameInput.addEventListener('input', () => {
+  const v = nameInput.value.trim();
+  if (v) {
+    avatarCircle.textContent = v.charAt(0).toUpperCase();
+    avatarCircle.classList.add('has-initial');
+  } else {
+    avatarCircle.textContent = '👤';
+    avatarCircle.classList.remove('has-initial');
+  }
+});
+
+async function createIdentity() {
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.focus(); return; }
+  state.userName = name;
+
+  // Show keygen animation
+  const kv = document.getElementById('keygenVisual');
+  const kh = document.getElementById('keygenHash');
+  kv.style.display = 'flex';
+
+  const chars = '0123456789abcdef';
+  for (let i = 0; i < 30; i++) {
+    let hash = '0x';
+    for (let j = 0; j < 8; j++) hash += chars[Math.floor(Math.random() * 16)];
+    hash += '...' + chars[Math.floor(Math.random() * 16)].repeat(4);
+    kh.textContent = hash;
+    await sleep(50);
+  }
+  kh.textContent = '0x4A2F...C9E1';
+
+  await sleep(600);
+  goStep(5.5);
+}
+
+// ── Step 5.5: SHARE ──
+function buildResourceGrid() {
+  const grid = document.getElementById('resourceGrid');
+  grid.innerHTML = '';
+  const resources = [
+    { icon: '⚡', label: 'CPU',     max: 8,   unit: 'cores', default: 2 },
+    { icon: '📊', label: 'RAM',     max: 16,  unit: 'GB',    default: 4 },
+    { icon: '💾', label: 'Storage', max: 250, unit: 'GB',    default: 10 },
+    { icon: '🎮', label: 'GPU',     max: 6,   unit: 'GB',    default: 2 },
+  ];
+
+  resources.forEach((r, idx) => {
+    const el = document.createElement('div');
+    el.className = 'resource-item';
+    el.innerHTML = `
+      <div class="resource-icon">${r.icon}</div>
+      <div class="resource-info">
+        <div class="resource-label">
+          <span>${r.label}</span>
+          <span class="resource-val" id="rval-${idx}">${r.default} / ${r.max} ${r.unit}</span>
+        </div>
+        <div style="position:relative;">
+          <div class="slider-track">
+            <div class="slider-fill" id="rfill-${idx}" style="width:${(r.default/r.max)*100}%"></div>
+          </div>
+          <input type="range" min="0" max="${r.max}" value="${r.default}" step="1"
+            oninput="updateResource(${idx}, this.value, ${r.max}, '${r.unit}')">
+        </div>
+      </div>
+    `;
+    grid.appendChild(el);
+  });
+}
+
+function updateResource(idx, val, max, unit) {
+  document.getElementById(`rval-${idx}`).textContent = `${val} / ${max} ${unit}`;
+  document.getElementById(`rfill-${idx}`).style.width = (val / max * 100) + '%';
+  updateSeedEstimate();
+}
+
+function updateSeedEstimate() {
+  // Simple estimate based on sliders
+  const est = document.getElementById('seedEstimate');
+  const ranges = document.querySelectorAll('.resource-item input[type=range]');
+  let total = 0;
+  ranges.forEach(r => { total += (parseInt(r.value) / parseInt(r.max)) * 0.15; });
+  est.querySelector('.amount').textContent = `~${total.toFixed(2)} SEED`;
+}
+
+// ── Step 6: ALIVE ──
+async function showAlive() {
+  const bubble = document.getElementById('demaBubble');
+  const lang = I18N[state.lang] || I18N.en;
+  const greeting = (lang.demaGreet || I18N.en.demaGreet)(state.userName || 'Sovereign');
+
+  // Typing delay then reveal
+  await sleep(1500);
+  bubble.innerHTML = '';
+  const lines = greeting.split('\n');
+  for (const line of lines) {
+    const p = document.createElement('p');
+    p.style.marginBottom = '8px';
+    p.textContent = line;
+    p.style.opacity = '0';
+    p.style.animation = 'step-enter 0.4s ease forwards';
+    bubble.appendChild(p);
+    await sleep(600);
+  }
+
+  // Heartbeat pulse
+  const hb = document.getElementById('heartbeatVal');
+  setInterval(() => {
+    hb.style.color = hb.style.color === 'var(--green)' ? 'var(--green-dim)' : 'var(--green)';
+    hb.style.color = ''; // reset
+    hb.textContent = hb.textContent === '●' ? '○' : '●';
+  }, 1000);
+}
+
+// ── Step Navigation ──
+function goStep(n) {
+  // Hide current
+  document.querySelectorAll('.step').forEach(s => {
+    s.classList.remove('active');
+    s.style.animation = '';
+  });
+
+  state.step = n;
+
+  const stepMap = {
+    1: 'step-detect',
+    2: 'step-greet',
+    3: 'step-adapt',
+    4: 'step-install',
+    5: 'step-identity',
+    5.5: 'step-share',
+    6: 'step-alive',
+  };
+
+  const el = document.getElementById(stepMap[n]);
+  if (el) {
+    el.classList.add('active');
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = 'step-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+  }
+
+  // Update progress dots
+  updateProgress(n);
+
+  // Step-specific actions
+  if (n === 2) { buildLangGrid(); applyLanguage(); }
+  if (n === 3) { buildModelTiers(); }
+  if (n === 4) { runInstall(); }
+  if (n === 5) { setTimeout(() => nameInput.focus(), 400); }
+  if (n === 5.5) { buildResourceGrid(); updateSeedEstimate(); }
+  if (n === 6) { showAlive(); }
+}
+
+function updateProgress(current) {
+  const steps = [2, 3, 4, 5, 5.5, 6];
+  const progressIds = ['progress2', 'progress3', 'progress4', 'progress5', 'progress55', 'progress6'];
+  const idx = steps.indexOf(current);
+
+  progressIds.forEach(pid => {
+    const el = document.getElementById(pid);
+    if (!el) return;
+    el.innerHTML = '';
+    steps.forEach((s, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'step-dot';
+      if (i < idx) dot.classList.add('completed');
+      if (i === idx) dot.classList.add('active');
+      el.appendChild(dot);
+      if (i < steps.length - 1) {
+        const line = document.createElement('div');
+        line.className = 'step-line';
+        if (i < idx) line.classList.add('completed');
+        el.appendChild(line);
+      }
+    });
+  });
+}
+
+// ── Mark Kernel as Initialized ──
+async function markKernelInitialized() {
+  const initData = {
+    version: '3.0.0-GENESIS',
+    timestamp: new Date().toISOString(),
+    userName: state.userName || 'Sovereign',
+    lang: state.lang,
+    model: state.selectedModel,
+    deviceProfile: state.deviceProfile || {},
+  };
+
+  // 1. Browser-side: localStorage (instant, works offline)
+  localStorage.setItem('bizra_kernel_initialized', JSON.stringify(initData));
+
+  // 2. Daemon-side: POST to API (persists to sovereign_state/ on disk)
+  try {
+    await fetch(`${DAEMON}/api/initialize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(initData),
+    });
+    console.log('[BIZRA] Kernel initialized via daemon API');
+  } catch (e) {
+    // Daemon unreachable — localStorage fallback is sufficient
+    console.log('[BIZRA] Daemon unreachable — localStorage fallback active');
+  }
+}
+
+// ── Launch Terminal ──
+async function launchTerminal() {
+  // Mark kernel as initialized before transitioning
+  await markKernelInitialized();
+
+  const tr = document.getElementById('termTransition');
+  tr.classList.add('active');
+  setTimeout(() => {
+    // Route through daemon if served by it, otherwise direct HTML
+    if (window.location.port === '9740') {
+      window.location.href = '/terminal';
+    } else {
+      window.location.href = 'terminal-emulator.html';
+    }
+  }, 1800);
+}
+
+// ── Utils ──
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Init ──
+runDetection();
+</script>
+</body>
+</html>
