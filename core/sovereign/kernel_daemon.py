@@ -36,6 +36,7 @@ from collections import deque
 from datetime import datetime, timezone
 from functools import partial
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from socketserver import ThreadingMixIn
 from pathlib import Path
 from typing import Any
 
@@ -768,11 +769,14 @@ def _get_knowledge_stats() -> dict[str, Any]:
 
 
 def _ensure_faiss_loaded() -> bool:
-    """Load FAISS index + sentence-transformer on first access."""
+    """Check if FAISS is loaded. Non-blocking — returns False if warmup in progress."""
     if _knowledge_cache.get("faiss_loaded"):
         return True
 
-    with _knowledge_cache_lock:
+    # Non-blocking: if warmup thread holds the lock, fall back to keyword search
+    if not _knowledge_cache_lock.acquire(blocking=False):
+        return False
+    try:
         if _knowledge_cache.get("faiss_loaded"):
             return True
         try:
@@ -806,6 +810,8 @@ def _ensure_faiss_loaded() -> bool:
         except (ImportError, OSError) as e:
             log.warning("FAISS unavailable: %s", e)
             return False
+    finally:
+        _knowledge_cache_lock.release()
 
 
 def _search_knowledge(query: str, limit: int = 10) -> dict[str, Any]:
@@ -1418,12 +1424,15 @@ class KernelHandler(SimpleHTTPRequestHandler):
 
     def _json_response(self, data: dict[str, Any], status: int = 200) -> None:
         body = json.dumps(data, default=str).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self._cors_headers()
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self._cors_headers()
+            self.end_headers()
+            self.wfile.write(body)
+        except BrokenPipeError:
+            log.debug("Client disconnected before response: %s", self.path)
 
     def _serve_file(self, filename: str) -> None:
         filepath = FRONTEND_DIR / filename
@@ -1724,11 +1733,29 @@ def main() -> None:
     except Exception:
         main_loop = None
 
-    # ── Eager background warmup: knowledge cache + FAISS index ──
+    # ── Eager background warmup: knowledge + FAISS + Ollama model ──
     def _warmup() -> None:
         _ensure_knowledge_loaded()
         _ensure_faiss_loaded()
-        log.info("Knowledge + FAISS warmup complete")
+        # Pre-load default Ollama model into VRAM (prevents 30-60s cold start)
+        try:
+            import httpx
+
+            ollama_url = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+            resp = httpx.post(
+                f"{ollama_url}/api/generate",
+                json={"model": "llama3.1:8b", "prompt": ".", "stream": False},
+                timeout=60.0,
+            )
+            if resp.status_code == 200:
+                log.info("Ollama model pre-loaded into VRAM")
+            else:
+                log.warning("Ollama pre-load returned %d", resp.status_code)
+        except Exception as e:
+            log.warning(
+                "Ollama pre-load failed (will cold-start on first mission): %s", e
+            )
+        log.info("Background warmup complete (knowledge + FAISS + Ollama)")
 
     warmup_thread = threading.Thread(target=_warmup, daemon=True, name="warmup")
     warmup_thread.start()
@@ -1750,7 +1777,13 @@ def main() -> None:
 
     # ── Start HTTP server ──
     handler_factory = partial(KernelHandler, state=state, watchdog=watchdog)
-    server = HTTPServer(("127.0.0.1", KERNEL_PORT), handler_factory)
+
+    class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+        """Multi-threaded HTTP — missions don't block heartbeat or health checks."""
+
+        daemon_threads = True
+
+    server = ThreadedHTTPServer(("127.0.0.1", KERNEL_PORT), handler_factory)
     server.timeout = 1  # Allow shutdown check every second
 
     log.info("Sovereign Nerve Center listening on http://127.0.0.1:%d", KERNEL_PORT)
