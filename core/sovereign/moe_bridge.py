@@ -58,9 +58,9 @@ from core.integration.constants import (
 
 # Expert → Ollama model mapping (overridable via env vars)
 _EXPERT_MODEL_MAP: Dict[str, str] = {
-    "pat_r": os.getenv("BIZRA_MODEL_PAT_R", "deepseek-r1:14b"),
+    "pat_r": os.getenv("BIZRA_MODEL_PAT_R", "llama3.1:8b"),
     "pat_k": os.getenv("BIZRA_MODEL_PAT_K", "qwen2.5:3b"),
-    "pat_s": os.getenv("BIZRA_MODEL_PAT_S", "qwen2.5-coder:7b"),
+    "pat_s": os.getenv("BIZRA_MODEL_PAT_S", "llama3.1:8b"),
     "sat_g": os.getenv("BIZRA_MODEL_SAT_G", "phi3:mini"),
     "sat_v": os.getenv("BIZRA_MODEL_SAT_V", "phi3:mini"),
 }
