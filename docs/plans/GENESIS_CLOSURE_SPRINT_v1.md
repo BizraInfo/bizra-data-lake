@@ -178,3 +178,4 @@ That is the shortest path from architectural intention to operational closure.
 
 
 
+

@@ -704,6 +704,7 @@ def _ensure_knowledge_loaded() -> bool:
 
             search_order = [
                 "golden_gems_chunks.parquet",
+                "code_docstrings.parquet",
                 "research_chunks.parquet",
                 "chunks.parquet",
             ]
