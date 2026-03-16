@@ -943,6 +943,121 @@ def _get_or_create_ns() -> Any:
             return None
 
 
+def _generate_briefing(state: "SovereignState") -> dict[str, Any]:
+    """Generate a daily sovereign briefing from real node metrics.
+
+    Standing on Giants: Boyd (OODA situational awareness) · Deming (PDCA daily review)
+    """
+    t0 = time.monotonic()
+    sections: list[dict[str, Any]] = []
+
+    # 1. Identity
+    s = state.read()
+    sections.append(
+        {
+            "section": "identity",
+            "title": f"Good morning, {s.get('userName', 'Sovereign')}",
+            "data": {
+                "identity_id": s.get("identity_id", "unknown")[:16] + "...",
+                "sovereignty_class": s.get("sovereignty_class", "SEED"),
+                "genesis_verified": s.get("genesis_verified", False),
+            },
+        }
+    )
+
+    # 2. Health
+    beats = list(_heartbeat_history)
+    latest = beats[-1] if beats else {}
+    anomaly_count = sum(1 for b in beats[-10:] if b.get("anomalies"))
+    sections.append(
+        {
+            "section": "health",
+            "title": f"System health: {latest.get('health', 'unknown')}",
+            "data": {
+                "uptime_s": latest.get("uptime_s", 0),
+                "rss_mb": latest.get("memory_rss_mb", 0),
+                "heartbeats": len(beats),
+                "anomalies_last_10": anomaly_count,
+                "current_anomalies": latest.get("anomalies", []),
+            },
+        }
+    )
+
+    # 3. Knowledge
+    if _knowledge_cache.get("loaded"):
+        sections.append(
+            {
+                "section": "knowledge",
+                "title": f"{_knowledge_cache.get('total_rows', 0):,} knowledge rows ready",
+                "data": {
+                    "tables": len(_knowledge_cache.get("tables", [])),
+                    "faiss_ready": _knowledge_cache.get("faiss_loaded", False),
+                    "faiss_vectors": (
+                        _knowledge_cache["faiss_index"].ntotal
+                        if _knowledge_cache.get("faiss_index")
+                        else 0
+                    ),
+                },
+            }
+        )
+
+    # 4. Constitution
+    try:
+        from core.integration.constants import (
+            UNIFIED_IHSAN_THRESHOLD,
+            UNIFIED_SNR_THRESHOLD,
+            ADL_GINI_THRESHOLD,
+            KERNEL_INVARIANTS,
+        )
+
+        sections.append(
+            {
+                "section": "constitution",
+                "title": "Constitutional spine verified",
+                "data": {
+                    "ihsan": UNIFIED_IHSAN_THRESHOLD,
+                    "snr": UNIFIED_SNR_THRESHOLD,
+                    "gini": ADL_GINI_THRESHOLD,
+                    "invariants": list(KERNEL_INVARIANTS),
+                },
+            }
+        )
+    except ImportError:
+        pass
+
+    # 5. Recommendations
+    recs: list[str] = []
+    if latest.get("health") == "critical":
+        recs.append("System critical — investigate anomalies before starting work")
+    elif latest.get("health") == "degraded":
+        recs.append("System degraded — check backend status")
+    if not _knowledge_cache.get("faiss_loaded"):
+        recs.append(
+            "FAISS not loaded — semantic search unavailable, keyword fallback active"
+        )
+    if anomaly_count > 5:
+        recs.append(
+            f"{anomaly_count}/10 recent heartbeats had anomalies — review trends"
+        )
+    if not recs:
+        recs.append("All systems nominal — ready for sovereign work")
+
+    sections.append(
+        {
+            "section": "recommendations",
+            "title": "Today's guidance",
+            "data": {"items": recs},
+        }
+    )
+
+    return {
+        "briefing": sections,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "elapsed_ms": round((time.monotonic() - t0) * 1000, 1),
+        "version": KERNEL_VERSION,
+    }
+
+
 async def _run_mission(mission_text: str) -> dict[str, Any]:
     """Execute a mission through the SovereignNervousSystem.
 
@@ -1222,6 +1337,8 @@ class KernelHandler(SimpleHTTPRequestHandler):
                     "total_captured": _memory_handler.total,
                 }
             )
+        elif path == "/api/briefing":
+            self._json_response(_generate_briefing(self.sovereign_state))
         elif path == "/api/readiness":
             self._json_response(_run_readiness_probe(self.sovereign_state))
         elif path == "/api/knowledge":
