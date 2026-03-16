@@ -1,0 +1,68 @@
+{
+  "title": "BIZRA Autopoietic Loop \u2014 Canonical v2",
+  "steps": [
+    {
+      "step": 1,
+      "name": "Self-Observation",
+      "giant": "Maturana (autopoiesis)",
+      "proven": true,
+      "evidence": "alive=alive ready=8/8 health=critical beats=120",
+      "ms": 23
+    },
+    {
+      "step": 2,
+      "name": "Self-Description",
+      "giant": "Al-Ghazali (Ihsan identity)",
+      "proven": true,
+      "evidence": "verified=True ihsan=0.95 snr=0.85 gini=0.35 invariants=3",
+      "ms": 2
+    },
+    {
+      "step": 3,
+      "name": "Self-Knowledge (FAISS)",
+      "giant": "Shannon (semantic retrieval)",
+      "proven": true,
+      "evidence": "rows=840714 cached=True search=faiss_semantic hits=2 ms=12",
+      "ms": 13
+    },
+    {
+      "step": 4,
+      "name": "Self-Reasoning (mission)",
+      "giant": "Friston (active inference)",
+      "proven": true,
+      "evidence": "system=S2 ihsan=0.6875 knowledge=True duration=11817.0ms",
+      "ms": 11830
+    },
+    {
+      "step": 5,
+      "name": "Self-Scoring (verified reward)",
+      "giant": "Sutton & Barto (RL reward)",
+      "proven": true,
+      "evidence": "thresholds_applied=ihsan>=0.95,snr>=0.85 self_scored=True",
+      "ms": 330
+    },
+    {
+      "step": 6,
+      "name": "Self-Improvement (recursive)",
+      "giant": "Schmidhuber (self-improvement)",
+      "proven": true,
+      "evidence": "commits=10 latest=7d90624 fix(kernel): mission pipeline production-r",
+      "ms": 151
+    },
+    {
+      "step": 7,
+      "name": "Self-Sustainability (economy)",
+      "giant": "Deming (PDCA sustainability)",
+      "proven": true,
+      "evidence": "SEED_PEG=1.0 BLOOM_REDIST=0.5 ZAKAT=0.025",
+      "ms": 0
+    }
+  ],
+  "proven_count": 7,
+  "total_steps": 7,
+  "all_proven": true,
+  "evidence_hash": "52cba673f67d61e7627c7754731707e7d8023b75a18f1fda544edccfc8cabe42",
+  "total_ms": 12349,
+  "timestamp_utc": "2026-03-16T22:35:02.640310+00:00",
+  "verdict": "CANONICAL"
+}
