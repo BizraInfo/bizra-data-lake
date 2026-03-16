@@ -946,65 +946,15 @@ async def _run_mission(mission_text: str) -> dict[str, Any]:
     """
     t0 = time.monotonic()
 
-    # Enrich with knowledge context — extract key terms for search
+    # Enrich with knowledge context — single semantic search on full question
     knowledge_context = ""
-    if _ensure_knowledge_loaded():
-        # Extract meaningful keywords (skip stop words, min 4 chars)
-        stop = {
-            "what",
-            "are",
-            "the",
-            "and",
-            "how",
-            "does",
-            "this",
-            "that",
-            "with",
-            "from",
-            "have",
-            "been",
-            "will",
-            "would",
-            "could",
-            "should",
-            "which",
-            "where",
-            "when",
-            "about",
-            "into",
-            "they",
-            "their",
-            "there",
-            "these",
-            "those",
-            "than",
-            "then",
-            "also",
-            "more",
-            "most",
-            "some",
-            "each",
-            "every",
-            "between",
-        }
-        words = [w.lower().strip("?.,!") for w in mission_text.split() if len(w) >= 4]
-        keywords = [w for w in words if w not in stop][:5]
-
-        all_results: list[dict[str, Any]] = []
-        for kw in keywords:
-            sr = _search_knowledge(kw, limit=2)
-            for r in sr.get("results", []):
-                if r["chunk_id"] not in {x["chunk_id"] for x in all_results}:
-                    all_results.append(r)
-            if len(all_results) >= 3:
-                break
-
-        if all_results:
-            snippets = [r["text"][:200] for r in all_results[:3]]
-            knowledge_context = (
-                "\n\nRelevant knowledge from your BIZRA corpus:\n"
-                + "\n---\n".join(snippets)
-            )
+    search_result = _search_knowledge(mission_text, limit=3)
+    if search_result.get("results"):
+        snippets = [r["text"][:300] for r in search_result["results"]]
+        knowledge_context = (
+            "\n\nRelevant knowledge from your BIZRA corpus:\n"
+            + "\n---\n".join(snippets)
+        )
 
     ns = _get_or_create_ns()
     if ns is None:
