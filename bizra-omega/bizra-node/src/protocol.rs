@@ -152,6 +152,9 @@ pub enum Command {
     ResourcesRefresh,
     /// MISSION_RECEIVE <content> <timestamp> — governed mission lifecycle
     MissionReceive { content: String, timestamp: u64 },
+    /// HEARTBEAT <timestamp_ms> — timer-driven pulse for self-sustaining operation
+    /// Phase 86-B: Drives the 4-loop HHMM EventBus.
+    Heartbeat { timestamp_ms: u64 },
 }
 
 // ============================================================
@@ -646,6 +649,16 @@ pub fn parse_command(line: &str) -> Result<Command, (ErrorCode, String)> {
             })
         }
 
+        // ── Phase 86-B: Heartbeat ──────────────────────────
+        "HEARTBEAT" => {
+            let ts = if parts.len() >= 2 && !parts[1].trim().is_empty() {
+                parse_u64(parts[1], "timestamp_ms")?
+            } else {
+                0 // caller may omit; node uses wall clock
+            };
+            Ok(Command::Heartbeat { timestamp_ms: ts })
+        }
+
         _ => Err((ErrorCode::BadCommand, format!("unknown command: {verb}"))),
     }
 }
@@ -968,6 +981,26 @@ mod tests {
                 timestamp: 7000,
             }
         );
+    }
+
+    // ── Phase 86-B: Heartbeat parser tests ─────────────────
+
+    #[test]
+    fn parse_heartbeat_with_timestamp() {
+        let cmd = parse_command("HEARTBEAT\t5000").unwrap();
+        assert_eq!(cmd, Command::Heartbeat { timestamp_ms: 5000 });
+    }
+
+    #[test]
+    fn parse_heartbeat_no_timestamp() {
+        let cmd = parse_command("HEARTBEAT").unwrap();
+        assert_eq!(cmd, Command::Heartbeat { timestamp_ms: 0 });
+    }
+
+    #[test]
+    fn parse_heartbeat_bad_timestamp() {
+        let err = parse_command("HEARTBEAT\tnot_a_number").unwrap_err();
+        assert_eq!(err.0, ErrorCode::ParseError);
     }
 
     #[test]

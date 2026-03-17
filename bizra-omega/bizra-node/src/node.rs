@@ -120,6 +120,15 @@ pub struct Node {
     resource_manifest: ResourceManifest,
     /// Receipt chain — hash of the last emitted receipt for tamper-evident ordering.
     last_receipt_id: Option<[u8; 32]>,
+    // ── Phase 86-B: Heartbeat state ─────────────────────────────────────────
+    /// Total heartbeats processed (monotonic).
+    heartbeat_count: u64,
+    /// Timestamp (ms) of the last heartbeat.
+    last_heartbeat_ms: u64,
+    /// Timestamp (ms) of the last synthesis trigger.
+    last_synthesis_ms: u64,
+    /// Cross-loop event bridge (Loop A→B→C→D).
+    event_bridge: crate::heartbeat::EventBridge,
 }
 
 impl Node {
@@ -143,6 +152,10 @@ impl Node {
             saga_registry: SagaRegistry::new(),
             resource_manifest: ResourceManifest::discover(),
             last_receipt_id: None,
+            heartbeat_count: 0,
+            last_heartbeat_ms: 0,
+            last_synthesis_ms: 0,
+            event_bridge: crate::heartbeat::EventBridge::default(),
         };
 
         // Register PostDeliver audit hook for action.receipt events.
@@ -186,6 +199,25 @@ impl Node {
                 return Response::err(code, &msg).to_wire();
             }
         };
+
+        // Phase 86-B: HEARTBEAT handled directly (needs Node-level state)
+        if let protocol::Command::Heartbeat { timestamp_ms } = &cmd {
+            let ts = if *timestamp_ms > 0 { *timestamp_ms } else {
+                // Use monotonic counter as fallback when no wall clock provided
+                (self.commands_processed as u64) * 1000
+            };
+            let report = self.heartbeat(ts);
+            return Response::ok(vec![
+                ("heartbeat_count", report.heartbeat_count.to_string()),
+                ("timestamp_ms", report.timestamp_ms.to_string()),
+                ("fragments_processed", report.fragments_processed.to_string()),
+                ("synthesis_triggered", report.synthesis_triggered.to_string()),
+                ("receipts_processed", report.receipts_processed.to_string()),
+                ("reflexes_compiled", report.reflexes_compiled.to_string()),
+                ("ihsan_raw", report.ihsan_raw.to_string()),
+                ("events_emitted", report.events_emitted.to_string()),
+            ]).to_wire();
+        }
 
         // Build the handler's borrowed view of our state
         let mut stopped = false;
@@ -363,6 +395,86 @@ impl Node {
     // ================================================================
     // INTERNAL
     // ================================================================
+
+    // ================================================================
+    // HEARTBEAT — Phase 86-B: The sovereign pulse
+    // ================================================================
+
+    /// Execute one heartbeat tick.
+    ///
+    /// Drives the 4-loop HHMM through the node's organs:
+    ///   Loop A: Perception → Memory (fragment processing)
+    ///   Loop B: Memory → Cognition (synthesis trigger)
+    ///   Loop C: Cognition → Action (receipt processing)
+    ///   Loop D: Action → Evolution (reflex compilation)
+    ///
+    /// Called by: systemd timer, MCP transport ticker, or HEARTBEAT protocol command.
+    /// Returns a telemetry report for the caller to log/inspect.
+    ///
+    /// Standing on: Maturana (autopoiesis), Friston (free energy), Deming (PDCA)
+    ///
+    /// TDD anchor: test_heartbeat_emits_report
+    /// TDD anchor: test_heartbeat_drives_synthesis
+    pub fn heartbeat(&mut self, now_ms: u64) -> crate::heartbeat::HeartbeatReport {
+        use crate::heartbeat::HeartbeatReport;
+
+        self.heartbeat_count += 1;
+        let mut report = HeartbeatReport {
+            heartbeat_count: self.heartbeat_count,
+            timestamp_ms: now_ms,
+            ihsan_raw: self.ihsan.raw(),
+            ..Default::default()
+        };
+
+        // ── Loop A: Perception → Memory ───────────────────────
+        // Check if there are pending fragments from recent RECEIVE commands.
+        // In MVP, this counts accumulated atoms since last heartbeat.
+        let summary = self.runtime.pipeline().knowledge_summary();
+        report.fragments_processed = summary.total_atoms;
+
+        // ── Loop B: Memory → Cognition ──────────────────────
+        // Trigger synthesis if enough time has elapsed.
+        // Default synthesis interval: 30s (configurable via HeartbeatConfig).
+        let synthesis_interval_ms = 30_000u64;
+        if now_ms.saturating_sub(self.last_synthesis_ms) >= synthesis_interval_ms {
+            self.runtime.synthesize(now_ms);
+            self.last_synthesis_ms = now_ms;
+            report.synthesis_triggered = true;
+            report.events_emitted += 1;
+        }
+
+        // ── Loop C: Cognition → Action ───────────────────────
+        // In MVP: report receipt event count from the action executor.
+        // Phase 86-B Day 2-3 will wire real receipt processing here.
+        report.receipts_processed = self.action_executor.receipt_events_emitted() as usize;
+
+        // ── Loop D: Action → Evolution ───────────────────────
+        // Check if any reflex patterns are compilable.
+        let reflex_stats = self.runtime.reflex_stats();
+        report.reflexes_compiled = reflex_stats.compiled as usize;
+
+        // ── Telemetry ──────────────────────────────────────
+        self.last_heartbeat_ms = now_ms;
+
+        // Self-compilation check (reuse existing interval logic)
+        if self.heartbeat_count > 0
+            && self.heartbeat_count % (SELF_COMPILE_INTERVAL as u64) == 0
+        {
+            self.trigger_self_compilation();
+        }
+
+        report
+    }
+
+    /// Total heartbeats processed.
+    pub fn heartbeat_count(&self) -> u64 {
+        self.heartbeat_count
+    }
+
+    /// Timestamp of last heartbeat (ms).
+    pub fn last_heartbeat_ms(&self) -> u64 {
+        self.last_heartbeat_ms
+    }
 
     /// Trigger periodic self-compilation of memory atoms.
     ///
@@ -542,6 +654,85 @@ mod tests {
         assert_eq!(node.commands_processed(), SELF_COMPILE_INTERVAL);
         // No panic, no errors from self-compilation on an empty pipeline
         assert_eq!(node.errors_encountered(), 0);
+    }
+
+    // ── Phase 86-B: Heartbeat tests ────────────────────────────
+
+    #[test]
+    fn heartbeat_emits_report() {
+        let mut node = Node::new(NodeConfig::default());
+        assert_eq!(node.heartbeat_count(), 0);
+
+        let report = node.heartbeat(1000);
+        assert_eq!(report.heartbeat_count, 1);
+        assert_eq!(report.timestamp_ms, 1000);
+        assert!(report.ihsan_raw >= 9500);
+        assert_eq!(node.heartbeat_count(), 1);
+        assert_eq!(node.last_heartbeat_ms(), 1000);
+    }
+
+    #[test]
+    fn heartbeat_drives_synthesis() {
+        let mut node = Node::new(NodeConfig::default());
+
+        // First heartbeat at t=0 — synthesis should trigger (last_synthesis=0)
+        let r1 = node.heartbeat(0);
+        // Synthesis interval is 30s, so at t=0 with last_synthesis=0,
+        // 0 - 0 >= 30000 is false, synthesis should NOT trigger
+        assert!(!r1.synthesis_triggered);
+
+        // Heartbeat at t=31000 — synthesis SHOULD trigger
+        let r2 = node.heartbeat(31_000);
+        assert!(r2.synthesis_triggered);
+        assert_eq!(r2.events_emitted, 1);
+
+        // Heartbeat at t=32000 — too soon, should NOT trigger
+        let r3 = node.heartbeat(32_000);
+        assert!(!r3.synthesis_triggered);
+        assert_eq!(r3.events_emitted, 0);
+    }
+
+    #[test]
+    fn heartbeat_counter_monotonic() {
+        let mut node = Node::new(NodeConfig::default());
+        for i in 1..=10 {
+            let report = node.heartbeat(i * 1000);
+            assert_eq!(report.heartbeat_count, i);
+        }
+        assert_eq!(node.heartbeat_count(), 10);
+    }
+
+    #[test]
+    fn heartbeat_via_protocol() {
+        let mut node = Node::new(NodeConfig::default());
+        let resp = node.execute("HEARTBEAT\t5000");
+        assert!(resp.starts_with("OK\t"));
+        assert!(resp.contains("heartbeat_count=1"));
+        assert!(resp.contains("timestamp_ms=5000"));
+        assert!(resp.contains("ihsan_raw="));
+        assert_eq!(node.heartbeat_count(), 1);
+    }
+
+    #[test]
+    fn heartbeat_via_protocol_no_timestamp() {
+        let mut node = Node::new(NodeConfig::default());
+        let resp = node.execute("HEARTBEAT");
+        assert!(resp.starts_with("OK\t"));
+        assert!(resp.contains("heartbeat_count=1"));
+    }
+
+    #[test]
+    fn heartbeat_does_not_panic_on_empty_pipeline() {
+        let node_cfg = NodeConfig {
+            auto_start_session: false,
+            show_banner: false,
+            ..Default::default()
+        };
+        let mut node = Node::new(node_cfg);
+        // Heartbeat on a cold node with no atoms must not panic
+        let report = node.heartbeat(1000);
+        assert_eq!(report.heartbeat_count, 1);
+        assert_eq!(report.fragments_processed, 0);
     }
 
     #[test]
