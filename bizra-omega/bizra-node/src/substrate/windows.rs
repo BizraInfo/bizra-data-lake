@@ -1,24 +1,46 @@
 // bizra-node/src/substrate/windows.rs
 // Windows-specific substrate discovery via PowerShell + WMI + nvidia-smi
 
-use std::process::Command;
 use super::*;
+use std::process::Command;
 
 fn run_powershell(script: &str) -> Option<String> {
     Command::new("powershell")
         .args(["-NoProfile", "-Command", script])
-        .output().ok()
-        .and_then(|o| if o.status.success() { String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string()) } else { None })
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
         .filter(|s| !s.is_empty())
 }
 
 pub fn discover_hardware() -> HardwareManifest {
     HardwareManifest {
-        cpu_name: run_powershell("(Get-CimInstance Win32_Processor).Name").unwrap_or_else(|| "Unknown".into()),
-        cpu_cores: run_powershell("(Get-CimInstance Win32_Processor).NumberOfCores").and_then(|s| s.parse().ok()).unwrap_or(1),
-        cpu_threads: run_powershell("(Get-CimInstance Win32_Processor).NumberOfLogicalProcessors").and_then(|s| s.parse().ok()).unwrap_or(1),
-        ram_total_gb: run_powershell("[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB,2)").and_then(|s| s.parse().ok()).unwrap_or(0.0),
-        ram_available_gb: run_powershell("[math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB,2)").and_then(|s| s.parse().ok()).unwrap_or(0.0),
+        cpu_name: run_powershell("(Get-CimInstance Win32_Processor).Name")
+            .unwrap_or_else(|| "Unknown".into()),
+        cpu_cores: run_powershell("(Get-CimInstance Win32_Processor).NumberOfCores")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(1),
+        cpu_threads: run_powershell("(Get-CimInstance Win32_Processor).NumberOfLogicalProcessors")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(1),
+        ram_total_gb: run_powershell(
+            "[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB,2)",
+        )
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0.0),
+        ram_available_gb: run_powershell(
+            "[math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB,2)",
+        )
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0.0),
         gpus: discover_gpus(),
         disks: discover_disks(),
     }
@@ -55,8 +77,16 @@ fn discover_disks() -> Vec<DiskInfo> {
 
 pub fn discover_lmstudio_models() -> Vec<LocalModel> {
     let base = home_dir().join(".lmstudio");
-    let dirs = [base.join("models"), base.join("hub").join("models"), base.join(".internal").join("bundled-models")];
+    let dirs = [
+        base.join("models"),
+        base.join("hub").join("models"),
+        base.join(".internal").join("bundled-models"),
+    ];
     let mut models = Vec::new();
-    for dir in &dirs { if dir.exists() { scan_gguf_recursive(dir, ModelRuntime::LmStudio, &mut models); } }
+    for dir in &dirs {
+        if dir.exists() {
+            scan_gguf_recursive(dir, ModelRuntime::LmStudio, &mut models);
+        }
+    }
     models
 }

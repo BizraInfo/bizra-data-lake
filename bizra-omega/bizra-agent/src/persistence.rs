@@ -53,7 +53,10 @@ impl std::fmt::Display for PersistError {
             Self::Io(e) => write!(f, "persistence IO error: {e}"),
             Self::Json(e) => write!(f, "persistence JSON error: {e}"),
             Self::StoreNotCreated(p) => write!(f, "cannot create store at {}", p.display()),
-            Self::IntegrityViolation { trigger_hex, reason } => {
+            Self::IntegrityViolation {
+                trigger_hex,
+                reason,
+            } => {
                 write!(f, "integrity violation for {trigger_hex}: {reason}")
             }
         }
@@ -61,10 +64,14 @@ impl std::fmt::Display for PersistError {
 }
 
 impl From<io::Error> for PersistError {
-    fn from(e: io::Error) -> Self { Self::Io(e) }
+    fn from(e: io::Error) -> Self {
+        Self::Io(e)
+    }
 }
 impl From<serde_json::Error> for PersistError {
-    fn from(e: serde_json::Error) -> Self { Self::Json(e) }
+    fn from(e: serde_json::Error) -> Self {
+        Self::Json(e)
+    }
 }
 
 /// Integrity manifest stored alongside rules.
@@ -96,9 +103,8 @@ impl ReflexStore {
     pub fn open(root: impl Into<PathBuf>) -> Result<Self, PersistError> {
         let root = root.into();
         if !root.exists() {
-            std::fs::create_dir_all(&root).map_err(|_| {
-                PersistError::StoreNotCreated(root.clone())
-            })?;
+            std::fs::create_dir_all(&root)
+                .map_err(|_| PersistError::StoreNotCreated(root.clone()))?;
             info!(path = %root.display(), "created reflex store directory");
         }
         Ok(Self { root })
@@ -144,13 +150,23 @@ impl ReflexStore {
             let path = entry.path();
 
             // Skip manifest and non-JSON files
-            let Some(ext) = path.extension() else { continue };
-            if ext != "json" { continue }
-            let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else { continue };
-            if stem.starts_with('_') { continue }
+            let Some(ext) = path.extension() else {
+                continue;
+            };
+            if ext != "json" {
+                continue;
+            }
+            let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+                continue;
+            };
+            if stem.starts_with('_') {
+                continue;
+            }
 
             // Must be a 64-char hex filename (32-byte BLAKE3 hash)
-            if stem.len() != 64 { continue }
+            if stem.len() != 64 {
+                continue;
+            }
 
             match std::fs::read_to_string(&path) {
                 Ok(json) => match serde_json::from_str::<ReflexRule>(&json) {
@@ -220,7 +236,11 @@ impl ReflexStore {
             }
         }
         self.write_manifest(rules)?;
-        info!(saved = saved, total = rules.len(), "reflex store snapshot complete");
+        info!(
+            saved = saved,
+            total = rules.len(),
+            "reflex store snapshot complete"
+        );
         Ok(saved)
     }
 
@@ -307,7 +327,10 @@ mod tests {
         let r = &restored[0];
         assert_eq!(r.trigger_hash, rule.trigger_hash);
         assert_eq!(r.action_template.primary_agent, "Scholar");
-        assert_eq!(r.action_template.route_signature, "Retrieve>Generate|roles=Scholar>Artisan");
+        assert_eq!(
+            r.action_template.route_signature,
+            "Retrieve>Generate|roles=Scholar>Artisan"
+        );
         assert!((r.compile_ihsan - 0.97).abs() < f32::EPSILON);
         assert!((r.compile_snr - 0.93).abs() < f32::EPSILON);
         assert_eq!(r.compiled_at, 1700000000);
@@ -321,9 +344,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let store = ReflexStore::open(dir.path()).unwrap();
 
-        let rules: Vec<ReflexRule> = (1u8..=5)
-            .map(|i| test_rule(i, 0x07))
-            .collect();
+        let rules: Vec<ReflexRule> = (1u8..=5).map(|i| test_rule(i, 0x07)).collect();
 
         for rule in &rules {
             store.save_rule(rule).unwrap();
@@ -462,7 +483,7 @@ mod tests {
 
     #[test]
     fn bootstrap_rules_roundtrip() {
-        use crate::reflex_cache::{ReflexCache, is_bootstrap_rule};
+        use crate::reflex_cache::{is_bootstrap_rule, ReflexCache};
 
         let dir = TempDir::new().unwrap();
         let store = ReflexStore::open(dir.path()).unwrap();

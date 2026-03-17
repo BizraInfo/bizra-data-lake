@@ -1,16 +1,27 @@
 // bizra-node/src/substrate/linux.rs
 // Linux-specific substrate discovery via /proc + nvidia-smi + filesystem
 
-use std::process::Command;
 use super::*;
+use std::process::Command;
 
 fn read_proc(path: &str) -> Option<String> {
     std::fs::read_to_string(path).ok()
 }
 
 fn run_cmd(cmd: &str, args: &[&str]) -> Option<String> {
-    Command::new(cmd).args(args).output().ok()
-        .and_then(|o| if o.status.success() { String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string()) } else { None })
+    Command::new(cmd)
+        .args(args)
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
         .filter(|s| !s.is_empty())
 }
 
@@ -84,29 +95,44 @@ fn discover_gpus() -> Vec<GpuInfo> {
     // nvidia-smi is the same binary on Linux and Windows
     if let Some(smi) = run_cmd(
         "nvidia-smi",
-        &["--query-gpu=name,memory.total,memory.used,driver_version",
-          "--format=csv,noheader,nounits"],
+        &[
+            "--query-gpu=name,memory.total,memory.used,driver_version",
+            "--format=csv,noheader,nounits",
+        ],
     ) {
-        let gpus: Vec<GpuInfo> = smi.lines().filter_map(|line| {
-            let p: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
-            if p.len() >= 4 {
-                Some(GpuInfo {
-                    name: p[0].into(),
-                    vram_total_mb: p[1].parse().unwrap_or(0),
-                    vram_used_mb: p[2].parse().unwrap_or(0),
-                    driver_version: p[3].into(),
-                })
-            } else { None }
-        }).collect();
-        if !gpus.is_empty() { return gpus; }
+        let gpus: Vec<GpuInfo> = smi
+            .lines()
+            .filter_map(|line| {
+                let p: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+                if p.len() >= 4 {
+                    Some(GpuInfo {
+                        name: p[0].into(),
+                        vram_total_mb: p[1].parse().unwrap_or(0),
+                        vram_used_mb: p[2].parse().unwrap_or(0),
+                        driver_version: p[3].into(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+        if !gpus.is_empty() {
+            return gpus;
+        }
     }
     // Fallback: lspci for GPU name (no VRAM info)
     if let Some(lspci) = run_cmd("lspci", &[]) {
-        return lspci.lines()
+        return lspci
+            .lines()
             .filter(|l| l.contains("VGA") || l.contains("3D controller"))
             .map(|l| {
                 let name = l.split(':').next_back().unwrap_or(l).trim().to_string();
-                GpuInfo { name, vram_total_mb: 0, vram_used_mb: 0, driver_version: String::new() }
+                GpuInfo {
+                    name,
+                    vram_total_mb: 0,
+                    vram_used_mb: 0,
+                    driver_version: String::new(),
+                }
             })
             .collect();
     }
@@ -117,19 +143,31 @@ fn discover_disks() -> Vec<DiskInfo> {
     // Use df -BG for gigabyte output, filter real filesystems
     run_cmd("df", &["-BG", "--output=target,size,avail"])
         .map(|out| {
-            out.lines().skip(1).filter_map(|line| {
-                let p: Vec<&str> = line.split_whitespace().collect();
-                if p.len() >= 3 {
-                    let mount = p[0].to_string();
-                    // Skip virtual filesystems
-                    if mount.starts_with("/dev") || mount == "/" || mount.starts_with("/home") || mount.starts_with("/mnt") {
-                        let total = p[1].trim_end_matches('G').parse().unwrap_or(0.0);
-                        let free = p[2].trim_end_matches('G').parse().unwrap_or(0.0);
-                        return Some(DiskInfo { mount, total_gb: total, free_gb: free, label: String::new() });
+            out.lines()
+                .skip(1)
+                .filter_map(|line| {
+                    let p: Vec<&str> = line.split_whitespace().collect();
+                    if p.len() >= 3 {
+                        let mount = p[0].to_string();
+                        // Skip virtual filesystems
+                        if mount.starts_with("/dev")
+                            || mount == "/"
+                            || mount.starts_with("/home")
+                            || mount.starts_with("/mnt")
+                        {
+                            let total = p[1].trim_end_matches('G').parse().unwrap_or(0.0);
+                            let free = p[2].trim_end_matches('G').parse().unwrap_or(0.0);
+                            return Some(DiskInfo {
+                                mount,
+                                total_gb: total,
+                                free_gb: free,
+                                label: String::new(),
+                            });
+                        }
                     }
-                }
-                None
-            }).collect()
+                    None
+                })
+                .collect()
         })
         .unwrap_or_default()
 }
