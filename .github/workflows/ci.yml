@@ -720,7 +720,7 @@ jobs:
           python scripts/ci_mvsa_gate.py \
             --project-root . \
             --report /tmp/mvsa_gate_report.json \
-            --github-output "$GITHUB_OUTPUT" || true
+            --github-output "$GITHUB_OUTPUT"
           echo "---"
           cat /tmp/mvsa_gate_report.json 2>/dev/null || echo "No report generated"
         env:
@@ -1851,7 +1851,7 @@ jobs:
             sleep(0.1);
           }
           K6_EOF
-          k6 run /tmp/k6-perf-gate.js --summary-export=/tmp/k6-summary.json 2>&1 | tee /tmp/k6-output.txt || true
+          k6 run /tmp/k6-perf-gate.js --summary-export=/tmp/k6-summary.json 2>&1 | tee /tmp/k6-output.txt
           echo "## Gate 12: Performance Gate (k6)" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           tail -20 /tmp/k6-output.txt >> $GITHUB_STEP_SUMMARY

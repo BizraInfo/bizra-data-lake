@@ -194,5 +194,14 @@ pub const SNR_THRESHOLD_T1_HIGH: f64 = 0.95;
 /// SNR Tier 0 — elite operations
 pub const SNR_THRESHOLD_T0_ELITE: f64 = 0.98;
 
+/// Runtime Ihsan — Z3-proven floor for live sovereign operations
+pub const RUNTIME_IHSAN_THRESHOLD: f64 = 1.0;
+
+/// CI Ihsan — relaxed threshold for continuous integration environments
+pub const IHSAN_THRESHOLD_CI: f64 = 0.90;
+
+/// Dev Ihsan — development environment threshold (local iteration)
+pub const IHSAN_THRESHOLD_DEV: f64 = 0.80;
+
 /// Maximum envelope TTL in seconds
 pub const MAX_TTL_SECONDS: u64 = 3600;

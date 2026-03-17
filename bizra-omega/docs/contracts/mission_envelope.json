@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BIZRA Universal Mission Envelope v1.0",
+  "description": "What the local PAT sends upward to URP. Contract between Tier 1 (local sovereignty) and Tier 2 (canonical authority). Model-agnostic, substrate-agnostic, hardware-agnostic.",
+  "type": "object",
+  "required": ["envelope_id", "mission_id", "origin_node_id", "intent_summary", "capability_request", "resource_snapshot_hash", "privacy_level", "submitted_at"],
+  "properties": {
+    "envelope_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "BLAKE3(mission_id + origin_node_id + submitted_at). Unique across network."
+    },
+    "mission_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "origin_node_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$",
+      "description": "Ed25519-derived node identity"
+    },
+    "submitted_at": { "type": "integer" },
+    "intent_summary": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Classified intent from PAT Navigator. Never raw user input."
+    },
+    "intent_type": {
+      "type": "string",
+      "enum": ["chat", "code", "question", "create", "analyze", "plan", "tool_use"],
+      "description": "Structured intent classification"
+    },
+    "context_budget": {
+      "type": "object",
+      "description": "How much context PAT is providing vs requesting from URP",
+      "properties": {
+        "local_context_fragments": { "type": "integer", "description": "Memory fragments retrieved locally" },
+        "local_context_quality": { "type": "number", "minimum": 0, "maximum": 1 },
+        "requesting_urp_context": { "type": "boolean", "description": "Does this node need URP to supplement context?" },
+        "max_urp_context_fragments": { "type": "integer", "default": 5 }
+      }
+    },
+    "capability_request": {
+      "type": "object",
+      "description": "What the mission needs. NEVER model names. Only capabilities.",
+      "required": ["required", "evidence_standard"],
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["chat", "code", "reasoning", "vision", "embedding", "tool_use", "memory_retrieval"] }
+        },
+        "preferred": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Nice-to-have capabilities. Degradable without failure."
+        },
+        "evidence_standard": {
+          "type": "string",
+          "enum": ["receipt_only", "receipt_plus_provenance", "full_audit_trail"]
+        },
+        "acceptable_degradations": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["retrieval_skipped", "empty_context", "fallback_model_used", "unscored_response", "partial_memory_extract"] }
+        },
+        "max_latency_class": {
+          "type": "string",
+          "enum": ["realtime_50ms", "fast_500ms", "standard_5s", "slow_30s", "batch_120s"],
+          "default": "standard_5s"
+        }
+      }
+    },
+    "resource_snapshot_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "BLAKE3 hash of the ResourceSnapshot at submission. Full snapshot stays local. Hash proves integrity."
+    },
+    "privacy_level": {
+      "type": "string",
+      "enum": ["local_only", "urp_validated", "network_visible"],
+      "description": "local_only: never leaves node. urp_validated: URP sees for validation but does not store content. network_visible: can enter federation."
+    },
+    "local_execution_summary": {
+      "type": "object",
+      "description": "What PAT already did locally before sending to URP",
+      "properties": {
+        "model_used": { "type": ["string", "null"], "description": "Local model name (informational, not prescriptive)" },
+        "model_params_b": { "type": ["number", "null"] },
+        "local_ihsan_score": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "local_snr_score": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "guardian_approved": { "type": "boolean" },
+        "reflex_hit": { "type": "boolean", "description": "Was this served from compiled System-1 cache?" },
+        "retrieval_fragments_used": { "type": "integer" },
+        "local_state_path": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Mission states traversed locally (e.g. ['submitted','queued','retrieving','routing','running','scoring','persisting'])"
+        }
+      }
+    },
+    "response_payload_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "BLAKE3 hash of local PAT response. Full response stays local unless privacy_level allows."
+    },
+    "degradation_flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Honest declaration of what was degraded locally. Must-never-fake rule applies."
+    },
+    "standing_on_giants": {
+      "type": "object",
+      "description": "Provenance chain. Mandatory attribution.",
+      "properties": {
+        "knowledge_sources": { "type": "array", "items": { "type": "string" } },
+        "agent_chain": { "type": "array", "items": { "type": "string" }, "description": "Which PAT agents contributed (e.g. ['Navigator','Scholar','Artisan'])" },
+        "model_attribution": { "type": "string", "description": "Model family used locally (e.g. 'qwen-3b', 'nemotron-30b')" },
+        "human_insight_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "local_receipt_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "BLAKE3 hash of the local constitutional receipt. Proves PAT completed governance locally."
+    },
+    "signature": {
+      "type": "string",
+      "description": "Ed25519 signature of the envelope by the origin node. Proves authenticity."
+    }
+  }
+}

@@ -36,6 +36,7 @@ use crate::hash_namespace::{
     compute_action_hash, compute_trigger_hash, parse_hex_32, ActionHash, TriggerHash,
 };
 use crate::orchestrator::{OrchestratorConfig, TaskOrchestrator};
+use crate::persistence::ReflexStore;
 use crate::reflex_cache::{QuarantineReason, ReflexCache, ReflexMode, ReflexRule, ReflexStats};
 use crate::reflex_compiler::{
     snr_score, CompileReasonCode, CompileSample, CompilerConfig, ReflexCompiler,
@@ -104,6 +105,8 @@ pub struct RuntimeConfig {
     pub immediate_quarantine: bool,
     /// Action execution mode for explicit action protocol
     pub action_mode: ActionMode,
+    /// Path to the reflex persistence store directory (empty = no persistence)
+    pub reflex_store_path: String,
 }
 
 impl Default for RuntimeConfig {
@@ -125,6 +128,7 @@ impl Default for RuntimeConfig {
             revalidate_after_uses: 200,
             immediate_quarantine: true,
             action_mode: ActionMode::Disabled,
+            reflex_store_path: String::new(),
         }
     }
 }
@@ -250,6 +254,8 @@ pub struct AgentRuntime {
     reflex_compiler: ReflexCompiler,
     /// Glass-box append-only decision artifact registry
     decision_registry: DecisionRegistry,
+    /// Sovereign file-based reflex persistence store
+    reflex_store: Option<ReflexStore>,
     /// Parsed policy hash (required for active reflex mode)
     policy_hash: Option<[u8; 32]>,
     /// Action-layer counters (updated by node protocol handlers)
@@ -284,6 +290,34 @@ impl AgentRuntime {
         // AgentRoster auto-creates all 7 PAT agents at construction
         let roster = AgentRoster::new(config.user_hash, 0);
 
+        // ── Reflex persistence: restore from disk or bootstrap ──
+        let mut reflex_cache = ReflexCache::default();
+        let reflex_store = if !config.reflex_store_path.is_empty() {
+            match ReflexStore::open(&config.reflex_store_path) {
+                Ok(store) => {
+                    match store.restore_all() {
+                        Ok(rules) if !rules.is_empty() => {
+                            reflex_cache.replace_rules(rules);
+                        }
+                        _ => {
+                            // No persisted rules — load bootstrap cold-start reflexes
+                            reflex_cache.load_bootstrap_rules();
+                        }
+                    }
+                    Some(store)
+                }
+                Err(_) => {
+                    // Store unavailable — degrade gracefully with bootstrap
+                    reflex_cache.load_bootstrap_rules();
+                    None
+                }
+            }
+        } else {
+            // No path configured — in-memory only with bootstrap
+            reflex_cache.load_bootstrap_rules();
+            None
+        };
+
         Self {
             pipeline,
             roster,
@@ -295,9 +329,10 @@ impl AgentRuntime {
             total_conversations: 0,
             fragment_seq: 0,
             metrics: RuntimeMetrics::default(),
-            reflex_cache: ReflexCache::default(),
+            reflex_cache,
             reflex_compiler: ReflexCompiler::default(),
             decision_registry: DecisionRegistry::default(),
+            reflex_store,
             policy_hash,
             actions_planned: 0,
             actions_executed: 0,
@@ -506,7 +541,13 @@ impl AgentRuntime {
                     .reflex_compiler
                     .evaluate(trigger_hash, compiler_cfg, policy_for_trigger)
                 {
-                    Ok(rule) => self.reflex_cache.insert_compiled(effective_mode, rule),
+                    Ok(rule) => {
+                        // Persist to disk before inserting into cache
+                        if let Some(ref store) = self.reflex_store {
+                            let _ = store.save_rule(&rule);
+                        }
+                        self.reflex_cache.insert_compiled(effective_mode, rule);
+                    }
                     Err(
                         CompileReasonCode::InsufficientSamples
                         | CompileReasonCode::LowIhsan
@@ -782,6 +823,12 @@ impl AgentRuntime {
         // End any active conversation
         self.end_conversation(timestamp);
 
+        // Persist reflex rules to disk (sovereign memory survives restart)
+        if let Some(ref store) = self.reflex_store {
+            let rules = self.reflex_cache.all_rules();
+            let _ = store.snapshot(&rules);
+        }
+
         // Suspend all agents
         for role in AgentRole::all() {
             self.roster.suspend(role);
@@ -880,7 +927,12 @@ impl AgentRuntime {
         let Some(raw) = parse_hex_32(trigger_hash_hex) else {
             return false;
         };
-        self.reflex_cache.invalidate(TriggerHash(raw))
+        let trigger = TriggerHash(raw);
+        // Remove from disk before cache
+        if let Some(ref store) = self.reflex_store {
+            let _ = store.remove_rule(&trigger);
+        }
+        self.reflex_cache.invalidate(trigger)
     }
 
     pub fn export_reflex_rules(&self) -> Vec<ReflexRule> {

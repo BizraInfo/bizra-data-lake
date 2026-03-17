@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BIZRA Resource Snapshot Contract v1.0",
+  "description": "Point-in-time substrate state captured at mission submission. Enables post-hoc auditing of routing decisions against actual hardware availability.",
+  "type": "object",
+  "required": ["ram_available_gb", "vram_total_mb", "cpu_cores", "models_available", "snapshot_at"],
+  "properties": {
+    "ram_available_gb": { "type": "number", "description": "System RAM free at snapshot time" },
+    "vram_available_mb": { "type": "integer", "description": "GPU VRAM free at snapshot time" },
+    "vram_total_mb": { "type": "integer", "description": "GPU VRAM total capacity" },
+    "gpu_name": { "type": "string", "description": "Primary GPU name" },
+    "gpu_driver": { "type": "string", "description": "GPU driver version" },
+    "cpu_name": { "type": "string" },
+    "cpu_cores": { "type": "integer" },
+    "cpu_threads": { "type": "integer" },
+    "disk_free_gb": { "type": "number", "description": "Free space on primary BIZRA data disk" },
+    "disk_total_gb": { "type": "number" },
+    "models_available": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "runtime", "size_bytes"],
+        "properties": {
+          "name": { "type": "string" },
+          "runtime": { "type": "string", "enum": ["ollama", "lm-studio", "huggingface", "standalone"] },
+          "size_bytes": { "type": "integer" },
+          "quantization": { "type": "string" },
+          "status": { "type": "string", "enum": ["installed", "loaded", "preferred", "fallback", "disabled"] }
+        }
+      }
+    },
+    "model_count": { "type": "integer" },
+    "total_model_storage_gb": { "type": "number" },
+    "snapshot_at": { "type": "integer", "description": "Unix timestamp" },
+    "platform": { "type": "string", "enum": ["linux", "windows", "android", "ios", "wsl2"], "description": "Substrate platform" },
+    "device_role": {
+      "type": "string",
+      "enum": ["primary_desktop", "mobile_companion", "server", "embedded"],
+      "description": "Role of this device in the user's personal sovereign cluster"
+    },
+    "sensors": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["camera", "microphone", "gps", "accelerometer", "gyroscope", "nfc", "bluetooth", "biometric", "display_fold"] },
+      "description": "Physical sensors available on this device. Empty for desktop/server nodes."
+    },
+    "always_on": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can this device maintain persistent connection? True for phones with cellular. False for desktops that sleep."
+    },
+    "cluster_peers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Node IDs of other devices in this user's personal sovereign cluster. Enables A2A coordination."
+    }
+  }
+}

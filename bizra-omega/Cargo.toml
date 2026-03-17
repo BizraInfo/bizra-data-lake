@@ -31,6 +31,8 @@ members = [
     "iceoryx-bridge",
     # ━━━ Exact Arithmetic (Sippar Protocol — Babylonian regular numbers) ━━━
     "bizra-sippar",
+    # ━━━ Mission Control Plane (sovereign lifecycle for every cognitive operation) ━━━
+    "bizra-mission",
 ]
 
 [workspace.package]

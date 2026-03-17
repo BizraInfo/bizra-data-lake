@@ -22,9 +22,14 @@ pub mod action_executor;
 pub mod audit_hook;
 pub mod handler;
 pub mod mcp_transport;
+pub mod mission_bridge;
 pub mod node;
 pub mod persistence;
 pub mod protocol;
+pub mod substrate;
+
+// Legacy alias — code referencing resource_manifest gets the new substrate module
+pub use substrate as resource_manifest;
 
 // Re-export key types for convenience
 pub use node::{Node, NodeConfig, NodeState};
@@ -543,5 +548,205 @@ mod integration_tests {
         let invalidate = node.execute("REFLEX_INVALIDATE\t0011");
         assert!(invalidate.starts_with("OK\t"));
         assert!(invalidate.contains("invalidated=false"));
+    }
+
+    // ========================================================
+    // TEST 14: Mission Bridge — governed lifecycle wrapping receive()
+    // Proves: Mission crate ↔ Agent runtime ↔ Node integration
+    // ========================================================
+    #[test]
+    fn governed_mission_lifecycle() {
+        use bizra_hooks::IhsanScore;
+        use bizra_mission::state::MissionState;
+
+        let mut node = Node::new(NodeConfig::default());
+
+        // Create a runtime and Ihsan score for the mission bridge
+        let mut runtime = AgentRuntime::new();
+        let ihsan = IhsanScore::from_f64(0.96);
+        let models = vec!["qwen2.5:3b".to_string()];
+
+        // Execute first mission (genesis — no previous receipt)
+        let r1 = crate::mission_bridge::execute_governed_mission(
+            &mut runtime,
+            &ihsan,
+            "What are the BIZRA constitutional thresholds?",
+            1773662000,
+            &models,
+            None, // genesis receipt
+        );
+
+        // Mission completed successfully
+        assert_eq!(r1.mission.state, MissionState::Complete);
+        assert!(r1.mission.state.is_terminal());
+        assert!(r1.mission.completed_at.is_some());
+
+        // Receipt was emitted and is valid
+        assert!(r1.receipt.is_success());
+        assert!(r1.receipt.verify_hash());
+        assert_eq!(r1.receipt.degradation_tier, 0); // full quality
+        assert!(r1.receipt.failure_code.is_none());
+        assert!(r1.receipt.previous_receipt_hash.is_none()); // genesis
+
+        // Runtime response was generated
+        let resp = r1.runtime_response.expect("runtime response");
+        assert!(resp.guardian_approved);
+
+        // State history is complete (9 transitions: submitted→...→complete)
+        assert_eq!(r1.mission.state_history.len(), 9);
+
+        // Model was selected from available models
+        assert_eq!(r1.mission.chosen_model.as_deref(), Some("qwen2.5:3b"));
+
+        // Ihsan score propagated
+        assert!(r1.mission.ihsan_score.is_some());
+
+        // Execute second mission chained to the first
+        let r2 = crate::mission_bridge::execute_governed_mission(
+            &mut runtime,
+            &ihsan,
+            "What is the ADL Gini threshold?",
+            1773662001,
+            &models,
+            Some(r1.receipt.receipt_id), // chain to first
+        );
+        assert!(r2.receipt.is_success());
+        assert!(r2.receipt.verify_hash());
+        assert_eq!(r2.receipt.previous_receipt_hash, Some(r1.receipt.receipt_id));
+        // Chain verification: r2 links back to r1
+        assert!(r2.receipt.verify_chain(&r1.receipt));
+
+        // Node still healthy after governed missions
+        let h = node.execute("HEALTH");
+        assert!(h.starts_with("OK\t"));
+    }
+
+    // ========================================================
+    // TEST 15: Mission Bridge — guardian veto produces receipt
+    // ========================================================
+    #[test]
+    fn governed_mission_low_ihsan_degrades() {
+        use bizra_hooks::IhsanScore;
+        use bizra_mission::state::MissionState;
+
+        let mut runtime = AgentRuntime::new();
+        let low_ihsan = IhsanScore::from_f64(0.50); // Below 0.85 floor
+        let models = vec!["qwen2.5:3b".to_string()];
+
+        let result = crate::mission_bridge::execute_governed_mission(
+            &mut runtime,
+            &low_ihsan,
+            "Low quality request",
+            1773662000,
+            &models,
+            None,
+        );
+
+        // Should degrade, not complete
+        assert_eq!(result.mission.state, MissionState::Degraded);
+        assert!(result.mission.state.is_terminal());
+
+        // Receipt emitted even on degradation
+        assert!(!result.receipt.is_success());
+        assert!(result.receipt.is_degraded());
+        assert!(result.receipt.verify_hash());
+        assert!(result.receipt.degradation_tier > 0);
+    }
+
+    // ========================================================
+    // TEST 16: Mission Bridge — no models available fails at preflight
+    // ========================================================
+    #[test]
+    fn governed_mission_no_models_fails() {
+        use bizra_hooks::IhsanScore;
+        use bizra_mission::state::MissionState;
+
+        let mut runtime = AgentRuntime::new();
+        let ihsan = IhsanScore::from_f64(0.96);
+        let no_models: Vec<String> = vec![];
+
+        let result = crate::mission_bridge::execute_governed_mission(
+            &mut runtime,
+            &ihsan,
+            "Should fail at preflight",
+            1773662000,
+            &no_models,
+            None,
+        );
+
+        // Fails at preflight — never enters queue
+        assert_eq!(result.mission.state, MissionState::Failed);
+        assert!(result.runtime_response.is_none()); // Never ran
+        assert!(!result.receipt.is_success());
+        assert!(result.receipt.verify_hash());
+        assert_eq!(result.receipt.degradation_tier, 4); // refused
+    }
+
+    // ========================================================
+    // TEST 17: B1 GATE — Reflex persistence survives restart
+    // Sprint Plan Workstream B, Task B1
+    // "Reflexes survive node restart with zero data loss"
+    // ========================================================
+    #[test]
+    fn reflex_persistence_survives_restart() {
+        use bizra_agent::runtime::RuntimeConfig;
+        use bizra_agent::reflex_cache::ReflexMode;
+
+        let dir = tempfile::TempDir::new().unwrap();
+        let store_path = dir.path().join("reflexes");
+
+        // ── Session 1: Boot, interact, compile reflexes, shutdown ──
+        let cfg = RuntimeConfig {
+            reflex_mode: ReflexMode::Active,
+            reflex_store_path: store_path.to_string_lossy().to_string(),
+            policy_hash_hex: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+            ..Default::default()
+        };
+
+        let mut rt1 = AgentRuntime::with_config(cfg.clone());
+
+        // Send messages to trigger reflex compilation
+        let msg1 = bizra_agent::types::Message::inbound(
+            bizra_agent::types::MessageId::new(1, 1),
+            "What are BIZRA constitutional thresholds?",
+            1000,
+            bizra_hooks::IhsanScore::from_f64(0.97),
+        );
+        let _resp1 = rt1.receive(msg1, 1000);
+
+        // Capture reflex stats before shutdown
+        let stats_before = rt1.reflex_stats();
+        let rules_before = stats_before.size;
+
+        // Graceful shutdown — persists reflexes to disk
+        rt1.shutdown(2000);
+
+        // Verify files exist on disk
+        assert!(store_path.exists(), "reflex store directory must exist");
+
+        // ── Session 2: Cold restart — reflexes must be restored ──
+        let mut rt2 = AgentRuntime::with_config(cfg);
+
+        let stats_after = rt2.reflex_stats();
+
+        // B1 GATE: reflexes survive restart with zero data loss
+        assert!(
+            stats_after.size >= rules_before,
+            "reflexes must survive restart: before={} after={}",
+            rules_before, stats_after.size,
+        );
+        assert!(stats_after.size >= 4, "at minimum bootstrap rules must exist");
+
+        // Session 2 can still process messages
+        let msg2 = bizra_agent::types::Message::inbound(
+            bizra_agent::types::MessageId::new(2, 1),
+            "What are BIZRA constitutional thresholds?",
+            3000,
+            bizra_hooks::IhsanScore::from_f64(0.97),
+        );
+        let resp2 = rt2.receive(msg2, 3000);
+        assert!(resp2.guardian_approved);
+
+        rt2.shutdown(4000);
     }
 }

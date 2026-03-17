@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BIZRA URP Canonical Receipt v1.0",
+  "description": "What every mission returns with after URP/SAT processing. This is the constitutional proof that a mission was governed. Equal law, variable execution: every node gets the same receipt structure regardless of hardware.",
+  "type": "object",
+  "required": ["receipt_id", "envelope_id", "mission_id", "origin_node_id", "sat_verdict", "final_state", "ihsan_verified", "snr_verified", "guardian_verified", "issued_at"],
+  "properties": {
+    "receipt_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "BLAKE3(envelope_id + sat_verdict + issued_at). The canonical proof hash."
+    },
+    "envelope_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Links back to the mission envelope that was submitted"
+    },
+    "mission_id": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "origin_node_id": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+    "issued_at": { "type": "integer", "description": "Unix timestamp when URP issued this receipt" },
+    "sat_verdict": {
+      "type": "object",
+      "description": "The SAT's constitutional judgment. This is where equal law lives.",
+      "required": ["outcome", "sat_agents_consulted"],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": ["accepted", "enriched", "delegated", "degraded", "rejected"],
+          "description": "accepted: local output meets floor. enriched: URP boosted quality. delegated: URP ran inference. degraded: partial result accepted. rejected: constitutional violation."
+        },
+        "sat_agents_consulted": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Which SAT agents participated in validation"
+        },
+        "enrichment_type": {
+          "type": ["string", "null"],
+          "enum": ["none", "context_injection", "quality_boost", "full_rewrite", null],
+          "description": "What the URP did to improve the output (null if accepted as-is)"
+        },
+        "enrichment_model": {
+          "type": ["string", "null"],
+          "description": "Model URP used for enrichment (informational, not prescriptive)"
+        },
+        "rejection_reason": {
+          "type": ["string", "null"],
+          "description": "Why the mission was rejected (null if not rejected)"
+        }
+      }
+    },
+    "final_state": {
+      "type": "string",
+      "enum": ["complete", "degraded", "failed", "timed_out", "rejected"],
+      "description": "Terminal mission state after URP processing"
+    },
+    "full_state_path": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Complete state history: local states + URP states (e.g. [...local..., 'urp_validating', 'urp_enriching', 'complete'])"
+    },
+    "ihsan_verified": {
+      "type": "object",
+      "required": ["local_score", "meets_floor", "floor_value"],
+      "properties": {
+        "local_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "urp_adjusted_score": { "type": ["number", "null"], "description": "Score after URP enrichment (null if no enrichment)" },
+        "meets_floor": { "type": "boolean" },
+        "floor_value": { "type": "number", "description": "The Ihsan floor that was applied (0.85 minimum, 0.95 target)" }
+      }
+    },
+    "snr_verified": {
+      "type": "object",
+      "required": ["local_score", "meets_threshold"],
+      "properties": {
+        "local_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "urp_adjusted_score": { "type": ["number", "null"] },
+        "meets_threshold": { "type": "boolean" },
+        "threshold_value": { "type": "number" }
+      }
+    },
+    "guardian_verified": {
+      "type": "object",
+      "required": ["local_approved", "sat_approved"],
+      "properties": {
+        "local_approved": { "type": "boolean", "description": "Did the local Guardian approve?" },
+        "sat_approved": { "type": "boolean", "description": "Did the SAT Guardian confirm?" },
+        "veto_reason": { "type": ["string", "null"] }
+      }
+    },
+    "degradation_audit": {
+      "type": "object",
+      "description": "Complete degradation record. Must-never-fake rule enforced here.",
+      "properties": {
+        "local_degradations": { "type": "array", "items": { "type": "string" } },
+        "urp_degradations": { "type": "array", "items": { "type": "string" } },
+        "total_degradation_tier": {
+          "type": "integer", "minimum": 0, "maximum": 4,
+          "description": "0=full, 1=light, 2=significant, 3=urp_assisted, 4=refused"
+        }
+      }
+    },
+    "impact_scoring": {
+      "type": "object",
+      "description": "Proof-of-Impact assessment. Tokens are tied to verified impact, not hardware ownership.",
+      "properties": {
+        "impact_score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Composite impact score from SAT evaluation" },
+        "seed_earned": { "type": "number", "minimum": 0, "description": "SEED utility tokens earned by this mission" },
+        "bloom_earned": { "type": "number", "minimum": 0, "description": "BLOOM impact tokens earned (if mission contributed to network value)" },
+        "contribution_class": {
+          "type": "string",
+          "enum": ["personal_only", "knowledge_contribution", "compute_contribution", "tool_contribution", "governance_contribution"],
+          "description": "What kind of value this mission added to the civilization"
+        }
+      }
+    },
+    "provenance_verified": {
+      "type": "object",
+      "description": "Standing on Giants verification by SAT",
+      "properties": {
+        "attribution_chain_valid": { "type": "boolean" },
+        "knowledge_sources_verified": { "type": "integer", "description": "How many sources SAT could verify" },
+        "model_attribution_honest": { "type": "boolean", "description": "Does declared model match evidence?" }
+      }
+    },
+    "network_eligible": {
+      "type": "boolean",
+      "description": "Can this mission's results enter Tier 3 (network)? False for local_only or rejected missions."
+    },
+    "persistence_instructions": {
+      "type": "object",
+      "description": "What the local node must persist after receiving this receipt",
+      "properties": {
+        "persist_receipt": { "type": "boolean", "const": true, "description": "ALWAYS true. Every receipt must be persisted." },
+        "persist_response": { "type": "boolean", "description": "Should the enriched response be stored locally?" },
+        "promote_to_reflex": { "type": "boolean", "description": "Should this successful pattern be fed to the reflex compiler?" },
+        "extract_memory": { "type": "boolean", "description": "Should memory fragments be extracted from this interaction?" }
+      }
+    },
+    "urp_node_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$",
+      "description": "Identity of the URP node that processed this mission"
+    },
+    "urp_signature": {
+      "type": "string",
+      "description": "Ed25519 signature by the URP node. Proves this receipt is authentic and was issued by a valid URP."
+    },
+    "previous_receipt_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Hash of the previous receipt in this node's chain. Creates an append-only receipt ledger."
+    }
+  }
+}

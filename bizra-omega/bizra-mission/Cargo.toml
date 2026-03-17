@@ -1,0 +1,14 @@
+[package]
+name = "bizra-mission"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Sovereign Mission Control Plane — the governed lifecycle for every cognitive operation. Contract-first, model-agnostic, equal-law."
+publish = false
+
+[dependencies]
+bizra-core = { path = "../bizra-core" }
+blake3 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }

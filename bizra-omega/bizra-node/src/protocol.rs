@@ -146,6 +146,12 @@ pub enum Command {
     },
     /// SAP_SESSION_CLOSE <session_id> <timestamp>
     SapSessionClose { session_id: String, timestamp: u64 },
+    /// RESOURCES — sovereign resource manifest (hardware + models)
+    Resources,
+    /// RESOURCES_REFRESH — re-discover all resources
+    ResourcesRefresh,
+    /// MISSION_RECEIVE <content> <timestamp> — governed mission lifecycle
+    MissionReceive { content: String, timestamp: u64 },
 }
 
 // ============================================================
@@ -231,6 +237,8 @@ pub fn parse_command(line: &str) -> Result<Command, (ErrorCode, String)> {
         "KNOWS_ME" => Ok(Command::KnowsMe),
         "HEALTH" => Ok(Command::Health),
         "REFLEX_STATS" => Ok(Command::ReflexStats),
+        "RESOURCES" => Ok(Command::Resources),
+        "RESOURCES_REFRESH" => Ok(Command::ResourcesRefresh),
 
         "EXPLAIN" => {
             if parts.len() < 2 {
@@ -364,6 +372,27 @@ pub fn parse_command(line: &str) -> Result<Command, (ErrorCode, String)> {
             }
             let ts = parse_u64(parts[2], "timestamp")?;
             Ok(Command::Receive {
+                content: content.to_string(),
+                timestamp: ts,
+            })
+        }
+
+        "MISSION_RECEIVE" => {
+            if parts.len() < 3 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "MISSION_RECEIVE requires <content> <timestamp>".to_string(),
+                ));
+            }
+            let content = parts[1];
+            if content.is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "MISSION_RECEIVE content must not be empty".to_string(),
+                ));
+            }
+            let ts = parse_u64(parts[2], "timestamp")?;
+            Ok(Command::MissionReceive {
                 content: content.to_string(),
                 timestamp: ts,
             })

@@ -27,6 +27,7 @@ use bizra_memory::bridge::export_atoms_as_turns;
 use crate::action_executor::ActionExecutor;
 use crate::handler::{self, NodeInternals, SapSessionState};
 use crate::protocol::{self, Response, NODE_NAME, NODE_VERSION};
+use crate::resource_manifest::ResourceManifest;
 
 // ============================================================
 // NODE STATE
@@ -115,6 +116,10 @@ pub struct Node {
     sap_sessions: HashMap<String, SapSessionState>,
     /// Saga registry — tracks active request sagas through the pipeline.
     saga_registry: SagaRegistry,
+    /// Sovereign resource manifest — the Node's self-knowledge.
+    resource_manifest: ResourceManifest,
+    /// Receipt chain — hash of the last emitted receipt for tamper-evident ordering.
+    last_receipt_id: Option<[u8; 32]>,
 }
 
 impl Node {
@@ -136,6 +141,8 @@ impl Node {
             action_executor: ActionExecutor::default(),
             sap_sessions: HashMap::new(),
             saga_registry: SagaRegistry::new(),
+            resource_manifest: ResourceManifest::discover(),
+            last_receipt_id: None,
         };
 
         // Register PostDeliver audit hook for action.receipt events.
@@ -194,6 +201,8 @@ impl Node {
                 action_executor: &mut self.action_executor,
                 sap_sessions: &mut self.sap_sessions,
                 saga_registry: &mut self.saga_registry,
+                resource_manifest: &mut self.resource_manifest,
+                last_receipt_id: &mut self.last_receipt_id,
             };
             handler::handle(cmd, &mut internals)
         };
@@ -239,6 +248,8 @@ impl Node {
                 action_executor: &mut self.action_executor,
                 sap_sessions: &mut self.sap_sessions,
                 saga_registry: &mut self.saga_registry,
+                resource_manifest: &mut self.resource_manifest,
+                last_receipt_id: &mut self.last_receipt_id,
             };
             handler::handle(cmd, &mut internals)
         };
@@ -312,6 +323,17 @@ impl Node {
     /// Immutable reference to the node configuration.
     pub fn config_ref(&self) -> &NodeConfig {
         &self.config
+    }
+
+    /// The sovereign resource manifest — NODE0's self-knowledge.
+    pub fn resource_manifest(&self) -> &ResourceManifest {
+        &self.resource_manifest
+    }
+
+    /// Re-discover all resources (hardware + models). Call after
+    /// installing/removing models or hardware changes.
+    pub fn refresh_resources(&mut self) {
+        self.resource_manifest = ResourceManifest::discover();
     }
 
     /// Mutable access to the AgentRuntime (used by persistence).

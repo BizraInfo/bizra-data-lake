@@ -1,9 +1,27 @@
-# BIZRA Omega CI Pipeline
-# Runs on every push and pull request
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Constitutional CI Pipeline — 4-Gate PCI-Aligned
+# ═══════════════════════════════════════════════════════════════════════════════
 #
-# Genesis Hash: a7f68f1f74f2c0898cb1f1db6e83633674f17ee1c0161704ac8d85f8a773c25b
+# Gate architecture mirrors PCI Gate Chain (bizra-core/src/pci/gates.rs):
+#   Gate 1: Schema   — Format + lint (Cheap tier, <30s)
+#   Gate 2: Ihsān    — Tests + coverage floor (Expensive tier, <5min)
+#   Gate 3: SNR      — Security audit + dependency hygiene (Medium tier)
+#   Gate 4: Deploy   — Build release artifacts + Docker (Expensive tier)
+#
+# Fail-fast semantics: each gate blocks the next. Ethics before efficiency.
+# Standing on Giants: Deming (variation reduction) · Lampson (least privilege)
+#                     Al-Ghazali (intent precondition) · Shannon (signal quality)
+#
+# Constitutional constants (cross-aligned with bizra-core/src/lib.rs):
+#   IHSAN_THRESHOLD  = 0.95
+#   SNR_THRESHOLD    = 0.85
+#   COVERAGE_FLOOR   = 64.57  (ratcheted from Phase 80)
+#   MIN_TEST_COUNT   = 1282   (ratcheted — never decreases)
+#
+# Genesis Hash: to be computed after commit
+# ═══════════════════════════════════════════════════════════════════════════════
 
-name: CI
+name: Constitutional CI
 
 on:
   push:
@@ -11,100 +29,322 @@ on:
   pull_request:
     branches: [main, master]
 
+# ── Constitutional Constants ─────────────────────────────────────────────────
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  # FATE Gate thresholds
-  BIZRA_IHSAN_THRESHOLD: 0.95
-  BIZRA_SNR_THRESHOLD: 0.85
+  BIZRA_IHSAN_THRESHOLD: "0.95"
+  BIZRA_SNR_THRESHOLD: "0.85"
+  # Coverage floor — ratchet only upward. Update after each phase.
+  BIZRA_COVERAGE_FLOOR: "64.57"
+  # Minimum passing tests — ratchet only upward. Never allow regression.
+  BIZRA_MIN_TEST_COUNT: "1282"
+  # Crates excluded from workspace test (require Z3 or system libs)
+  WORKSPACE_EXCLUDE: "--exclude fate-binding --exclude iceoryx-bridge --exclude bizra-python"
+
+# ── Concurrency: cancel in-flight runs on same branch ────────────────────────
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════
-  # Build and Test
+  # GATE 1: SCHEMA — Format + Lint (PCI Cheap tier)
   # ═══════════════════════════════════════════════════════════════════════════
-  build:
-    name: Build & Test
+  # Purpose: Reject malformed code before wasting compute.
+  # Analogy: SchemaGate in pci/gates.rs — validates JSON well-formedness.
+  # SLO: <30 seconds. Fail-fast on first violation.
+  # ═══════════════════════════════════════════════════════════════════════════
+  gate-schema:
+    name: "Gate 1: Schema"
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-action@stable
+      - name: Install Rust (pinned to rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: "1.91"
           components: clippy, rustfmt
 
-      - name: Cache cargo registry
+      - name: Cache cargo
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          key: ${{ runner.os }}-schema-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-schema-
 
-      - name: Check formatting
+      - name: "Schema check: formatting"
         run: cargo fmt --all -- --check
 
-      - name: Run clippy
-        run: cargo clippy --workspace -- -D warnings
+      - name: "Schema check: clippy (warnings = errors)"
+        run: |
+          cargo clippy --workspace ${{ env.WORKSPACE_EXCLUDE }} \
+            -- -D warnings -D clippy::unwrap_used -W clippy::pedantic \
+            -A clippy::module_name_repetitions \
+            -A clippy::must_use_candidate \
+            -A clippy::missing_errors_doc \
+            -A clippy::missing_panics_doc \
+            -A clippy::cast_possible_truncation \
+            -A clippy::cast_sign_loss \
+            -A clippy::cast_precision_loss \
+            -A clippy::too_many_lines
+
+      - name: "Schema check: no TODO in production code"
+        run: |
+          HITS=$(grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.rs" \
+            --exclude-dir=target --exclude-dir=tests \
+            --exclude="*_test*" --exclude="*tests*" \
+            -c . 2>/dev/null | awk -F: '{s+=$2}END{print s+0}')
+          echo "TODO/FIXME count: $HITS"
+          if [ "$HITS" -gt 20 ]; then
+            echo "::error::Too many TODO/FIXME markers in production code ($HITS > 20)"
+            exit 1
+          fi
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # GATE 2: IHSĀN — Tests + Coverage Floor (PCI Expensive tier)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Purpose: Prove excellence. No assumptions — only verified correctness.
+  # Analogy: IhsanGate in pci/gates.rs — fail-closed on missing proof.
+  # SLO: <5 minutes. Coverage floor is a constitutional ratchet.
+  # ═══════════════════════════════════════════════════════════════════════════
+  gate-ihsan:
+    name: "Gate 2: Ihsān"
+    runs-on: ubuntu-latest
+    needs: gate-schema
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (pinned)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.91"
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-ihsan-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-ihsan-
 
       - name: Build workspace
-        run: cargo build --workspace --release
+        run: cargo build --workspace ${{ env.WORKSPACE_EXCLUDE }}
 
-      - name: Run tests
-        run: cargo test --workspace
-
-      - name: Test Resource Pool Genesis
+      - name: "Ihsān gate: run all tests"
+        id: tests
         run: |
-          cargo test -p bizra-resourcepool --release
-          echo "Resource Pool: ✓ All tests passed"
+          # Capture test output for count verification
+          cargo test --workspace ${{ env.WORKSPACE_EXCLUDE }} \
+            --no-fail-fast 2>&1 | tee test_output.txt
 
-      - name: Test Telescript Bridge
-        run: |
-          cargo test -p bizra-telescript --release
-          echo "Telescript Bridge: ✓ All tests passed"
+          # Extract total pass count
+          PASS_COUNT=$(grep "test result:" test_output.txt \
+            | grep -oP '\d+ passed' | grep -oP '\d+' \
+            | awk '{s+=$1}END{print s+0}')
+          FAIL_COUNT=$(grep "test result:" test_output.txt \
+            | grep -oP '\d+ failed' | grep -oP '\d+' \
+            | awk '{s+=$1}END{print s+0}')
 
-      - name: Test Proof Space
-        run: |
-          cargo test -p bizra-proofspace --release
-          echo "Proof Space: ✓ All tests passed"
+          echo "pass_count=$PASS_COUNT" >> $GITHUB_OUTPUT
+          echo "fail_count=$FAIL_COUNT" >> $GITHUB_OUTPUT
+          echo "✅ Tests: $PASS_COUNT passed, $FAIL_COUNT failed"
 
-      - name: Build Genesis binary
+          if [ "$FAIL_COUNT" -gt 0 ]; then
+            echo "::error::$FAIL_COUNT tests failed — Ihsān gate REJECTED"
+            exit 1
+          fi
+
+      - name: "Ihsān gate: test count ratchet (never regress)"
         run: |
-          cargo build --release --bin node0-genesis
-          echo "Genesis binary: ✓ Built successfully"
+          PASS_COUNT=${{ steps.tests.outputs.pass_count }}
+          MIN=${{ env.BIZRA_MIN_TEST_COUNT }}
+          echo "Current: $PASS_COUNT tests | Floor: $MIN tests"
+          if [ "$PASS_COUNT" -lt "$MIN" ]; then
+            echo "::error::Test count regression: $PASS_COUNT < $MIN"
+            echo "::error::Tests were removed or broken. This is a constitutional violation."
+            exit 1
+          fi
+          echo "✅ Test count ratchet: $PASS_COUNT >= $MIN"
+
+      - name: Install cargo-tarpaulin
+        run: |
+          cargo install cargo-tarpaulin --locked \
+            || cargo install cargo-tarpaulin
+
+      - name: "Ihsān gate: coverage measurement"
+        id: coverage
+        run: |
+          cargo tarpaulin --workspace ${{ env.WORKSPACE_EXCLUDE }} \
+            --skip-clean --timeout 300 --out json --out stdout \
+            2>&1 | tee coverage_output.txt
+
+          # Extract coverage percentage from JSON
+          if [ -f tarpaulin-report.json ]; then
+            COV=$(python3 -c "
+          import json
+          with open('tarpaulin-report.json') as f:
+              data = json.load(f)
+          covered = sum(1 for f in data.get('files',[]) for t in f.get('traces',[]) if t.get('stats',{}).get('Line',0)>0)
+          total = sum(1 for f in data.get('files',[]) for t in f.get('traces',[]))
+          pct = (covered/total*100) if total>0 else 0
+          print(f'{pct:.2f}')
+          " 2>/dev/null || echo "0.00")
+          else
+            COV=$(grep -oP '[\d.]+% coverage' coverage_output.txt \
+              | head -1 | grep -oP '[\d.]+' || echo "0.00")
+          fi
+
+          echo "coverage=$COV" >> $GITHUB_OUTPUT
+          echo "📊 Coverage: ${COV}%"
+
+      - name: "Ihsān gate: coverage floor ratchet"
+        run: |
+          COV=${{ steps.coverage.outputs.coverage }}
+          FLOOR=${{ env.BIZRA_COVERAGE_FLOOR }}
+          echo "Current: ${COV}% | Floor: ${FLOOR}%"
+          PASS=$(python3 -c "print(1 if float('$COV') >= float('$FLOOR') else 0)")
+          if [ "$PASS" = "0" ]; then
+            echo "::error::Coverage regression: ${COV}% < ${FLOOR}%"
+            echo "::error::Coverage floor is a constitutional ratchet — it only moves up."
+            exit 1
+          fi
+          echo "✅ Coverage ratchet: ${COV}% >= ${FLOOR}%"
+
+      - name: "Ihsān gate: summary"
+        if: always()
+        run: |
+          echo "## 🕌 Ihsān Gate Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value | Floor | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests passed | ${{ steps.tests.outputs.pass_count }} | ${{ env.BIZRA_MIN_TEST_COUNT }} | $( [ ${{ steps.tests.outputs.fail_count }} -eq 0 ] && echo '✅' || echo '❌') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage | ${{ steps.coverage.outputs.coverage }}% | ${{ env.BIZRA_COVERAGE_FLOOR }}% | ✅ |" >> $GITHUB_STEP_SUMMARY
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # Security Audit
+  # GATE 3: SNR — Security + Dependency Hygiene (PCI Medium tier)
   # ═══════════════════════════════════════════════════════════════════════════
-  security:
-    name: Security Audit
+  # Purpose: Filter noise — vulnerable deps, license violations, bloat.
+  # Analogy: SNRGate in pci/gates.rs — fail-closed on missing score.
+  # SLO: <2 minutes. Runs in parallel with Gate 2 (both need Gate 1).
+  # ═══════════════════════════════════════════════════════════════════════════
+  gate-snr:
+    name: "Gate 3: SNR"
     runs-on: ubuntu-latest
+    needs: gate-schema
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Rust (pinned)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.91"
 
       - name: Install cargo-audit
-        run: cargo install cargo-audit
+        run: cargo install cargo-audit --locked || cargo install cargo-audit
 
-      - name: Run security audit
-        run: cargo audit
+      - name: "SNR gate: security vulnerability audit"
+        run: |
+          cargo audit 2>&1 | tee audit_output.txt
+          # Allow informational advisories but fail on vulnerabilities
+          if grep -qE "^error\[" audit_output.txt; then
+            echo "::error::Security vulnerabilities detected — SNR gate REJECTED"
+            exit 1
+          fi
+          echo "✅ No known vulnerabilities"
+
+      - name: "SNR gate: Cargo.lock freshness"
+        run: |
+          cargo generate-lockfile --check 2>/dev/null \
+            || cargo check --locked --workspace ${{ env.WORKSPACE_EXCLUDE }} \
+            || echo "::warning::Cargo.lock may be out of date"
+
+      - name: "SNR gate: dependency tree depth"
+        run: |
+          # Count total unique dependencies
+          DEP_COUNT=$(cargo tree --workspace ${{ env.WORKSPACE_EXCLUDE }} \
+            --depth 1 --prefix none 2>/dev/null | sort -u | wc -l)
+          echo "📦 Direct dependencies: $DEP_COUNT"
+          if [ "$DEP_COUNT" -gt 200 ]; then
+            echo "::warning::Dependency count high ($DEP_COUNT > 200). Review for bloat."
+          fi
+
+      - name: "SNR gate: binary size check"
+        run: |
+          cargo build --workspace ${{ env.WORKSPACE_EXCLUDE }} --release 2>/dev/null
+          if [ -f target/release/node0-genesis ]; then
+            SIZE=$(stat -f%z target/release/node0-genesis 2>/dev/null \
+              || stat --printf="%s" target/release/node0-genesis 2>/dev/null \
+              || echo "0")
+            SIZE_MB=$((SIZE / 1048576))
+            echo "🔩 Genesis binary: ${SIZE_MB} MB"
+            if [ "$SIZE_MB" -gt 50 ]; then
+              echo "::warning::Binary size ${SIZE_MB}MB exceeds 50MB threshold"
+            fi
+          fi
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # Docker Build
+  # GATE 4: DEPLOY — Release Artifacts + Docker (PCI Expensive tier)
   # ═══════════════════════════════════════════════════════════════════════════
-  docker:
-    name: Docker Build
+  # Purpose: Produce verified, deployable artifacts.
+  # Analogy: The receipt after all gates pass — cryptographic proof of quality.
+  # SLO: <10 minutes. Only runs after Gates 2 AND 3 both pass.
+  # ═══════════════════════════════════════════════════════════════════════════
+  gate-deploy:
+    name: "Gate 4: Deploy"
     runs-on: ubuntu-latest
-    needs: build
+    needs: [gate-ihsan, gate-snr]
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Rust (pinned)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.91"
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-deploy-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-deploy-
+
+      - name: "Deploy gate: build release binaries"
+        run: |
+          cargo build --workspace ${{ env.WORKSPACE_EXCLUDE }} \
+            --release 2>&1
+          echo "✅ Release build complete"
+
+      - name: "Deploy gate: compute artifact hashes"
+        run: |
+          echo "## 🔐 Artifact Integrity" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          for bin in target/release/node0-genesis target/release/bizra-api; do
+            if [ -f "$bin" ]; then
+              HASH=$(sha256sum "$bin" | cut -d' ' -f1)
+              SIZE=$(stat --printf="%s" "$bin" 2>/dev/null || echo "?")
+              echo "$bin: sha256=$HASH size=$SIZE" >> $GITHUB_STEP_SUMMARY
+              echo "✅ $bin: $HASH"
+            fi
+          done
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: "Deploy gate: Docker image build"
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -113,28 +353,78 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Upload release artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: bizra-release-${{ github.sha }}
+          path: |
+            target/release/node0-genesis
+            target/release/bizra-api
+          retention-days: 90
+
   # ═══════════════════════════════════════════════════════════════════════════
-  # Release (on tag)
+  # RELEASE — Tag-triggered (after all 4 gates)
   # ═══════════════════════════════════════════════════════════════════════════
   release:
-    name: Release
+    name: "Release"
     runs-on: ubuntu-latest
-    needs: [build, security, docker]
+    needs: gate-deploy
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build release binaries
-        run: |
-          cargo build --release -p bizra-installer -p bizra-api
-          mkdir -p artifacts
-          cp target/release/bizra artifacts/
-          cp target/release/bizra-api artifacts/
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bizra-release-${{ github.sha }}
+          path: artifacts
 
-      - name: Create release
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/bizra
+            artifacts/node0-genesis
             artifacts/bizra-api
           generate_release_notes: true
+          body: |
+            ## Constitutional CI Receipt
+            All 4 gates passed: Schema ✅ → Ihsān ✅ → SNR ✅ → Deploy ✅
+            Coverage floor: ${{ env.BIZRA_COVERAGE_FLOOR }}%
+            Test floor: ${{ env.BIZRA_MIN_TEST_COUNT }}
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PIPELINE SUMMARY — Constitutional receipt
+  # ═══════════════════════════════════════════════════════════════════════════
+  pipeline-receipt:
+    name: "Constitutional Receipt"
+    runs-on: ubuntu-latest
+    needs: [gate-schema, gate-ihsan, gate-snr, gate-deploy]
+    if: always()
+    steps:
+      - name: Generate receipt
+        run: |
+          echo "## ⚖️ BIZRA Constitutional CI Receipt" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Gate | Name | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 1 | Schema (fmt + clippy) | ${{ needs.gate-schema.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 2 | Ihsān (tests + coverage) | ${{ needs.gate-ihsan.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 3 | SNR (security + deps) | ${{ needs.gate-snr.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 4 | Deploy (artifacts + Docker) | ${{ needs.gate-deploy.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Runner: \`${{ runner.os }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any gate failed
+        if: |
+          needs.gate-schema.result != 'success' ||
+          needs.gate-ihsan.result != 'success' ||
+          needs.gate-snr.result != 'success' ||
+          needs.gate-deploy.result != 'success'
+        run: |
+          echo "::error::Constitutional CI pipeline REJECTED — one or more gates failed"
+          exit 1

@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BIZRA Mission Lifecycle Contract v1.0",
+  "description": "Defines the state machine, transitions, and invariants for every cognitive operation in BIZRA. Contract-first: model-agnostic, substrate-agnostic.",
+  "type": "object",
+  "required": ["mission_id", "submitted_at", "state", "input_content_hash", "resource_snapshot"],
+  "properties": {
+    "mission_id": {
+      "type": "string",
+      "description": "BLAKE3 hash hex (64 chars) of (user_hash, timestamp, content_hash)",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "submitted_at": {
+      "type": "integer",
+      "description": "Unix timestamp (seconds) when mission was submitted"
+    },
+    "completed_at": {
+      "type": ["integer", "null"],
+      "description": "Unix timestamp when mission reached terminal state"
+    },
+    "input_content_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "submitted", "queued", "warming_retrieval", "warming_model",
+        "retrieving", "routing", "running", "scoring", "persisting",
+        "urp_validating", "urp_enriching",
+        "complete", "degraded", "failed", "timed_out",
+        "awaiting_reconciliation"
+      ],
+      "description": "awaiting_reconciliation: node executed offline, local receipt emitted, URP settlement pending when connectivity returns"
+    },
+    "state_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "at"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "at": { "type": "integer", "description": "Unix timestamp of transition" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "timeout_budget_ms": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 300000,
+      "default": 120000
+    },
+    "intent": { "type": ["string", "null"] },
+    "chosen_expert": { "type": ["string", "null"] },
+    "chosen_model": { "type": ["string", "null"] },
+    "search_type": {
+      "type": ["string", "null"],
+      "enum": ["semantic", "keyword", "none", null]
+    },
+    "resource_snapshot": { "$ref": "#/$defs/resource_snapshot" },
+    "model_preflight": { "$ref": "#/$defs/preflight_result" },
+    "ihsan_score": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "snr_score": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "guardian_approved": { "type": ["boolean", "null"] },
+    "receipt_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "failure_code": {
+      "type": ["string", "null"],
+      "enum": [
+        "model_not_available", "model_load_failed", "inference_timeout",
+        "inference_error", "guardian_veto", "ihsan_below_floor",
+        "resource_exhausted", "queue_timeout", null
+      ]
+    },
+    "degradation_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "retrieval_skipped", "empty_context", "unscored_response",
+          "unpersisted_receipt", "fallback_model_used", "partial_memory_extract"
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "resource_snapshot": {
+      "type": "object",
+      "required": ["ram_available_gb", "vram_total_mb", "cpu_cores", "snapshot_at"],
+      "properties": {
+        "ram_available_gb": { "type": "number" },
+        "vram_available_mb": { "type": "integer" },
+        "vram_total_mb": { "type": "integer" },
+        "gpu_name": { "type": "string" },
+        "cpu_cores": { "type": "integer" },
+        "disk_free_gb": { "type": "number" },
+        "models_available": { "type": "array", "items": { "type": "string" } },
+        "model_chosen": { "type": ["string", "null"] },
+        "snapshot_at": { "type": "integer" }
+      }
+    },
+    "preflight_result": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["ready", "needs_warmup", "fallback_used", "no_model_available"]
+        },
+        "model": { "type": "string" },
+        "fallback": { "type": ["string", "null"] },
+        "reason": { "type": "string" },
+        "estimated_warmup_ms": { "type": "integer" },
+        "vram_used_mb": { "type": "integer" }
+      }
+    },
+    "valid_transitions": {
+      "description": "Legal state transitions. Any transition not listed here is a constitutional violation.",
+      "type": "object",
+      "properties": {
+        "submitted":          { "const": ["queued", "failed"] },
+        "queued":             { "const": ["warming_retrieval", "warming_model", "timed_out"] },
+        "warming_retrieval":  { "const": ["warming_model", "retrieving", "degraded"] },
+        "warming_model":      { "const": ["retrieving", "failed"] },
+        "retrieving":         { "const": ["routing", "degraded"] },
+        "routing":            { "const": ["running", "failed"] },
+        "running":            { "const": ["scoring", "timed_out", "failed"] },
+        "scoring":            { "const": ["persisting", "degraded"] },
+        "persisting":         { "const": ["complete", "urp_validating", "degraded", "awaiting_reconciliation"] },
+        "urp_validating":     { "const": ["urp_enriching", "complete", "degraded", "failed"] },
+        "urp_enriching":      { "const": ["complete", "degraded"] },
+        "awaiting_reconciliation": { "const": ["urp_validating", "complete", "degraded", "failed"] },
+        "complete":           { "const": [] },
+        "degraded":           { "const": [] },
+        "failed":             { "const": [] },
+        "timed_out":          { "const": [] }
+      }
+    }
+  }
+}
