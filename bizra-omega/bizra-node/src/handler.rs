@@ -147,6 +147,9 @@ pub fn handle(cmd: Command, state: &mut NodeInternals<'_>) -> Response {
         } => handle_sap_session_close(state, &session_id, timestamp),
         Command::Resources => handle_resources(state),
         Command::ResourcesRefresh => handle_resources_refresh(state),
+        // Heartbeat is handled directly in Node::process() before reaching here
+        // Heartbeat is handled directly in Node::process() before reaching here
+        Command::Heartbeat { .. } => Response::err(crate::protocol::ErrorCode::BadCommand, "HEARTBEAT must be handled by Node"),
     }
 }
 

@@ -430,7 +430,7 @@ impl Node {
         // Check if there are pending fragments from recent RECEIVE commands.
         // In MVP, this counts accumulated atoms since last heartbeat.
         let summary = self.runtime.pipeline().knowledge_summary();
-        report.fragments_processed = summary.total_atoms;
+        report.fragments_processed = summary.total_atoms as usize;
 
         // ── Loop B: Memory → Cognition ──────────────────────
         // Trigger synthesis if enough time has elapsed.
