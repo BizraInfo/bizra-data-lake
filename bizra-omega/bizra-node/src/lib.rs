@@ -21,6 +21,7 @@ pub mod action_bridge;
 pub mod action_executor;
 pub mod audit_hook;
 pub mod handler;
+pub mod heartbeat;
 pub mod mcp_transport;
 pub mod mission_bridge;
 pub mod node;
@@ -32,6 +33,7 @@ pub mod substrate;
 pub use substrate as resource_manifest;
 
 // Re-export key types for convenience
+pub use heartbeat::{CrossLoopEvent, EventBridge, HeartbeatConfig, HeartbeatReport};
 pub use node::{Node, NodeConfig, NodeState};
 pub use protocol::{parse_command, Command, ErrorCode, Response};
 pub use protocol::{NODE_NAME, NODE_VERSION, PROTOCOL_VERSION};

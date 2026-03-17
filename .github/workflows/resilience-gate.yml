@@ -136,8 +136,9 @@ jobs:
           fi
 
       - name: pip-audit
+        continue-on-error: true
         run: |
-          pip-audit --desc --fix --dry-run 2>&1 || true
+          pip-audit --desc --fix --dry-run 2>&1
           echo "pip-audit check complete"
 
       - name: Upload scan results
