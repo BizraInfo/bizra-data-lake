@@ -29,40 +29,40 @@ use std::path::{Path, PathBuf};
 /// Content categories for smart classification.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FileCategory {
-    Document,    // PDF, DOCX, TXT, MD, RTF, ODT
-    Spreadsheet, // XLSX, CSV, TSV, ODS
-    Presentation,// PPTX, KEY, ODP
-    Image,       // PNG, JPG, SVG, WEBP, GIF, BMP
-    Video,       // MP4, MOV, AVI, MKV, WEBM
-    Audio,       // MP3, WAV, FLAC, M4A, OGG
-    Code,        // RS, PY, TS, JS, C, CPP, JAVA, GO
-    Data,        // JSON, YAML, TOML, XML, PARQUET
-    Archive,     // ZIP, TAR, GZ, 7Z, RAR
-    Web,         // HTML, CSS, WASM
-    Font,        // TTF, OTF, WOFF, WOFF2
-    Config,      // ENV, INI, CFG, CONF
-    Executable,  // EXE, MSI, DEB, RPM, APK, DMG
-    Other,       // Unclassified
+    Document,     // PDF, DOCX, TXT, MD, RTF, ODT
+    Spreadsheet,  // XLSX, CSV, TSV, ODS
+    Presentation, // PPTX, KEY, ODP
+    Image,        // PNG, JPG, SVG, WEBP, GIF, BMP
+    Video,        // MP4, MOV, AVI, MKV, WEBM
+    Audio,        // MP3, WAV, FLAC, M4A, OGG
+    Code,         // RS, PY, TS, JS, C, CPP, JAVA, GO
+    Data,         // JSON, YAML, TOML, XML, PARQUET
+    Archive,      // ZIP, TAR, GZ, 7Z, RAR
+    Web,          // HTML, CSS, WASM
+    Font,         // TTF, OTF, WOFF, WOFF2
+    Config,       // ENV, INI, CFG, CONF
+    Executable,   // EXE, MSI, DEB, RPM, APK, DMG
+    Other,        // Unclassified
 }
 
 impl FileCategory {
     /// Target subdirectory name for auto-organization.
     pub fn target_dir(&self) -> &'static str {
         match self {
-            Self::Document     => "Documents",
-            Self::Spreadsheet  => "Spreadsheets",
+            Self::Document => "Documents",
+            Self::Spreadsheet => "Spreadsheets",
             Self::Presentation => "Presentations",
-            Self::Image        => "Images",
-            Self::Video        => "Video",
-            Self::Audio        => "Audio",
-            Self::Code          => "Code",
-            Self::Data          => "Data",
-            Self::Archive       => "Archives",
-            Self::Web           => "Web",
-            Self::Font          => "Fonts",
-            Self::Config        => "Config",
-            Self::Executable    => "Executables",
-            Self::Other         => "Other",
+            Self::Image => "Images",
+            Self::Video => "Video",
+            Self::Audio => "Audio",
+            Self::Code => "Code",
+            Self::Data => "Data",
+            Self::Archive => "Archives",
+            Self::Web => "Web",
+            Self::Font => "Fonts",
+            Self::Config => "Config",
+            Self::Executable => "Executables",
+            Self::Other => "Other",
         }
     }
 
@@ -70,23 +70,27 @@ impl FileCategory {
     pub fn from_extension(ext: &str) -> Self {
         match ext.to_ascii_lowercase().as_str() {
             // Documents
-            "pdf" | "docx" | "doc" | "txt" | "md" | "rtf" | "odt" | "tex" | "epub" => Self::Document,
+            "pdf" | "docx" | "doc" | "txt" | "md" | "rtf" | "odt" | "tex" | "epub" => {
+                Self::Document
+            }
             // Spreadsheets
             "xlsx" | "xls" | "csv" | "tsv" | "ods" | "xlsm" => Self::Spreadsheet,
             // Presentations
             "pptx" | "ppt" | "key" | "odp" => Self::Presentation,
             // Images
-            "png" | "jpg" | "jpeg" | "gif" | "svg" | "webp" | "bmp" | "ico" | "tiff" | "tif" | "heic" | "heif" | "avif" => Self::Image,
+            "png" | "jpg" | "jpeg" | "gif" | "svg" | "webp" | "bmp" | "ico" | "tiff" | "tif"
+            | "heic" | "heif" | "avif" => Self::Image,
             // Video
             "mp4" | "mov" | "avi" | "mkv" | "webm" | "flv" | "wmv" | "m4v" => Self::Video,
             // Audio
             "mp3" | "wav" | "flac" | "m4a" | "ogg" | "aac" | "wma" | "opus" => Self::Audio,
             // Code
-            "rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "c" | "cpp" | "h" | "hpp"
-            | "java" | "go" | "rb" | "swift" | "kt" | "scala" | "lua" | "r"
-            | "sh" | "bash" | "zsh" | "ps1" | "bat" | "cmd" | "sql" | "proto" => Self::Code,
+            "rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "c" | "cpp" | "h" | "hpp" | "java"
+            | "go" | "rb" | "swift" | "kt" | "scala" | "lua" | "r" | "sh" | "bash" | "zsh"
+            | "ps1" | "bat" | "cmd" | "sql" | "proto" => Self::Code,
             // Data
-            "json" | "yaml" | "yml" | "toml" | "xml" | "parquet" | "arrow" | "avro" | "ndjson" | "jsonl" => Self::Data,
+            "json" | "yaml" | "yml" | "toml" | "xml" | "parquet" | "arrow" | "avro" | "ndjson"
+            | "jsonl" => Self::Data,
             // Archives
             "zip" | "tar" | "gz" | "tgz" | "bz2" | "xz" | "7z" | "rar" | "zst" => Self::Archive,
             // Web
@@ -104,20 +108,20 @@ impl FileCategory {
     /// SNR weight for Mint Court valuation (from Impact Settlement Contract).
     pub fn snr_weight(&self) -> f32 {
         match self {
-            Self::Code          => 0.95,  // Knowledge contribution
-            Self::Document      => 0.90,  // Knowledge contribution
-            Self::Data          => 0.85,  // Data contribution
-            Self::Spreadsheet   => 0.80,
-            Self::Presentation  => 0.75,
-            Self::Config        => 0.70,
-            Self::Web           => 0.65,
-            Self::Archive       => 0.30,  // Container, not content
-            Self::Image         => 0.20,  // Media excluded from SNR by default
-            Self::Video         => 0.15,
-            Self::Audio         => 0.15,
-            Self::Font          => 0.10,
-            Self::Executable    => 0.05,
-            Self::Other         => 0.00,
+            Self::Code => 0.95,     // Knowledge contribution
+            Self::Document => 0.90, // Knowledge contribution
+            Self::Data => 0.85,     // Data contribution
+            Self::Spreadsheet => 0.80,
+            Self::Presentation => 0.75,
+            Self::Config => 0.70,
+            Self::Web => 0.65,
+            Self::Archive => 0.30, // Container, not content
+            Self::Image => 0.20,   // Media excluded from SNR by default
+            Self::Video => 0.15,
+            Self::Audio => 0.15,
+            Self::Font => 0.10,
+            Self::Executable => 0.05,
+            Self::Other => 0.00,
         }
     }
 }
@@ -132,20 +136,29 @@ pub struct FileEntry {
     pub extension: String,
     pub category: FileCategory,
     pub size_bytes: u64,
-    pub content_hash: Option<[u8; 32]>,  // BLAKE3 if computed
+    pub content_hash: Option<[u8; 32]>, // BLAKE3 if computed
 }
 
 impl FileEntry {
     /// Create from a path with extension-based classification.
     pub fn classify(path: PathBuf, size_bytes: u64) -> Self {
-        let name = path.file_name()
+        let name = path
+            .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_default();
-        let extension = path.extension()
+        let extension = path
+            .extension()
             .map(|e| e.to_string_lossy().to_string())
             .unwrap_or_default();
         let category = FileCategory::from_extension(&extension);
-        Self { path, name, extension, category, size_bytes, content_hash: None }
+        Self {
+            path,
+            name,
+            extension,
+            category,
+            size_bytes,
+            content_hash: None,
+        }
     }
 
     /// Set BLAKE3 hash (computed externally for large files).
@@ -169,7 +182,11 @@ pub enum FileOp {
     /// Delete file (requires HITL approval via SAT).
     Delete { path: PathBuf, reason: String },
     /// Merge multiple files into one.
-    Merge { sources: Vec<PathBuf>, target: PathBuf, strategy: MergeStrategy },
+    Merge {
+        sources: Vec<PathBuf>,
+        target: PathBuf,
+        strategy: MergeStrategy,
+    },
 }
 
 impl FileOp {
@@ -181,21 +198,19 @@ impl FileOp {
     /// Human-readable description for HITL review.
     pub fn describe(&self) -> String {
         match self {
-            Self::Move { source, target } => format!(
-                "Move {} → {}", source.display(), target.display()
-            ),
-            Self::Rename { source, new_name } => format!(
-                "Rename {} → {}", source.display(), new_name
-            ),
-            Self::Copy { source, target } => format!(
-                "Copy {} → {}", source.display(), target.display()
-            ),
-            Self::Delete { path, reason } => format!(
-                "Delete {} ({})", path.display(), reason
-            ),
-            Self::Merge { sources, target, .. } => format!(
-                "Merge {} files → {}", sources.len(), target.display()
-            ),
+            Self::Move { source, target } => {
+                format!("Move {} → {}", source.display(), target.display())
+            }
+            Self::Rename { source, new_name } => {
+                format!("Rename {} → {}", source.display(), new_name)
+            }
+            Self::Copy { source, target } => {
+                format!("Copy {} → {}", source.display(), target.display())
+            }
+            Self::Delete { path, reason } => format!("Delete {} ({})", path.display(), reason),
+            Self::Merge {
+                sources, target, ..
+            } => format!("Merge {} files → {}", sources.len(), target.display()),
         }
     }
 }
@@ -217,7 +232,7 @@ pub enum MergeStrategy {
 /// This is the constitutional requirement: no silent data loss.
 #[derive(Debug, Clone)]
 pub struct OperationManifest {
-    pub id: [u8; 32],             // BLAKE3 hash of manifest content
+    pub id: [u8; 32], // BLAKE3 hash of manifest content
     pub operations: Vec<ManifestEntry>,
     pub created_at: u64,
     pub completed_at: Option<u64>,
@@ -229,15 +244,15 @@ pub struct OperationManifest {
 pub struct ManifestEntry {
     pub operation: FileOp,
     pub status: OpStatus,
-    pub source_hash: Option<[u8; 32]>,   // BLAKE3 of source before op
-    pub target_hash: Option<[u8; 32]>,   // BLAKE3 of target after op
+    pub source_hash: Option<[u8; 32]>, // BLAKE3 of source before op
+    pub target_hash: Option<[u8; 32]>, // BLAKE3 of target after op
     pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpStatus {
     Planned,
-    Approved,      // SAT approved
+    Approved, // SAT approved
     Executing,
     Succeeded,
     Failed,
@@ -266,12 +281,27 @@ impl OperationManifest {
         });
     }
 
-    pub fn total_ops(&self) -> usize { self.operations.len() }
-    pub fn succeeded(&self) -> usize { self.operations.iter().filter(|e| e.status == OpStatus::Succeeded).count() }
-    pub fn failed(&self) -> usize { self.operations.iter().filter(|e| e.status == OpStatus::Failed).count() }
+    pub fn total_ops(&self) -> usize {
+        self.operations.len()
+    }
+    pub fn succeeded(&self) -> usize {
+        self.operations
+            .iter()
+            .filter(|e| e.status == OpStatus::Succeeded)
+            .count()
+    }
+    pub fn failed(&self) -> usize {
+        self.operations
+            .iter()
+            .filter(|e| e.status == OpStatus::Failed)
+            .count()
+    }
 
     pub fn destructive_count(&self) -> usize {
-        self.operations.iter().filter(|e| e.operation.is_destructive()).count()
+        self.operations
+            .iter()
+            .filter(|e| e.operation.is_destructive())
+            .count()
     }
 
     /// Seal the manifest with a BLAKE3 hash of all entries.
@@ -288,7 +318,7 @@ impl OperationManifest {
 #[derive(Debug, Clone)]
 pub struct RenameRule {
     pub pattern: RenamePattern,
-    pub scope: FileCategory,  // Apply only to this category
+    pub scope: FileCategory, // Apply only to this category
 }
 
 #[derive(Debug, Clone)]
@@ -300,7 +330,11 @@ pub enum RenamePattern {
     /// Replace substring in filename.
     Replace { find: String, replace: String },
     /// Sequential numbering: "photo_001.jpg", "photo_002.jpg".
-    Sequential { base: String, start: u32, pad: usize },
+    Sequential {
+        base: String,
+        start: u32,
+        pad: usize,
+    },
     /// Lowercase everything.
     Lowercase,
     /// Replace spaces with underscores/hyphens.
@@ -317,18 +351,27 @@ impl RenamePattern {
         match self {
             Self::Prefix(p) => format!("{}{}{}", p, stem, ext),
             Self::Suffix(s) => format!("{}{}{}", stem, s, ext),
-            Self::Replace { find, replace } => format!("{}{}", stem.replace(find.as_str(), replace), ext),
+            Self::Replace { find, replace } => {
+                format!("{}{}", stem.replace(find.as_str(), replace), ext)
+            }
             Self::Sequential { base, start, pad } => {
                 let num = start + index;
                 format!("{}_{:0>width$}{}", base, num, ext, width = *pad)
             }
             Self::Lowercase => format!("{}{}", stem.to_lowercase(), ext.to_lowercase()),
             Self::Sanitize { separator } => {
-                let clean: String = stem.chars().map(|c| {
-                    if c.is_whitespace() { *separator }
-                    else if c.is_alphanumeric() || c == '-' || c == '_' || c == '.' { c }
-                    else { *separator }
-                }).collect();
+                let clean: String = stem
+                    .chars()
+                    .map(|c| {
+                        if c.is_whitespace() {
+                            *separator
+                        } else if c.is_alphanumeric() || c == '-' || c == '_' || c == '.' {
+                            c
+                        } else {
+                            *separator
+                        }
+                    })
+                    .collect();
                 format!("{}{}", clean, ext)
             }
         }
@@ -379,9 +422,7 @@ impl SmartFileManager {
 
         for (path, size) in files {
             let entry = FileEntry::classify(path, size);
-            let cat_stats = self.stats.by_category
-                .entry(entry.category)
-                .or_default();
+            let cat_stats = self.stats.by_category.entry(entry.category).or_default();
             cat_stats.count += 1;
             cat_stats.total_bytes += size;
             self.stats.total_files += 1;
@@ -421,11 +462,7 @@ impl SmartFileManager {
 
     /// Plan a batch rename using a pattern rule.
     /// Returns the manifest with planned rename operations.
-    pub fn plan_batch_rename(
-        &mut self,
-        rule: &RenameRule,
-        timestamp: u64,
-    ) -> &OperationManifest {
+    pub fn plan_batch_rename(&mut self, rule: &RenameRule, timestamp: u64) -> &OperationManifest {
         let mut manifest = OperationManifest::new(timestamp);
         let mut index = 0u32;
 
@@ -491,7 +528,6 @@ impl SmartFileManager {
         duplicates
     }
 
-
     // ── SAT: Validation (Guardian + Auditor) ──────────────
 
     /// SAT Guardian validates a manifest before execution.
@@ -520,7 +556,9 @@ impl SmartFileManager {
                 FileOp::Delete { path, .. } => vec![path.clone()],
                 FileOp::Rename { source, .. } => vec![source.clone()],
                 FileOp::Copy { source, target } => vec![source.clone(), target.clone()],
-                FileOp::Merge { sources, target, .. } => {
+                FileOp::Merge {
+                    sources, target, ..
+                } => {
                     let mut p = sources.clone();
                     p.push(target.clone());
                     p
@@ -529,8 +567,12 @@ impl SmartFileManager {
 
             for p in &paths {
                 let s = p.to_string_lossy().to_lowercase();
-                if s.contains("windows") || s.contains("system32") || s.contains("/etc")
-                    || s.contains("/usr") || s.contains("/bin") || s.contains("program files")
+                if s.contains("windows")
+                    || s.contains("system32")
+                    || s.contains("/etc")
+                    || s.contains("/usr")
+                    || s.contains("/bin")
+                    || s.contains("program files")
                 {
                     reasons.push(format!("System path violation: {}", p.display()));
                 }
@@ -540,7 +582,10 @@ impl SmartFileManager {
         // Rule 4: Delete operations require explicit paths (no wildcards in path)
         for entry in &manifest.operations {
             if let FileOp::Delete { path, .. } = &entry.operation {
-                let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
                 if name.contains('*') || name.contains('?') {
                     reasons.push(format!("Wildcard deletion blocked: {}", path.display()));
                 }
@@ -569,7 +614,10 @@ impl SmartFileManager {
                     }
                 }
                 OpStatus::Planned | OpStatus::Approved => {
-                    issues.push(format!("Op #{}: not executed (still {:?})", i, entry.status));
+                    issues.push(format!(
+                        "Op #{}: not executed (still {:?})",
+                        i, entry.status
+                    ));
                 }
                 _ => {}
             }
@@ -583,7 +631,8 @@ impl SmartFileManager {
     /// Generate a human-readable summary of the current inventory.
     pub fn summary(&self) -> String {
         let mut lines = Vec::new();
-        lines.push(format!("Files: {} | Size: {:.1} MB",
+        lines.push(format!(
+            "Files: {} | Size: {:.1} MB",
             self.stats.total_files,
             self.stats.total_bytes as f64 / 1_048_576.0
         ));
@@ -594,7 +643,10 @@ impl SmartFileManager {
         for (cat, stats) in cats {
             lines.push(format!(
                 "  {:?}: {} files ({:.1} MB, SNR weight {:.2})",
-                cat, stats.count, stats.total_bytes as f64 / 1_048_576.0, cat.snr_weight()
+                cat,
+                stats.count,
+                stats.total_bytes as f64 / 1_048_576.0,
+                cat.snr_weight()
             ));
         }
         lines.join("\n")
@@ -614,9 +666,15 @@ mod tests {
         assert_eq!(FileCategory::from_extension("png"), FileCategory::Image);
         assert_eq!(FileCategory::from_extension("json"), FileCategory::Data);
         assert_eq!(FileCategory::from_extension("mp4"), FileCategory::Video);
-        assert_eq!(FileCategory::from_extension("xlsx"), FileCategory::Spreadsheet);
+        assert_eq!(
+            FileCategory::from_extension("xlsx"),
+            FileCategory::Spreadsheet
+        );
         assert_eq!(FileCategory::from_extension("zip"), FileCategory::Archive);
-        assert_eq!(FileCategory::from_extension("exe"), FileCategory::Executable);
+        assert_eq!(
+            FileCategory::from_extension("exe"),
+            FileCategory::Executable
+        );
         assert_eq!(FileCategory::from_extension("xyz"), FileCategory::Other);
     }
 
@@ -677,7 +735,11 @@ mod tests {
 
     #[test]
     fn rename_pattern_sequential() {
-        let p = RenamePattern::Sequential { base: "photo".into(), start: 1, pad: 3 };
+        let p = RenamePattern::Sequential {
+            base: "photo".into(),
+            start: 1,
+            pad: 3,
+        };
         assert_eq!(p.apply("IMG_1234.jpg", 0), "photo_001.jpg");
         assert_eq!(p.apply("IMG_5678.jpg", 1), "photo_002.jpg");
     }

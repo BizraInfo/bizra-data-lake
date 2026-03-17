@@ -107,7 +107,11 @@ impl NodeCapabilityConfig {
     /// Human-readable capability summary for node status.
     pub fn summary(&self) -> String {
         let caps: Vec<&str> = self.capabilities.iter().map(|c| c.as_str()).collect();
-        format!("Installed capabilities: {} [{}]", caps.len(), caps.join(", "))
+        format!(
+            "Installed capabilities: {} [{}]",
+            caps.len(),
+            caps.join(", ")
+        )
     }
 }
 

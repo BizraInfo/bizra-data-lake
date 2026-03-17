@@ -16,9 +16,16 @@ pub enum PreflightResult {
     /// Model is installed and ready.
     Ready { model: String, vram_used_mb: u64 },
     /// Model is installed but needs loading.
-    NeedsWarmup { model: String, estimated_warmup_ms: u64 },
+    NeedsWarmup {
+        model: String,
+        estimated_warmup_ms: u64,
+    },
     /// Requested capability not available with preferred model. Fallback selected.
-    FallbackUsed { requested: String, fallback: String, reason: String },
+    FallbackUsed {
+        requested: String,
+        fallback: String,
+        reason: String,
+    },
     /// No model can serve the required capability.
     NoModelAvailable { reason: String },
 }
@@ -87,9 +94,9 @@ pub fn run_preflight(
     // No preference — use first available model
     // For capabilities like Vision, check if any vision model exists
     if required_capabilities.contains(&Capability::Vision) {
-        let has_vision = available_models.iter().any(|m| {
-            m.contains("VL") || m.contains("vision") || m.contains("moondream")
-        });
+        let has_vision = available_models
+            .iter()
+            .any(|m| m.contains("VL") || m.contains("vision") || m.contains("moondream"));
         if !has_vision {
             return PreflightResult::NoModelAvailable {
                 reason: "vision capability required but no vision model installed".to_string(),

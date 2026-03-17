@@ -61,10 +61,9 @@ pub enum BrowserAction {
 impl BrowserAction {
     /// Does this action require SAT approval?
     pub fn requires_sat_approval(&self) -> bool {
-        matches!(self, 
-            Self::ExecuteJs { .. } |
-            Self::FillField { .. } |
-            Self::Click { .. }
+        matches!(
+            self,
+            Self::ExecuteJs { .. } | Self::FillField { .. } | Self::Click { .. }
         )
     }
 
@@ -72,9 +71,12 @@ impl BrowserAction {
     pub fn is_sensitive(&self) -> bool {
         if let Self::FillField { element_ref, .. } = self {
             let lower = element_ref.to_lowercase();
-            lower.contains("password") || lower.contains("credit")
-                || lower.contains("ssn") || lower.contains("secret")
-                || lower.contains("token") || lower.contains("key")
+            lower.contains("password")
+                || lower.contains("credit")
+                || lower.contains("ssn")
+                || lower.contains("secret")
+                || lower.contains("token")
+                || lower.contains("key")
         } else {
             false
         }
@@ -125,12 +127,16 @@ pub enum BrowserOpStatus {
     Executing,
     Succeeded,
     Failed,
-    Blocked,  // SAT rejected
+    Blocked, // SAT rejected
 }
 
 impl BrowserPlan {
     pub fn new(timestamp: u64) -> Self {
-        Self { actions: Vec::new(), created_at: timestamp, sat_approved: false }
+        Self {
+            actions: Vec::new(),
+            created_at: timestamp,
+            sat_approved: false,
+        }
     }
 
     pub fn add(&mut self, action: BrowserAction) {
@@ -142,14 +148,18 @@ impl BrowserPlan {
         });
     }
 
-    pub fn total_actions(&self) -> usize { self.actions.len() }
+    pub fn total_actions(&self) -> usize {
+        self.actions.len()
+    }
 
     pub fn needs_hitl(&self) -> bool {
         self.actions.iter().any(|a| a.action.is_sensitive())
     }
 
     pub fn needs_sat(&self) -> bool {
-        self.actions.iter().any(|a| a.action.requires_sat_approval())
+        self.actions
+            .iter()
+            .any(|a| a.action.requires_sat_approval())
     }
 }
 
@@ -171,7 +181,8 @@ impl UrlValidator {
         let mut blocked = HashSet::new();
         // Constitutional blocklist — sites that violate Ihsan principles
         for domain in &[
-            "malware.com", "phishing.example",
+            "malware.com",
+            "phishing.example",
             // Placeholder — real deployment loads from constitutional config
         ] {
             blocked.insert(domain.to_string());
@@ -200,12 +211,18 @@ impl UrlValidator {
 
         // Check blocklist first
         if self.blocked_domains.contains(&domain) {
-            return (false, format!("Domain {} is blocked by constitutional policy", domain));
+            return (
+                false,
+                format!("Domain {} is blocked by constitutional policy", domain),
+            );
         }
 
         // Check allowlist if in strict mode
         if self.allowlist_only && !self.allowed_domains.contains(&domain) {
-            return (false, format!("Domain {} not in allowlist (strict mode)", domain));
+            return (
+                false,
+                format!("Domain {} not in allowlist (strict mode)", domain),
+            );
         }
 
         // Block suspicious URL patterns
@@ -245,7 +262,8 @@ impl UrlValidator {
 /// Extract domain from a URL string (simple parser).
 fn extract_domain(url: &str) -> String {
     let without_scheme = url
-        .strip_prefix("https://").or_else(|| url.strip_prefix("http://"))
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
         .unwrap_or(url);
     without_scheme
         .split('/')
@@ -265,13 +283,17 @@ mod tests {
 
     #[test]
     fn navigate_does_not_need_sat() {
-        let action = BrowserAction::Navigate { url: "https://bizra.ai".into() };
+        let action = BrowserAction::Navigate {
+            url: "https://bizra.ai".into(),
+        };
         assert!(!action.requires_sat_approval());
     }
 
     #[test]
     fn execute_js_requires_sat() {
-        let action = BrowserAction::ExecuteJs { code: "alert(1)".into() };
+        let action = BrowserAction::ExecuteJs {
+            code: "alert(1)".into(),
+        };
         assert!(action.requires_sat_approval());
     }
 
@@ -328,13 +350,18 @@ mod tests {
     fn extract_domain_works() {
         assert_eq!(extract_domain("https://bizra.ai/docs"), "bizra.ai");
         assert_eq!(extract_domain("http://localhost:3000/api"), "localhost");
-        assert_eq!(extract_domain("https://sub.domain.com:443/path"), "sub.domain.com");
+        assert_eq!(
+            extract_domain("https://sub.domain.com:443/path"),
+            "sub.domain.com"
+        );
     }
 
     #[test]
     fn plan_tracks_hitl_need() {
         let mut plan = BrowserPlan::new(1000);
-        plan.add(BrowserAction::Navigate { url: "https://bizra.ai".into() });
+        plan.add(BrowserAction::Navigate {
+            url: "https://bizra.ai".into(),
+        });
         assert!(!plan.needs_hitl());
 
         plan.add(BrowserAction::FillField {
@@ -350,7 +377,9 @@ mod tests {
         plan.add(BrowserAction::ReadPage);
         assert!(!plan.needs_sat());
 
-        plan.add(BrowserAction::Click { element_ref: "submit_btn".into() });
+        plan.add(BrowserAction::Click {
+            element_ref: "submit_btn".into(),
+        });
         assert!(plan.needs_sat());
     }
 
@@ -360,8 +389,12 @@ mod tests {
         v.block_domain("phishing.example");
 
         let mut plan = BrowserPlan::new(1000);
-        plan.add(BrowserAction::Navigate { url: "https://phishing.example/login".into() });
-        plan.add(BrowserAction::ExecuteJs { code: "document.cookie".into() });
+        plan.add(BrowserAction::Navigate {
+            url: "https://phishing.example/login".into(),
+        });
+        plan.add(BrowserAction::ExecuteJs {
+            code: "document.cookie".into(),
+        });
 
         let (ok, reasons) = v.validate_plan(&plan);
         assert!(!ok);

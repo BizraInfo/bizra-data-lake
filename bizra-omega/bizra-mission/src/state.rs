@@ -37,7 +37,10 @@ pub enum MissionState {
 impl MissionState {
     /// Is this a terminal state? Terminal states cannot transition further.
     pub fn is_terminal(self) -> bool {
-        matches!(self, Self::Complete | Self::Degraded | Self::Failed | Self::TimedOut)
+        matches!(
+            self,
+            Self::Complete | Self::Degraded | Self::Failed | Self::TimedOut
+        )
     }
 
     /// Is this a deferred settlement state? (node executed offline)
@@ -54,22 +57,22 @@ impl MissionState {
     pub fn valid_transitions(self) -> &'static [MissionState] {
         use MissionState::*;
         match self {
-            Submitted        => &[Queued, Failed],
-            Queued           => &[WarmingRetrieval, WarmingModel, TimedOut],
+            Submitted => &[Queued, Failed],
+            Queued => &[WarmingRetrieval, WarmingModel, TimedOut],
             WarmingRetrieval => &[WarmingModel, Retrieving, Degraded],
-            WarmingModel     => &[Retrieving, Failed],
-            Retrieving       => &[Routing, Degraded],
-            Routing          => &[Running, Failed],
-            Running          => &[Scoring, TimedOut, Failed],
-            Scoring          => &[Persisting, Degraded],
-            Persisting       => &[Complete, UrpValidating, Degraded, AwaitingReconciliation],
-            UrpValidating    => &[UrpEnriching, Complete, Degraded, Failed],
-            UrpEnriching     => &[Complete, Degraded],
+            WarmingModel => &[Retrieving, Failed],
+            Retrieving => &[Routing, Degraded],
+            Routing => &[Running, Failed],
+            Running => &[Scoring, TimedOut, Failed],
+            Scoring => &[Persisting, Degraded],
+            Persisting => &[Complete, UrpValidating, Degraded, AwaitingReconciliation],
+            UrpValidating => &[UrpEnriching, Complete, Degraded, Failed],
+            UrpEnriching => &[Complete, Degraded],
             AwaitingReconciliation => &[UrpValidating, Complete, Degraded, Failed],
-            Complete         => &[],
-            Degraded         => &[],
-            Failed           => &[],
-            TimedOut         => &[],
+            Complete => &[],
+            Degraded => &[],
+            Failed => &[],
+            TimedOut => &[],
         }
     }
 
@@ -78,7 +81,6 @@ impl MissionState {
         self.valid_transitions().contains(&target)
     }
 }
-
 
 /// A recorded state transition with timestamp and reason.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,14 +98,19 @@ pub enum FailureCode {
     ModelNotAvailable,
     ModelLoadFailed,
     InferenceTimeout,
-    InferenceError { detail: String },
+    InferenceError {
+        detail: String,
+    },
     GuardianVeto,
     IhsanBelowFloor,
     ResourceExhausted,
     QueueTimeout,
     CapabilityNotAvailable,
     /// State machine violation — an illegal transition was attempted.
-    StateMachineViolation { from: String, to: String },
+    StateMachineViolation {
+        from: String,
+        to: String,
+    },
 }
 
 /// Degradation reasons — what was degraded but the mission still produced partial output.
@@ -117,4 +124,3 @@ pub enum DegradationReason {
     FallbackModelUsed,
     PartialMemoryExtract,
 }
-

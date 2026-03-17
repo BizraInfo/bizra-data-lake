@@ -616,7 +616,10 @@ mod integration_tests {
         assert!(r2.receipt.verify_hash());
         assert!(r2.receipt.is_signed());
         assert!(r2.receipt.verify_signature(&verifying_key));
-        assert_eq!(r2.receipt.previous_receipt_hash, Some(r1.receipt.receipt_id));
+        assert_eq!(
+            r2.receipt.previous_receipt_hash,
+            Some(r1.receipt.receipt_id)
+        );
         assert!(r2.receipt.verify_chain(&r1.receipt));
         // Full integrity: hash + signature + chain
         assert!(r2.receipt.verify_full(&verifying_key, Some(&r1.receipt)));
@@ -703,8 +706,8 @@ mod integration_tests {
     // ========================================================
     #[test]
     fn reflex_persistence_survives_restart() {
-        use bizra_agent::runtime::RuntimeConfig;
         use bizra_agent::reflex_cache::ReflexMode;
+        use bizra_agent::runtime::RuntimeConfig;
 
         let dir = tempfile::TempDir::new().unwrap();
         let store_path = dir.path().join("reflexes");
@@ -713,7 +716,8 @@ mod integration_tests {
         let cfg = RuntimeConfig {
             reflex_mode: ReflexMode::Active,
             reflex_store_path: store_path.to_string_lossy().to_string(),
-            policy_hash_hex: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+            policy_hash_hex: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                .to_string(),
             ..Default::default()
         };
 
@@ -747,9 +751,13 @@ mod integration_tests {
         assert!(
             stats_after.size >= rules_before,
             "reflexes must survive restart: before={} after={}",
-            rules_before, stats_after.size,
+            rules_before,
+            stats_after.size,
         );
-        assert!(stats_after.size >= 4, "at minimum bootstrap rules must exist");
+        assert!(
+            stats_after.size >= 4,
+            "at minimum bootstrap rules must exist"
+        );
 
         // Session 2 can still process messages
         let msg2 = bizra_agent::types::Message::inbound(

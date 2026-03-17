@@ -114,10 +114,16 @@ impl MissionReceipt {
         verifying_key: &VerifyingKey,
         previous: Option<&MissionReceipt>,
     ) -> bool {
-        if !self.verify_hash() { return false; }
-        if !self.verify_signature(verifying_key) { return false; }
+        if !self.verify_hash() {
+            return false;
+        }
+        if !self.verify_signature(verifying_key) {
+            return false;
+        }
         if let Some(prev) = previous {
-            if !self.verify_chain(prev) { return false; }
+            if !self.verify_chain(prev) {
+                return false;
+            }
         }
         true
     }
@@ -172,6 +178,7 @@ mod sig_bytes {
 
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<[u8; 64], D::Error> {
         let v: Vec<u8> = Vec::deserialize(d)?;
-        v.try_into().map_err(|_| serde::de::Error::custom("expected 64 bytes for signature"))
+        v.try_into()
+            .map_err(|_| serde::de::Error::custom("expected 64 bytes for signature"))
     }
 }

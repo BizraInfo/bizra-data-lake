@@ -22,10 +22,19 @@ use super::*;
 use std::process::Command;
 
 fn run_cmd(cmd: &str, args: &[&str]) -> Option<String> {
-    Command::new(cmd).args(args).output().ok()
-        .and_then(|o| if o.status.success() {
-            String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
-        } else { None })
+    Command::new(cmd)
+        .args(args)
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
         .filter(|s| !s.is_empty())
 }
 
@@ -96,14 +105,22 @@ fn discover_gpus() -> Vec<GpuInfo> {
     let gpu_name = run_cmd("getprop", &["ro.hardware.egl"])
         .or_else(|| run_cmd("getprop", &["ro.board.platform"]))
         .unwrap_or_else(|| "Mobile GPU".into());
-    vec![GpuInfo { name: gpu_name, vram_total_mb: 0, vram_used_mb: 0, driver_version: String::new() }]
+    vec![GpuInfo {
+        name: gpu_name,
+        vram_total_mb: 0,
+        vram_used_mb: 0,
+        driver_version: String::new(),
+    }]
 }
 
 fn discover_disks() -> Vec<DiskInfo> {
     // Android: internal storage + SD card if present
     let mut disks = Vec::new();
     // Internal storage via /data
-    if let Ok(out) = std::process::Command::new("df").args(["-BG", "/data"]).output() {
+    if let Ok(out) = std::process::Command::new("df")
+        .args(["-BG", "/data"])
+        .output()
+    {
         let text = String::from_utf8_lossy(&out.stdout);
         for line in text.lines().skip(1) {
             let p: Vec<&str> = line.split_whitespace().collect();
@@ -120,7 +137,10 @@ fn discover_disks() -> Vec<DiskInfo> {
     // SD card via /storage/emulated/0 or /sdcard
     for path in &["/storage/emulated/0", "/sdcard"] {
         if std::path::Path::new(path).exists() {
-            if let Ok(out) = std::process::Command::new("df").args(["-BG", *path]).output() {
+            if let Ok(out) = std::process::Command::new("df")
+                .args(["-BG", *path])
+                .output()
+            {
                 let text = String::from_utf8_lossy(&out.stdout);
                 for line in text.lines().skip(1) {
                     let p: Vec<&str> = line.split_whitespace().collect();

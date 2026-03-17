@@ -101,7 +101,9 @@ pub fn handle(cmd: Command, state: &mut NodeInternals<'_>) -> Response {
         Command::ActionHistory { limit, cursor } => handle_action_history(state, limit, &cursor),
         Command::Ihsan { score } => handle_ihsan(state, score),
         Command::Receive { content, timestamp } => handle_receive(state, &content, timestamp),
-        Command::MissionReceive { content, timestamp } => handle_mission_receive(state, &content, timestamp),
+        Command::MissionReceive { content, timestamp } => {
+            handle_mission_receive(state, &content, timestamp)
+        }
         Command::Teach {
             kind,
             content,
@@ -596,7 +598,10 @@ fn handle_resources(state: &mut NodeInternals<'_>) -> Response {
         ("disks", disk_str),
         ("total_models", format!("{}", m.total_models())),
         ("models_by_runtime", by_runtime_str),
-        ("total_model_storage_gb", format!("{:.2}", m.total_model_storage_gb)),
+        (
+            "total_model_storage_gb",
+            format!("{:.2}", m.total_model_storage_gb),
+        ),
         ("models", model_str),
         ("discovered_at", format!("{}", m.discovered_at)),
         ("summary", m.summary()),
@@ -615,7 +620,11 @@ fn handle_resources_refresh(state: &mut NodeInternals<'_>) -> Response {
 
 // ── Governed Mission Lifecycle ──────────────────────────────
 
-fn handle_mission_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) -> Response {
+fn handle_mission_receive(
+    state: &mut NodeInternals<'_>,
+    content: &str,
+    timestamp: u64,
+) -> Response {
     let available_models = crate::mission_bridge::extract_model_names(state.resource_manifest);
     let result = crate::mission_bridge::execute_governed_mission(
         state.runtime,
@@ -624,7 +633,7 @@ fn handle_mission_receive(state: &mut NodeInternals<'_>, content: &str, timestam
         timestamp,
         &available_models,
         *state.last_receipt_id, // chain to previous receipt
-        state.signing_key,       // sign with sovereign identity
+        state.signing_key,      // sign with sovereign identity
     );
 
     // Update the chain — next mission links to this receipt
@@ -640,9 +649,15 @@ fn handle_mission_receive(state: &mut NodeInternals<'_>, content: &str, timestam
         ("mission_state", format!("{:?}", mission.state)),
         ("receipt_id", receipt.id_hex()),
         ("receipt_valid", format!("{}", receipt.verify_hash())),
-        ("receipt_chained", format!("{}", receipt.previous_receipt_hash.is_some())),
+        (
+            "receipt_chained",
+            format!("{}", receipt.previous_receipt_hash.is_some()),
+        ),
         ("degradation_tier", format!("{}", receipt.degradation_tier)),
-        ("states_traversed", format!("{}", mission.state_history.len())),
+        (
+            "states_traversed",
+            format!("{}", mission.state_history.len()),
+        ),
     ];
 
     if let Some(model) = &mission.chosen_model {
@@ -658,7 +673,11 @@ fn handle_mission_receive(state: &mut NodeInternals<'_>, content: &str, timestam
         fields.push(("failure_code", format!("{:?}", code)));
     }
     if !mission.degradation_reasons.is_empty() {
-        let reasons: Vec<String> = mission.degradation_reasons.iter().map(|r| format!("{:?}", r)).collect();
+        let reasons: Vec<String> = mission
+            .degradation_reasons
+            .iter()
+            .map(|r| format!("{:?}", r))
+            .collect();
         fields.push(("degradation_reasons", reasons.join(",")));
     }
 
@@ -1306,9 +1325,22 @@ mod tests {
 
     #[test]
     fn handle_ping_returns_pong() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(Command::Ping, &mut state);
         assert_eq!(resp.to_wire(), "OK\tpong=true");
@@ -1316,9 +1348,22 @@ mod tests {
 
     #[test]
     fn handle_version_contains_name() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(Command::Version, &mut state);
         let wire = resp.to_wire();
@@ -1328,9 +1373,22 @@ mod tests {
 
     #[test]
     fn handle_shutdown_sets_stopped() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(Command::Shutdown, &mut state);
         assert!(resp.to_wire().contains("shutdown=true"));
@@ -1339,9 +1397,22 @@ mod tests {
 
     #[test]
     fn handle_plan_action_success() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(
             Command::PlanAction {
@@ -1359,9 +1430,22 @@ mod tests {
 
     #[test]
     fn handle_run_action_fail_closed_without_bridge_token() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
 
         let _ = handle(
@@ -1387,9 +1471,22 @@ mod tests {
 
     #[test]
     fn handle_intent_classify_code() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(
             Command::IntentClassify {
@@ -1405,9 +1502,22 @@ mod tests {
 
     #[test]
     fn handle_intent_classify_plan() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(
             Command::IntentClassify {
@@ -1421,9 +1531,22 @@ mod tests {
 
     #[test]
     fn handle_intent_classify_question() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(
             Command::IntentClassify {
@@ -1437,9 +1560,22 @@ mod tests {
 
     #[test]
     fn handle_guardian_check_allows_safe() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(
             Command::GuardianCheck {
@@ -1455,9 +1591,22 @@ mod tests {
 
     #[test]
     fn handle_guardian_check_blocks_harmful() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(
             Command::GuardianCheck {
@@ -1474,9 +1623,22 @@ mod tests {
     #[test]
     fn handle_action_dispatch_no_policy_hash() {
         // Gate 1 (Gem 4): fail-closed without policy hash
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(
             Command::ActionDispatch {
@@ -1493,10 +1655,23 @@ mod tests {
     #[test]
     fn handle_action_dispatch_low_ihsan() {
         // Gate 2 (Gem 1): Ihsan below floor
-        let (mut rt, mut _ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut _ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut ih = IhsanScore::from_raw(9000); // below floor of 9500
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         // Set a dummy policy hash to pass Gate 1
         state.runtime.set_policy_hash("aa".repeat(32).as_str());
@@ -1516,9 +1691,22 @@ mod tests {
 
     #[test]
     fn handle_sap_meet_open_creates_session() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(
             Command::SapMeetOpen {
@@ -1539,9 +1727,22 @@ mod tests {
 
     #[test]
     fn handle_sap_message_in_session() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
 
         // Open session
@@ -1579,9 +1780,22 @@ mod tests {
 
     #[test]
     fn handle_sap_message_invalid_session() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         let resp = handle(
             Command::SapMessage {
@@ -1596,9 +1810,22 @@ mod tests {
 
     #[test]
     fn handle_sap_session_close_produces_final_receipt() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
 
         let open_resp = handle(
@@ -1633,9 +1860,22 @@ mod tests {
 
     #[test]
     fn handle_sap_message_after_close_rejected() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
 
         let open_resp = handle(
@@ -1679,9 +1919,22 @@ mod tests {
 
     #[test]
     fn handle_action_dispatch_invalid_channel() {
-        let (mut rt, mut ih, mut sc, mut mc, mut st, mut ae, mut sap, mut saga, mut rm, mut lr, mut sk) = make_internals();
+        let (
+            mut rt,
+            mut ih,
+            mut sc,
+            mut mc,
+            mut st,
+            mut ae,
+            mut sap,
+            mut saga,
+            mut rm,
+            mut lr,
+            mut sk,
+        ) = make_internals();
         let mut state = with_internals(
-            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm, &mut lr, &mut sk,
+            &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
+            &mut lr, &mut sk,
         );
         state.runtime.set_policy_hash("bb".repeat(32).as_str());
         let resp = handle(

@@ -41,7 +41,8 @@ pub struct Mission {
 impl Mission {
     /// Create a new mission from user input hash.
     pub fn new(input_content_hash: [u8; 32], now: u64) -> Self {
-        let mission_id = blake3::hash(&[&input_content_hash[..], &now.to_le_bytes()].concat()).into();
+        let mission_id =
+            blake3::hash(&[&input_content_hash[..], &now.to_le_bytes()].concat()).into();
         Self {
             mission_id,
             submitted_at: now,
@@ -69,7 +70,12 @@ impl Mission {
     }
 
     /// Transition to a new state. Returns Err if the transition is unconstitutional.
-    pub fn transition(&mut self, to: MissionState, now: u64, reason: &str) -> Result<(), TransitionError> {
+    pub fn transition(
+        &mut self,
+        to: MissionState,
+        now: u64,
+        reason: &str,
+    ) -> Result<(), TransitionError> {
         if self.state.is_terminal() {
             return Err(TransitionError::AlreadyTerminal(self.state));
         }
@@ -97,22 +103,35 @@ impl Mission {
         let reason = format!("failed: {code:?}");
         self.failure_code = Some(code);
         self.transition(MissionState::Failed, now, &reason)?;
-        self.receipt = Some(MissionReceipt::from_mission(self, self.previous_receipt_hash));
+        self.receipt = Some(MissionReceipt::from_mission(
+            self,
+            self.previous_receipt_hash,
+        ));
         Ok(())
     }
 
     /// Degrade the mission with reasons. Emits receipt.
-    pub fn degrade(&mut self, reasons: Vec<DegradationReason>, now: u64) -> Result<(), TransitionError> {
+    pub fn degrade(
+        &mut self,
+        reasons: Vec<DegradationReason>,
+        now: u64,
+    ) -> Result<(), TransitionError> {
         self.degradation_reasons.extend(reasons);
         self.transition(MissionState::Degraded, now, "degraded")?;
-        self.receipt = Some(MissionReceipt::from_mission(self, self.previous_receipt_hash));
+        self.receipt = Some(MissionReceipt::from_mission(
+            self,
+            self.previous_receipt_hash,
+        ));
         Ok(())
     }
 
     /// Complete the mission successfully. Emits receipt.
     pub fn complete(&mut self, now: u64) -> Result<(), TransitionError> {
         self.transition(MissionState::Complete, now, "complete")?;
-        self.receipt = Some(MissionReceipt::from_mission(self, self.previous_receipt_hash));
+        self.receipt = Some(MissionReceipt::from_mission(
+            self,
+            self.previous_receipt_hash,
+        ));
         Ok(())
     }
 
@@ -135,7 +154,10 @@ impl Mission {
 /// Errors from illegal state transitions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransitionError {
-    IllegalTransition { from: MissionState, to: MissionState },
+    IllegalTransition {
+        from: MissionState,
+        to: MissionState,
+    },
     AlreadyTerminal(MissionState),
 }
 

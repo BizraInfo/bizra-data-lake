@@ -78,10 +78,14 @@ pub fn execute_governed_mission(
     macro_rules! advance {
         ($m:expr, $state:expr, $ts:expr, $reason:expr) => {
             if let Err(_e) = $m.transition($state, $ts, $reason) {
-                $m.fail(FailureCode::StateMachineViolation {
-                    from: format!("{:?}", $m.state),
-                    to: format!("{:?}", $state),
-                }, $ts).unwrap_or(());
+                $m.fail(
+                    FailureCode::StateMachineViolation {
+                        from: format!("{:?}", $m.state),
+                        to: format!("{:?}", $state),
+                    },
+                    $ts,
+                )
+                .unwrap_or(());
                 if $m.receipt.is_none() {
                     $m.receipt = Some(MissionReceipt::from_mission(&$m, $m.previous_receipt_hash));
                 }
@@ -95,7 +99,6 @@ pub fn execute_governed_mission(
     advance!(m, MissionState::WarmingModel, t + 3, "model ready");
     advance!(m, MissionState::Retrieving, t + 4, "semantic search");
     advance!(m, MissionState::Routing, t + 5, "intent classified");
-
 
     // ── Running — this is where runtime.receive() lives ───
     advance!(m, MissionState::Running, t + 6, "inference started");
@@ -117,7 +120,8 @@ pub fn execute_governed_mission(
 
     // Ihsan below constitutional floor → degrade with receipt
     if ihsan.as_f64() < bizra_core::IHSAN_THRESHOLD {
-        m.degrade(vec![DegradationReason::UnscoredResponse], t + 8).unwrap();
+        m.degrade(vec![DegradationReason::UnscoredResponse], t + 8)
+            .unwrap();
         sign_and_return!(m, Some(result));
     }
 

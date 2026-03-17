@@ -21,10 +21,10 @@
 // - Deming: variation reduction through governed process
 // ============================================================
 
-pub mod state;
 pub mod mission;
 pub mod preflight;
 pub mod receipt;
+pub mod state;
 
 #[cfg(test)]
 mod tests {
@@ -32,7 +32,9 @@ mod tests {
     use crate::preflight::{self, Capability, PreflightResult};
     use crate::state::{DegradationReason, FailureCode, MissionState};
 
-    fn now() -> u64 { 1773662000 }
+    fn now() -> u64 {
+        1773662000
+    }
 
     // ========================================================
     // ADR-001 ACCEPTANCE TEST 1:
@@ -47,27 +49,31 @@ mod tests {
         assert_eq!(m.state, MissionState::Submitted);
 
         // Preflight
-        let pf = preflight::run_preflight(
-            &[Capability::Chat],
-            &["qwen2.5:3b".to_string()],
-            None,
-        );
+        let pf = preflight::run_preflight(&[Capability::Chat], &["qwen2.5:3b".to_string()], None);
         assert!(pf.passed());
         m.preflight = Some(pf);
 
         // Walk through the full lifecycle
-        m.transition(MissionState::Queued, now() + 1, "capacity available").unwrap();
-        m.transition(MissionState::WarmingRetrieval, now() + 2, "FAISS loading").unwrap();
-        m.transition(MissionState::WarmingModel, now() + 3, "model loading").unwrap();
-        m.transition(MissionState::Retrieving, now() + 4, "semantic search").unwrap();
-        m.transition(MissionState::Routing, now() + 5, "Navigator classified").unwrap();
+        m.transition(MissionState::Queued, now() + 1, "capacity available")
+            .unwrap();
+        m.transition(MissionState::WarmingRetrieval, now() + 2, "FAISS loading")
+            .unwrap();
+        m.transition(MissionState::WarmingModel, now() + 3, "model loading")
+            .unwrap();
+        m.transition(MissionState::Retrieving, now() + 4, "semantic search")
+            .unwrap();
+        m.transition(MissionState::Routing, now() + 5, "Navigator classified")
+            .unwrap();
         m.chosen_model = Some("qwen2.5:3b".to_string());
-        m.transition(MissionState::Running, now() + 6, "inference started").unwrap();
+        m.transition(MissionState::Running, now() + 6, "inference started")
+            .unwrap();
         m.ihsan_score = Some(0.95);
         m.snr_score = Some(0.92);
         m.guardian_approved = Some(true);
-        m.transition(MissionState::Scoring, now() + 7, "scored").unwrap();
-        m.transition(MissionState::Persisting, now() + 8, "persisting receipt").unwrap();
+        m.transition(MissionState::Scoring, now() + 7, "scored")
+            .unwrap();
+        m.transition(MissionState::Persisting, now() + 8, "persisting receipt")
+            .unwrap();
         m.complete(now() + 9).unwrap();
 
         // Verify terminal state
@@ -76,7 +82,10 @@ mod tests {
         assert!(m.completed_at.is_some());
 
         // Verify receipt was emitted
-        let receipt = m.receipt.as_ref().expect("receipt must be emitted on complete");
+        let receipt = m
+            .receipt
+            .as_ref()
+            .expect("receipt must be emitted on complete");
         assert!(receipt.is_success());
         assert!(receipt.verify_hash());
         assert_eq!(receipt.degradation_tier, 0); // full quality
@@ -108,17 +117,24 @@ mod tests {
         m.preflight = Some(pf);
 
         // Mission fails at submission — never enters queue
-        m.fail(FailureCode::CapabilityNotAvailable, now() + 1).unwrap();
+        m.fail(FailureCode::CapabilityNotAvailable, now() + 1)
+            .unwrap();
 
         assert_eq!(m.state, MissionState::Failed);
         assert!(m.state.is_terminal());
 
         // Receipt must still be emitted on failure
-        let receipt = m.receipt.as_ref().expect("receipt must be emitted on failure");
+        let receipt = m
+            .receipt
+            .as_ref()
+            .expect("receipt must be emitted on failure");
         assert!(!receipt.is_success());
         assert!(receipt.verify_hash());
         assert_eq!(receipt.degradation_tier, 4); // refused
-        assert_eq!(receipt.failure_code, Some(FailureCode::CapabilityNotAvailable));
+        assert_eq!(
+            receipt.failure_code,
+            Some(FailureCode::CapabilityNotAvailable)
+        );
     }
 
     // ========================================================
@@ -132,27 +148,40 @@ mod tests {
         let mut m = Mission::new(input_hash, now());
 
         // Walk through lifecycle until retrieval fails
-        m.transition(MissionState::Queued, now() + 1, "queued").unwrap();
-        m.transition(MissionState::WarmingRetrieval, now() + 2, "FAISS warmup").unwrap();
+        m.transition(MissionState::Queued, now() + 1, "queued")
+            .unwrap();
+        m.transition(MissionState::WarmingRetrieval, now() + 2, "FAISS warmup")
+            .unwrap();
 
         // Retrieval times out → degrade, don't fail
         m.degrade(
-            vec![DegradationReason::RetrievalSkipped, DegradationReason::EmptyContext],
+            vec![
+                DegradationReason::RetrievalSkipped,
+                DegradationReason::EmptyContext,
+            ],
             now() + 12, // 10 seconds later — retrieval timed out
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(m.state, MissionState::Degraded);
         assert!(m.state.is_terminal());
 
         // Receipt must be emitted with degradation reasons
-        let receipt = m.receipt.as_ref().expect("receipt must be emitted on degraded");
+        let receipt = m
+            .receipt
+            .as_ref()
+            .expect("receipt must be emitted on degraded");
         assert!(receipt.is_degraded());
         assert!(!receipt.is_success());
         assert!(receipt.verify_hash());
         assert_eq!(receipt.degradation_tier, 2); // significant (2 reasons)
         assert_eq!(receipt.degradation_reasons.len(), 2);
-        assert!(receipt.degradation_reasons.contains(&DegradationReason::RetrievalSkipped));
-        assert!(receipt.degradation_reasons.contains(&DegradationReason::EmptyContext));
+        assert!(receipt
+            .degradation_reasons
+            .contains(&DegradationReason::RetrievalSkipped));
+        assert!(receipt
+            .degradation_reasons
+            .contains(&DegradationReason::EmptyContext));
         assert!(receipt.failure_code.is_none()); // degraded, not failed
     }
 
@@ -204,13 +233,17 @@ mod tests {
         let input_hash = blake3::hash(b"integrity test").into();
         let mut m = Mission::new(input_hash, now());
         m.transition(MissionState::Queued, now() + 1, "q").unwrap();
-        m.transition(MissionState::WarmingRetrieval, now() + 2, "w").unwrap();
-        m.transition(MissionState::WarmingModel, now() + 3, "w").unwrap();
-        m.transition(MissionState::Retrieving, now() + 4, "r").unwrap();
+        m.transition(MissionState::WarmingRetrieval, now() + 2, "w")
+            .unwrap();
+        m.transition(MissionState::WarmingModel, now() + 3, "w")
+            .unwrap();
+        m.transition(MissionState::Retrieving, now() + 4, "r")
+            .unwrap();
         m.transition(MissionState::Routing, now() + 5, "r").unwrap();
         m.transition(MissionState::Running, now() + 6, "r").unwrap();
         m.transition(MissionState::Scoring, now() + 7, "s").unwrap();
-        m.transition(MissionState::Persisting, now() + 8, "p").unwrap();
+        m.transition(MissionState::Persisting, now() + 8, "p")
+            .unwrap();
         m.complete(now() + 9).unwrap();
         let receipt = m.receipt.as_ref().unwrap();
         assert!(receipt.verify_hash());
@@ -231,24 +264,42 @@ mod tests {
         let mut m = Mission::new(input_hash, now());
 
         // Phone executes locally while offline
-        m.transition(MissionState::Queued, now() + 1, "queued").unwrap();
-        m.transition(MissionState::WarmingRetrieval, now() + 2, "warmup").unwrap();
-        m.transition(MissionState::WarmingModel, now() + 3, "model load").unwrap();
-        m.transition(MissionState::Retrieving, now() + 4, "search").unwrap();
-        m.transition(MissionState::Routing, now() + 5, "route").unwrap();
+        m.transition(MissionState::Queued, now() + 1, "queued")
+            .unwrap();
+        m.transition(MissionState::WarmingRetrieval, now() + 2, "warmup")
+            .unwrap();
+        m.transition(MissionState::WarmingModel, now() + 3, "model load")
+            .unwrap();
+        m.transition(MissionState::Retrieving, now() + 4, "search")
+            .unwrap();
+        m.transition(MissionState::Routing, now() + 5, "route")
+            .unwrap();
         m.chosen_model = Some("qwen2.5-0.5b".to_string());
-        m.transition(MissionState::Running, now() + 6, "inference").unwrap();
-        m.transition(MissionState::Scoring, now() + 7, "scored").unwrap();
-        m.transition(MissionState::Persisting, now() + 8, "persisted locally").unwrap();
+        m.transition(MissionState::Running, now() + 6, "inference")
+            .unwrap();
+        m.transition(MissionState::Scoring, now() + 7, "scored")
+            .unwrap();
+        m.transition(MissionState::Persisting, now() + 8, "persisted locally")
+            .unwrap();
 
         // No connectivity → deferred settlement
-        m.transition(MissionState::AwaitingReconciliation, now() + 9, "offline, URP unreachable").unwrap();
+        m.transition(
+            MissionState::AwaitingReconciliation,
+            now() + 9,
+            "offline, URP unreachable",
+        )
+        .unwrap();
         assert_eq!(m.state, MissionState::AwaitingReconciliation);
         assert!(!m.state.is_terminal()); // Can still transition
         assert!(m.state.is_deferred());
 
         // Connectivity returns → URP validates
-        m.transition(MissionState::UrpValidating, now() + 3600, "connectivity restored").unwrap();
+        m.transition(
+            MissionState::UrpValidating,
+            now() + 3600,
+            "connectivity restored",
+        )
+        .unwrap();
         m.ihsan_score = Some(0.88);
         m.snr_score = Some(0.85);
         m.guardian_approved = Some(true);
@@ -259,6 +310,9 @@ mod tests {
         assert!(receipt.is_success());
         assert!(receipt.verify_hash());
         // State history includes the reconciliation gap
-        assert!(m.state_history.iter().any(|t| t.to == MissionState::AwaitingReconciliation));
+        assert!(m
+            .state_history
+            .iter()
+            .any(|t| t.to == MissionState::AwaitingReconciliation));
     }
 }
