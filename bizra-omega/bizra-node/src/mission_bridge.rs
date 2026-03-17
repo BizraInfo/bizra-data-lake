@@ -14,6 +14,7 @@ use bizra_mission::mission::Mission;
 use bizra_mission::preflight::{self, Capability};
 use bizra_mission::receipt::MissionReceipt;
 use bizra_mission::state::{DegradationReason, FailureCode, MissionState};
+use ed25519_dalek::SigningKey;
 
 /// Result of a governed mission execution.
 pub struct MissionResult {
@@ -27,6 +28,7 @@ pub struct MissionResult {
 
 /// Execute a message through the governed mission lifecycle.
 /// `previous_receipt` chains this mission's receipt to the prior one for tamper-evident ordering.
+/// `signing_key` signs the receipt with the node's Ed25519 sovereign identity.
 pub fn execute_governed_mission(
     runtime: &mut AgentRuntime,
     ihsan: &IhsanScore,
@@ -34,6 +36,7 @@ pub fn execute_governed_mission(
     timestamp: u64,
     available_models: &[String],
     previous_receipt: Option<[u8; 32]>,
+    signing_key: Option<&SigningKey>,
 ) -> MissionResult {
     let content_hash: [u8; 32] = blake3::hash(content.as_bytes()).into();
     let mut m = Mission::new(content_hash, timestamp);
@@ -42,17 +45,28 @@ pub fn execute_governed_mission(
     }
     let t = timestamp; // base time
 
+    // ── Sign helper — signs receipt before returning ──────
+    macro_rules! sign_and_return {
+        ($m:expr, $resp:expr) => {{
+            let mut receipt = $m.receipt.clone().unwrap();
+            if let Some(key) = signing_key {
+                receipt.sign(key);
+            }
+            return MissionResult {
+                runtime_response: $resp,
+                receipt,
+                mission: $m,
+            };
+        }};
+    }
+
     // ── Preflight ─────────────────────────────────────────
     let pf = preflight::run_preflight(&[Capability::Chat], available_models, None);
     m.preflight = Some(pf.clone());
 
     if !pf.passed() {
         m.fail(FailureCode::CapabilityNotAvailable, t + 1).unwrap();
-        return MissionResult {
-            runtime_response: None,
-            receipt: m.receipt.clone().unwrap(),
-            mission: m,
-        };
+        sign_and_return!(m, None);
     }
     if let Some(model) = pf.chosen_model() {
         m.chosen_model = Some(model.to_string());
@@ -67,15 +81,11 @@ pub fn execute_governed_mission(
                 $m.fail(FailureCode::StateMachineViolation {
                     from: format!("{:?}", $m.state),
                     to: format!("{:?}", $state),
-                }, $ts).unwrap_or(()); // fail() itself may error if already terminal
-                return MissionResult {
-                    runtime_response: None,
-                    receipt: $m.receipt.clone().unwrap_or_else(|| {
-                        // Last resort: emit a minimal receipt even if fail() couldn't
-                        MissionReceipt::from_mission(&$m, $m.previous_receipt_hash)
-                    }),
-                    mission: $m,
-                };
+                }, $ts).unwrap_or(());
+                if $m.receipt.is_none() {
+                    $m.receipt = Some(MissionReceipt::from_mission(&$m, $m.previous_receipt_hash));
+                }
+                sign_and_return!($m, None);
             }
         };
     }
@@ -102,21 +112,13 @@ pub fn execute_governed_mission(
     // Guardian veto → fail with receipt
     if !result.guardian_approved {
         m.fail(FailureCode::GuardianVeto, t + 8).unwrap();
-        return MissionResult {
-            runtime_response: Some(result),
-            receipt: m.receipt.clone().unwrap(),
-            mission: m,
-        };
+        sign_and_return!(m, Some(result));
     }
 
     // Ihsan below constitutional floor → degrade with receipt
     if ihsan.as_f64() < bizra_core::IHSAN_THRESHOLD {
         m.degrade(vec![DegradationReason::UnscoredResponse], t + 8).unwrap();
-        return MissionResult {
-            runtime_response: Some(result),
-            receipt: m.receipt.clone().unwrap(),
-            mission: m,
-        };
+        sign_and_return!(m, Some(result));
     }
 
     // ── Persisting ─────────────────────────────────────────
@@ -126,9 +128,15 @@ pub fn execute_governed_mission(
     // ── Complete ──────────────────────────────────────────
     m.complete(t + 9).unwrap();
 
+    // Sign the receipt with the node's sovereign identity
+    let mut receipt = m.receipt.clone().unwrap();
+    if let Some(key) = signing_key {
+        receipt.sign(key);
+    }
+
     MissionResult {
         runtime_response: Some(result),
-        receipt: m.receipt.clone().unwrap(),
+        receipt,
         mission: m,
     }
 }

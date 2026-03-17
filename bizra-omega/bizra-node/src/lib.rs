@@ -558,13 +558,16 @@ mod integration_tests {
     fn governed_mission_lifecycle() {
         use bizra_hooks::IhsanScore;
         use bizra_mission::state::MissionState;
+        use ed25519_dalek::{SigningKey, VerifyingKey};
 
         let mut node = Node::new(NodeConfig::default());
 
-        // Create a runtime and Ihsan score for the mission bridge
+        // Create a runtime, Ihsan score, and signing key
         let mut runtime = AgentRuntime::new();
         let ihsan = IhsanScore::from_f64(0.96);
         let models = vec!["qwen2.5:3b".to_string()];
+        let signing_key = SigningKey::generate(&mut rand::rngs::OsRng);
+        let verifying_key = VerifyingKey::from(&signing_key);
 
         // Execute first mission (genesis — no previous receipt)
         let r1 = crate::mission_bridge::execute_governed_mission(
@@ -574,6 +577,7 @@ mod integration_tests {
             1773662000,
             &models,
             None, // genesis receipt
+            Some(&signing_key),
         );
 
         // Mission completed successfully
@@ -581,24 +585,21 @@ mod integration_tests {
         assert!(r1.mission.state.is_terminal());
         assert!(r1.mission.completed_at.is_some());
 
-        // Receipt was emitted and is valid
+        // Receipt was emitted, signed, and valid
         assert!(r1.receipt.is_success());
         assert!(r1.receipt.verify_hash());
-        assert_eq!(r1.receipt.degradation_tier, 0); // full quality
+        assert!(r1.receipt.is_signed());
+        assert!(r1.receipt.verify_signature(&verifying_key));
+        assert!(r1.receipt.verify_full(&verifying_key, None));
+        assert_eq!(r1.receipt.degradation_tier, 0);
         assert!(r1.receipt.failure_code.is_none());
         assert!(r1.receipt.previous_receipt_hash.is_none()); // genesis
 
         // Runtime response was generated
         let resp = r1.runtime_response.expect("runtime response");
         assert!(resp.guardian_approved);
-
-        // State history is complete (9 transitions: submitted→...→complete)
         assert_eq!(r1.mission.state_history.len(), 9);
-
-        // Model was selected from available models
         assert_eq!(r1.mission.chosen_model.as_deref(), Some("qwen2.5:3b"));
-
-        // Ihsan score propagated
         assert!(r1.mission.ihsan_score.is_some());
 
         // Execute second mission chained to the first
@@ -608,13 +609,22 @@ mod integration_tests {
             "What is the ADL Gini threshold?",
             1773662001,
             &models,
-            Some(r1.receipt.receipt_id), // chain to first
+            Some(r1.receipt.receipt_id),
+            Some(&signing_key),
         );
         assert!(r2.receipt.is_success());
         assert!(r2.receipt.verify_hash());
+        assert!(r2.receipt.is_signed());
+        assert!(r2.receipt.verify_signature(&verifying_key));
         assert_eq!(r2.receipt.previous_receipt_hash, Some(r1.receipt.receipt_id));
-        // Chain verification: r2 links back to r1
         assert!(r2.receipt.verify_chain(&r1.receipt));
+        // Full integrity: hash + signature + chain
+        assert!(r2.receipt.verify_full(&verifying_key, Some(&r1.receipt)));
+
+        // Wrong key must fail
+        let wrong_key = SigningKey::generate(&mut rand::rngs::OsRng);
+        let wrong_vk = VerifyingKey::from(&wrong_key);
+        assert!(!r1.receipt.verify_signature(&wrong_vk));
 
         // Node still healthy after governed missions
         let h = node.execute("HEALTH");
@@ -630,8 +640,9 @@ mod integration_tests {
         use bizra_mission::state::MissionState;
 
         let mut runtime = AgentRuntime::new();
-        let low_ihsan = IhsanScore::from_f64(0.50); // Below 0.85 floor
+        let low_ihsan = IhsanScore::from_f64(0.50);
         let models = vec!["qwen2.5:3b".to_string()];
+        let signing_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
 
         let result = crate::mission_bridge::execute_governed_mission(
             &mut runtime,
@@ -640,6 +651,7 @@ mod integration_tests {
             1773662000,
             &models,
             None,
+            Some(&signing_key),
         );
 
         // Should degrade, not complete
@@ -664,6 +676,7 @@ mod integration_tests {
         let mut runtime = AgentRuntime::new();
         let ihsan = IhsanScore::from_f64(0.96);
         let no_models: Vec<String> = vec![];
+        let signing_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
 
         let result = crate::mission_bridge::execute_governed_mission(
             &mut runtime,
@@ -672,6 +685,7 @@ mod integration_tests {
             1773662000,
             &no_models,
             None,
+            Some(&signing_key),
         );
 
         // Fails at preflight — never enters queue

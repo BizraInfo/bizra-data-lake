@@ -203,6 +203,7 @@ impl Node {
                 saga_registry: &mut self.saga_registry,
                 resource_manifest: &mut self.resource_manifest,
                 last_receipt_id: &mut self.last_receipt_id,
+                signing_key: None, // TODO: wire sovereign key from genesis ceremony
             };
             handler::handle(cmd, &mut internals)
         };
@@ -250,6 +251,7 @@ impl Node {
                 saga_registry: &mut self.saga_registry,
                 resource_manifest: &mut self.resource_manifest,
                 last_receipt_id: &mut self.last_receipt_id,
+                signing_key: None, // TODO: wire sovereign key from genesis ceremony
             };
             handler::handle(cmd, &mut internals)
         };
