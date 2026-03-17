@@ -131,18 +131,31 @@ Python (core/)                          Rust (bizra-omega/ — 24 crates)
 - `GET /api/briefing` — daily sovereign morning briefing with system health
 - FAISS index over `04_GOLD/` corpus is eagerly warmed at boot and cached in memory for 40x search speedup
 
+**Mission Control Plane** — `bizra-mission` crate governs every cognitive operation through a 14-state lifecycle:
+- States: Submitted→Queued→WarmingRetrieval→WarmingModel→Retrieving→Routing→Running→Scoring→Persisting→[Complete|Degraded|Failed|TimedOut|AwaitingReconciliation]
+- Constitutional transition law: illegal transitions return `Err(TransitionError)`, enforced by `advance!` macro (fail-closed)
+- Receipts: BLAKE3-chained (`previous_receipt_hash`), Ed25519-signed (`sign()`/`verify_signature()`/`verify_full()`)
+- `mission_bridge::execute_governed_mission()` wraps `AgentRuntime::receive()` with preflight, scoring, signing, and chaining
+- Offline reconciliation: `AwaitingReconciliation→UrpValidating→Complete` for disconnected nodes
+
+**Reflex Persistence** — `bizra-agent/src/persistence.rs`: content-addressed file store with BLAKE3 integrity manifest. Reflexes survive node restart (B1 gate proven). Restore on boot, save on compilation, snapshot on shutdown.
+
+**Substrate Abstraction** — `bizra-node/src/substrate/`: cross-platform resource discovery (`#[cfg(target_os)]` gated for Linux/Windows/Android). Discovers CPU, RAM, GPU, disks, and all local LLM runtimes (Ollama, LM Studio, HuggingFace, standalone GGUF).
+
 ## CI Pipeline
 
-Defined in `.github/workflows/ci.yml`. Stages:
+Defined in `.github/workflows/ci.yml`. 24 gates across 7 stages:
 1. **Lint** — ruff, black, isort, mypy (Python) + cargo fmt, clippy (Rust)
-2. **Cross-Language Sync** — validates constants.py ↔ Rust thresholds match
-3. **Test** — pytest matrix (3.11, 3.12) + cargo test
-4. **PyO3 Bindings** — maturin build + smoke test
-5. **Quality Gates** — SNR/Ihsan score validation (skippable via workflow_dispatch)
-6. **Security** — bandit, pip-audit, cargo-audit, Trivy
+2. **Schema + Sync** — cross-language constants sync, deploy overlay validation, schema validation, memory quality gate
+3. **Test** — pytest matrix (3.11, 3.12) + cargo test + PyO3 bindings (maturin build + smoke)
+4. **Frontend** — lint, typecheck, test, build, bundle budget
+5. **Quality Gates** — FATE validation, MVSA acceptance, Phase65 masterpiece, Phase56 security
+6. **Security** — bandit (high-confidence blocks), pip-audit, cargo-audit, Trivy, SBOM generation, container signing
 7. **Docker Build** — `deploy/Dockerfile.elite` (Python), `bizra-omega/Dockerfile` (Rust)
 
-Coverage floor: **75%** enforced in pyproject.toml (ratcheted from 38%).
+All GitHub Actions pinned by SHA (supply chain hardened). No `|| true` on security-critical gates.
+
+Coverage floor: **65%** in pyproject.toml (xdist variance; ratcheted history: 30%→55%→60%→65%→38%→62%→70%→75%→65%).
 
 ## Test Organization
 
@@ -208,7 +221,7 @@ tests/
 - **Numeric** (1): bizra-sippar (exact regular number arithmetic for token splits)
 - **Bindings** (2): fate-binding (Z3 + Dilithium post-quantum), iceoryx-bridge (zero-copy IPC)
 
-Key deps: `ed25519-dalek` (crypto), `tokio` (async), `blake3` (hashing+rayon), `z3` (formal verification), `pyo3` (Python bindings), `iceoryx2` (IPC), `pqcrypto-mldsa` (post-quantum).
+Key deps: `ed25519-dalek` 2.2 (receipt signing + node identity), `tokio` (async), `blake3` (hashing+rayon), `z3` (formal verification), `pyo3` (Python bindings), `iceoryx2` (IPC), `pqcrypto-mldsa` (post-quantum).
 
 Release profile: fat LTO, single codegen unit, `panic = "abort"`, `strip = true`. Z3 is required: `sudo apt install libz3-dev`.
 
