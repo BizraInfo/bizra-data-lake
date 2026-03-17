@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BIZRA Degraded Experience Constitution v1.0",
+  "description": "Defines what a weaker node may do, what it must never fake, what it must persist, and when it must refuse instead of pretending. This document protects equal citizenship across unequal hardware.",
+
+  "principles": {
+    "principle_1": "Honest degradation is always better than silent failure or fake quality.",
+    "principle_2": "A phone running 0.5B model is a full citizen with degraded execution, not a second-class citizen.",
+    "principle_3": "The URP exists to lift weaker nodes to the constitutional floor, not to replace them.",
+    "principle_4": "Every degradation must be declared in the receipt. Hidden degradation is a constitutional violation.",
+    "principle_5": "A node that cannot meet the minimum Ihsan floor even with URP help must refuse, not pretend."
+  },
+
+  "degradation_tiers": {
+    "tier_0_full": {
+      "description": "Node meets all requirements locally. No degradation.",
+      "example": "NODE0 with 30B model, full memory, full retrieval",
+      "urp_involvement": "Receipt validation only (no enrichment)"
+    },
+    "tier_1_light_degradation": {
+      "description": "Node handles most work locally but some optional features are skipped.",
+      "example": "Laptop with 7B model, no vision capability",
+      "degradations_allowed": ["retrieval_skipped", "partial_memory_extract", "fallback_model_used"],
+      "urp_involvement": "Receipt validation + optional context injection"
+    },
+    "tier_2_significant_degradation": {
+      "description": "Node can generate a response but quality is below target. URP enriches.",
+      "example": "Phone with 1B model, minimal memory",
+      "degradations_allowed": ["retrieval_skipped", "empty_context", "fallback_model_used", "unscored_response"],
+      "urp_involvement": "Receipt validation + quality boost enrichment",
+      "urp_enrichment_type": "context_injection or quality_boost"
+    },
+    "tier_3_urp_assisted": {
+      "description": "Node cannot produce acceptable output alone. URP provides primary compute.",
+      "example": "Very weak device, no local model, or all models below 0.5B",
+      "degradations_allowed": ["all tier_2 plus urp_delegated"],
+      "urp_involvement": "URP runs inference on behalf of node. Local PAT still authors the receipt.",
+      "urp_enrichment_type": "full_rewrite"
+    },
+    "tier_4_refused": {
+      "description": "Node cannot contribute to this mission even with URP help. Mission is refused honestly.",
+      "example": "Mission requires vision but no vision model exists anywhere in the path",
+      "outcome": "Mission fails with FailureCode::CapabilityNotAvailable. Receipt emitted.",
+      "urp_involvement": "None — refusal is the constitutionally correct outcome"
+    }
+  },
+
+  "must_never_fake": {
+    "description": "Things a degraded node must NEVER pretend to have done.",
+    "rules": [
+      "Never claim retrieval happened if it was skipped",
+      "Never claim a model was used that was not actually used",
+      "Never claim Ihsan score was computed if scoring was skipped",
+      "Never claim memory was extracted if extraction failed",
+      "Never claim Guardian approved if Guardian was not consulted",
+      "Never emit a receipt without the actual degradation flags",
+      "Never claim local execution if URP handled inference",
+      "Never forge the resource snapshot — it must reflect actual hardware at submission time"
+    ]
+  },
+
+  "must_always_persist": {
+    "description": "Things that must be persisted even in the most degraded path.",
+    "rules": [
+      "The mission receipt (even if degraded or failed)",
+      "The degradation reasons array (complete, not partial)",
+      "The resource snapshot at submission time",
+      "The model actually used (or 'none' if URP delegated)",
+      "The URP mediation verdict (if applicable)",
+      "The failure code (if mission failed)",
+      "The mission state history (all transitions, with timestamps)"
+    ]
+  },
+
+  "must_always_emit_receipt": {
+    "description": "Receipt emission is constitutional. These receipts are always required.",
+    "conditions": [
+      "On successful completion (complete state)",
+      "On degraded completion (degraded state, with all degradation reasons)",
+      "On failure (failed state, with failure code)",
+      "On timeout (timed_out state, with partial results if any)",
+      "On URP rejection (rejected by SAT, with reason)",
+      "On local refusal (capability not available, with honest declaration)"
+    ],
+    "invariant": "There is no code path that terminates a mission without emitting a receipt."
+  },
+
+  "when_to_refuse": {
+    "description": "A node must refuse a mission (not attempt it) when:",
+    "conditions": [
+      "No model available for required capability, and URP cannot assist",
+      "Ihsan score is below degradation floor (0.85) and cannot be recovered",
+      "Resource snapshot shows insufficient RAM/VRAM to even load a fallback model",
+      "Guardian detects constitutional violation in the mission request itself",
+      "Node is in Stopped or Degraded state with no recovery path"
+    ],
+    "invariant": "Honest refusal is always better than dishonest attempt."
+  }
+}

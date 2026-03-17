@@ -35,10 +35,12 @@ pub mod omni_kernel;
 pub mod orchestrator;
 pub mod parallel_executor;
 pub mod permit_guard;
+pub mod persistence;
 pub mod reflex_cache;
 pub mod reflex_compiler;
 pub mod roster;
 pub mod runtime;
+pub mod skills;
 pub mod spawn_policy;
 pub mod sub_agent;
 pub mod types;
@@ -63,6 +65,7 @@ pub use omni_kernel::{CyclePath, CycleReceipt, OmniCycle, OmniKernel, OmniKernel
 pub use orchestrator::{ExecutionPlan, OrchestrationResult, OrchestratorConfig, TaskOrchestrator};
 pub use parallel_executor::{ParallelExecutor, SubAgentResult};
 pub use permit_guard::{PermitBudgetConfig, PermitGuard, PermitUsage};
+pub use persistence::{PersistError, ReflexStore};
 pub use reflex_cache::{
     ActionTemplate, QuarantineReason, ReflexCache, ReflexMode, ReflexRule, ReflexStats,
 };

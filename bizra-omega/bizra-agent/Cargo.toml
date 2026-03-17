@@ -16,9 +16,11 @@ bizra-memory   = { path = "../bizra-memory"   }
 bizra-telescript = { path = "../bizra-telescript" }
 bizra-action   = { path = "../bizra-action"   }
 bizra-ttrl     = { path = "../bizra-ttrl"     }
-blake3   = { workspace = true }
-toml     = { workspace = true }
-tracing  = { workspace = true }
+blake3      = { workspace = true }
+serde       = { workspace = true }
+serde_json  = { workspace = true }
+toml        = { workspace = true }
+tracing     = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

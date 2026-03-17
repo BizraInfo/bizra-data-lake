@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**BIZRA-DATA-LAKE** is the persistent memory and knowledge layer of the BIZRA ecosystem — a decentralized agentic system built on Proof-Carrying Inference, FATE gates, and constitutional AI governance. The repo contains a Python sovereignty infrastructure (`core/`) and a high-performance Rust workspace (`bizra-omega/`, 23 crates).
+**BIZRA-DATA-LAKE** is the persistent memory and knowledge layer of the BIZRA ecosystem — a decentralized agentic system built on Proof-Carrying Inference, FATE gates, and constitutional AI governance. The repo contains a Python sovereignty infrastructure (`core/`) and a high-performance Rust workspace (`bizra-omega/`, 24 crates).
 
 **Environment:** WSL Ubuntu on Windows | Python 3.11+ | Rust stable (1.91+)
 
@@ -80,7 +80,7 @@ React 18 + TypeScript + Vite. Phase state machine (trust→splash→genesis→te
 ### Python (`core/`) and Rust (`bizra-omega/`) Mirror
 
 ```
-Python (core/)                          Rust (bizra-omega/ — 23 crates)
+Python (core/)                          Rust (bizra-omega/ — 24 crates)
 ├── pci/        Proof-Carrying Inference    bizra-core/        Constitution + FATE + Identity
 ├── federation/ P2P gossip + BFT consensus  bizra-federation/  Gossip + signed messages
 ├── inference/  Tiered LLM gateway          bizra-inference/   Inference backends
@@ -98,6 +98,7 @@ Python (core/)                          Rust (bizra-omega/ — 23 crates)
 ├── auth/       Middleware + auth            bizra-ttrl/        On-device RL (SSO spectral norm)
 ├── benchmark/  Guardrails + scoring        bizra-agent/       OmniKernel cognitive cycle
 ├── zpk/        Zero-Point Kernel           bizra-node/        Desktop sovereign binary
+├── (mission)                               bizra-mission/     Mission Control Plane (lifecycle)
 ├── (FATE gates)                            fate-binding/      Z3 + Dilithium post-quantum
 └── (IPC)                                   iceoryx-bridge/    Zero-copy shared memory
 ```
@@ -109,9 +110,10 @@ Python (core/)                          Rust (bizra-omega/ — 23 crates)
 ### Key Architectural Concepts
 
 **Constitutional Thresholds** — All defined in `core/integration/constants.py` (single source of truth). Every module must import from there, not define its own:
-- Ihsan (excellence): 0.95 production, 0.90 CI, 0.99 strict/consensus, 1.0 runtime
-- SNR (signal quality): 0.85 minimum, 0.95 T1, 0.98 T0/elite
-- ADL Gini (justice): <= 0.35 hard gate
+- `IHSAN_THRESHOLD` = 0.95 (production), `IHSAN_THRESHOLD_CI` = 0.90, `STRICT_IHSAN_THRESHOLD` = 0.99, `RUNTIME_IHSAN_THRESHOLD` = 1.0
+- `SNR_THRESHOLD` = 0.85 (minimum), `SNR_THRESHOLD_T1_HIGH` = 0.95, `SNR_THRESHOLD_T0_ELITE` = 0.98
+- `ADL_GINI_THRESHOLD` = 0.35 (operational hard gate), `CONSTITUTIONAL_GINI_THRESHOLD` = 0.45
+- Cross-repo sync validated via `CANONICAL_THRESHOLDS` dict → Rust `bizra-core/src/lib.rs` must match
 
 **Inference Tiers** — Local-first with tiered fallback, configured in `bizra_config.py`:
 1. LM Studio at WSL gateway:1234 (auto-detected, env: LMSTUDIO_HOST)
@@ -121,6 +123,13 @@ Python (core/)                          Rust (bizra-omega/ — 23 crates)
 **Data Pipeline** — Files flow through numbered directories: `00_INTAKE/` → `01_RAW/` → `02_PROCESSED/` → `03_INDEXED/` → `04_GOLD/`. Duplicates go to `99_QUARANTINE/` via SHA-256 detection. Downloads are always COPIED, never moved.
 
 **Unified Concurrency Fabric (UCF)** — Sharded EventBus (8 namespace shards via FNV-1a) in `bizra-hooks`, two-phase OmniKernel (try_cache_hit + complete_cache_hit) in `bizra-agent`, and PyO3 event bridge (`PyEventBridge` Rust → `RustEventBridge` Python wrapper). Bridge gracefully returns None when PyO3 isn't built.
+
+**Kernel API** — Python kernel daemon (`core/sovereign/`) exposes REST endpoints on port 8010:
+- `GET /health` — liveness check
+- `GET /api/knowledge` — GOLD corpus stats + FAISS semantic search
+- `POST /api/mission` — knowledge-enriched PAT execution pipeline (OBSERVE→DECOMPOSE→EXECUTE→SYNTHESIZE→GATE→EVIDENCE)
+- `GET /api/briefing` — daily sovereign morning briefing with system health
+- FAISS index over `04_GOLD/` corpus is eagerly warmed at boot and cached in memory for 40x search speedup
 
 ## CI Pipeline
 
@@ -188,13 +197,14 @@ tests/
 
 ## Rust Workspace (bizra-omega/)
 
-23 crates in a unified workspace (v2.0.0). Six layers:
+24 crates in a unified workspace (v2.0.0). Seven layers:
 
 - **Platform** (14): bizra-core, hypergraph, inference, autopoiesis, federation, installer, python, api, tests, hunter, telescript, proofspace, resourcepool, cli
 - **Cognitive** (2): bizra-hooks (nervous system), bizra-memory (synthesis pipeline)
 - **Action** (1): bizra-action (Event→Action→Receipt bus)
 - **TTRL** (1): bizra-ttrl (on-device RL with SSO spectral norm)
-- **Desktop** (2): bizra-agent (OmniKernel), bizra-node (sovereign binary)
+- **Desktop** (2): bizra-agent (OmniKernel), bizra-node (sovereign binary + substrate platform abstraction)
+- **Mission** (1): bizra-mission (Mission Control Plane — preflight, state machine, receipts)
 - **Numeric** (1): bizra-sippar (exact regular number arithmetic for token splits)
 - **Bindings** (2): fate-binding (Z3 + Dilithium post-quantum), iceoryx-bridge (zero-copy IPC)
 

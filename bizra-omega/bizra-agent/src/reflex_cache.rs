@@ -6,6 +6,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use blake3::Hasher;
+use serde::{Deserialize, Serialize};
 
 use crate::hash_namespace::TriggerHash;
 
@@ -60,7 +61,7 @@ impl ReflexMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum QuarantineReason {
     GuardianVeto,
     RevalidationFailed,
@@ -92,13 +93,13 @@ impl QuarantineReason {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionTemplate {
     pub route_signature: String,
     pub primary_agent: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReflexRule {
     pub trigger_hash: TriggerHash,
     pub action_template: ActionTemplate,

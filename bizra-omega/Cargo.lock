@@ -381,6 +381,8 @@ dependencies = [
  "bizra-telescript",
  "bizra-ttrl",
  "blake3",
+ "serde",
+ "serde_json",
  "tempfile",
  "toml",
  "tracing",
@@ -579,6 +581,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bizra-mission"
+version = "2.0.0"
+dependencies = [
+ "bizra-core",
+ "blake3",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bizra-node"
 version = "2.0.0"
 dependencies = [
@@ -588,8 +600,11 @@ dependencies = [
  "bizra-hooks",
  "bizra-inference",
  "bizra-memory",
+ "bizra-mission",
  "bizra-telescript",
+ "blake3",
  "serde_json",
+ "tempfile",
  "tokio",
 ]
 

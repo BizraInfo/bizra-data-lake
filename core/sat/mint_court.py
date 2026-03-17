@@ -41,18 +41,12 @@ logger = logging.getLogger("bizra.sat.mint_court")
 # ═══════════════════════════════════════════════════════════════
 # CONSTANTS — from constitutional SSOT
 # ═══════════════════════════════════════════════════════════════
-try:
-    from core.integration.constants import (
-        ADL_GINI_THRESHOLD,
-        IHSAN_THRESHOLD,
-        KERNEL_INVARIANTS,
-        SNR_THRESHOLD,
-    )
-except ImportError:
-    IHSAN_THRESHOLD = 0.95
-    ADL_GINI_THRESHOLD = 0.35
-    SNR_THRESHOLD = 0.85
-    KERNEL_INVARIANTS = ("RIBA_ZERO", "CLAIM_MUST_BIND", "IHSAN_FLOOR")
+from core.integration.constants import (
+    ADL_GINI_THRESHOLD,
+    IHSAN_THRESHOLD,
+    KERNEL_INVARIANTS,
+    SNR_THRESHOLD,
+)
 
 # Founder donation policy (not protocol tax)
 FOUNDER_DONATION_RATIO = 0.50  # 50% to system treasury

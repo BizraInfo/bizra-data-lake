@@ -4,22 +4,23 @@
 // ============================================================
 
 use blake3::Hasher;
+use serde::{Deserialize, Serialize};
 
 pub const TRIGGER_DOMAIN: &str = "genesis/trigger/v1";
 pub const ACTION_DOMAIN: &str = "genesis/action/v1";
 pub const ARTIFACT_DOMAIN: &str = "genesis/artifact/v1";
 pub const RECEIPT_DOMAIN: &str = "genesis/receipt/v1";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TriggerHash(pub [u8; 32]);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ActionHash(pub [u8; 32]);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ArtifactHash(pub [u8; 32]);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ReceiptHash(pub [u8; 32]);
 
 impl TriggerHash {

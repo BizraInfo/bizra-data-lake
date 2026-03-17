@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BIZRA Impact Settlement Contract v1.0",
+  "description": "How verified contribution becomes value without drifting into compute aristocracy. Token issuance is tied to receipt-bound impact, not hardware ownership. This contract protects the 8B-human mission from wealth concentration.",
+  "type": "object",
+
+  "settlement_principles": {
+    "principle_1": "No contribution becomes value until it becomes a verified receipt.",
+    "principle_2": "Token issuance rewards verified useful impact, not raw hardware ownership.",
+    "principle_3": "A phone user who contributes verified high-quality knowledge earns more BLOOM than a workstation that generates unverifiable bulk output.",
+    "principle_4": "The Adl invariant (Gini ≤ 0.35) is enforced at the settlement layer, not just at the network layer.",
+    "principle_5": "Compute aristocracy is a constitutional violation. Settlement rules must prevent hardware wealth from becoming governance power."
+  },
+
+  "contribution_classes": {
+    "description": "How different types of contribution are valued. Ordered by civilization impact, not compute cost.",
+    "classes": {
+      "knowledge_contribution": {
+        "description": "Human shares verified knowledge that improves the collective intelligence.",
+        "seed_multiplier": 1.0,
+        "bloom_eligible": true,
+        "example": "A teacher contributes domain expertise that improves routing for thousands of future missions."
+      },
+      "governance_contribution": {
+        "description": "Human participates in constitutional governance (voting, review, dispute resolution).",
+        "seed_multiplier": 1.2,
+        "bloom_eligible": true,
+        "example": "Community member reviews and validates a constitutional amendment proposal."
+      },
+      "compute_contribution": {
+        "description": "Node contributes verified compute cycles to the resource pool.",
+        "seed_multiplier": 0.6,
+        "bloom_eligible": false,
+        "example": "NODE0 serves Agent-as-a-Service inference for weaker nodes. Earns SEED, not BLOOM.",
+        "anti_aristocracy_note": "Deliberately lower multiplier. Compute is commodity. Knowledge is civilization."
+      },
+      "tool_contribution": {
+        "description": "Node provides specialized tool access (MCP servers, databases, APIs).",
+        "seed_multiplier": 0.8,
+        "bloom_eligible": true,
+        "example": "A node with medical database access serves verified medical information queries."
+      },
+      "personal_only": {
+        "description": "Mission was local-only. No network contribution. No settlement.",
+        "seed_multiplier": 0.0,
+        "bloom_eligible": false,
+        "example": "User asks PAT a private question. Privacy preserved. No tokens involved."
+      }
+    }
+  },
+
+  "settlement_rules": {
+    "rule_1_receipt_bound": {
+      "rule": "No SEED or BLOOM is issued without a URP Canonical Receipt.",
+      "enforcement": "Settlement engine rejects any claim not linked to a valid receipt_id with URP signature."
+    },
+    "rule_2_impact_not_volume": {
+      "rule": "Rewards scale with verified quality, not output volume.",
+      "enforcement": "BLOOM is proportional to impact_score in the receipt, not to token count or response length.",
+      "rationale": "Economic Impossibility Theorem: token-based revenue creates verbosity incentive (r=0.05). Quality-based revenue creates excellence incentive (r=1.00)."
+    },
+    "rule_3_anti_sybil": {
+      "rule": "One human, one constitutional identity. Duplicate nodes sharing one human reduce rewards, not increase them.",
+      "enforcement": "Asabiyyah score (A15) detects coordinated behavior. Gini throttle applies sigmoid dampening to concentrated earnings."
+    },
+    "rule_4_zakat_floor": {
+      "rule": "2.5% of all SEED holdings above nisab threshold are redistributed to the network treasury annually.",
+      "enforcement": "Automatic at protocol level. Not optional. Islamic finance invariant.",
+      "rationale": "Prevents wealth accumulation from exceeding the Adl invariant over time."
+    },
+    "rule_5_no_debt_creation": {
+      "rule": "The system may never create debt instruments, interest-bearing loans, or leveraged positions.",
+      "enforcement": "Interest-Debt Impossibility Theorem enforced at protocol level. RIBA_ZERO kernel invariant.",
+      "rationale": "Debt-based incentives create extraction loops that violate the 8B-human mission."
+    },
+    "rule_6_mudarabah_sharing": {
+      "rule": "When URP provides compute assistance (Agent-as-a-Service), rewards are shared between the contributing node and the URP pool using Mudarabah (profit-sharing) ratios.",
+      "enforcement": "Receipt contains both local_contribution and urp_contribution fields. Settlement splits proportionally."
+    },
+    "rule_7_waqf_endowment": {
+      "rule": "A fraction of all network BLOOM is directed to the Waqf endowment — permanent public goods funding for education, infrastructure, and constitutional maintenance.",
+      "enforcement": "Automatic at settlement. Waqf funds are irrevocable and governed by network consensus."
+    }
+  },
+
+  "anti_aristocracy_gates": {
+    "description": "Mechanisms that prevent compute-wealthy nodes from dominating governance or economics.",
+    "gates": {
+      "gini_throttle": {
+        "mechanism": "Khaldunian sigmoid dampening on earnings concentration",
+        "threshold": "Gini > 0.35 triggers progressive reward reduction for top earners",
+        "invariant": "Network Gini must converge below 0.35 over any 365-day window"
+      },
+      "governance_weight_cap": {
+        "mechanism": "No single node may hold more than 1% of total governance weight regardless of compute contribution",
+        "rationale": "Prevents wealth=power drift"
+      },
+      "newcomer_convergence": {
+        "mechanism": "New nodes must reach median earning capacity within 13 months",
+        "evidence": "548-day simulation demonstrated convergence from 0.7429 to 0.1185 Gini with 13-month newcomer convergence"
+      },
+      "contribution_diversity_bonus": {
+        "mechanism": "Nodes that contribute across multiple classes (knowledge + tools + governance) earn a 1.15x multiplier over single-class contributors",
+        "rationale": "Encourages well-rounded participation, not single-dimension optimization"
+      }
+    }
+  },
+
+  "settlement_record": {
+    "description": "The settlement record attached to each URP Canonical Receipt after impact evaluation.",
+    "type": "object",
+    "required": ["receipt_id", "contribution_class", "impact_score", "seed_issued", "settled_at"],
+    "properties": {
+      "receipt_id": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+      "contribution_class": {
+        "type": "string",
+        "enum": ["knowledge_contribution", "governance_contribution", "compute_contribution", "tool_contribution", "personal_only"]
+      },
+      "impact_score": { "type": "number", "minimum": 0, "maximum": 1 },
+      "quality_score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Ihsan * SNR composite" },
+      "seed_issued": { "type": "number", "minimum": 0 },
+      "bloom_issued": { "type": "number", "minimum": 0 },
+      "bloom_eligible": { "type": "boolean" },
+      "multipliers_applied": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Which multipliers were applied (e.g. ['base_1.0', 'diversity_bonus_1.15', 'gini_dampening_0.85'])"
+      },
+      "gini_at_settlement": { "type": "number", "minimum": 0, "maximum": 1, "description": "Network Gini at the moment of settlement" },
+      "anti_sybil_passed": { "type": "boolean" },
+      "zakat_deducted": { "type": "number", "minimum": 0, "description": "Zakat amount if applicable (0 if below nisab)" },
+      "mudarabah_split": {
+        "type": ["object", "null"],
+        "properties": {
+          "local_share": { "type": "number" },
+          "urp_share": { "type": "number" }
+        },
+        "description": "Profit-sharing split if URP provided assistance. Null if local-only."
+      },
+      "settled_at": { "type": "integer" },
+      "settlement_hash": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$",
+        "description": "BLAKE3(receipt_id + impact_score + seed_issued + bloom_issued + settled_at). Append-only ledger entry."
+      }
+    }
+  }
+}

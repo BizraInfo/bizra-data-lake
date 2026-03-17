@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BIZRA Capability Negotiation Contract v1.0",
+  "description": "Defines how nodes declare capabilities, how missions request capabilities, and how the URP mediates between unequal hardware to enforce equal citizenship.",
+
+  "definitions": {
+
+    "node_capability_card": {
+      "description": "What a node declares it can do. Sent to URP on connect and refreshed periodically.",
+      "type": "object",
+      "required": ["node_id", "capabilities", "substrate", "models", "declared_at"],
+      "properties": {
+        "node_id": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "chat", "code", "reasoning", "vision", "embedding",
+              "tool_use", "file_io", "browser", "desktop_automation",
+              "memory_retrieval", "reflex_compilation",
+              "camera_capture", "voice_input", "voice_output",
+              "location_awareness", "biometric_auth", "nfc_interaction",
+              "always_on_connectivity", "offload_to_cluster_peer"
+            ]
+          },
+          "description": "What this node can do — derived from installed models, tools, AND physical sensors"
+        },
+        "substrate": {
+          "type": "object",
+          "description": "Hardware summary from ResourceManifest",
+          "properties": {
+            "platform": { "type": "string", "enum": ["linux", "windows", "android", "ios", "wsl2"] },
+            "ram_gb": { "type": "number" },
+            "vram_mb": { "type": "integer" },
+            "cpu_cores": { "type": "integer" },
+            "gpu_name": { "type": "string" },
+            "tier": {
+              "type": "string",
+              "enum": ["phone", "tablet", "laptop", "workstation", "server", "cluster"],
+              "description": "Self-declared capability tier. URP uses this for routing."
+            },
+            "device_role": {
+              "type": "string",
+              "enum": ["primary_desktop", "mobile_companion", "server", "embedded"],
+              "description": "Role in the user's personal sovereign cluster"
+            },
+            "cluster_peer_ids": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Other devices belonging to same human identity. Enables cross-device offload."
+            }
+          }
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "capabilities": { "type": "array", "items": { "type": "string" } },
+              "params_b": { "type": "number", "description": "Parameter count in billions" },
+              "quantization": { "type": "string" },
+              "runtime": { "type": "string" },
+              "status": { "type": "string", "enum": ["installed", "loaded", "preferred", "fallback"] }
+            }
+          },
+          "description": "Models this node has installed and can run locally"
+        },
+        "max_concurrent_missions": { "type": "integer", "minimum": 1, "default": 1 },
+        "max_latency_class": {
+          "type": "string",
+          "enum": ["realtime_50ms", "fast_500ms", "standard_5s", "slow_30s", "batch_120s"],
+          "description": "Slowest latency class this node can serve"
+        },
+        "declared_at": { "type": "integer" }
+      }
+    },
+
+    "mission_capability_request": {
+      "description": "What a mission asks for — capabilities, not models. This is the contract-first principle.",
+      "type": "object",
+      "required": ["required_capabilities", "evidence_standard"],
+      "properties": {
+        "required_capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What the mission needs (e.g. ['chat', 'memory_retrieval']). NEVER a model name."
+        },
+        "preferred_capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Nice to have but degradable (e.g. ['reasoning', 'vision'])"
+        },
+        "evidence_standard": {
+          "type": "string",
+          "enum": ["receipt_only", "receipt_plus_provenance", "full_audit_trail"],
+          "description": "What evidence the mission must produce"
+        },
+        "acceptable_degradations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What can be gracefully degraded (e.g. ['retrieval_skipped', 'fallback_model_used'])"
+        },
+        "max_latency_class": { "type": "string" },
+        "requires_urp_validation": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, output must pass through URP SAT before entering network"
+        },
+        "persistence_required": { "type": "boolean", "default": true }
+      }
+    },
+
+    "urp_mediation_result": {
+      "description": "The URP's decision after comparing node capability vs mission requirement. This is the equalizer.",
+      "type": "object",
+      "required": ["verdict", "execution_plan"],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "local_sufficient",
+            "local_with_urp_enrichment",
+            "urp_assisted",
+            "urp_delegated",
+            "rejected"
+          ],
+          "description": "local_sufficient: node can handle alone. local_with_urp_enrichment: node executes, URP enriches. urp_assisted: URP provides compute help. urp_delegated: URP handles entirely. rejected: below constitutional minimum."
+        },
+        "execution_plan": {
+          "type": "object",
+          "properties": {
+            "local_model": { "type": ["string", "null"], "description": "Model to use locally (null if URP handles)" },
+            "urp_model": { "type": ["string", "null"], "description": "Model URP will use for enrichment (null if not needed)" },
+            "enrichment_type": {
+              "type": ["string", "null"],
+              "enum": ["none", "context_injection", "quality_boost", "full_rewrite", null]
+            },
+            "degradation_flags": { "type": "array", "items": { "type": "string" } },
+            "ihsan_floor_override": {
+              "type": ["number", "null"],
+              "description": "URP may lower the Ihsan floor for weaker nodes (never below 0.85)"
+            }
+          }
+        },
+        "reason": { "type": "string" }
+      }
+    },
+
+    "constitutional_rules": {
+      "description": "Hard rules the URP enforces. These protect the 8B-human mission.",
+      "type": "object",
+      "properties": {
+        "rule_1_no_model_lock_in": {
+          "const": "No mission contract may require a specific model family. Missions specify capabilities, never vendor/model names.",
+          "type": "string"
+        },
+        "rule_2_urp_before_network": {
+          "const": "Every node connects to URP first, then to the network. No direct node-to-node traffic for mission results.",
+          "type": "string"
+        },
+        "rule_3_receipt_required": {
+          "const": "No output enters the network without a constitutional receipt. URP SAT validates all receipts.",
+          "type": "string"
+        },
+        "rule_4_equal_law": {
+          "const": "Constitutional gates (Ihsan, SNR, Guardian) apply identically to all nodes. Hardware differences affect execution quality, never governance rules.",
+          "type": "string"
+        },
+        "rule_5_degradation_over_silence": {
+          "const": "A weaker node that produces honest degraded output is always preferred over a stronger node that produces unverifiable output.",
+          "type": "string"
+        },
+        "rule_6_urp_enrichment_is_aid_not_replacement": {
+          "const": "URP enrichment enhances local output. It never replaces the local node's receipt or claim of authorship. The local PAT remains the author.",
+          "type": "string"
+        },
+        "rule_7_minimum_ihsan_is_universal": {
+          "const": "The Ihsan floor (0.85 minimum, 0.95 target) applies to every node equally. URP enrichment exists to help weaker nodes reach the floor, not to exempt them from it.",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

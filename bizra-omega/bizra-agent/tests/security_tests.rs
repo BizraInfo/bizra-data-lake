@@ -23,6 +23,7 @@ fn setup_file_backend(dir: &tempfile::TempDir) -> FileBackend {
     FileBackend::with_dir(dir.path().to_path_buf())
 }
 
+#[allow(dead_code)]
 fn write_secret(dir: &tempfile::TempDir, key: &str, value: &str) -> PathBuf {
     let secrets_dir = dir.path().join("secrets");
     let path = secrets_dir.join(format!("{key}.secret"));
