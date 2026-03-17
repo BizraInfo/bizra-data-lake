@@ -42,7 +42,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   lint-python:
     name: Lint Python
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -103,7 +103,7 @@ jobs:
 
   lint-rust:
     name: Lint Rust
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 15
     defaults:
       run:
@@ -145,7 +145,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   validate-schemas:
     name: Schema Validation
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -230,7 +230,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   memory-quality-gate:
     name: Memory Quality Gate
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -275,7 +275,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   cross-lang-sync:
     name: Cross-Language Sync
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -307,7 +307,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   validate-deploy-overlays:
     name: Deploy Overlay Gate
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -332,7 +332,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   test-python:
     name: Test Python (${{ matrix.python-version }})
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 30
     needs: [lint-python]
     strategy:
@@ -409,7 +409,7 @@ jobs:
 
   test-rust:
     name: Test Rust
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 30
     needs: [lint-rust]
     defaults:
@@ -464,7 +464,7 @@ jobs:
 
   test-pyo3-bindings:
     name: Test PyO3 Bindings
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 20
     needs: [lint-python, lint-rust]
     steps:
@@ -519,7 +519,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   lint-frontend:
     name: "Frontend Gate 1: Lint + Types"
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 10
     defaults:
       run:
@@ -553,7 +553,7 @@ jobs:
 
   test-frontend:
     name: "Frontend Gate 2: Test + Coverage"
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 10
     needs: [lint-frontend]
     defaults:
@@ -585,7 +585,7 @@ jobs:
 
   build-frontend:
     name: "Frontend Gate 3: Build + Bundle Budget"
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 10
     needs: [lint-frontend, test-frontend]
     outputs:
@@ -650,7 +650,7 @@ jobs:
   # SECURITY: bypass is BLOCKED on main/master — only allowed on feature branches
   quality-gate-bypass-audit:
     name: Quality Gate Bypass Audit
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 5
     needs: [test-python, test-rust, validate-schemas]
     if: ${{ github.event.inputs.skip_quality_gate == 'true' }}
@@ -691,7 +691,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   mvsa-acceptance-gate:
     name: MVSA Acceptance Gate
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 10
     needs: [test-python]
     outputs:
@@ -749,7 +749,7 @@ jobs:
 
   quality-gates:
     name: Quality Gates
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 30
     needs: [test-python, test-rust, validate-schemas, cross-lang-sync]
     if: ${{ github.event.inputs.skip_quality_gate != 'true' }}
@@ -1280,7 +1280,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   phase65-masterpiece-gate:
     name: Phase65 Masterpiece Gate
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 25
     needs: [quality-gates, quality-gate-bypass-audit]
     if: ${{ needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success' }}
@@ -1513,7 +1513,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   phase56-security-gate:
     name: Phase56 Security Gate
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 45
     needs: [quality-gates, quality-gate-bypass-audit, phase65-masterpiece-gate]
     if: ${{ needs.phase65-masterpiece-gate.result == 'success' && (needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success') }}
@@ -1566,7 +1566,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   security-scan:
     name: Security Scan
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 20
     needs: [quality-gates, quality-gate-bypass-audit, phase65-masterpiece-gate, phase56-security-gate]
     if: ${{ needs.phase56-security-gate.result == 'success' && (needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success') }}
@@ -1615,7 +1615,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   build-python-image:
     name: Build Python Image
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 20
     needs: [quality-gates, quality-gate-bypass-audit, phase56-security-gate, security-scan]
     if: ${{ needs.phase56-security-gate.result == 'success' && needs.security-scan.result == 'success' && (needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success') }}
@@ -1645,7 +1645,7 @@ jobs:
 
   build-rust-image:
     name: Build Rust Image
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 30
     needs: [quality-gates, quality-gate-bypass-audit, phase56-security-gate, security-scan]
     if: ${{ needs.phase56-security-gate.result == 'success' && needs.security-scan.result == 'success' && (needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success') }}
@@ -1684,7 +1684,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   container-signing:
     name: "Gate 10: Container Signing (cosign)"
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 10
     needs: [build-python-image, build-rust-image]
     if: ${{ needs.build-python-image.result == 'success' && needs.build-rust-image.result == 'success' }}
@@ -1729,7 +1729,7 @@ jobs:
 
   sbom-generation:
     name: "Gate 11: SBOM Generation (syft + grype)"
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 15
     needs: [build-python-image, build-rust-image]
     if: ${{ needs.build-python-image.result == 'success' && needs.build-rust-image.result == 'success' }}
@@ -1780,7 +1780,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   performance-gate:
     name: "Gate 12: Performance Gate (k6)"
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 15
     needs: [build-python-image]
     if: ${{ needs.build-python-image.result == 'success' }}
@@ -1876,7 +1876,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   integration-tests:
     name: Integration Tests
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 20
     needs: [build-python-image, build-rust-image]
     services:
@@ -1924,7 +1924,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   evidence-accumulate:
     name: Evidence Accumulation
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 5
     needs: [lint-python, lint-rust, lint-frontend, test-frontend, build-frontend, validate-schemas, cross-lang-sync, validate-deploy-overlays, test-python, test-rust, quality-gates, mvsa-acceptance-gate, phase65-masterpiece-gate, phase56-security-gate, security-scan, container-signing, sbom-generation, performance-gate]
     if: always()
@@ -2033,7 +2033,7 @@ jobs:
 
   ci-summary:
     name: CI Summary
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 5
     needs: [lint-python, lint-rust, lint-frontend, test-frontend, build-frontend, validate-schemas, validate-deploy-overlays, test-python, test-rust, quality-gates, quality-gate-bypass-audit, mvsa-acceptance-gate, phase65-masterpiece-gate, phase56-security-gate, security-scan, build-python-image, build-rust-image, container-signing, sbom-generation, performance-gate, integration-tests, evidence-accumulate]
     if: always()
