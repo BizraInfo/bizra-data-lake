@@ -20,6 +20,8 @@ bizra-hooks = { path = "../bizra-hooks" }
 bizra-memory = { path = "../bizra-memory" }
 bizra-agent = { path = "../bizra-agent" }
 bizra-action = { path = "../bizra-action" }
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+rand = "0.8"
 bizra-telescript = { path = "../bizra-telescript" }
 bizra-core = { path = "../bizra-core" }
 bizra-inference = { path = "../bizra-inference" }

@@ -10,5 +10,7 @@ publish = false
 [dependencies]
 bizra-core = { path = "../bizra-core" }
 blake3 = { workspace = true }
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+rand = "0.8"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

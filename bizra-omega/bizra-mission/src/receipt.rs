@@ -11,9 +11,13 @@
 
 use crate::mission::Mission;
 use crate::state::{DegradationReason, FailureCode, MissionState};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
 /// The constitutional receipt. Append-only. Tamper-evident via BLAKE3 chain.
+/// Signed by the emitting node's Ed25519 key — no claim without signed receipts.
+///
+/// Standing on: Bernstein (2006) Ed25519, Aumasson (2015) BLAKE3
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionReceipt {
     pub receipt_id: [u8; 32],
@@ -30,6 +34,9 @@ pub struct MissionReceipt {
     pub degradation_reasons: Vec<DegradationReason>,
     pub degradation_tier: u8,
     pub previous_receipt_hash: Option<[u8; 32]>,
+    /// Ed25519 signature over receipt_id. [0u8; 64] = unsigned.
+    #[serde(with = "sig_bytes")]
+    pub signature: [u8; 64],
 }
 
 impl MissionReceipt {
@@ -78,7 +85,46 @@ impl MissionReceipt {
             degradation_reasons: m.degradation_reasons.clone(),
             degradation_tier: tier,
             previous_receipt_hash: previous,
+            signature: [0u8; 64], // unsigned until sign() is called
         }
+    }
+
+    /// Sign this receipt with the node's Ed25519 signing key.
+    /// Called exactly once, immediately after from_mission().
+    /// The signed message is the receipt_id (BLAKE3 hash of all fields).
+    pub fn sign(&mut self, signing_key: &SigningKey) {
+        let sig: Signature = signing_key.sign(&self.receipt_id);
+        self.signature = sig.to_bytes();
+    }
+
+    /// Verify this receipt's Ed25519 signature against a public key.
+    pub fn verify_signature(&self, verifying_key: &VerifyingKey) -> bool {
+        if self.signature == [0u8; 64] {
+            return false; // unsigned receipt
+        }
+        let Ok(sig) = Signature::from_slice(&self.signature) else {
+            return false; // malformed signature
+        };
+        verifying_key.verify(&self.receipt_id, &sig).is_ok()
+    }
+
+    /// Full integrity check: hash + signature + chain link.
+    pub fn verify_full(
+        &self,
+        verifying_key: &VerifyingKey,
+        previous: Option<&MissionReceipt>,
+    ) -> bool {
+        if !self.verify_hash() { return false; }
+        if !self.verify_signature(verifying_key) { return false; }
+        if let Some(prev) = previous {
+            if !self.verify_chain(prev) { return false; }
+        }
+        true
+    }
+
+    /// Is this receipt signed?
+    pub fn is_signed(&self) -> bool {
+        self.signature != [0u8; 64]
     }
 
     /// Receipt ID as hex string.
@@ -112,5 +158,20 @@ impl MissionReceipt {
     /// Verify this receipt chains correctly to the given previous receipt.
     pub fn verify_chain(&self, previous: &MissionReceipt) -> bool {
         self.previous_receipt_hash == Some(previous.receipt_id) && self.verify_hash()
+    }
+}
+
+/// Serde helper for [u8; 64] (Ed25519 signature).
+/// Arrays > 32 don't auto-derive Serialize/Deserialize.
+mod sig_bytes {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S: Serializer>(bytes: &[u8; 64], s: S) -> Result<S::Ok, S::Error> {
+        bytes.as_slice().serialize(s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<[u8; 64], D::Error> {
+        let v: Vec<u8> = Vec::deserialize(d)?;
+        v.try_into().map_err(|_| serde::de::Error::custom("expected 64 bytes for signature"))
     }
 }
