@@ -19,7 +19,6 @@ bizra-federation = { path = "../bizra-federation" }
 blake3.workspace = true
 ed25519-dalek = { workspace = true, features = ["serde", "rand_core"] }
 rand.workspace = true
-sha2 = "0.10"
 
 # Serialization - workspace inherited
 serde.workspace = true

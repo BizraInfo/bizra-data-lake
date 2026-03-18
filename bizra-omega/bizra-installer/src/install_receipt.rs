@@ -2,14 +2,14 @@
 //!
 //! Every installation produces a JSON receipt that serves as both
 //! an audit record and a provenance attestation. Receipts are
-//! hash-chained: each links to the previous via SHA-256 parent_hash.
+//! hash-chained: each links to the previous via BLAKE3 parent_hash.
 //!
 //! Spec Reference: BIZRA Universal Sovereign Installer §17
 //! Standing on Giants: Lamport (hash chains, 1979), Shannon (entropy)
 
 use crate::device_profile::{DeviceProfile, ModelTier};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use blake3::Hasher;
 
 // ─────────────────────────────────────────────────────────────
 // Install Receipt (Spec §17)
@@ -20,10 +20,10 @@ pub struct InstallReceipt {
     /// Receipt version for schema evolution
     pub receipt_version: String,
 
-    /// SHA-256 of the receipt content (computed after creation)
+    /// BLAKE3 of the receipt content (computed after creation)
     pub receipt_hash: String,
 
-    /// SHA-256 of the previous receipt (genesis has "0000...0000")
+    /// BLAKE3 of the previous receipt (genesis has "0000...0000")
     pub parent_hash: String,
 
     /// UTC ISO-8601 timestamp
@@ -158,10 +158,11 @@ impl InstallReceipt {
         receipt
     }
 
-    /// Compute SHA-256 hash of the canonical receipt content.
+    /// Compute BLAKE3 hash of the canonical receipt content.
     /// Excludes the receipt_hash field itself (circular reference).
     fn compute_hash(&self) -> String {
-        let mut hasher = Sha256::new();
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-installer-v1:receipt:");
 
         // Hash all fields except receipt_hash
         hasher.update(self.receipt_version.as_bytes());
@@ -187,11 +188,11 @@ impl InstallReceipt {
             hasher.update(comp.sha256.as_bytes());
         }
 
-        hasher.update(self.duration_seconds.to_le_bytes());
-        hasher.update([self.health_check_passed as u8]);
-        hasher.update(self.ihsan_score.to_le_bytes());
+        hasher.update(&self.duration_seconds.to_le_bytes());
+        hasher.update(&[self.health_check_passed as u8]);
+        hasher.update(&self.ihsan_score.to_le_bytes());
 
-        format!("{:x}", hasher.finalize())
+        hex::encode(hasher.finalize().as_bytes())
     }
 
     /// Verify the receipt hash matches the content.
@@ -261,7 +262,7 @@ mod tests {
     fn receipt_hash_is_deterministic() {
         let r = sample_receipt();
         assert!(!r.receipt_hash.is_empty());
-        assert_eq!(r.receipt_hash.len(), 64); // SHA-256 hex
+        assert_eq!(r.receipt_hash.len(), 64); // BLAKE3 hex
     }
 
     #[test]

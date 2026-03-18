@@ -109,9 +109,8 @@ fn main() -> anyhow::Result<()> {
 
 /// Compute hash of the BIZRA Data Lake knowledge
 fn compute_knowledge_hash() -> [u8; 32] {
-    use sha2::{Digest, Sha256};
-
-    let mut hasher = Sha256::new();
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(b"bizra-genesis-v1:ceremony:");
     hasher.update(b"BIZRA_DATA_LAKE_V1:");
     hasher.update(b"conversations:1241:");
     hasher.update(b"messages:24746:");
@@ -119,5 +118,5 @@ fn compute_knowledge_hash() -> [u8; 32] {
     hasher.update(b"sources:ChatGPT:DeepSeek:Claude:Kimi:GoogleAI:");
     hasher.update(b"concepts:BIZRA:Ihsan:Federation:Sovereign:Proof:Telescript:Pool:Web4:");
     hasher.update(b"standing_on_giants:Shannon:Lamport:Al-Ghazali:Harberger:Rawls:Anthropic:");
-    hasher.finalize().into()
+    *hasher.finalize().as_bytes()
 }
