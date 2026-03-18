@@ -39,6 +39,10 @@
 //! └─────────────────────────────────────────────────────────────────┘
 //! ```
 
+/// Autopoietic loop — self-producing sovereign intelligence cycle.
+pub mod autopoiesis;
+/// State canonicalization — content-addressed state reduction and chain integrity.
+pub mod canonicalize;
 /// Sovereign error types and `Result` alias.
 pub mod error;
 /// Sovereign Experience Ledger — content-addressed episodic memory.
@@ -49,6 +53,8 @@ pub mod giants;
 pub mod graph_of_thoughts;
 /// Self-Evolving Judgment Engine — observation telemetry.
 pub mod judgment_telemetry;
+/// Meta-constitution — constitutional evolution with evidence-backed amendments.
+pub mod meta_constitution;
 /// Omega circuit breaker — resilience and metrics.
 pub mod omega;
 /// Top-level reasoning orchestrator.
@@ -66,3 +72,9 @@ pub use judgment_telemetry::{simulate_epoch_distribution, JudgmentTelemetry, Jud
 pub use omega::{CircuitState, OmegaConfig, OmegaEngine, OmegaMetrics};
 pub use orchestrator::{OrchestratorConfig, SovereignOrchestrator};
 pub use snr_engine::{SNRConfig, SNREngine, SNRStats, SignalMetrics};
+
+pub use autopoiesis::{AutopoieticState, ConvergenceReport, CycleOutcome, VerifiedReward};
+pub use canonicalize::{Canonicalize, CanonicalChain, CanonicalCheckpoint};
+pub use meta_constitution::{
+    AmendmentProposal, AmendmentVerdict, ConstitutionalEra, MetaConstitution,
+};

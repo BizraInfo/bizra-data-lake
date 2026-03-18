@@ -159,6 +159,10 @@ pub use pat::{
 pub use pci::{Gate, GateChain, GateContext, GateResult, PCIEnvelope, RejectCode};
 pub use simd::{blake3_parallel, validate_gates_batch, verify_signatures_batch};
 pub use sovereign::{
+    // Autopoietic loop
+    AutopoieticState, Canonicalize, CanonicalChain, CanonicalCheckpoint, ConstitutionalEra,
+    ConvergenceReport, CycleOutcome, MetaConstitution, VerifiedReward,
+    // Core sovereign types
     CircuitState, Episode, EpisodeAction, EpisodeImpact, ErrorContext, ExperienceLedger,
     GiantRegistry, OmegaConfig, OmegaEngine, OmegaMetrics, OrchestratorConfig, RIRConfig,
     ReasoningPath, SNRConfig, SNREngine, SNRStats, SignalMetrics, SovereignError,
