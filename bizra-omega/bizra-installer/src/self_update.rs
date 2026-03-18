@@ -25,11 +25,11 @@ pub struct UpdateManifest {
     pub to_version: String,
     /// Release timestamp (UTC ISO-8601)
     pub released_at: String,
-    /// BLAKE3 of the full target binary
+    /// BLAKE3 hash of the full target binary
     pub target_sha256: String,
     /// Patch file URL (if delta update available)
     pub patch_url: Option<String>,
-    /// BLAKE3 of the patch file
+    /// BLAKE3 hash of the patch file
     pub patch_sha256: Option<String>,
     /// Full binary URL (fallback if delta fails)
     pub full_url: String,

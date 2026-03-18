@@ -20,10 +20,10 @@ pub struct InstallReceipt {
     /// Receipt version for schema evolution
     pub receipt_version: String,
 
-    /// BLAKE3 of the receipt content (computed after creation)
+    /// BLAKE3 hash of the receipt content (computed after creation)
     pub receipt_hash: String,
 
-    /// BLAKE3 of the previous receipt (genesis has "0000...0000")
+    /// BLAKE3 hash of the previous receipt (genesis has "0000...0000")
     pub parent_hash: String,
 
     /// UTC ISO-8601 timestamp

@@ -109,9 +109,12 @@ fn main() -> anyhow::Result<()> {
 
 /// Compute hash of the BIZRA Data Lake knowledge
 fn compute_knowledge_hash() -> [u8; 32] {
-    let mut hasher = blake3::Hasher::new();
+    use blake3::Hasher;
+
+    let mut hasher = Hasher::new();
     hasher.update(b"bizra-genesis-v1:ceremony:");
     hasher.update(b"BIZRA_DATA_LAKE_V1:");
+
 
     hasher.update(b"conversations:1241:");
     hasher.update(b"messages:24746:");
