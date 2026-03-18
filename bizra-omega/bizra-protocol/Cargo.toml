@@ -1,0 +1,34 @@
+[package]
+name = "bizra-protocol"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "The 26th crate — sovereign node protocol. Wires 25 organs into one living system."
+
+[dependencies]
+# Core BIZRA crates (the organs this crate connects)
+bizra-core = { path = "../bizra-core" }
+bizra-telescript = { path = "../bizra-telescript" }
+bizra-action = { path = "../bizra-action" }
+
+# Cryptography — Ed25519 + BLAKE3 (canonical, NOT SHA-256)
+ed25519-dalek = { workspace = true }
+blake3 = { workspace = true }
+rand = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio = { workspace = true }
