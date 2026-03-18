@@ -2,7 +2,7 @@
 //!
 //! Measures: JCS canonicalization, block ID computation, full validation pipeline
 //!
-//! Standing on Giants: Criterion • RFC 8785 • Ed25519 • SHA-256
+//! Standing on Giants: Criterion • RFC 8785 • Ed25519 • BLAKE3
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 
@@ -415,7 +415,7 @@ fn bench_jcs_canonicalize(c: &mut Criterion) {
 }
 
 // =============================================================================
-// BLOCK ID COMPUTATION BENCHMARKS (SHA-256 over JCS)
+// BLOCK ID COMPUTATION BENCHMARKS (BLAKE3 over JCS)
 // =============================================================================
 
 fn bench_compute_block_id(c: &mut Criterion) {

@@ -91,7 +91,9 @@ impl IhsanVerifier {
 
     /// Compute a hash of the proof for integrity verification
     fn compute_proof_hash(&self, score: f64, verified: bool) -> String {
-        let mut hasher = blake3::Hasher::new();
+        use blake3::Hasher;
+
+        let mut hasher = Hasher::new();
         hasher.update(b"bizra-fate-v1:z3-ihsan:");
         hasher.update(&score.to_le_bytes());
         hasher.update(&IHSAN_THRESHOLD.to_le_bytes());

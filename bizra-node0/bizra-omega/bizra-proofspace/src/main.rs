@@ -219,12 +219,12 @@ fn main() {
     println!("  Min Verifiers:        {MIN_VERIFIER_SIGNATURES}");
     println!();
     println!("  Canonicalization:     RFC 8785 (JCS)");
-    println!("  Hash Algorithm:       SHA-256");
+    println!("  Hash Algorithm:       BLAKE3");
     println!("  Signature Scheme:     Ed25519");
     println!();
     println!("═══════════════════════════════════════════════════════════════════");
     println!("  STANDING ON GIANTS:");
-    println!("  RFC 8785 (2019) • NIST FIPS 180-4 • Bernstein (2012)");
+    println!("  RFC 8785 (2019) • BLAKE3 (2020) • Bernstein (2012)");
     println!("  SMT-LIB2 (2010) • Z3 (2008) • Al-Ghazali (1095)");
     println!("═══════════════════════════════════════════════════════════════════");
 }

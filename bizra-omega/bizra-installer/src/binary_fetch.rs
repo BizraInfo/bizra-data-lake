@@ -81,7 +81,8 @@ pub fn verify_checksum(path: &Path, expected_hex: &str) -> Result<bool> {
     let mut hasher = Hasher::new();
     hasher.update(b"bizra-installer-v1:binary-verify:");
     hasher.update(&bytes);
-    let actual_hex = hex::encode(hasher.finalize().as_bytes());
+    let result = hasher.finalize();
+    let actual_hex = hex::encode(result.as_bytes());
 
     Ok(actual_hex == expected_hex.to_lowercase())
 }

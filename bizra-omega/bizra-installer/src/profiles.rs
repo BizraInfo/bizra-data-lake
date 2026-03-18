@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserProfile {
-    /// Unique profile ID (BLAKE3 of creation timestamp + display_name)
+    /// Unique profile ID (BLAKE3 hash of creation timestamp + display_name)
     pub profile_id: String,
     /// Display name (user-chosen, not personal ID)
     pub display_name: String,
@@ -36,7 +36,7 @@ pub struct UserProfile {
     pub last_active: Option<String>,
     /// Profile-specific data directory (relative to install dir)
     pub data_dir: String,
-    /// BLAKE3 of PIN (stored securely; never the PIN itself)
+    /// BLAKE3 hash of PIN (stored securely; never the PIN itself)
     pub pin_hash: Option<String>,
 }
 
