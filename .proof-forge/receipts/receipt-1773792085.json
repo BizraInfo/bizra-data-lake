@@ -1,0 +1,86 @@
+{
+  "receipt_id": "receipt-1773792085",
+  "chain_position": 6,
+  "previous_hash": "b72a0b369742ec36c25f2f96d7829ac28e03883fc359f7f469a1aa92068a4d01",
+  "evidence_hash": "7ff9142f02a92d07e9b8b692e247fcda476e597db9037389e4ed6f549a835e1a",
+  "timestamp": "2026-03-18T00:01:25.534464+00:00",
+  "description": "Phase 86-B/C CLOSED + Business Docs + 3-Agent Audit + Termux Mobile + Spearpoint Campaign",
+  "session_commits": [
+    "ffb2bde",
+    "6618ab0",
+    "c8636f9",
+    "53f5470"
+  ],
+  "artifacts": {
+    "bizra-omega/bizra-node/src/heartbeat.rs": {
+      "sha256": "f238aab63c15a590d36a0306e291ff76b9fd4f2f8e47f0799408f27e975043ce",
+      "size": 11217
+    },
+    "bizra-omega/bizra-node/src/node.rs": {
+      "sha256": "825b34740af648b3f4c5763d031dd59e1233b065fd0709008feb69abb60feb07",
+      "size": 27649
+    },
+    "bizra-omega/bizra-node/src/handler.rs": {
+      "sha256": "f4804b56718948f7cf13ac288bc7bf3351311752fec8d2d3a4aa95eb3484b13d",
+      "size": 65962
+    },
+    ".github/workflows/resilience-gate.yml": {
+      "sha256": "ad8417a1f35258fe0b284a4e54153b47eb745c152240ac2ee813e6ee6b6dc027",
+      "size": 11875
+    },
+    "scripts/termux/setup_node0_termux.sh": {
+      "sha256": "056f7f78890e89f4f363766cca2a46079fccf40cd06259f6884759aad415691a",
+      "size": 6813
+    },
+    "docs/business/investor_pitch.md": {
+      "sha256": "80d3e8d1bef5f62a347a5189cdacc103f100334d0e8c5f15d6be1cb5d9be4017",
+      "size": 7687
+    },
+    "docs/business/BIZRA_MARKET_SIZING_2026.md": {
+      "sha256": "1d6611e0093471ce5b74fdf305a73f0498af384a74e02f37d1a3ec665a07a99b",
+      "size": 26575
+    },
+    "docs/business/BIZRA_COMPETITOR_ANALYSIS_2026.md": {
+      "sha256": "cd26843a71d2682f80f8f4fa14da801f309e7120653b85a72c0205dc0aab8319",
+      "size": 6770
+    }
+  },
+  "verification": {
+    "rust_tests": {
+      "passed": 38,
+      "failed": 0,
+      "status": "PASS"
+    },
+    "python_smoke": {
+      "passed": 15,
+      "failed": 0,
+      "status": "PASS"
+    },
+    "spearpoint_campaign": {
+      "targets": 3,
+      "gates": 12,
+      "all_pass": true,
+      "run_id": "23e385a2c870"
+    },
+    "autopoiesis_tests": {
+      "passed": 378,
+      "failed": 0,
+      "status": "PASS"
+    },
+    "daemon_health": {
+      "uptime_hours": 11.5,
+      "errors": 0,
+      "rss_mb": 549,
+      "cycles": 16639
+    },
+    "total_tests_verified": 12948,
+    "audit_agents": {
+      "architecture": "complete",
+      "security": "complete",
+      "quality": "complete"
+    },
+    "composite_snr": 0.96
+  },
+  "confidence": "Ironclad",
+  "confidence_level": 5
+}
