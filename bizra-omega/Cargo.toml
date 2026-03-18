@@ -33,6 +33,8 @@ members = [
     "bizra-sippar",
     # ━━━ Mission Control Plane (sovereign lifecycle for every cognitive operation) ━━━
     "bizra-mission",
+    # ━━━ Protocol Layer (the 26th crate — wires 25 organs into one living system) ━━━
+    "bizra-protocol",
 ]
 
 [workspace.package]
