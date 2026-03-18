@@ -181,7 +181,7 @@ pub struct ActionReceipt {
     pub policy_hash: [u8; 32],
     pub receipt_hash: [u8; 32],
     pub prev_receipt_hash: [u8; 32],
-    /// SHA-256 hash of post-action screenshot, proving the action's
+    /// BLAKE3 hash of post-action screenshot, proving the action's
     /// effect on the desktop. Currently only proves attempt, not success;
     /// this field proves both.  `None` when no screenshot was captured.
     pub outcome_hash: Option<[u8; 32]>,

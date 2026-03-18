@@ -2,7 +2,7 @@
 //!
 //! Nodes must be able to update themselves without external dependence.
 //! Updates use delta patches (binary diff) to minimize bandwidth.
-//! Every update is verified via SHA-256 checksum before applying.
+//! Every update is verified via BLAKE3 checksum before applying.
 //!
 //! Spec Reference: BIZRA Universal Sovereign Installer §14
 //! Standing on Giants: Lamport (state transitions), Torvalds (git delta)
@@ -11,7 +11,7 @@
 //! A malformed update is worse than no update.
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use blake3::Hasher;
 
 // ─────────────────────────────────────────────────────────────
 // Update Manifest
@@ -25,11 +25,11 @@ pub struct UpdateManifest {
     pub to_version: String,
     /// Release timestamp (UTC ISO-8601)
     pub released_at: String,
-    /// SHA-256 of the full target binary
+    /// BLAKE3 hash of the full target binary
     pub target_sha256: String,
     /// Patch file URL (if delta update available)
     pub patch_url: Option<String>,
-    /// SHA-256 of the patch file
+    /// BLAKE3 hash of the patch file
     pub patch_sha256: Option<String>,
     /// Full binary URL (fallback if delta fails)
     pub full_url: String,
@@ -86,12 +86,13 @@ pub fn needs_update(current: &str, target: &str) -> bool {
 // Checksum Verification
 // ─────────────────────────────────────────────────────────────
 
-/// Verify a file's SHA-256 matches the expected hash.
+/// Verify a file's BLAKE3 hash matches the expected hash.
 pub fn verify_file_checksum(path: &std::path::Path, expected_sha256: &str) -> Result<bool, String> {
     let data = std::fs::read(path).map_err(|e| format!("Cannot read {}: {e}", path.display()))?;
-    let mut hasher = Sha256::new();
+    let mut hasher = Hasher::new();
+    hasher.update(b"bizra-installer-v1:self-update:");
     hasher.update(&data);
-    let computed = format!("{:x}", hasher.finalize());
+    let computed = hex::encode(hasher.finalize().as_bytes());
     Ok(computed == expected_sha256)
 }
 

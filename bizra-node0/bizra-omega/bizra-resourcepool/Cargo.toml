@@ -54,10 +54,6 @@ tokio-test = "0.4"
 criterion = "0.5"
 proptest = "1.4"
 
-[[bench]]
-name = "resourcepool_benchmark"
-harness = false
-
 [[bin]]
 name = "resourcepool-node"
 path = "src/main.rs"
