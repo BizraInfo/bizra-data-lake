@@ -31,3 +31,4 @@ bizra-sippar = { path = "../bizra-sippar" }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }
+hex.workspace = true
