@@ -28,7 +28,6 @@ hex = "0.4"
 blake3 = "1"
 toml = "0.8"
 ureq = { version = "2", features = ["json"] }
-sha2 = "0.10"
 chrono.workspace = true
 
 [dev-dependencies]

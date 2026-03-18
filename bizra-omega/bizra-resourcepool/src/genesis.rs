@@ -11,7 +11,7 @@ use chrono::Utc;
 use ed25519_dalek::SigningKey;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use blake3::Hasher;
 
 // =============================================================================
 // GENESIS CONSTANTS
@@ -338,12 +338,13 @@ impl GenesisEngine {
         let node_id = self.derive_node_id(&public_key);
         let created_at = Utc::now().timestamp_millis() as u64;
 
-        let mut hasher = Sha256::new();
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-genesis-v1:identity:");
         hasher.update(node_id.as_bytes());
         hasher.update(public_key.as_bytes());
         hasher.update(name.as_bytes());
         hasher.update(location.as_bytes());
-        let identity_hash: [u8; 32] = hasher.finalize().into();
+        let identity_hash: [u8; 32] = *hasher.finalize().as_bytes();
 
         Node0Identity {
             node_id,
@@ -357,11 +358,11 @@ impl GenesisEngine {
 
     /// Derive node ID from public key
     fn derive_node_id(&self, public_key: &str) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(b"BIZRA_NODE_ID_V1:");
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-genesis-v1:node-id:");
         hasher.update(public_key.as_bytes());
         let hash = hasher.finalize();
-        format!("node0_{}", hex::encode(&hash[..8]))
+        format!("node0_{}", hex::encode(&hash.as_bytes()[..8]))
     }
 
     /// Mint the 7 PAT agents
@@ -393,11 +394,12 @@ impl GenesisEngine {
             let public_key = hex::encode(signing_key.verifying_key().as_bytes());
             let agent_id = format!("pat_{}_{}", role.to_lowercase(), &public_key[..8]);
 
-            let mut hasher = Sha256::new();
+            let mut hasher = Hasher::new();
+            hasher.update(b"bizra-genesis-v1:pat-agent:");
             hasher.update(agent_id.as_bytes());
             hasher.update(public_key.as_bytes());
             hasher.update(role.as_bytes());
-            let agent_hash: [u8; 32] = hasher.finalize().into();
+            let agent_hash: [u8; 32] = *hasher.finalize().as_bytes();
 
             agents.push(MintedAgent {
                 agent_id,
@@ -410,12 +412,13 @@ impl GenesisEngine {
             });
         }
 
-        let mut hasher = Sha256::new();
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-genesis-v1:pat-team:");
         hasher.update(owner_node.as_bytes());
         for agent in &agents {
-            hasher.update(agent.agent_hash);
+            hasher.update(&agent.agent_hash);
         }
-        let team_hash: [u8; 32] = hasher.finalize().into();
+        let team_hash: [u8; 32] = *hasher.finalize().as_bytes();
 
         PersonalAgentTeam {
             owner_node: owner_node.to_string(),
@@ -449,11 +452,12 @@ impl GenesisEngine {
             let public_key = hex::encode(signing_key.verifying_key().as_bytes());
             let agent_id = format!("sat_{}_{}", role.to_lowercase(), &public_key[..8]);
 
-            let mut hasher = Sha256::new();
+            let mut hasher = Hasher::new();
+            hasher.update(b"bizra-genesis-v1:sat-agent:");
             hasher.update(agent_id.as_bytes());
             hasher.update(public_key.as_bytes());
             hasher.update(role.as_bytes());
-            let agent_hash: [u8; 32] = hasher.finalize().into();
+            let agent_hash: [u8; 32] = *hasher.finalize().as_bytes();
 
             agents.push(MintedAgent {
                 agent_id,
@@ -466,12 +470,12 @@ impl GenesisEngine {
             });
         }
 
-        let mut hasher = Sha256::new();
-        hasher.update(b"BIZRA_SAT_GENESIS");
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-genesis-v1:sat-team:");
         for agent in &agents {
-            hasher.update(agent.agent_hash);
+            hasher.update(&agent.agent_hash);
         }
-        let team_hash: [u8; 32] = hasher.finalize().into();
+        let team_hash: [u8; 32] = *hasher.finalize().as_bytes();
 
         SharedAgentTeam {
             agents,
@@ -491,13 +495,13 @@ impl GenesisEngine {
         hardware: &HardwareContribution,
         knowledge: &KnowledgeContribution,
     ) -> [u8; 32] {
-        let mut hasher = Sha256::new();
-        hasher.update(b"BIZRA_PARTNERSHIP_V1:");
-        hasher.update(identity.identity_hash);
-        hasher.update(hardware.compute_units_per_day.to_le_bytes());
-        hasher.update(knowledge.knowledge_hash);
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-genesis-v1:partnership:");
+        hasher.update(&identity.identity_hash);
+        hasher.update(&hardware.compute_units_per_day.to_le_bytes());
+        hasher.update(&knowledge.knowledge_hash);
         hasher.update(b":MUSHARAKAH"); // Partnership model
-        hasher.finalize().into()
+        *hasher.finalize().as_bytes()
     }
 
     /// Compute the genesis block hash
@@ -510,16 +514,16 @@ impl GenesisEngine {
         sat_team: &SharedAgentTeam,
         partnership_hash: &[u8; 32],
     ) -> [u8; 32] {
-        let mut hasher = Sha256::new();
-        hasher.update(b"BIZRA_GENESIS_BLOCK_V1:");
-        hasher.update(identity.identity_hash);
-        hasher.update(hardware.compute_units_per_day.to_le_bytes());
-        hasher.update(knowledge.knowledge_hash);
-        hasher.update(pat_team.team_hash);
-        hasher.update(sat_team.team_hash);
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-genesis-v1:genesis-block:");
+        hasher.update(&identity.identity_hash);
+        hasher.update(&hardware.compute_units_per_day.to_le_bytes());
+        hasher.update(&knowledge.knowledge_hash);
+        hasher.update(&pat_team.team_hash);
+        hasher.update(&sat_team.team_hash);
         hasher.update(partnership_hash);
         hasher.update(b":NODE0");
-        hasher.finalize().into()
+        *hasher.finalize().as_bytes()
     }
 }
 
@@ -551,8 +555,8 @@ mod tests {
     }
 
     fn test_knowledge() -> KnowledgeContribution {
-        let mut hasher = Sha256::new();
-        hasher.update(b"BIZRA_DATA_LAKE_2023_2025");
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-genesis-v1:knowledge:");
         KnowledgeContribution {
             conversations: 1241,
             messages: 24746,
@@ -564,7 +568,7 @@ mod tests {
                 "Ihsān".to_string(),
                 "Federation".to_string(),
             ],
-            knowledge_hash: hasher.finalize().into(),
+            knowledge_hash: *hasher.finalize().as_bytes(),
         }
     }
 

@@ -40,7 +40,6 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 # Hashing for model fingerprinting
-sha2 = { workspace = true }
 blake3 = { workspace = true }
 
 # Hex encoding/decoding

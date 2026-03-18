@@ -11,7 +11,7 @@
 //! is absolute — no cross-profile leakage.
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use blake3::Hasher;
 use std::path::{Path, PathBuf};
 
 // ─────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserProfile {
-    /// Unique profile ID (SHA-256 of creation timestamp + display_name)
+    /// Unique profile ID (BLAKE3 hash of creation timestamp + display_name)
     pub profile_id: String,
     /// Display name (user-chosen, not personal ID)
     pub display_name: String,
@@ -36,17 +36,18 @@ pub struct UserProfile {
     pub last_active: Option<String>,
     /// Profile-specific data directory (relative to install dir)
     pub data_dir: String,
-    /// SHA-256 of PIN (stored securely; never the PIN itself)
+    /// BLAKE3 hash of PIN (stored securely; never the PIN itself)
     pub pin_hash: Option<String>,
 }
 
 impl UserProfile {
     pub fn new(display_name: &str, locale: &str, is_primary: bool) -> Self {
         let now = chrono::Utc::now().to_rfc3339();
-        let mut hasher = Sha256::new();
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-installer-v1:profile:");
         hasher.update(now.as_bytes());
         hasher.update(display_name.as_bytes());
-        let profile_id = format!("{:x}", hasher.finalize());
+        let profile_id = hex::encode(hasher.finalize().as_bytes());
         // Use first 16 chars for brevity
         let short_id = &profile_id[..16];
 
@@ -64,22 +65,24 @@ impl UserProfile {
     }
 
     /// Set a PIN for profile protection.
-    /// The PIN is SHA-256 hashed with a salt (profile_id) before storage.
+    /// The PIN is BLAKE3 hashed with a salt (profile_id) before storage.
     pub fn set_pin(&mut self, pin: &str) {
-        let mut hasher = Sha256::new();
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-installer-v1:profile:");
         hasher.update(self.profile_id.as_bytes()); // Salt
         hasher.update(pin.as_bytes());
-        self.pin_hash = Some(format!("{:x}", hasher.finalize()));
+        self.pin_hash = Some(hex::encode(hasher.finalize().as_bytes()));
     }
 
     /// Verify a PIN against the stored hash.
     pub fn verify_pin(&self, pin: &str) -> bool {
         match &self.pin_hash {
             Some(stored) => {
-                let mut hasher = Sha256::new();
+                let mut hasher = Hasher::new();
+                hasher.update(b"bizra-installer-v1:profile:");
                 hasher.update(self.profile_id.as_bytes());
                 hasher.update(pin.as_bytes());
-                let computed = format!("{:x}", hasher.finalize());
+                let computed = hex::encode(hasher.finalize().as_bytes());
                 // Constant-time comparison to prevent timing attacks
                 constant_time_eq(stored.as_bytes(), computed.as_bytes())
             }

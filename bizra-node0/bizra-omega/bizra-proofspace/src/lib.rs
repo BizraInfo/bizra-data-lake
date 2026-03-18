@@ -5,14 +5,14 @@
 //! # Block Schema Specification
 //!
 //! - Canonicalization: RFC 8785 (JCS)
-//! - Hash: `block_id = SHA-256(JCS(UnsignedBlock))`
+//! - Hash: `block_id = BLAKE3(JCS(UnsignedBlock))`
 //! - UnsignedBlock = { core(without block_id), body }
 //! - Signatures excluded from hash input
 //!
 //! # Standing on Giants
 //!
 //! - RFC 8785 (2019): JSON Canonicalization Scheme
-//! - SHA-256: NIST FIPS 180-4
+//! - BLAKE3: O'Connor et al. (2020)
 //! - Ed25519: Bernstein et al. (2012)
 //! - SMT-LIB2: Barrett et al. (2010)
 //! - Z3: de Moura & Bjørner (2008)
@@ -21,7 +21,7 @@ use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use blake3::Hasher;
 use std::collections::HashSet;
 use thiserror::Error;
 
@@ -625,13 +625,14 @@ pub fn jcs_canonicalize<T: Serialize>(value: &T) -> Result<Vec<u8>> {
     Ok(canonical.into_bytes())
 }
 
-/// Compute block_id = SHA-256(JCS(UnsignedBlock))
+/// Compute block_id = BLAKE3(JCS(UnsignedBlock))
 pub fn compute_block_id(unsigned: &UnsignedBlock) -> Result<String> {
     let canonical_bytes = jcs_canonicalize(unsigned)?;
-    let mut hasher = Sha256::new();
+    let mut hasher = Hasher::new();
+    hasher.update(b"bizra-proof-v1:hash:");
     hasher.update(&canonical_bytes);
     let hash = hasher.finalize();
-    Ok(hex::encode(hash))
+    Ok(hex::encode(hash.as_bytes()))
 }
 
 // =============================================================================
@@ -1073,7 +1074,7 @@ impl ProofSpaceValidator {
             }
         })?);
 
-        // Sign the hash of the block_id (which is already SHA-256 of UnsignedBlock)
+        // Sign the hash of the block_id (which is already BLAKE3 of UnsignedBlock)
         let hash_bytes = hex::decode(block_id).map_err(|_| ValidationError::CryptoError {
             reason: "Invalid block_id hex".to_string(),
         })?;
