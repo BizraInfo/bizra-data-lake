@@ -4,7 +4,7 @@
 //! for Alpha-100 installation.
 
 use anyhow::{Context, Result};
-use sha2::{Digest, Sha256};
+use blake3::Hasher;
 use std::path::{Path, PathBuf};
 
 /// Paths to key binaries managed by the installer.
@@ -72,16 +72,16 @@ pub fn locate_node_binary() -> Option<PathBuf> {
     None
 }
 
-/// Compute the SHA-256 checksum of a file and compare it to the expected hex.
+/// Compute the BLAKE3 checksum of a file and compare it to the expected hex.
 /// Returns `Ok(true)` if they match, `Ok(false)` if they differ.
 pub fn verify_checksum(path: &Path, expected_hex: &str) -> Result<bool> {
     let bytes = std::fs::read(path)
         .with_context(|| format!("Failed to read file for checksum: {}", path.display()))?;
 
-    let mut hasher = Sha256::new();
+    let mut hasher = Hasher::new();
+    hasher.update(b"bizra-installer-v1:binary-verify:");
     hasher.update(&bytes);
-    let result = hasher.finalize();
-    let actual_hex = hex::encode(result);
+    let actual_hex = hex::encode(hasher.finalize().as_bytes());
 
     Ok(actual_hex == expected_hex.to_lowercase())
 }
@@ -135,10 +135,11 @@ mod tests {
         let content = b"deterministic content for checksum test";
         std::fs::write(&file_path, content).expect("write");
 
-        // Compute expected SHA-256
-        let mut hasher = Sha256::new();
+        // Compute expected BLAKE3
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-installer-v1:binary-verify:");
         hasher.update(content);
-        let expected = hex::encode(hasher.finalize());
+        let expected = hex::encode(hasher.finalize().as_bytes());
 
         let result = verify_checksum(&file_path, &expected).expect("verify");
         assert!(result, "Checksum should match");
@@ -168,9 +169,10 @@ mod tests {
         let content = b"case test";
         std::fs::write(&file_path, content).expect("write");
 
-        let mut hasher = Sha256::new();
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-installer-v1:binary-verify:");
         hasher.update(content);
-        let expected_lower = hex::encode(hasher.finalize());
+        let expected_lower = hex::encode(hasher.finalize().as_bytes());
         let expected_upper = expected_lower.to_uppercase();
 
         let result = verify_checksum(&file_path, &expected_upper).expect("verify");

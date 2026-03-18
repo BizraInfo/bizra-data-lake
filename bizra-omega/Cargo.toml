@@ -85,7 +85,6 @@ z3 = "0.12"
 # ━━━ Post-Quantum Crypto (fate-binding) ━━━
 pqcrypto-mldsa = "0.1"
 pqcrypto-traits = "0.3"
-sha2 = "0.10"
 hex = "0.4"
 
 # ━━━ IPC (iceoryx-bridge) ━━━

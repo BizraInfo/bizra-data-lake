@@ -21,7 +21,7 @@ use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use blake3::Hasher;
 use std::collections::HashSet;
 use thiserror::Error;
 
@@ -625,13 +625,14 @@ pub fn jcs_canonicalize<T: Serialize>(value: &T) -> Result<Vec<u8>> {
     Ok(canonical.into_bytes())
 }
 
-/// Compute block_id = SHA-256(JCS(UnsignedBlock))
+/// Compute block_id = BLAKE3(JCS(UnsignedBlock))
 pub fn compute_block_id(unsigned: &UnsignedBlock) -> Result<String> {
     let canonical_bytes = jcs_canonicalize(unsigned)?;
-    let mut hasher = Sha256::new();
+    let mut hasher = Hasher::new();
+    hasher.update(b"bizra-proof-v1:hash:");
     hasher.update(&canonical_bytes);
     let hash = hasher.finalize();
-    Ok(hex::encode(hash))
+    Ok(hex::encode(hash.as_bytes()))
 }
 
 // =============================================================================
