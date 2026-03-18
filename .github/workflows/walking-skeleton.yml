@@ -1,0 +1,57 @@
+name: Walking Skeleton
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  skeleton-rust:
+    name: Rust Walking Skeleton
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            bizra-omega/target/
+          key: ${{ runner.os }}-cargo-skeleton-${{ hashFiles('bizra-omega/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-skeleton-
+
+      - name: Rust Walking Skeleton Test
+        working-directory: bizra-omega
+        run: cargo test --package bizra-core --test walking_skeleton_test -- --nocapture
+
+      - name: Rust Walking Skeleton Binary
+        working-directory: bizra-omega
+        run: cargo run --package bizra-core --bin walking_skeleton
+
+  skeleton-python:
+    name: Python Walking Skeleton
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pytest
+
+      - name: Python Walking Skeleton Test
+        run: python -m pytest tests/core/test_walking_skeleton.py -v --tb=short

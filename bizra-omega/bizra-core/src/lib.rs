@@ -38,6 +38,8 @@ pub mod pci;
 pub mod simd;
 /// Sovereign reasoning — Graph-of-Thoughts, SNR engine, Giants protocol, Omega circuit.
 pub mod sovereign;
+/// Walking Skeleton — thinnest end-to-end constitutional liveness proof.
+pub mod walking_skeleton;
 
 pub use constitution::{Constitution, IhsanThreshold};
 pub use genesis::{
@@ -168,6 +170,7 @@ pub use sovereign::{
     ReasoningPath, SNRConfig, SNREngine, SNRStats, SignalMetrics, SovereignError,
     SovereignOrchestrator, SovereignResult, ThoughtGraph, ThoughtNode, ThoughtType,
 };
+pub use walking_skeleton::{run_skeleton, SkeletonReceipt};
 
 /// Domain separation prefix for all cryptographic operations
 pub const DOMAIN_PREFIX: &[u8] = b"bizra-pci-v1:";
