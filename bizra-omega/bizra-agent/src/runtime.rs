@@ -285,6 +285,9 @@ impl AgentRuntime {
             parse_hex_32(config.policy_hash_hex.as_str())
         };
 
+        // Capture ihsan_floor before config fields are moved
+        let initial_ihsan = config.ihsan_floor;
+
         let pipeline = MemoryPipeline::with_config(config.pipeline_config);
         let orchestrator = TaskOrchestrator::with_config(config.orchestrator_config);
         // AgentRoster auto-creates all 7 PAT agents at construction
@@ -324,7 +327,7 @@ impl AgentRuntime {
             orchestrator,
             config,
             state: RuntimeState::Ready,
-            current_ihsan: IhsanScore::from_raw(9900),
+            current_ihsan: initial_ihsan,
             current_session: None,
             total_conversations: 0,
             fragment_seq: 0,

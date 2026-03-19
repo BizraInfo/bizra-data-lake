@@ -491,15 +491,13 @@ fn execute_with_ollama_gateway(content: &str, timestamp: u64) -> Result<(String,
             ..Default::default()
         };
 
+        // Use infer() not infer_with_ihsan_gate() — the node's own Mission
+        // lifecycle (W4 wiring) handles constitutional scoring. Double-gating
+        // at the gateway level blocks valid responses from small models.
         let response = gateway
-            .infer_with_ihsan_gate(request, IHSAN_THRESHOLD)
+            .infer(request)
             .await
-            .map_err(|e| match e {
-                GatewayError::IhsanGateFailed { score, threshold } => {
-                    format!("ihsan_gate_failed:{score:.4}<{threshold:.4}")
-                }
-                other => format!("inference_error:{other}"),
-            })?;
+            .map_err(|e| format!("inference_error:{e}"))?;
 
         let score = InferenceGateway::estimate_ihsan_score(&response);
         Ok((response.model, score))

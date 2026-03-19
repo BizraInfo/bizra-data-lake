@@ -135,7 +135,9 @@ impl Node {
     /// Create a new Node from configuration.
     pub fn new(config: NodeConfig) -> Self {
         let runtime = AgentRuntime::with_config(config.runtime_config.clone());
-        let ihsan = IhsanScore::from_raw(config.ihsan_floor.max(9500));
+        // ihsan_floor is 0-10000 scale from CLI; convert to f64 (0.0-1.0) for IhsanScore.
+        // 9500 CLI → 0.95 f64 → 62258 raw u16. NOT from_raw(9500) which gives 0.145.
+        let ihsan = IhsanScore::from_f64(config.ihsan_floor.max(9500) as f64 / 10000.0);
 
         let mut node = Node {
             config,
