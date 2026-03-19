@@ -1,0 +1,22 @@
+{
+  "version": "bizra-genesis-mission-v1",
+  "timestamp": "2026-03-20T00:29:43+0400",
+  "mission": "Explain in a detailed paragraph why constitutional governance matters for autonomous AI agents, covering trust, accountability, and the difference between governed and ungoverned systems.",
+  "model": "llama3.1:8b",
+  "response_preview": "Constitutional governance is crucial for autonomous AI agents as it establishes a framework for decision-making, ensures transparency, and promotes accountability. In an era where AI systems are incre",
+  "content_hash": "b70843366999b4c9f6e83a0937982b8fbfb7527df6e78d44013eb8e6ab736bd1",
+  "receipt_hash": "195d4910c642f5bb2c95c42ffc06023b1459a22beb9d9200fdd7aaa9cbc04f5e",
+  "snr_score": 0.6187,
+  "ihsan_composite": 0.6496,
+  "duration_ms": 5009,
+  "llm_duration_ms": 5006,
+  "python_chain_height": 2,
+  "python_chain_valid": true,
+  "rust_bridge_forwarded": 2,
+  "rust_bridge_failed": 0,
+  "rust_module_version": "2.0.0",
+  "constitutional_thresholds": {
+    "ihsan_floor": 0.95,
+    "snr_floor": 0.85
+  }
+}
