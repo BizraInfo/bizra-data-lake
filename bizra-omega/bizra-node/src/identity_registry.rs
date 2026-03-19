@@ -69,11 +69,7 @@ impl IdentityRegistry {
 
     /// Register an agent identity. Returns the verifying key.
     /// Called during genesis mint or agent creation.
-    pub fn register_agent(
-        &mut self,
-        agent_id: &str,
-        block_number: u64,
-    ) -> VerifyingKey {
+    pub fn register_agent(&mut self, agent_id: &str, block_number: u64) -> VerifyingKey {
         let signing_key = SigningKey::generate(&mut rand::rngs::OsRng);
         let verifying_key = signing_key.verifying_key();
 
@@ -91,9 +87,9 @@ impl IdentityRegistry {
     /// Verify that a signer is registered and active.
     /// Amanah gate: unknown signers are rejected.
     pub fn verify_signer(&self, verifying_key: &VerifyingKey) -> Option<&AgentIdentity> {
-        self.agents.values().find(|id| {
-            id.active && id.verifying_key == *verifying_key
-        })
+        self.agents
+            .values()
+            .find(|id| id.active && id.verifying_key == *verifying_key)
     }
 
     /// Deactivate an agent identity (revocation).
@@ -130,12 +126,20 @@ impl IdentityRegistry {
     /// Creates Ed25519 keypairs for all 12 founding agents.
     pub fn mint_genesis_agents(&mut self) -> Vec<(String, VerifyingKey)> {
         let pat_agents = [
-            "P1-Navigator", "P2-Scholar", "P3-Artisan", "P4-Guardian",
-            "P5-Mentor", "P6-Diplomat", "P7-Oracle",
+            "P1-Navigator",
+            "P2-Scholar",
+            "P3-Artisan",
+            "P4-Guardian",
+            "P5-Mentor",
+            "P6-Diplomat",
+            "P7-Oracle",
         ];
         let sat_agents = [
-            "S1-Validator", "S2-Oracle", "S3-Mediator",
-            "S4-Archivist", "S5-Sentinel",
+            "S1-Validator",
+            "S2-Oracle",
+            "S3-Mediator",
+            "S4-Archivist",
+            "S5-Sentinel",
         ];
 
         let mut minted = Vec::new();

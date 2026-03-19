@@ -31,44 +31,98 @@ SCAN_ROOTS = [
 
 # Skip directories that are not work product
 SKIP_DIRS = {
-    ".git", "node_modules", ".venv", ".venv-linux", ".venv-apex",
-    "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache",
-    ".cache", ".hypothesis", ".benchmarks", "dist", ".next",
-    ".swarm", ".claude-flow", ".fastembed_cache", "coverage",
+    ".git",
+    "node_modules",
+    ".venv",
+    ".venv-linux",
+    ".venv-apex",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".cache",
+    ".hypothesis",
+    ".benchmarks",
+    "dist",
+    ".next",
+    ".swarm",
+    ".claude-flow",
+    ".fastembed_cache",
+    "coverage",
 }
 
 # Skip binary extensions that are not work product
 SKIP_EXTENSIONS = {
-    ".exe", ".dll", ".so", ".dylib", ".whl",
-    ".pyc", ".pyo", ".o", ".a", ".lib",
-    ".lock", ".idx", ".pack",
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".whl",
+    ".pyc",
+    ".pyo",
+    ".o",
+    ".a",
+    ".lib",
+    ".lock",
+    ".idx",
+    ".pack",
 }
 
 # File classification by extension
 CLASSIFY = {
     # Code
-    ".py": "code/python", ".rs": "code/rust", ".ts": "code/typescript",
-    ".tsx": "code/typescript", ".js": "code/javascript", ".jsx": "code/react",
-    ".sol": "code/solidity", ".sh": "code/shell", ".ps1": "code/powershell",
-    ".bat": "code/batch", ".sql": "code/sql", ".r": "code/r",
+    ".py": "code/python",
+    ".rs": "code/rust",
+    ".ts": "code/typescript",
+    ".tsx": "code/typescript",
+    ".js": "code/javascript",
+    ".jsx": "code/react",
+    ".sol": "code/solidity",
+    ".sh": "code/shell",
+    ".ps1": "code/powershell",
+    ".bat": "code/batch",
+    ".sql": "code/sql",
+    ".r": "code/r",
     # Documents
-    ".md": "doc/markdown", ".txt": "doc/text", ".pdf": "doc/pdf",
-    ".docx": "doc/word", ".pptx": "doc/presentation", ".xlsx": "doc/spreadsheet",
+    ".md": "doc/markdown",
+    ".txt": "doc/text",
+    ".pdf": "doc/pdf",
+    ".docx": "doc/word",
+    ".pptx": "doc/presentation",
+    ".xlsx": "doc/spreadsheet",
     # Research / Data
-    ".json": "data/json", ".jsonl": "data/jsonl", ".yaml": "data/yaml",
-    ".yml": "data/yaml", ".toml": "data/toml", ".csv": "data/csv",
-    ".parquet": "data/parquet", ".db": "data/database", ".sqlite": "data/database",
+    ".json": "data/json",
+    ".jsonl": "data/jsonl",
+    ".yaml": "data/yaml",
+    ".yml": "data/yaml",
+    ".toml": "data/toml",
+    ".csv": "data/csv",
+    ".parquet": "data/parquet",
+    ".db": "data/database",
+    ".sqlite": "data/database",
     # Web
-    ".html": "web/html", ".css": "web/css", ".svg": "web/svg",
+    ".html": "web/html",
+    ".css": "web/css",
+    ".svg": "web/svg",
     # Config
-    ".env": "config/env", ".ini": "config/ini", ".cfg": "config/cfg",
-    ".gitignore": "config/git", ".dockerignore": "config/docker",
+    ".env": "config/env",
+    ".ini": "config/ini",
+    ".cfg": "config/cfg",
+    ".gitignore": "config/git",
+    ".dockerignore": "config/docker",
     # Media
-    ".png": "media/image", ".jpg": "media/image", ".jpeg": "media/image",
-    ".gif": "media/image", ".webp": "media/image", ".mp4": "media/video",
-    ".m4a": "media/audio", ".wav": "media/audio",
+    ".png": "media/image",
+    ".jpg": "media/image",
+    ".jpeg": "media/image",
+    ".gif": "media/image",
+    ".webp": "media/image",
+    ".mp4": "media/video",
+    ".m4a": "media/audio",
+    ".wav": "media/audio",
     # Archives
-    ".zip": "archive/zip", ".tar": "archive/tar", ".gz": "archive/gzip",
+    ".zip": "archive/zip",
+    ".tar": "archive/tar",
+    ".gz": "archive/gzip",
     ".tgz": "archive/gzip",
 }
 
@@ -125,18 +179,20 @@ def scan_directory(root: Path) -> list[dict]:
                 continue
             try:
                 stat = fp.stat()
-                results.append({
-                    "path": str(fp),
-                    "name": fname,
-                    "ext": ext,
-                    "size": stat.st_size,
-                    "modified": datetime.fromtimestamp(
-                        stat.st_mtime, tz=timezone.utc
-                    ).isoformat(),
-                    "kind": classify_file(fp),
-                    "source_root": str(root),
-                    "hash": "",  # Filled in dedup pass
-                })
+                results.append(
+                    {
+                        "path": str(fp),
+                        "name": fname,
+                        "ext": ext,
+                        "size": stat.st_size,
+                        "modified": datetime.fromtimestamp(
+                            stat.st_mtime, tz=timezone.utc
+                        ).isoformat(),
+                        "kind": classify_file(fp),
+                        "source_root": str(root),
+                        "hash": "",  # Filled in dedup pass
+                    }
+                )
             except (PermissionError, OSError):
                 continue
     return results
@@ -158,7 +214,7 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
         found = scan_directory(root)
         print(f"    → {len(found):,} files found")
         all_files.extend(found)
-    
+
     scan_time = time.perf_counter() - t0
     print(f"\n  Total files discovered: {len(all_files):,} in {scan_time:.1f}s")
 
@@ -191,19 +247,21 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
     for i, f in enumerate(all_files):
         key = (f["name"], f["size"])
         candidates[key].append(i)
-    
+
     # Only fingerprint files that share (name, size) with another
     dup_groups = {k: v for k, v in candidates.items() if len(v) > 1}
     fingerprint_count = sum(len(v) for v in dup_groups.values())
-    print(f"    Candidate duplicates: {len(dup_groups):,} groups ({fingerprint_count:,} files)")
-    
+    print(
+        f"    Candidate duplicates: {len(dup_groups):,} groups ({fingerprint_count:,} files)"
+    )
+
     hashed = 0
     for key, indices in dup_groups.items():
         for idx in indices:
             fp = Path(all_files[idx]["path"])
             all_files[idx]["hash"] = fingerprint(fp)
             hashed += 1
-    
+
     # Count actual duplicates (same hash)
     hash_groups = defaultdict(list)
     for f in all_files:
@@ -221,13 +279,15 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
 
     dedup_time = time.perf_counter() - t1
     print(f"    Fingerprinted: {hashed:,} files in {dedup_time:.1f}s")
-    print(f"    Confirmed duplicates: {len(actual_dups):,} groups ({dup_file_count:,} redundant files)")
+    print(
+        f"    Confirmed duplicates: {len(actual_dups):,} groups ({dup_file_count:,} redundant files)"
+    )
     print(f"    Recoverable space: {dup_bytes / 1e6:.1f} MB")
 
     # ── Write discovery manifest ──
     manifest_path = output_dir / "discovery_manifest.json"
     total_bytes = sum(f["size"] for f in all_files)
-    
+
     manifest = {
         "scan_id": f"SCAN_{int(time.time())}",
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -235,7 +295,9 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
         "total_files": len(all_files),
         "total_bytes": total_bytes,
         "total_gb": round(total_bytes / 1e9, 2),
-        "classification": {k: v for k, v in sorted(by_kind.items(), key=lambda x: -x[1]["bytes"])},
+        "classification": {
+            k: v for k, v in sorted(by_kind.items(), key=lambda x: -x[1]["bytes"])
+        },
         "by_source": dict(sorted(by_source.items(), key=lambda x: -x[1])),
         "duplicates": {
             "groups": len(actual_dups),
@@ -243,7 +305,9 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
             "recoverable_bytes": dup_bytes,
             "top_duplicates": [
                 {"hash": h, "count": len(paths), "paths": paths[:5]}
-                for h, paths in sorted(actual_dups.items(), key=lambda x: -len(x[1]))[:20]
+                for h, paths in sorted(actual_dups.items(), key=lambda x: -len(x[1]))[
+                    :20
+                ]
             ],
         },
         "scan_duration_s": round(time.perf_counter() - t0, 1),
@@ -271,11 +335,12 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
     print(f"  Sources:   {len(by_source)}")
     print(f"  Time:      {total_elapsed:.1f}s")
     print(f"  Next step: PAT reviews manifest → clean → index → consolidate to B:\\")
-    
+
     return manifest
 
 
 if __name__ == "__main__":
     import sys
+
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("04_GOLD")
     run_discovery_scan(out)

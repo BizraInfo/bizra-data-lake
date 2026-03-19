@@ -208,8 +208,7 @@ pub mod mock_receipt {
     impl MissionReceipt {
         /// Returns `true` if the receipt represents a fully successful mission.
         pub fn is_success(&self) -> bool {
-            matches!(self.final_state, MissionState::Complete)
-                && self.degradation_tier == 0
+            matches!(self.final_state, MissionState::Complete) && self.degradation_tier == 0
         }
 
         /// Returns `true` if the receipt represents a degraded (partial) mission.
@@ -566,9 +565,7 @@ pub mod mock_proofspace {
             let creator_node = self
                 .creator_node
                 .ok_or_else(|| "creator_node is required".to_string())?;
-            let body = self
-                .body
-                .ok_or_else(|| "body is required".to_string())?;
+            let body = self.body.ok_or_else(|| "body is required".to_string())?;
             let status = self.status.unwrap_or(BlockStatus::Draft);
 
             // Deterministic block ID: hex of a simple digest of creator_node
@@ -612,7 +609,7 @@ use mock_mission::Mission;
 use mock_mission_state::MissionState;
 use mock_proofspace::{
     BlockBody, BlockBuilder, BlockStatus, BlockType, ConfidenceBounds, Dependencies,
-    EthicalEnvelope, ExpectedOutcome, FateScores, FailureMode, FormalAssertion, ImpactClaim,
+    EthicalEnvelope, ExpectedOutcome, FailureMode, FateScores, FormalAssertion, ImpactClaim,
     ImpactLevel, ProofPack, ReproductionStep, UnsignedBlock, ValidationMethod, IHSAN_THRESHOLD,
 };
 
@@ -855,11 +852,8 @@ impl MissionProofBridge {
         // The assertion encodes the three core quality predicates in SMT-LIB2
         // 2.6 syntax (theory of reals).  All numeric literals use decimal
         // notation to remain valid across solvers (Z3, CVC5, Yices2). [VERIFIED]
-        let formal_assertion = Self::build_smtlib2_assertion(
-            ihsan_score,
-            snr_score,
-            guardian_approved,
-        );
+        let formal_assertion =
+            Self::build_smtlib2_assertion(ihsan_score, snr_score, guardian_approved);
 
         Ok(MissionProofSubmission {
             mission_id: mission.mission_id,
@@ -1092,10 +1086,7 @@ impl MissionProofBridge {
             .enumerate()
             .map(|(i, pair)| ReproductionStep {
                 step_index: i as u32,
-                description: format!(
-                    "Mission transitioned from {} to {}",
-                    pair[0], pair[1]
-                ),
+                description: format!("Mission transitioned from {} to {}", pair[0], pair[1]),
                 from_state: pair[0].clone(),
                 to_state: pair[1].clone(),
             })
@@ -1546,10 +1537,7 @@ mod tests {
 
         assert!(!block_id.is_empty());
         assert_eq!(block.block_type, mock_proofspace::BlockType::MissionBlock);
-        assert_eq!(
-            block.status,
-            mock_proofspace::BlockStatus::Submitted
-        );
+        assert_eq!(block.status, mock_proofspace::BlockStatus::Submitted);
     }
 
     /// `to_proof_block_body` must map each adjacent state pair to one step.
@@ -1595,10 +1583,7 @@ mod tests {
             block.parent_block.is_some(),
             "parent_block must be set when chain_link is present"
         );
-        assert_eq!(
-            block.parent_block.unwrap(),
-            hex_bytes(&prev_hash)
-        );
+        assert_eq!(block.parent_block.unwrap(), hex_bytes(&prev_hash));
     }
 
     /// A mission with no receipt should return `NoReceipt`.

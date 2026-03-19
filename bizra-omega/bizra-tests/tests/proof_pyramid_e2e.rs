@@ -147,13 +147,13 @@ pub mod proof_pyramid {
         /// Byte values are assigned in declaration order to remain stable. [DERIVED]
         pub fn as_byte(self) -> u8 {
             match self {
-                Channel::Ahk        => 0,
-                Channel::Llm        => 1,
-                Channel::Memory     => 2,
-                Channel::Mcp        => 3,
+                Channel::Ahk => 0,
+                Channel::Llm => 1,
+                Channel::Memory => 2,
+                Channel::Mcp => 3,
                 Channel::FileSystem => 4,
-                Channel::Browser    => 5,
-                Channel::Response   => 6,
+                Channel::Browser => 5,
+                Channel::Response => 6,
                 Channel::Telescript => 7,
             }
         }
@@ -423,16 +423,27 @@ pub mod proof_pyramid {
         let mut e2 = 0u8;
         let mut e3 = 0u8;
         let mut e5 = 0u8;
-        while n % 2 == 0 { n /= 2; e2 += 1; }
-        while n % 3 == 0 { n /= 3; e3 += 1; }
-        while n % 5 == 0 { n /= 5; e5 += 1; }
+        while n % 2 == 0 {
+            n /= 2;
+            e2 += 1;
+        }
+        while n % 3 == 0 {
+            n /= 3;
+            e3 += 1;
+        }
+        while n % 5 == 0 {
+            n /= 5;
+            e5 += 1;
+        }
         if n == 1 {
             Ok((e2, e3, e5))
         } else {
             // Find the smallest irregular prime factor.
             let mut p = 7u64;
             while p * p <= n {
-                if n % p == 0 { return Err(SipparError::IrregularFactor(p)); }
+                if n % p == 0 {
+                    return Err(SipparError::IrregularFactor(p));
+                }
                 p += 2;
             }
             Err(SipparError::IrregularFactor(n))
@@ -474,7 +485,9 @@ pub mod proof_pyramid {
             if chain_length == 0 {
                 return SipparChainDigest {
                     chain_length: 0,
-                    exp2: 0, exp3: 0, exp5: 0,
+                    exp2: 0,
+                    exp3: 0,
+                    exp5: 0,
                     is_harmonious: true,
                     irregular_witness: None,
                     label: "harmonious",
@@ -483,21 +496,27 @@ pub mod proof_pyramid {
             match sippar_factorize(chain_length) {
                 Ok((e2, e3, e5)) => SipparChainDigest {
                     chain_length,
-                    exp2: e2, exp3: e3, exp5: e5,
+                    exp2: e2,
+                    exp3: e3,
+                    exp5: e5,
                     is_harmonious: true,
                     irregular_witness: None,
                     label: "harmonious",
                 },
                 Err(SipparError::IrregularFactor(p)) => SipparChainDigest {
                     chain_length,
-                    exp2: 0, exp3: 0, exp5: 0,
+                    exp2: 0,
+                    exp3: 0,
+                    exp5: 0,
                     is_harmonious: false,
                     irregular_witness: Some(p),
                     label: "witness",
                 },
                 Err(_) => SipparChainDigest {
                     chain_length,
-                    exp2: 0, exp3: 0, exp5: 0,
+                    exp2: 0,
+                    exp3: 0,
+                    exp5: 0,
                     is_harmonious: false,
                     irregular_witness: None,
                     label: "witness",
@@ -571,15 +590,15 @@ pub mod proof_pyramid {
         /// Canonical string representation for SMT-LIB2 and audit trails. [DERIVED]
         pub fn as_str(&self) -> &'static str {
             match self {
-                MissionState::Submitted  => "Submitted",
-                MissionState::Queued     => "Queued",
-                MissionState::Running    => "Running",
-                MissionState::Scoring    => "Scoring",
+                MissionState::Submitted => "Submitted",
+                MissionState::Queued => "Queued",
+                MissionState::Running => "Running",
+                MissionState::Scoring => "Scoring",
                 MissionState::Persisting => "Persisting",
-                MissionState::Complete   => "Complete",
-                MissionState::Degraded   => "Degraded",
-                MissionState::Failed     => "Failed",
-                MissionState::TimedOut   => "TimedOut",
+                MissionState::Complete => "Complete",
+                MissionState::Degraded => "Degraded",
+                MissionState::Failed => "Failed",
+                MissionState::TimedOut => "TimedOut",
             }
         }
     }
@@ -808,7 +827,11 @@ pub mod proof_pyramid {
 
         /// Mean ihsan across all completed steps. Returns `0.0` if no steps recorded. [DERIVED]
         pub fn mean_ihsan(&self) -> f64 {
-            if self.ihsan_count == 0 { 0.0 } else { self.ihsan_sum / self.ihsan_count as f64 }
+            if self.ihsan_count == 0 {
+                0.0
+            } else {
+                self.ihsan_sum / self.ihsan_count as f64
+            }
         }
 
         /// Return `true` for terminal saga statuses. [VERIFIED]
@@ -898,9 +921,7 @@ pub mod proof_pyramid {
         /// Implements the Garcia-Molina (1987) compensating-transaction protocol:
         /// each step is marked compensated in reverse order. [VERIFIED]
         pub fn compensate(saga: &mut Saga, from_step: u32) -> Result<(), SagaError> {
-            if saga.is_terminal()
-                && !matches!(saga.status, SagaStatus::Failed { .. })
-            {
+            if saga.is_terminal() && !matches!(saga.status, SagaStatus::Failed { .. }) {
                 return Err(SagaError::AlreadyTerminal);
             }
             saga.status = SagaStatus::Compensating(from_step);
@@ -990,7 +1011,10 @@ pub mod proof_pyramid {
     impl MissionProofBridge {
         /// Construct a new bridge.
         pub fn new(creator_node: String, strict_ihsan: bool) -> Self {
-            MissionProofBridge { creator_node, strict_ihsan }
+            MissionProofBridge {
+                creator_node,
+                strict_ihsan,
+            }
         }
 
         /// Convert a terminal `Mission` into a `MissionProofSubmission`.
@@ -1086,11 +1110,11 @@ pub mod proof_pyramid {
     /// Constitutional threshold constants (single source of truth). [VERIFIED]
     pub const IHSAN_THRESHOLD: f64 = 0.95;
     /// Maximum Gini coefficient for adl. [VERIFIED]
-    pub const ADL_GINI_MAX: f64    = 0.35;
+    pub const ADL_GINI_MAX: f64 = 0.35;
     /// Maximum harm score. [VERIFIED]
-    pub const MAX_HARM_SCORE: f64  = 0.30;
+    pub const MAX_HARM_SCORE: f64 = 0.30;
     /// Minimum confidence score. [VERIFIED]
-    pub const MIN_CONFIDENCE: f64  = 0.80;
+    pub const MIN_CONFIDENCE: f64 = 0.80;
 
     /// Which constitutional gate a given SMT-LIB2 assertion enforces. [VERIFIED]
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1113,11 +1137,11 @@ pub mod proof_pyramid {
         /// Return the canonical name used in SMT-LIB2 identifiers. [DERIVED]
         pub fn as_str(&self) -> &'static str {
             match self {
-                FateGate::Ihsan          => "Ihsan",
-                FateGate::Adl            => "Adl",
-                FateGate::Harm           => "Harm",
-                FateGate::Confidence     => "Confidence",
-                FateGate::Sippar         => "Sippar",
+                FateGate::Ihsan => "Ihsan",
+                FateGate::Adl => "Adl",
+                FateGate::Harm => "Harm",
+                FateGate::Confidence => "Confidence",
+                FateGate::Sippar => "Sippar",
                 FateGate::ChainIntegrity => "ChainIntegrity",
             }
         }
@@ -1263,11 +1287,11 @@ pub mod proof_pyramid {
         /// Construct with constitutional defaults. [VERIFIED]
         pub fn new() -> Self {
             FateBindingEngine {
-                ihsan_floor:    IHSAN_THRESHOLD,
-                adl_gini_max:   ADL_GINI_MAX,
+                ihsan_floor: IHSAN_THRESHOLD,
+                adl_gini_max: ADL_GINI_MAX,
                 max_harm_score: MAX_HARM_SCORE,
                 min_confidence: MIN_CONFIDENCE,
-                enable_sippar:  true,
+                enable_sippar: true,
             }
         }
 
@@ -1289,7 +1313,7 @@ pub mod proof_pyramid {
             let proof_id = pseudo_blake3_proof(scores, chain_length);
 
             let mut declarations = Vec::new();
-            let mut assertions   = Vec::new();
+            let mut assertions = Vec::new();
 
             // ── declare constants ─────────────────────────────────────────
             declarations.push("(declare-const ihsan_score Real)".to_owned());
@@ -1302,34 +1326,22 @@ pub mod proof_pyramid {
 
             // ── value assertions ──────────────────────────────────────────
             assertions.push(SmtAssertion {
-                expression: format!(
-                    "(assert (= ihsan_score {:.6}))",
-                    scores.ihsan_score
-                ),
+                expression: format!("(assert (= ihsan_score {:.6}))", scores.ihsan_score),
                 description: "Bind ihsan_score to observed value.".to_owned(),
                 gate: FateGate::Ihsan,
             });
             assertions.push(SmtAssertion {
-                expression: format!(
-                    "(assert (= ihsan_floor {:.6}))",
-                    self.ihsan_floor
-                ),
+                expression: format!("(assert (= ihsan_floor {:.6}))", self.ihsan_floor),
                 description: "Bind ihsan_floor to constitutional constant.".to_owned(),
                 gate: FateGate::Ihsan,
             });
             assertions.push(SmtAssertion {
-                expression: format!(
-                    "(assert (= harm_score {:.6}))",
-                    scores.harm_score
-                ),
+                expression: format!("(assert (= harm_score {:.6}))", scores.harm_score),
                 description: "Bind harm_score to observed value.".to_owned(),
                 gate: FateGate::Harm,
             });
             assertions.push(SmtAssertion {
-                expression: format!(
-                    "(assert (= adl_score {:.6}))",
-                    scores.adl_score
-                ),
+                expression: format!("(assert (= adl_score {:.6}))", scores.adl_score),
                 description: "Bind adl_score to observed value.".to_owned(),
                 gate: FateGate::Adl,
             });
@@ -1365,10 +1377,7 @@ pub mod proof_pyramid {
 
             // Gate 2: Adl (using 1 − adl_score as Gini proxy)  [VERIFIED]
             assertions.push(SmtAssertion {
-                expression: format!(
-                    "(assert (<= (- 1.0 adl_score) {:.6}))",
-                    self.adl_gini_max
-                ),
+                expression: format!("(assert (<= (- 1.0 adl_score) {:.6}))", self.adl_gini_max),
                 description: format!(
                     "Adl gate: (1 − adl_score) must be ≤ {} Gini threshold.",
                     self.adl_gini_max
@@ -1378,27 +1387,15 @@ pub mod proof_pyramid {
 
             // Gate 3: Harm  [VERIFIED]
             assertions.push(SmtAssertion {
-                expression: format!(
-                    "(assert (<= harm_score {:.6}))",
-                    self.max_harm_score
-                ),
-                description: format!(
-                    "Harm gate: score must be ≤ {}.",
-                    self.max_harm_score
-                ),
+                expression: format!("(assert (<= harm_score {:.6}))", self.max_harm_score),
+                description: format!("Harm gate: score must be ≤ {}.", self.max_harm_score),
                 gate: FateGate::Harm,
             });
 
             // Gate 4: Confidence  [VERIFIED]
             assertions.push(SmtAssertion {
-                expression: format!(
-                    "(assert (>= confidence_score {:.6}))",
-                    self.min_confidence
-                ),
-                description: format!(
-                    "Confidence gate: score must be ≥ {}.",
-                    self.min_confidence
-                ),
+                expression: format!("(assert (>= confidence_score {:.6}))", self.min_confidence),
+                description: format!("Confidence gate: score must be ≥ {}.", self.min_confidence),
                 gate: FateGate::Confidence,
             });
 
@@ -1414,18 +1411,14 @@ pub mod proof_pyramid {
                 let digest = SipparChainDigest::encode(chain_length);
                 let harmony_int = if digest.is_harmonious { 1 } else { 0 };
                 assertions.push(SmtAssertion {
-                    expression: format!(
-                        "(assert (= sippar_harmony {harmony_int}))"
-                    ).replace(
+                    expression: format!("(assert (= sippar_harmony {harmony_int}))").replace(
                         "(assert (= sippar_harmony",
                         // Pre-declare the bool constant inline for script validity
                         "(assert (= sippar_harmony",
                     ),
                     description: format!(
                         "Sippar gate: chain_length={} is {} (harmony={}). [DERIVED]",
-                        chain_length,
-                        digest.label,
-                        harmony_int,
+                        chain_length, digest.label, harmony_int,
                     ),
                     gate: FateGate::Sippar,
                 });
@@ -1433,9 +1426,7 @@ pub mod proof_pyramid {
                 declarations.push("(declare-const sippar_harmony Int)".to_owned());
                 // Bind it
                 assertions.push(SmtAssertion {
-                    expression: format!(
-                        "(assert (= sippar_harmony {harmony_int}))"
-                    ),
+                    expression: format!("(assert (= sippar_harmony {harmony_int}))"),
                     description: "Bind sippar_harmony constant.".to_owned(),
                     gate: FateGate::Sippar,
                 });
@@ -1444,12 +1435,8 @@ pub mod proof_pyramid {
             // Degradation assertion  [DERIVED]
             if degradation_tier > 0 {
                 assertions.push(SmtAssertion {
-                    expression: format!(
-                        "(assert (> degradation_tier 0))"
-                    ),
-                    description: format!(
-                        "Mission was degraded at tier {degradation_tier}."
-                    ),
+                    expression: format!("(assert (> degradation_tier 0))"),
+                    description: format!("Mission was degraded at tier {degradation_tier}."),
                     gate: FateGate::Harm,
                 });
             }
@@ -1490,7 +1477,9 @@ pub mod proof_pyramid {
                 '(' => depth += 1,
                 ')' => {
                     depth -= 1;
-                    if depth < 0 { return false; }
+                    if depth < 0 {
+                        return false;
+                    }
                 }
                 _ => {}
             }
@@ -1575,10 +1564,10 @@ pub mod proof_pyramid {
 pub mod e2e_tests {
 
     use super::proof_pyramid::{
-        ActionKind, BizraAction, Channel, FateBindingEngine, FateGate, GuardianVerdict,
-        IhsanScore, Mission, MissionProofBridge, MissionState, ProofResult, ReceiptChain,
-        Saga, SagaDispatcher, SipparChainDigest, compute_fate_scores,
-        is_parentheses_balanced, pseudo_blake3_receipt,
+        compute_fate_scores, is_parentheses_balanced, pseudo_blake3_receipt, ActionKind,
+        BizraAction, Channel, FateBindingEngine, FateGate, GuardianVerdict, IhsanScore, Mission,
+        MissionProofBridge, MissionState, ProofResult, ReceiptChain, Saga, SagaDispatcher,
+        SipparChainDigest,
     };
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1629,15 +1618,18 @@ pub mod e2e_tests {
 
         // Verify guardian verdicts are Approved.
         assert_eq!(
-            action_a.verdict, GuardianVerdict::Approved,
+            action_a.verdict,
+            GuardianVerdict::Approved,
             "Layer 0: LlmQuery must carry Approved verdict"
         );
         assert_eq!(
-            action_b.verdict, GuardianVerdict::Approved,
+            action_b.verdict,
+            GuardianVerdict::Approved,
             "Layer 0: MemoryStore must carry Approved verdict"
         );
         assert_eq!(
-            action_c.verdict, GuardianVerdict::Approved,
+            action_c.verdict,
+            GuardianVerdict::Approved,
             "Layer 0: RespondToUser must carry Approved verdict"
         );
 
@@ -1645,17 +1637,20 @@ pub mod e2e_tests {
         assert!(
             action_a.ihsan_score.is_constitutional(),
             "Layer 0: LlmQuery ihsan {:.2} must meet floor {:.2}",
-            action_a.ihsan_score.value(), IhsanScore::PRODUCTION_FLOOR
+            action_a.ihsan_score.value(),
+            IhsanScore::PRODUCTION_FLOOR
         );
         assert!(
             action_b.ihsan_score.is_constitutional(),
             "Layer 0: MemoryStore ihsan {:.2} must meet floor {:.2}",
-            action_b.ihsan_score.value(), IhsanScore::PRODUCTION_FLOOR
+            action_b.ihsan_score.value(),
+            IhsanScore::PRODUCTION_FLOOR
         );
         assert!(
             action_c.ihsan_score.is_constitutional(),
             "Layer 0: RespondToUser ihsan {:.2} must meet floor {:.2}",
-            action_c.ihsan_score.value(), IhsanScore::PRODUCTION_FLOOR
+            action_c.ihsan_score.value(),
+            IhsanScore::PRODUCTION_FLOOR
         );
 
         // ── Layer 1: Record receipts into ReceiptChain ────────────────────────
@@ -1676,7 +1671,11 @@ pub mod e2e_tests {
         let receipt_c = action_c.into_receipt(prev_b);
         chain.record(receipt_c);
 
-        assert_eq!(chain.len(), 3, "Layer 1: chain must contain exactly 3 receipts");
+        assert_eq!(
+            chain.len(),
+            3,
+            "Layer 1: chain must contain exactly 3 receipts"
+        );
 
         // Verify chain integrity (Merkle link check).
         let verified_len = chain.verify_chain();
@@ -1714,7 +1713,11 @@ pub mod e2e_tests {
                 "Step 3: RespondToUser".to_owned(),
             ],
         );
-        assert_eq!(saga.step_count(), 3, "Layer 2: saga must have 3 planned steps");
+        assert_eq!(
+            saga.step_count(),
+            3,
+            "Layer 2: saga must have 3 planned steps"
+        );
         assert_eq!(
             saga.status,
             crate::proof_pyramid::SagaStatus::Planning,
@@ -1771,7 +1774,9 @@ pub mod e2e_tests {
         let bridge = MissionProofBridge::new("node-alpha-0001".to_owned(), true);
         let submission = bridge
             .submit_mission(&mission, mean_ihsan, 0, String::new())
-            .expect("Layer 3: submit_mission must succeed for a Complete mission with ihsan ≥ 0.95");
+            .expect(
+                "Layer 3: submit_mission must succeed for a Complete mission with ihsan ≥ 0.95",
+            );
 
         assert_eq!(
             submission.final_state,
@@ -1878,8 +1883,7 @@ pub mod e2e_tests {
 
         // Verify proof_id is non-zero (properly derived). [DERIVED]
         assert_ne!(
-            proof.proof_id,
-            [0u8; 32],
+            proof.proof_id, [0u8; 32],
             "Layer 5: proof_id must be non-zero — it is derived from the FATE scores"
         );
     }
@@ -1947,7 +1951,10 @@ pub mod e2e_tests {
         // ── Layer 2: complete a saga, drive mission to Complete ───────────────
         let mut saga = Saga::new(
             10,
-            vec!["Step 1: low quality".to_owned(), "Step 2: low quality".to_owned()],
+            vec![
+                "Step 1: low quality".to_owned(),
+                "Step 2: low quality".to_owned(),
+            ],
         );
         SagaDispatcher::begin_step(&mut saga, 0, crate::proof_pyramid::ActionId(10)).unwrap();
         SagaDispatcher::complete_step(&mut saga, 0, IhsanScore::new(LOW_IHSAN)).unwrap();
@@ -1980,9 +1987,7 @@ pub mod e2e_tests {
                     "Layer 3: IhsanBelowThreshold: score {score:.4} must be < threshold {threshold:.4}"
                 );
             }
-            other => panic!(
-                "Layer 3: expected IhsanBelowThreshold error, got: {other}"
-            ),
+            other => panic!("Layer 3: expected IhsanBelowThreshold error, got: {other}"),
         }
 
         // Non-strict bridge can still emit a submission.
@@ -2010,7 +2015,9 @@ pub mod e2e_tests {
             matches!(proof.result, ProofResult::Unsatisfiable { ref violated_gate }
                 if violated_gate == "Ihsan"),
             "Layer 5: proof must be Unsatisfiable on Ihsan gate — \
-             ihsan {:.4} < constitutional floor {}", mean_ihsan, IhsanScore::PRODUCTION_FLOOR
+             ihsan {:.4} < constitutional floor {}",
+            mean_ihsan,
+            IhsanScore::PRODUCTION_FLOOR
         );
     }
 
@@ -2035,10 +2042,18 @@ pub mod e2e_tests {
         let mut chain = ReceiptChain::new();
 
         let action_1 = BizraAction::new(
-            20, ActionKind::LlmQuery, Channel::Llm, "Step 1 LLM query.", 0.97
+            20,
+            ActionKind::LlmQuery,
+            Channel::Llm,
+            "Step 1 LLM query.",
+            0.97,
         );
         let action_2 = BizraAction::new(
-            21, ActionKind::MemoryStore, Channel::Memory, "Step 2 memory write.", 0.96
+            21,
+            ActionKind::MemoryStore,
+            Channel::Memory,
+            "Step 2 memory write.",
+            0.96,
         );
         // Step 3 will fail before producing a receipt.
         let ihsan_1 = action_1.ihsan_score;
@@ -2241,7 +2256,11 @@ pub mod e2e_tests {
             chain.record(receipt);
         }
 
-        assert_eq!(chain.len(), 5, "Layer 1: must have 5 receipts before tampering");
+        assert_eq!(
+            chain.len(),
+            5,
+            "Layer 1: must have 5 receipts before tampering"
+        );
         assert!(
             chain.verify_chain().is_ok(),
             "Layer 1: untampered 5-receipt chain must verify cleanly [Merkle 1979]"
@@ -2339,7 +2358,11 @@ pub mod e2e_tests {
             chain60.record(receipt);
         }
 
-        assert_eq!(chain60.len(), 60, "Layer 1: must record exactly 60 receipts");
+        assert_eq!(
+            chain60.len(),
+            60,
+            "Layer 1: must record exactly 60 receipts"
+        );
         assert!(
             chain60.verify_chain().is_ok(),
             "Layer 1: 60-receipt chain must verify cleanly"
@@ -2351,8 +2374,7 @@ pub mod e2e_tests {
             "Layer 1: chain_length=60 = 2²×3×5 must be harmonious [Sippar ~1900 BCE]"
         );
         assert_eq!(
-            digest60.label,
-            "harmonious",
+            digest60.label, "harmonious",
             "Layer 1: SipparChainDigest.label must be 'harmonious' for length 60"
         );
         assert!(
@@ -2392,8 +2414,7 @@ pub mod e2e_tests {
             "Layer 1: chain_length=7 (prime > 5) must NOT be harmonious [Sippar ~1900 BCE]"
         );
         assert_eq!(
-            digest7.label,
-            "witness",
+            digest7.label, "witness",
             "Layer 1: SipparChainDigest.label must be 'witness' for length 7"
         );
         assert_eq!(
@@ -2409,11 +2430,12 @@ pub mod e2e_tests {
         );
 
         // ── Additional harmonious lengths ─────────────────────────────────────
-        for n in [1u64, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25,
-                   27, 30, 32, 36, 40, 45, 48, 50, 54, 64, 72, 75, 80, 96, 100,
-                   120, 128, 160, 180, 192, 200, 216, 240, 250, 256, 270, 288,
-                   300, 320, 360, 375, 384, 400, 432, 450, 480, 500, 512, 540,
-                   576, 600, 625, 640, 648, 675, 720] {
+        for n in [
+            1u64, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30, 32, 36, 40, 45, 48,
+            50, 54, 64, 72, 75, 80, 96, 100, 120, 128, 160, 180, 192, 200, 216, 240, 250, 256, 270,
+            288, 300, 320, 360, 375, 384, 400, 432, 450, 480, 500, 512, 540, 576, 600, 625, 640,
+            648, 675, 720,
+        ] {
             let d = SipparChainDigest::encode(n);
             assert!(
                 d.is_harmonious,
@@ -2422,9 +2444,10 @@ pub mod e2e_tests {
         }
 
         // ── Known witness lengths ─────────────────────────────────────────────
-        for n in [7u64, 11, 13, 14, 17, 19, 21, 22, 23, 26, 28, 29, 31, 33,
-                   34, 35, 37, 38, 39, 41, 42, 43, 44, 46, 47, 49, 51, 52, 53,
-                   55, 56, 57, 58, 59, 61, 62, 63, 65, 66, 67, 68, 69, 70] {
+        for n in [
+            7u64, 11, 13, 14, 17, 19, 21, 22, 23, 26, 28, 29, 31, 33, 34, 35, 37, 38, 39, 41, 42,
+            43, 44, 46, 47, 49, 51, 52, 53, 55, 56, 57, 58, 59, 61, 62, 63, 65, 66, 67, 68, 69, 70,
+        ] {
             let d = SipparChainDigest::encode(n);
             assert!(
                 !d.is_harmonious,
@@ -2548,8 +2571,7 @@ pub mod e2e_tests {
 
         // ── Validate proof_id is non-zero ─────────────────────────────────────
         assert_ne!(
-            proof.proof_id,
-            [0u8; 32],
+            proof.proof_id, [0u8; 32],
             "Layer 5: proof_id must be non-zero (derived from FATE scores)"
         );
 
@@ -2576,7 +2598,7 @@ pub mod e2e_tests {
         let harm_scores = FateScores {
             ihsan_score: 0.97,
             adl_score: 0.80,
-            harm_score: 0.45,  // above MAX_HARM_SCORE of 0.30
+            harm_score: 0.45, // above MAX_HARM_SCORE of 0.30
             confidence_score: 0.90,
         };
         let mut harm_proof = engine.generate_fate_proof(&harm_scores, 60, 0);
@@ -2626,12 +2648,12 @@ pub mod e2e_tests {
             chain.record(receipt);
         }
 
-        assert!(chain.verify_chain().is_ok(), "cross-layer: chain must be intact");
-
-        let mut saga = Saga::new(
-            40,
-            (0..N).map(|i| format!("Step {i}")).collect(),
+        assert!(
+            chain.verify_chain().is_ok(),
+            "cross-layer: chain must be intact"
         );
+
+        let mut saga = Saga::new(40, (0..N).map(|i| format!("Step {i}")).collect());
 
         for i in 0..N {
             SagaDispatcher::begin_step(
@@ -2640,12 +2662,8 @@ pub mod e2e_tests {
                 crate::proof_pyramid::ActionId(400 + i),
             )
             .unwrap();
-            SagaDispatcher::complete_step(
-                &mut saga,
-                i as u32,
-                IhsanScore::new(ihsans[i as usize]),
-            )
-            .unwrap();
+            SagaDispatcher::complete_step(&mut saga, i as u32, IhsanScore::new(ihsans[i as usize]))
+                .unwrap();
         }
 
         assert_eq!(
@@ -2681,11 +2699,7 @@ pub mod e2e_tests {
         );
 
         let engine = FateBindingEngine::new();
-        let mut proof = engine.generate_fate_proof(
-            &submission.fate_scores,
-            chain.len(),
-            0,
-        );
+        let mut proof = engine.generate_fate_proof(&submission.fate_scores, chain.len(), 0);
 
         // Invariant 3: proof.scores.ihsan_score == submission.mean_ihsan.
         let delta3 = (proof.scores.ihsan_score - submission.mean_ihsan).abs();

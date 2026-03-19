@@ -157,7 +157,11 @@ pub fn execute_governed_mission(
 /// Returns the block ID (BLAKE3 hex) for chain tracking.
 pub fn receipt_to_proofspace_ref(receipt: &MissionReceipt) -> ProofSpaceRef {
     let receipt_hex = receipt.id_hex();
-    let mission_hex: String = receipt.mission_id.iter().map(|b| format!("{b:02x}")).collect();
+    let mission_hex: String = receipt
+        .mission_id
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
     ProofSpaceRef {
         receipt_id: receipt_hex,
         mission_id: mission_hex,

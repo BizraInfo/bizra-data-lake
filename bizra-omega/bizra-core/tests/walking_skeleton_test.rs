@@ -11,10 +11,7 @@ fn walking_skeleton_proves_constitutional_liveness() {
     let receipt = run_skeleton().expect("Walking skeleton must succeed");
 
     // Constitutional gates must pass
-    assert!(
-        receipt.constitutional_pass,
-        "Constitutional gate must pass"
-    );
+    assert!(receipt.constitutional_pass, "Constitutional gate must pass");
     assert!(
         receipt.ihsan_score >= IHSAN_THRESHOLD,
         "Ihsan {:.4} must meet threshold {IHSAN_THRESHOLD}",
@@ -28,18 +25,12 @@ fn walking_skeleton_proves_constitutional_liveness() {
 
     // Cryptographic artifacts must be non-trivial
     assert_ne!(
-        receipt.genesis_hash,
-        [0u8; 32],
+        receipt.genesis_hash, [0u8; 32],
         "Genesis hash must be non-zero"
     );
+    assert_ne!(receipt.state_root, [0u8; 32], "State root must be non-zero");
     assert_ne!(
-        receipt.state_root,
-        [0u8; 32],
-        "State root must be non-zero"
-    );
-    assert_ne!(
-        receipt.evidence_hash,
-        [0u8; 32],
+        receipt.evidence_hash, [0u8; 32],
         "Evidence hash must be non-zero"
     );
 
@@ -47,16 +38,10 @@ fn walking_skeleton_proves_constitutional_liveness() {
     assert_eq!(receipt.cycle_count, 1, "Exactly one cycle must complete");
 
     // Meta-constitution era must be valid
-    assert!(
-        receipt.era_version >= 1,
-        "Era version must be >= 1"
-    );
+    assert!(receipt.era_version >= 1, "Era version must be >= 1");
 
     // Timestamp must be present
-    assert!(
-        !receipt.timestamp.is_empty(),
-        "Timestamp must be present"
-    );
+    assert!(!receipt.timestamp.is_empty(), "Timestamp must be present");
 
     // Performance: must complete in under 1 second
     assert!(
@@ -75,10 +60,7 @@ fn walking_skeleton_proves_constitutional_liveness() {
     println!("  Ihsan score:  {:.4}", receipt.ihsan_score);
     println!("  SNR score:    {:.4}", receipt.snr_score);
     println!("  Constitutional: {}", receipt.constitutional_pass);
-    println!(
-        "  State root:   {}",
-        hex::encode(&receipt.state_root[..8])
-    );
+    println!("  State root:   {}", hex::encode(&receipt.state_root[..8]));
     println!(
         "  Evidence:     {}",
         hex::encode(&receipt.evidence_hash[..8])

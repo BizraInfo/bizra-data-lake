@@ -1539,16 +1539,27 @@ impl PyEventBridge {
     /// Python hooks call this to know what the Rust nervous system detected.
     fn poll_feedback(&self, py: Python<'_>) -> PyResult<PyObject> {
         use bizra_hooks::subscribers::{
-            PROMOTE_CHECK_PENDING, QUARANTINE_PENDING, REINFORCE_PENDING,
-            SESSION_COMPILE_PENDING,
+            PROMOTE_CHECK_PENDING, QUARANTINE_PENDING, REINFORCE_PENDING, SESSION_COMPILE_PENDING,
         };
         use core::sync::atomic::Ordering;
 
         let dict = pyo3::types::PyDict::new(py);
-        dict.set_item("reinforce_pending", REINFORCE_PENDING.load(Ordering::Relaxed))?;
-        dict.set_item("promote_pending", PROMOTE_CHECK_PENDING.load(Ordering::Relaxed))?;
-        dict.set_item("quarantine_pending", QUARANTINE_PENDING.load(Ordering::Relaxed))?;
-        dict.set_item("compile_pending", SESSION_COMPILE_PENDING.load(Ordering::Relaxed))?;
+        dict.set_item(
+            "reinforce_pending",
+            REINFORCE_PENDING.load(Ordering::Relaxed),
+        )?;
+        dict.set_item(
+            "promote_pending",
+            PROMOTE_CHECK_PENDING.load(Ordering::Relaxed),
+        )?;
+        dict.set_item(
+            "quarantine_pending",
+            QUARANTINE_PENDING.load(Ordering::Relaxed),
+        )?;
+        dict.set_item(
+            "compile_pending",
+            SESSION_COMPILE_PENDING.load(Ordering::Relaxed),
+        )?;
         Ok(dict.into())
     }
 

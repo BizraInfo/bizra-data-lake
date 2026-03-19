@@ -287,9 +287,7 @@ impl RequestBuilder {
 /// 3. Guardian verdict shows all gates passed
 /// 4. Ed25519 signature is cryptographically valid
 /// 5. Permit chain is non-empty
-pub fn verify_boundary_crossing(
-    request: &ProofCarryingRequest,
-) -> Result<(), BoundaryError> {
+pub fn verify_boundary_crossing(request: &ProofCarryingRequest) -> Result<(), BoundaryError> {
     // 1. Protocol version
     if request.protocol_version != PROTOCOL_VERSION {
         return Err(BoundaryError::ProtocolMismatch {
@@ -321,20 +319,19 @@ pub fn verify_boundary_crossing(
     }
 
     // 5. Signature verification
-    let pk_bytes = hex_decode(&request.pat_public_key_hex)
+    let pk_bytes =
+        hex_decode(&request.pat_public_key_hex).map_err(|_| BoundaryError::SignatureInvalid {
+            agent_id: request.pat_agent_id.clone(),
+        })?;
+    let pk_array: [u8; 32] = pk_bytes
+        .try_into()
         .map_err(|_| BoundaryError::SignatureInvalid {
             agent_id: request.pat_agent_id.clone(),
         })?;
-    let pk_array: [u8; 32] = pk_bytes.try_into().map_err(|_| {
-        BoundaryError::SignatureInvalid {
+    let verifying_key =
+        VerifyingKey::from_bytes(&pk_array).map_err(|_| BoundaryError::SignatureInvalid {
             agent_id: request.pat_agent_id.clone(),
-        }
-    })?;
-    let verifying_key = VerifyingKey::from_bytes(&pk_array).map_err(|_| {
-        BoundaryError::SignatureInvalid {
-            agent_id: request.pat_agent_id.clone(),
-        }
-    })?;
+        })?;
 
     let canonical = serde_json::json!({
         "origin_node_id": &request.origin_node_id,
@@ -351,16 +348,16 @@ pub fn verify_boundary_crossing(
     let canonical_bytes = serde_json::to_vec(&canonical).expect("json");
     let digest = domain_hash(&canonical_bytes);
 
-    let sig_bytes = hex_decode(&request.signature).map_err(|_| {
-        BoundaryError::SignatureInvalid {
+    let sig_bytes =
+        hex_decode(&request.signature).map_err(|_| BoundaryError::SignatureInvalid {
             agent_id: request.pat_agent_id.clone(),
-        }
-    })?;
-    let sig_array: [u8; 64] = sig_bytes.try_into().map_err(|_| {
-        BoundaryError::SignatureInvalid {
-            agent_id: request.pat_agent_id.clone(),
-        }
-    })?;
+        })?;
+    let sig_array: [u8; 64] =
+        sig_bytes
+            .try_into()
+            .map_err(|_| BoundaryError::SignatureInvalid {
+                agent_id: request.pat_agent_id.clone(),
+            })?;
     let signature = Signature::from_bytes(&sig_array);
     verifying_key
         .verify(digest.as_bytes(), &signature)
@@ -403,8 +400,8 @@ fn hex_decode(s: &str) -> Result<Vec<u8>, ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mint::derive_agent_key;
     use crate::constitution::PAT_DERIVATION_PREFIX;
+    use crate::mint::derive_agent_key;
 
     fn make_test_request(ihsan: f64, all_gates: bool) -> (RequestBuilder, SigningKey) {
         let master_secret = [99u8; 32];
@@ -466,7 +463,10 @@ mod tests {
         let (builder, key) = make_test_request(0.97, false);
         let result = builder.build_and_sign(&key);
         assert!(result.is_err(), "failed guardian gate must be rejected");
-        assert!(matches!(result.unwrap_err(), BoundaryError::GuardianRejection { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            BoundaryError::GuardianRejection { .. }
+        ));
     }
 
     #[test]
@@ -485,7 +485,10 @@ mod tests {
         .permit_chain(vec![]); // empty — no authority trace
 
         let result = builder.build_and_sign(&pat_key);
-        assert!(matches!(result.unwrap_err(), BoundaryError::EmptyPermitChain));
+        assert!(matches!(
+            result.unwrap_err(),
+            BoundaryError::EmptyPermitChain
+        ));
     }
 
     #[test]
@@ -500,7 +503,10 @@ mod tests {
         request.ihsan_score = 0.99;
 
         let verify = verify_boundary_crossing(&request);
-        assert!(verify.is_err(), "tampered request must fail SAT verification");
+        assert!(
+            verify.is_err(),
+            "tampered request must fail SAT verification"
+        );
     }
 
     #[test]
@@ -510,6 +516,9 @@ mod tests {
         request.protocol_version = "bizra-protocol-v999".into();
 
         let verify = verify_boundary_crossing(&request);
-        assert!(matches!(verify.unwrap_err(), BoundaryError::ProtocolMismatch { .. }));
+        assert!(matches!(
+            verify.unwrap_err(),
+            BoundaryError::ProtocolMismatch { .. }
+        ));
     }
 }

@@ -169,8 +169,8 @@ impl AutopoieticState {
     /// based on the constitutional verdict — not human opinion.
     pub fn learn_from_reward(&mut self, reward: VerifiedReward) {
         // Update EMA of Ihsān scores
-        self.ihsan_ema = self.ema_alpha * reward.ihsan_score
-            + (1.0 - self.ema_alpha) * self.ihsan_ema;
+        self.ihsan_ema =
+            self.ema_alpha * reward.ihsan_score + (1.0 - self.ema_alpha) * self.ihsan_ema;
 
         // Update quality estimate using prediction error
         // This is the self-correction: if we over-estimated, pull down.
@@ -192,7 +192,7 @@ impl AutopoieticState {
             SatVerdict::Rejected => {
                 self.halt_count += 1;
                 self.improvement_streak = 0; // streak broken
-                // After a halt, agent becomes more conservative
+                                             // After a halt, agent becomes more conservative
                 self.quality_estimate = (self.quality_estimate - 0.01).max(IHSAN_FLOOR);
             }
             SatVerdict::Deferred => {}
@@ -241,9 +241,8 @@ pub fn run_autopoietic_loop(
         let prediction_error = actual_quality - predicted_quality;
 
         // ─── CROSS: build proof-carrying request ───
-        let action_hash = domain_hash(
-            format!("cycle-{}-output-{:.6}", cycle, actual_quality).as_bytes(),
-        );
+        let action_hash =
+            domain_hash(format!("cycle-{}-output-{:.6}", cycle, actual_quality).as_bytes());
 
         let permit = PermitLink {
             grantor_id: format!("{}-human", node_id),
@@ -363,9 +362,14 @@ pub fn analyze_convergence(state: &AutopoieticState) -> ConvergenceReport {
     let n = history.len();
     if n == 0 {
         return ConvergenceReport {
-            total_cycles: 0, approval_rate: 0.0, mean_ihsan: 0.0,
-            ihsan_trend: 0.0, total_seed: 0, seed_per_cycle: 0.0,
-            halt_rate: 0.0, max_streak: 0,
+            total_cycles: 0,
+            approval_rate: 0.0,
+            mean_ihsan: 0.0,
+            ihsan_trend: 0.0,
+            total_seed: 0,
+            seed_per_cycle: 0.0,
+            halt_rate: 0.0,
+            max_streak: 0,
             mean_prediction_error_first_half: 0.0,
             mean_prediction_error_second_half: 0.0,
             self_improvement_proven: false,
@@ -374,15 +378,26 @@ pub fn analyze_convergence(state: &AutopoieticState) -> ConvergenceReport {
         };
     }
 
-    let approvals = history.iter().filter(|r| r.verdict == SatVerdict::Approved).count();
+    let approvals = history
+        .iter()
+        .filter(|r| r.verdict == SatVerdict::Approved)
+        .count();
     let approval_rate = approvals as f64 / n as f64;
 
     let mean_ihsan = history.iter().map(|r| r.ihsan_score).sum::<f64>() / n as f64;
 
     // Trend: compare first 20% vs last 20%
     let slice_size = (n / 5).max(1);
-    let first_slice: f64 = history[..slice_size].iter().map(|r| r.ihsan_score).sum::<f64>() / slice_size as f64;
-    let last_slice: f64 = history[n - slice_size..].iter().map(|r| r.ihsan_score).sum::<f64>() / slice_size as f64;
+    let first_slice: f64 = history[..slice_size]
+        .iter()
+        .map(|r| r.ihsan_score)
+        .sum::<f64>()
+        / slice_size as f64;
+    let last_slice: f64 = history[n - slice_size..]
+        .iter()
+        .map(|r| r.ihsan_score)
+        .sum::<f64>()
+        / slice_size as f64;
     let ihsan_trend = last_slice - first_slice;
 
     let total_seed = state.total_seed;
@@ -404,8 +419,16 @@ pub fn analyze_convergence(state: &AutopoieticState) -> ConvergenceReport {
 
     // Prediction error: first half vs second half
     let mid = n / 2;
-    let first_half_err = history[..mid].iter().map(|r| r.prediction_error.abs()).sum::<f64>() / mid as f64;
-    let second_half_err = history[mid..].iter().map(|r| r.prediction_error.abs()).sum::<f64>() / (n - mid) as f64;
+    let first_half_err = history[..mid]
+        .iter()
+        .map(|r| r.prediction_error.abs())
+        .sum::<f64>()
+        / mid as f64;
+    let second_half_err = history[mid..]
+        .iter()
+        .map(|r| r.prediction_error.abs())
+        .sum::<f64>()
+        / (n - mid) as f64;
 
     // Proofs
     let self_improvement_proven = ihsan_trend > 0.0 && second_half_err < first_half_err;
@@ -454,41 +477,32 @@ mod tests {
     #[test]
     fn test_autopoietic_loop_converges() {
         let master = [42u8; 32];
-        let state = run_autopoietic_loop(
-            &master, "node0-test", 50, 0.965, &decaying_noise,
-        );
+        let state = run_autopoietic_loop(&master, "node0-test", 50, 0.965, &decaying_noise);
 
         let report = analyze_convergence(&state);
 
         // The loop MUST converge:
-        assert!(
-            report.total_cycles == 50,
-            "must complete all cycles"
-        );
+        assert!(report.total_cycles == 50, "must complete all cycles");
         assert!(
             report.approval_rate > 0.7,
             "approval rate must be >70%: got {:.2}%",
             report.approval_rate * 100.0
         );
-        assert!(
-            report.total_seed > 0,
-            "must accumulate SEED"
-        );
+        assert!(report.total_seed > 0, "must accumulate SEED");
     }
 
     #[test]
     fn test_self_improvement_proven() {
         let master = [77u8; 32];
-        let state = run_autopoietic_loop(
-            &master, "node-improve", 100, 0.960, &decaying_noise,
-        );
+        let state = run_autopoietic_loop(&master, "node-improve", 100, 0.960, &decaying_noise);
 
         let report = analyze_convergence(&state);
 
         // The agent's prediction error MUST decrease
         // (second half better than first half = agent learned)
         assert!(
-            report.mean_prediction_error_second_half <= report.mean_prediction_error_first_half + 0.01,
+            report.mean_prediction_error_second_half
+                <= report.mean_prediction_error_first_half + 0.01,
             "prediction error must decrease: first_half={:.4} second_half={:.4}",
             report.mean_prediction_error_first_half,
             report.mean_prediction_error_second_half,
@@ -506,15 +520,10 @@ mod tests {
     fn test_constitutional_halt_works() {
         // Start with quality BELOW the floor — the system MUST reject
         let master = [33u8; 32];
-        let state = run_autopoietic_loop(
-            &master, "node-halt", 30, 0.920, &fixed_noise,
-        );
+        let state = run_autopoietic_loop(&master, "node-halt", 30, 0.920, &fixed_noise);
 
         // Constitutional halts must have occurred
-        assert!(
-            state.halt_count > 0,
-            "system must reject sub-floor quality"
-        );
+        assert!(state.halt_count > 0, "system must reject sub-floor quality");
 
         let report = analyze_convergence(&state);
         assert!(
@@ -526,16 +535,11 @@ mod tests {
     #[test]
     fn test_economic_sustainability() {
         let master = [55u8; 32];
-        let state = run_autopoietic_loop(
-            &master, "node-econ", 80, 0.970, &decaying_noise,
-        );
+        let state = run_autopoietic_loop(&master, "node-econ", 80, 0.970, &decaying_noise);
 
         let report = analyze_convergence(&state);
 
-        assert!(
-            report.total_seed > 0,
-            "must accumulate positive SEED"
-        );
+        assert!(report.total_seed > 0, "must accumulate positive SEED");
         assert!(
             report.seed_per_cycle > 0.0,
             "SEED per cycle must be positive: {:.2}",
@@ -551,9 +555,7 @@ mod tests {
     #[test]
     fn test_verified_reward_chain_integrity() {
         let master = [88u8; 32];
-        let state = run_autopoietic_loop(
-            &master, "node-chain", 40, 0.968, &decaying_noise,
-        );
+        let state = run_autopoietic_loop(&master, "node-chain", 40, 0.968, &decaying_noise);
 
         // Every reward must have a valid attestation reference
         for reward in &state.reward_history {
@@ -564,7 +566,11 @@ mod tests {
         }
 
         // Approved rewards must have SEED > 0
-        for reward in state.reward_history.iter().filter(|r| r.verdict == SatVerdict::Approved) {
+        for reward in state
+            .reward_history
+            .iter()
+            .filter(|r| r.verdict == SatVerdict::Approved)
+        {
             assert!(
                 reward.seed_minted > 0,
                 "approved rewards must mint SEED: cycle {}",
@@ -573,7 +579,11 @@ mod tests {
         }
 
         // Rejected rewards must have SEED == 0
-        for reward in state.reward_history.iter().filter(|r| r.verdict == SatVerdict::Rejected) {
+        for reward in state
+            .reward_history
+            .iter()
+            .filter(|r| r.verdict == SatVerdict::Rejected)
+        {
             assert_eq!(
                 reward.seed_minted, 0,
                 "rejected rewards must not mint SEED: cycle {}",
@@ -597,18 +607,15 @@ mod tests {
         let master = [99u8; 32];
 
         // Run with noise that starts high and decays — models real learning
-        let state = run_autopoietic_loop(
-            &master,
-            "node0-canonical",
-            100,
-            0.960,
-            &decaying_noise,
-        );
+        let state = run_autopoietic_loop(&master, "node0-canonical", 100, 0.960, &decaying_noise);
 
         let report = analyze_convergence(&state);
 
         // ═══ PROOF 1: Autopoietic (completed all cycles) ═══
-        assert_eq!(report.total_cycles, 100, "PROOF 1 FAILED: not all cycles completed");
+        assert_eq!(
+            report.total_cycles, 100,
+            "PROOF 1 FAILED: not all cycles completed"
+        );
 
         // ═══ PROOF 2: Self-harness (high approval rate) ═══
         assert!(
@@ -626,7 +633,8 @@ mod tests {
 
         // ═══ PROOF 4: Recursive improvement (prediction error decreases) ═══
         assert!(
-            report.mean_prediction_error_second_half < report.mean_prediction_error_first_half + 0.015,
+            report.mean_prediction_error_second_half
+                < report.mean_prediction_error_first_half + 0.015,
             "PROOF 4 FAILED: prediction error not decreasing ({:.4} → {:.4})",
             report.mean_prediction_error_first_half,
             report.mean_prediction_error_second_half,

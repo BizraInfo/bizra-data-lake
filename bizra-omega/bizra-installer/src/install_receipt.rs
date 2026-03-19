@@ -8,8 +8,8 @@
 //! Standing on Giants: Lamport (hash chains, 1979), Shannon (entropy)
 
 use crate::device_profile::{DeviceProfile, ModelTier};
-use serde::{Deserialize, Serialize};
 use blake3::Hasher;
+use serde::{Deserialize, Serialize};
 
 // ─────────────────────────────────────────────────────────────
 // Install Receipt (Spec §17)

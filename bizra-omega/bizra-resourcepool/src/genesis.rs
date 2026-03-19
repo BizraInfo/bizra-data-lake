@@ -7,11 +7,11 @@
 //!
 //! This is the life kiss - the moment BIZRA becomes alive.
 
+use blake3::Hasher;
 use chrono::Utc;
 use ed25519_dalek::SigningKey;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
-use blake3::Hasher;
 
 // =============================================================================
 // GENESIS CONSTANTS

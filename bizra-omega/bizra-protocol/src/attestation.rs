@@ -15,7 +15,7 @@
 //! ```
 
 use blake3::Hasher;
-use ed25519_dalek::{Signer, SigningKey, Verifier, VerifyingKey, Signature};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
 use crate::boundary::ProofCarryingRequest;
@@ -161,7 +161,8 @@ pub fn create_attestation(
 pub fn verify_attestation(attestation: &Attestation) -> Result<(), AttestationError> {
     let pk_bytes = hex_decode(&attestation.sat_public_key_hex)
         .map_err(|_| AttestationError::SigningError("invalid SAT public key hex".into()))?;
-    let pk_array: [u8; 32] = pk_bytes.try_into()
+    let pk_array: [u8; 32] = pk_bytes
+        .try_into()
         .map_err(|_| AttestationError::SigningError("SAT key wrong length".into()))?;
     let verifying_key = VerifyingKey::from_bytes(&pk_array)
         .map_err(|e| AttestationError::SigningError(format!("invalid SAT key: {e}")))?;
@@ -185,7 +186,8 @@ pub fn verify_attestation(attestation: &Attestation) -> Result<(), AttestationEr
 
     let sig_bytes = hex_decode(&attestation.sat_signature)
         .map_err(|_| AttestationError::SigningError("invalid signature hex".into()))?;
-    let sig_array: [u8; 64] = sig_bytes.try_into()
+    let sig_array: [u8; 64] = sig_bytes
+        .try_into()
         .map_err(|_| AttestationError::SigningError("signature wrong length".into()))?;
     let signature = Signature::from_bytes(&sig_array);
 
@@ -212,7 +214,9 @@ fn hex_encode(bytes: &[u8]) -> String {
 }
 
 fn hex_decode(s: &str) -> Result<Vec<u8>, ()> {
-    if s.len() % 2 != 0 { return Err(()); }
+    if s.len() % 2 != 0 {
+        return Err(());
+    }
     (0..s.len())
         .step_by(2)
         .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(|_| ()))
@@ -227,8 +231,8 @@ fn hex_decode(s: &str) -> Result<Vec<u8>, ()> {
 mod tests {
     use super::*;
     use crate::boundary::{GuardianVerdict, PermitLink, RequestBuilder};
-    use crate::mint::derive_agent_key;
     use crate::constitution::{PAT_DERIVATION_PREFIX, SAT_DERIVATION_PREFIX};
+    use crate::mint::derive_agent_key;
 
     fn full_round_trip() -> (ProofCarryingRequest, SigningKey) {
         let master = [77u8; 32];
@@ -260,9 +264,14 @@ mod tests {
     fn test_attestation_approved() {
         let (request, sat_key) = full_round_trip();
         let attestation = create_attestation(
-            &request, "s1-auditor", &sat_key,
-            SatVerdict::Approved, 0.97, 100,
-        ).expect("attestation");
+            &request,
+            "s1-auditor",
+            &sat_key,
+            SatVerdict::Approved,
+            0.97,
+            100,
+        )
+        .expect("attestation");
 
         assert_eq!(attestation.verdict, SatVerdict::Approved);
         assert_eq!(attestation.seed_mint_amount, 100);
@@ -273,9 +282,14 @@ mod tests {
     fn test_attestation_rejected() {
         let (request, sat_key) = full_round_trip();
         let attestation = create_attestation(
-            &request, "s1-auditor", &sat_key,
-            SatVerdict::Rejected, 0.97, 0,
-        ).expect("attestation");
+            &request,
+            "s1-auditor",
+            &sat_key,
+            SatVerdict::Rejected,
+            0.97,
+            0,
+        )
+        .expect("attestation");
 
         assert_eq!(attestation.verdict, SatVerdict::Rejected);
         assert_eq!(attestation.seed_mint_amount, 0);
@@ -285,9 +299,14 @@ mod tests {
     fn test_attestation_signature_verifies() {
         let (request, sat_key) = full_round_trip();
         let attestation = create_attestation(
-            &request, "s1-auditor", &sat_key,
-            SatVerdict::Approved, 0.97, 100,
-        ).expect("attestation");
+            &request,
+            "s1-auditor",
+            &sat_key,
+            SatVerdict::Approved,
+            0.97,
+            100,
+        )
+        .expect("attestation");
 
         let verify = verify_attestation(&attestation);
         assert!(verify.is_ok(), "valid attestation must verify");
@@ -297,9 +316,14 @@ mod tests {
     fn test_tampered_attestation_fails() {
         let (request, sat_key) = full_round_trip();
         let mut attestation = create_attestation(
-            &request, "s1-auditor", &sat_key,
-            SatVerdict::Approved, 0.97, 100,
-        ).expect("attestation");
+            &request,
+            "s1-auditor",
+            &sat_key,
+            SatVerdict::Approved,
+            0.97,
+            100,
+        )
+        .expect("attestation");
 
         // Tamper: change seed amount after signing
         attestation.seed_mint_amount = 999999;
@@ -323,17 +347,28 @@ mod tests {
 
         // SAT creates attestation
         let attestation = create_attestation(
-            &request, "s1-auditor", &sat_key,
-            SatVerdict::Approved, 0.97, 100,
-        ).expect("attestation");
+            &request,
+            "s1-auditor",
+            &sat_key,
+            SatVerdict::Approved,
+            0.97,
+            100,
+        )
+        .expect("attestation");
 
         // Any node verifies the attestation
         let verify = verify_attestation(&attestation);
         assert!(verify.is_ok(), "attestation must verify");
 
         // The attestation contains BOTH signatures
-        assert!(!attestation.pat_signature.is_empty(), "PAT signature present");
-        assert!(!attestation.sat_signature.is_empty(), "SAT counter-signature present");
+        assert!(
+            !attestation.pat_signature.is_empty(),
+            "PAT signature present"
+        );
+        assert!(
+            !attestation.sat_signature.is_empty(),
+            "SAT counter-signature present"
+        );
 
         // Two-party proof is complete:
         // PAT proves "I did this work"

@@ -79,7 +79,9 @@ struct ReceiptChain {
 
 impl ReceiptChain {
     fn new() -> Self {
-        Self { receipts: Vec::new() }
+        Self {
+            receipts: Vec::new(),
+        }
     }
 
     fn push(&mut self, receipt: ConstitutionalReceipt) {
@@ -188,7 +190,11 @@ fn generate_fate_proof_script(scores: &FateScores) -> FateProof {
         && scores.harm_score <= MAX_HARM_SCORE
         && scores.confidence >= MIN_CONFIDENCE;
 
-    FateProof { satisfied, assertions, z3_script }
+    FateProof {
+        satisfied,
+        assertions,
+        z3_script,
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -225,16 +231,12 @@ fn bench_receipt_chain_verify(c: &mut Criterion) {
     for chain_len in [100usize, 500, 1_000, 5_000] {
         let chain = build_chain(chain_len);
         group.throughput(Throughput::Elements(chain_len as u64));
-        group.bench_with_input(
-            BenchmarkId::new("verify", chain_len),
-            &chain_len,
-            |b, _| {
-                b.iter(|| {
-                    let result = chain.verify_chain();
-                    black_box(result)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("verify", chain_len), &chain_len, |b, _| {
+            b.iter(|| {
+                let result = chain.verify_chain();
+                black_box(result)
+            });
+        });
     }
     group.finish();
 }
@@ -311,7 +313,11 @@ fn bench_sippar_from_u64(c: &mut Criterion) {
     let test_values: Vec<u64> = (1u64..=1_000)
         .map(|i| {
             // Interleave regular (i*60) and irregular (primes approx)
-            if i % 3 == 0 { i * 60 } else { i * 7 + 1 }
+            if i % 3 == 0 {
+                i * 60
+            } else {
+                i * 7 + 1
+            }
         })
         .collect();
 
@@ -320,7 +326,8 @@ fn bench_sippar_from_u64(c: &mut Criterion) {
 
     group.bench_function("from_u64/1000_mixed", |b| {
         b.iter(|| {
-            let count = test_values.iter()
+            let count = test_values
+                .iter()
                 .filter(|&&v| is_regular_number(black_box(v)))
                 .count();
             black_box(count)
@@ -355,8 +362,8 @@ fn bench_fate_proof_generate(c: &mut Criterion) {
         confidence: 0.91,
     };
     let failing_scores = FateScores {
-        ihsan: 0.82,     // below IHSAN_THRESHOLD=0.95
-        adl_gini: 0.40,  // above ADL_GINI_MAX=0.35
+        ihsan: 0.82,    // below IHSAN_THRESHOLD=0.95
+        adl_gini: 0.40, // above ADL_GINI_MAX=0.35
         harm_score: 0.35,
         confidence: 0.70,
     };

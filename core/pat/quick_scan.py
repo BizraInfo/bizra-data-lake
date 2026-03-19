@@ -1,20 +1,47 @@
 #!/usr/bin/env python3
 """PAT Quick Scan — fast file census across all BIZRA locations."""
+
 import os, sys, time, json, hashlib
 from collections import defaultdict
 from pathlib import Path
 from datetime import datetime, timezone
 
 SKIP_DIRS = {
-    ".git", "node_modules", ".venv", ".venv-linux", ".venv-apex",
-    "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache",
-    ".cache", ".hypothesis", ".benchmarks", "dist", ".next",
-    ".swarm", ".claude-flow", ".fastembed_cache", "coverage",
-    ".tmp_prod_artifacts_v2", ".codex",
+    ".git",
+    "node_modules",
+    ".venv",
+    ".venv-linux",
+    ".venv-apex",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".cache",
+    ".hypothesis",
+    ".benchmarks",
+    "dist",
+    ".next",
+    ".swarm",
+    ".claude-flow",
+    ".fastembed_cache",
+    "coverage",
+    ".tmp_prod_artifacts_v2",
+    ".codex",
 }
 SKIP_EXT = {
-    ".exe", ".dll", ".so", ".dylib", ".whl", ".pyc", ".pyo",
-    ".o", ".a", ".lib", ".lock", ".idx", ".pack",
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".whl",
+    ".pyc",
+    ".pyo",
+    ".o",
+    ".a",
+    ".lib",
+    ".lock",
+    ".idx",
+    ".pack",
 }
 
 ROOTS = [
@@ -26,16 +53,46 @@ ROOTS = [
 ]
 
 CLASSIFY = {
-    ".py":"code",".rs":"code",".ts":"code",".tsx":"code",".js":"code",
-    ".jsx":"code",".sh":"code",".ps1":"code",".bat":"code",".sql":"code",
-    ".md":"doc",".txt":"doc",".pdf":"doc",".docx":"doc",".pptx":"doc",".xlsx":"doc",
-    ".json":"data",".jsonl":"data",".yaml":"data",".yml":"data",".toml":"data",
-    ".csv":"data",".parquet":"data",".db":"data",
-    ".html":"web",".css":"web",".svg":"web",
-    ".png":"media",".jpg":"media",".jpeg":"media",".gif":"media",
-    ".webp":"media",".mp4":"media",".m4a":"media",
-    ".zip":"archive",".tar":"archive",".gz":"archive",".tgz":"archive",
+    ".py": "code",
+    ".rs": "code",
+    ".ts": "code",
+    ".tsx": "code",
+    ".js": "code",
+    ".jsx": "code",
+    ".sh": "code",
+    ".ps1": "code",
+    ".bat": "code",
+    ".sql": "code",
+    ".md": "doc",
+    ".txt": "doc",
+    ".pdf": "doc",
+    ".docx": "doc",
+    ".pptx": "doc",
+    ".xlsx": "doc",
+    ".json": "data",
+    ".jsonl": "data",
+    ".yaml": "data",
+    ".yml": "data",
+    ".toml": "data",
+    ".csv": "data",
+    ".parquet": "data",
+    ".db": "data",
+    ".html": "web",
+    ".css": "web",
+    ".svg": "web",
+    ".png": "media",
+    ".jpg": "media",
+    ".jpeg": "media",
+    ".gif": "media",
+    ".webp": "media",
+    ".mp4": "media",
+    ".m4a": "media",
+    ".zip": "archive",
+    ".tar": "archive",
+    ".gz": "archive",
+    ".tgz": "archive",
 }
+
 
 def scan_root(root):
     rp = Path(root)
@@ -52,18 +109,21 @@ def scan_root(root):
                 continue
             try:
                 st = fp.stat()
-                files.append({
-                    "path": str(fp),
-                    "name": fn,
-                    "ext": ext,
-                    "size": st.st_size,
-                    "mtime": st.st_mtime,
-                    "kind": CLASSIFY.get(ext, "other"),
-                    "root": root,
-                })
+                files.append(
+                    {
+                        "path": str(fp),
+                        "name": fn,
+                        "ext": ext,
+                        "size": st.st_size,
+                        "mtime": st.st_mtime,
+                        "kind": CLASSIFY.get(ext, "other"),
+                        "root": root,
+                    }
+                )
             except (PermissionError, OSError):
                 pass
-    return {"root": root, "count": len(files), "files": files, "time": time.time()-t0}
+    return {"root": root, "count": len(files), "files": files, "time": time.time() - t0}
+
 
 def main():
     print("=" * 60)
@@ -88,11 +148,13 @@ def main():
 
     total_time = time.time() - t0
     total_bytes = sum(f["size"] for f in all_files)
-    print(f"\n  TOTAL: {len(all_files):,} files, {total_bytes/1e9:.2f} GB in {total_time:.1f}s")
+    print(
+        f"\n  TOTAL: {len(all_files):,} files, {total_bytes/1e9:.2f} GB in {total_time:.1f}s"
+    )
 
     # Classification
-    by_kind = defaultdict(lambda: {"count":0, "bytes":0})
-    by_ext = defaultdict(lambda: {"count":0, "bytes":0})
+    by_kind = defaultdict(lambda: {"count": 0, "bytes": 0})
+    by_ext = defaultdict(lambda: {"count": 0, "bytes": 0})
     for f in all_files:
         by_kind[f["kind"]]["count"] += 1
         by_kind[f["kind"]]["bytes"] += f["size"]
@@ -106,7 +168,9 @@ def main():
 
     print("\n  === TOP EXTENSIONS BY COUNT ===")
     for ext, i in sorted(by_ext.items(), key=lambda x: -x[1]["count"])[:15]:
-        print(f"    {ext or 'noext':8s}: {i['count']:>8,} files  {i['bytes']/1e6:>10.1f} MB")
+        print(
+            f"    {ext or 'noext':8s}: {i['count']:>8,} files  {i['bytes']/1e6:>10.1f} MB"
+        )
 
     # Quick dedup: group by (name, size)
     print("\n  === DEDUP CANDIDATES ===")
@@ -122,10 +186,12 @@ def main():
 
     # Top dups by wasted space
     print("\n  === TOP 10 DUPLICATES BY WASTED SPACE ===")
-    top_dups = sorted(dup_groups.items(), key=lambda x: -x[0][1] * (len(x[1])-1))[:10]
+    top_dups = sorted(dup_groups.items(), key=lambda x: -x[0][1] * (len(x[1]) - 1))[:10]
     for (name, size), paths in top_dups:
         wasted = size * (len(paths) - 1)
-        print(f"    {name[:40]:40s} {size/1e6:>8.1f} MB x{len(paths)} = {wasted/1e6:.1f} MB wasted")
+        print(
+            f"    {name[:40]:40s} {size/1e6:>8.1f} MB x{len(paths)} = {wasted/1e6:.1f} MB wasted"
+        )
         for p in paths[:3]:
             print(f"      {p}")
         if len(paths) > 3:
@@ -140,7 +206,9 @@ def main():
         "total_files": len(all_files),
         "total_bytes": total_bytes,
         "total_gb": round(total_bytes / 1e9, 2),
-        "by_kind": {k: dict(v) for k, v in sorted(by_kind.items(), key=lambda x: -x[1]["bytes"])},
+        "by_kind": {
+            k: dict(v) for k, v in sorted(by_kind.items(), key=lambda x: -x[1]["bytes"])
+        },
         "by_source": by_source,
         "duplicates": {
             "groups": len(dup_groups),
@@ -170,6 +238,7 @@ def main():
     print(f"  Sources:     {len(by_source)}")
     print(f"  Time:        {total_time:.1f}s")
     print(f"  Next: PAT clean → index → dedup → consolidate to B:\\")
+
 
 if __name__ == "__main__":
     main()
