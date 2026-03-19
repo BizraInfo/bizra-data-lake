@@ -67,6 +67,14 @@ def __getattr__(name: str):
         from .healing import MemoryHealer
 
         return MemoryHealer
+    elif name == "LivingMemory":
+        from .brain import LivingMemory
+
+        return LivingMemory
+    elif name == "UserModel":
+        from .brain import UserModel
+
+        return UserModel
     raise AttributeError(f"module 'core.living_memory' has no attribute '{name}'")
 
 
@@ -79,5 +87,7 @@ __all__ = [
     "DEFAULT_EMBEDDING_DIM",
     "MAX_MEMORY_ENTRIES",
     "MEMORY_TYPES",
+    "LivingMemory",
+    "UserModel",
     # Deferred (Phase 46+): "MemoryConsolidator", "KnowledgeGraph"
 ]
