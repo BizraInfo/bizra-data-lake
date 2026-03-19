@@ -1,0 +1,743 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Proof Pyramid Gate — Sprint 2
+#
+# Enforces all six constitutional proof-chain quality gates that were
+# MISSING from the existing 16-workflow CI suite.  These gates cover:
+#
+#   PP-001  Receipt chain integrity (Merkle tamper detection)
+#   PP-002  Sippar encoding verification (Babylonian regular numbers)
+#   PP-003  SMT-LIB2 syntax validation (balanced parentheses + keywords)
+#   PP-004  Fate-binding Z3 satisfiability proofs (requires libz3-dev)
+#   PP-005  Mission → ProofSpace bridge (terminal mission lifecycle)
+#   PP-006  E2E proof pyramid (Layer 0 → 5 full integration)
+#
+# Standing on Giants:
+#   Merkle (1979): hash-chain tamper evidence
+#   de Moura & Bjørner (2008): Z3 SMT solver
+#   Barrett et al.: SMT-LIB2 standard
+#   Babylonian scribes (~1900 BCE): 5-smooth regular numbers (Sippar Protocol)
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Proof Pyramid Gate
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/sprint-*"
+    paths:
+      - "bizra-omega/**"
+      - ".github/workflows/proof-pyramid-gate.yml"
+      - "scripts/ci_proof_pyramid_gate.py"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "bizra-omega/**"
+      - ".github/workflows/proof-pyramid-gate.yml"
+      - "scripts/ci_proof_pyramid_gate.py"
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: "Run tests with --nocapture for debug output"
+        required: false
+        default: "false"
+        type: boolean
+
+env:
+  RUST_VERSION: "1.82"
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  IHSAN_THRESHOLD: "0.95"
+  SNR_THRESHOLD: "0.85"
+  ADL_GINI_MAX: "0.35"
+  # Z3 header path — matches libz3-dev package on ubuntu-24.04
+  Z3_SYS_Z3_HEADER: /usr/include/z3.h
+
+concurrency:
+  group: proof-pyramid-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: bizra-omega
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Reusable setup steps are inlined per job because GHA does not support
+# composite actions inline.  The cargo cache key includes Cargo.lock so
+# any dependency bump busts the cache correctly.
+# ─────────────────────────────────────────────────────────────────────────────
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PP-001: Receipt Chain Integrity
+  # Verifies: chain_verify() is O(n), tamper → verify fails, no broken links.
+  # Test modules: bizra_proofspace::tests::receipt_chain_*
+  #               bizra_action::tests::receipt_*
+  # ═══════════════════════════════════════════════════════════════════════════
+  receipt-chain-integrity:
+    name: "PP-001: Receipt Chain Integrity"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Rust toolchain (${{ env.RUST_VERSION }})
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache cargo registry + build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bizra-omega/target
+          key: ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-${{ hashFiles('bizra-omega/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-
+            ${{ runner.os }}-cargo-
+
+      - name: Install Z3 (required by workspace build graph)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libz3-dev
+          echo "Z3_SYS_Z3_HEADER=/usr/include/z3.h" >> "$GITHUB_ENV"
+
+      - name: "PP-001 — Receipt chain unit tests"
+        run: |
+          cargo test \
+            --package bizra-proofspace \
+            --package bizra-action \
+            -- receipt_chain \
+               verify_chain \
+               tamper_detection \
+               broken_link \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: "PP-001 — Assert O(n) timing invariant"
+        run: |
+          cargo test \
+            --package bizra-proofspace \
+            -- chain_verify_linear_time \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: Record PP-001 evidence
+        if: always()
+        run: |
+          mkdir -p ../evidence
+          cat > ../evidence/pp001.json <<'EOF'
+          {
+            "gate": "PP-001",
+            "name": "Receipt Chain Integrity",
+            "run_id": "${{ github.run_id }}",
+            "sha": "${{ github.sha }}",
+            "ref": "${{ github.ref }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+      - name: Upload PP-001 evidence fragment
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: pp001-evidence
+          path: evidence/pp001.json
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PP-002: Sippar Encoding Verification
+  # Verifies: RegularNumber::from_u64 correctly classifies 5-smooth numbers.
+  #   chain_length=60 → harmonious (60 = 2²×3×5)
+  #   chain_length=7  → witness (7 is prime, not 5-smooth)
+  #   All primes > 5 are rejected by RegularNumber::from_u64
+  # ═══════════════════════════════════════════════════════════════════════════
+  sippar-encoding:
+    name: "PP-002: Sippar Encoding Verification"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Rust toolchain (${{ env.RUST_VERSION }})
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache cargo registry + build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bizra-omega/target
+          key: ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-${{ hashFiles('bizra-omega/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-
+            ${{ runner.os }}-cargo-
+
+      - name: Install Z3 (workspace build dependency)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libz3-dev
+          echo "Z3_SYS_Z3_HEADER=/usr/include/z3.h" >> "$GITHUB_ENV"
+
+      - name: "PP-002 — Sippar encoding unit tests"
+        run: |
+          cargo test \
+            --package bizra-sippar \
+            -- sippar \
+               regular_number \
+               harmonious \
+               witness \
+               from_u64 \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: "PP-002 — Assert prime rejection (all primes > 5 rejected)"
+        run: |
+          cargo test \
+            --package bizra-sippar \
+            -- rejects_prime \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: "PP-002 — Sippar chain digest tests (via proofspace)"
+        run: |
+          cargo test \
+            --package bizra-proofspace \
+            -- sippar_chain_digest \
+               chain_digest \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: Record PP-002 evidence
+        if: always()
+        run: |
+          mkdir -p ../evidence
+          cat > ../evidence/pp002.json <<'EOF'
+          {
+            "gate": "PP-002",
+            "name": "Sippar Encoding Verification",
+            "run_id": "${{ github.run_id }}",
+            "sha": "${{ github.sha }}",
+            "ref": "${{ github.ref }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+      - name: Upload PP-002 evidence fragment
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: pp002-evidence
+          path: evidence/pp002.json
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PP-003: SMT-LIB2 Syntax Gate
+  # Parses all formal_assertions in proofspace:
+  #   - Balanced parentheses
+  #   - Valid SMT-LIB2 keywords: set-logic, declare-const, assert, check-sat
+  #   - No empty assertions
+  # ═══════════════════════════════════════════════════════════════════════════
+  smtlib2-validation:
+    name: "PP-003: SMT-LIB2 Syntax Gate"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Rust toolchain (${{ env.RUST_VERSION }})
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache cargo registry + build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bizra-omega/target
+          key: ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-${{ hashFiles('bizra-omega/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-
+            ${{ runner.os }}-cargo-
+
+      - name: Install Z3 (workspace build dependency)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libz3-dev
+          echo "Z3_SYS_Z3_HEADER=/usr/include/z3.h" >> "$GITHUB_ENV"
+
+      - name: "PP-003 — SMT-LIB2 syntax validation tests"
+        run: |
+          cargo test \
+            --package bizra-proofspace \
+            -- smtlib2 \
+               smt_syntax \
+               balanced_parens \
+               formal_assertion \
+               set_logic \
+               check_sat \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: "PP-003 — Reject empty assertions"
+        run: |
+          cargo test \
+            --package bizra-proofspace \
+            -- empty_assertion_rejected \
+               invalid_smt \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: Record PP-003 evidence
+        if: always()
+        run: |
+          mkdir -p ../evidence
+          cat > ../evidence/pp003.json <<'EOF'
+          {
+            "gate": "PP-003",
+            "name": "SMT-LIB2 Syntax Gate",
+            "run_id": "${{ github.run_id }}",
+            "sha": "${{ github.sha }}",
+            "ref": "${{ github.ref }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+      - name: Upload PP-003 evidence fragment
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: pp003-evidence
+          path: evidence/pp003.json
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PP-004: Fate-Binding Z3 Proofs
+  # Requires libz3-dev (VERIFIED installed in ci.yml lines 123, 429).
+  # Asserts:
+  #   passing scores (ihsan ≥ 0.95) → Z3 result: Satisfiable
+  #   failing scores (ihsan < 0.95) → Z3 result: Unsatisfiable
+  # ═══════════════════════════════════════════════════════════════════════════
+  fate-binding-proofs:
+    name: "PP-004: Fate-Binding Z3 Proofs"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Rust toolchain (${{ env.RUST_VERSION }})
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache cargo registry + build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bizra-omega/target
+          key: ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-${{ hashFiles('bizra-omega/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-
+            ${{ runner.os }}-cargo-
+
+      - name: Install Z3 (fate-binding runtime requirement)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libz3-dev libclang-dev
+          echo "Z3_SYS_Z3_HEADER=/usr/include/z3.h" >> "$GITHUB_ENV"
+          echo "LIBCLANG_PATH=/usr/lib/llvm-18/lib" >> "$GITHUB_ENV"
+
+      - name: Verify Z3 installation
+        run: |
+          dpkg -l libz3-dev | grep -E "^ii"
+          ls -la /usr/include/z3.h
+          echo "Z3 header verified at: $Z3_SYS_Z3_HEADER"
+
+      - name: "PP-004 — Generate FateProof for known-passing scores (IHSAN ≥ 0.95)"
+        run: |
+          cargo test \
+            --package fate-binding \
+            -- fate_proof \
+               z3_satisfiable \
+               passing_scores \
+               ihsan_above_threshold \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: "PP-004 — Generate FateProof for known-failing scores (IHSAN < 0.95)"
+        run: |
+          cargo test \
+            --package fate-binding \
+            -- z3_unsatisfiable \
+               failing_scores \
+               ihsan_below_threshold \
+               constitutional_violation \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: "PP-004 — Z3 FATE gate completeness (all 4 FATE gates tested)"
+        run: |
+          cargo test \
+            --package fate-binding \
+            -- fate_gate \
+               four_gates \
+               adl_gini \
+               harm_score \
+               confidence_floor \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: Record PP-004 evidence
+        if: always()
+        run: |
+          mkdir -p ../evidence
+          cat > ../evidence/pp004.json <<'EOF'
+          {
+            "gate": "PP-004",
+            "name": "Fate-Binding Z3 Proofs",
+            "run_id": "${{ github.run_id }}",
+            "sha": "${{ github.sha }}",
+            "ref": "${{ github.ref }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "z3_required": true,
+            "thresholds": {
+              "IHSAN_THRESHOLD": "0.95",
+              "ADL_GINI_MAX": "0.35",
+              "MAX_HARM_SCORE": "0.30",
+              "MIN_CONFIDENCE": "0.80"
+            }
+          }
+          EOF
+
+      - name: Upload PP-004 evidence fragment
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: pp004-evidence
+          path: evidence/pp004.json
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PP-005: Mission → ProofSpace Bridge
+  # Tests the complete mission → proof block conversion (WBS 1.2 / 1.3).
+  # Asserts:
+  #   terminal missions produce valid ProofBlockSubmissions
+  #   non-terminal missions are rejected with MissionNotTerminal error
+  #   ihsan strict mode blocks below-threshold submissions
+  # ═══════════════════════════════════════════════════════════════════════════
+  mission-proof-bridge:
+    name: "PP-005: Mission → ProofSpace Bridge"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Rust toolchain (${{ env.RUST_VERSION }})
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache cargo registry + build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bizra-omega/target
+          key: ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-${{ hashFiles('bizra-omega/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-
+            ${{ runner.os }}-cargo-
+
+      - name: Install Z3 (workspace build dependency)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libz3-dev
+          echo "Z3_SYS_Z3_HEADER=/usr/include/z3.h" >> "$GITHUB_ENV"
+
+      - name: "PP-005 — Mission lifecycle unit tests"
+        run: |
+          cargo test \
+            --package bizra-mission \
+            -- mission \
+               terminal_state \
+               mission_state \
+               lifecycle \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: "PP-005 — ProofSpace bridge tests"
+        run: |
+          cargo test \
+            --package bizra-proofspace \
+            -- mission_proof \
+               proof_bridge \
+               terminal_mission \
+               non_terminal \
+               ihsan_strict \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: "PP-005 — Saga dispatcher mission dispatch"
+        run: |
+          cargo test \
+            --package bizra-proofspace \
+            -- saga_dispatch \
+               compensating_transaction \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: Record PP-005 evidence
+        if: always()
+        run: |
+          mkdir -p ../evidence
+          cat > ../evidence/pp005.json <<'EOF'
+          {
+            "gate": "PP-005",
+            "name": "Mission ProofSpace Bridge",
+            "run_id": "${{ github.run_id }}",
+            "sha": "${{ github.sha }}",
+            "ref": "${{ github.ref }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+      - name: Upload PP-005 evidence fragment
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: pp005-evidence
+          path: evidence/pp005.json
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PP-006: E2E Proof Pyramid (Walking Skeleton for the proof system)
+  # Runs the full Layer 0→5 integration test from wbs_1_5_e2e_proof_chain_test.
+  # This is the highest-value gate: all 7 E2E tests must pass.
+  # ═══════════════════════════════════════════════════════════════════════════
+  e2e-proof-pyramid:
+    name: "PP-006: E2E Proof Pyramid (Layer 0→5)"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs:
+      - receipt-chain-integrity
+      - sippar-encoding
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Rust toolchain (${{ env.RUST_VERSION }})
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache cargo registry + build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bizra-omega/target
+          key: ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-${{ hashFiles('bizra-omega/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ env.RUST_VERSION }}-
+            ${{ runner.os }}-cargo-
+
+      - name: Install Z3 (fate-binding Layer 5 requirement)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libz3-dev libclang-dev
+          echo "Z3_SYS_Z3_HEADER=/usr/include/z3.h" >> "$GITHUB_ENV"
+          echo "LIBCLANG_PATH=/usr/lib/llvm-18/lib" >> "$GITHUB_ENV"
+
+      - name: "PP-006 — Full Layer 0→5 proof pyramid E2E tests"
+        run: |
+          cargo test \
+            --package bizra-proofspace \
+            -- e2e \
+               proof_pyramid \
+               layer_0 \
+               layer_1 \
+               layer_2 \
+               layer_3 \
+               layer_4 \
+               layer_5 \
+            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+
+      - name: "PP-006 — Assert all 7 E2E tests pass"
+        run: |
+          set -euo pipefail
+          RESULT=$(cargo test \
+            --package bizra-proofspace \
+            -- e2e_proof_pyramid \
+            --test-threads 1 \
+            2>&1 | tee /dev/stderr)
+          PASS_COUNT=$(echo "$RESULT" | grep -c "^test.*ok" || true)
+          echo "E2E tests passed: $PASS_COUNT"
+          if [ "$PASS_COUNT" -lt 7 ]; then
+            echo "::error::PP-006 FAILED: Expected ≥7 E2E tests to pass, got $PASS_COUNT"
+            exit 1
+          fi
+          echo "::notice::PP-006 PASSED: $PASS_COUNT E2E tests passed"
+
+      - name: Record PP-006 evidence
+        if: always()
+        run: |
+          mkdir -p ../evidence
+          cat > ../evidence/pp006.json <<'EOF'
+          {
+            "gate": "PP-006",
+            "name": "E2E Proof Pyramid Layer 0-5",
+            "run_id": "${{ github.run_id }}",
+            "sha": "${{ github.sha }}",
+            "ref": "${{ github.ref }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "e2e_minimum_pass_count": 7
+          }
+          EOF
+
+      - name: Upload PP-006 evidence fragment
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: pp006-evidence
+          path: evidence/pp006.json
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Evidence Bundle
+  # Collects all PP gate results, merges into a single evidence.json,
+  # and uploads as the canonical proof-pyramid artifact.
+  # ═══════════════════════════════════════════════════════════════════════════
+  proof-pyramid-evidence:
+    name: "Evidence Bundle"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    if: always()
+    needs:
+      - receipt-chain-integrity
+      - sippar-encoding
+      - smtlib2-validation
+      - fate-binding-proofs
+      - mission-proof-bridge
+      - e2e-proof-pyramid
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Download all PP evidence fragments
+        uses: actions/download-artifact@fa0a91b85d4f404e444306234f3b95b5b6e49e52 # v3
+        with:
+          path: evidence-fragments
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Merge evidence fragments and run Python gate
+        id: gate
+        run: |
+          python scripts/ci_proof_pyramid_gate.py \
+            --evidence-dir evidence-fragments \
+            --gate-results \
+              pp001=${{ needs.receipt-chain-integrity.result }} \
+              pp002=${{ needs.sippar-encoding.result }} \
+              pp003=${{ needs.smtlib2-validation.result }} \
+              pp004=${{ needs.fate-binding-proofs.result }} \
+              pp005=${{ needs.mission-proof-bridge.result }} \
+              pp006=${{ needs.e2e-proof-pyramid.result }} \
+            --output evidence/proof_pyramid_evidence.json
+
+      - name: Append to repository evidence.json (if present)
+        if: ${{ hashFiles('evidence.json') != '' }}
+        run: |
+          python - <<'PYEOF'
+          import json, pathlib, datetime
+
+          repo_evidence = pathlib.Path("evidence.json")
+          pp_evidence = pathlib.Path("evidence/proof_pyramid_evidence.json")
+
+          if not pp_evidence.exists():
+              print("No PP evidence to merge")
+              exit(0)
+
+          existing = json.loads(repo_evidence.read_text()) if repo_evidence.exists() else {}
+          pp_data = json.loads(pp_evidence.read_text())
+
+          existing.setdefault("proof_pyramid_gates", []).append({
+              "run_id": "${{ github.run_id }}",
+              "sha": "${{ github.sha }}",
+              "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+              "results": pp_data
+          })
+
+          repo_evidence.write_text(json.dumps(existing, indent=2))
+          print(f"Merged proof pyramid evidence into {repo_evidence}")
+          PYEOF
+
+      - name: Emit CI summary
+        if: always()
+        run: |
+          python - <<'PYEOF'
+          import json, pathlib
+
+          gates = {
+              "PP-001 Receipt Chain Integrity":    "${{ needs.receipt-chain-integrity.result }}",
+              "PP-002 Sippar Encoding":            "${{ needs.sippar-encoding.result }}",
+              "PP-003 SMT-LIB2 Syntax":            "${{ needs.smtlib2-validation.result }}",
+              "PP-004 Fate-Binding Z3 Proofs":     "${{ needs.fate-binding-proofs.result }}",
+              "PP-005 Mission ProofSpace Bridge":  "${{ needs.mission-proof-bridge.result }}",
+              "PP-006 E2E Proof Pyramid":          "${{ needs.e2e-proof-pyramid.result }}",
+          }
+
+          rows = []
+          all_pass = True
+          for name, result in gates.items():
+              icon = "✅" if result == "success" else "❌" if result == "failure" else "⏭️"
+              rows.append(f"| {icon} | {name} | {result.upper()} |")
+              if result not in ("success", "skipped"):
+                  all_pass = False
+
+          summary_icon = "✅" if all_pass else "❌"
+          summary_line = f"## {summary_icon} Proof Pyramid Gate — {'ALL GATES PASSED' if all_pass else 'GATE FAILURE'}\n"
+
+          with open("$GITHUB_STEP_SUMMARY", "a") as f:
+              f.write(summary_line)
+              f.write("\n| Status | Gate | Result |\n")
+              f.write("|--------|------|--------|\n")
+              f.write("\n".join(rows))
+              f.write("\n\n")
+              f.write(f"**Commit**: `${{ github.sha }}`  \n")
+              f.write(f"**Run**: [{{'${{ github.run_id }}'}}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  \n")
+              f.write(f"**IHSAN_THRESHOLD**: `0.95` | **SNR_THRESHOLD**: `0.85` | **ADL_GINI_MAX**: `0.35`\n")
+          PYEOF
+
+      - name: Upload merged evidence bundle
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: proof-pyramid-evidence-bundle
+          path: evidence/proof_pyramid_evidence.json
+          retention-days: 90
+
+      - name: Fail workflow if any gate failed
+        if: |
+          needs.receipt-chain-integrity.result == 'failure' ||
+          needs.sippar-encoding.result == 'failure' ||
+          needs.smtlib2-validation.result == 'failure' ||
+          needs.fate-binding-proofs.result == 'failure' ||
+          needs.mission-proof-bridge.result == 'failure' ||
+          needs.e2e-proof-pyramid.result == 'failure'
+        run: |
+          echo "::error::One or more Proof Pyramid gates failed. See evidence bundle for details."
+          exit 1

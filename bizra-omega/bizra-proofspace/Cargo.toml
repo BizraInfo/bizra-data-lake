@@ -47,9 +47,18 @@ once_cell = "1.19"
 
 # Hex encoding
 hex = "0.4"
+# ━━━ Sprint 2: Proof Pyramid Wires (W4, W5, W8) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# W4: receipt_chain.rs needs ActionId, IhsanScore, Channel, ReceiptChain
+bizra-action = { path = "../bizra-action", features = ["production"] }
+# W5: mission_bridge.rs needs Mission, MissionState, MissionReceipt
+bizra-mission = { path = "../bizra-mission" }
+# W8: receipt_chain.rs + fate_proof.rs need RegularNumber, SipparError
+bizra-sippar = { path = "../bizra-sippar" }
 
 [dev-dependencies]
 tokio-test = "0.4"
+# ━━━ Sprint 2: Fate-Binding Wire (W7) — dev-dep until CI pins Z3 ━━━━━━━━━━━━
+fate-binding = { path = "../fate-binding" }
 criterion = "0.5"
 
 [[bin]]
@@ -69,4 +78,9 @@ optional = true
 
 [[bench]]
 name = "proofspace_benchmark"
+harness = false
+
+# ━━━ Sprint 2: Proof Pyramid Criterion Benchmarks ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[[bench]]
+name = "proof_pyramid_bench"
 harness = false

@@ -1,0 +1,209 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Dockerfile.node0-omega — Multi-stage Production Image
+#
+# Builds the BIZRA omega workspace (all crates) in three stages:
+#
+#   Stage 1: builder    rust:1.82-bookworm + Z3 + LLVM/clang
+#                       Compiles all crates with --release (omega profile)
+#
+#   Stage 2: runtime    debian:bookworm-slim with minimal shared libs
+#                       Only the bizra-node binary + required .so files
+#                       ~80 MB target image size
+#
+#   Stage 3: test       Re-uses builder, adds test runner entrypoint
+#                       Used by CI for running proof pyramid tests in-container
+#
+# Build commands:
+#   Production:  docker build --target runtime -t bizra-omega:latest .
+#   CI tests:    docker build --target test    -t bizra-omega:test .
+#   Full build:  docker build --target builder -t bizra-omega:builder .
+#
+# Standing on Giants:
+#   Rust 1.82 (MSRV for z3 0.12 + napi 2.14)
+#   Z3 4.13.x (libz3-dev on bookworm)
+#   Multi-stage Docker (Moby project best practices)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Stage 1: Builder — Rust + Z3 + LLVM/clang + all build dependencies
+# ═══════════════════════════════════════════════════════════════════════════════
+FROM rust:1.82-bookworm AS builder
+
+LABEL org.opencontainers.image.title="bizra-omega-builder"
+LABEL org.opencontainers.image.description="BIZRA Omega workspace builder (Rust + Z3)"
+LABEL org.opencontainers.image.vendor="BIZRA Sovereign <sovereign@bizra.node0>"
+
+# Install system build dependencies
+#   libz3-dev    — Z3 SMT solver headers + static lib (for fate-binding crate)
+#   libclang-dev — clang headers needed by bindgen (z3-sys)
+#   llvm         — LLVM toolchain for LTO fat builds
+#   pkg-config   — Used by many crates to locate system libs
+#   libssl-dev   — TLS support for reqwest
+#   git          — Required by some cargo build scripts
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+        libz3-dev \
+        libclang-dev \
+        llvm \
+        clang \
+        pkg-config \
+        libssl-dev \
+        git \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set Z3 header path for z3-sys bindgen
+ENV Z3_SYS_Z3_HEADER=/usr/include/z3.h
+ENV LIBCLANG_PATH=/usr/lib/llvm-14/lib
+
+# Install cargo-chef for layer-cached dependency pre-compilation
+# cargo-chef splits the build into:
+#   1. Recipe generation (changes only on Cargo.lock change)
+#   2. Dependency compilation (cached unless deps change)
+#   3. Application compilation (always runs)
+RUN cargo install cargo-chef --locked --version "^0.1"
+
+WORKDIR /build/bizra-omega
+
+# ── Dependency layer: recipe generation ──────────────────────────────────────
+# Copy only Cargo manifests first to maximize cache utilization
+COPY bizra-omega/Cargo.toml bizra-omega/Cargo.lock ./
+
+# Copy all member Cargo.toml files (without source) for recipe
+COPY bizra-omega/bizra-action/Cargo.toml       ./bizra-action/Cargo.toml
+COPY bizra-omega/bizra-agent/Cargo.toml        ./bizra-agent/Cargo.toml
+COPY bizra-omega/bizra-api/Cargo.toml          ./bizra-api/Cargo.toml
+COPY bizra-omega/bizra-autopoiesis/Cargo.toml  ./bizra-autopoiesis/Cargo.toml
+COPY bizra-omega/bizra-cli/Cargo.toml          ./bizra-cli/Cargo.toml
+COPY bizra-omega/bizra-core/Cargo.toml         ./bizra-core/Cargo.toml
+COPY bizra-omega/bizra-federation/Cargo.toml   ./bizra-federation/Cargo.toml
+COPY bizra-omega/bizra-hooks/Cargo.toml        ./bizra-hooks/Cargo.toml
+COPY bizra-omega/bizra-hunter/Cargo.toml       ./bizra-hunter/Cargo.toml
+COPY bizra-omega/bizra-hypergraph/Cargo.toml   ./bizra-hypergraph/Cargo.toml
+COPY bizra-omega/bizra-inference/Cargo.toml    ./bizra-inference/Cargo.toml
+COPY bizra-omega/bizra-installer/Cargo.toml    ./bizra-installer/Cargo.toml
+COPY bizra-omega/bizra-memory/Cargo.toml       ./bizra-memory/Cargo.toml
+COPY bizra-omega/bizra-mission/Cargo.toml      ./bizra-mission/Cargo.toml
+COPY bizra-omega/bizra-node/Cargo.toml         ./bizra-node/Cargo.toml
+COPY bizra-omega/bizra-proofspace/Cargo.toml   ./bizra-proofspace/Cargo.toml
+COPY bizra-omega/bizra-resourcepool/Cargo.toml ./bizra-resourcepool/Cargo.toml
+COPY bizra-omega/bizra-sippar/Cargo.toml       ./bizra-sippar/Cargo.toml
+COPY bizra-omega/bizra-telescript/Cargo.toml   ./bizra-telescript/Cargo.toml
+COPY bizra-omega/bizra-tests/Cargo.toml        ./bizra-tests/Cargo.toml
+COPY bizra-omega/bizra-ttrl/Cargo.toml         ./bizra-ttrl/Cargo.toml
+COPY bizra-omega/fate-binding/Cargo.toml       ./fate-binding/Cargo.toml
+COPY bizra-omega/iceoryx-bridge/Cargo.toml     ./iceoryx-bridge/Cargo.toml
+
+# Prepare recipe (stub src/ directories so cargo-chef can parse workspace)
+RUN cargo chef prepare --recipe-path recipe.json
+
+# ── Dependency layer: compile dependencies ────────────────────────────────────
+# This layer is cached unless Cargo.lock changes
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# ── Application layer: compile all workspace crates ──────────────────────────
+COPY bizra-omega/ .
+
+# Build with release profile (fat LTO, single codegen unit, stripped)
+# Environment variables:
+#   CARGO_TERM_COLOR=never  — clean logs in CI
+#   RUST_BACKTRACE=1        — capture backtraces in test stage
+RUN CARGO_TERM_COLOR=never \
+    cargo build \
+        --workspace \
+        --release \
+        --exclude bizra-python \
+    && echo "Build complete" \
+    && ls -lah target/release/bizra-node target/release/bizra-cli 2>/dev/null || true
+
+# Verify key binaries exist
+RUN test -f target/release/bizra-node || \
+    (echo "ERROR: bizra-node binary not found after build" && exit 1)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Stage 2: Runtime — minimal production image
+# Target size: ~80 MB
+# ═══════════════════════════════════════════════════════════════════════════════
+FROM debian:bookworm-slim AS runtime
+
+LABEL org.opencontainers.image.title="bizra-omega"
+LABEL org.opencontainers.image.description="BIZRA Omega Node — Sovereign Cognitive Runtime"
+LABEL org.opencontainers.image.vendor="BIZRA Sovereign <sovereign@bizra.node0>"
+
+# Runtime shared libraries
+#   libz3-4         — Z3 SMT solver shared library (fate-binding runtime)
+#   libssl3         — TLS for outbound connections
+#   ca-certificates — Root CAs for HTTPS
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+        libz3-4 \
+        libssl3 \
+        ca-certificates \
+        tini && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --gid 10001 bizra && \
+    useradd --uid 10001 --gid bizra --no-create-home --shell /bin/false bizra
+
+# Copy compiled binaries from builder
+COPY --from=builder /build/bizra-omega/target/release/bizra-node /usr/local/bin/bizra-node
+COPY --from=builder /build/bizra-omega/target/release/bizra-cli  /usr/local/bin/bizra-cli
+
+# Ensure binaries are executable and owned by root (not writable by runtime user)
+RUN chmod 755 /usr/local/bin/bizra-node /usr/local/bin/bizra-cli
+
+# Runtime configuration directory
+RUN mkdir -p /etc/bizra /var/lib/bizra/evidence && \
+    chown -R bizra:bizra /var/lib/bizra
+
+WORKDIR /var/lib/bizra
+
+# Run as non-root (constitutional: sovereign agents do not run as root)
+USER bizra
+
+# Evidence store is a volume — survives container restarts
+VOLUME ["/var/lib/bizra/evidence"]
+
+# Expose gRPC (50051) and HTTP (8080) ports
+EXPOSE 8080 50051
+
+# Tini as PID 1 for correct signal handling and zombie reaping
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["bizra-node", "--config", "/etc/bizra/node.toml"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD bizra-cli health || exit 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Stage 3: Test runner — used by CI proof pyramid gate
+# Includes Z3, test binaries, and all test tooling.
+# Built with: docker build --target test -t bizra-omega:test .
+# Run with:   docker run --rm bizra-omega:test
+# ═══════════════════════════════════════════════════════════════════════════════
+FROM builder AS test
+
+LABEL org.opencontainers.image.title="bizra-omega-test"
+LABEL org.opencontainers.image.description="BIZRA Omega test runner with Z3 + proof pyramid tests"
+
+# Build all tests (dev profile — includes debug info for better failure messages)
+RUN CARGO_TERM_COLOR=never \
+    RUST_BACKTRACE=1 \
+    cargo test \
+        --workspace \
+        --exclude bizra-python \
+        --no-run \
+    && echo "Test binaries compiled successfully"
+
+# Install test reporting tools
+RUN cargo install cargo-nextest --locked --version "^0.9" 2>/dev/null || true
+
+WORKDIR /build/bizra-omega
+
+ENV RUST_BACKTRACE=full
+ENV RUST_LOG=debug
+
+# Default: run proof pyramid tests with nextest (falls back to cargo test)
+CMD ["sh", "-c", \
+     "cargo nextest run --package bizra-proofspace --package bizra-sippar --package fate-binding \
+      || cargo test --package bizra-proofspace --package bizra-sippar --package fate-binding"]
