@@ -225,6 +225,31 @@
       "pool_note": "50% of founder's SEED goes to community Waqf pool. This is sadaqah (voluntary charity), not a protocol tax. The founder chose this. Future nodes are NOT obligated to match it."
     }
   },
+  "seed_economics": {
+    "peg": "1 SEED = 1 governed compute-hour",
+    "flywheel": {
+      "standing_on": "MMRPG economies (WoW 20yr, EVE Online, FFXIV) — the only token systems that sustained real value for decades",
+      "sources": [
+        {"activity": "Complete missions with PAT team", "mmrpg": "Quest completion", "metric": "Ihsan score"},
+        {"activity": "Contribute verified code/knowledge", "mmrpg": "Crafting materials", "metric": "SAT-evaluated KU"},
+        {"activity": "Serve compute to network", "mmrpg": "Run a vendor/shop", "metric": "Compute-hours provided"},
+        {"activity": "Discover knowledge (Scholar)", "mmrpg": "Exploration XP", "metric": "Verified novel insights"},
+        {"activity": "Train agents (autopoietic improvement)", "mmrpg": "Level up skills", "metric": "Performance delta"}
+      ],
+      "sinks": [
+        {"mechanism": "Agent compute execution", "mmrpg": "Gear repair", "rate": "per-action cost", "note": "MUST spend to use agents"},
+        {"mechanism": "Zakat", "mmrpg": "Auction house cut (WoW 5%)", "rate": "2.5% at mint", "note": "Deflationary, redistributive"},
+        {"mechanism": "Harberger tax", "mmrpg": "Sovereignty maintenance (EVE)", "rate": "5% annual on hoarded assets", "note": "Anti-hoarding"},
+        {"mechanism": "Skill marketplace", "mmrpg": "Buy gear/recipes", "rate": "market price", "note": "SEED flows between users"},
+        {"mechanism": "Telescript multi-node missions", "mmrpg": "Hire mercenaries", "rate": "negotiated", "note": "Cross-node economy"},
+        {"mechanism": "Waqf endowments", "mmrpg": "Guild bank donations", "rate": "voluntary", "note": "Permanent community infrastructure"}
+      ],
+      "utility_lock": "Without SEED: agents cannot execute, skills cannot deploy, governance inaccessible, Telescript raids blocked. With SEED: 7 agents work 24/7, receipts prove quality, earn more SEED from network participation.",
+      "loop": "Join(free PAT) → Work(earn SEED) → Upgrade(buy skills) → Better Work(earn more) → Attract Users(network effect) → SEED demand grows → Loop"
+    },
+    "moat": "20 years of gaming vocabulary + 1,400 years of Islamic jurisprudence. Nobody can import that vocabulary in a quarter.",
+    "tam_usd": 850000000000
+  },
   "founding_agents": {
     "total": 12,
     "pat": {
