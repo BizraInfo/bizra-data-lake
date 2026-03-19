@@ -603,6 +603,7 @@ dependencies = [
  "bizra-inference",
  "bizra-memory",
  "bizra-mission",
+ "bizra-proofspace",
  "bizra-telescript",
  "blake3",
  "ed25519-dalek",
@@ -636,6 +637,23 @@ dependencies = [
  "tokio-test",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "bizra-protocol"
+version = "2.0.0"
+dependencies = [
+ "bizra-action",
+ "bizra-core",
+ "bizra-telescript",
+ "blake3",
+ "chrono",
+ "ed25519-dalek",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
 ]
 
 [[package]]

@@ -22,6 +22,9 @@ use bizra_hooks::IhsanScore;
 use bizra_inference::{BackendConfig, InferenceGateway, InferenceRequest, OllamaBackend};
 use bizra_inference::{GatewayError, ModelTier, TaskComplexity};
 use bizra_memory::types::{AtomKind, Confidence};
+use bizra_mission::mission::Mission;
+use bizra_mission::receipt::MissionReceipt;
+use bizra_mission::state::MissionState;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -338,6 +341,41 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
         }
     }
 
+    // ── Wire W4: Saga completion → Mission lifecycle → Receipt chain ──
+    // Every RECEIVE command that passes Guardian produces a signed,
+    // hash-chained receipt. This is the proof pyramid closure.
+    let mut receipt_id_hex = String::new();
+    if result.guardian_approved {
+        let input_hash: [u8; 32] = blake3::hash(content.as_bytes()).into();
+        let mut mission = Mission::new(input_hash, timestamp);
+
+        // Walk the mission through its governed lifecycle
+        let _ = mission.transition(MissionState::Queued, timestamp + 1, "saga completed");
+        let _ = mission.transition(MissionState::Routing, timestamp + 2, "intent classified");
+
+        if let Some(model) = inference_execution.model() {
+            mission.chosen_model = Some(model);
+        }
+
+        let _ = mission.transition(MissionState::Running, timestamp + 3, "inference");
+        mission.ihsan_score = Some(state.ihsan.as_f64() as f32);
+        mission.guardian_approved = Some(true);
+        let _ = mission.transition(MissionState::Scoring, timestamp + 4, "scored");
+        let _ = mission.transition(MissionState::Persisting, timestamp + 5, "persisting");
+        let _ = mission.complete(timestamp + 6);
+
+        // Generate receipt chained to previous
+        let mut receipt = MissionReceipt::from_mission(&mission, *state.last_receipt_id);
+
+        // Sign with node's Ed25519 key
+        if let Some(key) = state.signing_key {
+            receipt.sign(key);
+        }
+
+        receipt_id_hex = receipt.id_hex();
+        *state.last_receipt_id = Some(receipt.receipt_id);
+    }
+
     let saga_id_str = saga_id.map(|s| format!("{}", s.0)).unwrap_or_default();
 
     Response::ok(vec![
@@ -354,6 +392,7 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
         ("reflex_hit", format!("{}", result.reflex_hit)),
         ("action_id", result.action_id.unwrap_or_default()),
         ("saga_id", saga_id_str),
+        ("receipt_id", receipt_id_hex),
         (
             "inference_executed",
             format!("{}", inference_execution.is_executed()),

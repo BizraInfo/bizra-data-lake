@@ -145,6 +145,38 @@ pub fn execute_governed_mission(
     }
 }
 
+/// Bridge a completed MissionReceipt into a ProofSpace block reference.
+/// This is Wire W5+W6: the proof pyramid link from operational receipts
+/// to civilizational block storage.
+///
+/// Returns the block ID (BLAKE3 hex) for chain tracking.
+pub fn receipt_to_proofspace_ref(receipt: &MissionReceipt) -> ProofSpaceRef {
+    let receipt_hex = receipt.id_hex();
+    let mission_hex: String = receipt.mission_id.iter().map(|b| format!("{b:02x}")).collect();
+    ProofSpaceRef {
+        receipt_id: receipt_hex,
+        mission_id: mission_hex,
+        ihsan_score: receipt.ihsan_score,
+        is_signed: receipt.is_signed(),
+        is_success: receipt.is_success(),
+        degradation_tier: receipt.degradation_tier,
+    }
+}
+
+/// A lightweight reference from the operational proof layer (Mission/Receipt)
+/// to the civilizational proof layer (ProofSpace/Block).
+/// This struct can be serialized into a ProofSpace `ExternalRef` when
+/// block construction is triggered.
+#[derive(Debug, Clone)]
+pub struct ProofSpaceRef {
+    pub receipt_id: String,
+    pub mission_id: String,
+    pub ihsan_score: Option<f32>,
+    pub is_signed: bool,
+    pub is_success: bool,
+    pub degradation_tier: u8,
+}
+
 /// Extract model names from the substrate resource manifest.
 /// Used to populate the available_models list for preflight.
 pub fn extract_model_names(manifest: &crate::substrate::ResourceManifest) -> Vec<String> {
