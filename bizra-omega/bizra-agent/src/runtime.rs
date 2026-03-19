@@ -851,6 +851,12 @@ impl AgentRuntime {
         &self.pipeline
     }
 
+    /// Mutable access to the memory pipeline for heartbeat-driven
+    /// reinforcement, quarantine, and synthesis operations.
+    pub fn pipeline_mut(&mut self) -> &mut MemoryPipeline {
+        &mut self.pipeline
+    }
+
     pub fn health(&self) -> RuntimeHealth {
         let summary = self.pipeline.knowledge_summary();
         let stats = self.pipeline.stats();

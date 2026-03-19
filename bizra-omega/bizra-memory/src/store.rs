@@ -545,6 +545,23 @@ impl InMemoryStore {
     pub fn insight_count(&self) -> usize {
         self.insights.len()
     }
+
+    /// Return IDs of the N most recently created active atoms.
+    /// Used by heartbeat to target reinforcement/quarantine.
+    pub fn recent_atom_ids(&self, n: usize) -> Vec<AtomId> {
+        self.atoms
+            .iter()
+            .rev()
+            .filter(|a| !a.superseded)
+            .take(n)
+            .map(|a| a.header.id)
+            .collect()
+    }
+
+    /// Mutable access to an atom by ID (for confidence adjustment).
+    pub fn atom_mut(&mut self, id: &AtomId) -> Option<&mut StoredAtom> {
+        self.atoms.iter_mut().find(|a| a.header.id == *id)
+    }
 }
 
 impl Default for InMemoryStore {
