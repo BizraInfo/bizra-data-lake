@@ -54,5 +54,39 @@
     "ihsan": {"commit": "a573c590", "type": "IhsanScore::from_f64(0.95)"},
     "amanah": {"commit": "7664e961", "type": "MissionReceipt::require_signed()"},
     "adl": {"commit": "48c41cd3", "type": "ExactAmount (i64 micro-units)"}
+  },
+  "founding_agents": {
+    "total": 12,
+    "pat": {
+      "owner": "mumo",
+      "count": 7,
+      "agents": [
+        {"id": "P1", "role": "Navigator",  "purpose": "Intent classification, task routing",      "soulbound": true},
+        {"id": "P2", "role": "Scholar",    "purpose": "Knowledge retrieval, research",             "soulbound": true},
+        {"id": "P3", "role": "Artisan",    "purpose": "Content creation, code generation",         "soulbound": true},
+        {"id": "P4", "role": "Guardian",   "purpose": "Safety, privacy, Ihsan enforcement (VETO)", "soulbound": true},
+        {"id": "P5", "role": "Mentor",     "purpose": "Learning, adaptation, memory extraction",   "soulbound": true},
+        {"id": "P6", "role": "Diplomat",   "purpose": "Communication style, tone matching",        "soulbound": true},
+        {"id": "P7", "role": "Oracle",     "purpose": "Prediction, planning, proactive insight",   "soulbound": true}
+      ],
+      "invariant": "PAT never leaves. 7 agents per user. Guardian has veto."
+    },
+    "sat": {
+      "owner": "bizra-urp-inventory",
+      "count": 5,
+      "agents": [
+        {"id": "S1", "role": "Validator",  "purpose": "Transaction and state validation",     "soulbound": true},
+        {"id": "S2", "role": "Oracle",     "purpose": "External data and truth verification",  "soulbound": true},
+        {"id": "S3", "role": "Mediator",   "purpose": "Dispute resolution and arbitration",    "soulbound": true},
+        {"id": "S4", "role": "Archivist",  "purpose": "Knowledge preservation and retrieval",  "soulbound": true},
+        {"id": "S5", "role": "Sentinel",   "purpose": "Network security and threat detection", "soulbound": true}
+      ],
+      "invariant": "SAT cannot initiate. Only responds to PAT requests through constitutional gates."
+    },
+    "minting_rules": {
+      "transfer": "REJECTED — all agents are soulbound (BLOOM + IMPT non-transferable)",
+      "daughter_test": "Every agent must be safe for a child to interact with",
+      "permission_funnel": "Human → DEMA → PAT-7 → Pool → SAT-5 (narrowing, never widening)"
+    }
   }
 }
