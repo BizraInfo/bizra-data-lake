@@ -165,6 +165,19 @@ impl MissionReceipt {
     pub fn verify_chain(&self, previous: &MissionReceipt) -> bool {
         self.previous_receipt_hash == Some(previous.receipt_id) && self.verify_hash()
     }
+
+    /// Enforce that this receipt is signed before it leaves the node.
+    /// Amanah (أمانة) — no claim without cryptographic attestation.
+    ///
+    /// Returns Ok(()) if signed, Err with reason if unsigned.
+    /// Call this before emitting to chain, returning to user, or persisting.
+    pub fn require_signed(&self) -> Result<(), &'static str> {
+        if self.is_signed() {
+            Ok(())
+        } else {
+            Err("receipt unsigned — Amanah violation: no claim without signed receipts")
+        }
+    }
 }
 
 /// Serde helper for [u8; 64] (Ed25519 signature).
