@@ -138,6 +138,11 @@ pub fn execute_governed_mission(
         receipt.sign(key);
     }
 
+    // Amanah gate: warn if receipt is unsigned (signing key missing)
+    if let Err(reason) = receipt.require_signed() {
+        eprintln!("  WARNING: {reason}");
+    }
+
     MissionResult {
         runtime_response: Some(result),
         receipt,

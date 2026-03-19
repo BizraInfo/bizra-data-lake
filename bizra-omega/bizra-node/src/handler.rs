@@ -367,9 +367,14 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
         // Generate receipt chained to previous
         let mut receipt = MissionReceipt::from_mission(&mission, *state.last_receipt_id);
 
-        // Sign with node's Ed25519 key
+        // Sign with node's Ed25519 key — Amanah enforcement
         if let Some(key) = state.signing_key {
             receipt.sign(key);
+        }
+
+        // Amanah gate: warn if receipt is unsigned (key missing)
+        if let Err(reason) = receipt.require_signed() {
+            eprintln!("  WARNING: {reason}");
         }
 
         receipt_id_hex = receipt.id_hex();

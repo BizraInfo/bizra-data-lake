@@ -1,0 +1,139 @@
+# ═══════════════════════════════════════════════════════════════
+# BIZRA Sprint 2 Roadmap — Cognitive Wiring + Security Hardening
+# ═══════════════════════════════════════════════════════════════
+#
+# Synthesized from: 9 analytical passes, 6+ models, 3 documents,
+# Eighth Pass HHMM-Diffusion, Ninth Pass PMBOK Blueprint,
+# Phase 87 Genesis Wire specs, and v0.87.0 release evidence.
+#
+# Standing on: Deming (PDCA), Garcia-Molina (Saga), Shannon (SNR),
+#              Al-Ghazali (Ihsan), Satoshi (chain integrity)
+#
+# SAPE Framework Applied:
+#   S (Symbolic):  Receipt signing = trust anchor. Without it, proof pyramid is decorative.
+#   A (Abstraction): ExperienceLedger + RIR = cognitive memory substrate.
+#   P (Probe):     f64 drift in monetary calculations = silent Adl violation.
+#   E (Elevation): Receipt enforcement → SEL wiring → f64 purge (dependency order).
+# ═══════════════════════════════════════════════════════════════
+
+meta:
+  sprint: 2
+  phase: 87-88
+  predecessor: v0.87.0 (Genesis Gate PASS)
+  target: v0.88.0 (Alpha-100 candidate)
+  snr_target: 0.91  # current 0.878, need to close documentation + ethics gaps
+
+# ═══════════════════════════════════════════════════════════════
+# PRIORITIZED BY CASCADING RISK (highest blast radius first)
+# ═══════════════════════════════════════════════════════════════
+
+work_packages:
+
+  # ── P0: CRITICAL PATH (blocks Alpha-100) ────────────────────
+
+  - id: "2.5"
+    name: "Receipt signing enforcement in production"
+    priority: P0
+    risk_id: RK8
+    cascade: "Unsigned receipt → unverifiable proof chain → trust collapse"
+    ihsan_principle: "Amanah (trust) — no claim without signed receipts"
+    scope:
+      - "Add is_signed() check in Mission::complete() — fail if unsigned"
+      - "Node handler: error if signing_key is None on RECEIVE"
+      - "Deploy overlay: BIZRA_REQUIRE_SIGNED_RECEIPTS=true"
+    acceptance: "Zero unsigned receipts emitted when signing key present"
+    loc_estimate: 25
+    ci_gate: "phase56-security"
+    crate: "bizra-mission + bizra-node"
+
+  - id: "2.1"
+    name: "Wire ExperienceLedger into memory pipeline"
+    priority: P0
+    risk_id: RK1
+    cascade: "SEL orphaned → 1,491 LOC dead → cognitive memory non-functional"
+    ihsan_principle: "Ihsan (excellence) — the system must learn from experience"
+    scope:
+      - "bizra-memory SynthesisEngine writes to ExperienceLedger"
+      - "ExperienceLedger episodes feed RIR retrieval weights"
+      - "Heartbeat drain: PROMOTE_CHECK triggers SEL episode creation"
+    acceptance: "10 missions → ≥5 SEL episodes created with RIR weights"
+    loc_estimate: 60
+    ci_gate: "test-rust"
+    crate: "bizra-memory + bizra-core"
+
+  # ── P1: HIGH VALUE (significant quality improvement) ────────
+
+  - id: "2.4"
+    name: "Replace f64 with RegularNumber in islamic_finance"
+    priority: P1
+    risk_id: RK3
+    cascade: "f64 rounding → Zakat/Mudaraba miscalculation → Adl violation"
+    ihsan_principle: "Adl (justice) — financial drift is structural unfairness"
+    scope:
+      - "84 f64 references in islamic_finance.rs → RegularNumber"
+      - "Import bizra-sippar RegularNumber type"
+      - "Preserve all existing test assertions (values don't change for small amounts)"
+    acceptance: "Zero f64 in monetary calculations. cargo clippy clean."
+    loc_estimate: 120
+    ci_gate: "test-rust, clippy"
+    crate: "bizra-core"
+
+  - id: "2.2"
+    name: "Wire EventBus → Python Hook dispatch"
+    priority: P1
+    risk_id: RK1
+    cascade: "Events don't cross Rust→Python boundary → Node0 Python hooks dead"
+    ihsan_principle: "Ihsan — system must be whole, not partitioned"
+    scope:
+      - "PyEventBridge emits Rust EventBus events to Python event_bus.py"
+      - "Python event_bus subscribes to Rust topics via FFI"
+    acceptance: "Rust action.receipt event visible in Python event bus"
+    loc_estimate: 40
+    ci_gate: "test-pyo3"
+    crate: "bizra-python + bizra-node"
+
+  # ── P2: QUALITY RATCHET ─────────────────────────────────────
+
+  - id: "2.6"
+    name: "NODE0 self-hosted runner online"
+    priority: P2
+    cascade: "Runner offline → CI queued indefinitely → no remote verification"
+    scope:
+      - "Start GitHub Actions runner on NODE0"
+      - "Install musl target: rustup target add x86_64-unknown-linux-musl"
+      - "Verify 3 queued workflows complete"
+    acceptance: "CI green on GitHub for v0.87.0 tag"
+
+  - id: "2.3"
+    name: "AgentState enum audit (NOT unification)"
+    priority: P2
+    cascade: "Low — different domains, different state machines (verified)"
+    scope:
+      - "Document that roster/PAT/telescript AgentState are intentionally distinct"
+      - "Add doc comments clarifying domain separation"
+    acceptance: "No code change — documentation only"
+    loc_estimate: 10
+
+# ═══════════════════════════════════════════════════════════════
+# SAPE SYNTHESIS — Cross-cutting Insights
+# ═══════════════════════════════════════════════════════════════
+
+sape:
+  symbolic:
+    finding: "Ed25519 signing exists but is not enforced — receipts CAN be unsigned"
+    invariant: "Amanah requires: no unsigned receipt reaches the chain"
+    action: "WBS 2.5 — fail-closed enforcement"
+
+  abstraction:
+    finding: "Three proof systems (Z3, Receipt, Block) are individually verified but not connected"
+    invariant: "Sprint 1 closed W4-W8. Sprint 2 closes SEL→RIR (the cognitive link)"
+    action: "WBS 2.1 — wire ExperienceLedger"
+
+  probe:
+    finding: "84 f64 fields in islamic_finance.rs accumulate floating-point drift"
+    invariant: "Adl requires exact arithmetic for monetary values"
+    action: "WBS 2.4 — RegularNumber replacement"
+
+  elevation:
+    finding: "v0.87.0 proves the architecture works. Sprint 2 proves it's trustworthy."
+    invariant: "Genesis Gate proved execution. Alpha-100 must prove governance."
