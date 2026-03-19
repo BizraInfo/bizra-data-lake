@@ -134,6 +134,11 @@ pub struct Node {
     /// Every mission that produces a receipt also commits an episode here.
     /// Standing on: Tulving (1972), Park et al. (2023).
     experience_ledger: bizra_core::ExperienceLedger,
+    // ── Phase 87-88: Identity Registry ──────────────────────────────────────
+    /// Cryptographic identity binding — maps agent IDs to Ed25519 keys.
+    /// Receipts are only valid if signed by a registered, active agent.
+    /// Genesis review P0: "no claim without identity-bound proof."
+    identity_registry: crate::identity_registry::IdentityRegistry,
 }
 
 impl Node {
@@ -164,6 +169,11 @@ impl Node {
             last_synthesis_ms: 0,
             event_bridge: crate::heartbeat::EventBridge::default(),
             experience_ledger: bizra_core::ExperienceLedger::new(),
+            identity_registry: {
+                let mut reg = crate::identity_registry::IdentityRegistry::new();
+                reg.mint_genesis_agents(); // 12 founding agents with Ed25519 keys
+                reg
+            },
         };
 
         // Register PostDeliver audit hook for action.receipt events.
@@ -243,7 +253,7 @@ impl Node {
                 saga_registry: &mut self.saga_registry,
                 resource_manifest: &mut self.resource_manifest,
                 last_receipt_id: &mut self.last_receipt_id,
-                signing_key: None, // TODO: wire sovereign key from genesis ceremony
+                signing_key: self.identity_registry.node_signing_key(),
                 experience_ledger: &mut self.experience_ledger,
             };
             handler::handle(cmd, &mut internals)
@@ -292,7 +302,7 @@ impl Node {
                 saga_registry: &mut self.saga_registry,
                 resource_manifest: &mut self.resource_manifest,
                 last_receipt_id: &mut self.last_receipt_id,
-                signing_key: None, // TODO: wire sovereign key from genesis ceremony
+                signing_key: self.identity_registry.node_signing_key(),
                 experience_ledger: &mut self.experience_ledger,
             };
             handler::handle(cmd, &mut internals)
