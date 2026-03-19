@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -113,12 +112,12 @@ class RustBridgeSubscriber:
 
             self._forwarded += 1
 
-        except Exception as e:  # noqa: BLE001 — boundary: never let Rust failure crash Python
+        except (
+            Exception
+        ) as e:  # noqa: BLE001 — boundary: never let Rust failure crash Python
             self._failed += 1
             self._last_error = str(e)
-            logger.warning(
-                f"Rust bridge forward failed ({self._failed} total): {e}"
-            )
+            logger.warning(f"Rust bridge forward failed ({self._failed} total): {e}")
             # Constitutional degradation: Python continues, Rust misses this event.
             # The Python EventBus chain is unaffected — only the Rust mirror is incomplete.
 
@@ -129,10 +128,8 @@ class RustBridgeSubscriber:
             "forwarded": self._forwarded,
             "failed": self._failed,
             "last_error": self._last_error,
-            "bridge_healthy": self._failed == 0 or (
-                self._forwarded > 0
-                and self._failed / self._forwarded < 0.01
-            ),
+            "bridge_healthy": self._failed == 0
+            or (self._forwarded > 0 and self._failed / self._forwarded < 0.01),
         }
 
 

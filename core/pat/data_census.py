@@ -143,7 +143,7 @@ for root in ROOTS:
     print(f"  [{root}]", flush=True)
     r = scan(root)
     if r is None:
-        print(f"    NOT FOUND", flush=True)
+        print("    NOT FOUND", flush=True)
     else:
         results.append(r)
         grand_files += r["files"]
@@ -164,7 +164,7 @@ for root in ROOTS:
 print(f"  {'='*50}", flush=True)
 print(f"  GRAND TOTAL: {grand_files:,} files | {grand_gb:.3f} GB", flush=True)
 print(flush=True)
-print(f"  BY KIND (all sources):", flush=True)
+print("  BY KIND (all sources):", flush=True)
 for kind in sorted(grand_kinds, key=lambda k: -grand_kinds[k]["b"]):
     info = grand_kinds[kind]
     print(f"    {kind:8s}: {info['n']:>8,} files  {info['b']/1e9:>8.3f} GB", flush=True)
@@ -198,4 +198,4 @@ manifest = {
 }
 with open("04_GOLD/data_source_census.json", "w") as f:
     json.dump(manifest, f, indent=2, default=str)
-print(f"\n  Census written: 04_GOLD/data_source_census.json", flush=True)
+print("\n  Census written: 04_GOLD/data_source_census.json", flush=True)

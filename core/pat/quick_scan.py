@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """PAT Quick Scan — fast file census across all BIZRA locations."""
 
-import hashlib
 import json
 import os
-import sys
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -234,14 +232,14 @@ def main():
     print(f"  File list: {fpath} ({len(all_files):,} entries)")
 
     print(f"\n  {'='*50}")
-    print(f"  SCAN COMPLETE")
+    print("  SCAN COMPLETE")
     print(f"  {'='*50}")
     print(f"  Files:       {len(all_files):,}")
     print(f"  Size:        {total_bytes/1e9:.2f} GB")
     print(f"  Duplicates:  {dup_files:,} redundant ({dup_bytes/1e6:.1f} MB)")
     print(f"  Sources:     {len(by_source)}")
     print(f"  Time:        {total_time:.1f}s")
-    print(f"  Next: PAT clean → index → dedup → consolidate to B:\\")
+    print("  Next: PAT clean → index → dedup → consolidate to B:\\")
 
 
 if __name__ == "__main__":

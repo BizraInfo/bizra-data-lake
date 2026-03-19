@@ -31,7 +31,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -657,7 +657,7 @@ if __name__ == "__main__":
     if result.get("verdict") == "approved":
         d = result["distribution"]
         print()
-        print(f"  === MINT AUTHORIZED ===")
+        print("  === MINT AUTHORIZED ===")
         print(f"  Gross SEED:    {d['gross_seed']:,.2f}")
         print(f"  Founder (50%): {d['founder_share']:,.2f}")
         print(f"  Treasury(50%): {d['treasury_share']:,.2f}")
