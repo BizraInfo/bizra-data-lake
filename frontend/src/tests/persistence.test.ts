@@ -62,10 +62,10 @@ describe('App Session Persistence', () => {
 
   it('saveAppSession + loadAppSession round-trips', () => {
     const saved: AppSessionState = {
-      phase: 'dashboard' as any,
+      phase: 'dashboard' as AppSessionState['phase'],
       userName: 'bizra-user',
       pendingIdentityName: 'test-identity',
-      config: { theme: 'dark' } as any,
+      config: { theme: 'dark' } as AppSessionState['config'],
       teachDraft: { step: 2, answers: { q1: 'a1' }, textValue: 'hello', selected: ['opt1'] },
     };
     saveAppSession(saved);
@@ -106,7 +106,7 @@ describe('Mission Session Persistence', () => {
 
   it('saveMissionSession + loadMissionSession round-trips', () => {
     const saved: MissionSessionState = {
-      messages: [{ id: 'm1', role: 'agent', agentId: 'P1', text: 'Hello', ts: 1000 } as any],
+      messages: [{ agent: 'P1', text: 'Hello', type: 'agent' as const, ts: 1000 }],
       nodeState: { ...INITIAL_NODE_STATE, seed: 42, ihsan: 0.97 },
     };
     saveMissionSession('testuser', saved);

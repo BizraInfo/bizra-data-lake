@@ -16,7 +16,7 @@ import {
   slotForCallsign,
   allCallsigns,
 } from '../lib/agent-model';
-import type { AgentSlot, UICallsign } from '../lib/agent-model';
+import type { UICallsign } from '../lib/agent-model';
 
 // ═══ CANONICAL AGENT TYPES ═══
 
