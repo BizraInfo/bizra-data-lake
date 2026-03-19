@@ -14,7 +14,11 @@ Standing on Giants:
   - Shannon (1948): SNR measured on real output, not synthetic data
   - Al-Ghazali (1095): Ihsan — excellence in the actual work, not the plan
 """
-import sys, json, time, hashlib
+
+import sys
+import json
+import time
+
 sys.path.insert(0, r"C:\BIZRA-DATA-LAKE")
 
 print("=" * 60)
@@ -23,6 +27,7 @@ print("=" * 60)
 
 # ── Step 1: Verify Rust bridge is live ─────────────────────
 from core.bus.rust_bridge import diagnose_bridge
+
 diag = diagnose_bridge()
 assert diag["rust_available"], "Rust bridge not available!"
 print(f"\n1. Rust bridge: v{diag['version']}, ihsan={diag['ihsan_threshold']}")
@@ -33,28 +38,51 @@ from core.bus.rust_bridge import wire_rust_bridge
 
 bus = EventBus()
 
+
 # Wire Python subscribers (minimal no-op adapters for non-LLM paths)
 class _NoOp:
-    def reinforce(self, **kw): pass
-    def get_success_count(self, key): return 0
-    def set_success_count(self, key, val): pass
-    def promote_to_semantic(self, **kw): return True
-    def record_failure_pattern(self, **kw): pass
+    def reinforce(self, **kw):
+        pass
+
+    def get_success_count(self, key):
+        return 0
+
+    def set_success_count(self, key, val):
+        pass
+
+    def promote_to_semantic(self, **kw):
+        return True
+
+    def record_failure_pattern(self, **kw):
+        pass
+
+
 class _NoOpTS:
-    def begin_execution(self, **kw): return "ts_genesis"
+    def begin_execution(self, **kw):
+        return "ts_genesis"
+
+
 class _NoOpSession:
-    def halt(self, **kw): pass
+    def halt(self, **kw):
+        pass
+
 
 subs = wire_all_subscribers(
     bus,
-    memory_store=_NoOp(), telescript_engine=_NoOpTS(),
-    receipt_chain=[], reflex_cache={},
+    memory_store=_NoOp(),
+    telescript_engine=_NoOpTS(),
+    receipt_chain=[],
+    reflex_cache={},
     session_manager=_NoOpSession(),
     audit_log=type("A", (), {"log_violation": lambda s, **kw: None})(),
     quarantine_store=type("Q", (), {"isolate": lambda s, **kw: None})(),
-    healing_engine=None, hhmm_engine=None, poi_engine=None,
-    token_minter=None, context_budget=None,
-    self_model=None, capability_registry=None,
+    healing_engine=None,
+    hhmm_engine=None,
+    poi_engine=None,
+    token_minter=None,
+    context_budget=None,
+    self_model=None,
+    capability_registry=None,
 )
 print(f"2. Python EventBus: {len(subs)} subscribers wired")
 
@@ -66,6 +94,7 @@ print(f"   Rust bridge: ACTIVE ({rust_sub.stats})")
 
 # ── Step 3: Check Ollama is alive ──────────────────────────
 import urllib.request
+
 try:
     resp = urllib.request.urlopen("http://localhost:11434/api/tags", timeout=5)
     models_data = json.loads(resp.read())
@@ -94,26 +123,31 @@ print(f"   Selected: {fast_model}")
 # ── Step 4: Execute Genesis Mission ────────────────────────
 MISSION = "Explain in a detailed paragraph why constitutional governance matters for autonomous AI agents, covering trust, accountability, and the difference between governed and ungoverned systems."
 
-print(f"\n4. GENESIS MISSION: \"{MISSION}\"")
+print(f'\n4. GENESIS MISSION: "{MISSION}"')
 t0 = time.perf_counter()
 
 # 4a. Emit action intent (Python cognitive event → Rust)
-bus.publish(EventType.ACTION_INTENT, {
-    "query": MISSION,
-    "agent": "ATLAS",
-    "model": fast_model,
-    "timestamp": time.time(),
-})
-print(f"   [INTENT] Emitted to Python + Rust")
+bus.publish(
+    EventType.ACTION_INTENT,
+    {
+        "query": MISSION,
+        "agent": "ATLAS",
+        "model": fast_model,
+        "timestamp": time.time(),
+    },
+)
+print("   [INTENT] Emitted to Python + Rust")
 
 # 4b. Call Ollama directly (the actual LLM inference)
 t_llm = time.perf_counter()
-req_body = json.dumps({
-    "model": fast_model,
-    "prompt": MISSION,
-    "stream": False,
-    "options": {"num_predict": 300, "temperature": 0.7},
-}).encode()
+req_body = json.dumps(
+    {
+        "model": fast_model,
+        "prompt": MISSION,
+        "stream": False,
+        "options": {"num_predict": 300, "temperature": 0.7},
+    }
+).encode()
 
 req = urllib.request.Request(
     "http://localhost:11434/api/generate",
@@ -134,6 +168,7 @@ except Exception as e:
 
 # 4c. Compute proof artifacts
 import blake3 as _b3
+
 content_hash = _b3.blake3(
     b"bizra-genesis-mission-v1:" + llm_response.encode()
 ).hexdigest()
@@ -154,19 +189,24 @@ except Exception as e:
 
 # 4e. Emit action receipt (the constitutional proof event)
 ihsan_composite = min(snr_score * 1.05, 1.0)  # bounded
-bus.publish(EventType.ACTION_RECEIPT, {
-    "action_type": "llm_inference",
-    "model": fast_model,
-    "query": MISSION,
-    "response_preview": llm_response[:100],
-    "content_hash": content_hash,
-    "receipt_hash": receipt_hash,
-    "ihsan_composite": round(ihsan_composite, 4),
-    "snr_score": round(snr_score, 4),
-    "duration_ms": llm_duration_ms,
-    "result_summary": f"Genesis mission completed via {fast_model}",
-})
-print(f"   [RECEIPT] Emitted — ihsan={ihsan_composite:.4f}, hash={receipt_hash[:16]}...")
+bus.publish(
+    EventType.ACTION_RECEIPT,
+    {
+        "action_type": "llm_inference",
+        "model": fast_model,
+        "query": MISSION,
+        "response_preview": llm_response[:100],
+        "content_hash": content_hash,
+        "receipt_hash": receipt_hash,
+        "ihsan_composite": round(ihsan_composite, 4),
+        "snr_score": round(snr_score, 4),
+        "duration_ms": llm_duration_ms,
+        "result_summary": f"Genesis mission completed via {fast_model}",
+    },
+)
+print(
+    f"   [RECEIPT] Emitted — ihsan={ihsan_composite:.4f}, hash={receipt_hash[:16]}..."
+)
 
 total_ms = int((time.perf_counter() - t0) * 1000)
 print(f"\n   Total mission time: {total_ms}ms")
@@ -174,7 +214,7 @@ print(f"\n   Total mission time: {total_ms}ms")
 
 # ── Step 5: Verify constitutional pipeline ─────────────────
 stats = rust_sub.stats
-print(f"\n5. CONSTITUTIONAL VERIFICATION:")
+print("\n5. CONSTITUTIONAL VERIFICATION:")
 print(f"   Python chain height: {bus.chain_height}")
 print(f"   Python chain valid:  {bus.verify_chain()}")
 print(f"   Rust bridge forwarded: {stats['forwarded']}")
@@ -209,6 +249,7 @@ receipt = {
 # Save receipt as evidence
 receipt_path = r"C:\BIZRA-DATA-LAKE\evidence\genesis_mission_receipt.json"
 import os
+
 os.makedirs(os.path.dirname(receipt_path), exist_ok=True)
 with open(receipt_path, "w") as f:
     json.dump(receipt, f, indent=2)
@@ -243,8 +284,11 @@ if all_ok:
     print("  The organism does real work.")
 else:
     print("  MISSION INCOMPLETE:")
-    if stats["failed"] > 0: print(f"    bridge failures: {stats['failed']}")
-    if not bus.verify_chain(): print("    chain integrity broken")
-    if ihsan_composite < 0.85: print(f"    ihsan below floor: {ihsan_composite}")
+    if stats["failed"] > 0:
+        print(f"    bridge failures: {stats['failed']}")
+    if not bus.verify_chain():
+        print("    chain integrity broken")
+    if ihsan_composite < 0.85:
+        print(f"    ihsan below floor: {ihsan_composite}")
 
 print(f"{'=' * 60}")
