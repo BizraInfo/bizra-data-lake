@@ -1,6 +1,6 @@
 {
-  "_comment": "BIZRA Advanced Hooks Configuration v3.2 — Closed-Loop Adaptive Intelligence (FATE + ReasoningBank + claude-flow)",
-  "_version": "3.2.0",
+  "_comment": "BIZRA Peak Performance Hooks v4.0 — Zero-waste hook pipeline (Shannon SNR maximized)",
+  "_version": "4.0.0",
 
   "hooks": {
     "SessionStart": [
@@ -10,14 +10,8 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py session_start",
-            "timeout": 10,
-            "statusMessage": "Initializing BIZRA session..."
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks session-restore --load-context 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
             "timeout": 8,
-            "async": true
+            "statusMessage": "BIZRA session init..."
           }
         ]
       }
@@ -30,14 +24,8 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py session_end",
-            "timeout": 10,
-            "statusMessage": "Finalizing BIZRA session..."
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks session-end --export-metrics --generate-summary 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
-            "timeout": 10,
-            "async": true
+            "timeout": 8,
+            "statusMessage": "BIZRA session finalize..."
           }
         ]
       }
@@ -51,12 +39,6 @@
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py user_prompt_submit",
             "timeout": 3
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks route --task \"$USER_PROMPT\" 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
-            "timeout": 3,
-            "async": true
           }
         ]
       }
@@ -83,12 +65,6 @@
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py subagent_start",
             "timeout": 3
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks subagent-start --inject-context 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
-            "timeout": 3,
-            "async": true
           }
         ]
       }
@@ -101,14 +77,8 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py pre_tool",
-            "timeout": 5,
-            "statusMessage": "FATE validation..."
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks pre-command 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
             "timeout": 3,
-            "async": true
+            "statusMessage": "FATE gate..."
           }
         ]
       },
@@ -118,25 +88,8 @@
           {
             "type": "command",
             "command": "bash -c 'FILE=$(echo \"$TOOL_INPUT\" | grep -oP \"(?<=file_path|path)[\\\":\\s]+\\K[^\\\"]+\" | head -1); if echo \"$FILE\" | grep -qE \"(ci\\.yml|release\\.yml|docker-compose\\.yml|Cargo\\.lock|requirements\\.lock)\"; then echo \"WARNING: Pinned dependency file — verify SHA/digest pins are preserved after edit.\" >&2; fi'",
-            "timeout": 3,
-            "statusMessage": "Dependency pin guard..."
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks pre-edit 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
-            "timeout": 3,
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks pre-task --load-memory 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
-            "timeout": 5,
-            "async": true
+            "timeout": 2,
+            "statusMessage": "Pin guard..."
           }
         ]
       },
@@ -146,7 +99,7 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py pre_tool",
-            "timeout": 3
+            "timeout": 2
           }
         ]
       }
@@ -154,22 +107,11 @@
 
     "PostToolUse": [
       {
-        "matcher": "Bash|Write|Edit|MultiEdit|Task",
+        "matcher": "Bash|Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py post_tool",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks post-command --update-metrics 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
             "timeout": 5,
             "async": true
           }
@@ -182,23 +124,6 @@
             "type": "command",
             "command": "bash -c 'FILE=$(echo \"$TOOL_INPUT\" | grep -oP \"(?<=file_path|path)[\\\":\\s]+\\K[^\\\"]+\" | head -1); if echo \"$FILE\" | grep -qE \"\\.rs$\"; then cd \"$CLAUDE_PROJECT_DIR/bizra-omega\" && cargo fmt --all 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log; fi'",
             "timeout": 10,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks post-edit --train-patterns 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks post-task --analyze-performance --store-decisions 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
-            "timeout": 5,
             "async": true
           }
         ]
@@ -227,12 +152,6 @@
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py subagent_stop",
             "timeout": 5,
             "async": true
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow hooks subagent-stop --record-metrics 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
-            "timeout": 5,
-            "async": true
           }
         ]
       }
@@ -244,14 +163,8 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py stop",
-            "timeout": 10,
-            "statusMessage": "Saving session state..."
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow memory store --key session-final --value \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" 2>>\"$CLAUDE_PROJECT_DIR\"/.claude/logs/hooks-errors.log || true",
             "timeout": 8,
-            "async": true
+            "statusMessage": "Saving session state..."
           }
         ]
       }
@@ -287,17 +200,17 @@
 
   "permissions": {
     "allow": [
-      "Bash(git *)",
-      "Bash(python3 *)",
-      "Bash(pytest *)",
-      "Bash(cargo *)",
-      "Bash(npm *)",
-      "Bash(npx *)",
-      "Bash(ls *)",
-      "Bash(which *)",
-      "Bash(uname *)",
-      "Bash(docker *)",
-      "Bash(kubectl *)",
+      "Bash(git:*)",
+      "Bash(python3:*)",
+      "Bash(pytest:*)",
+      "Bash(cargo:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(ls:*)",
+      "Bash(which:*)",
+      "Bash(uname:*)",
+      "Bash(docker:*)",
+      "Bash(kubectl:*)",
       "Read(**)",
       "Write(**)",
       "Edit(**)"
