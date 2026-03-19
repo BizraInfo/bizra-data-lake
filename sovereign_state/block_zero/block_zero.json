@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0.0",
+  "block_type": "genesis",
+  "block_id": "350d642099bde68bba4c8df89e7acd09364b4da2b706c5fb0b2d08e7c5e8f26d",
+  "timestamp": "2026-03-19T11:29:46Z",
+  "node_id": "NODE0-MSI-i9-14900HX",
+  "parent_block": null,
+  "founding_message": "بذرة واحدة تصنع غابة — One seed makes a forest. Every human is a node. Every node is a seed.",
+  "constitutional_thresholds": {
+    "ihsan": 0.95,
+    "snr_minimum": 0.85,
+    "adl_gini": 0.35,
+    "riba": 0.0,
+    "zakat_rate": 0.025
+  },
+  "receipt_chain": {
+    "count": 10,
+    "receipts": [
+      "347390dce38f97675dcb2639913f6fffcaf37fbd35993aa90373705b1c7d4f3a",
+      "4d03bb9108711797356f4cc7ae0f0595e953644c1d3f02a24412284959be61bc",
+      "2e473e93b557f4f0be9ecae5b295c666f39ba7012040324000fd75d240f02dc7",
+      "02e2e1117da2dcf08b8f90d3d062e6117c894f5fc9ef285d61824f0a2620ebf9",
+      "0eb987a917876776259d4a0eb8bb2817b62261214782aa996d16a6f5ac235425",
+      "ac204ea05209cdd498c30d3e5bc40bce1f8fbf7879f5485ce2c8bbec31af459c",
+      "d0803db4852e1073818ab4385ec310b18abedf662c38422e0042739dec4990ca",
+      "89d6a479cbc600716d44204ea4115b3fd08df5289a9401abb7065bae8b6d4415",
+      "da6265b38ffedae6ef855f2ed0c77fe0bec8af34a31654254e523f76ccecb1ef",
+      "341dbd216c0b678f5fc404587a8d495d0085522c20973864e5f79f9224561a7d"
+    ],
+    "chain_hash": "c7a51615fa0341cfa439cdadcc84e57654a08f51e3a86a6f401f1601df258ae4"
+  },
+  "verification": {
+    "rust_tests": 1497,
+    "python_integration_tests": 138,
+    "python_pci_tests": 117,
+    "genesis_missions": 10,
+    "genesis_pass_rate": 1.0,
+    "cross_lang_sync": "PASS"
+  },
+  "software": {
+    "version": "v0.87.0",
+    "binary": "bizra-node",
+    "binary_size_bytes": 2805312,
+    "crates": 26,
+    "total_loc": 768086
+  },
+  "hardware": {
+    "cpu": "Intel i9-14900HX (24C/32T)",
+    "ram": "128GB DDR5-3600",
+    "gpu": "RTX 4090 Laptop (16GB)",
+    "storage": "3.8TB Intel RAID 0 SSD"
+  },
+  "constitutional_triangle": {
+    "ihsan": {"commit": "a573c590", "type": "IhsanScore::from_f64(0.95)"},
+    "amanah": {"commit": "7664e961", "type": "MissionReceipt::require_signed()"},
+    "adl": {"commit": "48c41cd3", "type": "ExactAmount (i64 micro-units)"}
+  }
+}
