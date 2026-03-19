@@ -386,7 +386,15 @@ impl IhsanScore {
         self.0
     }
 
-    /// Create from raw u16 value.
+    /// Create from raw u16 value (0-65535 scale).
+    ///
+    /// WARNING: The raw scale is 0-65535, NOT 0-10000.
+    /// `from_raw(9500)` = 0.145, NOT 0.95.
+    /// Prefer `from_f64(0.95)` for human-readable values.
+    ///
+    /// Use `from_raw` ONLY for deserialization, FFI boundaries,
+    /// and const contexts where `from_f64` is not available.
+    /// Sprint 3: migrate all callers to `from_f64`, restrict to `pub(crate)`.
     pub const fn from_raw(raw: u16) -> Self {
         IhsanScore(raw)
     }
