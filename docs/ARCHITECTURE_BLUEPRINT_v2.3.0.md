@@ -1104,3 +1104,4 @@ BUDGET_MEGA_RATIO = 0.09
 
 - style: cargo fmt + black formatting pass for CI compliance (2026-03-19)
 - style: remaining Python lint fixes (organism.py, rust_bridge.py) (2026-03-20)
+- fix(ci): SEC-003b baseline 138→140 (2026-03-20)
