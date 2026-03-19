@@ -62,6 +62,15 @@ pub const MAX_INSTRUCTION_STRING: usize = 1024;
 static HEX64_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-f0-9]{64}$").unwrap());
 static HEX128_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-f0-9]{128}$").unwrap());
 
+
+// ━━━ Sprint 2: Proof Pyramid Modules ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/// Receipt chain integrity — Merkle tamper-evidence for constitutional receipts
+pub mod receipt_chain;
+/// Mission → ProofSpace bridge — terminal mission lifecycle to block submission
+pub mod mission_bridge;
+/// Fate-binding formal verification — Z3 SMT-LIB2 proof generation
+pub mod fate_proof;
+
 // =============================================================================
 // ERROR TYPES
 // =============================================================================

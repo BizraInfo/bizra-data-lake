@@ -72,6 +72,10 @@ pub mod receipt;
 pub mod reflex;
 pub mod types;
 
+// ━━━ Sprint 2: Saga Mission Dispatch (feature-gated on "saga") ━━━━━━━━━━━━━
+#[cfg(feature = "saga")]
+pub mod saga;
+
 // Re-exports for ergonomic usage
 pub use dispatcher::{DispatchError, Dispatcher, DispatcherHealth};
 pub use guardian::Guardian;
