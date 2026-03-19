@@ -425,6 +425,24 @@ class SovereignOrganism:
                 len(self._subscribers),
                 bus.chain_height,
             )
+
+            # ── Phase 87: Wire Rust constitutional bridge ──────────────
+            # Every Python cognitive event now flows through Rust's 12
+            # constitutional subscribers for independent verification.
+            # The language boundary IS the trust boundary.
+            try:
+                from core.bus.rust_bridge import wire_rust_bridge
+
+                self._rust_bridge = wire_rust_bridge(bus, production=False)
+                if self._rust_bridge:
+                    logger.info(
+                        "Rust bridge ACTIVE: Python→Rust synapse wired"
+                    )
+            except Exception as rust_exc:
+                logger.info(
+                    "Rust bridge not available (degraded): %s", rust_exc
+                )
+                self._rust_bridge = None
         except (ImportError, AttributeError, RuntimeError, OSError) as exc:
             logger.warning(
                 "CQRS subscriber wiring failed (degraded): %s", exc, exc_info=True

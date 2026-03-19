@@ -370,6 +370,16 @@ class SovereignNervousSystem:
         )
         logger.info("Nervous system wired: %d subscribers", len(subs))
 
+        # ── Phase 87: Wire Rust constitutional bridge ──────────────
+        try:
+            from core.bus.rust_bridge import wire_rust_bridge
+
+            rust_bridge = wire_rust_bridge(bus, production=False)
+            if rust_bridge:
+                logger.info("Rust bridge ACTIVE on mission nervous system")
+        except Exception as rust_exc:
+            logger.info("Rust bridge not available (degraded): %s", rust_exc)
+
         return cls(
             inference=inference,
             reflex_cache=reflex,
