@@ -23,6 +23,7 @@ pub mod audit_hook;
 pub mod handler;
 pub mod heartbeat;
 pub mod mcp_transport;
+pub mod identity_registry;
 pub mod mission_bridge;
 pub mod node;
 pub mod persistence;
