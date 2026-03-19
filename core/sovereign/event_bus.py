@@ -261,6 +261,37 @@ class RustEventBridge:
             self.wire()
         return self._bridge.emit(topic, payload, priority)
 
+    def emit_with_receipt(
+        self,
+        topic: str,
+        payload: str,
+        receipt_id: str,
+        ihsan_score: float = 0.95,
+        priority: int = 1,
+    ) -> int:
+        """
+        Emit a receipt-bound event into the Rust nervous system.
+
+        Cross-boundary trust: the receipt_id binds this event to a
+        verified proof chain. Python hooks can verify provenance.
+
+        Amanah: every cross-boundary event carries its receipt origin.
+        """
+        if not self._wired:
+            self.wire()
+        return self._bridge.emit_with_receipt(
+            topic, payload, receipt_id, ihsan_score, priority
+        )
+
+    def poll_feedback(self) -> Dict[str, int]:
+        """
+        Poll atomic feedback signals from the Rust nervous system.
+
+        Returns pending counts for: reinforce, promote, quarantine, compile.
+        Python hooks use this to coordinate with Rust-side learning.
+        """
+        return dict(self._bridge.poll_feedback())
+
     def health(self) -> Dict[str, Any]:
         """Return Rust system health as a dict."""
         return dict(self._bridge.health())

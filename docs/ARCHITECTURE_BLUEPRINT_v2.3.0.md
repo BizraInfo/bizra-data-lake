@@ -1095,3 +1095,9 @@ BUDGET_MEGA_RATIO = 0.09
 
 
 
+
+## Phase 87-88: Cross-Boundary Trust Closure (2026-03-19)
+
+- PyEventBridge: emit_with_receipt() binds receipt provenance to cross-language events
+- RustEventBridge: poll_feedback() exposes atomic subscriber signals to Python hooks
+- Constitutional triangle (Ihsan + Amanah + Adl) now enforced at type level
