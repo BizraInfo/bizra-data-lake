@@ -26,11 +26,13 @@ pub struct UpdateManifest {
     /// Release timestamp (UTC ISO-8601)
     pub released_at: String,
     /// BLAKE3 hash of the full target binary
-    pub target_sha256: String,
+    #[serde(alias = "target_sha256")]
+    pub target_blake3: String,
     /// Patch file URL (if delta update available)
     pub patch_url: Option<String>,
     /// BLAKE3 hash of the patch file
-    pub patch_sha256: Option<String>,
+    #[serde(alias = "patch_sha256")]
+    pub patch_blake3: Option<String>,
     /// Full binary URL (fallback if delta fails)
     pub full_url: String,
     /// Size of delta patch in bytes
@@ -87,13 +89,13 @@ pub fn needs_update(current: &str, target: &str) -> bool {
 // ─────────────────────────────────────────────────────────────
 
 /// Verify a file's BLAKE3 hash matches the expected hash.
-pub fn verify_file_checksum(path: &std::path::Path, expected_sha256: &str) -> Result<bool, String> {
+pub fn verify_file_checksum(path: &std::path::Path, expected_blake3: &str) -> Result<bool, String> {
     let data = std::fs::read(path).map_err(|e| format!("Cannot read {}: {e}", path.display()))?;
     let mut hasher = Hasher::new();
     hasher.update(b"bizra-installer-v1:self-update:");
     hasher.update(&data);
     let computed = hex::encode(hasher.finalize().as_bytes());
-    Ok(computed == expected_sha256)
+    Ok(computed == expected_blake3)
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -108,7 +110,7 @@ pub fn determine_strategy(manifest: &UpdateManifest, current_version: &str) -> U
 
     // Only use delta if patch is available AND from the right version
     if manifest.patch_url.is_some()
-        && manifest.patch_sha256.is_some()
+        && manifest.patch_blake3.is_some()
         && manifest.from_version == current_version
     {
         UpdateStrategy::DeltaPatch
@@ -162,9 +164,9 @@ mod tests {
             from_version: "2.0.0".into(),
             to_version: "2.1.0".into(),
             released_at: "2026-06-01T00:00:00Z".into(),
-            target_sha256: "abcd1234".into(),
+            target_blake3: "abcd1234".into(),
             patch_url: Some("https://releases.bizra.ai/patches/2.0.0-2.1.0.bsdiff".into()),
-            patch_sha256: Some("ef567890".into()),
+            patch_blake3: Some("ef567890".into()),
             full_url: "https://releases.bizra.ai/bin/bizra-node-2.1.0".into(),
             patch_size_bytes: Some(500_000),
             full_size_bytes: 15_000_000,
@@ -236,7 +238,7 @@ mod tests {
     fn full_replace_when_no_patch() {
         let mut m = sample_manifest();
         m.patch_url = None;
-        m.patch_sha256 = None;
+        m.patch_blake3 = None;
         assert_eq!(determine_strategy(&m, "2.0.0"), UpdateStrategy::FullReplace);
     }
 }
