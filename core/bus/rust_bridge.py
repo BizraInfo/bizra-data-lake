@@ -65,6 +65,15 @@ class RustBridgeSubscriber:
         self._failed: int = 0
         self._last_error: Optional[str] = None
 
+    # Topic translation: Python EventType values → Rust subscriber topic constants.
+    # Three naming mismatches exist between the Python and Rust taxonomies.
+    # Without this map, events cross the bridge but miss their Rust handlers.
+    _TOPIC_TRANSLATE = {
+        "ihsan.gate.breached": "ihsan.breach",
+        "telescript.rolled_back": "telescript.rolledback",
+        "telescript.step": "telescript.step.completed",
+    }
+
     def handle(self, event: Event) -> None:
         """
         Forward a single Python event to the Rust nervous system.
@@ -75,9 +84,14 @@ class RustBridgeSubscriber:
 
         Priority mapping: Python events default to Normal (1).
         Safety-critical events (ihsan.gate.breached) use Critical (3).
+
+        Topic translation: 3 naming mismatches are resolved here so that
+        Python events match Rust subscriber topic filters exactly.
         """
         try:
-            topic = event.event_type.value
+            # Translate Python topic → Rust topic (identity for 8 matching topics)
+            raw_topic = event.event_type.value
+            topic = self._TOPIC_TRANSLATE.get(raw_topic, raw_topic)
             payload_str = json.dumps(event.payload, default=str)
 
             # Determine priority: safety events are Critical
