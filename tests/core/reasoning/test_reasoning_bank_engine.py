@@ -7,9 +7,10 @@ Gini ceiling enforcement, and EventBus integration.
 Standing on Giants: Deming (PDCA, 1950) — test the improvement loop.
 """
 
-import pytest
+from typing import Any, Dict
 from unittest.mock import MagicMock, patch
-from typing import Dict, Any
+
+import pytest
 
 from core.reasoning.reasoning_bank import (
     EXPERIENCE_MIN_IHSAN,
@@ -25,7 +26,6 @@ from core.reasoning.reasoning_bank import (
     StrategyRecommendation,
     _StrategyStats,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Fixtures
@@ -166,8 +166,11 @@ class TestExperienceRecording:
     def test_flagged_not_in_strategy_stats(self, engine: ReasoningBankEngine):
         """Flagged experiences must NOT update strategy stats."""
         engine.record_experience(
-            task_type="edit", approach="inline",
-            success=True, ihsan_score=0.70, snr_score=0.60,
+            task_type="edit",
+            approach="inline",
+            success=True,
+            ihsan_score=0.70,
+            snr_score=0.60,
         )
         assert "edit" not in engine._strategies
 
@@ -175,17 +178,24 @@ class TestExperienceRecording:
         ids = set()
         for _ in range(10):
             exp = engine.record_experience(
-                task_type="test", approach="unit",
-                success=True, ihsan_score=0.95, snr_score=0.92,
+                task_type="test",
+                approach="unit",
+                success=True,
+                ihsan_score=0.95,
+                snr_score=0.92,
             )
             ids.add(exp.experience_id)
         assert len(ids) == 10
 
     def test_experience_to_dict(self, engine: ReasoningBankEngine):
         exp = engine.record_experience(
-            task_type="build", approach="cargo",
-            success=True, ihsan_score=0.96, snr_score=0.93,
-            context={"lang": "rust"}, metrics={"time_s": 12},
+            task_type="build",
+            approach="cargo",
+            success=True,
+            ihsan_score=0.96,
+            snr_score=0.93,
+            context={"lang": "rust"},
+            metrics={"time_s": 12},
         )
         d = exp.to_dict()
         assert d["task_type"] == "build"
@@ -208,8 +218,11 @@ class TestStrategyRecommendation:
     def test_recommend_requires_min_observations(self, engine: ReasoningBankEngine):
         """Must have ≥ MIN_EXPERIENCES_FOR_RECOMMENDATION observations."""
         engine.record_experience(
-            task_type="edit", approach="inline",
-            success=True, ihsan_score=0.96, snr_score=0.93,
+            task_type="edit",
+            approach="inline",
+            success=True,
+            ihsan_score=0.96,
+            snr_score=0.93,
         )
         # Only 1 observation, need 3
         assert engine.recommend_strategy("edit") is None
@@ -234,8 +247,11 @@ class TestStrategyRecommendation:
         """§4: avg Ihsān must be ≥ RECOMMENDATION_MIN_IHSAN (0.90)."""
         for _ in range(5):
             engine.record_experience(
-                task_type="risky", approach="yolo",
-                success=True, ihsan_score=0.86, snr_score=0.80,
+                task_type="risky",
+                approach="yolo",
+                success=True,
+                ihsan_score=0.86,
+                snr_score=0.80,
             )
         # avg Ihsān = 0.86 < 0.90 → suppressed
         rec = engine.recommend_strategy("risky")
@@ -262,8 +278,11 @@ class TestStrategyRecommendation:
         # 3 observations → confidence ~0.15
         for _ in range(3):
             engine.record_experience(
-                task_type="lint", approach="ruff",
-                success=True, ihsan_score=0.96, snr_score=0.93,
+                task_type="lint",
+                approach="ruff",
+                success=True,
+                ihsan_score=0.96,
+                snr_score=0.93,
             )
         rec1 = engine.recommend_strategy("lint")
         assert rec1 is not None
@@ -272,8 +291,11 @@ class TestStrategyRecommendation:
         # 17 more → total 20 → confidence ~1.0
         for _ in range(17):
             engine.record_experience(
-                task_type="lint", approach="ruff",
-                success=True, ihsan_score=0.96, snr_score=0.93,
+                task_type="lint",
+                approach="ruff",
+                success=True,
+                ihsan_score=0.96,
+                snr_score=0.93,
             )
         rec2 = engine.recommend_strategy("lint")
         assert rec2 is not None
@@ -324,7 +346,9 @@ class TestPatternRecognition:
         assert p.approach == "inline"
         assert p.frequency == 10
 
-    def test_pattern_eligible_for_reflex_at_elite_ihsan(self, engine: ReasoningBankEngine):
+    def test_pattern_eligible_for_reflex_at_elite_ihsan(
+        self, engine: ReasoningBankEngine
+    ):
         """§2 Helix 3: avg Ihsān ≥ 0.98 + reproducibility ≥ 0.90 → eligible."""
         _record_n(engine, "verify", "formal", 10, ihsan=0.99)
         patterns = engine.get_precipitable_patterns()
@@ -339,7 +363,9 @@ class TestPatternRecognition:
         eligible = [p for p in patterns if p.eligible_for_reflex]
         assert len(eligible) == 0
 
-    def test_pattern_evidence_contains_experience_ids(self, engine: ReasoningBankEngine):
+    def test_pattern_evidence_contains_experience_ids(
+        self, engine: ReasoningBankEngine
+    ):
         _record_n(engine, "test", "unit", 5, ihsan=0.99)
         patterns = engine.get_precipitable_patterns()
         assert len(patterns) >= 1
@@ -422,8 +448,10 @@ class TestMetaLearning:
         engine = ReasoningBankEngine(meta_window=10)
         for i in range(10):
             engine.record_experience(
-                task_type="edit", approach="inline",
-                success=True, ihsan_score=0.95 + i * 0.001,
+                task_type="edit",
+                approach="inline",
+                success=True,
+                ihsan_score=0.95 + i * 0.001,
                 snr_score=0.92,
             )
         insights = engine.get_meta_insights()
@@ -434,14 +462,20 @@ class TestMetaLearning:
         # First half: lower Ihsān
         for _ in range(5):
             engine.record_experience(
-                task_type="edit", approach="inline",
-                success=True, ihsan_score=0.90, snr_score=0.88,
+                task_type="edit",
+                approach="inline",
+                success=True,
+                ihsan_score=0.90,
+                snr_score=0.88,
             )
         # Second half: higher Ihsān
         for _ in range(5):
             engine.record_experience(
-                task_type="edit", approach="inline",
-                success=True, ihsan_score=0.98, snr_score=0.96,
+                task_type="edit",
+                approach="inline",
+                success=True,
+                ihsan_score=0.98,
+                snr_score=0.96,
             )
         insights = engine.get_meta_insights()
         assert len(insights) == 1
@@ -452,13 +486,19 @@ class TestMetaLearning:
         engine = ReasoningBankEngine(meta_window=10)
         for _ in range(5):
             engine.record_experience(
-                task_type="edit", approach="inline",
-                success=True, ihsan_score=0.98, snr_score=0.96,
+                task_type="edit",
+                approach="inline",
+                success=True,
+                ihsan_score=0.98,
+                snr_score=0.96,
             )
         for _ in range(5):
             engine.record_experience(
-                task_type="edit", approach="inline",
-                success=False, ihsan_score=0.87, snr_score=0.82,
+                task_type="edit",
+                approach="inline",
+                success=False,
+                ihsan_score=0.87,
+                snr_score=0.82,
             )
         insights = engine.get_meta_insights()
         assert len(insights) == 1
@@ -469,8 +509,11 @@ class TestMetaLearning:
         engine = ReasoningBankEngine(meta_window=10)
         for _ in range(10):
             engine.record_experience(
-                task_type="edit", approach="inline",
-                success=True, ihsan_score=0.95, snr_score=0.93,
+                task_type="edit",
+                approach="inline",
+                success=True,
+                ihsan_score=0.95,
+                snr_score=0.93,
             )
         insights = engine.get_meta_insights()
         assert len(insights) == 1
@@ -530,8 +573,11 @@ class TestEventBusIntegration:
 
     def test_experience_emits_event(self, engine_with_bus: ReasoningBankEngine):
         engine_with_bus.record_experience(
-            task_type="edit", approach="inline",
-            success=True, ihsan_score=0.95, snr_score=0.92,
+            task_type="edit",
+            approach="inline",
+            success=True,
+            ihsan_score=0.95,
+            snr_score=0.92,
         )
         bus = engine_with_bus._event_bus
         bus.publish.assert_called()
@@ -560,8 +606,11 @@ class TestEventBusIntegration:
         engine._event_bus = bus
         # Should not raise
         exp = engine.record_experience(
-            task_type="edit", approach="inline",
-            success=True, ihsan_score=0.95, snr_score=0.92,
+            task_type="edit",
+            approach="inline",
+            success=True,
+            ihsan_score=0.95,
+            snr_score=0.92,
         )
         assert exp is not None
 
@@ -569,8 +618,11 @@ class TestEventBusIntegration:
         """Engine without bus should silently skip emission."""
         assert engine._event_bus is None
         exp = engine.record_experience(
-            task_type="edit", approach="inline",
-            success=True, ihsan_score=0.95, snr_score=0.92,
+            task_type="edit",
+            approach="inline",
+            success=True,
+            ihsan_score=0.95,
+            snr_score=0.92,
         )
         assert exp is not None
 
@@ -637,6 +689,7 @@ class TestReflexBridgeIntegration:
 
         # Mock reflex bridge
         from unittest.mock import MagicMock
+
         bridge = MagicMock()
         bridge.observe = MagicMock(return_value="pattern_001")
 
@@ -662,15 +715,21 @@ class TestEdgeCases:
 
     def test_zero_ihsan_experience(self, engine: ReasoningBankEngine):
         exp = engine.record_experience(
-            task_type="fail", approach="bad",
-            success=False, ihsan_score=0.0, snr_score=0.0,
+            task_type="fail",
+            approach="bad",
+            success=False,
+            ihsan_score=0.0,
+            snr_score=0.0,
         )
         assert exp.flagged is True
 
     def test_perfect_ihsan_experience(self, engine: ReasoningBankEngine):
         exp = engine.record_experience(
-            task_type="perfect", approach="best",
-            success=True, ihsan_score=1.0, snr_score=1.0,
+            task_type="perfect",
+            approach="best",
+            success=True,
+            ihsan_score=1.0,
+            snr_score=1.0,
         )
         assert exp.flagged is False
         assert exp.ihsan_score == 1.0
@@ -684,8 +743,11 @@ class TestEdgeCases:
 
     def test_default_context_and_metrics(self, engine: ReasoningBankEngine):
         exp = engine.record_experience(
-            task_type="minimal", approach="none",
-            success=True, ihsan_score=0.95, snr_score=0.92,
+            task_type="minimal",
+            approach="none",
+            success=True,
+            ihsan_score=0.95,
+            snr_score=0.92,
         )
         assert exp.context == {}
         assert exp.metrics == {}
@@ -695,7 +757,10 @@ class TestEdgeCases:
         bus = MagicMock(spec=["emit"])
         engine._event_bus = bus
         engine.record_experience(
-            task_type="edit", approach="inline",
-            success=True, ihsan_score=0.95, snr_score=0.92,
+            task_type="edit",
+            approach="inline",
+            success=True,
+            ihsan_score=0.95,
+            snr_score=0.92,
         )
         bus.emit.assert_called()

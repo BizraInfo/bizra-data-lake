@@ -21,25 +21,25 @@ Constitution reference: §7 [hhmm]
 from __future__ import annotations
 
 import hashlib
-import time
 import logging
 import re
+import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
 try:
     from generated.generated_constants import (
-        HMM_NUM_HIDDEN_STATES,
-        HMM_OBSERVATION_WINDOW,
-        HMM_INITIAL_LIVE_STATES,
-        TIER_TRIVIAL_BUDGET_MS,
-        TIER_SIMPLE_BUDGET_MS,
-        TIER_COMPLEX_BUDGET_MS,
-        TIER_SOVEREIGN_BUDGET_MS,
         ACTION_BUS_GCD_TICK_MS,
         ACTION_BUS_MAX_CONCURRENT,
         ACTION_BUS_MAX_PER_HOUR,
+        HMM_INITIAL_LIVE_STATES,
+        HMM_NUM_HIDDEN_STATES,
+        HMM_OBSERVATION_WINDOW,
+        TIER_COMPLEX_BUDGET_MS,
+        TIER_SIMPLE_BUDGET_MS,
+        TIER_SOVEREIGN_BUDGET_MS,
+        TIER_TRIVIAL_BUDGET_MS,
     )
 except ImportError:
     HMM_NUM_HIDDEN_STATES = 47
@@ -62,9 +62,9 @@ logger = logging.getLogger("bizra.hhmm_router")
 
 
 class ComplexityTier(Enum):
-    TRIVIAL = "trivial"      # Cache hit, no LLM needed
-    SIMPLE = "simple"        # Single agent, one inference call
-    COMPLEX = "complex"      # Full 7-agent pipeline
+    TRIVIAL = "trivial"  # Cache hit, no LLM needed
+    SIMPLE = "simple"  # Single agent, one inference call
+    COMPLEX = "complex"  # Full 7-agent pipeline
     SOVEREIGN = "sovereign"  # Multi-mission decomposition
 
 
@@ -112,13 +112,14 @@ TIER_CONFIGS = {
 @dataclass(frozen=True)
 class ClassificationResult:
     """Result of HHMM classification."""
+
     tier: ComplexityTier
     config: TierConfig
-    complexity_score: float     # 0.0 to 1.0
-    confidence: float           # How confident the classifier is
+    complexity_score: float  # 0.0 to 1.0
+    confidence: float  # How confident the classifier is
     features: dict[str, float]  # Feature breakdown
-    classification_ms: float    # Time to classify
-    has_reflex: bool            # Whether a cache hit exists
+    classification_ms: float  # Time to classify
+    has_reflex: bool  # Whether a cache hit exists
 
     @property
     def latency_budget_ms(self) -> int:
@@ -159,12 +160,30 @@ def _extract_question_complexity(text: str) -> float:
     # Count question marks
     indicators += text.count("?")
     # Count conjunctions suggesting multi-step
-    multi_markers = ["and then", "after that", "also", "additionally",
-                     "followed by", "next", "finally", "step"]
+    multi_markers = [
+        "and then",
+        "after that",
+        "also",
+        "additionally",
+        "followed by",
+        "next",
+        "finally",
+        "step",
+    ]
     indicators += sum(1 for m in multi_markers if m.lower() in text.lower())
     # Count action verbs suggesting different tasks
-    action_verbs = ["create", "analyze", "compare", "write", "build",
-                    "fix", "review", "test", "deploy", "research"]
+    action_verbs = [
+        "create",
+        "analyze",
+        "compare",
+        "write",
+        "build",
+        "fix",
+        "review",
+        "test",
+        "deploy",
+        "research",
+    ]
     indicators += sum(1 for v in action_verbs if v in text.lower())
     return min(indicators / 8.0, 1.0)
 
@@ -181,8 +200,7 @@ def _extract_domain_breadth(text: str) -> float:
     }
     text_lower = text.lower()
     hit_domains = sum(
-        1 for keywords in domains.values()
-        if any(k in text_lower for k in keywords)
+        1 for keywords in domains.values() if any(k in text_lower for k in keywords)
     )
     return min(hit_domains / 3.0, 1.0)
 
@@ -191,13 +209,29 @@ def _extract_specificity(text: str) -> float:
     """Vague requests need more clarification work → higher complexity.
     But very specific requests with clear constraints are moderate."""
     # Specific indicators (reduce complexity)
-    specific_markers = ["exactly", "specifically", "only", "just",
-                        "the file", "this function", "line", "column"]
+    specific_markers = [
+        "exactly",
+        "specifically",
+        "only",
+        "just",
+        "the file",
+        "this function",
+        "line",
+        "column",
+    ]
     specifics = sum(1 for m in specific_markers if m in text.lower())
 
     # Vague indicators (increase complexity)
-    vague_markers = ["something", "anything", "whatever", "maybe",
-                     "kind of", "sort of", "general", "overall"]
+    vague_markers = [
+        "something",
+        "anything",
+        "whatever",
+        "maybe",
+        "kind of",
+        "sort of",
+        "general",
+        "overall",
+    ]
     vagues = sum(1 for m in vague_markers if m in text.lower())
 
     if specifics > vagues:
@@ -212,8 +246,15 @@ def _extract_code_indicators(text: str) -> float:
     # Simple code tasks
     simple_code = ["format", "lint", "rename", "typo", "import"]
     # Complex code tasks
-    complex_code = ["refactor", "architect", "optimize", "debug",
-                    "security audit", "migrate", "rewrite"]
+    complex_code = [
+        "refactor",
+        "architect",
+        "optimize",
+        "debug",
+        "security audit",
+        "migrate",
+        "rewrite",
+    ]
 
     text_lower = text.lower()
     simple_hits = sum(1 for m in simple_code if m in text_lower)
@@ -306,10 +347,7 @@ class HhmmRouter:
         }
 
         # Weighted complexity score
-        complexity = sum(
-            self._weights[f] * features[f]
-            for f in self._weights
-        )
+        complexity = sum(self._weights[f] * features[f] for f in self._weights)
         complexity = max(0.0, min(1.0, complexity))
 
         # Map to tier
@@ -365,12 +403,13 @@ class HhmmRouter:
 @dataclass
 class MissionTicket:
     """A mission queued in the Action Bus."""
+
     mission_id: str
     input_text: str
     classification: ClassificationResult
-    priority: float             # Higher = more urgent
+    priority: float  # Higher = more urgent
     queued_at: float
-    deadline: float             # Unix timestamp deadline
+    deadline: float  # Unix timestamp deadline
 
     @property
     def time_remaining_ms(self) -> float:

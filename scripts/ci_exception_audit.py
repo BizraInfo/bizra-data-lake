@@ -33,7 +33,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 
-
 # Default baseline — ratchet this DOWN as exceptions are hardened
 DEFAULT_BASELINE = 35
 
@@ -135,7 +134,9 @@ def scan_directory(scan_dir: str) -> List[ExceptionFinding]:
     root = Path(scan_dir)
 
     if not root.exists():
-        print(f"WARNING: Directory '{scan_dir}' does not exist, skipping", file=sys.stderr)
+        print(
+            f"WARNING: Directory '{scan_dir}' does not exist, skipping", file=sys.stderr
+        )
         return findings
 
     for py_file in sorted(root.rglob("*.py")):
@@ -159,7 +160,9 @@ def scan_directory(scan_dir: str) -> List[ExceptionFinding]:
     return findings
 
 
-def run_audit(scan_dirs: List[str], baseline: int, output_path: str = "") -> AuditReport:
+def run_audit(
+    scan_dirs: List[str], baseline: int, output_path: str = ""
+) -> AuditReport:
     """Execute the full audit and return the report."""
     all_findings: List[ExceptionFinding] = []
 

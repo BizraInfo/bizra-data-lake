@@ -5,16 +5,16 @@
 
 import asyncio
 import json
-import sys
-import time
 import platform
-from pathlib import Path
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Any, Tuple
-from enum import Enum
-import threading
 import signal
+import sys
+import threading
+import time
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 # BIZRA Root
 BIZRA_ROOT = Path("C:/BIZRA-DATA-LAKE")
@@ -22,7 +22,7 @@ sys.path.insert(0, str(BIZRA_ROOT))
 
 # Import BIZRA components
 try:
-    from bizra_config import SNR_THRESHOLD, IHSAN_CONSTRAINT, BATCH_SIZE
+    from bizra_config import BATCH_SIZE, IHSAN_CONSTRAINT, SNR_THRESHOLD
 except ImportError:
     SNR_THRESHOLD = 0.85  # canonical: core.integration.constants
     IHSAN_CONSTRAINT = 0.99
@@ -31,9 +31,9 @@ except ImportError:
 try:
     from metrics_dashboard import (
         MetricsDashboard,
-        record_snr,
-        record_latency,
         record_error,
+        record_latency,
+        record_snr,
     )
 
     METRICS_AVAILABLE = True
@@ -41,7 +41,7 @@ except ImportError:
     METRICS_AVAILABLE = False
 
 try:
-    from bizra_resilience import get_resilience_status, CircuitBreaker
+    from bizra_resilience import CircuitBreaker, get_resilience_status
 
     RESILIENCE_AVAILABLE = True
 except ImportError:

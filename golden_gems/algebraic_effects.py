@@ -11,12 +11,12 @@ Handlers = how they're handled (can be swapped, composed, mocked)
 SNR Score: 0.87
 """
 
-from typing import Any, Callable, Dict, List
-from dataclasses import dataclass, field
-from abc import ABC, abstractmethod
-import time
 import asyncio
 import os
+import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List
 
 # === EFFECT DEFINITIONS ===
 
@@ -256,7 +256,11 @@ async def demo():
     # Valid request
     effects = [
         LogEffect(name="log", message="Incoming request", level="info"),
-        AuthEffect(name="auth", token=os.environ.get("BIZRA_DEMO_TOKEN", "demo-placeholder"), required_roles=["admin"]),
+        AuthEffect(
+            name="auth",
+            token=os.environ.get("BIZRA_DEMO_TOKEN", "demo-placeholder"),
+            required_roles=["admin"],
+        ),
         RateLimitEffect(name="rate", key="api", limit=10, window_seconds=60),
         IhsanEffect(
             name="ihsan",

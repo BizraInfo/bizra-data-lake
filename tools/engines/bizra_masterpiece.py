@@ -17,29 +17,31 @@ Professional Elite Implementation
 """
 
 import asyncio
-import random
-import time
 import logging
-from datetime import datetime
-from typing import List, Dict, Optional
+import random
 import sys
+import time
+from datetime import datetime
+from typing import Dict, List, Optional
+
+from rich import box
 
 # Rich UI Components
 from rich.console import Console
 from rich.layout import Layout
 from rich.live import Live
+from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.syntax import Syntax
 from rich.table import Table
 from rich.tree import Tree
-from rich.syntax import Syntax
-from rich.markdown import Markdown
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
-from rich import box
+from snr_optimizer import SNROptimizer
+
+from bizra_config import IHSAN_CONSTRAINT, SNR_THRESHOLD
 
 # BIZRA Core Systems
 from bizra_orchestrator import BIZRAOrchestrator, BIZRAQuery, QueryComplexity
-from snr_optimizer import SNROptimizer
-from bizra_config import IHSAN_CONSTRAINT, SNR_THRESHOLD
 
 # Configure logging to file only (keep UI clean)
 logging.basicConfig(

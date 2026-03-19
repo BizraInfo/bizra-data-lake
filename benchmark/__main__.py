@@ -22,8 +22,8 @@ from pathlib import Path
 
 from benchmark.runner import BenchmarkRunner
 from benchmark.suites.inference import InferenceBenchmark
-from benchmark.suites.security import SecurityBenchmark
 from benchmark.suites.quality import QualityBenchmark
+from benchmark.suites.security import SecurityBenchmark
 from benchmark.suites.spearpoint import SpearPointBenchmark
 
 
@@ -39,8 +39,8 @@ def compute_overall_score(
     if reference is None:
         reference = {
             "inference": 50.0,  # Throughput is important
-            "security": 0.5,    # Latency should be tiny
-            "quality": 2.0,     # Validation should be fast
+            "security": 0.5,  # Latency should be tiny
+            "quality": 2.0,  # Validation should be fast
         }
 
     weights = {
@@ -73,8 +73,7 @@ def compute_overall_score(
     # Weighted average
     if scores:
         overall = sum(
-            scores.get(name, 50.0) * weight
-            for name, weight in weights.items()
+            scores.get(name, 50.0) * weight for name, weight in weights.items()
         )
         return min(100.0, overall)
 

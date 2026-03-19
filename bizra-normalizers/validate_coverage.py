@@ -13,7 +13,12 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from normalizers import CORE8, CONVERSATION_PLATFORMS, detect_provider, parse_file  # noqa: E402
+from normalizers import (  # noqa: E402
+    CONVERSATION_PLATFORMS,
+    CORE8,
+    detect_provider,
+    parse_file,
+)
 
 
 def iter_json_files(root: Path):
@@ -55,7 +60,9 @@ def providers_from_paths(paths: list[Path]) -> set[str]:
         for path in iter_json_files(root):
             turns = parse_file(path)
             if turns:
-                providers.update(turn.provider for turn in turns if turn.provider in CORE8)
+                providers.update(
+                    turn.provider for turn in turns if turn.provider in CORE8
+                )
                 continue
 
             payload = parse_payload(path)
@@ -72,14 +79,18 @@ def compute_cv(covered: set[str]) -> float:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate Core-8 provider coverage (CV gate)")
+    parser = argparse.ArgumentParser(
+        description="Validate Core-8 provider coverage (CV gate)"
+    )
     parser.add_argument("paths", nargs="*", help="Corpus directories/files to scan")
     parser.add_argument(
         "--fixtures",
         action="store_true",
         help="Scan built-in fixture files and include legacy Core-4 baseline",
     )
-    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    parser.add_argument(
+        "--json", action="store_true", help="Emit machine-readable JSON"
+    )
     args = parser.parse_args()
 
     covered: set[str] = set()

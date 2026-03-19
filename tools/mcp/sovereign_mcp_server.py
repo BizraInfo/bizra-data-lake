@@ -28,21 +28,21 @@
 ===========================================================================================
 """
 
-import os
-import sys
-import json
 import asyncio
-import logging
-import signal
-import time
 import contextlib
 import hashlib
+import json
+import logging
+import os
+import signal
+import sys
+import time
 from collections import OrderedDict
 from dataclasses import asdict
-from typing import Dict, Any, List, Optional
-from io import StringIO
 from datetime import datetime
+from io import StringIO
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Set up path to ensure tools/ sibling imports work
 _mcp_dir = os.path.dirname(os.path.abspath(__file__))
@@ -388,6 +388,7 @@ class Phase46Interface:
         # Phase 49.3: Production rollback engine — monitors metrics and auto-rolls back
         # Receipt dir under /app/logs (writable in K8s) instead of default artifacts/ (read-only root FS)
         import os
+
         from core.rollout.rollback import RollbackEngine
 
         _receipt_dir = os.path.join(
@@ -676,9 +677,9 @@ phase46_interface = Phase46Interface()
 # MCP SERVER via SDK (proper stdio transport with content-length framing)
 # ===============================================================================
 
+import mcp.types as types
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-import mcp.types as types
 
 server = Server("sovereign-brain-mcp", version="1.3.0")
 

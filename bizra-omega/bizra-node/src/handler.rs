@@ -16,11 +16,11 @@ use crate::protocol::{Command, ErrorCode, Response, NODE_NAME, NODE_VERSION, PRO
 use bizra_agent::context::IntentClassifier;
 use bizra_agent::runtime::{AgentRuntime, RuntimeState};
 use bizra_agent::types::{AgentRole, Message, MessageId};
-use bizra_core::{Constitution, NodeIdentity, IHSAN_THRESHOLD};
+use bizra_core::{Constitution, NodeIdentity};
 use bizra_hooks::saga::SagaRegistry;
 use bizra_hooks::IhsanScore;
 use bizra_inference::{BackendConfig, InferenceGateway, InferenceRequest, OllamaBackend};
-use bizra_inference::{GatewayError, ModelTier, TaskComplexity};
+use bizra_inference::{ModelTier, TaskComplexity};
 use bizra_memory::types::{AtomKind, Confidence};
 use bizra_mission::mission::Mission;
 use bizra_mission::receipt::MissionReceipt;

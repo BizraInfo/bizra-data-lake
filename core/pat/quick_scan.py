@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """PAT Quick Scan — fast file census across all BIZRA locations."""
 
-import os, sys, time, json, hashlib
+import hashlib
+import json
+import os
+import sys
+import time
 from collections import defaultdict
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 SKIP_DIRS = {
     ".git",

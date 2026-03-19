@@ -108,7 +108,9 @@ class TestTransitionTable:
             assert TerminalState.READY in TERMINAL_TRANSITIONS[state]
 
     def test_blocked_state_is_restart_only(self):
-        assert TERMINAL_TRANSITIONS[TerminalState.BLOCKED_CONSTITUTIONALLY] == frozenset()
+        assert (
+            TERMINAL_TRANSITIONS[TerminalState.BLOCKED_CONSTITUTIONALLY] == frozenset()
+        )
 
     def test_no_self_loops(self):
         for source, targets in TERMINAL_TRANSITIONS.items():

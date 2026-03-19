@@ -3,15 +3,20 @@
 import os
 import sys
 import tempfile
-import pytest
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-os.environ.setdefault("BIZRA_CONSTITUTION_PATH",
-                       str(Path(__file__).parent.parent / "constitution.toml"))
+os.environ.setdefault(
+    "BIZRA_CONSTITUTION_PATH", str(Path(__file__).parent.parent / "constitution.toml")
+)
 
 from mission_pipeline import (
-    MissionPipeline, Mission, MissionStatus, PatAgent,
+    Mission,
+    MissionPipeline,
+    MissionStatus,
+    PatAgent,
 )
 
 
@@ -79,15 +84,25 @@ class TestTrustCompiler:
     def test_agent_names_match_constitution(self, pipeline):
         names = [a.name for a in pipeline.agents]
         assert names == [
-            "Planner", "Researcher", "Coder",
-            "Evaluator", "Ethicist", "Publisher", "Integrator",
+            "Planner",
+            "Researcher",
+            "Coder",
+            "Evaluator",
+            "Ethicist",
+            "Publisher",
+            "Integrator",
         ]
 
     def test_trust_stages_sequential(self, pipeline):
         stages = [a.trust_stage for a in pipeline.agents]
         expected = [
-            "abstracting", "gathering", "executing",
-            "attesting", "certifying", "publishing", "chaining",
+            "abstracting",
+            "gathering",
+            "executing",
+            "attesting",
+            "certifying",
+            "publishing",
+            "chaining",
         ]
         assert stages == expected
 

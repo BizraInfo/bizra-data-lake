@@ -81,7 +81,9 @@ def _measure_warm_breathe(data_dir: Path, n: int = 5) -> Dict[str, Any]:
         "samples": n,
         "mean_ms": round(statistics.mean(durations), 2),
         "p50_ms": round(statistics.median(durations), 2),
-        "p95_ms": round(sorted(durations)[int(n * 0.95)] if n >= 20 else max(durations), 2),
+        "p95_ms": round(
+            sorted(durations)[int(n * 0.95)] if n >= 20 else max(durations), 2
+        ),
         "min_ms": round(min(durations), 2),
         "max_ms": round(max(durations), 2),
     }
@@ -101,16 +103,18 @@ def _measure_mission_ingest(data_dir: Path, n: int = 10) -> Dict[str, Any]:
     composites: List[float] = []
     for i in range(n):
         # Ingest a mission receipt
-        hb.ingest_mission_receipt({
-            "mission_id": f"bench-{i}",
-            "description": f"CPU baseline mission #{i}",
-            "ihsan_score": 0.96,
-            "snr_score": 0.92,
-            "fate_verdict": "approved",
-            "gate_passed": True,
-            "rewarded": True,
-            "reward_amount": 1.0,
-        })
+        hb.ingest_mission_receipt(
+            {
+                "mission_id": f"bench-{i}",
+                "description": f"CPU baseline mission #{i}",
+                "ihsan_score": 0.96,
+                "snr_score": 0.92,
+                "fate_verdict": "approved",
+                "gate_passed": True,
+                "rewarded": True,
+                "reward_amount": 1.0,
+            }
+        )
 
         start = time.perf_counter()
         receipt = hb.breathe()
@@ -140,21 +144,25 @@ def _measure_fate_rejection(data_dir: Path) -> Dict[str, Any]:
 
     # Ingest 3 approved + 5 rejected
     for i in range(3):
-        hb.ingest_mission_receipt({
-            "mission_id": f"ok-{i}",
-            "description": f"Approved mission #{i}",
-            "ihsan_score": 0.96,
-            "fate_verdict": "approved",
-            "gate_passed": True,
-        })
+        hb.ingest_mission_receipt(
+            {
+                "mission_id": f"ok-{i}",
+                "description": f"Approved mission #{i}",
+                "ihsan_score": 0.96,
+                "fate_verdict": "approved",
+                "gate_passed": True,
+            }
+        )
     for i in range(5):
-        hb.ingest_mission_receipt({
-            "mission_id": f"rej-{i}",
-            "description": f"Rejected mission #{i}",
-            "ihsan_score": 0.2,
-            "fate_verdict": "rejected",
-            "gate_passed": False,
-        })
+        hb.ingest_mission_receipt(
+            {
+                "mission_id": f"rej-{i}",
+                "description": f"Rejected mission #{i}",
+                "ihsan_score": 0.2,
+                "fate_verdict": "rejected",
+                "gate_passed": False,
+            }
+        )
 
     start = time.perf_counter()
     receipt = hb.breathe()
@@ -170,7 +178,9 @@ def _measure_fate_rejection(data_dir: Path) -> Dict[str, Any]:
         "rejected_count": receipt.helix_result.get("rejected_count", 0),
         "reflexes_precipitated": receipt.reflexes_precipitated,
         "seed_minted": receipt.seed_minted,
-        "pass": composite_clean and receipt.reflexes_precipitated == 0 and receipt.seed_minted == 0.0,
+        "pass": composite_clean
+        and receipt.reflexes_precipitated == 0
+        and receipt.seed_minted == 0.0,
     }
 
 
@@ -255,7 +265,11 @@ def main() -> None:
                 print(f"  ✅ {op:30s}  {r['mean_ms']:8.2f} ms (mean, n={r['samples']})")
             else:
                 status = "✅" if r.get("pass", True) else "❌"
-                print(f"  {status} {op:30s}  PASS" if r.get("pass") else f"  {status} {op:30s}  FAIL")
+                print(
+                    f"  {status} {op:30s}  PASS"
+                    if r.get("pass")
+                    else f"  {status} {op:30s}  FAIL"
+                )
         print("─" * 60)
         verdict = "PASS ✅" if report["all_pass"] else "FAIL ❌"
         print(f"  Overall: {verdict}")

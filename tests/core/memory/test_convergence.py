@@ -16,8 +16,7 @@ from core.memory.convergence import (
 
 def _create_source_db(path: Path) -> None:
     conn = sqlite3.connect(path)
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE memory_entries (
             id TEXT PRIMARY KEY,
             key TEXT,
@@ -37,8 +36,7 @@ def _create_source_db(path: Path) -> None:
             id TEXT PRIMARY KEY,
             project_path TEXT
         );
-        """
-    )
+        """)
     conn.execute(
         """
         INSERT INTO memory_entries (

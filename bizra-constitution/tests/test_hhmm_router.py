@@ -3,15 +3,22 @@
 import os
 import sys
 import time
+
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from hhmm_router import (
-    HhmmRouter, ComplexityTier, ClassificationResult, TIER_CONFIGS,
-    ActionBus, MissionTicket,
-    _extract_length_score, _extract_question_complexity,
-    _extract_domain_breadth, _extract_specificity,
+    TIER_CONFIGS,
+    ActionBus,
+    ClassificationResult,
+    ComplexityTier,
+    HhmmRouter,
+    MissionTicket,
+    _extract_domain_breadth,
+    _extract_length_score,
+    _extract_question_complexity,
+    _extract_specificity,
 )
 from reflex_cache import ReflexCache
 
@@ -128,8 +135,7 @@ class TestReflexCacheIntegration:
         router, cache = router_with_cache
         # Precipitate a pattern
         for _ in range(3):
-            cache.record_observation("cached query", "response", 0.95,
-                                     {"a": 0.95})
+            cache.record_observation("cached query", "response", 0.95, {"a": 0.95})
         result = router.classify("cached query")
         assert result.tier == ComplexityTier.TRIVIAL
         assert result.has_reflex is True

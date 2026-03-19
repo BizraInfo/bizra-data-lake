@@ -93,6 +93,7 @@ pub enum FlowResult {
 /// # Returns
 ///
 /// `FlowResult` — either completed, constitutionally halted, or pre-boundary rejected
+#[allow(clippy::too_many_arguments)]
 pub fn execute_full_flow(
     pat_signing_key: &ed25519_dalek::SigningKey,
     sat_signing_key: &ed25519_dalek::SigningKey,

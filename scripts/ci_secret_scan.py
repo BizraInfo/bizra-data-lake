@@ -32,8 +32,7 @@ PATH_SKIP_PARTS = {
     ".swarm/",
 }
 
-ASSIGNMENT_RE = re.compile(
-    r"""(?ix)
+ASSIGNMENT_RE = re.compile(r"""(?ix)
     \b(
         api[_-]?token|
         api[_-]?key|
@@ -48,26 +47,21 @@ ASSIGNMENT_RE = re.compile(
     [^:=\n]{0,32}
     \s*[:=]\s*
     ["']([^"'\n]{8,})["']
-    """
-)
+    """)
 
-HIGH_ENTROPY_RE = re.compile(
-    r"""(?ix)
+HIGH_ENTROPY_RE = re.compile(r"""(?ix)
     (
         sk-(?=[a-z0-9:_-]{16,})(?=[a-z0-9:_-]*\d)[a-z0-9:_-]+|
         gh[pousr]_[a-z0-9]{20,}|
         xox[baprs]-[a-z0-9-]{20,}
     )
-    """
-)
+    """)
 
-BEARER_RE = re.compile(
-    r"""(?ix)
+BEARER_RE = re.compile(r"""(?ix)
     \bbearer\b
     [\s:='""]+
     ["']?([a-z0-9._:-]{16,})["']?
-    """
-)
+    """)
 
 
 def _is_env_file(rel_posix: str) -> bool:

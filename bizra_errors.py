@@ -2,29 +2,31 @@
 # Professional-grade exception handling for all BIZRA components
 # Implements: Error taxonomy, context preservation, recovery hints
 
+import json
+import logging
+import traceback
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Any
-import traceback
-import json
-import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("BIZRA.Errors")
 
 
 class ErrorSeverity(Enum):
     """Error severity levels"""
-    DEBUG = "debug"         # Development-only information
-    INFO = "info"           # Informational, no action needed
-    WARNING = "warning"     # Potential issue, operation continues
-    ERROR = "error"         # Operation failed, but system stable
-    CRITICAL = "critical"   # System stability at risk
-    FATAL = "fatal"         # System cannot continue
+
+    DEBUG = "debug"  # Development-only information
+    INFO = "info"  # Informational, no action needed
+    WARNING = "warning"  # Potential issue, operation continues
+    ERROR = "error"  # Operation failed, but system stable
+    CRITICAL = "critical"  # System stability at risk
+    FATAL = "fatal"  # System cannot continue
 
 
 class ErrorCategory(Enum):
     """Error categories for classification"""
+
     CONFIGURATION = "configuration"
     DATA = "data"
     NETWORK = "network"
@@ -37,19 +39,21 @@ class ErrorCategory(Enum):
 
 class RecoveryAction(Enum):
     """Suggested recovery actions"""
-    RETRY = "retry"                 # Retry the operation
-    RECONFIGURE = "reconfigure"     # Check configuration
-    SCALE_DOWN = "scale_down"       # Reduce batch size / load
-    FAILOVER = "failover"           # Switch to backup
-    MANUAL = "manual"               # Requires manual intervention
-    SKIP = "skip"                   # Skip and continue
-    ABORT = "abort"                 # Abort current operation
-    RESTART = "restart"             # Restart service
+
+    RETRY = "retry"  # Retry the operation
+    RECONFIGURE = "reconfigure"  # Check configuration
+    SCALE_DOWN = "scale_down"  # Reduce batch size / load
+    FAILOVER = "failover"  # Switch to backup
+    MANUAL = "manual"  # Requires manual intervention
+    SKIP = "skip"  # Skip and continue
+    ABORT = "abort"  # Abort current operation
+    RESTART = "restart"  # Restart service
 
 
 @dataclass
 class ErrorContext:
     """Rich error context for debugging"""
+
     operation: str
     component: str
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -81,7 +85,7 @@ class BIZRAError(Exception):
         recovery_action: RecoveryAction = RecoveryAction.RETRY,
         context: Optional[ErrorContext] = None,
         snr: float = 0.0,
-        cause: Optional[Exception] = None
+        cause: Optional[Exception] = None,
     ):
         self.message = message
         self.severity = severity
@@ -118,7 +122,7 @@ class BIZRAError(Exception):
                 "query_id": self.context.query_id,
                 "batch_id": self.context.batch_id,
             },
-            "cause": str(self.cause) if self.cause else None
+            "cause": str(self.cause) if self.cause else None,
         }
 
     def to_json(self) -> str:
@@ -135,13 +139,13 @@ class BIZRAError(Exception):
             ErrorSeverity.WARNING: logging.WARNING,
             ErrorSeverity.ERROR: logging.ERROR,
             ErrorSeverity.CRITICAL: logging.CRITICAL,
-            ErrorSeverity.FATAL: logging.CRITICAL
+            ErrorSeverity.FATAL: logging.CRITICAL,
         }
 
         log.log(
             level_map[self.severity],
             f"[{self.category.value}] {self.message} "
-            f"(SNR: {self.snr:.4f}, Recovery: {self.recovery_action.value})"
+            f"(SNR: {self.snr:.4f}, Recovery: {self.recovery_action.value})",
         )
 
     def __str__(self) -> str:
@@ -156,16 +160,12 @@ class BIZRAError(Exception):
 # SNR-Related Errors
 # ============================================================================
 
+
 class SNRError(BIZRAError):
     """Base class for SNR-related errors"""
 
     def __init__(self, message: str, snr: float, **kwargs):
-        super().__init__(
-            message,
-            category=ErrorCategory.COMPUTATION,
-            snr=snr,
-            **kwargs
-        )
+        super().__init__(message, category=ErrorCategory.COMPUTATION, snr=snr, **kwargs)
 
 
 class SNRBelowThresholdError(SNRError):
@@ -178,7 +178,7 @@ class SNRBelowThresholdError(SNRError):
             severity=ErrorSeverity.WARNING,
             recoverable=True,
             recovery_action=RecoveryAction.RETRY,
-            **kwargs
+            **kwargs,
         )
         self.threshold = threshold
 
@@ -193,7 +193,7 @@ class IhsanNotAchievedError(SNRError):
             severity=ErrorSeverity.INFO,
             recoverable=True,
             recovery_action=RecoveryAction.RETRY,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -208,7 +208,7 @@ class SNRCalculationError(SNRError):
             recoverable=False,
             recovery_action=RecoveryAction.MANUAL,
             cause=cause,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -216,27 +216,26 @@ class SNRCalculationError(SNRError):
 # Graph-Related Errors
 # ============================================================================
 
+
 class GraphError(BIZRAError):
     """Base class for graph-related errors"""
 
     def __init__(self, message: str, **kwargs):
-        super().__init__(
-            message,
-            category=ErrorCategory.DATA,
-            **kwargs
-        )
+        super().__init__(message, category=ErrorCategory.DATA, **kwargs)
 
 
 class GraphIntegrityError(GraphError):
     """Raised when graph integrity check fails"""
 
-    def __init__(self, message: str, node_count: int = 0, edge_count: int = 0, **kwargs):
+    def __init__(
+        self, message: str, node_count: int = 0, edge_count: int = 0, **kwargs
+    ):
         super().__init__(
             f"Graph integrity violation: {message}",
             severity=ErrorSeverity.CRITICAL,
             recoverable=False,
             recovery_action=RecoveryAction.RESTART,
-            **kwargs
+            **kwargs,
         )
         self.node_count = node_count
         self.edge_count = edge_count
@@ -245,14 +244,19 @@ class GraphIntegrityError(GraphError):
 class GraphTraversalError(GraphError):
     """Raised when graph traversal fails"""
 
-    def __init__(self, message: str, source: Optional[str] = None,
-                 target: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        message: str,
+        source: Optional[str] = None,
+        target: Optional[str] = None,
+        **kwargs,
+    ):
         super().__init__(
             f"Graph traversal failed: {message}",
             severity=ErrorSeverity.ERROR,
             recoverable=True,
             recovery_action=RecoveryAction.SKIP,
-            **kwargs
+            **kwargs,
         )
         self.source = source
         self.target = target
@@ -267,7 +271,7 @@ class NodeNotFoundError(GraphError):
             severity=ErrorSeverity.WARNING,
             recoverable=True,
             recovery_action=RecoveryAction.SKIP,
-            **kwargs
+            **kwargs,
         )
         self.node_id = node_id
 
@@ -276,15 +280,12 @@ class NodeNotFoundError(GraphError):
 # Retrieval-Related Errors
 # ============================================================================
 
+
 class RetrievalError(BIZRAError):
     """Base class for retrieval-related errors"""
 
     def __init__(self, message: str, **kwargs):
-        super().__init__(
-            message,
-            category=ErrorCategory.COMPUTATION,
-            **kwargs
-        )
+        super().__init__(message, category=ErrorCategory.COMPUTATION, **kwargs)
 
 
 class EmbeddingError(RetrievalError):
@@ -296,7 +297,7 @@ class EmbeddingError(RetrievalError):
             severity=ErrorSeverity.ERROR,
             recoverable=True,
             recovery_action=RecoveryAction.RETRY,
-            **kwargs
+            **kwargs,
         )
         self.text_length = text_length
 
@@ -310,7 +311,7 @@ class VectorSearchError(RetrievalError):
             severity=ErrorSeverity.ERROR,
             recoverable=True,
             recovery_action=RecoveryAction.FAILOVER,
-            **kwargs
+            **kwargs,
         )
         self.query_dim = query_dim
 
@@ -328,7 +329,7 @@ class BIZRAIndexError(RetrievalError):
             severity=ErrorSeverity.ERROR,
             recoverable=False,
             recovery_action=RecoveryAction.RESTART,
-            **kwargs
+            **kwargs,
         )
         self.index_type = index_type
 
@@ -341,15 +342,12 @@ IndexError_ = BIZRAIndexError
 # LLM-Related Errors
 # ============================================================================
 
+
 class LLMError(BIZRAError):
     """Base class for LLM-related errors"""
 
     def __init__(self, message: str, **kwargs):
-        super().__init__(
-            message,
-            category=ErrorCategory.INTEGRATION,
-            **kwargs
-        )
+        super().__init__(message, category=ErrorCategory.INTEGRATION, **kwargs)
 
 
 class LLMConnectionError(LLMError):
@@ -361,7 +359,7 @@ class LLMConnectionError(LLMError):
             severity=ErrorSeverity.ERROR,
             recoverable=True,
             recovery_action=RecoveryAction.FAILOVER,
-            **kwargs
+            **kwargs,
         )
         self.backend = backend
         self.endpoint = endpoint
@@ -376,7 +374,7 @@ class LLMTimeoutError(LLMError):
             severity=ErrorSeverity.WARNING,
             recoverable=True,
             recovery_action=RecoveryAction.RETRY,
-            **kwargs
+            **kwargs,
         )
         self.backend = backend
         self.timeout_seconds = timeout_seconds
@@ -391,7 +389,7 @@ class LLMResponseError(LLMError):
             severity=ErrorSeverity.ERROR,
             recoverable=True,
             recovery_action=RecoveryAction.RETRY,
-            **kwargs
+            **kwargs,
         )
         self.backend = backend
         self.status_code = status_code
@@ -406,7 +404,7 @@ class CircuitBreakerOpenError(LLMError):
             severity=ErrorSeverity.WARNING,
             recoverable=True,
             recovery_action=RecoveryAction.FAILOVER,
-            **kwargs
+            **kwargs,
         )
         self.service = service
 
@@ -415,15 +413,12 @@ class CircuitBreakerOpenError(LLMError):
 # Configuration Errors
 # ============================================================================
 
+
 class ConfigurationError(BIZRAError):
     """Base class for configuration errors"""
 
     def __init__(self, message: str, **kwargs):
-        super().__init__(
-            message,
-            category=ErrorCategory.CONFIGURATION,
-            **kwargs
-        )
+        super().__init__(message, category=ErrorCategory.CONFIGURATION, **kwargs)
 
 
 class MissingConfigError(ConfigurationError):
@@ -435,7 +430,7 @@ class MissingConfigError(ConfigurationError):
             severity=ErrorSeverity.ERROR,
             recoverable=False,
             recovery_action=RecoveryAction.RECONFIGURE,
-            **kwargs
+            **kwargs,
         )
         self.config_key = config_key
 
@@ -449,7 +444,7 @@ class InvalidConfigError(ConfigurationError):
             severity=ErrorSeverity.ERROR,
             recoverable=False,
             recovery_action=RecoveryAction.RECONFIGURE,
-            **kwargs
+            **kwargs,
         )
         self.config_key = config_key
         self.value = value
@@ -460,15 +455,12 @@ class InvalidConfigError(ConfigurationError):
 # Resource Errors
 # ============================================================================
 
+
 class ResourceError(BIZRAError):
     """Base class for resource-related errors"""
 
     def __init__(self, message: str, **kwargs):
-        super().__init__(
-            message,
-            category=ErrorCategory.RESOURCE,
-            **kwargs
-        )
+        super().__init__(message, category=ErrorCategory.RESOURCE, **kwargs)
 
 
 class BIZRAMemoryError(ResourceError):
@@ -484,7 +476,7 @@ class BIZRAMemoryError(ResourceError):
             severity=ErrorSeverity.CRITICAL,
             recoverable=True,
             recovery_action=RecoveryAction.SCALE_DOWN,
-            **kwargs
+            **kwargs,
         )
         self.required_mb = required_mb
         self.available_mb = available_mb
@@ -503,7 +495,7 @@ class GPUMemoryError(ResourceError):
             severity=ErrorSeverity.ERROR,
             recoverable=True,
             recovery_action=RecoveryAction.SCALE_DOWN,
-            **kwargs
+            **kwargs,
         )
         self.required_mb = required_mb
         self.available_mb = available_mb
@@ -522,7 +514,7 @@ class BIZRAFileNotFoundError(ResourceError):
             severity=ErrorSeverity.ERROR,
             recoverable=False,
             recovery_action=RecoveryAction.MANUAL,
-            **kwargs
+            **kwargs,
         )
         self.file_path = file_path
 
@@ -535,15 +527,12 @@ FileNotFoundError_ = BIZRAFileNotFoundError
 # Validation Errors
 # ============================================================================
 
+
 class ValidationError(BIZRAError):
     """Base class for validation errors"""
 
     def __init__(self, message: str, **kwargs):
-        super().__init__(
-            message,
-            category=ErrorCategory.VALIDATION,
-            **kwargs
-        )
+        super().__init__(message, category=ErrorCategory.VALIDATION, **kwargs)
 
 
 class POIVerificationError(ValidationError):
@@ -555,7 +544,7 @@ class POIVerificationError(ValidationError):
             severity=ErrorSeverity.CRITICAL,
             recoverable=False,
             recovery_action=RecoveryAction.MANUAL,
-            **kwargs
+            **kwargs,
         )
         self.entry_id = entry_id
         self.reason = reason
@@ -570,7 +559,7 @@ class MerkleVerificationError(ValidationError):
             severity=ErrorSeverity.CRITICAL,
             recoverable=False,
             recovery_action=RecoveryAction.MANUAL,
-            **kwargs
+            **kwargs,
         )
         self.expected_hash = expected_hash
         self.actual_hash = actual_hash
@@ -579,6 +568,7 @@ class MerkleVerificationError(ValidationError):
 # ============================================================================
 # Error Handler
 # ============================================================================
+
 
 class BIZRAErrorHandler:
     """Centralized error handler for BIZRA system"""
@@ -633,7 +623,8 @@ class BIZRAErrorHandler:
             "by_severity": by_severity,
             "by_category": by_category,
             "recoverable_count": sum(1 for e in self.error_log if e.recoverable),
-            "avg_snr_at_failure": sum(e.snr for e in self.error_log) / len(self.error_log)
+            "avg_snr_at_failure": sum(e.snr for e in self.error_log)
+            / len(self.error_log),
         }
 
 

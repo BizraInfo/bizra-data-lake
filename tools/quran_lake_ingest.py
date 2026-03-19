@@ -17,16 +17,18 @@ References:
 """
 
 import json
-import urllib.request
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from tqdm import tqdm
 import time
+import urllib.request
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from tqdm import tqdm
+
+from bizra_config import INDEXED_PATH
 
 # Integration with existing systems
 from vector_engine import VectorEngine
-from bizra_config import INDEXED_PATH
 
 OUTPUT_DIR = INDEXED_PATH / "knowledge/quran"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

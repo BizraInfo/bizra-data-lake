@@ -9,8 +9,7 @@ from core.memory.adapters.claude_flow import ClaudeFlowAdapter
 
 def _create_claude_flow_db(path: Path) -> None:
     conn = sqlite3.connect(path)
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE memory_entries (
             id TEXT PRIMARY KEY,
             key TEXT,
@@ -36,8 +35,7 @@ def _create_claude_flow_db(path: Path) -> None:
             updated_at INTEGER,
             confidence REAL
         );
-        """
-    )
+        """)
     conn.execute(
         """
         INSERT INTO memory_entries (
@@ -94,13 +92,17 @@ def test_export_db_preserves_provenance(tmp_path: Path) -> None:
         "claude_flow_db",
         "claude_flow_patterns",
     }
-    db_record = next(record for record in batch.records if record.source == "claude_flow_db")
+    db_record = next(
+        record for record in batch.records if record.source == "claude_flow_db"
+    )
     assert db_record.metadata["table_name"] == "memory_entries"
     assert db_record.metadata["source_path"] == str(db_path)
     assert "bizra" in db_record.tags
 
 
-def test_export_artifacts_reports_malformed_json_without_crashing(tmp_path: Path) -> None:
+def test_export_artifacts_reports_malformed_json_without_crashing(
+    tmp_path: Path,
+) -> None:
     artifact_dir = tmp_path / "memory"
     artifact_dir.mkdir(parents=True)
     (artifact_dir / "session-index.json").write_text(

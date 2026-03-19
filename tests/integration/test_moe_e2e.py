@@ -19,7 +19,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-
 # =============================================================================
 # 1. MOE Engine → Bridge Integration
 # =============================================================================
@@ -36,7 +35,9 @@ class TestMOEEngineToBridge:
         bridge = MOEBridge.create()
 
         with patch.object(bridge, "_ollama_generate", new_callable=AsyncMock) as mock:
-            mock.return_value = "Analyzed step by step: first observe, then orient, decide, and act"
+            mock.return_value = (
+                "Analyzed step by step: first observe, then orient, decide, and act"
+            )
             result = await bridge.infer("How do I analyze and explain this problem?")
 
         assert result  # Non-empty
@@ -114,23 +115,28 @@ class TestBridgeToNervousSystem:
     @pytest.mark.asyncio
     async def test_ns_records_observation_after_s2(self) -> None:
         """After S2, NervousSystem records observation for S1 precipitation."""
+        from unittest.mock import MagicMock
+
         from core.sovereign.mission_nervous_system import SovereignNervousSystem
         from core.sovereign.moe_bridge import MOEBridge
-        from unittest.mock import MagicMock
 
         bridge = MOEBridge.create()
         mock_reflex = MagicMock()
         mock_reflex.lookup.return_value = None  # Force S2
 
         with patch.object(bridge, "_ollama_generate", new_callable=AsyncMock) as mock:
-            mock.return_value = "Expert analysis with thorough reasoning and evidence-based conclusions"
+            mock.return_value = (
+                "Expert analysis with thorough reasoning and evidence-based conclusions"
+            )
             ns = SovereignNervousSystem(inference=bridge, reflex_cache=mock_reflex)
             await ns.run("How does autopoiesis work?")
 
         # Should have recorded observation for future S1 precipitation
         mock_reflex.record_observation.assert_called_once()
         call_kwargs = mock_reflex.record_observation.call_args
-        assert "autopoiesis" in call_kwargs.kwargs.get("input_text", call_kwargs.args[0] if call_kwargs.args else "")
+        assert "autopoiesis" in call_kwargs.kwargs.get(
+            "input_text", call_kwargs.args[0] if call_kwargs.args else ""
+        )
 
     @pytest.mark.asyncio
     async def test_ns_evidence_chain_integrity(self) -> None:
@@ -186,7 +192,10 @@ class TestNode0MOERoute:
         """route=moe dispatches through MOE Bridge."""
         # Import the _query_moe function directly to test without FastAPI
         import sys
-        sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
+
+        sys.path.insert(
+            0, str(Path(__file__).resolve().parent.parent.parent / "scripts")
+        )
 
         from core.sovereign.moe_bridge import MOEBridge
 
@@ -255,9 +264,7 @@ class TestFullPipeline:
                 "of 0.95 and SNR minimum of 0.85 for quality assurance, "
                 "verified through evidence-chained receipts"
             )
-            ns = SovereignNervousSystem(
-                inference=bridge, reflex_cache=MockReflex()
-            )
+            ns = SovereignNervousSystem(inference=bridge, reflex_cache=MockReflex())
             receipt = await ns.run("What are the constitutional thresholds?")
 
         # Verify full chain:

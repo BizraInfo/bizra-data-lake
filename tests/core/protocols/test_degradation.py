@@ -20,7 +20,6 @@ from core.protocols.degradation import (
     DegradationSeverity,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 # DegradationSeverity
 # ═══════════════════════════════════════════════════════════════════════════
@@ -57,35 +56,46 @@ class TestDegradationEvent:
 
     def test_frozen_immutable(self):
         event = DegradationEvent(
-            engine="X", missing=[], available=[], severity=DegradationSeverity.FULL,
+            engine="X",
+            missing=[],
+            available=[],
+            severity=DegradationSeverity.FULL,
         )
         with pytest.raises(AttributeError):
             event.engine = "Y"  # type: ignore[misc]
 
     def test_degradation_ratio_full(self):
         event = DegradationEvent(
-            engine="E", missing=["a", "b", "c"], available=[],
+            engine="E",
+            missing=["a", "b", "c"],
+            available=[],
             severity=DegradationSeverity.FULL,
         )
         assert event.degradation_ratio == 1.0
 
     def test_degradation_ratio_partial(self):
         event = DegradationEvent(
-            engine="E", missing=["a"], available=["b", "c"],
+            engine="E",
+            missing=["a"],
+            available=["b", "c"],
             severity=DegradationSeverity.PARTIAL,
         )
         assert abs(event.degradation_ratio - 1 / 3) < 1e-9
 
     def test_degradation_ratio_healthy(self):
         event = DegradationEvent(
-            engine="E", missing=[], available=["a", "b"],
+            engine="E",
+            missing=[],
+            available=["a", "b"],
             severity=DegradationSeverity.PARTIAL,
         )
         assert event.degradation_ratio == 0.0
 
     def test_degradation_ratio_empty(self):
         event = DegradationEvent(
-            engine="E", missing=[], available=[],
+            engine="E",
+            missing=[],
+            available=[],
             severity=DegradationSeverity.FULL,
         )
         assert event.degradation_ratio == 0.0
@@ -93,7 +103,9 @@ class TestDegradationEvent:
     def test_timestamp_auto(self):
         before = datetime.now(timezone.utc)
         event = DegradationEvent(
-            engine="E", missing=["a"], available=[],
+            engine="E",
+            missing=["a"],
+            available=[],
             severity=DegradationSeverity.FULL,
         )
         after = datetime.now(timezone.utc)

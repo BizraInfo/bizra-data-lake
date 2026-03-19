@@ -18,7 +18,6 @@ from .base import (
     stable_turn_id,
 )
 
-
 _CODE_RE = re.compile(r"```|\b(def|class|import|function|try|except|return)\b")
 
 
@@ -36,12 +35,18 @@ class QwenParser(PlatformParser):
 
             for index, message in enumerate(messages):
                 role = canonical_role(message.get("role"))
-                content = normalize_whitespace(collect_text(message.get("content") or message.get("text")))
+                content = normalize_whitespace(
+                    collect_text(message.get("content") or message.get("text"))
+                )
                 if not content:
                     continue
 
                 hints = self._hints_for_message(content)
-                turn_id = str(message.get("id") or message.get("message_id") or stable_turn_id(self.platform, conversation_id, index, content))
+                turn_id = str(
+                    message.get("id")
+                    or message.get("message_id")
+                    or stable_turn_id(self.platform, conversation_id, index, content)
+                )
                 timestamp = parse_timestamp(
                     message.get("created_at")
                     or message.get("timestamp")
@@ -79,9 +84,17 @@ class QwenParser(PlatformParser):
                 user_text = collect_text(pair[0])
                 bot_text = collect_text(pair[1])
                 if user_text.strip():
-                    out.append({"id": f"hist-{idx}-u", "role": "user", "content": user_text})
+                    out.append(
+                        {"id": f"hist-{idx}-u", "role": "user", "content": user_text}
+                    )
                 if bot_text.strip():
-                    out.append({"id": f"hist-{idx}-a", "role": "assistant", "content": bot_text})
+                    out.append(
+                        {
+                            "id": f"hist-{idx}-a",
+                            "role": "assistant",
+                            "content": bot_text,
+                        }
+                    )
             return out
 
         data = conversation.get("data")

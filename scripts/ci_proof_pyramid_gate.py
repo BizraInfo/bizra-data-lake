@@ -68,11 +68,14 @@ FAILING_RESULTS: frozenset[str] = frozenset({"failure", "cancelled"})
 # Evidence merging
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def load_evidence_fragments(evidence_dir: pathlib.Path) -> dict[str, Any]:
     """Load all JSON evidence fragments from the given directory tree."""
     fragments: dict[str, Any] = {}
     if not evidence_dir.exists():
-        print(f"[INFO] Evidence directory not found: {evidence_dir} — using empty fragments")
+        print(
+            f"[INFO] Evidence directory not found: {evidence_dir} — using empty fragments"
+        )
         return fragments
     for json_file in sorted(evidence_dir.rglob("*.json")):
         try:
@@ -89,6 +92,7 @@ def load_evidence_fragments(evidence_dir: pathlib.Path) -> dict[str, Any]:
 # Gate result parsing
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def parse_gate_results(gate_results_raw: list[str]) -> dict[str, str]:
     """Parse `key=value` gate result strings into a dict.
 
@@ -98,7 +102,9 @@ def parse_gate_results(gate_results_raw: list[str]) -> dict[str, str]:
     parsed: dict[str, str] = {}
     for item in gate_results_raw:
         if "=" not in item:
-            print(f"[WARN] Ignoring malformed gate result (expected key=value): {item!r}")
+            print(
+                f"[WARN] Ignoring malformed gate result (expected key=value): {item!r}"
+            )
             continue
         key, _, value = item.partition("=")
         parsed[key.strip().lower()] = value.strip().lower()
@@ -108,6 +114,7 @@ def parse_gate_results(gate_results_raw: list[str]) -> dict[str, str]:
 # ─────────────────────────────────────────────────────────────────────────────
 # Gate validation
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def validate_gates(
     gate_results: dict[str, str],
@@ -133,13 +140,15 @@ def validate_gates(
         elif result not in PASSING_RESULTS:
             unknown_gates.append(gate_id)
 
-        gate_details.append({
-            "gate_id": gate_id.upper().replace("PP0", "PP-0"),
-            "name": gate_name,
-            "result": result,
-            "passed": passed,
-            "failed": failed,
-        })
+        gate_details.append(
+            {
+                "gate_id": gate_id.upper().replace("PP0", "PP-0"),
+                "name": gate_name,
+                "result": result,
+                "passed": passed,
+                "failed": failed,
+            }
+        )
 
     return gate_details, failed_gates, unknown_gates
 
@@ -147,6 +156,7 @@ def validate_gates(
 # ─────────────────────────────────────────────────────────────────────────────
 # Evidence assembly
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def assemble_evidence(
     gate_results: dict[str, str],
@@ -197,6 +207,7 @@ def assemble_evidence(
 # Reporting
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def print_report(evidence: dict[str, Any]) -> None:
     """Print a human-readable gate report to stdout."""
     summary = evidence["summary"]
@@ -239,6 +250,7 @@ def print_report(evidence: dict[str, Any]) -> None:
 # CLI entrypoint
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Proof Pyramid Quality Gate — validates all 6 PP gates.",
@@ -256,7 +268,7 @@ def main(argv: list[str] | None = None) -> int:
         nargs="+",
         default=[],
         metavar="KEY=VALUE",
-        help='Gate results as key=value pairs, e.g. pp001=success pp002=failure',
+        help="Gate results as key=value pairs, e.g. pp001=success pp002=failure",
     )
     parser.add_argument(
         "--output",
@@ -277,8 +289,10 @@ def main(argv: list[str] | None = None) -> int:
     gate_results = parse_gate_results(args.gate_results)
 
     if not gate_results:
-        print("[WARN] No gate results provided via --gate-results. "
-              "All gates will be marked as 'unknown'.")
+        print(
+            "[WARN] No gate results provided via --gate-results. "
+            "All gates will be marked as 'unknown'."
+        )
 
     # Load evidence fragments
     fragments = load_evidence_fragments(args.evidence_dir)
@@ -288,8 +302,10 @@ def main(argv: list[str] | None = None) -> int:
 
     # If --strict, treat unknown as failure
     if args.strict and unknown_gates:
-        print(f"[ERROR] --strict mode: {len(unknown_gates)} gate(s) have unknown results: "
-              f"{unknown_gates}")
+        print(
+            f"[ERROR] --strict mode: {len(unknown_gates)} gate(s) have unknown results: "
+            f"{unknown_gates}"
+        )
         failed_gates = failed_gates + unknown_gates
 
     # Assemble evidence bundle
@@ -307,7 +323,9 @@ def main(argv: list[str] | None = None) -> int:
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as f:
-            f.write(f"proof_pyramid_passed={'true' if evidence['overall_pass'] else 'false'}\n")
+            f.write(
+                f"proof_pyramid_passed={'true' if evidence['overall_pass'] else 'false'}\n"
+            )
             f.write(f"gates_passed={evidence['summary']['passed']}\n")
             f.write(f"gates_failed={evidence['summary']['failed']}\n")
 

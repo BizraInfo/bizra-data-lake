@@ -4,14 +4,21 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
 import preflight_readiness
+import pytest
 import replay_ingest_jsonl_to_seed as replay_seed
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from engine import GIANTS_PROTOCOL, AutonomousSNRGoTEngine
+from genesis_gate import GenesisGateConfig, evaluate_genesis_gate
+from memory_bridge import (
+    MemoryFragmentKind,
+    build_fragment_inputs_from_report,
+    ingest_report_nodes,
+)
 from normalizers import (
     COLLECTION_GAP,
     CONVERSATION_GAP,
@@ -27,14 +34,19 @@ from normalizers import (
     custom_providers,
     detect_provider,
     parse_file,
-    parser_for,
     parse_payload,
+    parser_for,
     register_provider,
     registered_providers,
     registry,
     unregister_provider,
 )
-from normalizers.base import apply_cross_platform_boost, canonical_role, collect_text, parse_timestamp
+from normalizers.base import (
+    apply_cross_platform_boost,
+    canonical_role,
+    collect_text,
+    parse_timestamp,
+)
 from normalizers.chatgpt import ChatGPTParser
 from normalizers.claude import ClaudeParser
 from normalizers.deepseek import DeepSeekParser
@@ -45,15 +57,9 @@ from normalizers.openai_api import OpenAIAPIParser
 from normalizers.perplexity import PerplexityParser
 from normalizers.qwen import QwenParser
 from normalizers.zhipu import ZhipuParser
-from schemas import ConversationTurn, FragmentHint, FragmentKind
-from engine import AutonomousSNRGoTEngine, GIANTS_PROTOCOL
-from genesis_gate import GenesisGateConfig, evaluate_genesis_gate
-from memory_bridge import (
-    MemoryFragmentKind,
-    build_fragment_inputs_from_report,
-    ingest_report_nodes,
-)
 from validate_coverage import compute_cv, providers_from_paths
+
+from schemas import ConversationTurn, FragmentHint, FragmentKind
 
 
 def _fixture(name: str):
@@ -190,7 +196,9 @@ def test_chatgpt_mapping_parse_contract() -> None:
                     "id": "u-1",
                     "author": {"role": "user"},
                     "create_time": 1700000000,
-                    "content": {"parts": ["I prefer Rust and my goal is to ship this week."]},
+                    "content": {
+                        "parts": ["I prefer Rust and my goal is to ship this week."]
+                    },
                 }
             },
             "a2": {
@@ -247,7 +255,11 @@ def test_claude_parse_chat_messages_format() -> None:
         {
             "uuid": "cl-1",
             "chat_messages": [
-                {"uuid": "m1", "sender": "human", "text": "I prefer depth over breadth."},
+                {
+                    "uuid": "m1",
+                    "sender": "human",
+                    "text": "I prefer depth over breadth.",
+                },
                 {"uuid": "m2", "sender": "assistant", "text": "Noted."},
             ],
         }
@@ -334,9 +346,7 @@ def test_detect_provider_openai_api_schema_first() -> None:
             "model": "gpt-4o-mini",
             "messages": [{"role": "user", "content": "hello"}],
         },
-        "response": {
-            "choices": [{"message": {"role": "assistant", "content": "ok"}}]
-        },
+        "response": {"choices": [{"message": {"role": "assistant", "content": "ok"}}]},
     }
     provider = detect_provider(payload, source_path="/tmp/random_export.json")
     assert provider == "openai_api"
@@ -360,7 +370,9 @@ def test_parse_file_supports_jsonl_openai_logs(tmp_path: Path) -> None:
             "model": "gpt-4o-mini",
             "messages": [{"role": "user", "content": "I prefer Rust."}],
         },
-        "response": {"choices": [{"message": {"role": "assistant", "content": "Great."}}]},
+        "response": {
+            "choices": [{"message": {"role": "assistant", "content": "Great."}}]
+        },
     }
     line2 = {
         "id": "oa-line-2",
@@ -368,9 +380,13 @@ def test_parse_file_supports_jsonl_openai_logs(tmp_path: Path) -> None:
             "model": "gpt-4o-mini",
             "messages": [{"role": "user", "content": "Next step?"}],
         },
-        "response": {"choices": [{"message": {"role": "assistant", "content": "Ship small."}}]},
+        "response": {
+            "choices": [{"message": {"role": "assistant", "content": "Ship small."}}]
+        },
     }
-    path.write_text(json.dumps(line1) + "\n" + json.dumps(line2) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(line1) + "\n" + json.dumps(line2) + "\n", encoding="utf-8"
+    )
     turns = parse_file(path)
     assert len(turns) == 4
     assert {turn.provider for turn in turns} == {"openai_api"}
@@ -379,7 +395,9 @@ def test_parse_file_supports_jsonl_openai_logs(tmp_path: Path) -> None:
 def test_detect_provider_schema_beats_filename_for_chatgpt() -> None:
     payload = {
         "conversation_id": "cg-3",
-        "mapping": {"n1": {"message": {"author": {"role": "user"}, "content": {"parts": ["x"]}}}},
+        "mapping": {
+            "n1": {"message": {"author": {"role": "user"}, "content": {"parts": ["x"]}}}
+        },
         "default_model_slug": "gpt-5",
     }
     provider = detect_provider(payload, source_path="/tmp/Claude_overview.json")
@@ -452,7 +470,9 @@ def test_deepseek_strips_think_tags_from_content() -> None:
 
 def test_deepseek_reasoning_content_creates_extra_hints() -> None:
     payload = _fixture("deepseek_export.json")
-    payload["conversations"][0]["messages"][1]["reasoning_content"] = "Structured decomposition"
+    payload["conversations"][0]["messages"][1][
+        "reasoning_content"
+    ] = "Structured decomposition"
     turns = DeepSeekParser().parse_payload(payload)
     assistant = [t for t in turns if t.role == "assistant"][0]
     assert len(assistant.fragment_hints) >= 2
@@ -548,13 +568,17 @@ def test_qwen_multilingual_style_hint() -> None:
 
 def test_qwen_bilingual_domain_hint() -> None:
     turns = QwenParser().parse_payload(_fixture("qwen_export.json"))
-    assert any(h.kind == FragmentKind.DOMAIN for turn in turns for h in turn.fragment_hints)
+    assert any(
+        h.kind == FragmentKind.DOMAIN for turn in turns for h in turn.fragment_hints
+    )
 
 
 def test_qwen_code_block_domain_hint() -> None:
     payload = {
         "id": "qw-code-1",
-        "messages": [{"role": "assistant", "content": "```python\ndef f(x):\n  return x\n```"}],
+        "messages": [
+            {"role": "assistant", "content": "```python\ndef f(x):\n  return x\n```"}
+        ],
     }
     turns = QwenParser().parse_payload(payload)
     assert any(h.signal == "software_engineering" for h in turns[0].fragment_hints)
@@ -563,10 +587,14 @@ def test_qwen_code_block_domain_hint() -> None:
 def test_qwen_no_false_multilingual_for_plain_english() -> None:
     payload = {
         "id": "qw-eng-1",
-        "messages": [{"role": "assistant", "content": "Please review this code change."}],
+        "messages": [
+            {"role": "assistant", "content": "Please review this code change."}
+        ],
     }
     turns = QwenParser().parse_payload(payload)
-    assert not any(h.signal == "multilingual_code_switching" for h in turns[0].fragment_hints)
+    assert not any(
+        h.signal == "multilingual_code_switching" for h in turns[0].fragment_hints
+    )
 
 
 def test_qwen_data_envelope_messages() -> None:
@@ -620,7 +648,9 @@ def test_kimi_url_triggers_relationship_hint() -> None:
 def test_kimi_section_reference_triggers_relationship_hint() -> None:
     payload = {
         "id": "km-sec",
-        "messages": [{"role": "user", "content": "As discussed in Section 3, continue."}],
+        "messages": [
+            {"role": "user", "content": "As discussed in Section 3, continue."}
+        ],
     }
     turns = KimiParser().parse_payload(payload)
     assert any(h.kind == FragmentKind.RELATIONSHIP for h in turns[0].fragment_hints)
@@ -651,7 +681,10 @@ def test_kimi_items_wrapper_supported() -> None:
 
 
 def test_kimi_invalid_rows_ignored() -> None:
-    payload = {"id": "km-invalid", "messages": ["bad", {"role": "assistant", "content": "ok"}]}
+    payload = {
+        "id": "km-invalid",
+        "messages": ["bad", {"role": "assistant", "content": "ok"}],
+    }
     turns = KimiParser().parse_payload(payload)
     assert len(turns) == 1
 
@@ -722,7 +755,9 @@ def test_zhipu_choices_message_supported() -> None:
 def test_zhipu_data_choices_envelope_supported() -> None:
     payload = {
         "id": "zh-data",
-        "data": {"choices": [{"index": 0, "message": {"role": "assistant", "content": "ok"}}]},
+        "data": {
+            "choices": [{"index": 0, "message": {"role": "assistant", "content": "ok"}}]
+        },
     }
     turns = ZhipuParser().parse_payload(payload)
     assert len(turns) == 1
@@ -731,7 +766,13 @@ def test_zhipu_data_choices_envelope_supported() -> None:
 def test_zhipu_invalid_tool_calls_safe() -> None:
     payload = {
         "id": "zh-safe",
-        "messages": [{"role": "assistant", "content": "hello", "tool_calls": ["bad", {"name": "lookup"}]}],
+        "messages": [
+            {
+                "role": "assistant",
+                "content": "hello",
+                "tool_calls": ["bad", {"name": "lookup"}],
+            }
+        ],
     }
     turns = ZhipuParser().parse_payload(payload)
     assert len(turns) == 1
@@ -832,7 +873,16 @@ def test_edge_unicode_content_survives_roundtrip() -> None:
 
 
 def test_edge_nested_payload_does_not_raise() -> None:
-    payload = {"conversations": [{"id": "n1", "messages": [{"role": "assistant", "content": {"parts": ["a", {"text": "b"}]}}]}]}
+    payload = {
+        "conversations": [
+            {
+                "id": "n1",
+                "messages": [
+                    {"role": "assistant", "content": {"parts": ["a", {"text": "b"}]}}
+                ],
+            }
+        ]
+    }
     turns = DeepSeekParser().parse_payload(payload)
     assert len(turns) == 1
 
@@ -840,7 +890,9 @@ def test_edge_nested_payload_does_not_raise() -> None:
 def test_edge_single_conversation_dict_supported() -> None:
     payload = {
         "id": "single-kimi",
-        "messages": [{"role": "assistant", "content": "Single dict conversation works."}],
+        "messages": [
+            {"role": "assistant", "content": "Single dict conversation works."}
+        ],
     }
     turns = KimiParser().parse_payload(payload)
     assert len(turns) == 1
@@ -877,7 +929,9 @@ def test_engine_compile_from_turns_produces_nodes() -> None:
 
 
 def test_engine_compile_paths_detects_new_core4_coverage() -> None:
-    report = AutonomousSNRGoTEngine(snr_threshold=0.0).compile_paths([ROOT / "fixtures"])
+    report = AutonomousSNRGoTEngine(snr_threshold=0.0).compile_paths(
+        [ROOT / "fixtures"]
+    )
     # 4 NEW_CORE4 providers out of 7 conversation platforms = 4/7 ≈ 0.5714
     assert report.cv == round(4 / len(CONVERSATION_PLATFORMS), 4)
 
@@ -885,7 +939,9 @@ def test_engine_compile_paths_detects_new_core4_coverage() -> None:
 def test_engine_compile_with_conversation_coverage_reaches_cv_one() -> None:
     turns = _all_fixture_turns()
     coverage = set(CONVERSATION_PLATFORMS)
-    report = AutonomousSNRGoTEngine(snr_threshold=0.0).compile(turns, provider_coverage=coverage)
+    report = AutonomousSNRGoTEngine(snr_threshold=0.0).compile(
+        turns, provider_coverage=coverage
+    )
     assert report.cv == 1.0
 
 
@@ -899,9 +955,15 @@ def test_engine_applies_three_platform_boost() -> None:
         )
     ]
     turns = [
-        ConversationTurn("deepseek", "c1", "t1", "assistant", "x", 1700000000, fragment_hints=hints),
-        ConversationTurn("qwen", "c2", "t2", "assistant", "x", 1700000001, fragment_hints=hints),
-        ConversationTurn("kimi", "c3", "t3", "assistant", "x", 1700000002, fragment_hints=hints),
+        ConversationTurn(
+            "deepseek", "c1", "t1", "assistant", "x", 1700000000, fragment_hints=hints
+        ),
+        ConversationTurn(
+            "qwen", "c2", "t2", "assistant", "x", 1700000001, fragment_hints=hints
+        ),
+        ConversationTurn(
+            "kimi", "c3", "t3", "assistant", "x", 1700000002, fragment_hints=hints
+        ),
     ]
     report = AutonomousSNRGoTEngine(snr_threshold=0.0).compile(turns)
     node = [n for n in report.nodes if n.signal == "shared_pattern"][0]
@@ -936,7 +998,9 @@ def test_engine_builds_edges_from_cooccurring_hints() -> None:
 
 
 def test_engine_elite_threshold_returns_subset() -> None:
-    report = AutonomousSNRGoTEngine(snr_threshold=0.0, elite_threshold=0.95).compile(_all_fixture_turns())
+    report = AutonomousSNRGoTEngine(snr_threshold=0.0, elite_threshold=0.95).compile(
+        _all_fixture_turns()
+    )
     assert len(report.elite_nodes) <= len(report.nodes)
 
 
@@ -1051,7 +1115,15 @@ def test_genesis_gate_available_vs_target_split() -> None:
         "cv": 0.0,  # raw cv ignored when available_providers is set
         "node_count": 5,
         "elite_count": 2,
-        "provider_coverage": ["chatgpt", "claude", "deepseek", "gemini", "qwen", "kimi", "zhipu"],
+        "provider_coverage": [
+            "chatgpt",
+            "claude",
+            "deepseek",
+            "gemini",
+            "qwen",
+            "kimi",
+            "zhipu",
+        ],
     }
     verdict = evaluate_genesis_gate(
         report,
@@ -1059,7 +1131,15 @@ def test_genesis_gate_available_vs_target_split() -> None:
             min_cv=1.0,
             min_nodes=1,
             min_elite_nodes=1,
-            available_providers=("chatgpt", "claude", "deepseek", "gemini", "qwen", "kimi", "zhipu"),
+            available_providers=(
+                "chatgpt",
+                "claude",
+                "deepseek",
+                "gemini",
+                "qwen",
+                "kimi",
+                "zhipu",
+            ),
             target_providers=tuple(sorted(CONVERSATION_PLATFORMS)),
         ),
     )
@@ -1089,7 +1169,9 @@ def test_memory_bridge_builds_typed_fragments() -> None:
             }
         ]
     }
-    rows = build_fragment_inputs_from_report(report, min_snr=0.8, session_id=42, start_turn=7, timestamp=1700000000)
+    rows = build_fragment_inputs_from_report(
+        report, min_snr=0.8, session_id=42, start_turn=7, timestamp=1700000000
+    )
     assert len(rows) == 1
     assert rows[0].fragment_kind == MemoryFragmentKind.USER_MESSAGE
     assert rows[0].session_id == 42 and rows[0].turn == 7
@@ -1128,11 +1210,15 @@ def test_memory_bridge_ingests_with_backend() -> None:
             self.user_calls = 0
             self.assistant_calls = 0
 
-        def process_user_turn(self, content: str, session_id: int, turn: int, timestamp: int):
+        def process_user_turn(
+            self, content: str, session_id: int, turn: int, timestamp: int
+        ):
             self.user_calls += 1
             return {"ingested": True}
 
-        def process_assistant_turn(self, content: str, session_id: int, turn: int, timestamp: int):
+        def process_assistant_turn(
+            self, content: str, session_id: int, turn: int, timestamp: int
+        ):
             self.assistant_calls += 1
             return {"ingested": True}
 
@@ -1186,7 +1272,11 @@ def test_memory_bridge_respects_min_snr_filter() -> None:
 
 
 def test_engine_report_contains_provider_telemetry() -> None:
-    report = AutonomousSNRGoTEngine(snr_threshold=0.0).compile_paths([ROOT / "fixtures"]).to_dict()
+    report = (
+        AutonomousSNRGoTEngine(snr_threshold=0.0)
+        .compile_paths([ROOT / "fixtures"])
+        .to_dict()
+    )
     assert isinstance(report["provider_turn_counts"], dict)
     assert isinstance(report["provider_hint_counts"], dict)
     assert isinstance(report["provider_parse_failures"], dict)
@@ -1198,16 +1288,28 @@ def test_preflight_available_only_ready_with_exportable_set(tmp_path: Path) -> N
     payloads = {
         "chatgpt": {
             "conversation_id": "cg-1",
-            "mapping": {"n1": {"message": {"author": {"role": "user"}, "content": {"parts": ["x"]}}}},
+            "mapping": {
+                "n1": {
+                    "message": {"author": {"role": "user"}, "content": {"parts": ["x"]}}
+                }
+            },
         },
         "claude": {"uuid": "cl-1", "chat_messages": [{"sender": "human", "text": "x"}]},
         "deepseek": {
             "id": "ds-1",
-            "mapping": {"n1": {"message": {"inserted_at": "2026-02-21T00:00:00Z", "fragments": []}}},
+            "mapping": {
+                "n1": {
+                    "message": {"inserted_at": "2026-02-21T00:00:00Z", "fragments": []}
+                }
+            },
         },
         "qwen": {"id": "qw-1", "history": [["hello", "world"]]},
         "kimi": {"id": "km-1", "segments": [{"role": "assistant", "content": "x"}]},
-        "zhipu": {"id": "zh-1", "task_id": "t1", "choices": [{"index": 0, "message": {"role": "assistant", "content": "x"}}]},
+        "zhipu": {
+            "id": "zh-1",
+            "task_id": "t1",
+            "choices": [{"index": 0, "message": {"role": "assistant", "content": "x"}}],
+        },
     }
     for name, payload in payloads.items():
         (tmp_path / f"{name}.json").write_text(json.dumps(payload), encoding="utf-8")
@@ -1230,9 +1332,7 @@ def test_preflight_supports_jsonl_schema_detection(tmp_path: Path) -> None:
             "model": "gpt-4o-mini",
             "messages": [{"role": "user", "content": "hello"}],
         },
-        "response": {
-            "choices": [{"message": {"role": "assistant", "content": "ok"}}]
-        },
+        "response": {"choices": [{"message": {"role": "assistant", "content": "ok"}}]},
     }
     jsonl_path.write_text(json.dumps(line) + "\n", encoding="utf-8")
 
@@ -1309,7 +1409,9 @@ def test_generic_jsonl_custom_field_names() -> None:
     payload = [
         {"speaker": "user", "text": "Custom fields work", "ts": 1700000000},
     ]
-    parser = GenericJsonlParser(role_field="speaker", content_field="text", timestamp_field="ts")
+    parser = GenericJsonlParser(
+        role_field="speaker", content_field="text", timestamp_field="ts"
+    )
     turns = parser.parse_payload(payload)
     assert len(turns) == 1
     assert turns[0].content == "Custom fields work"
@@ -1345,7 +1447,10 @@ def test_generic_openai_parses_messages_array() -> None:
             "model": "llama-3.1-8b",
             "messages": [
                 {"role": "user", "content": "What is Rust?"},
-                {"role": "assistant", "content": "Rust is a systems programming language."},
+                {
+                    "role": "assistant",
+                    "content": "Rust is a systems programming language.",
+                },
             ],
         }
     ]

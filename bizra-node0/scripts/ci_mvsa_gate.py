@@ -69,25 +69,49 @@ LIFECYCLE_V2_GATES = [
 ]
 
 LIFECYCLE_V2_REQUIRED_SECTIONS = [
-    "schema_version", "updated_at", "status", "ok", "ready",
-    "node_id", "origin", "identity", "artifacts", "gates",
-    "mvsa", "mission", "restart_recovery", "compat",
+    "schema_version",
+    "updated_at",
+    "status",
+    "ok",
+    "ready",
+    "node_id",
+    "origin",
+    "identity",
+    "artifacts",
+    "gates",
+    "mvsa",
+    "mission",
+    "restart_recovery",
+    "compat",
 ]
 
 MVSA_PROOF_REQUIRED_FIELDS = [
-    "schema_version", "generated_at", "node_id", "genesis_hash",
-    "genesis_hash_valid", "network", "consensus", "status", "reason_code",
+    "schema_version",
+    "generated_at",
+    "node_id",
+    "genesis_hash",
+    "genesis_hash_valid",
+    "network",
+    "consensus",
+    "status",
+    "reason_code",
 ]
 
 AUTHORITY_MIGRATION_REQUIRED_FIELDS = [
-    "schema_version", "migrated_at", "source_path", "source_kind",
-    "result", "reason_code", "genesis_hash",
+    "schema_version",
+    "migrated_at",
+    "source_path",
+    "source_kind",
+    "result",
+    "reason_code",
+    "genesis_hash",
 ]
 
 
 @dataclass
 class GateCheck:
     """Single gate check result."""
+
     name: str
     passed: bool
     detail: str = ""
@@ -97,6 +121,7 @@ class GateCheck:
 @dataclass
 class MvsaGateReport:
     """Full MVSA gate evaluation report."""
+
     timestamp: str = ""
     gate_passed: bool = False
     total_checks: int = 0
@@ -117,14 +142,18 @@ class MvsaGateReport:
 # Gate Checks
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def _check_module_importable(module_name: str, check_name: str) -> GateCheck:
     """Verify a Python module is importable."""
     try:
         importlib.import_module(module_name)
-        return GateCheck(name=check_name, passed=True, detail=f"{module_name} importable")
+        return GateCheck(
+            name=check_name, passed=True, detail=f"{module_name} importable"
+        )
     except ImportError as exc:
         return GateCheck(
-            name=check_name, passed=False,
+            name=check_name,
+            passed=False,
             detail=f"{module_name} import failed: {exc}",
         )
 
@@ -133,35 +162,46 @@ def _check_authority_module() -> List[GateCheck]:
     """Validate authority resolution module exists and is well-formed."""
     checks: List[GateCheck] = []
 
-    checks.append(_check_module_importable(
-        "core.sovereign.node0_authority", "authority_module_importable"
-    ))
-    checks.append(_check_module_importable(
-        "core.sovereign.atomic_io", "atomic_io_module_importable"
-    ))
-    checks.append(_check_module_importable(
-        "core.sovereign.node0_mvsa", "mvsa_module_importable"
-    ))
+    checks.append(
+        _check_module_importable(
+            "core.sovereign.node0_authority", "authority_module_importable"
+        )
+    )
+    checks.append(
+        _check_module_importable(
+            "core.sovereign.atomic_io", "atomic_io_module_importable"
+        )
+    )
+    checks.append(
+        _check_module_importable("core.sovereign.node0_mvsa", "mvsa_module_importable")
+    )
 
     # Check exported symbols
     try:
         from core.sovereign.node0_authority import (  # noqa: F401
-            AuthorityResult,
             RESULT_BLOCKED,
             RESULT_CANONICAL,
             RESULT_MIGRATED,
+            AuthorityResult,
             require_authority,
             resolve_authority,
         )
-        checks.append(GateCheck(
-            name="authority_api_complete", passed=True,
-            detail="All required exports present",
-        ))
+
+        checks.append(
+            GateCheck(
+                name="authority_api_complete",
+                passed=True,
+                detail="All required exports present",
+            )
+        )
     except ImportError as exc:
-        checks.append(GateCheck(
-            name="authority_api_complete", passed=False,
-            detail=f"Missing exports: {exc}",
-        ))
+        checks.append(
+            GateCheck(
+                name="authority_api_complete",
+                passed=False,
+                detail=f"Missing exports: {exc}",
+            )
+        )
 
     return checks
 
@@ -172,15 +212,22 @@ def _check_lifecycle_v2_schema(project_root: Path) -> List[GateCheck]:
 
     try:
         from scripts.node0_standalone import Node0StandaloneManager
-        checks.append(GateCheck(
-            name="standalone_manager_importable", passed=True,
-            detail="Node0StandaloneManager importable",
-        ))
+
+        checks.append(
+            GateCheck(
+                name="standalone_manager_importable",
+                passed=True,
+                detail="Node0StandaloneManager importable",
+            )
+        )
     except ImportError as exc:
-        checks.append(GateCheck(
-            name="standalone_manager_importable", passed=False,
-            detail=f"Import failed: {exc}",
-        ))
+        checks.append(
+            GateCheck(
+                name="standalone_manager_importable",
+                passed=False,
+                detail=f"Import failed: {exc}",
+            )
+        )
         return checks
 
     # Verify _compute_status exists and handles the 3-tier model
@@ -189,28 +236,37 @@ def _check_lifecycle_v2_schema(project_root: Path) -> List[GateCheck]:
     # Test blocked
     blocked_gates = {g: False for g in LIFECYCLE_V2_GATES}
     status_blocked = manager._compute_status(blocked_gates)
-    checks.append(GateCheck(
-        name="status_blocked_semantics", passed=(status_blocked == "blocked"),
-        detail=f"All-false gates → {status_blocked} (expected blocked)",
-    ))
+    checks.append(
+        GateCheck(
+            name="status_blocked_semantics",
+            passed=(status_blocked == "blocked"),
+            detail=f"All-false gates → {status_blocked} (expected blocked)",
+        )
+    )
 
     # Test degraded
     degraded_gates = {g: True for g in LIFECYCLE_V2_GATES[:9]}
     degraded_gates["mission_path_receipted"] = False
     degraded_gates["restart_recovery_ready"] = False
     status_degraded = manager._compute_status(degraded_gates)
-    checks.append(GateCheck(
-        name="status_degraded_semantics", passed=(status_degraded == "degraded"),
-        detail=f"First 9 true, last 2 false → {status_degraded} (expected degraded)",
-    ))
+    checks.append(
+        GateCheck(
+            name="status_degraded_semantics",
+            passed=(status_degraded == "degraded"),
+            detail=f"First 9 true, last 2 false → {status_degraded} (expected degraded)",
+        )
+    )
 
     # Test ready
     ready_gates = {g: True for g in LIFECYCLE_V2_GATES}
     status_ready = manager._compute_status(ready_gates)
-    checks.append(GateCheck(
-        name="status_ready_semantics", passed=(status_ready == "ready"),
-        detail=f"All-true gates → {status_ready} (expected ready)",
-    ))
+    checks.append(
+        GateCheck(
+            name="status_ready_semantics",
+            passed=(status_ready == "ready"),
+            detail=f"All-true gates → {status_ready} (expected ready)",
+        )
+    )
 
     return checks
 
@@ -220,28 +276,44 @@ def _check_rust_binary_source(project_root: Path) -> List[GateCheck]:
     checks: List[GateCheck] = []
 
     # Source file exists
-    rs_source = project_root / "bizra-omega" / "bizra-resourcepool" / "src" / "bin" / "node0_mvsa.rs"
-    checks.append(GateCheck(
-        name="rust_mvsa_source_exists",
-        passed=rs_source.exists(),
-        detail=str(rs_source),
-    ))
+    rs_source = (
+        project_root
+        / "bizra-omega"
+        / "bizra-resourcepool"
+        / "src"
+        / "bin"
+        / "node0_mvsa.rs"
+    )
+    checks.append(
+        GateCheck(
+            name="rust_mvsa_source_exists",
+            passed=rs_source.exists(),
+            detail=str(rs_source),
+        )
+    )
 
     # Registered in Cargo.toml
     cargo_toml = project_root / "bizra-omega" / "bizra-resourcepool" / "Cargo.toml"
     if cargo_toml.exists():
         content = cargo_toml.read_text(encoding="utf-8")
         has_bin = 'name = "node0-mvsa"' in content
-        checks.append(GateCheck(
-            name="rust_mvsa_cargo_registered",
-            passed=has_bin,
-            detail="[[bin]] node0-mvsa in Cargo.toml" if has_bin else "NOT registered",
-        ))
+        checks.append(
+            GateCheck(
+                name="rust_mvsa_cargo_registered",
+                passed=has_bin,
+                detail=(
+                    "[[bin]] node0-mvsa in Cargo.toml" if has_bin else "NOT registered"
+                ),
+            )
+        )
     else:
-        checks.append(GateCheck(
-            name="rust_mvsa_cargo_registered", passed=False,
-            detail="Cargo.toml not found",
-        ))
+        checks.append(
+            GateCheck(
+                name="rust_mvsa_cargo_registered",
+                passed=False,
+                detail="Cargo.toml not found",
+            )
+        )
 
     return checks
 
@@ -252,15 +324,22 @@ def _check_mvsa_proof_schema() -> List[GateCheck]:
 
     try:
         from core.sovereign.node0_mvsa import PROOF_FILE, run_mvsa_proof  # noqa: F401
-        checks.append(GateCheck(
-            name="mvsa_proof_module_api", passed=True,
-            detail="run_mvsa_proof and PROOF_FILE exported",
-        ))
+
+        checks.append(
+            GateCheck(
+                name="mvsa_proof_module_api",
+                passed=True,
+                detail="run_mvsa_proof and PROOF_FILE exported",
+            )
+        )
     except ImportError as exc:
-        checks.append(GateCheck(
-            name="mvsa_proof_module_api", passed=False,
-            detail=f"Missing: {exc}",
-        ))
+        checks.append(
+            GateCheck(
+                name="mvsa_proof_module_api",
+                passed=False,
+                detail=f"Missing: {exc}",
+            )
+        )
 
     return checks
 
@@ -271,24 +350,34 @@ def _check_cli_surface(project_root: Path) -> List[GateCheck]:
 
     try:
         from scripts.node0_standalone import build_parser
+
         parser = build_parser()
         # Attempt to parse prove-mvsa
         try:
             parser.parse_args(["prove-mvsa"])
-            checks.append(GateCheck(
-                name="cli_prove_mvsa_subcommand", passed=True,
-                detail="prove-mvsa subcommand registered",
-            ))
+            checks.append(
+                GateCheck(
+                    name="cli_prove_mvsa_subcommand",
+                    passed=True,
+                    detail="prove-mvsa subcommand registered",
+                )
+            )
         except SystemExit:
-            checks.append(GateCheck(
-                name="cli_prove_mvsa_subcommand", passed=False,
-                detail="prove-mvsa not recognized by parser",
-            ))
+            checks.append(
+                GateCheck(
+                    name="cli_prove_mvsa_subcommand",
+                    passed=False,
+                    detail="prove-mvsa not recognized by parser",
+                )
+            )
     except (ImportError, AttributeError) as exc:
-        checks.append(GateCheck(
-            name="cli_prove_mvsa_subcommand", passed=False,
-            detail=f"Parser not available: {exc}",
-        ))
+        checks.append(
+            GateCheck(
+                name="cli_prove_mvsa_subcommand",
+                passed=False,
+                detail=f"Parser not available: {exc}",
+            )
+        )
 
     return checks
 
@@ -298,8 +387,10 @@ def _check_api_routes() -> List[GateCheck]:
     checks: List[GateCheck] = []
 
     try:
-        from scripts.node0_standalone import Node0StandaloneManager, create_app
         import tempfile
+
+        from scripts.node0_standalone import Node0StandaloneManager, create_app
+
         with tempfile.TemporaryDirectory() as td:
             p = Path(td)
             (p / "sovereign_state").mkdir()
@@ -309,19 +400,33 @@ def _check_api_routes() -> List[GateCheck]:
             routes = {r.path for r in app.routes}  # type: ignore[union-attr]
             has_mvsa = "/mvsa" in routes
             has_prove = "/prove-mvsa" in routes
-            checks.append(GateCheck(
-                name="api_mvsa_route", passed=has_mvsa,
-                detail="/mvsa route registered" if has_mvsa else "/mvsa MISSING",
-            ))
-            checks.append(GateCheck(
-                name="api_prove_mvsa_route", passed=has_prove,
-                detail="/prove-mvsa route registered" if has_prove else "/prove-mvsa MISSING",
-            ))
+            checks.append(
+                GateCheck(
+                    name="api_mvsa_route",
+                    passed=has_mvsa,
+                    detail="/mvsa route registered" if has_mvsa else "/mvsa MISSING",
+                )
+            )
+            checks.append(
+                GateCheck(
+                    name="api_prove_mvsa_route",
+                    passed=has_prove,
+                    detail=(
+                        "/prove-mvsa route registered"
+                        if has_prove
+                        else "/prove-mvsa MISSING"
+                    ),
+                )
+            )
     except Exception as exc:  # noqa: BLE001
-        checks.append(GateCheck(
-            name="api_mvsa_route", passed=False,
-            detail=f"Route check failed: {exc}", severity="warning",
-        ))
+        checks.append(
+            GateCheck(
+                name="api_mvsa_route",
+                passed=False,
+                detail=f"Route check failed: {exc}",
+                severity="warning",
+            )
+        )
 
     return checks
 
@@ -337,10 +442,13 @@ def _check_test_coverage(project_root: Path) -> List[GateCheck]:
     ]
     for rel_path, name in test_files:
         exists = (project_root / rel_path).exists()
-        checks.append(GateCheck(
-            name=name, passed=exists,
-            detail=rel_path if exists else f"{rel_path} NOT FOUND",
-        ))
+        checks.append(
+            GateCheck(
+                name=name,
+                passed=exists,
+                detail=rel_path if exists else f"{rel_path} NOT FOUND",
+            )
+        )
 
     return checks
 
@@ -348,6 +456,7 @@ def _check_test_coverage(project_root: Path) -> List[GateCheck]:
 # ═══════════════════════════════════════════════════════════════════════════════
 # Gate Runner
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 def run_mvsa_gate(project_root: Path) -> MvsaGateReport:
     """Run all MVSA gate checks and produce a structured report."""
@@ -384,19 +493,30 @@ def run_mvsa_gate(project_root: Path) -> MvsaGateReport:
         failed_checks=len(failed),
         checks=[asdict(c) for c in all_checks],
         schema_compliance=all(
-            c.passed for c in all_checks
+            c.passed
+            for c in all_checks
             if c.name.endswith("_semantics") or c.name.endswith("_schema")
         ),
     )
 
     # Determine sub-statuses
     authority_checks = [c for c in all_checks if "authority" in c.name]
-    report.authority_status = "pass" if all(c.passed for c in authority_checks) else "fail"
+    report.authority_status = (
+        "pass" if all(c.passed for c in authority_checks) else "fail"
+    )
 
-    lifecycle_checks = [c for c in all_checks if "status_" in c.name or "lifecycle" in c.name]
-    report.lifecycle_status = "pass" if all(c.passed for c in lifecycle_checks) else "fail"
+    lifecycle_checks = [
+        c for c in all_checks if "status_" in c.name or "lifecycle" in c.name
+    ]
+    report.lifecycle_status = (
+        "pass" if all(c.passed for c in lifecycle_checks) else "fail"
+    )
 
-    proof_checks = [c for c in all_checks if "mvsa" in c.name or "rust" in c.name or "proof" in c.name]
+    proof_checks = [
+        c
+        for c in all_checks
+        if "mvsa" in c.name or "rust" in c.name or "proof" in c.name
+    ]
     report.proof_status = "pass" if all(c.passed for c in proof_checks) else "fail"
 
     return report
@@ -406,24 +526,32 @@ def run_mvsa_gate(project_root: Path) -> MvsaGateReport:
 # CLI
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="BIZRA CI MVSA Gate — validates MVSA readiness",
     )
     parser.add_argument(
-        "--project-root", type=Path, default=Path("."),
+        "--project-root",
+        type=Path,
+        default=Path("."),
         help="Project root directory (default: cwd)",
     )
     parser.add_argument(
-        "--report", type=Path, default=None,
+        "--report",
+        type=Path,
+        default=None,
         help="Write JSON report to this path",
     )
     parser.add_argument(
-        "--github-output", type=str, default=None,
+        "--github-output",
+        type=str,
+        default=None,
         help="Path to $GITHUB_OUTPUT file for CI integration",
     )
     parser.add_argument(
-        "--json", action="store_true",
+        "--json",
+        action="store_true",
         help="Output JSON to stdout",
     )
     args = parser.parse_args()
@@ -435,7 +563,8 @@ def main() -> int:
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(
-            json.dumps(asdict(report), indent=2), encoding="utf-8",
+            json.dumps(asdict(report), indent=2),
+            encoding="utf-8",
         )
 
     # GitHub Actions output
@@ -449,7 +578,9 @@ def main() -> int:
             fh.write(f"mvsa_authority_status={report.authority_status}\n")
             fh.write(f"mvsa_lifecycle_status={report.lifecycle_status}\n")
             fh.write(f"mvsa_proof_status={report.proof_status}\n")
-            fh.write(f"mvsa_schema_compliance={str(report.schema_compliance).lower()}\n")
+            fh.write(
+                f"mvsa_schema_compliance={str(report.schema_compliance).lower()}\n"
+            )
 
     # Console output
     if args.json:

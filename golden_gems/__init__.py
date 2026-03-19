@@ -12,34 +12,29 @@ Each gem is independently implementable and tested.
 Principle: لا نفترض — We extracted signal, discarded noise.
 """
 
-from .unified_stalk import UnifiedStalk
-from .temporal_memory import TemporalMemoryHierarchy, MemoryItem
-from .ihsan_circuit import IhsanCircuit, IhsanVector, IhsanViolation
-from .context_router import ContextRouter, CognitiveDepth
+from .algebraic_effects import Effect, EffectRuntime
 from .colimit_interface import ColimitDispatcher, UniversalOp
-from .algebraic_effects import EffectRuntime, Effect
+from .context_router import CognitiveDepth, ContextRouter
+from .ihsan_circuit import IhsanCircuit, IhsanVector, IhsanViolation
+from .temporal_memory import MemoryItem, TemporalMemoryHierarchy
+from .unified_stalk import UnifiedStalk
 
 __all__ = [
     # Gem 1: Unified data structure
     "UnifiedStalk",
-    
     # Gem 2: Temporal memory
     "TemporalMemoryHierarchy",
     "MemoryItem",
-    
     # Gem 4: Ethics as circuit
     "IhsanCircuit",
     "IhsanVector",
     "IhsanViolation",
-    
     # Gem 5: Adaptive routing
     "ContextRouter",
     "CognitiveDepth",
-    
     # Gem 6: Universal interface
     "ColimitDispatcher",
     "UniversalOp",
-    
     # Gem 7: Internal gateway
     "EffectRuntime",
     "Effect",

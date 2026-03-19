@@ -26,7 +26,6 @@ from typing import Any, Dict, List, Tuple
 
 from benchmark.runner import BenchmarkRunner
 
-
 # ─── Fixed Test Vectors ──────────────────────────────────────────────
 
 SNR_CASES: List[Dict[str, Any]] = [
@@ -73,36 +72,246 @@ CLEAR_WEIGHTS = {
 }
 
 CLEAR_CASES: List[Dict[str, Any]] = [
-    {"cost": 0.90, "latency": 0.85, "efficacy": 0.95, "assurance": 0.92, "reliability": 0.88, "expected": 0.912},
-    {"cost": 0.50, "latency": 0.50, "efficacy": 0.50, "assurance": 0.50, "reliability": 0.50, "expected": 0.500},
-    {"cost": 1.00, "latency": 1.00, "efficacy": 1.00, "assurance": 1.00, "reliability": 1.00, "expected": 1.000},
-    {"cost": 0.00, "latency": 0.00, "efficacy": 0.00, "assurance": 0.00, "reliability": 0.00, "expected": 0.000},
-    {"cost": 0.80, "latency": 0.90, "efficacy": 0.70, "assurance": 0.85, "reliability": 0.75, "expected": 0.780},
-    {"cost": 0.95, "latency": 0.92, "efficacy": 0.98, "assurance": 0.96, "reliability": 0.94, "expected": 0.959},
-    {"cost": 0.60, "latency": 0.70, "efficacy": 0.80, "assurance": 0.65, "reliability": 0.72, "expected": 0.716},
-    {"cost": 0.85, "latency": 0.78, "efficacy": 0.92, "assurance": 0.88, "reliability": 0.83, "expected": 0.871},
-    {"cost": 0.72, "latency": 0.68, "efficacy": 0.88, "assurance": 0.75, "reliability": 0.80, "expected": 0.794},
-    {"cost": 0.40, "latency": 0.55, "efficacy": 0.60, "assurance": 0.45, "reliability": 0.50, "expected": 0.518},
-    {"cost": 0.88, "latency": 0.92, "efficacy": 0.94, "assurance": 0.90, "reliability": 0.86, "expected": 0.908},
-    {"cost": 0.65, "latency": 0.60, "efficacy": 0.75, "assurance": 0.70, "reliability": 0.68, "expected": 0.695},
-    {"cost": 0.92, "latency": 0.88, "efficacy": 0.96, "assurance": 0.93, "reliability": 0.91, "expected": 0.932},
-    {"cost": 0.55, "latency": 0.62, "efficacy": 0.58, "assurance": 0.60, "reliability": 0.57, "expected": 0.582},
-    {"cost": 0.78, "latency": 0.82, "efficacy": 0.85, "assurance": 0.80, "reliability": 0.77, "expected": 0.813},
-    {"cost": 0.97, "latency": 0.95, "efficacy": 0.99, "assurance": 0.98, "reliability": 0.96, "expected": 0.975},
-    {"cost": 0.35, "latency": 0.40, "efficacy": 0.45, "assurance": 0.38, "reliability": 0.42, "expected": 0.410},
-    {"cost": 0.82, "latency": 0.79, "efficacy": 0.90, "assurance": 0.85, "reliability": 0.81, "expected": 0.850},
-    {"cost": 0.70, "latency": 0.75, "efficacy": 0.82, "assurance": 0.78, "reliability": 0.73, "expected": 0.769},
-    {"cost": 0.93, "latency": 0.90, "efficacy": 0.97, "assurance": 0.94, "reliability": 0.92, "expected": 0.942},
-    {"cost": 0.45, "latency": 0.50, "efficacy": 0.55, "assurance": 0.48, "reliability": 0.52, "expected": 0.507},
-    {"cost": 0.87, "latency": 0.84, "efficacy": 0.91, "assurance": 0.89, "reliability": 0.86, "expected": 0.882},
-    {"cost": 0.62, "latency": 0.67, "efficacy": 0.72, "assurance": 0.65, "reliability": 0.69, "expected": 0.680},
-    {"cost": 0.91, "latency": 0.87, "efficacy": 0.95, "assurance": 0.92, "reliability": 0.89, "expected": 0.919},
-    {"cost": 0.48, "latency": 0.52, "efficacy": 0.58, "assurance": 0.50, "reliability": 0.54, "expected": 0.534},
-    {"cost": 0.84, "latency": 0.81, "efficacy": 0.89, "assurance": 0.86, "reliability": 0.83, "expected": 0.858},
-    {"cost": 0.73, "latency": 0.76, "efficacy": 0.80, "assurance": 0.74, "reliability": 0.71, "expected": 0.759},
-    {"cost": 0.96, "latency": 0.93, "efficacy": 0.98, "assurance": 0.95, "reliability": 0.94, "expected": 0.960},
-    {"cost": 0.58, "latency": 0.63, "efficacy": 0.68, "assurance": 0.61, "reliability": 0.65, "expected": 0.641},
-    {"cost": 0.86, "latency": 0.83, "efficacy": 0.92, "assurance": 0.88, "reliability": 0.85, "expected": 0.879},
+    {
+        "cost": 0.90,
+        "latency": 0.85,
+        "efficacy": 0.95,
+        "assurance": 0.92,
+        "reliability": 0.88,
+        "expected": 0.912,
+    },
+    {
+        "cost": 0.50,
+        "latency": 0.50,
+        "efficacy": 0.50,
+        "assurance": 0.50,
+        "reliability": 0.50,
+        "expected": 0.500,
+    },
+    {
+        "cost": 1.00,
+        "latency": 1.00,
+        "efficacy": 1.00,
+        "assurance": 1.00,
+        "reliability": 1.00,
+        "expected": 1.000,
+    },
+    {
+        "cost": 0.00,
+        "latency": 0.00,
+        "efficacy": 0.00,
+        "assurance": 0.00,
+        "reliability": 0.00,
+        "expected": 0.000,
+    },
+    {
+        "cost": 0.80,
+        "latency": 0.90,
+        "efficacy": 0.70,
+        "assurance": 0.85,
+        "reliability": 0.75,
+        "expected": 0.780,
+    },
+    {
+        "cost": 0.95,
+        "latency": 0.92,
+        "efficacy": 0.98,
+        "assurance": 0.96,
+        "reliability": 0.94,
+        "expected": 0.959,
+    },
+    {
+        "cost": 0.60,
+        "latency": 0.70,
+        "efficacy": 0.80,
+        "assurance": 0.65,
+        "reliability": 0.72,
+        "expected": 0.716,
+    },
+    {
+        "cost": 0.85,
+        "latency": 0.78,
+        "efficacy": 0.92,
+        "assurance": 0.88,
+        "reliability": 0.83,
+        "expected": 0.871,
+    },
+    {
+        "cost": 0.72,
+        "latency": 0.68,
+        "efficacy": 0.88,
+        "assurance": 0.75,
+        "reliability": 0.80,
+        "expected": 0.794,
+    },
+    {
+        "cost": 0.40,
+        "latency": 0.55,
+        "efficacy": 0.60,
+        "assurance": 0.45,
+        "reliability": 0.50,
+        "expected": 0.518,
+    },
+    {
+        "cost": 0.88,
+        "latency": 0.92,
+        "efficacy": 0.94,
+        "assurance": 0.90,
+        "reliability": 0.86,
+        "expected": 0.908,
+    },
+    {
+        "cost": 0.65,
+        "latency": 0.60,
+        "efficacy": 0.75,
+        "assurance": 0.70,
+        "reliability": 0.68,
+        "expected": 0.695,
+    },
+    {
+        "cost": 0.92,
+        "latency": 0.88,
+        "efficacy": 0.96,
+        "assurance": 0.93,
+        "reliability": 0.91,
+        "expected": 0.932,
+    },
+    {
+        "cost": 0.55,
+        "latency": 0.62,
+        "efficacy": 0.58,
+        "assurance": 0.60,
+        "reliability": 0.57,
+        "expected": 0.582,
+    },
+    {
+        "cost": 0.78,
+        "latency": 0.82,
+        "efficacy": 0.85,
+        "assurance": 0.80,
+        "reliability": 0.77,
+        "expected": 0.813,
+    },
+    {
+        "cost": 0.97,
+        "latency": 0.95,
+        "efficacy": 0.99,
+        "assurance": 0.98,
+        "reliability": 0.96,
+        "expected": 0.975,
+    },
+    {
+        "cost": 0.35,
+        "latency": 0.40,
+        "efficacy": 0.45,
+        "assurance": 0.38,
+        "reliability": 0.42,
+        "expected": 0.410,
+    },
+    {
+        "cost": 0.82,
+        "latency": 0.79,
+        "efficacy": 0.90,
+        "assurance": 0.85,
+        "reliability": 0.81,
+        "expected": 0.850,
+    },
+    {
+        "cost": 0.70,
+        "latency": 0.75,
+        "efficacy": 0.82,
+        "assurance": 0.78,
+        "reliability": 0.73,
+        "expected": 0.769,
+    },
+    {
+        "cost": 0.93,
+        "latency": 0.90,
+        "efficacy": 0.97,
+        "assurance": 0.94,
+        "reliability": 0.92,
+        "expected": 0.942,
+    },
+    {
+        "cost": 0.45,
+        "latency": 0.50,
+        "efficacy": 0.55,
+        "assurance": 0.48,
+        "reliability": 0.52,
+        "expected": 0.507,
+    },
+    {
+        "cost": 0.87,
+        "latency": 0.84,
+        "efficacy": 0.91,
+        "assurance": 0.89,
+        "reliability": 0.86,
+        "expected": 0.882,
+    },
+    {
+        "cost": 0.62,
+        "latency": 0.67,
+        "efficacy": 0.72,
+        "assurance": 0.65,
+        "reliability": 0.69,
+        "expected": 0.680,
+    },
+    {
+        "cost": 0.91,
+        "latency": 0.87,
+        "efficacy": 0.95,
+        "assurance": 0.92,
+        "reliability": 0.89,
+        "expected": 0.919,
+    },
+    {
+        "cost": 0.48,
+        "latency": 0.52,
+        "efficacy": 0.58,
+        "assurance": 0.50,
+        "reliability": 0.54,
+        "expected": 0.534,
+    },
+    {
+        "cost": 0.84,
+        "latency": 0.81,
+        "efficacy": 0.89,
+        "assurance": 0.86,
+        "reliability": 0.83,
+        "expected": 0.858,
+    },
+    {
+        "cost": 0.73,
+        "latency": 0.76,
+        "efficacy": 0.80,
+        "assurance": 0.74,
+        "reliability": 0.71,
+        "expected": 0.759,
+    },
+    {
+        "cost": 0.96,
+        "latency": 0.93,
+        "efficacy": 0.98,
+        "assurance": 0.95,
+        "reliability": 0.94,
+        "expected": 0.960,
+    },
+    {
+        "cost": 0.58,
+        "latency": 0.63,
+        "efficacy": 0.68,
+        "assurance": 0.61,
+        "reliability": 0.65,
+        "expected": 0.641,
+    },
+    {
+        "cost": 0.86,
+        "latency": 0.83,
+        "efficacy": 0.92,
+        "assurance": 0.88,
+        "reliability": 0.85,
+        "expected": 0.879,
+    },
 ]
 
 # Ihsan 8D weights (from core/integration/constants.py)
@@ -118,26 +327,226 @@ IHSAN_WEIGHTS = {
 }
 
 IHSAN_CASES: List[Dict[str, Any]] = [
-    {"correctness": 0.96, "safety": 0.98, "user_benefit": 0.92, "efficiency": 0.90, "auditability": 0.88, "anti_centralization": 0.85, "robustness": 0.87, "adl_fairness": 0.90, "expected": 0.934},
-    {"correctness": 0.50, "safety": 0.50, "user_benefit": 0.50, "efficiency": 0.50, "auditability": 0.50, "anti_centralization": 0.50, "robustness": 0.50, "adl_fairness": 0.50, "expected": 0.500},
-    {"correctness": 1.00, "safety": 1.00, "user_benefit": 1.00, "efficiency": 1.00, "auditability": 1.00, "anti_centralization": 1.00, "robustness": 1.00, "adl_fairness": 1.00, "expected": 1.000},
-    {"correctness": 0.00, "safety": 0.00, "user_benefit": 0.00, "efficiency": 0.00, "auditability": 0.00, "anti_centralization": 0.00, "robustness": 0.00, "adl_fairness": 0.00, "expected": 0.000},
-    {"correctness": 0.95, "safety": 0.97, "user_benefit": 0.90, "efficiency": 0.88, "auditability": 0.92, "anti_centralization": 0.80, "robustness": 0.85, "adl_fairness": 0.82, "expected": 0.923},
-    {"correctness": 0.80, "safety": 0.85, "user_benefit": 0.75, "efficiency": 0.78, "auditability": 0.72, "anti_centralization": 0.70, "robustness": 0.74, "adl_fairness": 0.68, "expected": 0.790},
-    {"correctness": 0.92, "safety": 0.94, "user_benefit": 0.88, "efficiency": 0.85, "auditability": 0.90, "anti_centralization": 0.82, "robustness": 0.80, "adl_fairness": 0.78, "expected": 0.901},
-    {"correctness": 0.70, "safety": 0.72, "user_benefit": 0.68, "efficiency": 0.65, "auditability": 0.62, "anti_centralization": 0.60, "robustness": 0.58, "adl_fairness": 0.55, "expected": 0.674},
-    {"correctness": 0.98, "safety": 0.99, "user_benefit": 0.96, "efficiency": 0.94, "auditability": 0.95, "anti_centralization": 0.90, "robustness": 0.92, "adl_fairness": 0.88, "expected": 0.966},
-    {"correctness": 0.60, "safety": 0.65, "user_benefit": 0.58, "efficiency": 0.55, "auditability": 0.52, "anti_centralization": 0.50, "robustness": 0.48, "adl_fairness": 0.45, "expected": 0.577},
-    {"correctness": 0.88, "safety": 0.90, "user_benefit": 0.85, "efficiency": 0.82, "auditability": 0.86, "anti_centralization": 0.78, "robustness": 0.76, "adl_fairness": 0.74, "expected": 0.861},
-    {"correctness": 0.75, "safety": 0.78, "user_benefit": 0.72, "efficiency": 0.70, "auditability": 0.68, "anti_centralization": 0.65, "robustness": 0.62, "adl_fairness": 0.60, "expected": 0.726},
-    {"correctness": 0.94, "safety": 0.96, "user_benefit": 0.91, "efficiency": 0.89, "auditability": 0.93, "anti_centralization": 0.86, "robustness": 0.84, "adl_fairness": 0.80, "expected": 0.927},
-    {"correctness": 0.85, "safety": 0.88, "user_benefit": 0.82, "efficiency": 0.80, "auditability": 0.78, "anti_centralization": 0.75, "robustness": 0.72, "adl_fairness": 0.70, "expected": 0.832},
-    {"correctness": 0.90, "safety": 0.92, "user_benefit": 0.87, "efficiency": 0.84, "auditability": 0.89, "anti_centralization": 0.81, "robustness": 0.79, "adl_fairness": 0.76, "expected": 0.885},
-    {"correctness": 0.97, "safety": 0.98, "user_benefit": 0.94, "efficiency": 0.92, "auditability": 0.96, "anti_centralization": 0.88, "robustness": 0.90, "adl_fairness": 0.86, "expected": 0.953},
-    {"correctness": 0.55, "safety": 0.58, "user_benefit": 0.52, "efficiency": 0.50, "auditability": 0.48, "anti_centralization": 0.45, "robustness": 0.42, "adl_fairness": 0.40, "expected": 0.523},
-    {"correctness": 0.82, "safety": 0.84, "user_benefit": 0.79, "efficiency": 0.76, "auditability": 0.80, "anti_centralization": 0.72, "robustness": 0.70, "adl_fairness": 0.68, "expected": 0.802},
-    {"correctness": 0.93, "safety": 0.95, "user_benefit": 0.89, "efficiency": 0.87, "auditability": 0.91, "anti_centralization": 0.83, "robustness": 0.81, "adl_fairness": 0.79, "expected": 0.913},
-    {"correctness": 0.78, "safety": 0.80, "user_benefit": 0.74, "efficiency": 0.72, "auditability": 0.76, "anti_centralization": 0.68, "robustness": 0.66, "adl_fairness": 0.64, "expected": 0.762},
+    {
+        "correctness": 0.96,
+        "safety": 0.98,
+        "user_benefit": 0.92,
+        "efficiency": 0.90,
+        "auditability": 0.88,
+        "anti_centralization": 0.85,
+        "robustness": 0.87,
+        "adl_fairness": 0.90,
+        "expected": 0.934,
+    },
+    {
+        "correctness": 0.50,
+        "safety": 0.50,
+        "user_benefit": 0.50,
+        "efficiency": 0.50,
+        "auditability": 0.50,
+        "anti_centralization": 0.50,
+        "robustness": 0.50,
+        "adl_fairness": 0.50,
+        "expected": 0.500,
+    },
+    {
+        "correctness": 1.00,
+        "safety": 1.00,
+        "user_benefit": 1.00,
+        "efficiency": 1.00,
+        "auditability": 1.00,
+        "anti_centralization": 1.00,
+        "robustness": 1.00,
+        "adl_fairness": 1.00,
+        "expected": 1.000,
+    },
+    {
+        "correctness": 0.00,
+        "safety": 0.00,
+        "user_benefit": 0.00,
+        "efficiency": 0.00,
+        "auditability": 0.00,
+        "anti_centralization": 0.00,
+        "robustness": 0.00,
+        "adl_fairness": 0.00,
+        "expected": 0.000,
+    },
+    {
+        "correctness": 0.95,
+        "safety": 0.97,
+        "user_benefit": 0.90,
+        "efficiency": 0.88,
+        "auditability": 0.92,
+        "anti_centralization": 0.80,
+        "robustness": 0.85,
+        "adl_fairness": 0.82,
+        "expected": 0.923,
+    },
+    {
+        "correctness": 0.80,
+        "safety": 0.85,
+        "user_benefit": 0.75,
+        "efficiency": 0.78,
+        "auditability": 0.72,
+        "anti_centralization": 0.70,
+        "robustness": 0.74,
+        "adl_fairness": 0.68,
+        "expected": 0.790,
+    },
+    {
+        "correctness": 0.92,
+        "safety": 0.94,
+        "user_benefit": 0.88,
+        "efficiency": 0.85,
+        "auditability": 0.90,
+        "anti_centralization": 0.82,
+        "robustness": 0.80,
+        "adl_fairness": 0.78,
+        "expected": 0.901,
+    },
+    {
+        "correctness": 0.70,
+        "safety": 0.72,
+        "user_benefit": 0.68,
+        "efficiency": 0.65,
+        "auditability": 0.62,
+        "anti_centralization": 0.60,
+        "robustness": 0.58,
+        "adl_fairness": 0.55,
+        "expected": 0.674,
+    },
+    {
+        "correctness": 0.98,
+        "safety": 0.99,
+        "user_benefit": 0.96,
+        "efficiency": 0.94,
+        "auditability": 0.95,
+        "anti_centralization": 0.90,
+        "robustness": 0.92,
+        "adl_fairness": 0.88,
+        "expected": 0.966,
+    },
+    {
+        "correctness": 0.60,
+        "safety": 0.65,
+        "user_benefit": 0.58,
+        "efficiency": 0.55,
+        "auditability": 0.52,
+        "anti_centralization": 0.50,
+        "robustness": 0.48,
+        "adl_fairness": 0.45,
+        "expected": 0.577,
+    },
+    {
+        "correctness": 0.88,
+        "safety": 0.90,
+        "user_benefit": 0.85,
+        "efficiency": 0.82,
+        "auditability": 0.86,
+        "anti_centralization": 0.78,
+        "robustness": 0.76,
+        "adl_fairness": 0.74,
+        "expected": 0.861,
+    },
+    {
+        "correctness": 0.75,
+        "safety": 0.78,
+        "user_benefit": 0.72,
+        "efficiency": 0.70,
+        "auditability": 0.68,
+        "anti_centralization": 0.65,
+        "robustness": 0.62,
+        "adl_fairness": 0.60,
+        "expected": 0.726,
+    },
+    {
+        "correctness": 0.94,
+        "safety": 0.96,
+        "user_benefit": 0.91,
+        "efficiency": 0.89,
+        "auditability": 0.93,
+        "anti_centralization": 0.86,
+        "robustness": 0.84,
+        "adl_fairness": 0.80,
+        "expected": 0.927,
+    },
+    {
+        "correctness": 0.85,
+        "safety": 0.88,
+        "user_benefit": 0.82,
+        "efficiency": 0.80,
+        "auditability": 0.78,
+        "anti_centralization": 0.75,
+        "robustness": 0.72,
+        "adl_fairness": 0.70,
+        "expected": 0.832,
+    },
+    {
+        "correctness": 0.90,
+        "safety": 0.92,
+        "user_benefit": 0.87,
+        "efficiency": 0.84,
+        "auditability": 0.89,
+        "anti_centralization": 0.81,
+        "robustness": 0.79,
+        "adl_fairness": 0.76,
+        "expected": 0.885,
+    },
+    {
+        "correctness": 0.97,
+        "safety": 0.98,
+        "user_benefit": 0.94,
+        "efficiency": 0.92,
+        "auditability": 0.96,
+        "anti_centralization": 0.88,
+        "robustness": 0.90,
+        "adl_fairness": 0.86,
+        "expected": 0.953,
+    },
+    {
+        "correctness": 0.55,
+        "safety": 0.58,
+        "user_benefit": 0.52,
+        "efficiency": 0.50,
+        "auditability": 0.48,
+        "anti_centralization": 0.45,
+        "robustness": 0.42,
+        "adl_fairness": 0.40,
+        "expected": 0.523,
+    },
+    {
+        "correctness": 0.82,
+        "safety": 0.84,
+        "user_benefit": 0.79,
+        "efficiency": 0.76,
+        "auditability": 0.80,
+        "anti_centralization": 0.72,
+        "robustness": 0.70,
+        "adl_fairness": 0.68,
+        "expected": 0.802,
+    },
+    {
+        "correctness": 0.93,
+        "safety": 0.95,
+        "user_benefit": 0.89,
+        "efficiency": 0.87,
+        "auditability": 0.91,
+        "anti_centralization": 0.83,
+        "robustness": 0.81,
+        "adl_fairness": 0.79,
+        "expected": 0.913,
+    },
+    {
+        "correctness": 0.78,
+        "safety": 0.80,
+        "user_benefit": 0.74,
+        "efficiency": 0.72,
+        "auditability": 0.76,
+        "anti_centralization": 0.68,
+        "robustness": 0.66,
+        "adl_fairness": 0.64,
+        "expected": 0.762,
+    },
 ]
 
 # Guardrail cases: input metrics + threshold → pass/fail
@@ -171,6 +580,7 @@ GUARDRAIL_CASES: List[Dict[str, Any]] = [
 
 # ─── Computation Functions ───────────────────────────────────────────
 
+
 def compute_snr(signal: List[float], noise: List[float]) -> float:
     """Shannon-derived SNR: mean(signal) / (mean(signal) + mean(noise))."""
     s = statistics.mean(signal)
@@ -196,6 +606,7 @@ def evaluate_guardrail(gate: str, value: float, threshold: float) -> bool:
 
 
 # ─── Benchmark Suite ────────────────────────────────────────────────
+
 
 class SpearPointBenchmark:
     """
@@ -337,7 +748,9 @@ class SpearPointBenchmark:
             failed = 0
 
             for case in GUARDRAIL_CASES:
-                actual = evaluate_guardrail(case["gate"], case["value"], case["threshold"])
+                actual = evaluate_guardrail(
+                    case["gate"], case["value"], case["threshold"]
+                )
                 if actual == case["expected_pass"]:
                     passed += 1
                 else:
@@ -370,12 +783,10 @@ class SpearPointBenchmark:
 
         # Aggregate correctness
         total_passed = sum(
-            r.get("correctness", {}).get("passed", 0)
-            for r in results.values()
+            r.get("correctness", {}).get("passed", 0) for r in results.values()
         )
         total_cases = sum(
-            r.get("correctness", {}).get("total", 0)
-            for r in results.values()
+            r.get("correctness", {}).get("total", 0) for r in results.values()
         )
         overall_accuracy = total_passed / total_cases if total_cases > 0 else 0.0
 

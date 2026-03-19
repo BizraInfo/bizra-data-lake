@@ -10,9 +10,10 @@ Tests:
 All calculations use pure Python; no external dependencies.
 """
 
-import time
 import statistics
-from typing import Dict, Any, List
+import time
+from typing import Any, Dict, List
+
 from benchmark.runner import BenchmarkRunner
 
 
@@ -89,10 +90,7 @@ class QualityBenchmark:
         }
 
         def ihsan_op():
-            weighted_score = sum(
-                scores[dim] * IHSAN_DIMS[dim]
-                for dim in IHSAN_DIMS
-            )
+            weighted_score = sum(scores[dim] * IHSAN_DIMS[dim] for dim in IHSAN_DIMS)
             return weighted_score
 
         result = self.runner.run(
@@ -109,6 +107,7 @@ class QualityBenchmark:
 
         Simulates isinstance checks and type coercion.
         """
+
         def type_check():
             # Simulate multiple type checks
             values = [42, "string", 3.14, [], {}, None] * 10

@@ -29,10 +29,10 @@ from core.sovereign.helix3 import (
     wire_helix3,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════
 # 1. IHSĀN TENSOR 8D (§8)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestIhsanTensor8D:
     """The 8D tensor with geometric mean — constitutional scoring."""
@@ -96,6 +96,7 @@ class TestIhsanTensor8D:
 # 2. EMPTY TICK (baseline)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestEmptyTick:
     """Process tick with no receipts — organism at rest."""
 
@@ -130,10 +131,13 @@ class TestEmptyTick:
 # 3. TICK WITH RECEIPTS (evolutionary processing)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestTickWithReceipts:
     """Process tick with mission receipts — organism evolving."""
 
-    def _make_receipt(self, ihsan: float = 0.96, mission_id: str = "m-1") -> Dict[str, Any]:
+    def _make_receipt(
+        self, ihsan: float = 0.96, mission_id: str = "m-1"
+    ) -> Dict[str, Any]:
         return {
             "mission_id": mission_id,
             "ihsan_score": ihsan,
@@ -172,6 +176,7 @@ class TestTickWithReceipts:
 # 4. GINI ENFORCEMENT (§14 ADL)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestGiniEnforcement:
     """Gini invariant ≤ 0.35 or evolutionary rewards HALT."""
 
@@ -201,6 +206,7 @@ class TestGiniEnforcement:
 # 5. REFLEX LIFECYCLE (precipitation + pruning)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestReflexLifecycle:
     """Reflex cache evolves through precipitation and pruning."""
 
@@ -210,8 +216,11 @@ class TestReflexLifecycle:
         reflex = ReflexCompiler(max_entries=100, persistence_path=None)
         # Seed a reflex
         reflex.import_forest_reflex(
-            key_str="evolve_key", plan="evolve_plan",
-            ihsan=0.96, source="local", confidence=0.95,
+            key_str="evolve_key",
+            plan="evolve_plan",
+            ihsan=0.96,
+            source="local",
+            confidence=0.95,
         )
 
         h3 = Helix3Scheduler(reflex_cache=reflex)
@@ -235,6 +244,7 @@ class TestReflexLifecycle:
 # ═══════════════════════════════════════════════════════════════════
 # 6. EVIDENCE CHAIN (Lamport)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestEvidenceChain:
     """Hash chain links heartbeats into tamper-evident sequence."""
@@ -270,6 +280,7 @@ class TestEvidenceChain:
 # ═══════════════════════════════════════════════════════════════════
 # 7. NERVOUS SYSTEM INTEGRATION (wire_helix3)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestNervousSystemIntegration:
     """Helix 3 wires into the Nervous System seamlessly."""
@@ -321,16 +332,19 @@ class TestNervousSystemIntegration:
 # 8. CONSTITUTIONAL BRIDGE (process_tick_constitutional)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestConstitutionalBridge:
     """Falls back to simplified tick if constitutional kernel unavailable."""
 
     def test_constitutional_tick_graceful_degradation(self):
         h3 = Helix3Scheduler()
-        h3.ingest_receipt({
-            "mission_id": "m-1",
-            "ihsan_score": 0.96,
-            "snr_score": 0.90,
-        })
+        h3.ingest_receipt(
+            {
+                "mission_id": "m-1",
+                "ihsan_score": 0.96,
+                "snr_score": 0.90,
+            }
+        )
 
         # Should not raise even if constitutional kernel has import issues
         receipt = h3.process_tick_constitutional()
@@ -341,6 +355,7 @@ class TestConstitutionalBridge:
 # ═══════════════════════════════════════════════════════════════════
 # 9. STATS OBSERVABILITY
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestStatsObservability:
     """Cumulative stats track Helix 3 health over time."""

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 MARKERS = [
     "smoke: T0 - runs on every save (< 30 sec)",
     "unit: T1 - runs on every commit (< 2 min)",

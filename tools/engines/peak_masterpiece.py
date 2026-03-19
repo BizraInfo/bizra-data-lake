@@ -11,19 +11,20 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
-import sys
 import asyncio
-import time
-import random
 import logging
-import numpy as np
+import random
+import sys
+import time
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
+
+import numpy as np
 
 # BIZRA Core Imports
 sys.path.insert(0, "c:/BIZRA-DATA-LAKE")
-from core.federation.node import FederationNode
 from arte_engine import ARTEEngine, ShouldersOfGiantsProtocol
+from core.federation.node import FederationNode
 
 # Configure Logging
 logging.basicConfig(

@@ -45,6 +45,7 @@ try:
     from core.sovereign.atomic_io import atomic_write_json as _write_json
     from core.sovereign.atomic_io import read_json as _read_json
 except ImportError:
+
     def _write_json(path: Path, payload: Any, **_kw: Any) -> None:  # type: ignore[misc]
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
@@ -129,7 +130,8 @@ class Node0StandaloneManager:
         gates = {
             "genesis_authority_valid": True,  # We got here → authority resolved
             "identity_ready": bool(context.node_id),
-            "pat_sat_ready": bool(context.pat_agent_ids) and bool(context.sat_agent_ids),
+            "pat_sat_ready": bool(context.pat_agent_ids)
+            and bool(context.sat_agent_ids),
             "urp_signed": bool(urp_payload.get("signed", False)),
             "urp_verified": bool(urp_payload.get("signature_verified", False)),
             "assets_written": self.assets_path.exists(),
@@ -146,9 +148,15 @@ class Node0StandaloneManager:
 
         # Status determination per lifecycle v2 spec
         degraded_gates = [
-            "genesis_authority_valid", "identity_ready", "pat_sat_ready",
-            "urp_signed", "urp_verified", "assets_written", "awareness_written",
-            "mvsa_network_bootstrap_ok", "mvsa_self_validation_ok",
+            "genesis_authority_valid",
+            "identity_ready",
+            "pat_sat_ready",
+            "urp_signed",
+            "urp_verified",
+            "assets_written",
+            "awareness_written",
+            "mvsa_network_bootstrap_ok",
+            "mvsa_self_validation_ok",
         ]
         if not all(gates[k] for k in degraded_gates):
             status = "blocked"
@@ -169,7 +177,9 @@ class Node0StandaloneManager:
             "node_id": context.node_id,
             "origin": {
                 "authority_source": "canonical_genesis",
-                "genesis_hash": (genesis.genesis_hash.hex() if genesis.genesis_hash else ""),
+                "genesis_hash": (
+                    genesis.genesis_hash.hex() if genesis.genesis_hash else ""
+                ),
             },
             "identity": {
                 "pat_agents": len(context.pat_agent_ids),
@@ -232,7 +242,9 @@ class Node0StandaloneManager:
 
         # Read gates from lifecycle (v1 or v2) without crashing
         lc_gates = lifecycle.get("gates", {})
-        schema_version = lifecycle.get("schema_version", lifecycle.get("version", "1.0.0"))
+        schema_version = lifecycle.get(
+            "schema_version", lifecycle.get("version", "1.0.0")
+        )
         is_v2 = schema_version.startswith("2.")
 
         # File-based health gates (always computed fresh)
@@ -442,7 +454,9 @@ class Node0StandaloneManager:
             lc["node_id"] = genesis.node_id
             lc["origin"] = {
                 "authority_source": "canonical_genesis",
-                "genesis_hash": (genesis.genesis_hash.hex() if genesis.genesis_hash else ""),
+                "genesis_hash": (
+                    genesis.genesis_hash.hex() if genesis.genesis_hash else ""
+                ),
                 "reason_code": "MVSA_PROOF_FAILED",
             }
             lc["identity"] = {
@@ -452,8 +466,12 @@ class Node0StandaloneManager:
             gates = lc.setdefault("gates", {})
             gates["genesis_authority_valid"] = True
             gates["identity_ready"] = bool(genesis.node_id)
-            gates["pat_sat_ready"] = bool(genesis.pat_agent_ids) and bool(genesis.sat_agent_ids)
-            gates["urp_signed"] = bool((_read_json(self.urp_path, default={}) or {}).get("signed"))
+            gates["pat_sat_ready"] = bool(genesis.pat_agent_ids) and bool(
+                genesis.sat_agent_ids
+            )
+            gates["urp_signed"] = bool(
+                (_read_json(self.urp_path, default={}) or {}).get("signed")
+            )
             gates["urp_verified"] = bool(
                 (_read_json(self.urp_path, default={}) or {}).get("signature_verified")
             )
@@ -473,7 +491,9 @@ class Node0StandaloneManager:
         lc["node_id"] = genesis.node_id
         lc["origin"] = {
             "authority_source": "canonical_genesis",
-            "genesis_hash": (genesis.genesis_hash.hex() if genesis.genesis_hash else ""),
+            "genesis_hash": (
+                genesis.genesis_hash.hex() if genesis.genesis_hash else ""
+            ),
         }
         lc["identity"] = {
             "pat_agents": len(genesis.pat_agent_ids),
@@ -486,7 +506,9 @@ class Node0StandaloneManager:
         gates = lc.get("gates", {})
         gates["genesis_authority_valid"] = True
         gates["identity_ready"] = bool(genesis.node_id)
-        gates["pat_sat_ready"] = bool(genesis.pat_agent_ids) and bool(genesis.sat_agent_ids)
+        gates["pat_sat_ready"] = bool(genesis.pat_agent_ids) and bool(
+            genesis.sat_agent_ids
+        )
         urp = _read_json(self.urp_path, default={}) or {}
         gates["urp_signed"] = bool(urp.get("signed", False))
         gates["urp_verified"] = bool(urp.get("signature_verified", False))
@@ -518,12 +540,14 @@ class Node0StandaloneManager:
     def _resolve_authority(self) -> Any:
         """Resolve canonical authority (fail-closed)."""
         from core.sovereign.node0_authority import require_authority
+
         return require_authority(self.state_root, self.project_root)
 
     def _run_mvsa_proof(self) -> dict[str, Any] | None:
         """Execute the Rust MVSA proof binary."""
         try:
             from core.sovereign.node0_mvsa import run_mvsa_proof
+
             return run_mvsa_proof(self.state_root, self.project_root)
         except RuntimeError as exc:
             logger.error("MVSA proof failed: %s", exc)
@@ -548,9 +572,15 @@ class Node0StandaloneManager:
     def _compute_status(self, gates: dict[str, Any]) -> str:
         """Compute lifecycle v2 status from gates."""
         degraded_gates = [
-            "genesis_authority_valid", "identity_ready", "pat_sat_ready",
-            "urp_signed", "urp_verified", "assets_written", "awareness_written",
-            "mvsa_network_bootstrap_ok", "mvsa_self_validation_ok",
+            "genesis_authority_valid",
+            "identity_ready",
+            "pat_sat_ready",
+            "urp_signed",
+            "urp_verified",
+            "assets_written",
+            "awareness_written",
+            "mvsa_network_bootstrap_ok",
+            "mvsa_self_validation_ok",
         ]
         if not all(gates.get(k, False) for k in degraded_gates):
             return "blocked"
@@ -587,7 +617,9 @@ class Node0StandaloneManager:
         restart_ready = bool(present and mvsa_proof.get("status") == "ready")
         lifecycle.setdefault("restart_recovery", {})
         lifecycle["restart_recovery"]["restart_recovery_ready"] = restart_ready
-        lifecycle["restart_recovery"]["validated_at"] = _utc_now() if restart_ready else None
+        lifecycle["restart_recovery"]["validated_at"] = (
+            _utc_now() if restart_ready else None
+        )
         lifecycle["restart_recovery"]["required_artifacts_present"] = present
         gates = lifecycle.setdefault("gates", {})
         gates["restart_recovery_ready"] = restart_ready
@@ -595,7 +627,9 @@ class Node0StandaloneManager:
     def _load_lifecycle_for_write(self) -> dict[str, Any]:
         """Load lifecycle data and coerce older payloads into lifecycle v2."""
         lifecycle = _read_json(self.lifecycle_path, default={}) or {}
-        schema_version = str(lifecycle.get("schema_version", lifecycle.get("version", "1.0.0")))
+        schema_version = str(
+            lifecycle.get("schema_version", lifecycle.get("version", "1.0.0"))
+        )
         if schema_version.startswith("2."):
             lifecycle.setdefault("mission", {})
             lifecycle.setdefault("restart_recovery", {})
@@ -685,7 +719,9 @@ class Node0StandaloneManager:
         except FileExistsError:
             return wizard.load_existing_credentials()
         except Exception:
-            logger.warning("Failed to provision local operational signer", exc_info=True)
+            logger.warning(
+                "Failed to provision local operational signer", exc_info=True
+            )
             return None
 
     def _ensure_identity(self, architect: str | None) -> ActivationContext:
@@ -1045,9 +1081,7 @@ except ImportError:
     }
 
 
-def create_app(
-    manager: "Node0StandaloneManager", api_key: str = ""
-) -> Any:
+def create_app(manager: "Node0StandaloneManager", api_key: str = "") -> Any:
     """Build the standalone FastAPI app for live serving and tests."""
     try:
         from fastapi import FastAPI, Header, HTTPException
@@ -1136,9 +1170,7 @@ def create_app(
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(f"{ollama_url}/api/tags")
                 resp.raise_for_status()
-                ollama_models = [
-                    m["name"] for m in resp.json().get("models", [])
-                ]
+                ollama_models = [m["name"] for m in resp.json().get("models", [])]
         except Exception:  # noqa: BLE001 - best-effort model listing
             pass
         return {

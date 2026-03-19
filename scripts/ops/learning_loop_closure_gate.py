@@ -64,11 +64,11 @@ def load_config(path: Path) -> LearningLoopClosureConfig:
         training_ihsan=float(scenario.get("training_ihsan", 0.99)),
         training_loss=float(scenario.get("training_loss", 0.05)),
         task_description=str(
-            scenario.get("task_description", "Close learning loop with verified quality")
+            scenario.get(
+                "task_description", "Close learning loop with verified quality"
+            )
         ),
-        task_output=str(
-            scenario.get("task_output", "Learning loop candidate output")
-        ),
+        task_output=str(scenario.get("task_output", "Learning loop candidate output")),
         min_training_ihsan=float(thresholds.get("min_training_ihsan", 0.98)),
         required_compiled_reflexes=max(
             1, int(thresholds.get("required_compiled_reflexes", 1))
@@ -114,7 +114,9 @@ class DeterministicTrainer:
         )
 
 
-def _build_candidate(cfg: LearningLoopClosureConfig, index: int) -> IntegrationCandidate:
+def _build_candidate(
+    cfg: LearningLoopClosureConfig, index: int
+) -> IntegrationCandidate:
     genome = SimpleNamespace(
         genome_id=f"loop-candidate-{index:02d}",
         snr_score=cfg.candidate_snr,
@@ -192,7 +194,9 @@ async def _run_scenario(cfg: LearningLoopClosureConfig) -> dict[str, Any]:
     }
 
 
-def build_report(cfg: LearningLoopClosureConfig, scenario: dict[str, Any]) -> dict[str, Any]:
+def build_report(
+    cfg: LearningLoopClosureConfig, scenario: dict[str, Any]
+) -> dict[str, Any]:
     metrics = scenario.get("metrics") or {}
     training_result = scenario.get("training_result") or {}
     constraints = {
@@ -303,15 +307,11 @@ def _write_github_outputs(path: Path, report: dict[str, Any]) -> None:
         fh.write(
             f"learning_loop_closure_status={report.get('closure_status', 'DEGRADED')}\n"
         )
-        fh.write(
-            f"learning_loop_closure_score={report.get('score', 0.0)}\n"
-        )
+        fh.write(f"learning_loop_closure_score={report.get('score', 0.0)}\n")
         fh.write(
             f"learning_loop_compiled_reflexes={metrics.get('compiled_reflexes', 0)}\n"
         )
-        fh.write(
-            f"learning_loop_training_ihsan={metrics.get('training_ihsan', 0.0)}\n"
-        )
+        fh.write(f"learning_loop_training_ihsan={metrics.get('training_ihsan', 0.0)}\n")
 
 
 def run_learning_loop_closure_gate(

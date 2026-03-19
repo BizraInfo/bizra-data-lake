@@ -10,10 +10,11 @@ Tests:
 Runs fully offline using pure Python crypto.
 """
 
-import time
 import hashlib
 import hmac
-from typing import Dict, Any
+import time
+from typing import Any, Dict
+
 from benchmark.runner import BenchmarkRunner
 
 
@@ -127,6 +128,7 @@ class SecurityBenchmark:
 
         Simulates: message encoding + signature + serialization.
         """
+
         def serialize_op():
             # Simulate envelope creation
             payload = b"test_message" * 10

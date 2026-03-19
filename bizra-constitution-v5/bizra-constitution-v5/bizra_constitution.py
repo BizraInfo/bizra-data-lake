@@ -108,9 +108,7 @@ class IhsanWeights:
     def validate(self):
         s = self.sum()
         if abs(s - 1.0) > 0.001:
-            raise ConstitutionalViolation(
-                f"Ihsan weights must sum to 1.0, got {s:.4f}"
-            )
+            raise ConstitutionalViolation(f"Ihsan weights must sum to 1.0, got {s:.4f}")
 
     def as_dict(self) -> dict[str, float]:
         return {
@@ -222,9 +220,7 @@ class Gates:
     def validate(self):
         w = self.total_weight()
         if abs(w - 1.0) > 0.001:
-            raise ConstitutionalViolation(
-                f"Gate weights must sum to 1.0, got {w:.3f}"
-            )
+            raise ConstitutionalViolation(f"Gate weights must sum to 1.0, got {w:.3f}")
 
 
 @dataclass(frozen=True)
@@ -397,6 +393,7 @@ class Constitution:
 
 class ConstitutionalViolation(Exception):
     """Raised when the constitution's internal invariants are violated."""
+
     pass
 
 
@@ -538,7 +535,9 @@ def load_constitution(path: str | Path | None = None) -> Constitution:
         total_formula=sat_data["total_formula"],
         bootstrap_roles=sat_data["bootstrap_roles"]["roles"],
         dynamic_roles_enabled=sat_data["dynamic_roles"]["enabled"],
-        minimum_infrastructure_pct=sat_data["dynamic_roles"]["minimum_infrastructure_pct"],
+        minimum_infrastructure_pct=sat_data["dynamic_roles"][
+            "minimum_infrastructure_pct"
+        ],
         rebalance_interval_s=sat_data["dynamic_roles"]["rebalance_interval_s"],
         service_types=sat_data["service_types"]["types"],
     )

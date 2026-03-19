@@ -13,29 +13,36 @@ CONSTITUTION_HASH = "8b020123e2b04e8ade720eb285339ee3967a321f142a7a9d253d7d47cd5
 
 # Ihsan Tensor: 8-dim Canonical Weights
 IHSAN_CANONICAL_WEIGHTS = {
-    "moral_clarity":        0.1200,
-    "epistemic_humility":   0.1400,
+    "moral_clarity": 0.1200,
+    "epistemic_humility": 0.1400,
     "structural_integrity": 0.1300,
-    "verifiability":        0.1300,
+    "verifiability": 0.1300,
     "contextual_relevance": 0.1100,
-    "intent_alignment":     0.1400,
-    "resilience":           0.1100,
-    "efficiency":           0.1200,
+    "intent_alignment": 0.1400,
+    "resilience": 0.1100,
+    "efficiency": 0.1200,
 }
 
 # Ihsan Tensor: 6-dim Operational Projection (renormalized)
 IHSAN_OPERATIONAL_WEIGHTS = {
-    "moral_clarity":        0.1558,
-    "epistemic_humility":   0.1818,
+    "moral_clarity": 0.1558,
+    "epistemic_humility": 0.1818,
     "structural_integrity": 0.1688,
-    "verifiability":        0.1688,
-    "intent_alignment":     0.1818,
-    "resilience":           0.1429,
+    "verifiability": 0.1688,
+    "intent_alignment": 0.1818,
+    "resilience": 0.1429,
 }
 
 IHSAN_DIMENSIONS_CANONICAL = 8
 IHSAN_DIMENSIONS_OPERATIONAL = 6
-IHSAN_OPERATIONAL_NAMES = ['moral_clarity', 'epistemic_humility', 'structural_integrity', 'verifiability', 'intent_alignment', 'resilience']
+IHSAN_OPERATIONAL_NAMES = [
+    "moral_clarity",
+    "epistemic_humility",
+    "structural_integrity",
+    "verifiability",
+    "intent_alignment",
+    "resilience",
+]
 
 # Ihsan Thresholds
 IHSAN_GATE_MINIMUM = 0.85
@@ -104,19 +111,56 @@ DOMAIN_BLOOM_MINT = "bizra-bloom-mint-v1"
 IDENTITY_KEY_ALGORITHM = "Ed25519"
 IDENTITY_AGENTS_PER_NODE = 12
 IDENTITY_GENESIS_DOMAIN = "bizra-identity-genesis-v1"
-IDENTITY_RIGHTS = ['Exist', 'Privacy', 'Earn', 'Grow', 'Leave', 'Migrate', 'FairTreatment']
+IDENTITY_RIGHTS = [
+    "Exist",
+    "Privacy",
+    "Earn",
+    "Grow",
+    "Leave",
+    "Migrate",
+    "FairTreatment",
+]
 
 # PAT
 PAT_AGENT_COUNT = 7
-PAT_AGENT_NAMES = ['Planner', 'Researcher', 'Coder', 'Evaluator', 'Ethicist', 'Publisher', 'Integrator']
-PAT_TRUST_STAGES = ['abstracting', 'gathering', 'executing', 'attesting', 'certifying', 'publishing', 'chaining']
+PAT_AGENT_NAMES = [
+    "Planner",
+    "Researcher",
+    "Coder",
+    "Evaluator",
+    "Ethicist",
+    "Publisher",
+    "Integrator",
+]
+PAT_TRUST_STAGES = [
+    "abstracting",
+    "gathering",
+    "executing",
+    "attesting",
+    "certifying",
+    "publishing",
+    "chaining",
+]
 
 # SAT
 SAT_AGENTS_PER_NODE = 5
-SAT_BOOTSTRAP_ROLES = ['ComputeScheduler', 'SecurityMonitor', 'PerformanceAnalyzer', 'ConsensusValidator', 'NetworkOrchestrator']
+SAT_BOOTSTRAP_ROLES = [
+    "ComputeScheduler",
+    "SecurityMonitor",
+    "PerformanceAnalyzer",
+    "ConsensusValidator",
+    "NetworkOrchestrator",
+]
 SAT_INFRASTRUCTURE_FLOOR_PCT = 20
 SAT_REBALANCE_INTERVAL_S = 300
-SAT_SERVICE_TYPES = ['ComputeAllocation', 'NetworkRoute', 'ConsensusVerification', 'SecurityCheck', 'TemplatePublish', 'EconomicSettlement']
+SAT_SERVICE_TYPES = [
+    "ComputeAllocation",
+    "NetworkRoute",
+    "ConsensusVerification",
+    "SecurityCheck",
+    "TemplatePublish",
+    "EconomicSettlement",
+]
 
 # Conformance
 CONFORMANCE_HHMM_ACCURACY = 1.0
@@ -126,5 +170,5 @@ CONFORMANCE_REFLEX_SEMANTIC = 0.9
 CONFORMANCE_POOL_LATENCY_MS = 200
 
 # Privacy
-PRIVACY_CLASSES = ['LOCAL_ONLY', 'ABSTRACT_OK', 'SHAREABLE']
+PRIVACY_CLASSES = ["LOCAL_ONLY", "ABSTRACT_OK", "SHAREABLE"]
 PRIVACY_DEFAULT = "LOCAL_ONLY"

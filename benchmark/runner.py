@@ -8,16 +8,17 @@ Reports: min/avg/max/p95 per benchmark
 Standing on Giants: Knuth (measure, don't guess), Amdahl (identify bottlenecks)
 """
 
+import statistics
 import time
 import tracemalloc
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Any
-import statistics
+from typing import Any, Callable, Dict, List
 
 
 @dataclass
 class MetricResult:
     """Result of a single metric measurement."""
+
     name: str
     unit: str
     values: List[float] = field(default_factory=list)
@@ -57,6 +58,7 @@ class MetricResult:
 @dataclass
 class BenchmarkResult:
     """Result of a complete benchmark run."""
+
     name: str
     iterations: int
     metrics: Dict[str, MetricResult] = field(default_factory=dict)
@@ -204,10 +206,7 @@ class BenchmarkRunner:
 
     def get_summary(self) -> Dict[str, Any]:
         """Get summary of all benchmark results."""
-        return {
-            name: result.to_dict()
-            for name, result in self.results.items()
-        }
+        return {name: result.to_dict() for name, result in self.results.items()}
 
     def print_summary(self) -> None:
         """Print human-readable summary."""

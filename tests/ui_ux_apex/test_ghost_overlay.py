@@ -41,6 +41,7 @@ def _ghost_ws_endpoint():
     route = next(r for r in app.routes if getattr(r, "path", "") == "/ws/ghost")
     return route.endpoint
 
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -307,8 +308,9 @@ class TestProductionHardening:
     async def test_rpc_disabled_by_default_in_production(
         self, monkeypatch: pytest.MonkeyPatch
     ):
-        import core.bridges.ghost_ws as ghost_ws
         from httpx import ASGITransport, AsyncClient
+
+        import core.bridges.ghost_ws as ghost_ws
 
         monkeypatch.setattr(ghost_ws, "GHOST_WS_ENABLED", False)
         monkeypatch.setattr(ghost_ws, "BIZRA_ENV", "production")
@@ -328,8 +330,9 @@ class TestProductionHardening:
     async def test_rpc_requires_auth_token_when_enabled_in_production(
         self, monkeypatch: pytest.MonkeyPatch
     ):
-        import core.bridges.ghost_ws as ghost_ws
         from httpx import ASGITransport, AsyncClient
+
+        import core.bridges.ghost_ws as ghost_ws
 
         monkeypatch.setattr(ghost_ws, "GHOST_WS_ENABLED", True)
         monkeypatch.setattr(ghost_ws, "GHOST_WS_AUTH_TOKEN", "test-secret-token")

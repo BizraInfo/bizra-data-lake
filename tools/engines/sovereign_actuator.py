@@ -14,18 +14,19 @@ Aligned with:
 This runs as a background daemon (or scheduled task).
 """
 
+import hashlib
+import json
 import os
 import time
-import json
-import hashlib
 from datetime import datetime
 from pathlib import Path
-from watchdog.observers import Observer
+
+from bizra_prime import AgentRole, BizraPrime
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 # Import BIZRA systems
 from bizra_config import DATA_LAKE_ROOT, GOLD_PATH
-from bizra_prime import BizraPrime, AgentRole
 
 # Configuration
 WATCH_PATHS = [

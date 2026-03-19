@@ -22,10 +22,10 @@ Constitution reference: §7 [hhmm.complexity_tiers] for latency budgets
 from __future__ import annotations
 
 import json
-import time
 import logging
-import urllib.request
+import time
 import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -41,15 +41,15 @@ DEFAULT_BASE_URL = "http://localhost:11434"
 
 # Model fallback chain: try in order until one succeeds
 DEFAULT_MODEL_CHAIN = [
-    "phi3:mini",        # Primary: fast, small, good quality
-    "llama3.2:3b",      # Secondary: larger, better reasoning
-    "mistral:7b",       # Tertiary: strongest local model
-    "qwen2.5:3b",       # Quaternary: alternative family
+    "phi3:mini",  # Primary: fast, small, good quality
+    "llama3.2:3b",  # Secondary: larger, better reasoning
+    "mistral:7b",  # Tertiary: strongest local model
+    "qwen2.5:3b",  # Quaternary: alternative family
 ]
 
 DEFAULT_TIMEOUT_S = 30.0
-CIRCUIT_BREAKER_THRESHOLD = 3      # Failures before tripping
-CIRCUIT_BREAKER_RESET_S = 60.0     # Seconds before retry after trip
+CIRCUIT_BREAKER_THRESHOLD = 3  # Failures before tripping
+CIRCUIT_BREAKER_RESET_S = 60.0  # Seconds before retry after trip
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -58,14 +58,15 @@ CIRCUIT_BREAKER_RESET_S = 60.0     # Seconds before retry after trip
 
 
 class CircuitState(Enum):
-    CLOSED = "closed"       # Normal operation
-    OPEN = "open"           # Failing, blocked
-    HALF_OPEN = "half_open" # Testing recovery
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"  # Failing, blocked
+    HALF_OPEN = "half_open"  # Testing recovery
 
 
 @dataclass
 class CircuitBreaker:
     """Per-model circuit breaker. Prevents hammering failing models."""
+
     model: str
     state: CircuitState = CircuitState.CLOSED
     failure_count: int = 0
@@ -108,13 +109,14 @@ class CircuitBreaker:
 @dataclass(frozen=True)
 class InferenceResult:
     """Result of a single LLM inference call."""
+
     text: str
     model: str
     latency_ms: float
     tokens_generated: int
     tokens_per_second: float
-    is_fallback: bool           # True if not the primary model
-    fallback_chain: list[str]   # Models attempted before success
+    is_fallback: bool  # True if not the primary model
+    fallback_chain: list[str]  # Models attempted before success
     success: bool
     error: str | None = None
 
@@ -163,14 +165,12 @@ class OllamaProvider:
 
         # Per-model circuit breakers
         self._breakers: dict[str, CircuitBreaker] = {
-            model: CircuitBreaker(model=model)
-            for model in self.model_chain
+            model: CircuitBreaker(model=model) for model in self.model_chain
         }
 
         # Per-model health metrics
         self._metrics: dict[str, ModelMetrics] = {
-            model: ModelMetrics(model=model)
-            for model in self.model_chain
+            model: ModelMetrics(model=model) for model in self.model_chain
         }
 
     def generate(
@@ -308,28 +308,43 @@ class OllamaProvider:
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.warning(f"Model '{model}' connection failed: {e}")
             return InferenceResult(
-                text="", model=model, latency_ms=round(elapsed_ms, 2),
-                tokens_generated=0, tokens_per_second=0,
-                is_fallback=is_fallback, fallback_chain=attempted,
-                success=False, error=f"Connection error: {e}",
+                text="",
+                model=model,
+                latency_ms=round(elapsed_ms, 2),
+                tokens_generated=0,
+                tokens_per_second=0,
+                is_fallback=is_fallback,
+                fallback_chain=attempted,
+                success=False,
+                error=f"Connection error: {e}",
             )
         except TimeoutError:
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.warning(f"Model '{model}' timed out after {timeout_s}s")
             return InferenceResult(
-                text="", model=model, latency_ms=round(elapsed_ms, 2),
-                tokens_generated=0, tokens_per_second=0,
-                is_fallback=is_fallback, fallback_chain=attempted,
-                success=False, error=f"Timeout after {timeout_s}s",
+                text="",
+                model=model,
+                latency_ms=round(elapsed_ms, 2),
+                tokens_generated=0,
+                tokens_per_second=0,
+                is_fallback=is_fallback,
+                fallback_chain=attempted,
+                success=False,
+                error=f"Timeout after {timeout_s}s",
             )
         except Exception as e:
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.warning(f"Model '{model}' failed: {e}")
             return InferenceResult(
-                text="", model=model, latency_ms=round(elapsed_ms, 2),
-                tokens_generated=0, tokens_per_second=0,
-                is_fallback=is_fallback, fallback_chain=attempted,
-                success=False, error=str(e),
+                text="",
+                model=model,
+                latency_ms=round(elapsed_ms, 2),
+                tokens_generated=0,
+                tokens_per_second=0,
+                is_fallback=is_fallback,
+                fallback_chain=attempted,
+                success=False,
+                error=str(e),
             )
 
     # ── Chat API (for multi-turn) ──
@@ -391,11 +406,15 @@ class OllamaProvider:
         except Exception as e:
             elapsed_ms = (time.monotonic() - start) * 1000
             return InferenceResult(
-                text="", model=target_model,
+                text="",
+                model=target_model,
                 latency_ms=round(elapsed_ms, 2),
-                tokens_generated=0, tokens_per_second=0,
-                is_fallback=False, fallback_chain=[target_model],
-                success=False, error=str(e),
+                tokens_generated=0,
+                tokens_per_second=0,
+                is_fallback=False,
+                fallback_chain=[target_model],
+                success=False,
+                error=str(e),
             )
 
     # ── Health & Introspection ──
@@ -435,10 +454,7 @@ class OllamaProvider:
                 }
                 for model, b in self._breakers.items()
             },
-            "metrics": {
-                model: m.as_dict()
-                for model, m in self._metrics.items()
-            },
+            "metrics": {model: m.as_dict() for model, m in self._metrics.items()},
         }
 
 
@@ -450,6 +466,7 @@ class OllamaProvider:
 @dataclass
 class ModelMetrics:
     """Runtime health metrics for a single model."""
+
     model: str
     total_requests: int = 0
     successes: int = 0

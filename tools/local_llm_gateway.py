@@ -11,11 +11,11 @@ Supports offline operation with automatic model discovery and fallback.
 """
 
 import json
-import urllib.request
 import urllib.error
-from typing import Dict, List, Optional, Any
+import urllib.request
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from core.integration.constants import LMSTUDIO_URL
 

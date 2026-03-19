@@ -6,27 +6,28 @@
 # v2.2: Added vision model support via DualAgenticBridge
 
 import asyncio
+import base64
+import hashlib
 import json
 import logging
 import time
-import httpx
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Callable
-import hashlib
+from typing import Any, Callable, Dict, List, Optional
 
-import base64
-from bizra_config import SNR_THRESHOLD, IHSAN_CONSTRAINT
+import httpx
+
+from bizra_config import IHSAN_CONSTRAINT, SNR_THRESHOLD
 from core.integration.constants import LMSTUDIO_URL
 
 # Import DualAgenticBridge for vision capabilities
 try:
     from dual_agentic_bridge import (
         DualAgenticBridge,
-        ModelRequest,
         ModelCapability,
+        ModelRequest,
         ModelResponse,
     )
 
@@ -41,10 +42,10 @@ try:
         CircuitBreaker,
         CircuitBreakerConfig,
         CircuitOpenError,
-        retry,
         RetryConfig,
-        with_fallback,
         llm_circuit_breaker,
+        retry,
+        with_fallback,
     )
 
     RESILIENCE_AVAILABLE = True

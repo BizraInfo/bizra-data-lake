@@ -74,6 +74,7 @@ class WireResult:
     Maps from Genesis Engine's Mission object to the format expected by
     the existing Node0 event bus and response pipeline.
     """
+
     success: bool
     output: str
     ihsan_composite: float
@@ -234,10 +235,7 @@ class GenesisWire:
             bloom = mission.bloom_eligible
 
             # Extract SNR from MissionSNR object
-            snr_val = (
-                mission.mission_snr.snr_normalized
-                if mission.mission_snr else 0.0
-            )
+            snr_val = mission.mission_snr.snr_normalized if mission.mission_snr else 0.0
 
             return WireResult(
                 success=True,
@@ -248,18 +246,16 @@ class GenesisWire:
                 bloom_eligible=bloom,
                 tier=(
                     mission.classification.tier.value
-                    if mission.classification else "unknown"
+                    if mission.classification
+                    else "unknown"
                 ),
-                agent_trace=[
-                    a.get("agent", "?") for a in mission.agent_trace
-                ],
+                agent_trace=[a.get("agent", "?") for a in mission.agent_trace],
                 evidence_receipt_id=receipt.receipt_id if receipt else None,
                 signed="signature_hex" in receipt_meta,
                 node_id=receipt_meta.get("node_id"),
                 latency_ms=round(elapsed_ms, 2),
                 classification_confidence=(
-                    mission.classification.confidence
-                    if mission.classification else 0.0
+                    mission.classification.confidence if mission.classification else 0.0
                 ),
                 reflex_hit=mission.reflex_hit,
             )
@@ -282,21 +278,21 @@ class GenesisWire:
             "fallback_missions": self._fallback_missions,
             "genesis_rate": (
                 round(self._genesis_missions / self._total_missions, 4)
-                if self._total_missions > 0 else 0.0
+                if self._total_missions > 0
+                else 0.0
             ),
             "avg_latency_ms": (
                 round(self._total_latency_ms / self._genesis_missions, 2)
-                if self._genesis_missions > 0 else 0.0
+                if self._genesis_missions > 0
+                else 0.0
             ),
-            "pipeline_health": (
-                self._pipeline.health() if self._pipeline else None
-            ),
+            "pipeline_health": (self._pipeline.health() if self._pipeline else None),
         }
 
     def shutdown(self):
         """Graceful shutdown — persist cache, close resources."""
         if self._pipeline:
-            if hasattr(self._pipeline, 'shutdown'):
+            if hasattr(self._pipeline, "shutdown"):
                 self._pipeline.shutdown()
             logger.info("Genesis Wire shutdown complete")
 

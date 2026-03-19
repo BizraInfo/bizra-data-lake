@@ -15,19 +15,19 @@ described in the Declaration actually functions.
 import pytest
 
 from core.irp import (
+    DataPoint,
+    IsnadChain,
     IsnadGrade,
     Source,
-    IsnadChain,
-    DataPoint,
     pat_assess,
 )
 from core.sat.gate_result import CheckStatus
 from core.sat.provenance_gate import provenance_verify
 
-
 # ============================================================================
 # FIXTURES: Simulate real-world data sources
 # ============================================================================
+
 
 @pytest.fixture
 def trusted_sources():
@@ -38,10 +38,12 @@ def trusted_sources():
         Source(id="coinbase", name="Coinbase", reliability=0.90, verified=True),
     ]
 
+
 @pytest.fixture
 def weak_source():
     """Single unverified source — produces DAIF grade."""
     return Source(id="telegram_tip", name="Anon Telegram", reliability=0.3)
+
 
 @pytest.fixture
 def fabricated_source():
@@ -52,6 +54,7 @@ def fabricated_source():
 # ============================================================================
 # THE FULL PAT→IRP→SAT FLOW
 # ============================================================================
+
 
 class TestPatSatProvenanceBoundary:
     """End-to-end test of the provenance security boundary."""

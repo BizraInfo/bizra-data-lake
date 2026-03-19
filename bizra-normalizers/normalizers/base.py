@@ -90,7 +90,9 @@ def contains_latin(text: str) -> bool:
     return bool(re.search(r"[A-Za-z]", text))
 
 
-def stable_turn_id(provider: str, conversation_id: str, index: int, content: str) -> str:
+def stable_turn_id(
+    provider: str, conversation_id: str, index: int, content: str
+) -> str:
     material = f"{provider}|{conversation_id}|{index}|{normalize_whitespace(content)}"
     digest = hashlib.sha1(material.encode("utf-8")).hexdigest()[:12]
     return f"{provider}-{digest}"
@@ -129,7 +131,9 @@ class PlatformParser(abc.ABC):
     platform: str
 
     @abc.abstractmethod
-    def parse_payload(self, payload: Any, source_path: str = "") -> list[ConversationTurn]:
+    def parse_payload(
+        self, payload: Any, source_path: str = ""
+    ) -> list[ConversationTurn]:
         raise NotImplementedError
 
     def parse_file(self, path: str | Path) -> list[ConversationTurn]:
@@ -337,9 +341,7 @@ class GenericOpenAIParser(PlatformParser):
                 if not content.strip():
                     continue
 
-                turn_id = stable_turn_id(
-                    self.platform, conv_id, global_idx, content
-                )
+                turn_id = stable_turn_id(self.platform, conv_id, global_idx, content)
                 timestamp = parse_timestamp(msg.get("timestamp", 0)) or (
                     base_ts + msg_idx
                 )

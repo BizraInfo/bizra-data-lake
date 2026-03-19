@@ -1,3 +1,4 @@
+#![allow(clippy::items_after_test_module)]
 //! WBS 1.5 — End-to-End Integration Test: The Complete Proof Pyramid
 //!
 //! This file exercises the **complete proof pyramid** from action execution all
@@ -56,6 +57,7 @@ pub const PROOF_PYRAMID_VERSION: &str = "1.0.0-alpha";
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// All types and logic that together form the five-layer proof pyramid.
+#[allow(clippy::manual_is_multiple_of)]
 pub mod proof_pyramid {
 
     // =========================================================================
@@ -1435,7 +1437,7 @@ pub mod proof_pyramid {
             // Degradation assertion  [DERIVED]
             if degradation_tier > 0 {
                 assertions.push(SmtAssertion {
-                    expression: format!("(assert (> degradation_tier 0))"),
+                    expression: "(assert (> degradation_tier 0))".to_string(),
                     description: format!("Mission was degraded at tier {degradation_tier}."),
                     gate: FateGate::Harm,
                 });
@@ -2553,7 +2555,7 @@ pub mod e2e_tests {
         let last_meaningful = script
             .lines()
             .filter(|l| !l.is_empty() && !l.starts_with(';'))
-            .last()
+            .next_back()
             .unwrap_or("");
 
         assert_eq!(

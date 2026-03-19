@@ -392,8 +392,9 @@ async def test_plan_feeds_node0_canonical_authority(plan_client_with_node0):
 @pytest.fixture
 def canonical_plan_client(tmp_path, monkeypatch):
     """Client backed by a runtime that exposes canonical organism authority."""
-    from httpx import ASGITransport, AsyncClient
     from unittest.mock import AsyncMock, MagicMock
+
+    from httpx import ASGITransport, AsyncClient
 
     monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
 
@@ -470,8 +471,9 @@ async def test_plan_routes_through_runtime_owned_organism(canonical_plan_client)
 @pytest.fixture
 def canonical_plan_client_without_authority(tmp_path, monkeypatch):
     """Client in canonical mode without runtime organism authority."""
-    from httpx import ASGITransport, AsyncClient
     from unittest.mock import MagicMock
+
+    from httpx import ASGITransport, AsyncClient
 
     monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
 
@@ -516,9 +518,10 @@ async def test_plan_fails_closed_in_canonical_mode_without_runtime_authority(
         )
 
     assert resp.status_code == 503
-    assert "Canonical mode requires runtime-owned organism mission authority" in resp.json()[
-        "error"
-    ]
+    assert (
+        "Canonical mode requires runtime-owned organism mission authority"
+        in resp.json()["error"]
+    )
 
 
 @pytest.mark.integration
@@ -661,9 +664,11 @@ async def test_plan_canonical_mode_never_calls_mission_orchestrator(
     client, runtime = canonical_plan_client
 
     # Patch MissionOrchestrator to trap any direct invocation
-    orchestrator_sentinel = AsyncMock(side_effect=AssertionError(
-        "MissionOrchestrator.execute() was called in canonical mode — truth fork!"
-    ))
+    orchestrator_sentinel = AsyncMock(
+        side_effect=AssertionError(
+            "MissionOrchestrator.execute() was called in canonical mode — truth fork!"
+        )
+    )
     monkeypatch.setattr(
         "core.sovereign.api.MissionOrchestrator",
         type("MockOrchestrator", (), {"execute": orchestrator_sentinel}),

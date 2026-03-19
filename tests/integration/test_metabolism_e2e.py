@@ -171,9 +171,9 @@ async def _test_metabolism_reflex_compilation(tmp_path, monkeypatch):
         )
 
         assert tick_result.scored >= 1
-        assert runtime._constitutional_reflex_cache, (
-            "Reflex cache should contain compiled pattern"
-        )
+        assert (
+            runtime._constitutional_reflex_cache
+        ), "Reflex cache should contain compiled pattern"
 
 
 @pytest.mark.integration
@@ -209,9 +209,7 @@ async def _test_metabolism_event_bus_emissions(tmp_path, monkeypatch):
             await asyncio.sleep(0.2)
 
         topics = [e["topic"] for e in captured_events]
-        assert "mission.created" in topics, (
-            f"Expected mission.created, got {topics}"
-        )
+        assert "mission.created" in topics, f"Expected mission.created, got {topics}"
         assert any(
             topic in topics for topic in ("mission.executed", "mission.failed")
         ), f"Expected mission.executed or mission.failed, got {topics}"

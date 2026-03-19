@@ -75,7 +75,9 @@ def benchmark_got_bridge() -> Dict[str, Any]:
     # GoT bridge reason
     elapsed, reason_result = _measure(
         "got_bridge_reason",
-        lambda: bridge.reason_and_verify("benchmark test query: explain BIZRA architecture"),
+        lambda: bridge.reason_and_verify(
+            "benchmark test query: explain BIZRA architecture"
+        ),
     )
     results["got_bridge_reason_ms"] = round(elapsed, 2)
     results["got_bridge_converged"] = getattr(reason_result, "converged", False)
@@ -171,7 +173,9 @@ def benchmark_node0() -> Dict[str, Any]:
                     "eventbus_emission",
                     lambda: heartbeat.breathe(),
                 )
-                results["eventbus_emission_ms"] = round(elapsed_emit - results["node0_breathe_ms"], 2)
+                results["eventbus_emission_ms"] = round(
+                    elapsed_emit - results["node0_breathe_ms"], 2
+                )
                 results["events_emitted"] = bench_bus.count
             except (AttributeError, TypeError) as exc:
                 logger.warning("EventBus emission benchmark skipped: %s", exc)

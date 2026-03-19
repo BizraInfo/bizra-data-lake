@@ -20,7 +20,7 @@ import textwrap
 from datetime import datetime, timezone
 from pathlib import Path
 
-from bizra_constitution import load_constitution, Constitution
+from bizra_constitution import Constitution, load_constitution
 
 
 def generate_constants(c: Constitution) -> str:
@@ -388,6 +388,7 @@ def _dict_lines(d: dict[str, float], indent: int = 4) -> str:
 # MAIN — Generate all files
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def main():
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else None
     c = load_constitution(path)
@@ -408,8 +409,12 @@ def main():
     print()
     print(f"   Constitution v{c.meta.version}")
     print(f"   SHA-256: {c.raw_hash[:16]}...")
-    print(f"   Constants: {sum(1 for line in generate_constants(c).splitlines() if '=' in line and not line.strip().startswith('#'))} values generated")
-    print(f"   Tests: {sum(1 for line in generate_tests(c).splitlines() if 'def test_' in line)} conformance tests generated")
+    print(
+        f"   Constants: {sum(1 for line in generate_constants(c).splitlines() if '=' in line and not line.strip().startswith('#'))} values generated"
+    )
+    print(
+        f"   Tests: {sum(1 for line in generate_tests(c).splitlines() if 'def test_' in line)} conformance tests generated"
+    )
     print()
     print("   Next: copy generated/ contents into your project")
     print("   Then: grep -r 'hardcoded' to find remaining non-constitutional constants")

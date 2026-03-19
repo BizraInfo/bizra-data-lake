@@ -16,7 +16,6 @@ from .base import (
     stable_turn_id,
 )
 
-
 _TEMPORAL_RE = re.compile(
     r"\b(deadline|by\s+\d{4}-\d{2}-\d{2}|tomorrow|next\s+week|q[1-4]|milestone|before\s+\w+)\b",
     re.IGNORECASE,
@@ -42,12 +41,22 @@ class KimiParser(PlatformParser):
 
             for index, message in enumerate(messages):
                 role = canonical_role(message.get("role") or message.get("type"))
-                content = normalize_whitespace(collect_text(message.get("content") or message.get("text") or message.get("value")))
+                content = normalize_whitespace(
+                    collect_text(
+                        message.get("content")
+                        or message.get("text")
+                        or message.get("value")
+                    )
+                )
                 if not content:
                     continue
 
                 hints = self._hints_for_message(content)
-                turn_id = str(message.get("id") or message.get("segment_id") or stable_turn_id(self.platform, conversation_id, index, content))
+                turn_id = str(
+                    message.get("id")
+                    or message.get("segment_id")
+                    or stable_turn_id(self.platform, conversation_id, index, content)
+                )
                 timestamp = parse_timestamp(
                     message.get("created_at")
                     or message.get("timestamp")
@@ -64,7 +73,10 @@ class KimiParser(PlatformParser):
                         timestamp=timestamp,
                         model=model,
                         hints=hints,
-                        metadata={"source_path": source_path, "content_length": len(content)},
+                        metadata={
+                            "source_path": source_path,
+                            "content_length": len(content),
+                        },
                     )
                 )
 

@@ -38,27 +38,28 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Tuple, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import numpy as np
 
 # Import Data Lake engines
 from bizra_config import (
-    GRAPH_PATH,
     GOLD_PATH,
+    GRAPH_PATH,
+    IHSAN_CONSTRAINT,
     INDEXED_PATH,
     SNR_THRESHOLD,
-    IHSAN_CONSTRAINT,
 )
 
 # Import Discipline Synthesis Engine (47-discipline cognitive topology)
 try:
     from discipline_synthesis import (
+        Discipline,
         DisciplineSynthesisEngine,
         Generator,
         Layer,
-        Discipline,
-        SynergyLink as DisciplineSynergyLink,
     )
+    from discipline_synthesis import SynergyLink as DisciplineSynergyLink
 
     DISCIPLINE_ENGINE_AVAILABLE = True
 except ImportError:

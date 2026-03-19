@@ -41,17 +41,19 @@ import time
 import uuid
 import weakref
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque, OrderedDict
+from collections import OrderedDict, defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum, auto
-from functools import wraps, lru_cache, cached_property, reduce
+from functools import cached_property, lru_cache, reduce, wraps
 from io import StringIO
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
+    AsyncIterator,
     Awaitable,
     Callable,
     ClassVar,
@@ -65,6 +67,7 @@ from typing import (
     List,
     Literal,
     Mapping,
+    NamedTuple,
     Optional,
     Protocol,
     Sequence,
@@ -73,15 +76,13 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    AsyncIterator,
-    NamedTuple,
-    runtime_checkable,
     overload,
-    TYPE_CHECKING,
+    runtime_checkable,
 )
 
 if TYPE_CHECKING:
     from typing import Self
+
     import numpy as np
 
 try:

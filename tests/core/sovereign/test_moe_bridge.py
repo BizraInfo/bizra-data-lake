@@ -17,13 +17,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from core.sovereign.moe_bridge import (
-    MOEBridge,
-    MOEBridgeStats,
-    ExpertCallResult,
     _EXPERT_MODEL_MAP,
     _EXPERT_SYSTEM_PROMPTS,
+    ExpertCallResult,
+    MOEBridge,
+    MOEBridgeStats,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════
 # FIXTURES
@@ -157,6 +156,7 @@ class TestSynthesis:
     @pytest.mark.asyncio
     async def test_multi_expert_has_prefixes(self, bridge: MOEBridge) -> None:
         """Multi-expert results should have [expert_id] prefixes."""
+
         async def mock_generate(model, prompt, system=""):
             return f"Response from model {model}"
 

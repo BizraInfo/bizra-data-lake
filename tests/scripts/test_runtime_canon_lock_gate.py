@@ -106,6 +106,4 @@ def test_run_runtime_canon_lock_gate_writes_reports(tmp_path: Path) -> None:
     assert report_path.exists()
     assert markdown_path.exists()
     assert github_output.exists()
-    assert "runtime_canon_lock_passed=true" in github_output.read_text(
-        encoding="utf-8"
-    )
+    assert "runtime_canon_lock_passed=true" in github_output.read_text(encoding="utf-8")

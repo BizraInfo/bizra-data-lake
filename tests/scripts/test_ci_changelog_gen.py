@@ -19,10 +19,10 @@ from scripts.ci_changelog_gen import (
     render_markdown,
 )
 
-
 # ─────────────────────────────────────────────────────────────
 # Tests: Commit Parsing
 # ─────────────────────────────────────────────────────────────
+
 
 class TestCommitParsing:
     """Test conventional commit message parsing."""
@@ -35,7 +35,9 @@ class TestCommitParsing:
         assert not c.is_breaking
 
     def test_scoped_fix(self) -> None:
-        c = parse_commit("def456", "Dev", "2025-01-01", "fix(auth): handle token expiry")
+        c = parse_commit(
+            "def456", "Dev", "2025-01-01", "fix(auth): handle token expiry"
+        )
         assert c.type == "fix"
         assert c.scope == "auth"
         assert c.description == "handle token expiry"
@@ -60,12 +62,16 @@ class TestCommitParsing:
         assert c.description == "random commit message"
 
     def test_perf_commit(self) -> None:
-        c = parse_commit("stu901", "Dev", "2025-01-01", "perf(engine): reduce allocation by 40%")
+        c = parse_commit(
+            "stu901", "Dev", "2025-01-01", "perf(engine): reduce allocation by 40%"
+        )
         assert c.type == "perf"
         assert c.scope == "engine"
 
     def test_security_commit(self) -> None:
-        c = parse_commit("vwx234", "Dev", "2025-01-01", "security(auth): patch CVE-2025-0001")
+        c = parse_commit(
+            "vwx234", "Dev", "2025-01-01", "security(auth): patch CVE-2025-0001"
+        )
         assert c.type == "security"
 
     def test_ci_commit(self) -> None:
@@ -83,7 +89,18 @@ class TestCommitParsing:
         assert c.sha == "abc123de"  # First 8 chars
 
     def test_all_commit_types(self) -> None:
-        types = ["feat", "fix", "perf", "refactor", "docs", "test", "ci", "chore", "security", "breaking"]
+        types = [
+            "feat",
+            "fix",
+            "perf",
+            "refactor",
+            "docs",
+            "test",
+            "ci",
+            "chore",
+            "security",
+            "breaking",
+        ]
         for t in types:
             c = parse_commit("abc123", "Dev", "2025-01-01", f"{t}: test message")
             assert c.type == t
@@ -93,6 +110,7 @@ class TestCommitParsing:
 # Tests: Changelog Generation
 # ─────────────────────────────────────────────────────────────
 
+
 class TestChangelogGeneration:
     """Test structured changelog creation."""
 
@@ -101,9 +119,13 @@ class TestChangelogGeneration:
         return [
             parse_commit("a1b2", "Alice", "2025-01-01", "feat(ui): add dark mode"),
             parse_commit("c3d4", "Bob", "2025-01-02", "fix(api): null pointer in auth"),
-            parse_commit("e5f6", "Alice", "2025-01-03", "perf: reduce startup time 30%"),
+            parse_commit(
+                "e5f6", "Alice", "2025-01-03", "perf: reduce startup time 30%"
+            ),
             parse_commit("g7h8", "Charlie", "2025-01-04", "docs: update README"),
-            parse_commit("i9j0", "Bob", "2025-01-05", "security: patch XSS vulnerability"),
+            parse_commit(
+                "i9j0", "Bob", "2025-01-05", "security: patch XSS vulnerability"
+            ),
             parse_commit("k1l2", "Alice", "2025-01-06", "feat!: new config format"),
         ]
 
@@ -156,6 +178,7 @@ class TestChangelogGeneration:
 # ─────────────────────────────────────────────────────────────
 # Tests: Markdown Rendering
 # ─────────────────────────────────────────────────────────────
+
 
 class TestMarkdownRendering:
     """Test Markdown output format."""

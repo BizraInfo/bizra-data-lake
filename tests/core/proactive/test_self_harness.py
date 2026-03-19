@@ -25,15 +25,14 @@ import pytest
 from core.proactive.self_harness import (
     GoalScanner,
     MissionActivator,
-    ProactiveSuggestion,
     ProactiveHarness,
+    ProactiveSuggestion,
     ScoredGoal,
     SelfAssessment,
     SelfAssessor,
     SuggestionForge,
     create_harness,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Data Types
@@ -258,18 +257,30 @@ class TestSuggestionForge:
         }
         for domain, expected_ahk in domains_expected.items():
             goal = ScoredGoal(
-                goal_id="g", title="T", description="D",
-                priority="normal", domain=domain, keywords=[],
-                relevance_score=0.5, ihsan_precheck="pass", ihsan_score=0.95,
+                goal_id="g",
+                title="T",
+                description="D",
+                priority="normal",
+                domain=domain,
+                keywords=[],
+                relevance_score=0.5,
+                ihsan_precheck="pass",
+                ihsan_score=0.95,
             )
             suggestion = SuggestionForge.forge(goal)
             assert suggestion.ahk_action_id == expected_ahk, f"Domain {domain}"
 
     def test_forge_truncates_long_labels(self):
         goal = ScoredGoal(
-            goal_id="g", title="A" * 100, description="D" * 200,
-            priority="normal", domain="general", keywords=[],
-            relevance_score=0.5, ihsan_precheck="pass", ihsan_score=0.95,
+            goal_id="g",
+            title="A" * 100,
+            description="D" * 200,
+            priority="normal",
+            domain="general",
+            keywords=[],
+            relevance_score=0.5,
+            ihsan_precheck="pass",
+            ihsan_score=0.95,
         )
         suggestion = SuggestionForge.forge(goal)
         assert len(suggestion.action_label) <= 60
@@ -343,10 +354,16 @@ class TestMissionActivator:
         add_fn = AsyncMock(return_value={"id": "m1"})
         activator = MissionActivator(add_fn)
         blocked = ProactiveSuggestion(
-            id="sug-1", action_label="Bad", intent_summary="Nope",
-            hhmm_confidence=0.5, ihsan_precheck="blocked",
-            ihsan_score=0.0, ahk_action_id="x", goal_id="g1",
-            domain="general", block_reason="Fails Daughter Test",
+            id="sug-1",
+            action_label="Bad",
+            intent_summary="Nope",
+            hhmm_confidence=0.5,
+            ihsan_precheck="blocked",
+            ihsan_score=0.0,
+            ahk_action_id="x",
+            goal_id="g1",
+            domain="general",
+            block_reason="Fails Daughter Test",
         )
         result = asyncio.run(activator.activate(blocked))
         assert result["error"] == "blocked"
@@ -356,10 +373,15 @@ class TestMissionActivator:
         add_fn = AsyncMock(return_value={"id": "mission-42"})
         activator = MissionActivator(add_fn)
         approved = ProactiveSuggestion(
-            id="sug-2", action_label="Fix CI", intent_summary="Repair pipeline",
-            hhmm_confidence=0.90, ihsan_precheck="pass",
-            ihsan_score=0.97, ahk_action_id="open_dev_environment",
-            goal_id="g2", domain="deployment",
+            id="sug-2",
+            action_label="Fix CI",
+            intent_summary="Repair pipeline",
+            hhmm_confidence=0.90,
+            ihsan_precheck="pass",
+            ihsan_score=0.97,
+            ahk_action_id="open_dev_environment",
+            goal_id="g2",
+            domain="deployment",
         )
         result = asyncio.run(activator.activate(approved))
         assert result["mission_id"] == "mission-42"
@@ -370,9 +392,14 @@ class TestMissionActivator:
         add_fn = AsyncMock(return_value={"id": "m"})
         activator = MissionActivator(add_fn)
         suggestion = ProactiveSuggestion(
-            id="sug-x", action_label="X", intent_summary="X",
-            hhmm_confidence=0.5, ihsan_precheck="pass",
-            ihsan_score=0.95, ahk_action_id="x", goal_id="g",
+            id="sug-x",
+            action_label="X",
+            intent_summary="X",
+            hhmm_confidence=0.5,
+            ihsan_precheck="pass",
+            ihsan_score=0.95,
+            ahk_action_id="x",
+            goal_id="g",
             domain="general",
         )
         for _ in range(210):

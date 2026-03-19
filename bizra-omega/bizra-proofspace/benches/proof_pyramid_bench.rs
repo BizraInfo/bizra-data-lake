@@ -51,7 +51,6 @@
 //!   `jcs_canonicalize`.
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use std::hint::black_box as bb;
 use std::time::Duration;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,6 +63,7 @@ use std::time::Duration;
 
 /// Minimal receipt — mirrors `bizra_action::types::ConstitutionalReceipt`.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct ConstitutionalReceipt {
     action_id: u64,
     ihsan_score: f64,
@@ -139,6 +139,7 @@ struct FateScores {
 }
 
 /// Minimal FateProof — mirrors `fate_binding::FateProof`.
+#[allow(dead_code)]
 struct FateProof {
     satisfied: bool,
     assertions: Vec<String>,
@@ -301,7 +302,7 @@ fn is_regular_number(mut n: u64) -> bool {
         return false;
     }
     for p in [2u64, 3, 5] {
-        while n % p == 0 {
+        while n.is_multiple_of(p) {
             n /= p;
         }
     }
@@ -313,7 +314,7 @@ fn bench_sippar_from_u64(c: &mut Criterion) {
     let test_values: Vec<u64> = (1u64..=1_000)
         .map(|i| {
             // Interleave regular (i*60) and irregular (primes approx)
-            if i % 3 == 0 {
+            if i.is_multiple_of(3) {
                 i * 60
             } else {
                 i * 7 + 1

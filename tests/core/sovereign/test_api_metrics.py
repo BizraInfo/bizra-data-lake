@@ -67,9 +67,9 @@ async def test_async_server_accepts_vitals_beacons_without_api_key() -> None:
         "POST",
         "/v1/metrics/vitals",
         headers={},
-        body=json.dumps(
-            {"name": "LCP", "value": 1875.12, "rating": "good"}
-        ).encode("utf-8"),
+        body=json.dumps({"name": "LCP", "value": 1875.12, "rating": "good"}).encode(
+            "utf-8"
+        ),
     )
     body = resp.split("\r\n\r\n", 1)[1] if "\r\n\r\n" in resp else resp
 

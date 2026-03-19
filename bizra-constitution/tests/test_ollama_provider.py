@@ -1,18 +1,23 @@
 """Tests for BIZRA Ollama Provider — Circuit Breaker & Fallback Chain."""
 
+import json
 import os
 import sys
-import json
 import time
-import pytest
-from unittest.mock import patch, MagicMock
 from io import BytesIO
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ollama_provider import (
-    OllamaProvider, InferenceResult, CircuitBreaker, CircuitState,
-    ModelMetrics, CIRCUIT_BREAKER_THRESHOLD,
+    CIRCUIT_BREAKER_THRESHOLD,
+    CircuitBreaker,
+    CircuitState,
+    InferenceResult,
+    ModelMetrics,
+    OllamaProvider,
 )
 
 
@@ -27,11 +32,13 @@ def provider():
 
 def _mock_response(text="Hello from LLM", eval_count=10):
     """Create a mock urllib response."""
-    body = json.dumps({
-        "response": text,
-        "eval_count": eval_count,
-        "eval_duration": 500_000_000,  # 500ms in nanoseconds
-    }).encode()
+    body = json.dumps(
+        {
+            "response": text,
+            "eval_count": eval_count,
+            "eval_duration": 500_000_000,  # 500ms in nanoseconds
+        }
+    ).encode()
     mock = MagicMock()
     mock.read.return_value = body
     mock.__enter__ = MagicMock(return_value=mock)
@@ -42,6 +49,7 @@ def _mock_response(text="Hello from LLM", eval_count=10):
 def _mock_error():
     """Create a mock that raises an error."""
     import urllib.error
+
     raise urllib.error.URLError("Connection refused")
 
 
@@ -128,9 +136,13 @@ class TestModelMetrics:
 class TestInferenceResult:
     def test_as_evidence(self):
         r = InferenceResult(
-            text="hello", model="test", latency_ms=100,
-            tokens_generated=10, tokens_per_second=100,
-            is_fallback=False, fallback_chain=["test"],
+            text="hello",
+            model="test",
+            latency_ms=100,
+            tokens_generated=10,
+            tokens_per_second=100,
+            is_fallback=False,
+            fallback_chain=["test"],
             success=True,
         )
         ev = r.as_evidence()
@@ -140,10 +152,15 @@ class TestInferenceResult:
 
     def test_failed_result(self):
         r = InferenceResult(
-            text="", model="test", latency_ms=5000,
-            tokens_generated=0, tokens_per_second=0,
-            is_fallback=False, fallback_chain=["test"],
-            success=False, error="timeout",
+            text="",
+            model="test",
+            latency_ms=5000,
+            tokens_generated=0,
+            tokens_per_second=0,
+            is_fallback=False,
+            fallback_chain=["test"],
+            success=False,
+            error="timeout",
         )
         assert not r.success
         assert r.error == "timeout"
@@ -166,6 +183,7 @@ class TestGenerate:
     @patch("ollama_provider.urllib.request.urlopen")
     def test_fallback_on_first_failure(self, mock_urlopen, provider):
         import urllib.error
+
         mock_urlopen.side_effect = [
             urllib.error.URLError("fail"),
             _mock_response("Fallback response"),
@@ -179,6 +197,7 @@ class TestGenerate:
     @patch("ollama_provider.urllib.request.urlopen")
     def test_all_models_fail(self, mock_urlopen, provider):
         import urllib.error
+
         mock_urlopen.side_effect = urllib.error.URLError("all down")
         result = provider.generate("Hello")
         assert not result.success
@@ -193,6 +212,7 @@ class TestGenerate:
     @patch("ollama_provider.urllib.request.urlopen")
     def test_circuit_breaker_skips_failed_model(self, mock_urlopen, provider):
         import urllib.error
+
         # Trip circuit breaker on model-a
         for _ in range(CIRCUIT_BREAKER_THRESHOLD):
             provider._breakers["model-a"].record_failure()
@@ -213,6 +233,7 @@ class TestGenerate:
     @patch("ollama_provider.urllib.request.urlopen")
     def test_metrics_updated_on_failure(self, mock_urlopen, provider):
         import urllib.error
+
         mock_urlopen.side_effect = [
             urllib.error.URLError("fail"),
             _mock_response(),

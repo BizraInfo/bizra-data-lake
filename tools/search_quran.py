@@ -6,10 +6,11 @@ Demonstrates the 'State of Art' capability to search the newly ingested
 Quranic Corpus using vector semantics rather than just keyword matching.
 """
 
-import pandas as pd
 import numpy as np
-from vector_engine import VectorEngine
+import pandas as pd
+
 from bizra_config import INDEXED_PATH
+from vector_engine import VectorEngine
 
 DATA_DIR = INDEXED_PATH / "knowledge/quran"
 PARQUET_PATH = DATA_DIR / "quran_full.parquet"

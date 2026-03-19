@@ -25,9 +25,11 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from scripts.ops.precision_prompt_engine import (  # noqa: E402
+from scripts.ops.precision_prompt_engine import (
     PromptRequest,
     build_prompt_artifact,
+)
+from scripts.ops.precision_prompt_engine import (  # noqa: E402
     load_config as load_prompt_config,
 )
 from scripts.ops.self_rlvr_harness import (  # noqa: E402
@@ -61,7 +63,9 @@ def _clamp01(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
 
 
-def _normalize_weights(raw: dict[str, Any], defaults: dict[str, float]) -> dict[str, float]:
+def _normalize_weights(
+    raw: dict[str, Any], defaults: dict[str, float]
+) -> dict[str, float]:
     parsed: dict[str, float] = {}
     for key, default in defaults.items():
         try:
@@ -93,7 +97,9 @@ def load_gate_config(path: Path) -> AutonomousGateConfig:
     weights = _normalize_weights(payload.get("score_weights") or {}, defaults)
 
     return AutonomousGateConfig(
-        prompt_config=Path(payload.get("prompt_config", "config/precision_prompt_engine.yaml")),
+        prompt_config=Path(
+            payload.get("prompt_config", "config/precision_prompt_engine.yaml")
+        ),
         rlvr_config=Path(payload.get("rlvr_config", "config/self_rlvr_harness.yaml")),
         prompt_intent=str(
             payload.get(
@@ -279,7 +285,9 @@ def run_gate(cfg: AutonomousGateConfig) -> dict[str, Any]:
 
     rlvr_cfg = HarnessConfig(**load_gate_config_values(cfg.rlvr_config))
     episodes = _build_episodes(cfg.episodes_profile, cfg.episodes_count)
-    rlvr_report = run_self_rlvr_harness(agent_id="node0", episodes=episodes, config=rlvr_cfg)
+    rlvr_report = run_self_rlvr_harness(
+        agent_id="node0", episodes=episodes, config=rlvr_cfg
+    )
 
     return evaluate_gate(cfg, prompt_artifact, rlvr_report)
 
@@ -308,13 +316,17 @@ def load_gate_config_values(path: Path) -> dict[str, Any]:
 def _write_github_outputs(path: Path, report: dict[str, Any]) -> None:
     metrics = report.get("metrics") or {}
     with path.open("a", encoding="utf-8") as fh:
-        fh.write(f"autonomous_gate_passed={str(report.get('gate_passed', False)).lower()}\n")
+        fh.write(
+            f"autonomous_gate_passed={str(report.get('gate_passed', False)).lower()}\n"
+        )
         fh.write(f"autonomous_score={metrics.get('score', 0.0)}\n")
         fh.write(f"autonomous_prompt_snr={metrics.get('prompt_snr', 0.0)}\n")
         fh.write(f"autonomous_rlvr_snr={metrics.get('rlvr_snr', 0.0)}\n")
         fh.write(f"autonomous_qualified_rate={metrics.get('qualified_rate', 0.0)}\n")
         fh.write(f"autonomous_compiled={str(metrics.get('compiled', False)).lower()}\n")
-        fh.write(f"autonomous_chain_valid={str(metrics.get('chain_valid', False)).lower()}\n")
+        fh.write(
+            f"autonomous_chain_valid={str(metrics.get('chain_valid', False)).lower()}\n"
+        )
 
 
 def main() -> int:

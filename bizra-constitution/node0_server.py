@@ -38,12 +38,12 @@ Constitution reference: All sections. This IS the system.
 
 from __future__ import annotations
 
+import argparse
+import json
+import logging
 import os
 import sys
-import json
 import time
-import logging
-import argparse
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -55,11 +55,13 @@ from pydantic import BaseModel, Field
 
 # Ensure imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.environ.setdefault("BIZRA_CONSTITUTION_PATH",
-                       str(Path(__file__).parent / "constitution.toml"))
+os.environ.setdefault(
+    "BIZRA_CONSTITUTION_PATH", str(Path(__file__).parent / "constitution.toml")
+)
 
-from production_pipeline import ProductionPipeline, create_node0
 from mission_pipeline import MissionStatus
+from production_pipeline import ProductionPipeline, create_node0
+
 from bizra_constitution import load_constitution
 
 logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
@@ -73,8 +75,10 @@ logger = logging.getLogger("bizra.server")
 
 class MissionRequest(BaseModel):
     """Submit a mission to NODE0."""
-    input: str = Field(..., min_length=1, max_length=10000,
-                       description="The mission text")
+
+    input: str = Field(
+        ..., min_length=1, max_length=10000, description="The mission text"
+    )
     temperature: float = Field(0.7, ge=0.0, le=2.0)
     max_tokens: int = Field(1024, ge=1, le=8192)
 
@@ -89,6 +93,7 @@ class IhsanDimensionResponse(BaseModel):
 
 class MissionResponse(BaseModel):
     """Constitutional mission response."""
+
     mission_id: str
     status: str
     output: str
@@ -134,6 +139,7 @@ class InvalidateRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     """NODE0 health report."""
+
     constitution_version: str
     node_id: str
     uptime_seconds: float
@@ -225,13 +231,15 @@ def create_app(
         dims = []
         if mission.ihsan_score:
             for d in mission.ihsan_score.dimensions:
-                dims.append(IhsanDimensionResponse(
-                    name=d.name,
-                    raw_score=round(d.raw_score, 4),
-                    weight=round(d.weight, 4),
-                    weighted_score=round(d.weighted_score, 4),
-                    passes=d.passes,
-                ))
+                dims.append(
+                    IhsanDimensionResponse(
+                        name=d.name,
+                        raw_score=round(d.raw_score, 4),
+                        weight=round(d.weight, 4),
+                        weighted_score=round(d.weighted_score, 4),
+                        passes=d.passes,
+                    )
+                )
 
         receipt = mission.evidence_receipt
         meta = receipt.metadata if receipt else {}
@@ -240,17 +248,37 @@ def create_app(
             mission_id=mission.mission_id,
             status=mission.status.value,
             output=mission.output_text,
-            tier=mission.classification.tier.value if mission.classification else "unknown",
-            handler=mission.classification.handler if mission.classification else "unknown",
-            complexity_score=mission.classification.complexity_score if mission.classification else 0,
-            confidence=mission.classification.confidence if mission.classification else 0,
-            ihsan_composite=round(mission.ihsan_score.composite, 4) if mission.ihsan_score else 0,
-            ihsan_tier=mission.ihsan_score.tier.value if mission.ihsan_score else "rejected",
+            tier=(
+                mission.classification.tier.value
+                if mission.classification
+                else "unknown"
+            ),
+            handler=(
+                mission.classification.handler if mission.classification else "unknown"
+            ),
+            complexity_score=(
+                mission.classification.complexity_score if mission.classification else 0
+            ),
+            confidence=(
+                mission.classification.confidence if mission.classification else 0
+            ),
+            ihsan_composite=(
+                round(mission.ihsan_score.composite, 4) if mission.ihsan_score else 0
+            ),
+            ihsan_tier=(
+                mission.ihsan_score.tier.value if mission.ihsan_score else "rejected"
+            ),
             ihsan_passes=mission.ihsan_score.passes if mission.ihsan_score else False,
             ihsan_dimensions=dims,
             bloom_eligible=mission.bloom_eligible,
-            snr_normalized=round(mission.mission_snr.snr_normalized, 4) if mission.mission_snr else 0,
-            snr_linear=round(mission.mission_snr.snr_linear, 2) if mission.mission_snr else 0,
+            snr_normalized=(
+                round(mission.mission_snr.snr_normalized, 4)
+                if mission.mission_snr
+                else 0
+            ),
+            snr_linear=(
+                round(mission.mission_snr.snr_linear, 2) if mission.mission_snr else 0
+            ),
             snr_db=round(mission.mission_snr.snr_db, 1) if mission.mission_snr else 0,
             receipt_id=receipt.receipt_id if receipt else None,
             previous_hash=receipt.previous_hash if receipt else None,
@@ -384,16 +412,19 @@ def create_app(
 
 def main():
     parser = argparse.ArgumentParser(description="BIZRA NODE0 Server")
-    parser.add_argument("--port", type=int, default=7770,
-                        help="Server port (default: 7770)")
-    parser.add_argument("--host", default="0.0.0.0",
-                        help="Bind address (default: 0.0.0.0)")
-    parser.add_argument("--data-dir", default="node0_data",
-                        help="Data directory for persistence")
-    parser.add_argument("--ollama-url", default="http://localhost:11434",
-                        help="Ollama server URL")
-    parser.add_argument("--models", default=None,
-                        help="Comma-separated model chain")
+    parser.add_argument(
+        "--port", type=int, default=7770, help="Server port (default: 7770)"
+    )
+    parser.add_argument(
+        "--host", default="0.0.0.0", help="Bind address (default: 0.0.0.0)"
+    )
+    parser.add_argument(
+        "--data-dir", default="node0_data", help="Data directory for persistence"
+    )
+    parser.add_argument(
+        "--ollama-url", default="http://localhost:11434", help="Ollama server URL"
+    )
+    parser.add_argument("--models", default=None, help="Comma-separated model chain")
     args = parser.parse_args()
 
     model_chain = args.models.split(",") if args.models else None
@@ -405,6 +436,7 @@ def main():
     )
 
     import uvicorn
+
     print(f"""
 ╔══════════════════════════════════════════════════════════╗
 ║  BIZRA NODE0 — Sovereign AI Node                        ║

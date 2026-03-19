@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
 
 from normalizers import parse_file_with_receipt  # noqa: E402
 from normalizers.base import normalize_whitespace  # noqa: E402
+
 from schemas import ConversationTurn  # noqa: E402
 
 try:
@@ -51,7 +52,10 @@ _TOPIC_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("memory", re.compile(r"\b(memory|retrieval|fragment|episodic)\b", re.IGNORECASE)),
     ("agents", re.compile(r"\b(agent|pat|sat|orchestrat)\w*\b", re.IGNORECASE)),
     ("compiler", re.compile(r"\b(compiler|genesis|gate|reflex)\b", re.IGNORECASE)),
-    ("governance", re.compile(r"\b(constitution|policy|ihsan|sovereign)\b", re.IGNORECASE)),
+    (
+        "governance",
+        re.compile(r"\b(constitution|policy|ihsan|sovereign)\b", re.IGNORECASE),
+    ),
     ("economy", re.compile(r"\b(token|proof-of-impact|poi|economy)\b", re.IGNORECASE)),
     ("frontend", re.compile(r"\b(ui|ux|react|css|frontend)\b", re.IGNORECASE)),
 )
@@ -83,7 +87,9 @@ class Row:
             "content": self.content,
             "model": self.model,
             "timestamp": self.timestamp,
-            "metadata_json": json.dumps(self.metadata, sort_keys=True, ensure_ascii=False),
+            "metadata_json": json.dumps(
+                self.metadata, sort_keys=True, ensure_ascii=False
+            ),
             "token_count": self.token_count,
             "content_hash": self.content_hash,
             "language": self.language,
@@ -128,7 +134,9 @@ def _hash_file(path: Path) -> dict[str, str]:
                 blake3_hasher.update(chunk)
     return {
         "blake3": (
-            blake3_hasher.hexdigest() if blake3_hasher is not None else sha256.hexdigest()
+            blake3_hasher.hexdigest()
+            if blake3_hasher is not None
+            else sha256.hexdigest()
         ),
         "sha256": sha256.hexdigest(),
     }
@@ -257,7 +265,9 @@ def _build_timeline_index(rows: list[Row]) -> dict[str, list[str]]:
     out: dict[str, list[str]] = {}
     for row in rows:
         if row.timestamp > 0:
-            month = datetime.fromtimestamp(row.timestamp, tz=timezone.utc).strftime("%Y-%m")
+            month = datetime.fromtimestamp(row.timestamp, tz=timezone.utc).strftime(
+                "%Y-%m"
+            )
         else:
             month = "unknown"
         out.setdefault(month, []).append(row.id)
@@ -325,7 +335,9 @@ def build_unified_corpus(
     parse_failure_reasons: dict[str, int] = {}
     for failure in parse_failures:
         reason_code = str(failure.get("reason_code") or "UNKNOWN")
-        parse_failure_reasons[reason_code] = parse_failure_reasons.get(reason_code, 0) + 1
+        parse_failure_reasons[reason_code] = (
+            parse_failure_reasons.get(reason_code, 0) + 1
+        )
     parse_failures_path = out_dir / "parse_failures.json"
     parse_failures_path.write_text(
         json.dumps(parse_failures, indent=2, sort_keys=True),
@@ -363,8 +375,12 @@ def build_unified_corpus(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build unified corpus parquet + index artifacts")
-    parser.add_argument("paths", nargs="+", help="Input files/directories (.json/.jsonl)")
+    parser = argparse.ArgumentParser(
+        description="Build unified corpus parquet + index artifacts"
+    )
+    parser.add_argument(
+        "paths", nargs="+", help="Input files/directories (.json/.jsonl)"
+    )
     parser.add_argument(
         "--out-parquet",
         type=str,

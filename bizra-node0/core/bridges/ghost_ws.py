@@ -68,6 +68,7 @@ def _loopback_client(host: Optional[str]) -> bool:
     """Return True when a client host resolves to a loopback interface."""
     return host in {"127.0.0.1", "::1", "localhost"}
 
+
 # ---------------------------------------------------------------------------
 # Configuration (from env, never hardcoded)
 # ---------------------------------------------------------------------------
@@ -284,9 +285,7 @@ app.add_middleware(
     allow_origins=GHOST_WS_ALLOWED_ORIGINS,
     allow_methods=["GET", "POST"],
     allow_headers=(
-        ["*"]
-        if not _production_mode_enabled()
-        else ["Content-Type", "X-BIZRA-TOKEN"]
+        ["*"] if not _production_mode_enabled() else ["Content-Type", "X-BIZRA-TOKEN"]
     ),
 )
 
@@ -461,8 +460,10 @@ async def ghost_overlay_ws(ws: WebSocket) -> None:
         return
 
     client_host = getattr(getattr(ws, "client", None), "host", None)
-    if _production_mode_enabled() and GHOST_WS_ENABLED and not _loopback_client(
-        client_host
+    if (
+        _production_mode_enabled()
+        and GHOST_WS_ENABLED
+        and not _loopback_client(client_host)
     ):
         await ws.close(code=4403, reason="Loopback-only in production")
         return

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-import sqlite3
 from unittest.mock import MagicMock
 
 import pytest
@@ -164,8 +164,7 @@ class TestProgressCallback:
 
 def _create_claude_flow_db(path: Path) -> None:
     conn = sqlite3.connect(path)
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE memory_entries (
             id TEXT PRIMARY KEY,
             key TEXT,
@@ -181,8 +180,7 @@ def _create_claude_flow_db(path: Path) -> None:
             access_count INTEGER,
             status TEXT
         );
-        """
-    )
+        """)
     conn.execute(
         """
         INSERT INTO memory_entries (
@@ -234,7 +232,9 @@ class TestClaudeFlowMigration:
 
         assert result.total_imported == 2
         assert result.total_errors == 0
-        artifact_phase = next(p for p in result.phases if p.source == "claude_flow_artifacts")
+        artifact_phase = next(
+            p for p in result.phases if p.source == "claude_flow_artifacts"
+        )
         assert artifact_phase.records_skipped == 1
         assert len(artifact_phase.issues) == 1
 

@@ -27,15 +27,17 @@ from core.sovereign.mission_nervous_system import (
     SovereignNervousSystem,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════
 # FIXTURES
 # ═══════════════════════════════════════════════════════════════════
 
+
 class MockInference:
     """Controllable mock inference for testing."""
 
-    def __init__(self, response: str = "Mock output with relevant content about the mission"):
+    def __init__(
+        self, response: str = "Mock output with relevant content about the mission"
+    ):
         self.response = response
         self.calls: List[str] = []
 
@@ -91,6 +93,7 @@ def _build_ns(
 # 1. S2 DELIBERATION (full loop — no reflex cache)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestS2Deliberation:
     """When no reflex cache hit, the system delegates to full inference."""
 
@@ -132,6 +135,7 @@ class TestS2Deliberation:
 # ═══════════════════════════════════════════════════════════════════
 # 2. S1 REFLEX FAST-PATH (Kahneman)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestS1ReflexFastPath:
     """When reflex cache hits, S2 inference is SKIPPED entirely."""
@@ -180,12 +184,14 @@ class TestS1ReflexFastPath:
 # 3. IHSĀN GATE (Al-Ghazali §4)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestIhsanGate:
     """Constitutional Ihsān threshold controls reward eligibility."""
 
     def test_high_ihsan_gets_reward(self):
-        from core.token.bloom import CommunityPool, WalletState
+        from core.token.bloom import CommunityPool
         from core.token.bloom import TokenMinter as BloomMinter
+        from core.token.bloom import WalletState
 
         pool = CommunityPool()
         minter = BloomMinter(community_pool=pool)
@@ -200,8 +206,9 @@ class TestIhsanGate:
         assert receipt.pool_contribution > 0
 
     def test_low_ihsan_no_reward(self):
-        from core.token.bloom import CommunityPool, WalletState
+        from core.token.bloom import CommunityPool
         from core.token.bloom import TokenMinter as BloomMinter
+        from core.token.bloom import WalletState
 
         pool = CommunityPool()
         minter = BloomMinter(community_pool=pool)
@@ -216,8 +223,9 @@ class TestIhsanGate:
         assert receipt.pool_contribution == 0.0
 
     def test_ihsan_boundary_at_threshold(self):
-        from core.token.bloom import CommunityPool, WalletState
+        from core.token.bloom import CommunityPool
         from core.token.bloom import TokenMinter as BloomMinter
+        from core.token.bloom import WalletState
 
         pool = CommunityPool()
         minter = BloomMinter(community_pool=pool)
@@ -238,40 +246,47 @@ class TestIhsanGate:
 # 4. BLOOM 50% COMMUNITY POOL SPLIT (Ostrom §12)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestBloomPoolSplit:
     """The 50% split is constitutionally locked (البذرة p19)."""
 
     def test_50_percent_split(self):
-        from core.token.bloom import CommunityPool, WalletState
+        from core.token.bloom import CommunityPool
         from core.token.bloom import TokenMinter as BloomMinter
+        from core.token.bloom import WalletState
 
         pool = CommunityPool()
         minter = BloomMinter(community_pool=pool)
         wallet = WalletState(node_id="test_node")
 
         ns = _build_ns(
-            minter=minter, wallet=wallet, wallets=[wallet],
+            minter=minter,
+            wallet=wallet,
+            wallets=[wallet],
             reward_per_mission=10.0,
         )
 
         receipt = asyncio.run(ns.run("Excellent mission", ihsan_override=0.98))
 
         assert receipt.rewarded is True
-        assert receipt.reward_amount == 5.0      # 50% to node
-        assert receipt.pool_contribution == 5.0   # 50% to pool
+        assert receipt.reward_amount == 5.0  # 50% to node
+        assert receipt.pool_contribution == 5.0  # 50% to pool
         assert wallet.seed_balance == 5.0
         assert pool.current_balance == 5.0
 
     def test_cumulative_pool_growth(self):
-        from core.token.bloom import CommunityPool, WalletState
+        from core.token.bloom import CommunityPool
         from core.token.bloom import TokenMinter as BloomMinter
+        from core.token.bloom import WalletState
 
         pool = CommunityPool()
         minter = BloomMinter(community_pool=pool)
         wallet = WalletState(node_id="test_node")
 
         ns = _build_ns(
-            minter=minter, wallet=wallet, wallets=[wallet],
+            minter=minter,
+            wallet=wallet,
+            wallets=[wallet],
             reward_per_mission=2.0,
         )
 
@@ -289,12 +304,14 @@ class TestBloomPoolSplit:
 # 5. GINI INVARIANT (ADL §14)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestGiniInvariant:
     """Token minting halts if wealth inequality exceeds 0.35 Gini."""
 
     def test_gini_ok_with_equal_wallets(self):
-        from core.token.bloom import CommunityPool, WalletState
+        from core.token.bloom import CommunityPool
         from core.token.bloom import TokenMinter as BloomMinter
+        from core.token.bloom import WalletState
 
         pool = CommunityPool()
         minter = BloomMinter(community_pool=pool)
@@ -303,15 +320,18 @@ class TestGiniInvariant:
         w3 = WalletState(node_id="c", seed_balance=11.0)
 
         ns = _build_ns(
-            minter=minter, wallet=w1, wallets=[w1, w2, w3],
+            minter=minter,
+            wallet=w1,
+            wallets=[w1, w2, w3],
         )
 
         receipt = asyncio.run(ns.run("Fair mission", ihsan_override=0.96))
         assert receipt.gini_ok is True
 
     def test_gini_halt_with_extreme_inequality(self):
-        from core.token.bloom import CommunityPool, WalletState
+        from core.token.bloom import CommunityPool
         from core.token.bloom import TokenMinter as BloomMinter
+        from core.token.bloom import WalletState
 
         pool = CommunityPool()
         minter = BloomMinter(community_pool=pool)
@@ -320,7 +340,9 @@ class TestGiniInvariant:
         w3 = WalletState(node_id="poor_b", seed_balance=1.0)
 
         ns = _build_ns(
-            minter=minter, wallet=w1, wallets=[w1, w2, w3],
+            minter=minter,
+            wallet=w1,
+            wallets=[w1, w2, w3],
         )
 
         receipt = asyncio.run(ns.run("Unjust mission", ihsan_override=0.96))
@@ -331,6 +353,7 @@ class TestGiniInvariant:
 # ═══════════════════════════════════════════════════════════════════
 # 6. EVIDENCE CHAIN INTEGRITY (Lamport)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestEvidenceChain:
     """Every receipt links to the previous one via hash chain."""
@@ -379,6 +402,7 @@ class TestEvidenceChain:
 # 7. EVENTBUS EVENT FLOW (Hewitt Actor Model)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestEventBusFlow:
     """Events flow to the Phase 80 EventBus with correct types."""
 
@@ -420,6 +444,7 @@ class TestEventBusFlow:
 # 8. FACTORY WIRING (all Phase 80 modules compose)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestFactoryWiring:
     """The create() factory wires all Phase 80 modules together."""
 
@@ -449,12 +474,14 @@ class TestFactoryWiring:
 # 9. STATS OBSERVABILITY
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestStatsObservability:
     """Stats track all nervous system activity for observability."""
 
     def test_stats_accumulate(self):
-        from core.token.bloom import CommunityPool, WalletState
+        from core.token.bloom import CommunityPool
         from core.token.bloom import TokenMinter as BloomMinter
+        from core.token.bloom import WalletState
 
         pool = CommunityPool()
         minter = BloomMinter(community_pool=pool)

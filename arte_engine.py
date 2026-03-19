@@ -5,6 +5,7 @@
 
 import json
 import warnings
+
 import numpy as np
 
 # Monkeypatch for libraries using deprecated np.object (removed in NumPy 1.24)
@@ -12,26 +13,27 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore", FutureWarning)
     if not hasattr(np, "object"):
         np.object = object  # type: ignore[attr-defined]
-import pandas as pd
+import hashlib
 import logging
-from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Any
+import time
+from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from collections import defaultdict
-import hashlib
-import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import pandas as pd
 
 from bizra_config import (
-    INDEXED_PATH,
-    GRAPH_PATH,
+    ARTE_TENSION_LIMIT,
+    CHUNKS_TABLE_PATH,
+    CORPUS_TABLE_PATH,
     EMBEDDINGS_PATH,
     GOLD_PATH,
-    SNR_THRESHOLD,
+    GRAPH_PATH,
     IHSAN_CONSTRAINT,
-    ARTE_TENSION_LIMIT,
-    CORPUS_TABLE_PATH,
-    CHUNKS_TABLE_PATH,
+    INDEXED_PATH,
+    SNR_THRESHOLD,
 )
 
 # Configure logging
@@ -535,9 +537,7 @@ class GraphOfThoughts:
         confidence_level = (
             "high confidence"
             if snr >= IHSAN_CONSTRAINT
-            else "moderate confidence"
-            if snr >= 0.6
-            else "low confidence"
+            else "moderate confidence" if snr >= 0.6 else "low confidence"
         )
         return f"Conclusion ({confidence_level}): {synthesis.content}"
 

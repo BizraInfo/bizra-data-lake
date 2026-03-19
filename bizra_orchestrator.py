@@ -12,7 +12,8 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 
 # ---------------------------------------------------------------------------
@@ -26,9 +27,16 @@ for _subdir in ("tools/engines", "tools/bridges", "tools"):
         sys.path.insert(0, _p)
 
 from bizra_config import (
-    CHUNKS_TABLE_PATH, CORPUS_TABLE_PATH, GRAPH_PATH, GOLD_PATH,
-    SNR_THRESHOLD, IHSAN_CONSTRAINT, INDEXED_PATH,
-    VISION_ENABLED, AUDIO_ENABLED, IMAGE_EMBEDDINGS_PATH
+    AUDIO_ENABLED,
+    CHUNKS_TABLE_PATH,
+    CORPUS_TABLE_PATH,
+    GOLD_PATH,
+    GRAPH_PATH,
+    IHSAN_CONSTRAINT,
+    IMAGE_EMBEDDINGS_PATH,
+    INDEXED_PATH,
+    SNR_THRESHOLD,
+    VISION_ENABLED,
 )
 
 # ---------------------------------------------------------------------------
@@ -38,7 +46,8 @@ from bizra_config import (
 
 # Hypergraph RAG (core retrieval)
 try:
-    from hypergraph_engine import HypergraphRAGEngine, RetrievalMode, QueryContext
+    from hypergraph_engine import HypergraphRAGEngine, QueryContext, RetrievalMode
+
     HYPERGRAPH_AVAILABLE = True
 except ImportError:
     HYPERGRAPH_AVAILABLE = False
@@ -52,9 +61,11 @@ except ImportError:
         MULTI_HOP = "multi_hop"
         WARP = "warp"
 
+
 # ARTE Symbolic-Neural Bridge
 try:
-    from arte_engine import ARTEEngine, ThoughtType, TensionType
+    from arte_engine import ARTEEngine, TensionType, ThoughtType
+
     ARTE_AVAILABLE = True
 except ImportError:
     ARTE_AVAILABLE = False
@@ -67,9 +78,11 @@ except ImportError:
     class TensionType(Enum):  # type: ignore[no-redef]
         COHERENT = "coherent"
 
+
 # PAT Multi-Agent Team
 try:
-    from pat_engine import PATOrchestrator, OllamaBackend, LMStudioBackend, ThinkingMode
+    from pat_engine import LMStudioBackend, OllamaBackend, PATOrchestrator, ThinkingMode
+
     PAT_AVAILABLE = True
 except ImportError:
     PAT_AVAILABLE = False
@@ -80,11 +93,17 @@ except ImportError:
     class ThinkingMode(Enum):  # type: ignore[no-redef]
         STANDARD = "standard"
 
+
 # Import KEP Bridge
 try:
     from kep_bridge import (
-        KEPBridge, KEPResult, SynergyCandidate, CompoundProposal, IhsanCheck
+        CompoundProposal,
+        IhsanCheck,
+        KEPBridge,
+        KEPResult,
+        SynergyCandidate,
     )
+
     KEP_AVAILABLE = True
 except ImportError:
     KEP_AVAILABLE = False
@@ -92,6 +111,7 @@ except ImportError:
 # Import Discipline Synthesis Engine (47-Discipline Cognitive Topology)
 try:
     from discipline_synthesis import DisciplineSynthesisEngine, Generator
+
     DISCIPLINE_ENGINE_AVAILABLE = True
 except ImportError:
     DISCIPLINE_ENGINE_AVAILABLE = False
@@ -99,21 +119,33 @@ except ImportError:
 
 # Import Multi-Modal Engine
 try:
-    from multimodal_engine import MultiModalEngine, ModalityType, ImageContent, AudioContent
+    from multimodal_engine import (
+        AudioContent,
+        ImageContent,
+        ModalityType,
+        MultiModalEngine,
+    )
+
     MULTIMODAL_AVAILABLE = True
 except ImportError:
     MULTIMODAL_AVAILABLE = False
 
 # Import Dual Agentic Bridge
 try:
-    from dual_agentic_bridge import DualAgenticBridge, ModelCapability, KnowledgeEnhancedRouter
+    from dual_agentic_bridge import (
+        DualAgenticBridge,
+        KnowledgeEnhancedRouter,
+        ModelCapability,
+    )
+
     DUAL_AGENTIC_AVAILABLE = True
 except ImportError:
     DUAL_AGENTIC_AVAILABLE = False
 
 # Import SNR Optimizer for Ihsān Achievement
 try:
-    from snr_optimizer import SNROptimizer, OptimizationResult, OptimizationStrategy
+    from snr_optimizer import OptimizationResult, OptimizationStrategy, SNROptimizer
+
     SNR_OPTIMIZER_AVAILABLE = True
 except ImportError:
     SNR_OPTIMIZER_AVAILABLE = False
@@ -121,9 +153,15 @@ except ImportError:
 # Import Sovereign Bridge (High-Performance Caching & Event Bus)
 try:
     from sovereign_bridge import (
-        SovereignBridge, get_bridge, initialize_bridge,
-        BridgeEventType, QueryResultCache, EmbeddingCache, ContextCache
+        BridgeEventType,
+        ContextCache,
+        EmbeddingCache,
+        QueryResultCache,
+        SovereignBridge,
+        get_bridge,
+        initialize_bridge,
     )
+
     SOVEREIGN_BRIDGE_AVAILABLE = True
 except ImportError:
     SOVEREIGN_BRIDGE_AVAILABLE = False
@@ -132,6 +170,7 @@ except ImportError:
 # Metrics
 try:
     from metrics_dashboard import record_latency
+
     METRICS_AVAILABLE = True
 except Exception:
     METRICS_AVAILABLE = False
@@ -139,26 +178,28 @@ except Exception:
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | BIZRA | %(message)s',
+    format="%(asctime)s | %(levelname)s | BIZRA | %(message)s",
     handlers=[
         logging.FileHandler(INDEXED_PATH / "bizra_orchestrator.log"),
-        logging.StreamHandler()
-    ]
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger("BIZRA")
 
 
 class QueryComplexity(Enum):
     """Query complexity levels for adaptive processing."""
-    SIMPLE = "simple"         # Direct lookup, single-hop
-    MODERATE = "moderate"     # Multi-hop retrieval
-    COMPLEX = "complex"       # Full reasoning pipeline
-    RESEARCH = "research"     # Deep multi-agent analysis
+
+    SIMPLE = "simple"  # Direct lookup, single-hop
+    MODERATE = "moderate"  # Multi-hop retrieval
+    COMPLEX = "complex"  # Full reasoning pipeline
+    RESEARCH = "research"  # Deep multi-agent analysis
 
 
 @dataclass
 class BIZRAQuery:
     """Structured query with multi-modal support."""
+
     text: str
     complexity: QueryComplexity = QueryComplexity.MODERATE
     require_sources: bool = True
@@ -178,6 +219,7 @@ class BIZRAQuery:
 @dataclass
 class BIZRAResponse:
     """Complete response with full provenance and multi-modal support."""
+
     query: str
     answer: str
     snr_score: float
@@ -197,8 +239,12 @@ class BIZRAResponse:
     # Multi-modal fields
     image_analysis: Optional[str] = None  # Vision model analysis
     audio_transcript: Optional[str] = None  # Audio transcription
-    similar_images: List[Dict] = field(default_factory=list)  # Cross-modal image matches
-    modality_used: List[str] = field(default_factory=list)  # Which modalities were processed
+    similar_images: List[Dict] = field(
+        default_factory=list
+    )  # Cross-modal image matches
+    modality_used: List[str] = field(
+        default_factory=list
+    )  # Which modalities were processed
     metadata: Dict = field(default_factory=dict)
 
 
@@ -231,7 +277,7 @@ class BIZRAOrchestrator:
         enable_kep: bool = True,
         enable_multimodal: bool = True,
         enable_discipline: bool = True,
-        ollama_model: str = "liquid/lfm2.5-1.2b"
+        ollama_model: str = "liquid/lfm2.5-1.2b",
     ):
         logger.info("Initializing BIZRA Unified Orchestrator v3.0")
 
@@ -245,7 +291,9 @@ class BIZRAOrchestrator:
                 logger.warning(f"Hypergraph RAG Engine unavailable: {e}")
                 self.hypergraph_available = False
         else:
-            logger.warning("Hypergraph RAG Engine module not found — retrieval disabled")
+            logger.warning(
+                "Hypergraph RAG Engine module not found — retrieval disabled"
+            )
 
         self.arte_available = ARTE_AVAILABLE
         self.arte = None
@@ -265,7 +313,9 @@ class BIZRAOrchestrator:
             try:
                 lm_backend = LMStudioBackend()
                 self.pat = PATOrchestrator(lm_backend, model=ollama_model)
-                logger.info(f"PAT Engine initialized with LM Studio (model: {ollama_model})")
+                logger.info(
+                    f"PAT Engine initialized with LM Studio (model: {ollama_model})"
+                )
             except Exception as e:
                 try:
                     backend = OllamaBackend()
@@ -298,7 +348,9 @@ class BIZRAOrchestrator:
         if enable_discipline and DISCIPLINE_ENGINE_AVAILABLE:
             try:
                 self.discipline_engine = DisciplineSynthesisEngine()
-                logger.info("47-Discipline Synthesis Engine initialized (4-Generator Theory)")
+                logger.info(
+                    "47-Discipline Synthesis Engine initialized (4-Generator Theory)"
+                )
             except Exception as e:
                 logger.warning(f"Discipline Engine unavailable: {e}")
                 self.discipline_enabled = False
@@ -338,7 +390,9 @@ class BIZRAOrchestrator:
         if SOVEREIGN_BRIDGE_AVAILABLE:
             try:
                 self.sovereign_bridge = get_bridge()
-                logger.info("✨ Sovereign Bridge connected (B+ Tree + Bloom Filter + LRU Cache)")
+                logger.info(
+                    "✨ Sovereign Bridge connected (B+ Tree + Bloom Filter + LRU Cache)"
+                )
             except Exception as e:
                 logger.warning(f"Sovereign Bridge unavailable: {e}")
                 self.sovereign_bridge_enabled = False
@@ -359,7 +413,9 @@ class BIZRAOrchestrator:
         if self.sovereign_bridge_enabled and self.sovereign_bridge:
             try:
                 await self.sovereign_bridge.initialize()
-                logger.info("✨ Sovereign Bridge initialized (high-performance caching active)")
+                logger.info(
+                    "✨ Sovereign Bridge initialized (high-performance caching active)"
+                )
             except Exception as e:
                 logger.warning(f"Sovereign Bridge initialization failed: {e}")
 
@@ -377,7 +433,9 @@ class BIZRAOrchestrator:
             if health["integration"]["tension_level"] == "critical":
                 logger.warning("ARTE shows critical tension level")
         else:
-            logger.warning("ARTE Engine skipped — tension analysis will not be available")
+            logger.warning(
+                "ARTE Engine skipped — tension analysis will not be available"
+            )
 
         # Initialize Multi-Modal Engine (lazy load models)
         if self.multimodal_enabled and self.multimodal:
@@ -463,7 +521,9 @@ class BIZRAOrchestrator:
         # Step 2: Context Retrieval via Hypergraph RAG
         if not self.hypergraph_available or not self.hypergraph:
             execution_time = time.time() - start_time
-            reasoning_trace.append("Hypergraph RAG unavailable — cannot retrieve context")
+            reasoning_trace.append(
+                "Hypergraph RAG unavailable — cannot retrieve context"
+            )
             return BIZRAResponse(
                 query=query.text,
                 answer="Retrieval engine not available. Install dependencies: pip install faiss-cpu sentence-transformers",
@@ -494,21 +554,25 @@ class BIZRAOrchestrator:
             k=k,
             max_hops=3 if query.complexity == QueryComplexity.RESEARCH else 2,
             snr_threshold=query.snr_threshold,
-            max_tokens=query.max_tokens
+            max_tokens=query.max_tokens,
         )
 
         reasoning_trace.extend(context.reasoning_trace)
 
         # Early exit: low SNR retrieval (avoid expensive stages)
         if context.snr_score < query.snr_threshold:
-            reasoning_trace.append(f"Early exit: retrieval SNR {context.snr_score:.3f} below threshold {query.snr_threshold}")
+            reasoning_trace.append(
+                f"Early exit: retrieval SNR {context.snr_score:.3f} below threshold {query.snr_threshold}"
+            )
             execution_time = time.time() - start_time
             sources = [
                 {
                     "chunk_id": r.chunk_id,
                     "doc_id": r.doc_id,
                     "score": r.score,
-                    "text_preview": r.text[:200] + "..." if len(r.text) > 200 else r.text
+                    "text_preview": (
+                        r.text[:200] + "..." if len(r.text) > 200 else r.text
+                    ),
                 }
                 for r in context.results[:3]
             ]
@@ -524,7 +588,11 @@ class BIZRAOrchestrator:
                 ihsan_achieved=False,
                 sources=sources if query.require_sources else [],
                 reasoning_trace=reasoning_trace,
-                tension_analysis={"type": "low_signal", "symbolic_coverage": 0, "neural_coverage": 0},
+                tension_analysis={
+                    "type": "low_signal",
+                    "symbolic_coverage": 0,
+                    "neural_coverage": 0,
+                },
                 execution_time=round(execution_time, 3),
                 query_trace={
                     "snr": context.snr_score,
@@ -533,15 +601,15 @@ class BIZRAOrchestrator:
                     "neural_coverage": 0,
                     "tension_type": "low_signal",
                     "giants_protocol": {},
-                    "sources": sources if query.require_sources else []
+                    "sources": sources if query.require_sources else [],
                 },
                 metadata={
                     "complexity": query.complexity.value,
                     "retrieval_mode": retrieval_mode.value,
                     "chunks_retrieved": len(context.results),
                     "tokens_estimated": context.total_tokens_est,
-                    "early_exit": True
-                }
+                    "early_exit": True,
+                },
             )
 
         # Step 3: ARTE Symbolic-Neural Resolution
@@ -558,10 +626,16 @@ class BIZRAOrchestrator:
                 symbolic_facts=symbolic_facts,
                 neural_results=neural_results,
                 query_embedding=context.query_embedding,
-                context_embeddings=context_embeddings if context_embeddings.size > 0 else np.zeros((1, 384))
+                context_embeddings=(
+                    context_embeddings
+                    if context_embeddings.size > 0
+                    else np.zeros((1, 384))
+                ),
             )
             reasoning_trace.append(f"ARTE SNR: {arte_result['snr_score']}")
-            reasoning_trace.append(f"Tension: {arte_result['tension_analysis']['type']}")
+            reasoning_trace.append(
+                f"Tension: {arte_result['tension_analysis']['type']}"
+            )
         else:
             arte_result = {
                 "snr_score": context.snr_score,
@@ -581,7 +655,7 @@ class BIZRAOrchestrator:
                     "chunk_id": r.chunk_id,
                     "text": r.text,
                     "score": r.score,
-                    "embedding": embedding_map.get(r.chunk_id, {}).get("list")
+                    "embedding": embedding_map.get(r.chunk_id, {}).get("list"),
                 }
                 for r in context.results
             ]
@@ -590,31 +664,49 @@ class BIZRAOrchestrator:
                 query=query.text,
                 retrieval_results=kep_retrieval_results,
                 query_embedding=context.query_embedding,
-                snr_score=arte_result['snr_score'],
+                snr_score=arte_result["snr_score"],
                 min_synergy_strength=query.min_synergy_strength,
-                max_compounds=3 if query.complexity in [QueryComplexity.COMPLEX, QueryComplexity.RESEARCH] else 1
+                max_compounds=(
+                    3
+                    if query.complexity
+                    in [QueryComplexity.COMPLEX, QueryComplexity.RESEARCH]
+                    else 1
+                ),
             )
 
-            reasoning_trace.append(f"KEP synergies detected: {len(kep_result.synergies)}")
-            reasoning_trace.append(f"KEP compounds discovered: {len(kep_result.compounds)}")
-            reasoning_trace.append(f"KEP Ihsan check: {'PASSED' if kep_result.ihsan_check.passed else 'FAILED'}")
-            reasoning_trace.append(f"KEP learning boost: {kep_result.learning_boost:.2f}x")
+            reasoning_trace.append(
+                f"KEP synergies detected: {len(kep_result.synergies)}"
+            )
+            reasoning_trace.append(
+                f"KEP compounds discovered: {len(kep_result.compounds)}"
+            )
+            reasoning_trace.append(
+                f"KEP Ihsan check: {'PASSED' if kep_result.ihsan_check.passed else 'FAILED'}"
+            )
+            reasoning_trace.append(
+                f"KEP learning boost: {kep_result.learning_boost:.2f}x"
+            )
 
         # Step 5: Response Generation
-        if query.complexity in [QueryComplexity.COMPLEX, QueryComplexity.RESEARCH] and self.pat_enabled:
+        if (
+            query.complexity in [QueryComplexity.COMPLEX, QueryComplexity.RESEARCH]
+            and self.pat_enabled
+        ):
             # Use PAT agents for complex queries (with KEP context if available)
-            answer = await self._generate_with_pat(query, context, arte_result, kep_result)
+            answer = await self._generate_with_pat(
+                query, context, arte_result, kep_result
+            )
             reasoning_trace.append("Response generated via PAT agents")
         else:
             # Direct answer assembly for simpler queries
-            answer = self._assemble_direct_answer(query, context, arte_result, kep_result)
+            answer = self._assemble_direct_answer(
+                query, context, arte_result, kep_result
+            )
             reasoning_trace.append("Direct response assembled")
 
         # Step 6: Final SNR validation (with KEP Ihsan if available)
         final_snr = self._calculate_final_snr(
-            arte_result['snr_score'],
-            context.snr_score,
-            len(context.results)
+            arte_result["snr_score"], context.snr_score, len(context.results)
         )
 
         # Use KEP Ihsan check if available, otherwise fall back to SNR threshold
@@ -625,7 +717,9 @@ class BIZRAOrchestrator:
             ihsan_achieved = final_snr >= IHSAN_CONSTRAINT
 
         if not ihsan_achieved and query.snr_threshold >= IHSAN_CONSTRAINT:
-            reasoning_trace.append(f"Warning: SNR {final_snr:.3f} below Ihsan threshold {IHSAN_CONSTRAINT}")
+            reasoning_trace.append(
+                f"Warning: SNR {final_snr:.3f} below Ihsan threshold {IHSAN_CONSTRAINT}"
+            )
 
         # Step 7: Build response
         execution_time = time.time() - start_time
@@ -635,7 +729,7 @@ class BIZRAOrchestrator:
                 "chunk_id": r.chunk_id,
                 "doc_id": r.doc_id,
                 "score": r.score,
-                "text_preview": r.text[:200] + "..." if len(r.text) > 200 else r.text
+                "text_preview": r.text[:200] + "..." if len(r.text) > 200 else r.text,
             }
             for r in context.results[:5]
         ]
@@ -652,7 +746,7 @@ class BIZRAOrchestrator:
                     "target_domain": s.target_domain,
                     "synergy_type": s.synergy_type.value,
                     "strength": s.strength,
-                    "bridging_concepts": s.bridging_concepts
+                    "bridging_concepts": s.bridging_concepts,
                 }
                 for s in kep_result.synergies
             ]
@@ -661,7 +755,7 @@ class BIZRAOrchestrator:
                     "compound_type": c.compound_type.value,
                     "hypothesis": c.hypothesis,
                     "confidence": c.confidence,
-                    "implications": c.implications
+                    "implications": c.implications,
                 }
                 for c in kep_result.compounds
             ]
@@ -681,11 +775,13 @@ class BIZRAOrchestrator:
         query_trace = {
             "snr": final_snr,
             "ihsan": ihsan_achieved,
-            "symbolic_coverage": arte_result['tension_analysis'].get('symbolic_coverage'),
-            "neural_coverage": arte_result['tension_analysis'].get('neural_coverage'),
-            "tension_type": arte_result['tension_analysis'].get('type'),
-            "giants_protocol": arte_result.get('giants_protocol', {}),
-            "sources": sources if query.require_sources else []
+            "symbolic_coverage": arte_result["tension_analysis"].get(
+                "symbolic_coverage"
+            ),
+            "neural_coverage": arte_result["tension_analysis"].get("neural_coverage"),
+            "tension_type": arte_result["tension_analysis"].get("type"),
+            "giants_protocol": arte_result.get("giants_protocol", {}),
+            "sources": sources if query.require_sources else [],
         }
 
         response = BIZRAResponse(
@@ -695,7 +791,7 @@ class BIZRAOrchestrator:
             ihsan_achieved=ihsan_achieved,
             sources=sources if query.require_sources else [],
             reasoning_trace=reasoning_trace,
-            tension_analysis=arte_result['tension_analysis'],
+            tension_analysis=arte_result["tension_analysis"],
             execution_time=round(execution_time, 3),
             query_trace=query_trace,
             synergies=synergies_data,
@@ -716,14 +812,16 @@ class BIZRAOrchestrator:
                 "discipline_enabled": self.discipline_enabled,
                 "multimodal_enabled": self.multimodal_enabled,
                 "vision_used": "vision" in modalities_used,
-                "audio_used": "audio" in modalities_used
-            }
+                "audio_used": "audio" in modalities_used,
+            },
         )
 
         # Cache response
         if self.sovereign_bridge_enabled and self.sovereign_bridge:
             try:
-                self.sovereign_bridge.query_cache.put(query.text, response, cache_params)
+                self.sovereign_bridge.query_cache.put(
+                    query.text, response, cache_params
+                )
             except Exception:
                 pass
 
@@ -742,7 +840,7 @@ class BIZRAOrchestrator:
             QueryComplexity.SIMPLE: RetrievalMode.SEMANTIC,
             QueryComplexity.MODERATE: RetrievalMode.HYBRID,
             QueryComplexity.COMPLEX: RetrievalMode.MULTI_HOP,
-            QueryComplexity.RESEARCH: RetrievalMode.MULTI_HOP
+            QueryComplexity.RESEARCH: RetrievalMode.MULTI_HOP,
         }
         return mapping.get(complexity, RetrievalMode.HYBRID)
 
@@ -754,11 +852,13 @@ class BIZRAOrchestrator:
         for result in context.results:
             if result.doc_id not in seen_docs:
                 seen_docs.add(result.doc_id)
-                facts.append({
-                    "doc_id": result.doc_id,
-                    "text": result.text[:500],
-                    "graph_distance": result.graph_distance
-                })
+                facts.append(
+                    {
+                        "doc_id": result.doc_id,
+                        "text": result.text[:500],
+                        "graph_distance": result.graph_distance,
+                    }
+                )
 
         return facts
 
@@ -769,7 +869,7 @@ class BIZRAOrchestrator:
                 "chunk_id": r.chunk_id,
                 "doc_id": r.doc_id,
                 "score": r.score,
-                "text": r.text
+                "text": r.text,
             }
             for r in context.results
         ]
@@ -779,23 +879,25 @@ class BIZRAOrchestrator:
         query: BIZRAQuery,
         context: QueryContext,
         arte_result: Dict,
-        kep_result: Optional[KEPResult] = None
+        kep_result: Optional[KEPResult] = None,
     ) -> str:
         """Generate response using PAT multi-agent system with KEP context."""
         if not self.pat:
             return self._assemble_direct_answer(query, context, arte_result, kep_result)
 
         # Build context for PAT
-        retrieved_context = "\n\n".join([
-            f"[Source {i+1}] (score: {r.score:.2f})\n{r.text}"
-            for i, r in enumerate(context.results[:5])
-        ])
+        retrieved_context = "\n\n".join(
+            [
+                f"[Source {i+1}] (score: {r.score:.2f})\n{r.text}"
+                for i, r in enumerate(context.results[:5])
+            ]
+        )
 
         pat_context = {
             "retrieved_context": retrieved_context,
-            "snr_score": arte_result['snr_score'],
-            "tension_type": arte_result['tension_analysis']['type'],
-            "sources": [r.doc_id for r in context.results[:5]]
+            "snr_score": arte_result["snr_score"],
+            "tension_type": arte_result["tension_analysis"]["type"],
+            "sources": [r.doc_id for r in context.results[:5]],
         }
 
         # Add KEP synergies and compounds to PAT context
@@ -805,7 +907,7 @@ class BIZRAOrchestrator:
                     "domains": f"{s.source_domain} <-> {s.target_domain}",
                     "type": s.synergy_type.value,
                     "strength": s.strength,
-                    "bridges": s.bridging_concepts
+                    "bridges": s.bridging_concepts,
                 }
                 for s in kep_result.synergies
             ]
@@ -813,7 +915,7 @@ class BIZRAOrchestrator:
                 {
                     "type": c.compound_type.value,
                     "hypothesis": c.hypothesis,
-                    "confidence": c.confidence
+                    "confidence": c.confidence,
                 }
                 for c in kep_result.compounds
             ]
@@ -823,11 +925,18 @@ class BIZRAOrchestrator:
             pat_result = await self.pat.process_task(
                 task=query.text,
                 context=pat_context,
-                agents_to_use=["researcher", "analyst"] if query.complexity == QueryComplexity.COMPLEX else ["researcher", "analyst", "creator"],
-                require_guardian_approval=True
+                agents_to_use=(
+                    ["researcher", "analyst"]
+                    if query.complexity == QueryComplexity.COMPLEX
+                    else ["researcher", "analyst", "creator"]
+                ),
+                require_guardian_approval=True,
             )
 
-            return pat_result.get("synthesis", self._assemble_direct_answer(query, context, arte_result, kep_result))
+            return pat_result.get(
+                "synthesis",
+                self._assemble_direct_answer(query, context, arte_result, kep_result),
+            )
 
         except Exception as e:
             logger.error(f"PAT generation failed: {e}")
@@ -838,7 +947,7 @@ class BIZRAOrchestrator:
         query: BIZRAQuery,
         context: QueryContext,
         arte_result: Dict,
-        kep_result: Optional[KEPResult] = None
+        kep_result: Optional[KEPResult] = None,
     ) -> str:
         """Assemble direct answer from retrieved context with KEP insights."""
         if not context.results:
@@ -848,7 +957,9 @@ class BIZRAOrchestrator:
         parts = []
 
         # Introduction
-        parts.append(f"Based on {len(context.results)} retrieved sources (SNR: {arte_result['snr_score']:.2f}):\n")
+        parts.append(
+            f"Based on {len(context.results)} retrieved sources (SNR: {arte_result['snr_score']:.2f}):\n"
+        )
 
         # Key information from top results
         for i, result in enumerate(context.results[:3]):
@@ -860,22 +971,30 @@ class BIZRAOrchestrator:
             parts.append(text)
 
         # Add ARTE insights
-        tension = arte_result['tension_analysis']
-        if tension['type'] != 'coherent':
-            parts.append(f"\n**Note:** {tension['type'].replace('_', ' ').title()} detected. Recommendations: {', '.join(tension.get('recommendations', ['Review sources']))}")
+        tension = arte_result["tension_analysis"]
+        if tension["type"] != "coherent":
+            parts.append(
+                f"\n**Note:** {tension['type'].replace('_', ' ').title()} detected. Recommendations: {', '.join(tension.get('recommendations', ['Review sources']))}"
+            )
 
         # Add KEP synergies and compounds
         if kep_result and kep_result.synergies:
             parts.append("\n\n**Cross-Domain Synergies Detected:**")
             for syn in kep_result.synergies[:3]:
-                parts.append(f"  - {syn.source_domain} <-> {syn.target_domain} ({syn.synergy_type.value}, strength: {syn.strength:.2f})")
+                parts.append(
+                    f"  - {syn.source_domain} <-> {syn.target_domain} ({syn.synergy_type.value}, strength: {syn.strength:.2f})"
+                )
                 if syn.bridging_concepts:
-                    parts.append(f"    Bridging concepts: {', '.join(syn.bridging_concepts[:3])}")
+                    parts.append(
+                        f"    Bridging concepts: {', '.join(syn.bridging_concepts[:3])}"
+                    )
 
         if kep_result and kep_result.compounds:
             parts.append("\n**Compound Discoveries:**")
             for comp in kep_result.compounds[:2]:
-                parts.append(f"  - [{comp.compound_type.value.upper()}] {comp.hypothesis[:150]}...")
+                parts.append(
+                    f"  - [{comp.compound_type.value.upper()}] {comp.hypothesis[:150]}..."
+                )
                 parts.append(f"    Confidence: {comp.confidence:.2f}")
 
         if kep_result:
@@ -884,17 +1003,14 @@ class BIZRAOrchestrator:
         return "\n".join(parts)
 
     def _calculate_final_snr(
-        self,
-        arte_snr: float,
-        retrieval_snr: float,
-        result_count: int
+        self, arte_snr: float, retrieval_snr: float, result_count: int
     ) -> float:
         """Calculate final SNR combining all factors."""
         if result_count == 0:
             return 0.0
 
         # Weighted combination
-        base_snr = (arte_snr * 0.6 + retrieval_snr * 0.4)
+        base_snr = arte_snr * 0.6 + retrieval_snr * 0.4
 
         # Penalty for very few results
         if result_count < 3:
@@ -911,9 +1027,7 @@ class BIZRAOrchestrator:
     # =========================================================================
 
     async def _process_image_query(
-        self,
-        image_path: str,
-        query_text: str
+        self, image_path: str, query_text: str
     ) -> Tuple[Optional[str], List[Dict]]:
         """
         Process an image query using vision models.
@@ -940,18 +1054,21 @@ class BIZRAOrchestrator:
             # Get image analysis via Dual Agentic or LLaVA
             if self.dual_agentic_enabled and self.dual_agentic:
                 image_analysis = await self.dual_agentic.analyze_image(
-                    image_path,
-                    f"Analyze this image in the context of: {query_text}"
+                    image_path, f"Analyze this image in the context of: {query_text}"
                 )
             else:
                 # Use local LLaVA
-                image_analysis = await self.multimodal.image_processor.describe_image_async(
-                    image_path, use_local=True
+                image_analysis = (
+                    await self.multimodal.image_processor.describe_image_async(
+                        image_path, use_local=True
+                    )
                 )
 
             # Find similar images in the knowledge base
             if image_content.embedding is not None:
-                similar_images = await self._find_similar_images(image_content.embedding)
+                similar_images = await self._find_similar_images(
+                    image_content.embedding
+                )
 
         except Exception as e:
             logger.warning(f"Image processing failed: {e}")
@@ -985,7 +1102,9 @@ class BIZRAOrchestrator:
             logger.warning(f"Audio processing failed: {e}")
             return None
 
-    async def _find_similar_images(self, query_embedding: np.ndarray, k: int = 5) -> List[Dict]:
+    async def _find_similar_images(
+        self, query_embedding: np.ndarray, k: int = 5
+    ) -> List[Dict]:
         """
         Find similar images in the knowledge base using CLIP embeddings.
 
@@ -1013,18 +1132,20 @@ class BIZRAOrchestrator:
 
             # Calculate cosine similarity
             for _, row in df_images.iterrows():
-                embedding = np.array(row['embedding'])
+                embedding = np.array(row["embedding"])
                 similarity = np.dot(query_embedding, embedding)
 
-                similar_images.append({
-                    'chunk_id': row['chunk_id'],
-                    'file_path': row.get('file_path', ''),
-                    'text': row.get('chunk_text', ''),
-                    'score': float(similarity)
-                })
+                similar_images.append(
+                    {
+                        "chunk_id": row["chunk_id"],
+                        "file_path": row.get("file_path", ""),
+                        "text": row.get("chunk_text", ""),
+                        "score": float(similarity),
+                    }
+                )
 
             # Sort by similarity and return top k
-            similar_images.sort(key=lambda x: x['score'], reverse=True)
+            similar_images.sort(key=lambda x: x["score"], reverse=True)
             return similar_images[:k]
 
         except Exception as e:
@@ -1037,13 +1158,21 @@ class BIZRAOrchestrator:
             "initialized": self._initialized,
             "version": "3.0",
             "engines": {
-                "hypergraph_rag": "ready" if (self.hypergraph_available and self._initialized) else ("unavailable" if not self.hypergraph_available else "not_initialized"),
+                "hypergraph_rag": (
+                    "ready"
+                    if (self.hypergraph_available and self._initialized)
+                    else (
+                        "unavailable"
+                        if not self.hypergraph_available
+                        else "not_initialized"
+                    )
+                ),
                 "arte": "ready" if self.arte_available else "unavailable",
                 "pat": "ready" if self.pat_enabled else "disabled",
                 "kep": "ready" if self.kep_enabled else "disabled",
                 "multimodal": "ready" if self.multimodal_enabled else "disabled",
-                "dual_agentic": "ready" if self.dual_agentic_enabled else "disabled"
-            }
+                "dual_agentic": "ready" if self.dual_agentic_enabled else "disabled",
+            },
         }
 
         # Add ARTE health check
@@ -1053,7 +1182,7 @@ class BIZRAOrchestrator:
                 "symbolic_nodes": arte_health["symbolic"]["nodes"],
                 "neural_chunks": arte_health["neural"]["chunks"],
                 "integration_snr": arte_health["integration"]["snr_score"],
-                "tension_level": arte_health["integration"]["tension_level"]
+                "tension_level": arte_health["integration"]["tension_level"],
             }
 
         # Add KEP status
@@ -1115,9 +1244,7 @@ async def main():
 
     # Initialize orchestrator with all capabilities
     orchestrator = BIZRAOrchestrator(
-        enable_pat=True,
-        enable_kep=True,
-        enable_multimodal=True
+        enable_pat=True, enable_kep=True, enable_multimodal=True
     )
 
     # Initialize
@@ -1154,16 +1281,16 @@ async def main():
     test_queries = [
         BIZRAQuery(
             text="How does the BIZRA data lake process incoming files?",
-            complexity=QueryComplexity.MODERATE
+            complexity=QueryComplexity.MODERATE,
         ),
         BIZRAQuery(
             text="Explain the architecture of the embedding generation pipeline",
-            complexity=QueryComplexity.COMPLEX
+            complexity=QueryComplexity.COMPLEX,
         ),
         BIZRAQuery(
             text="What is the relationship between ARTE and the hypergraph?",
-            complexity=QueryComplexity.RESEARCH
-        )
+            complexity=QueryComplexity.RESEARCH,
+        ),
     ]
 
     for query in test_queries:
@@ -1189,8 +1316,10 @@ async def main():
             print(f"\nKEP Synergies ({len(response.synergies)} detected):")
             for syn in response.synergies[:3]:
                 print(f"  - {syn['source_domain']} <-> {syn['target_domain']}")
-                print(f"    Type: {syn['synergy_type']}, Strength: {syn['strength']:.2f}")
-                if syn.get('bridging_concepts'):
+                print(
+                    f"    Type: {syn['synergy_type']}, Strength: {syn['strength']:.2f}"
+                )
+                if syn.get("bridging_concepts"):
                     print(f"    Bridges: {', '.join(syn['bridging_concepts'][:3])}")
 
         # Display KEP compounds
@@ -1202,7 +1331,11 @@ async def main():
                 print(f"    Confidence: {comp['confidence']:.2f}")
 
         print(f"\nAnswer Preview:")
-        answer_preview = response.answer[:500] + "..." if len(response.answer) > 500 else response.answer
+        answer_preview = (
+            response.answer[:500] + "..."
+            if len(response.answer) > 500
+            else response.answer
+        )
         print(answer_preview)
 
         if response.sources:

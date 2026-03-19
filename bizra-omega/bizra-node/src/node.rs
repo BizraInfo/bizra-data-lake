@@ -127,7 +127,8 @@ pub struct Node {
     last_heartbeat_ms: u64,
     /// Timestamp (ms) of the last synthesis trigger.
     last_synthesis_ms: u64,
-    /// Cross-loop event bridge (Loop A→B→C→D).
+    /// Cross-loop event bridge (Loop A→B→C→D). [PLANNED: wired in Phase 89]
+    #[allow(dead_code)]
     event_bridge: crate::heartbeat::EventBridge,
     // ── Phase 87-88: Sovereign Experience Ledger ─────────────────────────────
     /// Content-addressed episodic memory — the cognitive substrate.
@@ -530,7 +531,11 @@ impl Node {
         self.last_heartbeat_ms = now_ms;
 
         // Self-compilation check (reuse existing interval logic)
-        if self.heartbeat_count > 0 && self.heartbeat_count % (SELF_COMPILE_INTERVAL as u64) == 0 {
+        if self.heartbeat_count > 0
+            && self
+                .heartbeat_count
+                .is_multiple_of(SELF_COMPILE_INTERVAL as u64)
+        {
             self.trigger_self_compilation();
         }
 

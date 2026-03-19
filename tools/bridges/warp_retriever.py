@@ -25,9 +25,9 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
-from enum import Enum, auto
 
 import numpy as np
 
@@ -44,7 +44,7 @@ except ImportError:
     pass
 
 try:
-    from transformers import AutoTokenizer, AutoModel
+    from transformers import AutoModel, AutoTokenizer
 
     _TRANSFORMERS_AVAILABLE = True
 except ImportError:

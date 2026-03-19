@@ -1,17 +1,22 @@
 """Tests for BIZRA Identity Genesis — Sovereign Node Identity."""
 
+import json
 import os
 import sys
-import json
 import tempfile
-import pytest
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from identity_genesis import (
-    create_identity, save_identity, load_public_record,
-    NodeIdentity, AgentKey, NACL_AVAILABLE,
+    NACL_AVAILABLE,
+    AgentKey,
+    NodeIdentity,
+    create_identity,
+    load_public_record,
+    save_identity,
 )
 
 
@@ -37,6 +42,7 @@ class TestGenesisEvent:
 
     def test_genesis_timestamp_is_recent(self, identity):
         import time
+
         assert abs(time.time() - identity.genesis_timestamp) < 5
 
     def test_genesis_domain_is_set(self, identity):
@@ -44,9 +50,8 @@ class TestGenesisEvent:
 
     def test_node_id_is_deterministic_from_pubkey(self, identity):
         import hashlib
-        expected = hashlib.sha256(
-            bytes.fromhex(identity.public_key_hex)
-        ).hexdigest()
+
+        expected = hashlib.sha256(bytes.fromhex(identity.public_key_hex)).hexdigest()
         assert identity.node_id == expected
 
     def test_two_identities_are_different(self):
@@ -71,15 +76,22 @@ class TestAgentKeys:
     def test_pat_agent_names(self, identity):
         names = [a.agent_name for a in identity.pat_agents]
         assert names == [
-            "Planner", "Researcher", "Coder",
-            "Evaluator", "Ethicist", "Publisher", "Integrator",
+            "Planner",
+            "Researcher",
+            "Coder",
+            "Evaluator",
+            "Ethicist",
+            "Publisher",
+            "Integrator",
         ]
 
     def test_sat_agent_names(self, identity):
         names = [a.agent_name for a in identity.sat_agents]
         assert names == [
-            "ComputeScheduler", "SecurityMonitor",
-            "PerformanceAnalyzer", "ConsensusValidator",
+            "ComputeScheduler",
+            "SecurityMonitor",
+            "PerformanceAnalyzer",
+            "ConsensusValidator",
             "NetworkOrchestrator",
         ]
 

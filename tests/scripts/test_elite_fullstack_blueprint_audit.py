@@ -293,7 +293,10 @@ def test_elite_blueprint_audit_checks_docs_truth_and_terminal_contract(
         repo / ".github/workflows/phase65-masterpiece.yml",
         yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False),
     )
-    _write(repo / ".github/workflows/docs-quality.yml", "# python scripts/ci_docs_truth_gate.py\n")
+    _write(
+        repo / ".github/workflows/docs-quality.yml",
+        "# python scripts/ci_docs_truth_gate.py\n",
+    )
     _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
     _write(repo / "scripts/ci_docs_truth_gate.py", "# docs truth gate\n")
     _write(repo / "tests/scripts/test_ci_docs_truth_gate.py", "# tests\n")
@@ -313,18 +316,37 @@ def test_elite_blueprint_audit_checks_docs_truth_and_terminal_contract(
         repo / "frontend/src/components/terminal/terminal-shell.tsx",
         'import "./terminal-manifest";\nconst motto = "One mission, one proof, remembered forever";\n',
     )
-    _write(repo / "frontend/src/components/terminal/terminal-mission.tsx", "export default 1;\n")
-    _write(repo / "frontend/src/components/terminal/terminal-timeline.tsx", "export default 1;\n")
-    _write(repo / "frontend/src/components/terminal/terminal-memory.tsx", "export default 1;\n")
+    _write(
+        repo / "frontend/src/components/terminal/terminal-mission.tsx",
+        "export default 1;\n",
+    )
+    _write(
+        repo / "frontend/src/components/terminal/terminal-timeline.tsx",
+        "export default 1;\n",
+    )
+    _write(
+        repo / "frontend/src/components/terminal/terminal-memory.tsx",
+        "export default 1;\n",
+    )
     _write(
         repo / "frontend/src/components/terminal/terminal-skills.tsx",
         "const x = 'PAT_AGENT_MANIFEST SAT_AGENT_MANIFEST';\n",
     )
-    _write(repo / "frontend/src/components/terminal/terminal-network.tsx", "export default 1;\n")
-    _write(repo / "frontend/src/components/terminal/terminal-settings.tsx", "export default 1;\n")
-    _write(repo / "frontend/tests/terminal-panels.test.tsx", "describe('terminal', () => {});\n")
     _write(
-        repo / "docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md",
+        repo / "frontend/src/components/terminal/terminal-network.tsx",
+        "export default 1;\n",
+    )
+    _write(
+        repo / "frontend/src/components/terminal/terminal-settings.tsx",
+        "export default 1;\n",
+    )
+    _write(
+        repo / "frontend/tests/terminal-panels.test.tsx",
+        "describe('terminal', () => {});\n",
+    )
+    _write(
+        repo
+        / "docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md",
         "# locked contract\n",
     )
     _seed_phase65_config(repo)
@@ -339,7 +361,9 @@ def test_elite_blueprint_audit_checks_docs_truth_and_terminal_contract(
         ],
         "required_patterns": {
             ".github/workflows/ci.yml": ["python scripts/ci_docs_truth_gate.py"],
-            ".github/workflows/docs-quality.yml": ["python scripts/ci_docs_truth_gate.py"],
+            ".github/workflows/docs-quality.yml": [
+                "python scripts/ci_docs_truth_gate.py"
+            ],
             "docs/internal/DOCS_INDEX.md": ["UNIFIED_ACTIONABLE_FRAMEWORK.md"],
         },
     }
@@ -381,7 +405,10 @@ def test_elite_blueprint_audit_flags_missing_performance_pattern(
     repo = tmp_path / "repo"
     _write(
         repo / ".github/workflows/ci.yml",
-        yaml.safe_dump({"jobs": {"phase65-masterpiece-gate": {}, "performance-gate": {}}}, sort_keys=False)
+        yaml.safe_dump(
+            {"jobs": {"phase65-masterpiece-gate": {}, "performance-gate": {}}},
+            sort_keys=False,
+        )
         + "\n# needs.performance-gate.result\n",
     )
     _write(
@@ -532,7 +559,10 @@ def test_elite_blueprint_audit_emits_architecture_security_risks_and_strategy(
     assert "architecture" in plane_ids
     assert "security" in plane_ids
     assert any(risk["dimension"] == "security" for risk in report["risk_register"])
-    assert report["implementation_strategy"]["current_phase"] == "stabilize_truth_and_trust"
+    assert (
+        report["implementation_strategy"]["current_phase"]
+        == "stabilize_truth_and_trust"
+    )
     assert "ihsan" in report["ethical_integrity_posture"]
 
 

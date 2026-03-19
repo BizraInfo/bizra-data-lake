@@ -14,10 +14,10 @@ from __future__ import annotations
 
 import pytest  # noqa: F401 — required by pytest runner
 
-
 # ═══════════════════════════════════════════════════════════════════
 # 1. BLOOM Token System  (core/token/bloom.py — 453 LOC)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestBloomTokenSystem:
     """Prove the constitutional 50% community pool split works."""
@@ -29,11 +29,13 @@ class TestBloomTokenSystem:
         minter = TokenMinter(community_pool=pool)
         wallet = WalletState(node_id="mssc_node")
 
-        result = minter.mint_seed(wallet, amount=10.0, poi_evidence="sha256:abc", ihsan=0.96)
+        result = minter.mint_seed(
+            wallet, amount=10.0, poi_evidence="sha256:abc", ihsan=0.96
+        )
 
         assert result["minted"] is True
-        assert result["node_share"] == 5.0       # 50% to node
-        assert result["pool_share"] == 5.0        # 50% to pool (البذرة p19)
+        assert result["node_share"] == 5.0  # 50% to node
+        assert result["pool_share"] == 5.0  # 50% to pool (البذرة p19)
         assert wallet.seed_balance == 5.0
         assert pool.current_balance == 5.0
 
@@ -44,7 +46,9 @@ class TestBloomTokenSystem:
         minter = TokenMinter(community_pool=pool)
         wallet = WalletState(node_id="mssc_node")
 
-        result = minter.mint_seed(wallet, amount=10.0, poi_evidence="sha256:abc", ihsan=0.80)
+        result = minter.mint_seed(
+            wallet, amount=10.0, poi_evidence="sha256:abc", ihsan=0.80
+        )
 
         assert result["minted"] is False
         assert wallet.seed_balance == 0.0
@@ -68,6 +72,7 @@ class TestBloomTokenSystem:
 # ═══════════════════════════════════════════════════════════════════
 # 2. EventBus Subscribers  (core/bus/subscribers.py — 810 LOC)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestEventBusSubscribers:
     """Prove all 12 subscribers wire and the bus emits."""
@@ -110,6 +115,7 @@ class TestEventBusSubscribers:
 # ═══════════════════════════════════════════════════════════════════
 # 3. Reflex Compiler — Phase 80 additions  (507→889 LOC)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestReflexCompilerPhase80:
     """Prove the 6 new Phase 80 methods work in-memory."""
@@ -170,8 +176,11 @@ class TestReflexCompilerPhase80:
 
         compiler = ReflexCompiler(max_entries=100, persistence_path=None)
         compiler.import_forest_reflex(
-            key_str="reval_key", plan="plan_r", ihsan=0.92,
-            source="local", confidence=0.90,
+            key_str="reval_key",
+            plan="plan_r",
+            ihsan=0.92,
+            source="local",
+            confidence=0.90,
         )
         result = compiler.revalidate("reval_key", new_ihsan=0.97)
         assert result is True
@@ -182,8 +191,11 @@ class TestReflexCompilerPhase80:
         compiler = ReflexCompiler(max_entries=100, persistence_path=None)
         for i in range(5):
             compiler.import_forest_reflex(
-                key_str=f"top_key_{i}", plan=f"plan_{i}",
-                ihsan=0.93 + i * 0.01, source="local", confidence=0.95,
+                key_str=f"top_key_{i}",
+                plan=f"plan_{i}",
+                ihsan=0.93 + i * 0.01,
+                source="local",
+                confidence=0.95,
             )
         top = compiler.get_top_reflexes(n=3)
         assert isinstance(top, list)
@@ -215,6 +227,7 @@ class TestReflexCompilerPhase80:
 # 4. Sovereign Terminal  (core/sovereign/sovereign_terminal.py — 681 LOC)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestSovereignTerminal:
     """Prove terminal dataclasses instantiate correctly."""
 
@@ -222,8 +235,10 @@ class TestSovereignTerminal:
         from core.sovereign.sovereign_terminal import NodeIdentity
 
         ident = NodeIdentity(
-            node_id="mssc", public_key="pk_test",
-            created_at="2025-01-01T00:00:00Z", stage="genesis",
+            node_id="mssc",
+            public_key="pk_test",
+            created_at="2025-01-01T00:00:00Z",
+            stage="genesis",
             sovereignty=0.95,
         )
         assert ident.node_id == "mssc"
@@ -233,10 +248,17 @@ class TestSovereignTerminal:
         from core.sovereign.sovereign_terminal import NodeHealth
 
         health = NodeHealth(
-            uptime_seconds=3600, containers_healthy=3, containers_total=3,
-            ihsan_composite=0.96, snr_score=0.91, myelination_ratio=0.88,
-            gini_coefficient=0.22, seed_balance=100.0, bloom_balance=5.0,
-            reflex_count=12, evidence_chain_height=1024,
+            uptime_seconds=3600,
+            containers_healthy=3,
+            containers_total=3,
+            ihsan_composite=0.96,
+            snr_score=0.91,
+            myelination_ratio=0.88,
+            gini_coefficient=0.22,
+            seed_balance=100.0,
+            bloom_balance=5.0,
+            reflex_count=12,
+            evidence_chain_height=1024,
             last_heartbeat="2025-01-01T00:00:00Z",
         )
         assert health.ihsan_composite >= 0.95  # Ihsān gate
@@ -246,6 +268,7 @@ class TestSovereignTerminal:
 # ═══════════════════════════════════════════════════════════════════
 # 5. CLI Entry Point  (bizra_cli.py — 770 LOC)
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestCLIEntryPoint:
     """Prove the CLI module loads and exports version constants."""
@@ -266,6 +289,7 @@ class TestCLIEntryPoint:
 # 6. Conftest Tiers  (tests/conftest_tiers.py — 46 LOC)
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestConftestTiers:
     """Prove the tier marker plugin loads."""
 
@@ -279,6 +303,7 @@ class TestConftestTiers:
 # 7. Cross-module wiring proof
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestCrossModuleWiring:
     """Prove modules can import each other (no circular deps)."""
 
@@ -286,8 +311,9 @@ class TestCrossModuleWiring:
         from core import bus  # noqa: F401 — verifies _SUBPACKAGES inclusion
 
     def test_token_subpackage_imports(self):
-        from core.token.bloom import BloomBalance  # noqa: F401
         from core.bus.subscribers import EventBus  # noqa: F401
+        from core.token.bloom import BloomBalance  # noqa: F401
+
         # Both load without circular import
 
     def test_reflex_compiler_hhmm_protocol(self):

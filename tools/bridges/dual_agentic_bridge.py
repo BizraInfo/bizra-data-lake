@@ -4,34 +4,35 @@
 # v1.1: Added resilience patterns (circuit breaker, retry, auto-failover)
 # v1.2: Integrated with bizra_config for centralized configuration
 
-import os
-import json
 import asyncio
 import base64
-from pathlib import Path
-from typing import Optional, List, Dict, Any, Union
+import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
 import httpx
 
 from bizra_config import (
-    DUAL_AGENTIC_URL,
-    DUAL_AGENTIC_ENABLED,
-    OLLAMA_BASE_URL,
-    OLLAMA_ENABLED,
-    OLLAMA_TIMEOUT,
-    DEFAULT_TEXT_MODEL,
-    DEFAULT_REASONING_MODEL,
-    DEFAULT_CODE_MODEL,
-    DEFAULT_VISION_MODEL,
-    OLLAMA_TEXT_MODEL,
-    OLLAMA_CODE_MODEL,
-    OLLAMA_VISION_MODEL,
     CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-    CIRCUIT_BREAKER_TIMEOUT,
     CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
+    CIRCUIT_BREAKER_TIMEOUT,
+    DEFAULT_CODE_MODEL,
+    DEFAULT_REASONING_MODEL,
+    DEFAULT_TEXT_MODEL,
+    DEFAULT_VISION_MODEL,
+    DUAL_AGENTIC_ENABLED,
+    DUAL_AGENTIC_URL,
     HEALTH_CHECK_TIMEOUT,
+    OLLAMA_BASE_URL,
+    OLLAMA_CODE_MODEL,
+    OLLAMA_ENABLED,
+    OLLAMA_TEXT_MODEL,
+    OLLAMA_TIMEOUT,
+    OLLAMA_VISION_MODEL,
 )
 
 # Import resilience patterns

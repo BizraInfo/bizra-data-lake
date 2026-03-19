@@ -11,7 +11,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import List, Dict, Optional, Any, Union, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import httpx
 
 from core.integration.constants import LMSTUDIO_URL

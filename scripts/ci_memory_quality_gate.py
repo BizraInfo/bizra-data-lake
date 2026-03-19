@@ -54,8 +54,7 @@ def create_fixture_sources(root: Path) -> dict[str, Path]:
     artifact_dir.mkdir(parents=True, exist_ok=True)
 
     conn = sqlite3.connect(db_path)
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE memory_entries (
             id TEXT PRIMARY KEY,
             key TEXT,
@@ -85,8 +84,7 @@ def create_fixture_sources(root: Path) -> dict[str, Path]:
             id TEXT PRIMARY KEY,
             project_path TEXT
         );
-        """
-    )
+        """)
     now_ms = 1_773_210_000_000
     conn.executemany(
         """
@@ -314,9 +312,7 @@ def _evaluate_quality_gate(
     if report["convergence_exit_code"] != 0:
         reasons.append("convergence_failed")
     if report["convergence_duration_ms"] > thresholds.convergence_max_ms:
-        reasons.append(
-            f"convergence_duration_ms={report['convergence_duration_ms']}"
-        )
+        reasons.append(f"convergence_duration_ms={report['convergence_duration_ms']}")
     if (
         report["convergence"]["migration"]["total_imported"]
         < thresholds.min_imported_records

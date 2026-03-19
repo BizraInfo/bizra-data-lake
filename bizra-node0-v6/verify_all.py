@@ -14,10 +14,11 @@ Validates:
   6. All 102 tests pass
 """
 
+import os
 import subprocess
 import sys
-import os
 from pathlib import Path
+
 
 def main():
     os.chdir(Path(__file__).parent)
@@ -32,6 +33,7 @@ def main():
     print("[1/4] Loading constitution.toml...")
     try:
         from bizra_constitution import load_constitution
+
         c = load_constitution("constitution.toml")
         violations = c.validate()
         if violations:
@@ -41,11 +43,17 @@ def main():
             return 1
         print(f"  ✅ v{c.meta.version} — 0 violations")
         print(f"     SHA-256: {c.raw_hash[:32]}...")
-        print(f"     Ihsan: {c.ihsan.dimensions}-dim canonical, "
-              f"{len(c.ihsan.operational_dimensions)}-dim operational")
+        print(
+            f"     Ihsan: {c.ihsan.dimensions}-dim canonical, "
+            f"{len(c.ihsan.operational_dimensions)}-dim operational"
+        )
         print(f"     Gates: {c.gates.count}, fail_mode={c.gates.fail_mode}")
-        print(f"     PAT: {c.pat.agent_count} agents, trust_monotonicity={c.pat.trust_monotonicity}")
-        print(f"     SAT: {c.sat.agents_per_node}/node, {len(c.sat.bootstrap_roles)} bootstrap roles")
+        print(
+            f"     PAT: {c.pat.agent_count} agents, trust_monotonicity={c.pat.trust_monotonicity}"
+        )
+        print(
+            f"     SAT: {c.sat.agents_per_node}/node, {len(c.sat.bootstrap_roles)} bootstrap roles"
+        )
         print(f"     Zakat: {c.economics.zakat_rate} (constitutional)")
         print(f"     Rights: {len(c.identity.rights.rights)}")
     except Exception as e:
@@ -57,10 +65,14 @@ def main():
     print("[2/4] Regenerating constants from constitution...")
     try:
         from generate_from_constitution import generate_constants, generate_tests
+
         constants_text = generate_constants(c)
         tests_text = generate_tests(c)
-        n_constants = sum(1 for line in constants_text.splitlines()
-                         if "=" in line and not line.strip().startswith("#"))
+        n_constants = sum(
+            1
+            for line in constants_text.splitlines()
+            if "=" in line and not line.strip().startswith("#")
+        )
         n_tests = sum(1 for line in tests_text.splitlines() if "def test_" in line)
         print(f"  ✅ {n_constants} constants, {n_tests} conformance tests")
     except Exception as e:
@@ -72,12 +84,18 @@ def main():
     print("[3/4] Smoke testing core modules...")
     try:
         from ihsan_gate import IhsanGate
-        gate = IhsanGate()
-        score = gate.evaluate("This is a well-reasoned analysis because the evidence supports it.")
-        print(f"  ✅ IhsanGate: composite={score.composite:.3f}, "
-              f"tier={score.tier.value}, passes={score.passes}")
 
-        from snr import normalize_snr, measure_mission_snr
+        gate = IhsanGate()
+        score = gate.evaluate(
+            "This is a well-reasoned analysis because the evidence supports it."
+        )
+        print(
+            f"  ✅ IhsanGate: composite={score.composite:.3f}, "
+            f"tier={score.tier.value}, passes={score.passes}"
+        )
+
+        from snr import measure_mission_snr, normalize_snr
+
         assert normalize_snr(0) == 0.0
         assert abs(normalize_snr(1) - 0.5) < 0.001
         assert normalize_snr(1000) > 0.999
@@ -85,15 +103,22 @@ def main():
         print(f"  ✅ SNR: normalize(1)=0.500, mission_snr={m.snr_normalized:.3f}")
 
         import tempfile
+
         from evidence_receipt import EvidenceLedger
+
         with tempfile.TemporaryDirectory() as td:
             ledger = EvidenceLedger(Path(td) / "test.jsonl")
             r1 = ledger.append(
                 mission_id="verify-1",
                 ihsan_tensor=score.as_tensor_dict(),
                 ihsan_composite=score.composite,
-                gate_results={"alpha_4": True, "alpha_7": True,
-                              "alpha_8": True, "alpha_9": True, "alpha_10": True},
+                gate_results={
+                    "alpha_4": True,
+                    "alpha_7": True,
+                    "alpha_8": True,
+                    "alpha_9": True,
+                    "alpha_10": True,
+                },
                 snr_normalized=m.snr_normalized,
                 tier=score.tier.value,
             )
@@ -101,8 +126,13 @@ def main():
                 mission_id="verify-2",
                 ihsan_tensor=score.as_tensor_dict(),
                 ihsan_composite=score.composite,
-                gate_results={"alpha_4": True, "alpha_7": True,
-                              "alpha_8": True, "alpha_9": True, "alpha_10": True},
+                gate_results={
+                    "alpha_4": True,
+                    "alpha_7": True,
+                    "alpha_8": True,
+                    "alpha_9": True,
+                    "alpha_10": True,
+                },
                 snr_normalized=m.snr_normalized,
                 tier=score.tier.value,
             )
@@ -113,6 +143,7 @@ def main():
     except Exception as e:
         print(f"  ❌ Smoke test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
@@ -120,9 +151,18 @@ def main():
     print()
     print("[4/4] Running full test suite...")
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "tests/", "generated/",
-         "-v", "--tb=short", "-q"],
-        capture_output=True, text=True,
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "tests/",
+            "generated/",
+            "-v",
+            "--tb=short",
+            "-q",
+        ],
+        capture_output=True,
+        text=True,
     )
     # Extract summary line
     lines = result.stdout.strip().splitlines()

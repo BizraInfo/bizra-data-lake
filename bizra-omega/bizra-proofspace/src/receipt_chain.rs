@@ -28,6 +28,7 @@
 //! - **SMT-LIB2 standard (Barrett et al.)** [VERIFIED]: The formal assertion language used
 //!   in `ProofBlockSubmission::formal_assertion`.
 
+#![allow(clippy::manual_is_multiple_of)]
 #![warn(missing_docs)]
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -766,12 +767,7 @@ impl ConstitutionalReceiptAdapter {
     ///
     /// Returns `0.0` for an empty slice [DERIVED].
     pub(crate) fn min_f64(values: &[f64]) -> f64 {
-        values
-            .iter()
-            .cloned()
-            .fold(f64::INFINITY, f64::min)
-            .min(f64::INFINITY)
-            .max(f64::NEG_INFINITY)
+        values.iter().cloned().fold(f64::INFINITY, f64::min)
     }
 
     /// Build the sorted, de-duplicated channel-byte vector from all receipts [DERIVED].

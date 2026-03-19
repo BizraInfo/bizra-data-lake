@@ -5,23 +5,24 @@
 # SECURITY: This module now uses AST validation to prevent arbitrary code execution
 # from LLM-generated cleaning functions. See _validate_cleaning_code().
 
-import os
+import ast
+import importlib.util
 import json
 import logging
-import ast
+import os
 import textwrap
-import importlib.util
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Set
+from typing import Any, Dict, List, Optional, Set
+
 import pandas as pd
 from tqdm import tqdm
 
 # Import BIZRA ecosystem components
-from bizra_config import RAW_PATH, PROCESSED_PATH, INTAKE_PATH
+from bizra_config import INTAKE_PATH, PROCESSED_PATH, RAW_PATH
 
 try:
-    from pat_engine import AgentConfig, AgentRole, AgentMessage
     import httpx
+    from pat_engine import AgentConfig, AgentMessage, AgentRole
 except ImportError:
     logging.warning("PAT Engine not found. Running in standalone mode.")
     httpx = None
@@ -222,9 +223,9 @@ def _create_safe_execution_scope() -> Dict[str, Any]:
     Only provides access to safe, pre-imported modules and a restricted
     set of builtins. No __builtins__ passthrough.
     """
-    import re
     import datetime
     import json
+    import re
     import string
     import unicodedata
 
@@ -290,20 +291,27 @@ class AgenticCleaner:
         Initialize the cleaner. Defaults to local LM Studio/Ollama endpoint standard in BIZRA.
         """
         if not model_url:
-            _lm_host = os.environ.get("LMSTUDIO_HOST", os.environ.get("LM_STUDIO_HOST", ""))
+            _lm_host = os.environ.get(
+                "LMSTUDIO_HOST", os.environ.get("LM_STUDIO_HOST", "")
+            )
             if not _lm_host:
                 try:
                     with open("/proc/net/route", "r") as f:
                         for line in f:
                             fields = line.strip().split()
                             if len(fields) >= 3 and fields[1] == "00000000":
-                                _lm_host = ".".join(str(int(fields[2][i:i+2], 16)) for i in (6, 4, 2, 0))
+                                _lm_host = ".".join(
+                                    str(int(fields[2][i : i + 2], 16))
+                                    for i in (6, 4, 2, 0)
+                                )
                                 break
                 except (FileNotFoundError, ValueError):
                     pass
                 if not _lm_host:
                     _lm_host = "127.0.0.1"
-            _lm_port = os.environ.get("LMSTUDIO_PORT", os.environ.get("LM_STUDIO_PORT", "1234"))
+            _lm_port = os.environ.get(
+                "LMSTUDIO_PORT", os.environ.get("LM_STUDIO_PORT", "1234")
+            )
             model_url = f"http://{_lm_host}:{_lm_port}/v1/chat/completions"
         self.model_url = model_url
         self.model_name = "liquid/lfm2.5-1.2b"  # Efficient model for code generation

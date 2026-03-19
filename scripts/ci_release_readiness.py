@@ -42,7 +42,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
 # ─────────────────────────────────────────────────────────────
 # Constitutional Thresholds
 # ─────────────────────────────────────────────────────────────
@@ -66,9 +65,11 @@ except ImportError:
 # Gate Definitions
 # ─────────────────────────────────────────────────────────────
 
+
 @dataclass
 class GateResult:
     """Result of a single quality gate evaluation."""
+
     name: str
     category: str  # quality | security | performance | governance
     passed: bool
@@ -81,6 +82,7 @@ class GateResult:
 @dataclass
 class ReadinessReport:
     """Complete release readiness assessment."""
+
     timestamp: str = ""
     commit_sha: str = ""
     branch: str = ""
@@ -100,13 +102,20 @@ class ReadinessReport:
 # Gate Evaluators
 # ─────────────────────────────────────────────────────────────
 
+
 def gate_python_tests(workspace: Path) -> GateResult:
     """Validate Python tests pass."""
     result = subprocess.run(
         [
-            sys.executable, "-m", "pytest", "tests/",
-            "-x", "--tb=line", "-q",
-            "-m", "not requires_ollama and not requires_gpu and not slow",
+            sys.executable,
+            "-m",
+            "pytest",
+            "tests/",
+            "-x",
+            "--tb=line",
+            "-q",
+            "-m",
+            "not requires_ollama and not requires_gpu and not slow",
         ],
         capture_output=True,
         text=True,
@@ -181,6 +190,7 @@ def gate_coverage_floor(workspace: Path) -> GateResult:
         # Import from the ratchet engine
         sys.path.insert(0, str(workspace / "scripts"))
         from ci_coverage_ratchet import parse_coverage_xml, read_coverage_floor
+
         actual = parse_coverage_xml(coverage_xml)
         floor = read_coverage_floor(pyproject)
         passed = actual >= floor
@@ -260,13 +270,19 @@ def gate_security_audit(workspace: Path) -> GateResult:
         passed=passed,
         score=1.0 if passed else max(0.0, 1.0 - vuln_count * 0.1),
         weight=0.10,
-        detail=f"{vuln_count} vulnerabilities" if vuln_count else "No vulnerabilities found",
+        detail=(
+            f"{vuln_count} vulnerabilities"
+            if vuln_count
+            else "No vulnerabilities found"
+        ),
     )
 
 
 def gate_cross_lang_sync(workspace: Path) -> GateResult:
     """Validate Python/Rust constant synchronization."""
-    audit_script = workspace / ".claude" / "skills" / "cross-lang-sync" / "audit_constants.py"
+    audit_script = (
+        workspace / ".claude" / "skills" / "cross-lang-sync" / "audit_constants.py"
+    )
     if not audit_script.exists():
         return GateResult(
             name="cross_lang_sync",
@@ -345,13 +361,22 @@ def gate_mypy_ratchet(workspace: Path) -> GateResult:
     BASELINE = 1600  # From ci.yml
 
     result = subprocess.run(
-        [sys.executable, "-m", "mypy", "core/", "--ignore-missing-imports", "--no-error-summary"],
+        [
+            sys.executable,
+            "-m",
+            "mypy",
+            "core/",
+            "--ignore-missing-imports",
+            "--no-error-summary",
+        ],
         capture_output=True,
         text=True,
         cwd=str(workspace),
         timeout=120,
     )
-    error_lines = [line for line in result.stdout.splitlines() if line.startswith("core/")]
+    error_lines = [
+        line for line in result.stdout.splitlines() if line.startswith("core/")
+    ]
     error_count = len(error_lines)
     passed = error_count <= BASELINE
     score = max(0.0, 1.0 - (error_count / BASELINE) * 0.5) if BASELINE > 0 else 1.0
@@ -435,18 +460,22 @@ def run_all_gates(
         try:
             result = gate_fn(workspace)
             results.append(result)
-            status = "PASS" if result.passed else ("WARN" if not result.blocking else "FAIL")
+            status = (
+                "PASS" if result.passed else ("WARN" if not result.blocking else "FAIL")
+            )
             print(f"[{status}] {result.detail}")
         except Exception as e:
-            results.append(GateResult(
-                name=name,
-                category="error",
-                passed=False,
-                score=0.0,
-                weight=0.0,
-                detail=f"Gate error: {e}",
-                blocking=False,
-            ))
+            results.append(
+                GateResult(
+                    name=name,
+                    category="error",
+                    passed=False,
+                    score=0.0,
+                    weight=0.0,
+                    detail=f"Gate error: {e}",
+                    blocking=False,
+                )
+            )
             print(f"[ERROR] {e}")
 
     # Compute weighted score
@@ -473,14 +502,21 @@ def run_all_gates(
 # CLI
 # ─────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="BIZRA Release Readiness Orchestrator",
     )
     parser.add_argument("--commit-sha", default="HEAD", help="Commit SHA to evaluate")
     parser.add_argument("--branch", default="", help="Branch name")
-    parser.add_argument("--workspace", type=Path, default=Path("."), help="Workspace root")
-    parser.add_argument("--strict", action="store_true", help="Require ALL gates pass (even non-blocking)")
+    parser.add_argument(
+        "--workspace", type=Path, default=Path("."), help="Workspace root"
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Require ALL gates pass (even non-blocking)",
+    )
     parser.add_argument("--json", action="store_true", help="Output JSON result")
     parser.add_argument(
         "--fast",

@@ -29,7 +29,6 @@ from core.orchestration.learning_loop import (
 )
 from core.sdpo.reflex_bridge import SDPOReflexBridge
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 # Helpers
 # ═══════════════════════════════════════════════════════════════════════════
@@ -43,7 +42,9 @@ def _mock_genome(**kwargs):
     genome.task_description = kwargs.get("task_description", "Synthesize findings")
     genome.task_output = kwargs.get("task_output", "The key insight is X.")
     genome.reasoning_steps = kwargs.get("reasoning_steps", ["step1", "step2"])
-    genome.improvement_suggestions = kwargs.get("improvement_suggestions", ["improve X"])
+    genome.improvement_suggestions = kwargs.get(
+        "improvement_suggestions", ["improve X"]
+    )
     return genome
 
 
@@ -202,7 +203,9 @@ class TestTrainingCycle:
         trainer = _mock_trainer()
         reflex_bridge = SDPOReflexBridge()
         orch = LearningLoopOrchestrator(
-            enabled=True, sdpo_trainer=trainer, reflex_bridge=reflex_bridge,
+            enabled=True,
+            sdpo_trainer=trainer,
+            reflex_bridge=reflex_bridge,
         )
         for _ in range(3):
             orch.on_candidate(_make_candidate())
@@ -255,7 +258,8 @@ class TestCompilationCycle:
         # Inject an observation that meets all thresholds
         reflex_bridge.observe("high quality task", 0.99, 0.98, 0.01, True)
         orch = LearningLoopOrchestrator(
-            enabled=False, reflex_bridge=reflex_bridge,
+            enabled=False,
+            reflex_bridge=reflex_bridge,
         )
         compiled = orch.run_compilation_cycle()
         assert compiled == []  # Disabled
@@ -282,7 +286,9 @@ class TestCompilationCycle:
         for _ in range(5):
             reflex_bridge.observe("cache test", 0.99, 0.97, 0.01, True)
         orch = LearningLoopOrchestrator(
-            enabled=True, reflex_bridge=reflex_bridge, reflex_cache=reflex_cache,
+            enabled=True,
+            reflex_bridge=reflex_bridge,
+            reflex_cache=reflex_cache,
         )
         orch.run_compilation_cycle()
         # Reflex should be in cache
@@ -296,7 +302,8 @@ class TestCompilationCycle:
         for _ in range(5):
             reflex_bridge.observe("one-time compile", 0.99, 0.97, 0.01, True)
         orch = LearningLoopOrchestrator(
-            enabled=True, reflex_bridge=reflex_bridge,
+            enabled=True,
+            reflex_bridge=reflex_bridge,
         )
         # First cycle compiles
         first = orch.run_compilation_cycle()
@@ -314,7 +321,8 @@ class TestCompilationCycle:
         for _ in range(5):
             reflex_bridge.observe("marginal quality", 0.90, 0.90, 0.1, True)
         orch = LearningLoopOrchestrator(
-            enabled=True, reflex_bridge=reflex_bridge,
+            enabled=True,
+            reflex_bridge=reflex_bridge,
         )
         compiled = orch.run_compilation_cycle()
         # Bridge filters them — never reaches compile_reflex
@@ -328,6 +336,7 @@ class TestCompilationCycle:
         # Return a candidate with ihsan=0.94 — passes bridge mock but
         # compile_reflex rejects (fp(0.94) = 940_000 < IHSAN_FLOOR = 950_000)
         from core.sdpo.reflex_bridge import ReflexCandidate
+
         fake_candidate = ReflexCandidate(
             pattern_id="abc123",
             pattern_description="edge case pattern",
@@ -340,7 +349,8 @@ class TestCompilationCycle:
         )
         reflex_bridge.get_eligible_candidates.return_value = [fake_candidate]
         orch = LearningLoopOrchestrator(
-            enabled=True, reflex_bridge=reflex_bridge,
+            enabled=True,
+            reflex_bridge=reflex_bridge,
         )
         compiled = orch.run_compilation_cycle()
         assert len(compiled) == 0
@@ -451,8 +461,11 @@ class TestEdgeCases:
         """Candidate with genome lacking optional attributes."""
         genome = MagicMock(spec=[])  # No attributes
         candidate = IntegrationCandidate(
-            genome=genome, fitness=0.95, novelty_score=0.5,
-            ihsan_score=0.97, recommendation="Integrate",
+            genome=genome,
+            fitness=0.95,
+            novelty_score=0.5,
+            ihsan_score=0.97,
+            recommendation="Integrate",
         )
         orch = LearningLoopOrchestrator(enabled=True)
         # Should not crash — getattr with defaults handles missing attrs

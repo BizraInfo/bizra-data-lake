@@ -6,11 +6,12 @@ Produces verifiable, reproducible pattern mining output.
 Output: golden_gems_index.jsonl with full evidence trails
 """
 
-import json
-import pandas as pd
-from pathlib import Path
-from datetime import datetime
 import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
 
 
 def generate_gems():

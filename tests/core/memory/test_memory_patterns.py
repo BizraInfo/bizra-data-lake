@@ -9,8 +9,8 @@ import pytest
 from core.memory.agent_db import AgentDB
 from core.memory.config import HNSWConfig, MemoryConfig
 from core.memory.memory_patterns import (
-    ContextSynthesizer,
     ConsolidationResult,
+    ContextSynthesizer,
     FactStore,
     HierarchicalMemory,
     MemoryConsolidator,

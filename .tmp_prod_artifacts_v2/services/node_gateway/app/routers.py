@@ -2,12 +2,13 @@ import hmac
 import os
 import sys
 from pathlib import Path
-from fastapi import APIRouter, Header, HTTPException
-from pydantic import BaseModel, Field
+
 from app.node.hhmm import HHMM
 from app.node.mission_bridge import MissionBridge
-from app.node.snr import snr_score
 from app.node.reflex_cache import ReflexCache
+from app.node.snr import snr_score
+from fastapi import APIRouter, Header, HTTPException
+from pydantic import BaseModel, Field
 
 try:
     from _shared.app.health import build_health_payload, check_http, check_redis
@@ -43,9 +44,11 @@ hhmm = HHMM()
 cache = ReflexCache()
 mission_bridge = MissionBridge()
 
+
 class Observation(BaseModel):
     text: str
     context: dict[str, str] = Field(default_factory=dict)
+
 
 class Plan(BaseModel):
     macro_state: str
@@ -88,6 +91,7 @@ def health():
         },
     )
 
+
 @router.post("/v1/plan")
 async def plan(
     obs: Observation,
@@ -124,6 +128,7 @@ async def plan(
     snr = snr_score(signal=0.9, noise=0.35)
     poi = max(0.0, min((snr + 0.8) / 2.0, 1.0))
     return Plan(macro_state=macro, steps=steps, snr=snr, poi_score=poi)
+
 
 @router.post("/v1/reflexes/{macro_state}")
 def store_reflex(

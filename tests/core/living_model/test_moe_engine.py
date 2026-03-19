@@ -31,7 +31,6 @@ from core.living_model.moe_engine import (
     SynthesisResult,
 )
 
-
 # =============================================================================
 # 1. EXPERT SCORING
 # =============================================================================
@@ -78,9 +77,7 @@ class TestExpertScoring:
 
     def test_context_hint_boosts_expert(self) -> None:
         score_no_hint = EXPERT_K.score_relevance("test", context={})
-        score_hint = EXPERT_K.score_relevance(
-            "test", context={"expert_hint": "pat_k"}
-        )
+        score_hint = EXPERT_K.score_relevance("test", context={"expert_hint": "pat_k"})
         assert score_hint > score_no_hint
 
     def test_context_continuity_bonus(self) -> None:
@@ -171,7 +168,9 @@ class TestRouter:
 
     def test_top_k_override_in_route_call(self) -> None:
         engine = MOEEngine(top_k=2)
-        result = engine.route("How and what and code and governance and verify?", top_k=4)
+        result = engine.route(
+            "How and what and code and governance and verify?", top_k=4
+        )
         assert len(result) <= 4
 
     def test_reasoning_wins_for_how_why_queries(self) -> None:
@@ -428,9 +427,7 @@ class TestRouterInvariants:
             ExpertResult(f"e{i}", "t", ihsan=s, confidence=0.8)
             for i, s in enumerate(ihsan_scores)
         ]
-        assignments = [
-            ExpertAssignment(f"e{i}", weight=weight) for i in range(n)
-        ]
+        assignments = [ExpertAssignment(f"e{i}", weight=weight) for i in range(n)]
         synthesis = engine.synthesize(results, assignments)
         assert min(ihsan_scores) - 1e-6 <= synthesis.ihsan <= max(ihsan_scores) + 1e-6
 
@@ -449,7 +446,9 @@ class TestIntegration:
         # Simulates: Reflex cache MISS → MOE routing
         result = engine.run(
             "How do I optimize query performance?",
-            lambda a, t, c: ExpertResult(a.expert_id, "answer", ihsan=0.96, confidence=0.9),
+            lambda a, t, c: ExpertResult(
+                a.expert_id, "answer", ihsan=0.96, confidence=0.9
+            ),
         )
         assert result.passed_gate
         assert "pat_r" in result.experts_used
@@ -466,7 +465,9 @@ class TestIntegration:
         engine = MOEEngine()
         result = engine.run(
             "What is constitutional governance?",
-            lambda a, t, c: ExpertResult(a.expert_id, "answer", ihsan=0.97, confidence=0.9),
+            lambda a, t, c: ExpertResult(
+                a.expert_id, "answer", ihsan=0.97, confidence=0.9
+            ),
         )
         # The synthesis result has the data ReflexCompiler needs
         assert result.ihsan > 0.0

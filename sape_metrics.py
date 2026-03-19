@@ -1,14 +1,27 @@
-import subprocess, os, glob
+import glob
+import os
+import subprocess
+
 os.chdir(r"C:\BIZRA-DATA-LAKE")
 
 # Python test count
-r = subprocess.run(["python", "-m", "pytest", "tests/", "--co", "-q"], capture_output=True, text=True, timeout=120)
+r = subprocess.run(
+    ["python", "-m", "pytest", "tests/", "--co", "-q"],
+    capture_output=True,
+    text=True,
+    timeout=120,
+)
 lines = r.stdout.strip().split("\n")
 py_tests = lines[-1] if lines else "unknown"
 print(f"PYTHON_TESTS: {py_tests}")
 
 # Rust test count
-r2 = subprocess.run(["cargo", "test", "--workspace", "--", "--list"], capture_output=True, text=True, timeout=120)
+r2 = subprocess.run(
+    ["cargo", "test", "--workspace", "--", "--list"],
+    capture_output=True,
+    text=True,
+    timeout=120,
+)
 rust_tests = sum(1 for l in r2.stdout.split("\n") if ": test" in l)
 print(f"RUST_TESTS: {rust_tests}")
 

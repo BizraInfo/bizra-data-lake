@@ -29,16 +29,17 @@ WARP Bridge Architecture:
 
 from __future__ import annotations
 
-import os
-import sys
+import hashlib
 import json
 import logging
+import os
+import sys
 import time
-import hashlib
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, Union
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 
 # Add xtr-warp to path
@@ -51,22 +52,22 @@ from faiss_env import FAISS_AVAILABLE, faiss_summary
 
 # Import BIZRA config
 from bizra_config import (
-    WARP_INDEX_ROOT,
-    WARP_EXPERIMENT_ROOT,
+    CHUNKS_TABLE_PATH,
+    GOLD_PATH,
+    IHSAN_CONSTRAINT,
+    INDEXED_PATH,
+    SNR_THRESHOLD,
+    WARP_BOUND,
     WARP_CHECKPOINT,
+    WARP_ENABLED,
+    WARP_EXPERIMENT_ROOT,
+    WARP_FUSED_EXT,
+    WARP_INDEX_ROOT,
     WARP_NBITS,
     WARP_NPROBE,
-    WARP_T_PRIME,
-    WARP_BOUND,
-    WARP_ENABLED,
-    WARP_USE_GPU,
     WARP_RUNTIME,
-    WARP_FUSED_EXT,
-    CHUNKS_TABLE_PATH,
-    INDEXED_PATH,
-    GOLD_PATH,
-    SNR_THRESHOLD,
-    IHSAN_CONSTRAINT,
+    WARP_T_PRIME,
+    WARP_USE_GPU,
 )
 
 # Configure logging
@@ -179,9 +180,9 @@ class WARPBridge:
         """Check if WARP dependencies are available."""
         try:
             import torch
-            from warp.searcher import Searcher
-            from warp.indexer import Indexer
             from warp.engine.config import WARPRunConfig
+            from warp.indexer import Indexer
+            from warp.searcher import Searcher
 
             self._warp_available = True
             logger.info("[OK] WARP dependencies available")
@@ -209,8 +210,8 @@ class WARPBridge:
                 self.status = WARPStatus.OFFLINE
                 return False
 
-            from warp.searcher import Searcher
             from warp.infra import Run, RunConfig
+            from warp.searcher import Searcher
 
             with Run().context(RunConfig(nranks=1)):
                 self.searcher = Searcher(
@@ -290,7 +291,7 @@ class WARPBridge:
                 return False
 
             from warp.indexer import Indexer
-            from warp.infra import Run, RunConfig, ColBERTConfig
+            from warp.infra import ColBERTConfig, Run, RunConfig
 
             with Run().context(RunConfig(nranks=1, experiment="bizra")):
                 config = ColBERTConfig(

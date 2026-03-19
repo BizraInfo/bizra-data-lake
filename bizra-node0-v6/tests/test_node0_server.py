@@ -2,12 +2,14 @@
 
 import os
 import sys
-import pytest
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-os.environ.setdefault("BIZRA_CONSTITUTION_PATH",
-                       str(Path(__file__).parent.parent / "constitution.toml"))
+os.environ.setdefault(
+    "BIZRA_CONSTITUTION_PATH", str(Path(__file__).parent.parent / "constitution.toml")
+)
 
 from fastapi.testclient import TestClient
 from node0_server import create_app
@@ -73,7 +75,10 @@ class TestMissionEndpoint:
         assert data.get("signature_hex") is not None
 
     def test_mission_has_agent_chain(self, client):
-        data = client.post("/mission", json={"input": "Explain quantum entanglement in distributed systems"}).json()
+        data = client.post(
+            "/mission",
+            json={"input": "Explain quantum entanglement in distributed systems"},
+        ).json()
         assert len(data["agent_chain"]) >= 1
 
     def test_mission_has_timing(self, client):

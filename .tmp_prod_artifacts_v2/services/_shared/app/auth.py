@@ -1,11 +1,14 @@
 import hmac
 import os
+
 from fastapi import HTTPException
 
 
 def _resolve_admin_token() -> str:
     # Canonical name: URP_ADMIN_TOKEN. Keep URP_ADMIN_KEY for backward compatibility.
-    return (os.environ.get("URP_ADMIN_TOKEN") or os.environ.get("URP_ADMIN_KEY") or "").strip()
+    return (
+        os.environ.get("URP_ADMIN_TOKEN") or os.environ.get("URP_ADMIN_KEY") or ""
+    ).strip()
 
 
 def require_admin(x_urp_admin: str | None) -> None:

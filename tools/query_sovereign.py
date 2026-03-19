@@ -7,6 +7,7 @@ assets (specifically the Quranic Corpus) without touching the slow filesystem.
 """
 
 import pandas as pd
+
 from bizra_config import GOLD_PATH
 
 CATALOG_PATH = GOLD_PATH / "sovereign_catalog.parquet"

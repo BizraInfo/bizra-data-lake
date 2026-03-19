@@ -583,7 +583,7 @@ pub mod mock_proofspace {
             let block_id: String = creator_node
                 .bytes()
                 .enumerate()
-                .map(|(i, b)| format!("{:02x}", b ^ type_byte ^ (i as u8 & 0xFF)))
+                .map(|(i, b)| format!("{:02x}", b ^ type_byte ^ (i as u8)))
                 .take(32)
                 .collect();
 

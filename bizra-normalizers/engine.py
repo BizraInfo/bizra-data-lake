@@ -9,8 +9,9 @@ from itertools import combinations
 from pathlib import Path
 from typing import Any, Iterable
 
-from normalizers import CORE8, CONVERSATION_PLATFORMS, detect_provider, parse_file
+from normalizers import CONVERSATION_PLATFORMS, CORE8, detect_provider, parse_file
 from normalizers.base import apply_cross_platform_boost, stable_turn_id
+
 from schemas import ConversationTurn, FragmentHint, FragmentKind
 
 _ROLE_WEIGHT = {
@@ -143,7 +144,9 @@ class StereoscopicReport:
             "elite_threshold": self.elite_threshold,
             "provider_turn_counts": dict(sorted(self.provider_turn_counts.items())),
             "provider_hint_counts": dict(sorted(self.provider_hint_counts.items())),
-            "provider_parse_failures": dict(sorted(self.provider_parse_failures.items())),
+            "provider_parse_failures": dict(
+                sorted(self.provider_parse_failures.items())
+            ),
             "ingest_input_file_count": self.ingest_input_file_count,
             "unknown_file_count": self.unknown_file_count,
             "node_count": len(self.nodes),
@@ -194,7 +197,9 @@ class _NodeAccumulator:
         self.role_mix[role] = self.role_mix.get(role, 0) + 1
         self.evidence_count += 1
         self.confidence_sum += confidence
-        self.weighted_confidence_sum += confidence * _ROLE_WEIGHT.get(role, _ROLE_WEIGHT["unknown"])
+        self.weighted_confidence_sum += confidence * _ROLE_WEIGHT.get(
+            role, _ROLE_WEIGHT["unknown"]
+        )
 
         if timestamp > 0:
             if self.first_seen == 0 or timestamp < self.first_seen:
@@ -225,7 +230,11 @@ def _node_id(kind: FragmentKind, signal: str) -> str:
 
 def _compute_cv(provider_coverage: set[str]) -> float:
     """CV computed against conversation platforms (identity-building dialogues)."""
-    return round(len(provider_coverage & set(CONVERSATION_PLATFORMS)) / len(CONVERSATION_PLATFORMS), 4)
+    return round(
+        len(provider_coverage & set(CONVERSATION_PLATFORMS))
+        / len(CONVERSATION_PLATFORMS),
+        4,
+    )
 
 
 def _iter_json_files(paths: Iterable[str | Path]) -> Iterable[Path]:
@@ -266,7 +275,9 @@ def _load_payload(path: Path) -> Any | None:
 class AutonomousSNRGoTEngine:
     """Compile conversation turns into high-SNR stereoscopic signal graphs."""
 
-    def __init__(self, snr_threshold: float = 0.85, elite_threshold: float = 0.95) -> None:
+    def __init__(
+        self, snr_threshold: float = 0.85, elite_threshold: float = 0.95
+    ) -> None:
         self.snr_threshold = max(0.0, min(1.0, snr_threshold))
         self.elite_threshold = max(self.snr_threshold, min(1.0, elite_threshold))
 
@@ -290,16 +301,22 @@ class AutonomousSNRGoTEngine:
         for turn in turns:
             total_turns += 1
             coverage.add(turn.provider)
-            provider_turn_counts[turn.provider] = provider_turn_counts.get(turn.provider, 0) + 1
+            provider_turn_counts[turn.provider] = (
+                provider_turn_counts.get(turn.provider, 0) + 1
+            )
 
             turn_node_ids: set[str] = set()
             for hint in turn.fragment_hints:
                 total_hints += 1
-                provider_hint_counts[turn.provider] = provider_hint_counts.get(turn.provider, 0) + 1
+                provider_hint_counts[turn.provider] = (
+                    provider_hint_counts.get(turn.provider, 0) + 1
+                )
                 nid = _node_id(hint.kind, hint.signal)
                 acc = node_map.get(nid)
                 if acc is None:
-                    acc = _NodeAccumulator(kind=hint.kind, signal_display=hint.signal.strip())
+                    acc = _NodeAccumulator(
+                        kind=hint.kind, signal_display=hint.signal.strip()
+                    )
                     node_map[nid] = acc
                 acc.add(
                     provider=turn.provider,
@@ -332,7 +349,9 @@ class AutonomousSNRGoTEngine:
             elite_threshold=self.elite_threshold,
             provider_turn_counts=provider_turn_counts,
             provider_hint_counts=provider_hint_counts,
-            provider_parse_failures=dict(sorted((provider_parse_failures or {}).items())),
+            provider_parse_failures=dict(
+                sorted((provider_parse_failures or {}).items())
+            ),
             ingest_input_file_count=ingest_input_file_count,
             unknown_file_count=unknown_file_count,
             nodes=[node for node in nodes if node.snr_score >= self.snr_threshold],
@@ -400,9 +419,7 @@ class AutonomousSNRGoTEngine:
             confidence = max(0.0, min(1.0, confidence))
 
             # Map atom kind to Python FragmentKind
-            fragment_kind = self._ATOM_KIND_TO_FRAGMENT.get(
-                kind_str, FragmentKind.FACT
-            )
+            fragment_kind = self._ATOM_KIND_TO_FRAGMENT.get(kind_str, FragmentKind.FACT)
 
             # Build a deterministic turn_id from kind + content
             turn_id = stable_turn_id(
@@ -455,7 +472,9 @@ class AutonomousSNRGoTEngine:
             detected = detect_provider(payload, source_path=str(path))
             if detected in CORE8:
                 coverage.add(detected)
-                provider_parse_failures[detected] = provider_parse_failures.get(detected, 0) + 1
+                provider_parse_failures[detected] = (
+                    provider_parse_failures.get(detected, 0) + 1
+                )
             else:
                 unknown_file_count += 1
 
@@ -467,7 +486,9 @@ class AutonomousSNRGoTEngine:
             unknown_file_count=unknown_file_count,
         )
 
-    def _finalize_nodes(self, node_map: dict[str, _NodeAccumulator]) -> list[SignalNode]:
+    def _finalize_nodes(
+        self, node_map: dict[str, _NodeAccumulator]
+    ) -> list[SignalNode]:
         nodes: list[SignalNode] = []
         for node_id, acc in node_map.items():
             if acc.evidence_count == 0:
@@ -487,7 +508,11 @@ class AutonomousSNRGoTEngine:
             evidence_density = min(1.0, math.log1p(acc.evidence_count) / math.log(6.0))
             provenance_depth = min(1.0, len(acc.sources) / 3.0)
 
-            if acc.first_seen > 0 and acc.last_seen > 0 and acc.last_seen >= acc.first_seen:
+            if (
+                acc.first_seen > 0
+                and acc.last_seen > 0
+                and acc.last_seen >= acc.first_seen
+            ):
                 span = acc.last_seen - acc.first_seen
                 temporal_stability = min(
                     1.0,
@@ -534,7 +559,9 @@ class AutonomousSNRGoTEngine:
 
         return sorted(nodes, key=lambda n: (-n.snr_score, -n.evidence_count, n.node_id))
 
-    def _finalize_edges(self, edge_map: dict[tuple[str, str], _EdgeAccumulator]) -> list[SignalEdge]:
+    def _finalize_edges(
+        self, edge_map: dict[tuple[str, str], _EdgeAccumulator]
+    ) -> list[SignalEdge]:
         edges: list[SignalEdge] = []
         for (source_node_id, target_node_id), acc in edge_map.items():
             co_score = min(1.0, math.log1p(acc.co_occurrence_count) / math.log(8.0))
@@ -549,4 +576,12 @@ class AutonomousSNRGoTEngine:
                     weight=weight,
                 )
             )
-        return sorted(edges, key=lambda e: (-e.weight, -e.co_occurrence_count, e.source_node_id, e.target_node_id))
+        return sorted(
+            edges,
+            key=lambda e: (
+                -e.weight,
+                -e.co_occurrence_count,
+                e.source_node_id,
+                e.target_node_id,
+            ),
+        )

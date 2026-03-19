@@ -22,8 +22,8 @@ Usage in .claude/settings.json:
 """
 
 import json
-import sys
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 

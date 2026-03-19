@@ -29,7 +29,9 @@ def test_get_changed_files_since_filters_empty(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(
         bizra_test,
         "run_cmd",
-        lambda command: SimpleNamespace(returncode=0, stdout="core/a.py\n\ncore/b.py\n"),
+        lambda command: SimpleNamespace(
+            returncode=0, stdout="core/a.py\n\ncore/b.py\n"
+        ),
     )
     assert bizra_test.get_changed_files_since("v0.80.0") == {"core/a.py", "core/b.py"}
 
@@ -72,13 +74,17 @@ def test_get_affected_tests_finds_import_dependents(
     assert affected == {str(test_file)}
 
 
-def test_run_delta_without_lock_falls_back_to_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_delta_without_lock_falls_back_to_smoke(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(bizra_test, "get_latest_lock", lambda: None)
     monkeypatch.setattr(bizra_test, "run_smoke", lambda: 0)
     assert bizra_test.run_delta() == 0
 
 
-def test_run_delta_with_no_changes_returns_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_delta_with_no_changes_returns_zero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     lock = bizra_test.TestLockReceipt(
         version="0.80.0",
         git_commit="abc",
@@ -118,7 +124,9 @@ def test_run_lock_writes_receipt(monkeypatch: pytest.MonkeyPatch, tmp_path) -> N
     monkeypatch.setattr(
         bizra_test,
         "run_cmd",
-        lambda command, timeout=600: SimpleNamespace(returncode=0, stdout="", stderr=""),
+        lambda command, timeout=600: SimpleNamespace(
+            returncode=0, stdout="", stderr=""
+        ),
     )
 
     rc = bizra_test.run_lock()
@@ -132,7 +140,9 @@ def test_run_lock_writes_receipt(monkeypatch: pytest.MonkeyPatch, tmp_path) -> N
     assert current.exists()
 
 
-def test_run_lock_rejects_coverage_regression(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_run_lock_rejects_coverage_regression(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     lock_dir = tmp_path / "sovereign_state" / "test_locks"
     current = lock_dir / "current.json"
     prev = bizra_test.TestLockReceipt(

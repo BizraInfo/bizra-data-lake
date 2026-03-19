@@ -635,9 +635,9 @@ class TestFATEConsequenceClosure:
         receipt = helix3_heartbeat.breathe()
         # Composite should reflect only the approved receipt (≈0.96)
         # NOT the mean of 0.96 and 0.3 (≈0.63)
-        assert receipt.ihsan_composite >= 0.90, (
-            f"Composite {receipt.ihsan_composite:.3f} was polluted by rejected receipt"
-        )
+        assert (
+            receipt.ihsan_composite >= 0.90
+        ), f"Composite {receipt.ihsan_composite:.3f} was polluted by rejected receipt"
 
     def test_only_rejected_receipts_yield_floor_composite(self, helix3_heartbeat):
         """If all receipts are rejected, composite falls to threshold floor."""
@@ -729,9 +729,7 @@ class TestFATEConsequenceClosure:
                 self._approved_receipt(0.95, f"ok-{i}")
             )
         for i in range(5):
-            helix3_heartbeat.ingest_mission_receipt(
-                self._rejected_receipt(f"rej-{i}")
-            )
+            helix3_heartbeat.ingest_mission_receipt(self._rejected_receipt(f"rej-{i}"))
 
         receipt = helix3_heartbeat.breathe()
         # Without fix: composite ≈ (3×0.95 + 5×0.1)/8 ≈ 0.42
@@ -1179,11 +1177,13 @@ class TestNervousSystemBridge:
         mock_helix = MagicMock()
         hb._helix3 = mock_helix
 
-        hb.ingest_mission_receipt({
-            "ihsan_score": 0.96,
-            "description": "test mission",
-            "fate_verdict": "approved",
-        })
+        hb.ingest_mission_receipt(
+            {
+                "ihsan_score": 0.96,
+                "description": "test mission",
+                "fate_verdict": "approved",
+            }
+        )
 
         assert bus.chain_height == 1
         event = bus._chain[0]
@@ -1257,7 +1257,9 @@ class TestNervousSystemBridge:
 
         broken_bus = MagicMock()
         broken_bus.publish.side_effect = RuntimeError("bus on fire")
-        hb = Node0Heartbeat(data_dir=data_dir, node_id="crash-test", event_bus=broken_bus)
+        hb = Node0Heartbeat(
+            data_dir=data_dir, node_id="crash-test", event_bus=broken_bus
+        )
         hb.boot()
 
         receipt = hb.breathe()

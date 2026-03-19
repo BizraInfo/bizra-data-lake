@@ -16,7 +16,6 @@ from .base import (
     stable_turn_id,
 )
 
-
 _FACT_RE = re.compile(
     r"\b(i am|i'm|my name is|i live in|based in|founder|ceo|i work as)\b",
     re.IGNORECASE,
@@ -157,7 +156,8 @@ class ChatGPTParser(PlatformParser):
                     "node_id": node_id,
                     "role": role,
                     "content": message.get("content"),
-                    "created_at": message.get("create_time") or message.get("update_time"),
+                    "created_at": message.get("create_time")
+                    or message.get("update_time"),
                     "_seq": seq,
                 }
             )
@@ -181,7 +181,9 @@ class ChatGPTParser(PlatformParser):
         hints: list[FragmentHint] = []
         dedupe: set[tuple[str, str]] = set()
 
-        def push(kind: FragmentKind, signal: str, confidence: float, source: str) -> None:
+        def push(
+            kind: FragmentKind, signal: str, confidence: float, source: str
+        ) -> None:
             if confidence < _MIN_CONFIDENCE or len(hints) >= _MAX_HINTS_PER_TURN:
                 return
             normalized = normalize_whitespace(signal).lower()

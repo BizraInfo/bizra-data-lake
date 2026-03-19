@@ -33,22 +33,24 @@ Giants Referenced:
 - Quranic Knowledge Base (6,236 Verses)
 """
 
-import os
-import json
 import hashlib
+import json
+import os
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
-from pathlib import Path
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from enum import Enum
+
+from arte_engine import ARTEEngine
 
 # ════════════════════════════════════════════════════════════════════════════
 # IMPORT EXISTING GIANTS
 # ════════════════════════════════════════════════════════════════════════════
-from bizra_config import DATA_LAKE_ROOT, GOLD_PATH, INDEXED_PATH, IHSAN_CONSTRAINT
-from arte_engine import ARTEEngine
+from bizra_config import DATA_LAKE_ROOT, GOLD_PATH, IHSAN_CONSTRAINT, INDEXED_PATH
 from vector_engine import VectorEngine
 
 try:
@@ -59,12 +61,13 @@ except ImportError:
     from sovereign_memory import SovereignMemory
 
     MEMORY_CLASS = SovereignMemory
-from local_llm_gateway import LocalLLMGateway, LLMResponse
+from local_llm_gateway import LLMResponse, LocalLLMGateway
 
 # Import Sovereign Bridge for high-performance caching
 try:
-    from sovereign_bridge import get_bridge, BridgeEventType
     import asyncio
+
+    from sovereign_bridge import BridgeEventType, get_bridge
 
     SOVEREIGN_BRIDGE_AVAILABLE = True
 except ImportError:

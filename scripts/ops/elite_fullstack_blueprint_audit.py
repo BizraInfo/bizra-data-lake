@@ -505,7 +505,9 @@ def _check_ethical_integrity(
     total = 0
     passed = 0
 
-    required_invariants = [str(x) for x in (ethics_cfg.get("required_invariants") or [])]
+    required_invariants = [
+        str(x) for x in (ethics_cfg.get("required_invariants") or [])
+    ]
     rel_source_raw = ethics_cfg.get("source_file")
     if not required_invariants and rel_source_raw is None:
         return 1.0, []
@@ -635,7 +637,7 @@ def _recommendation_from_check(check_name: str) -> dict[str, str]:
 
 
 def _build_optimization_roadmap(
-    failed_checks: list[dict[str, Any]]
+    failed_checks: list[dict[str, Any]],
 ) -> list[dict[str, str]]:
     roadmap: list[dict[str, str]] = []
     priority_order = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
@@ -733,9 +735,7 @@ def _risk_profile_from_check(check_name: str) -> dict[str, str]:
     }
 
 
-def _build_risk_register(
-    failed_checks: list[dict[str, Any]]
-) -> list[dict[str, str]]:
+def _build_risk_register(failed_checks: list[dict[str, Any]]) -> list[dict[str, str]]:
     risks: list[dict[str, str]] = []
     priority_order = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
     for index, check in enumerate(failed_checks, start=1):
@@ -758,7 +758,9 @@ def _build_risk_register(
     return risks
 
 
-def _normalize_weights(raw_weights: dict[str, Any]) -> tuple[dict[str, float], list[str]]:
+def _normalize_weights(
+    raw_weights: dict[str, Any],
+) -> tuple[dict[str, float], list[str]]:
     parsed: dict[str, float] = {}
     non_numeric: list[str] = []
     for key, value in raw_weights.items():
@@ -870,9 +872,7 @@ def _status_for_score(score: float) -> str:
     return "BLOCKED"
 
 
-def _build_control_planes(
-    sections: dict[str, dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _build_control_planes(sections: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     control_planes: list[dict[str, Any]] = []
     for name, payload in sections.items():
         checks = payload.get("checks") or []
@@ -940,7 +940,7 @@ def _build_graph_of_thought(
 
 
 def _build_interdisciplinary_lenses(
-    sections: dict[str, dict[str, Any]]
+    sections: dict[str, dict[str, Any]],
 ) -> dict[str, float]:
     def _avg(*names: str) -> float:
         values = [float(sections[name]["score"]) for name in names if name in sections]
@@ -960,7 +960,7 @@ def _build_interdisciplinary_lenses(
 
 
 def _build_ethical_integrity_posture(
-    sections: dict[str, dict[str, Any]]
+    sections: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     def _avg(*names: str) -> float:
         values = [float(sections[name]["score"]) for name in names if name in sections]
@@ -984,19 +984,29 @@ def _build_implementation_strategy(
     risk_register: list[dict[str, str]],
     gate_passed: bool,
 ) -> dict[str, Any]:
-    immediate = [item for item in optimization_roadmap if item.get("priority") in {"P0", "P1"}][:5]
-    next_actions = [item for item in optimization_roadmap if item.get("priority") == "P2"][:5]
-    later_actions = [item for item in optimization_roadmap if item.get("priority") == "P3"][:5]
+    immediate = [
+        item for item in optimization_roadmap if item.get("priority") in {"P0", "P1"}
+    ][:5]
+    next_actions = [
+        item for item in optimization_roadmap if item.get("priority") == "P2"
+    ][:5]
+    later_actions = [
+        item for item in optimization_roadmap if item.get("priority") == "P3"
+    ][:5]
 
     if gate_passed:
         current_phase = "promote_release_evidence"
-        phase_objective = "Promote the synchronized blueprint into protected release evidence."
+        phase_objective = (
+            "Promote the synchronized blueprint into protected release evidence."
+        )
     elif any(item.get("priority") == "P0" for item in optimization_roadmap):
         current_phase = "stabilize_truth_and_trust"
         phase_objective = "Resolve constitutional, security, and config blockers before further feature expansion."
     else:
         current_phase = "lock_and_elevate"
-        phase_objective = "Close remaining P1/P2 control-plane gaps and raise proof quality."
+        phase_objective = (
+            "Close remaining P1/P2 control-plane gaps and raise proof quality."
+        )
 
     return {
         "program": "MASTERPIECE-2026: Provably Constitutional Runtime",

@@ -31,12 +31,22 @@ class ZhipuParser(PlatformParser):
 
             for index, message in enumerate(messages):
                 role = canonical_role(message.get("role") or "assistant")
-                content = normalize_whitespace(collect_text(message.get("content") or message.get("text") or message.get("message")))
+                content = normalize_whitespace(
+                    collect_text(
+                        message.get("content")
+                        or message.get("text")
+                        or message.get("message")
+                    )
+                )
                 if not content:
                     continue
 
                 hints = self._hints_for_message(content, message)
-                turn_id = str(message.get("id") or message.get("message_id") or stable_turn_id(self.platform, conversation_id, index, content))
+                turn_id = str(
+                    message.get("id")
+                    or message.get("message_id")
+                    or stable_turn_id(self.platform, conversation_id, index, content)
+                )
                 timestamp = parse_timestamp(
                     message.get("created")
                     or message.get("created_at")
@@ -86,13 +96,23 @@ class ZhipuParser(PlatformParser):
             return out
 
         if any(key in conversation for key in ("prompt", "query", "input")):
-            prompt = collect_text(conversation.get("prompt") or conversation.get("query") or conversation.get("input"))
-            response = collect_text(conversation.get("response") or conversation.get("output") or conversation.get("answer"))
+            prompt = collect_text(
+                conversation.get("prompt")
+                or conversation.get("query")
+                or conversation.get("input")
+            )
+            response = collect_text(
+                conversation.get("response")
+                or conversation.get("output")
+                or conversation.get("answer")
+            )
             out = []
             if prompt.strip():
                 out.append({"id": "prompt-0", "role": "user", "content": prompt})
             if response.strip():
-                out.append({"id": "response-0", "role": "assistant", "content": response})
+                out.append(
+                    {"id": "response-0", "role": "assistant", "content": response}
+                )
             return out
 
         data = conversation.get("data")
@@ -104,7 +124,9 @@ class ZhipuParser(PlatformParser):
 
         return []
 
-    def _hints_for_message(self, content: str, message: dict[str, Any]) -> list[FragmentHint]:
+    def _hints_for_message(
+        self, content: str, message: dict[str, Any]
+    ) -> list[FragmentHint]:
         hints: list[FragmentHint] = []
 
         tool_calls = message.get("tool_calls")
@@ -112,14 +134,19 @@ class ZhipuParser(PlatformParser):
             for call in tool_calls:
                 if not isinstance(call, dict):
                     continue
-                name = str(call.get("name") or call.get("function", {}).get("name") or "tool")
+                name = str(
+                    call.get("name") or call.get("function", {}).get("name") or "tool"
+                )
                 hints.append(
                     FragmentHint(
                         kind=FragmentKind.GOAL,
                         signal=f"tool_call:{name}",
                         confidence=0.85,
                         source="zhipu.tool_call",
-                        metadata={"arguments": call.get("arguments") or call.get("function", {}).get("arguments")},
+                        metadata={
+                            "arguments": call.get("arguments")
+                            or call.get("function", {}).get("arguments")
+                        },
                     )
                 )
 
@@ -157,7 +184,10 @@ class ZhipuParser(PlatformParser):
                 )
 
         lowered = content.lower()
-        if any(keyword in lowered for keyword in ("plan", "next step", "objective", "roadmap")):
+        if any(
+            keyword in lowered
+            for keyword in ("plan", "next step", "objective", "roadmap")
+        ):
             hints.append(
                 FragmentHint(
                     kind=FragmentKind.GOAL,

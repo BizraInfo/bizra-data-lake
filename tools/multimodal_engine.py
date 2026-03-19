@@ -1,15 +1,16 @@
 # BIZRA Multi-Modal Engine v1.0
 # Integrates CLIP (vision), Whisper (audio), and LLaVA (vision-language) for multi-modal RAG
 
-import os
-import json
-import hashlib
 import asyncio
-from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple, Union
+import hashlib
+import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 
 try:
@@ -34,7 +35,7 @@ except ImportError:
     CV2_AVAILABLE = False
 
 try:
-    from transformers import CLIPProcessor, CLIPModel
+    from transformers import CLIPModel, CLIPProcessor
 
     CLIP_AVAILABLE = True
 except ImportError:
@@ -55,21 +56,21 @@ except ImportError:
     OCR_AVAILABLE = False
 
 from bizra_config import (
-    VISION_ENABLED,
+    AUDIO_CHUNK_DURATION,
     AUDIO_ENABLED,
+    AUDIO_EXTENSIONS,
+    AUDIO_TRANSCRIPTS_PATH,
+    CLIP_EMBEDDING_DIM,
     CLIP_MODEL,
+    GPU_ENABLED,
+    IMAGE_BATCH_SIZE,
+    IMAGE_EMBEDDINGS_PATH,
+    IMAGE_EXTENSIONS,
+    MULTIMODAL_CACHE,
+    VIDEO_EXTENSIONS,
+    VISION_ENABLED,
     VISION_LLM_LOCAL,
     WHISPER_LOCAL,
-    IMAGE_BATCH_SIZE,
-    AUDIO_CHUNK_DURATION,
-    IMAGE_EXTENSIONS,
-    AUDIO_EXTENSIONS,
-    VIDEO_EXTENSIONS,
-    CLIP_EMBEDDING_DIM,
-    MULTIMODAL_CACHE,
-    IMAGE_EMBEDDINGS_PATH,
-    AUDIO_TRANSCRIPTS_PATH,
-    GPU_ENABLED,
 )
 
 # ============================================================================
@@ -375,10 +376,10 @@ class ImageProcessor:
     async def _describe_with_llava(self, image_path: str) -> Optional[str]:
         """Use local Ollama LLaVA model for image description."""
         try:
-            import httpx
-
             # Read image as base64
             import base64
+
+            import httpx
 
             with open(image_path, "rb") as f:
                 image_data = base64.b64encode(f.read()).decode()
@@ -406,8 +407,9 @@ class ImageProcessor:
     async def _describe_with_api(self, image_path: str) -> Optional[str]:
         """Use Claude Vision API for image description."""
         try:
-            import anthropic
             import base64
+
+            import anthropic
 
             # Read image
             with open(image_path, "rb") as f:

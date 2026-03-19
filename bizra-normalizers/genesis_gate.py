@@ -149,7 +149,9 @@ class GenesisGateVerdict:
         }
 
 
-def evaluate_genesis_gate(report: dict[str, Any], config: GenesisGateConfig) -> GenesisGateVerdict:
+def evaluate_genesis_gate(
+    report: dict[str, Any], config: GenesisGateConfig
+) -> GenesisGateVerdict:
     """Evaluate report against fail-closed GENESIS thresholds.
 
     Gate-blocking checks use `available_providers` (or `required_providers`

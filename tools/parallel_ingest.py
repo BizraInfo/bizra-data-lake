@@ -6,19 +6,19 @@ High-performance parallel file processing using multiprocessing.
 Designed for 500k+ file ingestion with SHA-256 hashing.
 """
 
-import sys
-import os
-import time
 import hashlib
 import json
-import re
+import os
 import random
-from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from collections import defaultdict
-from datetime import datetime
-from typing import Set, Dict, List, Optional, Tuple
+import re
+import sys
+import time
 import traceback
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
 
 # Configuration
 PROJECT_ROOT = Path(__file__).parent

@@ -19,7 +19,6 @@ from core.memory.types import (
 )
 from core.memory.unified_store import UnifiedStore
 
-
 # ── Metadata Filter Tests ──────────────────────────────────────────────
 
 
@@ -134,9 +133,7 @@ class TestMMR:
         r3 = _make_result("diverse", [0.0, 1.0], score=0.7)
 
         # With high diversity (lambda=0.2), diverse should rank higher
-        result = _mmr_rerank(
-            [r1, r2, r3], query_embedding=[1.0, 0.0], lam=0.2, top_k=3
-        )
+        result = _mmr_rerank([r1, r2, r3], query_embedding=[1.0, 0.0], lam=0.2, top_k=3)
         ids = [r.record.id for r in result]
         # First pick is most relevant, second should favor diversity
         assert ids[0] == "similar1"
@@ -146,16 +143,12 @@ class TestMMR:
         """Lambda=1.0 (pure relevance) preserves original ranking."""
         r1 = _make_result("a", [1.0, 0.0], score=0.9)
         r2 = _make_result("b", [0.5, 0.5], score=0.7)
-        result = _mmr_rerank(
-            [r1, r2], query_embedding=[1.0, 0.0], lam=1.0, top_k=2
-        )
+        result = _mmr_rerank([r1, r2], query_embedding=[1.0, 0.0], lam=1.0, top_k=2)
         assert result[0].record.id == "a"
 
     def test_mmr_respects_top_k(self):
         results = [_make_result(f"r{i}", [float(i), 0.0]) for i in range(10)]
-        result = _mmr_rerank(
-            results, query_embedding=[1.0, 0.0], lam=0.5, top_k=3
-        )
+        result = _mmr_rerank(results, query_embedding=[1.0, 0.0], lam=0.5, top_k=3)
         assert len(result) == 3
 
     def test_mmr_skips_no_embedding(self):

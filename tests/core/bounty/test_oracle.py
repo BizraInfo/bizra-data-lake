@@ -35,16 +35,20 @@ def _make_proof(**overrides):
         "snr_score": 0.96,
         "ihsan_score": 0.97,
         "entropy_before": EntropyMeasurement(
-            surface_entropy=0.8, structural_entropy=0.7,
-            behavioral_entropy=0.6, hypothetical_entropy=0.5,
+            surface_entropy=0.8,
+            structural_entropy=0.7,
+            behavioral_entropy=0.6,
+            hypothetical_entropy=0.5,
             contextual_entropy=0.4,
         ),
         "entropy_after": EntropyMeasurement(
-            surface_entropy=0.1, structural_entropy=0.1,
-            behavioral_entropy=0.1, hypothetical_entropy=0.05,
+            surface_entropy=0.1,
+            structural_entropy=0.1,
+            behavioral_entropy=0.1,
+            hypothetical_entropy=0.05,
             contextual_entropy=0.05,
         ),
-        "exploit_hash": b"\xAB" * 32,
+        "exploit_hash": b"\xab" * 32,
         "funds_at_risk": 100_000.0,
     }
     defaults.update(overrides)

@@ -2,22 +2,24 @@
 # Uses RTX 4090 to generate embeddings for a massive knowledge base
 # Optimized for performance and checkpointing
 
-import os
-import json
-import torch
 import hashlib
-from pathlib import Path
-from sentence_transformers import SentenceTransformer
-from tqdm import tqdm
+import json
+import os
 import time
 from datetime import datetime
+from pathlib import Path
+
+import torch
+from sentence_transformers import SentenceTransformer
+from tqdm import tqdm
+
 from bizra_config import (
+    BATCH_SIZE,
+    CHECKPOINT_PATH,
+    INDEXED_PATH,
+    MAX_SEQ_LENGTH,
     PROCESSED_PATH,
     VECTORS_PATH,
-    CHECKPOINT_PATH,
-    BATCH_SIZE,
-    MAX_SEQ_LENGTH,
-    INDEXED_PATH,
 )
 
 # Configuration

@@ -50,6 +50,7 @@ def main():
         os.environ["LM_STUDIO_URL"] = args.url
     elif "LM_STUDIO_URL" not in os.environ:
         from core.integration.constants import LMSTUDIO_URL
+
         os.environ["LM_STUDIO_URL"] = LMSTUDIO_URL
     if args.model:
         os.environ["BIZRA_MODEL"] = args.model

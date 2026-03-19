@@ -8,21 +8,21 @@ Exposes Data Lake capabilities via Model Context Protocol.
 Ihsan >= 0.95 | SNR >= 0.99 | Fail-Closed Enforcement
 """
 
-import os
-import json
-import hmac
 import hashlib
+import hmac
+import json
 import logging
+import os
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from contextlib import asynccontextmanager
 
+import httpx
+import redis.asyncio as redis
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import httpx
-import redis.asyncio as redis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -39,11 +39,8 @@ except ImportError:
 # Configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD as IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD,
-)
-
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD as IHSAN_THRESHOLD
+from core.integration.constants import UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD
 
 # ============================================================================
 # MODELS

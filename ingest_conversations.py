@@ -51,7 +51,7 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384
 BATCH_SIZE = 128
 MAX_CHUNK_CHARS = 8000  # ~2000 tokens; truncate longer turns
-MIN_CHUNK_CHARS = 20    # skip trivially short turns
+MIN_CHUNK_CHARS = 20  # skip trivially short turns
 ROLES_TO_EXTRACT = {"user", "assistant"}
 
 logging.basicConfig(
@@ -66,11 +66,10 @@ log = logging.getLogger("ingest_conversations")
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def deterministic_id(text: str, namespace: str = "conv") -> str:
     """Generate a 16-hex-char deterministic ID from text content."""
-    return hashlib.blake2b(
-        f"{namespace}:{text}".encode(), digest_size=8
-    ).hexdigest()
+    return hashlib.blake2b(f"{namespace}:{text}".encode(), digest_size=8).hexdigest()
 
 
 def extract_turns(conversation: dict[str, Any]) -> list[dict[str, Any]]:
@@ -98,7 +97,9 @@ def extract_turns(conversation: dict[str, Any]) -> list[dict[str, Any]]:
             continue
 
         parts = content.get("parts", [])
-        text_parts = [p for p in parts if isinstance(p, str) and len(p.strip()) >= MIN_CHUNK_CHARS]
+        text_parts = [
+            p for p in parts if isinstance(p, str) and len(p.strip()) >= MIN_CHUNK_CHARS
+        ]
         if not text_parts:
             continue
 
@@ -106,12 +107,14 @@ def extract_turns(conversation: dict[str, Any]) -> list[dict[str, Any]]:
         if len(combined_text) > MAX_CHUNK_CHARS:
             combined_text = combined_text[:MAX_CHUNK_CHARS]
 
-        turns.append({
-            "role": role,
-            "text": combined_text,
-            "create_time": msg.get("create_time"),
-            "node_id": node_id,
-        })
+        turns.append(
+            {
+                "role": role,
+                "text": combined_text,
+                "create_time": msg.get("create_time"),
+                "node_id": node_id,
+            }
+        )
 
     # Sort by create_time to preserve conversation order
     turns.sort(key=lambda t: t.get("create_time") or 0)
@@ -141,9 +144,7 @@ def load_conversations() -> list[dict[str, Any]]:
                 log.warning("Failed to parse %s: %s", jf.name, exc)
                 errors += 1
 
-    log.info(
-        "Loaded %d conversations (%d parse errors)", len(conversations), errors
-    )
+    log.info("Loaded %d conversations (%d parse errors)", len(conversations), errors)
     return conversations
 
 
@@ -188,16 +189,18 @@ def build_chunks(conversations: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "source_file": Path(source_file).name if source_file else "",
             }
 
-            chunks.append({
-                "chunk_id": chunk_id,
-                "doc_id": doc_id,
-                "chunk_index": idx,
-                "chunk_text": chunk_text,
-                "token_est": float(token_est),
-                "created_at": now_iso,
-                "chunk_metadata_json": json.dumps(metadata),
-                "embedding_model": EMBEDDING_MODEL,
-            })
+            chunks.append(
+                {
+                    "chunk_id": chunk_id,
+                    "doc_id": doc_id,
+                    "chunk_index": idx,
+                    "chunk_text": chunk_text,
+                    "token_est": float(token_est),
+                    "created_at": now_iso,
+                    "chunk_metadata_json": json.dumps(metadata),
+                    "embedding_model": EMBEDDING_MODEL,
+                }
+            )
 
     log.info("Built %d chunks from %d conversations", len(chunks), len(conversations))
     return chunks
@@ -235,7 +238,9 @@ def generate_embeddings(
             log.info("  Progress: %d/%d (%.1f%%) — %.1fs elapsed", end, n, pct, elapsed)
 
     elapsed = time.time() - t0
-    log.info("Embedding generation complete in %.1fs (%.0f chunks/sec)", elapsed, n / elapsed)
+    log.info(
+        "Embedding generation complete in %.1fs (%.0f chunks/sec)", elapsed, n / elapsed
+    )
 
     # Double-check normalization
     norms = np.linalg.norm(embeddings, axis=1)
@@ -256,9 +261,15 @@ def save_conversations_parquet(
 
     # Enforce column order to match existing chunks.parquet
     column_order = [
-        "chunk_id", "doc_id", "chunk_index", "chunk_text",
-        "token_est", "created_at", "chunk_metadata_json",
-        "embedding", "embedding_model",
+        "chunk_id",
+        "doc_id",
+        "chunk_index",
+        "chunk_text",
+        "token_est",
+        "created_at",
+        "chunk_metadata_json",
+        "embedding",
+        "embedding_model",
     ]
     df = df[column_order]
 
@@ -287,9 +298,7 @@ def rebuild_faiss_index(
     """
     log.info("Loading existing embeddings from %s...", existing_parquet.name)
     df_existing = pd.read_parquet(existing_parquet)
-    existing_embs = np.array(
-        df_existing["embedding"].tolist(), dtype=np.float32
-    )
+    existing_embs = np.array(df_existing["embedding"].tolist(), dtype=np.float32)
     n_existing = len(existing_embs)
     log.info("  Existing: %d vectors", n_existing)
 
@@ -306,7 +315,9 @@ def rebuild_faiss_index(
 
     # Verify normalization
     norms = np.linalg.norm(all_embs[:1000], axis=1)
-    assert np.allclose(norms, 1.0, atol=1e-4), f"Vectors not normalized: norms range [{norms.min():.4f}, {norms.max():.4f}]"
+    assert np.allclose(
+        norms, 1.0, atol=1e-4
+    ), f"Vectors not normalized: norms range [{norms.min():.4f}, {norms.max():.4f}]"
 
     # Calculate centroids: sqrt(n) is a good heuristic, minimum 1
     n_centroids = max(1, int(np.sqrt(n_total)))
@@ -318,12 +329,16 @@ def rebuild_faiss_index(
 
     log.info(
         "FAISS config: dim=%d, centroids=%d, nprobe=%d, metric=inner_product",
-        EMBEDDING_DIM, n_centroids, n_probe,
+        EMBEDDING_DIM,
+        n_centroids,
+        n_probe,
     )
 
     # Build IVFFlat with inner product (cosine on L2-normalized vectors)
     quantizer = faiss.IndexFlatIP(EMBEDDING_DIM)
-    index = faiss.IndexIVFFlat(quantizer, EMBEDDING_DIM, n_centroids, faiss.METRIC_INNER_PRODUCT)
+    index = faiss.IndexIVFFlat(
+        quantizer, EMBEDDING_DIM, n_centroids, faiss.METRIC_INNER_PRODUCT
+    )
 
     log.info("Training FAISS index on %d vectors...", n_total)
     t0 = time.time()
@@ -344,7 +359,9 @@ def rebuild_faiss_index(
     index_size = FAISS_INDEX_PATH.stat().st_size
     log.info(
         "Saved FAISS index: %s (%.1f MB, %d vectors)",
-        FAISS_INDEX_PATH.name, index_size / 1e6, index.ntotal,
+        FAISS_INDEX_PATH.name,
+        index_size / 1e6,
+        index.ntotal,
     )
 
     # Build combined chunk_id list for meta (first and last 3 as sample)
@@ -393,6 +410,7 @@ def verify_index(index: faiss.Index, df_new: pd.DataFrame) -> None:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     t_start = time.time()

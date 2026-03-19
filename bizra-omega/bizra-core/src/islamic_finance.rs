@@ -680,7 +680,7 @@ impl MudarabahContract {
         if is_profit {
             self.accumulated_pnl += amount;
         } else {
-            self.accumulated_pnl = self.accumulated_pnl - amount;
+            self.accumulated_pnl -= amount;
             self.losses.push(MudarabahLoss::OperationalLoss {
                 amount: amount.to_f64(),
                 reason: "Operational loss recorded".into(),

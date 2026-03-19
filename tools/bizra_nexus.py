@@ -42,41 +42,41 @@ import hashlib
 import json
 import logging
 import os
+import statistics
 import sys
-import time
 import threading
+import time
 import weakref
 from abc import ABC, abstractmethod
+from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import contextmanager, asynccontextmanager
-from dataclasses import dataclass, field, asdict
+from contextlib import asynccontextmanager, contextmanager
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from functools import lru_cache, wraps, partial
+from functools import lru_cache, partial, wraps
 from pathlib import Path
+from queue import Empty, Queue
 from typing import (
-    Dict,
-    List,
-    Set,
-    Tuple,
-    Optional,
     Any,
-    Union,
-    Callable,
-    TypeVar,
-    Generic,
-    Protocol,
-    Iterator,
     AsyncIterator,
     Awaitable,
-    NamedTuple,
-    Final,
-    Literal,
+    Callable,
     ClassVar,
+    Dict,
+    Final,
+    Generic,
+    Iterator,
+    List,
+    Literal,
+    NamedTuple,
+    Optional,
+    Protocol,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
 )
-from collections import defaultdict, deque
-from queue import Queue, Empty
-import statistics
 
 # Type variables for generic programming
 T = TypeVar("T")

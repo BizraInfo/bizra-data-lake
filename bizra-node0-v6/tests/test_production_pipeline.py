@@ -1,20 +1,22 @@
 """Tests for BIZRA Production Pipeline — Signed Evidence & Real Identity."""
 
+import json
 import os
 import sys
-import json
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-os.environ.setdefault("BIZRA_CONSTITUTION_PATH",
-                       str(Path(__file__).parent.parent / "constitution.toml"))
+os.environ.setdefault(
+    "BIZRA_CONSTITUTION_PATH", str(Path(__file__).parent.parent / "constitution.toml")
+)
 
-from production_pipeline import ProductionPipeline, create_node0
-from identity_genesis import create_identity, NodeIdentity
-from ollama_provider import OllamaProvider, InferenceResult
+from identity_genesis import NodeIdentity, create_identity
 from mission_pipeline import MissionStatus
+from ollama_provider import InferenceResult, OllamaProvider
+from production_pipeline import ProductionPipeline, create_node0
 
 
 @pytest.fixture
@@ -176,11 +178,13 @@ class TestOllamaIntegration:
 
     @patch("ollama_provider.urllib.request.urlopen")
     def test_real_llm_output_flows_through(self, mock_urlopen, identity, tmp_path):
-        body = json.dumps({
-            "response": "LLM says: distributed AI is the future",
-            "eval_count": 8,
-            "eval_duration": 200_000_000,
-        }).encode()
+        body = json.dumps(
+            {
+                "response": "LLM says: distributed AI is the future",
+                "eval_count": 8,
+                "eval_duration": 200_000_000,
+            }
+        ).encode()
         mock_resp = MagicMock()
         mock_resp.read.return_value = body
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)

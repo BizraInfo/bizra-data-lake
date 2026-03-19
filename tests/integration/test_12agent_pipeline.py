@@ -37,7 +37,6 @@ from core.sovereign.mission_pipeline import (
     wire_pipeline_to_nervous_system,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════
 # TEST FIXTURES
 # ═══════════════════════════════════════════════════════════════════
@@ -103,9 +102,18 @@ class TestAgentRoster:
 
     def test_canonical_agent_ids(self) -> None:
         expected = {
-            "P1-Planner", "P2-Researcher", "P3-Coder", "P4-Evaluator",
-            "P5-Ethicist", "P6-Publisher", "P7-DEMA",
-            "S1-Sentinel", "S2-Oracle", "S3-Ledger", "S4-Conductor", "S5-Ambassador",
+            "P1-Planner",
+            "P2-Researcher",
+            "P3-Coder",
+            "P4-Evaluator",
+            "P5-Ethicist",
+            "P6-Publisher",
+            "P7-DEMA",
+            "S1-Sentinel",
+            "S2-Oracle",
+            "S3-Ledger",
+            "S4-Conductor",
+            "S5-Ambassador",
         }
         assert set(AGENT_ROSTER.keys()) == expected
 
@@ -128,16 +136,15 @@ class TestHHMMClassifier:
 
     def test_moderate_multi_keyword(self) -> None:
         c = HHMMComplexityClassifier()
-        result = c.classify(
-            "research the best approach and implement a caching layer"
-        )
+        result = c.classify("research the best approach and implement a caching layer")
         assert result in (ComplexityTier.MODERATE, ComplexityTier.COMPLEX)
 
     def test_sovereign_keyword(self) -> None:
         c = HHMMComplexityClassifier()
-        assert c.classify(
-            "run a comprehensive audit of the sovereign system"
-        ) == ComplexityTier.SOVEREIGN
+        assert (
+            c.classify("run a comprehensive audit of the sovereign system")
+            == ComplexityTier.SOVEREIGN
+        )
 
     def test_predict_state_protocol(self) -> None:
         """Implements HHMMClassifierLike protocol."""
@@ -160,24 +167,25 @@ class TestPipelineExecution:
 
     def test_trivial_single_agent(self) -> None:
         provider = MockLLMProvider({"P7-DEMA": "Hello!"})
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.TRIVIAL
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.TRIVIAL)
         result = asyncio.run(pipeline.execute("hi"))
         assert result.agents_activated == 1
         assert result.agent_chain == ["P7-DEMA"]
 
     def test_simple_chain_order(self) -> None:
-        provider = MockLLMProvider({
-            "P7-DEMA": "[INTENT: code] write a hello world",
-            "P3-Coder": "def hello(): print('Hello, World!')",
-        })
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.SIMPLE
+        provider = MockLLMProvider(
+            {
+                "P7-DEMA": "[INTENT: code] write a hello world",
+                "P3-Coder": "def hello(): print('Hello, World!')",
+            }
         )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.SIMPLE)
         result = asyncio.run(pipeline.execute("write hello world"))
         assert result.agent_chain == [
-            "P7-DEMA", "P3-Coder", "P4-Evaluator", "P5-Ethicist",
+            "P7-DEMA",
+            "P3-Coder",
+            "P4-Evaluator",
+            "P5-Ethicist",
         ]
         assert result.agents_activated == 4
 
@@ -192,9 +200,7 @@ class TestPipelineExecution:
 
     def test_complex_includes_sentinel_ledger(self) -> None:
         provider = MockLLMProvider()
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.COMPLEX
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.COMPLEX)
         result = asyncio.run(pipeline.execute("full system audit"))
         assert "S1-Sentinel" in result.agent_chain
         assert "S3-Ledger" in result.agent_chain
@@ -212,18 +218,14 @@ class TestPipelineExecution:
     def test_implements_inference_provider(self) -> None:
         """Pipeline.infer() returns string — NervousSystem compatible."""
         provider = MockLLMProvider({"P7-DEMA": "routed response"})
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.TRIVIAL
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.TRIVIAL)
         output = asyncio.run(pipeline.infer("test"))
         assert isinstance(output, str)
         assert len(output) > 0
 
     def test_mission_counter_increments(self) -> None:
         provider = MockLLMProvider()
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.TRIVIAL
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.TRIVIAL)
         r1 = asyncio.run(pipeline.execute("first"))
         r2 = asyncio.run(pipeline.execute("second"))
         assert r1.mission_id == "mp-000001"
@@ -266,13 +268,13 @@ class TestEthicistGate:
 
     def test_pipeline_halts_on_gate_fail(self) -> None:
         """When P5 fails, pipeline.gate_passed = False."""
-        provider = MockLLMProvider({
-            "P7-DEMA": "[INTENT: code] task",
-            "P3-Coder": "",  # Empty output → P5 rejects
-        })
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.SIMPLE
+        provider = MockLLMProvider(
+            {
+                "P7-DEMA": "[INTENT: code] task",
+                "P3-Coder": "",  # Empty output → P5 rejects
+            }
         )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.SIMPLE)
         result = asyncio.run(pipeline.execute("do something"))
         assert result.gate_passed is False
         assert len(result.gate_reasons) > 0
@@ -313,10 +315,10 @@ class TestOracleVerification:
 
     def test_oracle_passes_complete_chain(self) -> None:
         traces = [
-            AgentTrace("P4-Evaluator", "evaluator", "evaluate",
-                       "", "", 1.0, False, True),
-            AgentTrace("P5-Ethicist", "ethicist", "gate",
-                       "", "", 1.0, True, False),
+            AgentTrace(
+                "P4-Evaluator", "evaluator", "evaluate", "", "", 1.0, False, True
+            ),
+            AgentTrace("P5-Ethicist", "ethicist", "gate", "", "", 1.0, True, False),
         ]
         passed, reasons = _oracle_verify(traces, 0.96)
         assert passed is True
@@ -324,10 +326,10 @@ class TestOracleVerification:
     def test_oracle_fails_low_ihsan(self) -> None:
         """§4: production Ihsān must be ≥ 0.95."""
         traces = [
-            AgentTrace("P4-Evaluator", "evaluator", "evaluate",
-                       "", "", 1.0, False, True),
-            AgentTrace("P5-Ethicist", "ethicist", "gate",
-                       "", "", 1.0, True, False),
+            AgentTrace(
+                "P4-Evaluator", "evaluator", "evaluate", "", "", 1.0, False, True
+            ),
+            AgentTrace("P5-Ethicist", "ethicist", "gate", "", "", 1.0, True, False),
         ]
         passed, reasons = _oracle_verify(traces, 0.89)
         assert passed is False
@@ -335,8 +337,7 @@ class TestOracleVerification:
 
     def test_oracle_fails_missing_evaluator(self) -> None:
         traces = [
-            AgentTrace("P5-Ethicist", "ethicist", "gate",
-                       "", "", 1.0, True, False),
+            AgentTrace("P5-Ethicist", "ethicist", "gate", "", "", 1.0, True, False),
         ]
         passed, reasons = _oracle_verify(traces, 0.96)
         assert passed is False
@@ -374,9 +375,14 @@ class TestIhsanTensor:
     def test_all_eight_dimensions_present(self) -> None:
         tensor = _score_ihsan_tensor("test output with reasonable content")
         expected = {
-            "moral_clarity", "epistemic_humility", "structural_integrity",
-            "verifiability", "contextual_relevance", "intent_alignment",
-            "resilience", "efficiency",
+            "moral_clarity",
+            "epistemic_humility",
+            "structural_integrity",
+            "verifiability",
+            "contextual_relevance",
+            "intent_alignment",
+            "resilience",
+            "efficiency",
         }
         assert set(tensor.keys()) == expected
 
@@ -396,8 +402,7 @@ class TestEvidenceChain:
 
     def test_ledger_hash_deterministic(self) -> None:
         traces = [
-            AgentTrace("P7-DEMA", "dema", "intake",
-                       "in", "out", 5.0, False, True),
+            AgentTrace("P7-DEMA", "dema", "intake", "in", "out", 5.0, False, True),
         ]
         h1 = _ledger_hash(traces, "mp-001")
         h2 = _ledger_hash(traces, "mp-001")
@@ -405,8 +410,7 @@ class TestEvidenceChain:
 
     def test_different_missions_different_hashes(self) -> None:
         traces = [
-            AgentTrace("P7-DEMA", "dema", "intake",
-                       "in", "out", 5.0, False, True),
+            AgentTrace("P7-DEMA", "dema", "intake", "in", "out", 5.0, False, True),
         ]
         h1 = _ledger_hash(traces, "mp-001")
         h2 = _ledger_hash(traces, "mp-002")
@@ -415,9 +419,7 @@ class TestEvidenceChain:
     def test_chain_hash_advances(self) -> None:
         """Evidence chain hash must advance with each mission."""
         provider = MockLLMProvider()
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.TRIVIAL
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.TRIVIAL)
         asyncio.run(pipeline.execute("first"))
         hash_after_1 = pipeline.chain_hash
         asyncio.run(pipeline.execute("second"))
@@ -436,21 +438,16 @@ class TestAgentTraces:
 
     def test_traces_recorded_for_all_agents(self) -> None:
         provider = MockLLMProvider()
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.SIMPLE
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.SIMPLE)
         result = asyncio.run(pipeline.execute("write code"))
         assert len(result.agent_traces) == len(result.agent_chain)
 
     def test_frozen_agents_marked(self) -> None:
         """Frozen agents must be excluded from SDPO training data."""
         provider = MockLLMProvider()
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.SIMPLE
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.SIMPLE)
         result = asyncio.run(pipeline.execute("write code"))
-        p5_traces = [t for t in result.agent_traces
-                     if t.agent_id == "P5-Ethicist"]
+        p5_traces = [t for t in result.agent_traces if t.agent_id == "P5-Ethicist"]
         assert len(p5_traces) == 1
         assert p5_traces[0].is_frozen is True
 
@@ -504,18 +501,14 @@ class TestPipelineStats:
 
     def test_stats_accumulate(self) -> None:
         provider = MockLLMProvider()
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.TRIVIAL
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.TRIVIAL)
         asyncio.run(pipeline.execute("one"))
         asyncio.run(pipeline.execute("two"))
         assert pipeline.stats.missions_executed == 2
 
     def test_avg_agents_per_mission(self) -> None:
         provider = MockLLMProvider()
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.SIMPLE
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.SIMPLE)
         asyncio.run(pipeline.execute("test"))
         assert pipeline.stats.avg_agents_per_mission == 4.0
 
@@ -530,9 +523,7 @@ class TestPipelineStats:
 
     def test_stats_serializable(self) -> None:
         provider = MockLLMProvider()
-        pipeline = MissionPipeline(
-            provider, override_complexity=ComplexityTier.TRIVIAL
-        )
+        pipeline = MissionPipeline(provider, override_complexity=ComplexityTier.TRIVIAL)
         asyncio.run(pipeline.execute("test"))
         d = pipeline.stats.to_dict()
         assert isinstance(d, dict)
@@ -569,14 +560,16 @@ class TestNervousSystemIntegration:
             SovereignNervousSystem,
         )
 
-        mock_llm = MockLLMProvider({
-            "P7-DEMA": "[INTENT: code] implement feature",
-            "P3-Coder": (
-                "def feature(): return 'built with pipeline'\n"
-                "# This function implements the requested feature\n"
-                "# with proper documentation and clean structure"
-            ),
-        })
+        mock_llm = MockLLMProvider(
+            {
+                "P7-DEMA": "[INTENT: code] implement feature",
+                "P3-Coder": (
+                    "def feature(): return 'built with pipeline'\n"
+                    "# This function implements the requested feature\n"
+                    "# with proper documentation and clean structure"
+                ),
+            }
+        )
 
         ns = SovereignNervousSystem(inference=EchoInference())
         wire_pipeline_to_nervous_system(ns, mock_llm)

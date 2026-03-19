@@ -21,19 +21,19 @@ Theorem 2.4 (amended): Evidence chain is tamper-evident.
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
-import time
-import fcntl
 import os
-from dataclasses import dataclass, asdict
+import time
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 try:
     from generated.generated_constants import (
-        DOMAIN_EVIDENCE_RECEIPT,
         CONSTITUTION_HASH,
+        DOMAIN_EVIDENCE_RECEIPT,
     )
 except ImportError:
     DOMAIN_EVIDENCE_RECEIPT = "bizra-evidence-v1"
@@ -48,19 +48,20 @@ except ImportError:
 @dataclass
 class EvidenceReceipt:
     """A single immutable evidence record in the chain."""
-    receipt_id: str             # SHA-256 of receipt content
-    timestamp_utc: float        # Unix timestamp
-    previous_hash: str          # Hash of the previous receipt (chain link)
-    mission_id: str             # Unique mission identifier
+
+    receipt_id: str  # SHA-256 of receipt content
+    timestamp_utc: float  # Unix timestamp
+    previous_hash: str  # Hash of the previous receipt (chain link)
+    mission_id: str  # Unique mission identifier
     ihsan_tensor: dict[str, float]  # Full 6-dim tensor, NOT scalar
-    ihsan_composite: float      # Weighted composite for quick lookup
-    gate_results: dict[str, bool]   # Per-gate pass/fail
-    snr_normalized: float       # Mission SNR
-    tier: str                   # "rejected" | "acceptable" | "bloom" | "ihsan"
-    constitution_hash: str      # Hash of constitution.toml at evaluation time
-    domain: str                 # Domain separation context
-    agent_chain: list[str]      # Which PAT agents participated
-    metadata: dict[str, Any]    # Extensible context
+    ihsan_composite: float  # Weighted composite for quick lookup
+    gate_results: dict[str, bool]  # Per-gate pass/fail
+    snr_normalized: float  # Mission SNR
+    tier: str  # "rejected" | "acceptable" | "bloom" | "ihsan"
+    constitution_hash: str  # Hash of constitution.toml at evaluation time
+    domain: str  # Domain separation context
+    agent_chain: list[str]  # Which PAT agents participated
+    metadata: dict[str, Any]  # Extensible context
 
     def compute_hash(self) -> str:
         """Deterministic hash of this receipt's content."""
@@ -146,8 +147,13 @@ class EvidenceLedger:
             The created EvidenceReceipt with computed hash and chain link.
         """
         agent_chain = agent_chain or [
-            "Planner", "Researcher", "Coder",
-            "Evaluator", "Ethicist", "Publisher", "Integrator",
+            "Planner",
+            "Researcher",
+            "Coder",
+            "Evaluator",
+            "Ethicist",
+            "Publisher",
+            "Integrator",
         ]
         metadata = metadata or {}
 

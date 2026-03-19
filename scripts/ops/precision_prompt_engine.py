@@ -50,7 +50,9 @@ def _clamp(value: float, lower: float, upper: float) -> float:
     return max(lower, min(upper, value))
 
 
-def _normalize_weights(raw: dict[str, Any], defaults: dict[str, float]) -> dict[str, float]:
+def _normalize_weights(
+    raw: dict[str, Any], defaults: dict[str, float]
+) -> dict[str, float]:
     parsed: dict[str, float] = {}
     for key, default in defaults.items():
         value = raw.get(key, default)
@@ -221,7 +223,9 @@ def _compute_snr(
     tier_coverage = 1.0 if request.symbolic_neural else 0.75
     evidence_binding = (
         1.0
-        if any(k in request.context for k in ("sources", "evidence", "citations", "refs"))
+        if any(
+            k in request.context for k in ("sources", "evidence", "citations", "refs")
+        )
         else 0.6
     )
 
@@ -280,14 +284,18 @@ def _derive_snr_tuning_actions(snr: dict[str, Any]) -> list[str]:
             "Attach explicit evidence references (sources/citations) for key claims."
         )
     if float(noise_components.get("underconstrained", 0.0)) > 0.0:
-        actions.append("Add hard constraints to reduce underconstrained solution space.")
+        actions.append(
+            "Add hard constraints to reduce underconstrained solution space."
+        )
     if float(noise_components.get("ambiguity", 0.0)) > 0.35:
         actions.append("Clarify ambiguous terms and remove vague language.")
     if float(noise_components.get("coverage_gap", 0.0)) > 0.0:
         actions.append("Enable all tiers to maximize reasoning coverage.")
 
     if not actions:
-        actions.append("SNR is stable; keep constraints and evidence bindings unchanged.")
+        actions.append(
+            "SNR is stable; keep constraints and evidence bindings unchanged."
+        )
     return actions
 
 
@@ -331,7 +339,9 @@ def _build_composite_prompt(
     )
 
 
-def build_prompt_artifact(request: PromptRequest, config: EngineConfig) -> dict[str, Any]:
+def build_prompt_artifact(
+    request: PromptRequest, config: EngineConfig
+) -> dict[str, Any]:
     sections = [
         _section_rare_circuits(request),
         _section_symbolic_neural(request),
