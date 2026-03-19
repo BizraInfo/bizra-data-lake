@@ -74,6 +74,7 @@ pub struct NodeInternals<'a> {
     pub resource_manifest: &'a mut crate::resource_manifest::ResourceManifest,
     pub last_receipt_id: &'a mut Option<[u8; 32]>,
     pub signing_key: Option<&'a ed25519_dalek::SigningKey>,
+    pub experience_ledger: &'a mut bizra_core::ExperienceLedger,
 }
 
 // ============================================================
@@ -379,6 +380,33 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
 
         receipt_id_hex = receipt.id_hex();
         *state.last_receipt_id = Some(receipt.receipt_id);
+
+        // ── Wire WBS 2.1: Commit episode to ExperienceLedger ──
+        // Every receipt-producing mission also records a cognitive episode.
+        // Tulving (1972): episodic memory is the substrate of learning.
+        let actions = vec![bizra_core::EpisodeAction {
+            action_type: "inference".to_string(),
+            description: content.to_string(),
+            success: true,
+            duration_us: 0,
+        }];
+        let impact = bizra_core::EpisodeImpact {
+            snr_score: 0.95,
+            ihsan_score: state.ihsan.as_f64(),
+            snr_ok: true,
+            user_feedback: None,
+            tokens_used: 0,
+            efficiency_score: 0.0,
+        };
+        state.experience_ledger.commit(
+            content.to_string(),
+            receipt_id_hex.clone(),
+            1,
+            actions,
+            impact,
+            None,
+            None,
+        );
     }
 
     let saga_id_str = saga_id.map(|s| format!("{}", s.0)).unwrap_or_default();
@@ -1319,6 +1347,7 @@ mod tests {
         crate::resource_manifest::ResourceManifest,
         Option<[u8; 32]>,
         Option<ed25519_dalek::SigningKey>,
+        bizra_core::ExperienceLedger,
     ) {
         let runtime = AgentRuntime::for_user(1);
         let ihsan = IhsanScore::from_raw(9900);
@@ -1334,6 +1363,7 @@ mod tests {
             crate::resource_manifest::ResourceManifest::empty(),
             None,
             None,
+            bizra_core::ExperienceLedger::new(),
         )
     }
 
@@ -1350,6 +1380,7 @@ mod tests {
         resource_manifest: &'a mut crate::resource_manifest::ResourceManifest,
         last_receipt_id: &'a mut Option<[u8; 32]>,
         _signing_key: &'a mut Option<ed25519_dalek::SigningKey>,
+        experience_ledger: &'a mut bizra_core::ExperienceLedger,
     ) -> NodeInternals<'a> {
         NodeInternals {
             runtime: rt,
@@ -1365,6 +1396,7 @@ mod tests {
             resource_manifest,
             last_receipt_id,
             signing_key: None,
+            experience_ledger,
         }
     }
 
@@ -1382,10 +1414,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(Command::Ping, &mut state);
         assert_eq!(resp.to_wire(), "OK\tpong=true");
@@ -1405,10 +1438,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(Command::Version, &mut state);
         let wire = resp.to_wire();
@@ -1430,10 +1464,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(Command::Shutdown, &mut state);
         assert!(resp.to_wire().contains("shutdown=true"));
@@ -1454,10 +1489,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(
             Command::PlanAction {
@@ -1487,10 +1523,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
 
         let _ = handle(
@@ -1528,10 +1565,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(
             Command::IntentClassify {
@@ -1559,10 +1597,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(
             Command::IntentClassify {
@@ -1588,10 +1627,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(
             Command::IntentClassify {
@@ -1617,10 +1657,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(
             Command::GuardianCheck {
@@ -1648,10 +1689,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(
             Command::GuardianCheck {
@@ -1680,10 +1722,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(
             Command::ActionDispatch {
@@ -1712,11 +1755,12 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut ih = IhsanScore::from_raw(9000); // below floor of 9500
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         // Set a dummy policy hash to pass Gate 1
         state.runtime.set_policy_hash("aa".repeat(32).as_str());
@@ -1748,10 +1792,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(
             Command::SapMeetOpen {
@@ -1784,10 +1829,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
 
         // Open session
@@ -1837,10 +1883,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         let resp = handle(
             Command::SapMessage {
@@ -1867,10 +1914,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
 
         let open_resp = handle(
@@ -1917,10 +1965,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
 
         let open_resp = handle(
@@ -1976,10 +2025,11 @@ mod tests {
             mut rm,
             mut lr,
             mut sk,
+            mut el,
         ) = make_internals();
         let mut state = with_internals(
             &mut rt, &mut ih, &mut sc, &mut mc, &mut st, &mut ae, &mut sap, &mut saga, &mut rm,
-            &mut lr, &mut sk,
+            &mut lr, &mut sk, &mut el,
         );
         state.runtime.set_policy_hash("bb".repeat(32).as_str());
         let resp = handle(

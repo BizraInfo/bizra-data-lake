@@ -129,6 +129,11 @@ pub struct Node {
     last_synthesis_ms: u64,
     /// Cross-loop event bridge (Loop A→B→C→D).
     event_bridge: crate::heartbeat::EventBridge,
+    // ── Phase 87-88: Sovereign Experience Ledger ─────────────────────────────
+    /// Content-addressed episodic memory — the cognitive substrate.
+    /// Every mission that produces a receipt also commits an episode here.
+    /// Standing on: Tulving (1972), Park et al. (2023).
+    experience_ledger: bizra_core::ExperienceLedger,
 }
 
 impl Node {
@@ -158,6 +163,7 @@ impl Node {
             last_heartbeat_ms: 0,
             last_synthesis_ms: 0,
             event_bridge: crate::heartbeat::EventBridge::default(),
+            experience_ledger: bizra_core::ExperienceLedger::new(),
         };
 
         // Register PostDeliver audit hook for action.receipt events.
@@ -238,6 +244,7 @@ impl Node {
                 resource_manifest: &mut self.resource_manifest,
                 last_receipt_id: &mut self.last_receipt_id,
                 signing_key: None, // TODO: wire sovereign key from genesis ceremony
+                experience_ledger: &mut self.experience_ledger,
             };
             handler::handle(cmd, &mut internals)
         };
@@ -286,6 +293,7 @@ impl Node {
                 resource_manifest: &mut self.resource_manifest,
                 last_receipt_id: &mut self.last_receipt_id,
                 signing_key: None, // TODO: wire sovereign key from genesis ceremony
+                experience_ledger: &mut self.experience_ledger,
             };
             handler::handle(cmd, &mut internals)
         };
