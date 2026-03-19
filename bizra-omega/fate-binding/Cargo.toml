@@ -48,5 +48,9 @@ hex = { workspace = true }
 # Timestamp handling
 chrono = { workspace = true }
 
+[dev-dependencies]
+# W7: FateProof embedding into ProofSpace blocks (dev-dep to avoid cycle: proofspace → fate-binding)
+bizra-proofspace = { path = "../bizra-proofspace" }
+
 [build-dependencies]
 napi-build = "2.1"

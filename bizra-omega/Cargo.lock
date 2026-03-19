@@ -368,7 +368,9 @@ dependencies = [
 name = "bizra-action"
 version = "2.0.0"
 dependencies = [
+ "bizra-core",
  "bizra-mission",
+ "bizra-proofspace",
  "blake3",
 ]
 
@@ -1602,6 +1604,7 @@ version = "2.0.0"
 dependencies = [
  "anyhow",
  "bizra-core",
+ "bizra-proofspace",
  "blake3",
  "chrono",
  "ed25519-dalek",

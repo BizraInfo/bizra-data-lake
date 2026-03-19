@@ -54,6 +54,10 @@ path = "tests/federation_security.rs"
 name = "inference_fallback"
 path = "tests/inference_fallback.rs"
 
+[[test]]
+name = "proof_pyramid_e2e"
+path = "tests/proof_pyramid_e2e.rs"
+
 [[bench]]
 name = "perf"
 path = "benches/performance.rs"
