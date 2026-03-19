@@ -1103,3 +1103,4 @@ BUDGET_MEGA_RATIO = 0.09
 - Constitutional triangle (Ihsan + Amanah + Adl) now enforced at type level
 
 - style: cargo fmt + black formatting pass for CI compliance (2026-03-19)
+- style: remaining Python lint fixes (organism.py, rust_bridge.py) (2026-03-20)

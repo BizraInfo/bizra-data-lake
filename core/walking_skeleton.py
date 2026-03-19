@@ -18,7 +18,6 @@ import json
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 # Constitutional constants — must match Rust (bizra-core/src/lib.rs)
 IHSAN_THRESHOLD: float = 0.95

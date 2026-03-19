@@ -435,13 +435,9 @@ class SovereignOrganism:
 
                 self._rust_bridge = wire_rust_bridge(bus, production=False)
                 if self._rust_bridge:
-                    logger.info(
-                        "Rust bridge ACTIVE: Python→Rust synapse wired"
-                    )
+                    logger.info("Rust bridge ACTIVE: Python→Rust synapse wired")
             except Exception as rust_exc:
-                logger.info(
-                    "Rust bridge not available (degraded): %s", rust_exc
-                )
+                logger.info("Rust bridge not available (degraded): %s", rust_exc)
                 self._rust_bridge = None
         except (ImportError, AttributeError, RuntimeError, OSError) as exc:
             logger.warning(

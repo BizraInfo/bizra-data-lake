@@ -225,7 +225,7 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
         by_kind[cat]["count"] += 1
         by_kind[cat]["bytes"] += f["size"]
 
-    print(f"\n  === CLASSIFICATION ===")
+    print("\n  === CLASSIFICATION ===")
     for cat in sorted(by_kind, key=lambda k: -by_kind[k]["bytes"]):
         info = by_kind[cat]
         gb = info["bytes"] / 1e9
@@ -235,12 +235,12 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
     by_source = defaultdict(int)
     for f in all_files:
         by_source[f["source_root"]] += 1
-    print(f"\n  === BY SOURCE ===")
+    print("\n  === BY SOURCE ===")
     for src in sorted(by_source, key=lambda k: -by_source[k]):
         print(f"    {src}: {by_source[src]:,}")
 
     # ── Fingerprint pass (dedup candidates: same name+size) ──
-    print(f"\n  === DEDUP SCAN ===")
+    print("\n  === DEDUP SCAN ===")
     t1 = time.perf_counter()
     # Group by (name, size) for quick dedup candidates
     candidates = defaultdict(list)
@@ -327,14 +327,14 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
     # ── Summary ──
     total_elapsed = time.perf_counter() - t0
     print(f"\n  {'='*50}")
-    print(f"  DISCOVERY COMPLETE")
+    print("  DISCOVERY COMPLETE")
     print(f"  {'='*50}")
     print(f"  Files:     {len(all_files):,}")
     print(f"  Size:      {total_bytes / 1e9:.2f} GB")
     print(f"  Duplicates:{dup_file_count:,} redundant ({dup_bytes / 1e6:.1f} MB)")
     print(f"  Sources:   {len(by_source)}")
     print(f"  Time:      {total_elapsed:.1f}s")
-    print(f"  Next step: PAT reviews manifest → clean → index → consolidate to B:\\")
+    print("  Next step: PAT reviews manifest → clean → index → consolidate to B:\\")
 
     return manifest
 
