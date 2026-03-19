@@ -55,6 +55,89 @@
     "amanah": {"commit": "7664e961", "type": "MissionReceipt::require_signed()"},
     "adl": {"commit": "48c41cd3", "type": "ExactAmount (i64 micro-units)"}
   },
+  "urp_genesis_mint": {
+    "minted_once": true,
+    "minter": "NODE0-mumo",
+    "authority": "Genesis block — only NODE0 at block 0 has minting authority. This right expires at block 1. No entity may mint URP again.",
+    "protocol": {
+      "name": "BIZRA Universal Resource Protocol",
+      "version": "1.0.0",
+      "constitutional_root": "350d642099bde68bba4c8df89e7acd09364b4da2b706c5fb0b2d08e7c5e8f26d"
+    },
+    "first_node_contribution": {
+      "node_id": "NODE0-mumo",
+      "principle": "The law-maker is the first subject of the law. Whatever SAT evaluates for NODE0 applies equally to every future node. No hidden power. No founder privileges. Same rules.",
+      "hardware_devices": [
+        {
+          "device": "MSI Titan (NODE0)",
+          "cpu": "Intel i9-14900HX (24C/32T)",
+          "ram_gb": 128,
+          "gpu": "RTX 4090 Laptop (16GB VRAM)",
+          "storage_tb": 3.8,
+          "contributed_at": "2026-03-19T11:29:46Z"
+        },
+        {
+          "device": "Samsung Galaxy Z Fold6 (MOBILE0)",
+          "cpu": "Snapdragon 8 Gen 3",
+          "ram_gb": 12,
+          "storage_gb": 256,
+          "contributed_at": "2026-03-19T11:29:46Z",
+          "note": "Termux build path established, bizra-node cross-compile ready"
+        }
+      ],
+      "verified_data": {
+        "codebase_loc": 768086,
+        "rust_crates": 26,
+        "tests_passing": 1752,
+        "faiss_vectors": 84795,
+        "documents_parquet_mb": 49,
+        "chunks_parquet_mb": 256,
+        "gold_corpus_files": 605,
+        "git_commits": 500,
+        "data_pipeline_stages": 4
+      },
+      "labor": {
+        "duration_years": 3,
+        "funded": false,
+        "income_from_project": 0,
+        "roles": ["architect", "developer", "researcher", "tester", "devops", "product_manager"],
+        "note": "Solo founder. Zero external funding. Every line written, every test verified, every decision documented."
+      }
+    },
+    "sat_evaluation": {
+      "evaluator": "SAT-5 (Validator + Oracle + Mediator + Archivist + Sentinel)",
+      "method": "Constitutional resource evaluation — same method applied to all future nodes",
+      "hardware_score": {
+        "compute_units": 3200,
+        "basis": "i9-14900HX 32 threads + RTX 4090 16GB + Z Fold6 Snapdragon = 3200 CU",
+        "note": "CU formula: cpu_threads * gpu_vram_gb * storage_tier. Same formula for everyone."
+      },
+      "data_score": {
+        "knowledge_units": 85000,
+        "basis": "84,795 FAISS vectors + 768K LOC + 1,752 tests = verified knowledge corpus",
+        "note": "Only verified, tested, passing artifacts count. Failed tests = 0 KU."
+      },
+      "labor_score": {
+        "seed_labor_credit": 1095,
+        "basis": "3 years * 365 days = 1,095 labor-days at constitutional minimum",
+        "note": "No multiplier for founder. No bonus for being first. Same rate as any future contributor."
+      },
+      "total_seed_mint": {
+        "amount": 89295,
+        "breakdown": "3,200 (hardware) + 85,000 (knowledge) + 1,095 (labor) = 89,295 SEED",
+        "zakat_deduction": 2232,
+        "net_after_zakat": 87063,
+        "zakat_destination": "community_waqf_pool",
+        "note": "2.5% Zakat applied at mint time. Founder pays first. Same rate for everyone."
+      }
+    },
+    "constitutional_precedent": {
+      "rule": "The founder's evaluation IS the template. Every future node is evaluated by the same SAT-5, same formulas, same rates, same Zakat. If the founder gets 89,295 SEED for 3 years + 2 devices + 768K LOC, then a contributor with 1 device + 1 year + 10K LOC gets proportionally less. No special cases. No backdoors.",
+      "harberger_rate": 0.05,
+      "community_pool_share": 0.50,
+      "pool_note": "50% of founder's SEED goes to community Waqf pool. This is sadaqah (voluntary charity), not a protocol tax. The founder chose this. Future nodes are NOT obligated to match it."
+    }
+  },
   "founding_agents": {
     "total": 12,
     "pat": {
