@@ -86,22 +86,29 @@
         }
       ],
       "verified_data": {
-        "codebase_loc": 768086,
-        "rust_crates": 26,
-        "tests_passing": 1752,
-        "faiss_vectors": 84795,
-        "documents_parquet_mb": 49,
-        "chunks_parquet_mb": 256,
-        "gold_corpus_files": 605,
-        "git_commits": 500,
-        "data_pipeline_stages": 4
+        "indexed_so_far": {
+          "codebase_loc": 768086,
+          "rust_crates": 26,
+          "tests_passing": 1752,
+          "faiss_vectors": 84795,
+          "documents_parquet_mb": 49,
+          "chunks_parquet_mb": 256,
+          "gold_corpus_files": 605,
+          "git_commits": 500,
+          "data_pipeline_stages": 4
+        },
+        "pending_indexing": {
+          "note": "Current index is PARTIAL. 3 years of work product awaits PAT activation for full indexing. Conversations, designs, research, prototypes, experiments, rejected approaches, pivot decisions — all unindexed. SEED evaluation will be RECOMPUTED when PAT-7 completes full corpus indexing.",
+          "trigger": "PAT activation → P2 Scholar indexes full corpus → SAT-5 re-evaluates → SEED delta minted",
+          "status": "DEFERRED until PAT operational"
+        }
       },
       "labor": {
         "duration_years": 3,
         "funded": false,
         "income_from_project": 0,
-        "roles": ["architect", "developer", "researcher", "tester", "devops", "product_manager"],
-        "note": "Solo founder. Zero external funding. Every line written, every test verified, every decision documented."
+        "roles": ["architect", "developer", "researcher", "tester", "devops", "product_manager", "constitutional_designer", "product_strategist"],
+        "note": "Solo founder. Zero external funding. Every line written, every test verified, every decision documented. Current SEED evaluation is PROVISIONAL — based only on indexed subset."
       }
     },
     "sat_evaluation": {
@@ -132,7 +139,21 @@
       }
     },
     "constitutional_precedent": {
-      "rule": "The founder's evaluation IS the template. Every future node is evaluated by the same SAT-5, same formulas, same rates, same Zakat. If the founder gets 89,295 SEED for 3 years + 2 devices + 768K LOC, then a contributor with 1 device + 1 year + 10K LOC gets proportionally less. No special cases. No backdoors.",
+      "rule": "The founder's evaluation IS the template. Every future node is evaluated by the same SAT-5, same formulas, same rates, same Zakat. No special cases. No backdoors.",
+      "adl_fair_evaluation": {
+        "principle": "No founder BONUS — but also no founder PENALTY. Adl means FAIR, not minimum. The evaluation must reflect real market value of actual work impact.",
+        "market_context": {
+          "comparable": "Solo technical founder, 3 years, $0 funding, 768K+ LOC (partial index), full-stack sovereign AI OS with constitutional governance, Islamic finance protocol, 26 Rust crates, 1,752 tests, working binary",
+          "note": "SAT evaluation must be recalculated against real market rates when full corpus is indexed. The current 89,295 SEED is PROVISIONAL — based on partial data only."
+        },
+        "quranic_foundation": {
+          "az_zumar_39_9": "هل يستوي الذين يعلمون والذين لا يعلمون — Are those who know equal to those who do not know?",
+          "an_najm_53_40": "وأن سعيك لسوف يُرى — And that your effort will be seen.",
+          "interpretation": "The system evaluates WORK and IMPACT, not titles. A founder who worked 3 years alone with zero income is evaluated by what they BUILT and what IMPACT it creates — not by the word 'founder'. Those who work are not equal to those who do not work. And every effort will be seen — by the SAT, by the chain, by the evidence."
+        },
+        "evaluation_method": "impact-based, not title-based",
+        "re_evaluation_trigger": "PAT-7 full corpus indexing complete → SAT-5 re-evaluates with complete evidence → SEED delta minted for previously unindexed work"
+      },
       "harberger_rate": 0.05,
       "community_pool_share": 0.50,
       "pool_note": "50% of founder's SEED goes to community Waqf pool. This is sadaqah (voluntary charity), not a protocol tax. The founder chose this. Future nodes are NOT obligated to match it."
