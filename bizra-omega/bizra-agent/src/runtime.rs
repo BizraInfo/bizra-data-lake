@@ -115,7 +115,7 @@ impl Default for RuntimeConfig {
             pipeline_config: PipelineConfig::default(),
             orchestrator_config: OrchestratorConfig::default(),
             user_hash: 0,
-            ihsan_floor: IhsanScore::from_raw(9500),
+            ihsan_floor: IhsanScore::from_f64(0.95),
             max_conversations_before_synthesis: 5,
             auto_extract_memory: true,
             reflex_mode: ReflexMode::Disabled,
@@ -1208,7 +1208,7 @@ mod tests {
     fn runtime_degraded_when_low_ihsan() {
         let mut runtime = AgentRuntime::for_user(42);
 
-        runtime.update_ihsan(IhsanScore::from_raw(9000));
+        runtime.update_ihsan(IhsanScore::from_f64(0.90)); // below 0.95 floor
         assert_eq!(runtime.state(), RuntimeState::Degraded);
 
         let msg = make_user_message("This should be rejected", 1000);
@@ -1216,7 +1216,7 @@ mod tests {
         assert!(!response.is_ok());
 
         // Recovery
-        runtime.update_ihsan(IhsanScore::from_raw(9900));
+        runtime.update_ihsan(IhsanScore::from_f64(0.96)); // above 0.95 floor
         assert_eq!(runtime.state(), RuntimeState::Ready);
     }
 

@@ -666,7 +666,7 @@ mod integration_tests {
         rt.start_conversation(1000);
 
         // Degrade
-        rt.update_ihsan(IhsanScore::from_raw(9000));
+        rt.update_ihsan(IhsanScore::from_f64(0.90)); // below 0.95 floor
         assert_eq!(rt.state(), RuntimeState::Degraded);
 
         // Messages should fail in degraded state
@@ -674,13 +674,13 @@ mod integration_tests {
             MessageId::new(1, 1),
             "This should be rejected",
             1001,
-            IhsanScore::from_raw(9000),
+            IhsanScore::from_f64(0.90),
         );
         let resp = rt.receive(msg, 1001);
         assert!(!resp.is_ok());
 
         // Recover
-        rt.update_ihsan(IhsanScore::from_raw(9900));
+        rt.update_ihsan(IhsanScore::from_f64(0.96)); // above 0.95 floor
         assert_eq!(rt.state(), RuntimeState::Ready);
 
         // Should work again
