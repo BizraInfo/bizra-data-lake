@@ -368,6 +368,7 @@ dependencies = [
 name = "bizra-action"
 version = "2.0.0"
 dependencies = [
+ "bizra-mission",
  "blake3",
 ]
 
@@ -619,11 +620,15 @@ version = "2.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bizra-action",
  "bizra-core",
+ "bizra-mission",
+ "bizra-sippar",
  "blake3",
  "chrono",
  "criterion",
  "ed25519-dalek",
+ "fate-binding",
  "hex",
  "json-canon",
  "once_cell",

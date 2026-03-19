@@ -1,0 +1,210 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Wire Completeness Audit — Sprint 2
+#
+# Verifies that all 8 expected inter-crate dependency wires (W1-W8) are
+# present in Cargo.toml files across the bizra-omega workspace.
+#
+# WIRE MAP (from sprint design docs):
+#   W1: bizra-action       → bizra-core       (constitutional thresholds)
+#   W2: bizra-proofspace   → bizra-core       (IHSAN_THRESHOLD, SNR_THRESHOLD)
+#   W3: bizra-proofspace   → bizra-sippar     (SipparChainDigest)
+#   W4: fate-binding       → bizra-core       (constitutional constants)
+#   W5: bizra-mission      → bizra-core       (MissionState lifecycle)
+#   W6: bizra-proofspace   → bizra-mission    (MissionProofBridge)
+#   W7: fate-binding       → bizra-proofspace (FateProof embedding)
+#   W8: bizra-action       → bizra-proofspace (ConstitutionalReceipt → ProofBlock)
+#
+# Runs:
+#   - Weekly (Sunday 02:00 UTC)
+#   - On any Cargo.toml change
+#   - On workflow_dispatch
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Wire Completeness Audit
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/sprint-*"
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - ".github/workflows/wire-completeness-audit.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+  schedule:
+    # Weekly: Sunday at 02:00 UTC
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: wire-audit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wire-completeness-audit:
+    name: "Inter-Crate Wire Completeness (W1-W8)"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install toml parser
+        run: pip install tomli
+
+      - name: Audit all 8 inter-crate wires
+        id: wire_audit
+        shell: python
+        run: |
+          import sys
+          import json
+          import pathlib
+
+          try:
+              import tomllib
+          except ImportError:
+              import tomli as tomllib  # Python < 3.11 fallback
+
+          WORKSPACE_ROOT = pathlib.Path("bizra-omega")
+
+          # ─────────────────────────────────────────────────────────────────
+          # Wire definitions: (wire_id, source_crate, target_crate, description)
+          # A wire EXISTS when source_crate's Cargo.toml declares target_crate
+          # as a [dependencies] entry.
+          # ─────────────────────────────────────────────────────────────────
+          WIRES = [
+              ("W1", "bizra-action",     "bizra-core",       "Action Bus → Constitutional thresholds"),
+              ("W2", "bizra-proofspace", "bizra-core",       "ProofSpace → IHSAN/SNR constants"),
+              ("W3", "bizra-proofspace", "bizra-sippar",     "ProofSpace → Sippar chain digest"),
+              ("W4", "fate-binding",     "bizra-core",       "FATE binding → Constitutional constants"),
+              ("W5", "bizra-mission",    "bizra-core",       "Mission Control → Core lifecycle"),
+              ("W6", "bizra-proofspace", "bizra-mission",    "ProofSpace → Mission proof bridge"),
+              ("W7", "fate-binding",     "bizra-proofspace", "FATE binding → ProofSpace embedding"),
+              ("W8", "bizra-action",     "bizra-proofspace", "Action receipts → ProofBlock conversion"),
+          ]
+
+          def load_cargo_toml(crate_name):
+              path = WORKSPACE_ROOT / crate_name / "Cargo.toml"
+              if not path.exists():
+                  return None, str(path)
+              with open(path, "rb") as f:
+                  return tomllib.load(f), str(path)
+
+          def has_dep(cargo_data, dep_name):
+              """Check [dependencies] and [dev-dependencies] for dep_name."""
+              if cargo_data is None:
+                  return False
+              normalized = dep_name.replace("-", "_")
+              for section in ("dependencies", "dev-dependencies"):
+                  deps = cargo_data.get(section, {})
+                  for key in deps:
+                      if key.replace("-", "_") == normalized:
+                          return True
+              return False
+
+          results = []
+          wired = []
+          missing = []
+          crate_not_found = []
+
+          for wire_id, source, target, description in WIRES:
+              cargo_data, cargo_path = load_cargo_toml(source)
+              if cargo_data is None:
+                  status = "CRATE_NOT_FOUND"
+                  crate_not_found.append(wire_id)
+              elif has_dep(cargo_data, target):
+                  status = "WIRED"
+                  wired.append(wire_id)
+              else:
+                  status = "MISSING"
+                  missing.append(wire_id)
+
+              results.append({
+                  "wire_id": wire_id,
+                  "source": source,
+                  "target": target,
+                  "description": description,
+                  "status": status,
+                  "cargo_path": cargo_path,
+              })
+
+          # ─────────────────────────────────────────────────────────────────
+          # Write GitHub Step Summary
+          # ─────────────────────────────────────────────────────────────────
+          import os
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
+          with open(summary_path, "a") as f:
+              total = len(WIRES)
+              wired_count = len(wired)
+              all_ok = len(missing) == 0 and len(crate_not_found) == 0
+              icon = "✅" if all_ok else "❌"
+              f.write(f"## {icon} Wire Completeness Audit — {wired_count}/{total} wires present\n\n")
+              f.write("| Wire | Source Crate | Target Crate | Status | Description |\n")
+              f.write("|------|-------------|-------------|--------|-------------|\n")
+              for r in results:
+                  s_icon = "✅" if r["status"] == "WIRED" else ("⚠️" if r["status"] == "CRATE_NOT_FOUND" else "❌")
+                  f.write(f"| {r['wire_id']} | `{r['source']}` | `{r['target']}` | {s_icon} {r['status']} | {r['description']} |\n")
+              f.write(f"\n**SHA**: `${{{{ github.sha }}}}`\n")
+              if missing:
+                  f.write(f"\n### Missing Wires\nThe following wires are absent from Cargo.toml: `{'`, `'.join(missing)}`\n")
+                  f.write("Add the corresponding `[dependencies]` entries to implement these wires.\n")
+              if crate_not_found:
+                  f.write(f"\n### Crates Not Found\nThe following crates were not found in `{WORKSPACE_ROOT}/`: `{'`, `'.join(crate_not_found)}`\n")
+
+          # ─────────────────────────────────────────────────────────────────
+          # Write JSON report
+          # ─────────────────────────────────────────────────────────────────
+          pathlib.Path("wire_audit_report.json").write_text(
+              json.dumps({
+                  "total": total,
+                  "wired": wired_count,
+                  "missing_wires": missing,
+                  "crates_not_found": crate_not_found,
+                  "results": results,
+              }, indent=2)
+          )
+
+          # ─────────────────────────────────────────────────────────────────
+          # Print table to stdout
+          # ─────────────────────────────────────────────────────────────────
+          print(f"\nWire Completeness Audit: {wired_count}/{total} wires present")
+          print("-" * 80)
+          for r in results:
+              icon = "✅" if r["status"] == "WIRED" else ("⚠️" if r["status"] == "CRATE_NOT_FOUND" else "❌")
+              print(f"  {icon} {r['wire_id']}: {r['source']} → {r['target']}  [{r['status']}]")
+              if r["status"] != "WIRED":
+                  print(f"       ({r['description']})")
+          print("-" * 80)
+
+          if missing:
+              print(f"\n❌ MISSING WIRES: {', '.join(missing)}")
+              print("   These wires must be added to Cargo.toml to satisfy Sprint 2 wire completeness.")
+
+          if crate_not_found:
+              print(f"\n⚠️  CRATES NOT FOUND: {', '.join(crate_not_found)}")
+              print(f"   Check that crate directories exist under {WORKSPACE_ROOT}/")
+
+          # Exit non-zero only for MISSING wires (not for crate-not-found,
+          # which may indicate the crate is not yet scaffolded — warn only).
+          if missing:
+              sys.exit(1)
+
+      - name: Upload wire audit report
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: wire-completeness-audit-report
+          path: wire_audit_report.json
+          retention-days: 90
