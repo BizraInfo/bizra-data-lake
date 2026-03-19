@@ -26,6 +26,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
@@ -61,6 +62,124 @@ pub const MAX_WAQF_OVERHEAD: f64 = 0.10;
 
 /// Minimum beneficiaries for a valid Waqf (prevents self-dealing)
 pub const MIN_WAQF_BENEFICIARIES: usize = 3;
+
+// =============================================================================
+// EXACT AMOUNT — Fixed-point monetary type (Adl compliance)
+// =============================================================================
+
+/// Fixed-point monetary amount stored as integer micro-units (millionths).
+///
+/// **Why**: f64 accumulates rounding drift. Three-way profit splits produce
+/// different totals depending on operation order. This violates Adl (justice).
+///
+/// **How**: 1.0 SEED = 1_000_000 micro-units. All arithmetic is integer.
+/// Division truncates toward zero (constitutional choice: never overpay).
+///
+/// **Standing on**: Babylonian scribes used regular numbers for exact division.
+/// We use fixed-point for exact accumulation. Same principle, different scale.
+///
+/// Scale factor: 10^6 = 2^6 × 5^6 (regular number — Sippar-compatible).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct ExactAmount(i64);
+
+impl ExactAmount {
+    /// Scale factor: 1.0 = 1_000_000 micro-units
+    pub const SCALE: i64 = 1_000_000;
+
+    /// Zero amount
+    pub const ZERO: Self = Self(0);
+
+    /// Create from a floating-point value (conversion boundary — used ONCE at input).
+    pub fn from_f64(value: f64) -> Self {
+        Self((value * Self::SCALE as f64).round() as i64)
+    }
+
+    /// Convert to f64 (output boundary — used ONCE for display/serialization).
+    pub fn to_f64(self) -> f64 {
+        self.0 as f64 / Self::SCALE as f64
+    }
+
+    /// Raw micro-unit value (for exact integer arithmetic).
+    pub fn raw(self) -> i64 {
+        self.0
+    }
+
+    /// Create from raw micro-units.
+    pub fn from_raw(raw: i64) -> Self {
+        Self(raw)
+    }
+
+    /// Multiply by a ratio (e.g., profit share). Result truncated toward zero.
+    pub fn mul_ratio(self, ratio: f64) -> Self {
+        Self((self.0 as f64 * ratio) as i64)
+    }
+
+    /// Is this amount negative?
+    pub fn is_negative(self) -> bool {
+        self.0 < 0
+    }
+
+    /// Absolute value.
+    pub fn abs(self) -> Self {
+        Self(self.0.abs())
+    }
+}
+
+impl std::ops::Add for ExactAmount {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::AddAssign for ExactAmount {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+    }
+}
+
+impl std::ops::Sub for ExactAmount {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        Self(self.0 - rhs.0)
+    }
+}
+
+impl std::ops::SubAssign for ExactAmount {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
+    }
+}
+
+impl std::ops::Neg for ExactAmount {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self(-self.0)
+    }
+}
+
+impl std::ops::Mul<f64> for ExactAmount {
+    type Output = Self;
+    fn mul(self, rhs: f64) -> Self {
+        Self((self.0 as f64 * rhs) as i64)
+    }
+}
+
+impl std::ops::Div<f64> for ExactAmount {
+    type Output = Self;
+    fn div(self, rhs: f64) -> Self {
+        if rhs == 0.0 { return Self(0); }
+        Self((self.0 as f64 / rhs) as i64)
+    }
+}
+
+impl fmt::Display for ExactAmount {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let whole = self.0 / Self::SCALE;
+        let frac = (self.0 % Self::SCALE).abs();
+        write!(f, "{whole}.{frac:06}")
+    }
+}
 
 // =============================================================================
 // ERROR TYPES
@@ -438,8 +557,8 @@ pub struct MudarabahContract {
     pub investor_node: String,
     /// Entrepreneur (Mudarib) node ID
     pub entrepreneur_node: String,
-    /// Principal capital amount (in compute units)
-    pub capital: f64,
+    /// Principal capital amount (exact fixed-point — Adl compliant)
+    pub capital: ExactAmount,
     /// Investor's profit share ratio (0.0 to MAX_RABBULMAL_SHARE)
     pub investor_profit_ratio: f64,
     /// Entrepreneur's profit share ratio (MIN_MUDARIB_SHARE to 1.0)
@@ -450,8 +569,8 @@ pub struct MudarabahContract {
     pub expires_at: u64,
     /// Current contract status
     pub status: MudarabahStatus,
-    /// Accumulated profit (if positive) or loss (if negative)
-    pub accumulated_pnl: f64,
+    /// Accumulated profit/loss (exact fixed-point — Adl compliant)
+    pub accumulated_pnl: ExactAmount,
     /// Service type being provided
     pub service_type: String,
     /// Performance metrics
@@ -465,12 +584,12 @@ pub struct MudarabahContract {
 /// Settlement record for completed Mudarabah
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MudarabahSettlement {
-    /// Total profit or loss
-    pub total_pnl: f64,
-    /// Amount returned to investor
-    pub investor_return: f64,
-    /// Amount paid to entrepreneur
-    pub entrepreneur_payment: f64,
+    /// Total profit or loss (exact — Adl compliant)
+    pub total_pnl: ExactAmount,
+    /// Amount returned to investor (exact)
+    pub investor_return: ExactAmount,
+    /// Amount paid to entrepreneur (exact)
+    pub entrepreneur_payment: ExactAmount,
     /// Settlement timestamp
     pub settled_at: u64,
     /// Settlement hash for auditability
@@ -488,7 +607,7 @@ impl MudarabahContract {
         contract_id: String,
         investor_node: String,
         entrepreneur_node: String,
-        capital: f64,
+        capital: ExactAmount,
         investor_profit_ratio: f64,
         duration_days: u64,
         service_type: String,
@@ -529,7 +648,7 @@ impl MudarabahContract {
             created_at: now_ms,
             expires_at,
             status: MudarabahStatus::Proposed,
-            accumulated_pnl: 0.0,
+            accumulated_pnl: ExactAmount::ZERO,
             service_type,
             performance_ihsan: 1.0,
             losses: Vec::new(),
@@ -548,8 +667,8 @@ impl MudarabahContract {
         Ok(())
     }
 
-    /// Record profit or loss
-    pub fn record_pnl(&mut self, amount: f64, is_profit: bool) -> IslamicFinanceResult<()> {
+    /// Record profit or loss (exact fixed-point arithmetic — Adl compliant)
+    pub fn record_pnl(&mut self, amount: ExactAmount, is_profit: bool) -> IslamicFinanceResult<()> {
         if self.status != MudarabahStatus::Active {
             return Err(IslamicFinanceError::MudarabahViolation {
                 reason: "Contract not active".into(),
@@ -559,9 +678,9 @@ impl MudarabahContract {
         if is_profit {
             self.accumulated_pnl += amount;
         } else {
-            self.accumulated_pnl -= amount;
+            self.accumulated_pnl = self.accumulated_pnl - amount;
             self.losses.push(MudarabahLoss::OperationalLoss {
-                amount,
+                amount: amount.to_f64(),
                 reason: "Operational loss recorded".into(),
             });
         }
@@ -598,16 +717,17 @@ impl MudarabahContract {
             .unwrap_or_default()
             .as_millis() as u64;
 
-        let (investor_return, entrepreneur_payment) = if self.accumulated_pnl >= 0.0 {
-            // Profit case: distribute according to ratios
-            let investor_profit = self.accumulated_pnl * self.investor_profit_ratio;
-            let entrepreneur_profit = self.accumulated_pnl * self.entrepreneur_profit_ratio;
+        let (investor_return, entrepreneur_payment) = if !self.accumulated_pnl.is_negative() {
+            // Profit case: distribute according to ratios (exact arithmetic)
+            let investor_profit = self.accumulated_pnl.mul_ratio(self.investor_profit_ratio);
+            let entrepreneur_profit = self.accumulated_pnl.mul_ratio(self.entrepreneur_profit_ratio);
 
             (self.capital + investor_profit, entrepreneur_profit)
         } else {
             // Loss case: investor bears capital loss, entrepreneur gets nothing
-            let remaining_capital = (self.capital + self.accumulated_pnl).max(0.0);
-            (remaining_capital, 0.0)
+            let remaining = self.capital + self.accumulated_pnl;
+            let capped = if remaining.is_negative() { ExactAmount::ZERO } else { remaining };
+            (capped, ExactAmount::ZERO)
         };
 
         // Generate settlement hash
@@ -714,12 +834,12 @@ pub struct MusharakahPartnership {
     pub name: String,
     /// Partners and their contributions
     pub partners: Vec<MusharakahPartner>,
-    /// Total capital pool
-    pub total_capital: f64,
+    /// Total capital pool (exact — Adl compliant)
+    pub total_capital: ExactAmount,
     /// Current status
     pub status: MusharakahStatus,
-    /// Accumulated profit/loss
-    pub accumulated_pnl: f64,
+    /// Accumulated profit/loss (exact — Adl compliant)
+    pub accumulated_pnl: ExactAmount,
     /// Creation timestamp
     pub created_at: u64,
     /// Service/operation type
@@ -747,9 +867,9 @@ impl MusharakahPartnership {
             partnership_id,
             name,
             partners: Vec::new(),
-            total_capital: 0.0,
+            total_capital: ExactAmount::ZERO,
             status: MusharakahStatus::Forming,
-            accumulated_pnl: 0.0,
+            accumulated_pnl: ExactAmount::ZERO,
             created_at: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
@@ -771,7 +891,7 @@ impl MusharakahPartnership {
     pub fn add_partner(
         &mut self,
         node_id: String,
-        capital: f64,
+        capital: ExactAmount,
         profit_share: f64,
     ) -> IslamicFinanceResult<()> {
         if self.status != MusharakahStatus::Forming {
@@ -780,7 +900,7 @@ impl MusharakahPartnership {
             });
         }
 
-        if capital <= 0.0 {
+        if capital.raw() <= 0 {
             return Err(IslamicFinanceError::MusharakahViolation {
                 reason: "Capital contribution must be positive".into(),
             });
@@ -794,14 +914,14 @@ impl MusharakahPartnership {
         }
 
         let new_total = self.total_capital + capital;
-        let contribution_ratio = capital / new_total;
+        let contribution_ratio = capital.to_f64() / new_total.to_f64();
 
         // Loss share MUST equal contribution ratio (Shariah requirement)
         let loss_share = contribution_ratio;
 
         let partner = MusharakahPartner {
             node_id,
-            capital_contribution: capital,
+            capital_contribution: capital.to_f64(),
             contribution_ratio,
             profit_share,
             loss_share,
@@ -823,12 +943,13 @@ impl MusharakahPartnership {
 
     /// Recalculate all partner ratios after changes
     fn recalculate_ratios(&mut self) {
-        if self.total_capital == 0.0 {
+        let total = self.total_capital.to_f64();
+        if total == 0.0 {
             return;
         }
 
         for partner in &mut self.partners {
-            partner.contribution_ratio = partner.capital_contribution / self.total_capital;
+            partner.contribution_ratio = partner.capital_contribution / total;
             partner.loss_share = partner.contribution_ratio;
             partner.voting_weight = partner.contribution_ratio;
         }
@@ -878,8 +999,8 @@ impl MusharakahPartnership {
         Ok(())
     }
 
-    /// Record profit or loss
-    pub fn record_pnl(&mut self, amount: f64, is_profit: bool) -> IslamicFinanceResult<()> {
+    /// Record profit or loss (exact arithmetic — Adl compliant)
+    pub fn record_pnl(&mut self, amount: ExactAmount, is_profit: bool) -> IslamicFinanceResult<()> {
         if self.status != MusharakahStatus::Active {
             return Err(IslamicFinanceError::MusharakahViolation {
                 reason: "Partnership not active".into(),
@@ -902,17 +1023,18 @@ impl MusharakahPartnership {
     /// - Losses: Distributed by contribution_ratio (mandatory)
     pub fn distribute(&self) -> IslamicFinanceResult<HashMap<String, f64>> {
         let mut distributions = HashMap::new();
+        let pnl = self.accumulated_pnl.to_f64();
 
-        if self.accumulated_pnl >= 0.0 {
+        if pnl >= 0.0 {
             // Profit distribution by profit_share
             for partner in &self.partners {
-                let share = self.accumulated_pnl * partner.profit_share;
+                let share = pnl * partner.profit_share;
                 distributions.insert(partner.node_id.clone(), share);
             }
         } else {
             // Loss distribution by contribution_ratio (mandatory Shariah rule)
             for partner in &self.partners {
-                let share = self.accumulated_pnl * partner.loss_share; // Negative value
+                let share = pnl * partner.loss_share; // Negative value
                 distributions.insert(partner.node_id.clone(), share);
             }
         }
@@ -1764,14 +1886,14 @@ impl IslamicFinanceRegistry {
             .mudarabah_contracts
             .values()
             .filter(|c| c.status == MudarabahStatus::Active)
-            .map(|c| c.capital)
+            .map(|c| c.capital.to_f64())
             .sum();
 
         let musharakah_tvl: f64 = self
             .musharakah_partnerships
             .values()
             .filter(|p| p.status == MusharakahStatus::Active)
-            .map(|p| p.total_capital)
+            .map(|p| p.total_capital.to_f64())
             .sum();
 
         let waqf_tvl: f64 = self
@@ -1836,7 +1958,7 @@ mod tests {
             "mud_001".into(),
             "investor".into(),
             "entrepreneur".into(),
-            1000.0,
+            ExactAmount::from_f64(1000.0),
             0.60, // investor gets 60%
             30,
             "compute_service".into(),
@@ -1848,7 +1970,7 @@ mod tests {
             "mud_002".into(),
             "investor".into(),
             "entrepreneur".into(),
-            1000.0,
+            ExactAmount::from_f64(1000.0),
             0.80, // investor gets 80%, leaving 20% for entrepreneur
             30,
             "compute_service".into(),
@@ -1865,7 +1987,7 @@ mod tests {
             "mud_001".into(),
             "investor".into(),
             "entrepreneur".into(),
-            1000.0,
+            ExactAmount::from_f64(1000.0),
             0.60,
             30,
             "compute".into(),
@@ -1873,14 +1995,14 @@ mod tests {
         .unwrap();
 
         contract.activate().unwrap();
-        contract.record_pnl(200.0, true).unwrap(); // 200 profit
+        contract.record_pnl(ExactAmount::from_f64(200.0), true).unwrap();
 
         let settlement = contract.settle().unwrap();
 
         // Investor: 1000 capital + 120 (60% of 200) = 1120
-        assert!((settlement.investor_return - 1120.0).abs() < 0.01);
+        assert!((settlement.investor_return.to_f64() - 1120.0).abs() < 0.01);
         // Entrepreneur: 80 (40% of 200)
-        assert!((settlement.entrepreneur_payment - 80.0).abs() < 0.01);
+        assert!((settlement.entrepreneur_payment.to_f64() - 80.0).abs() < 0.01);
     }
 
     #[test]
@@ -1889,7 +2011,7 @@ mod tests {
             "mud_001".into(),
             "investor".into(),
             "entrepreneur".into(),
-            1000.0,
+            ExactAmount::from_f64(1000.0),
             0.60,
             30,
             "compute".into(),
@@ -1897,14 +2019,14 @@ mod tests {
         .unwrap();
 
         contract.activate().unwrap();
-        contract.record_pnl(300.0, false).unwrap(); // 300 loss
+        contract.record_pnl(ExactAmount::from_f64(300.0), false).unwrap();
 
         let settlement = contract.settle().unwrap();
 
         // Investor bears all capital loss: 1000 - 300 = 700
-        assert!((settlement.investor_return - 700.0).abs() < 0.01);
+        assert!((settlement.investor_return.to_f64() - 700.0).abs() < 0.01);
         // Entrepreneur gets nothing (loss of effort)
-        assert_eq!(settlement.entrepreneur_payment, 0.0);
+        assert_eq!(settlement.entrepreneur_payment, ExactAmount::ZERO);
     }
 
     #[test]
@@ -1917,10 +2039,10 @@ mod tests {
         );
 
         partnership
-            .add_partner("node1".into(), 600.0, 0.55)
+            .add_partner("node1".into(), ExactAmount::from_f64(600.0), 0.55)
             .unwrap();
         partnership
-            .add_partner("node2".into(), 400.0, 0.45)
+            .add_partner("node2".into(), ExactAmount::from_f64(400.0), 0.45)
             .unwrap();
         partnership.activate().unwrap();
 
