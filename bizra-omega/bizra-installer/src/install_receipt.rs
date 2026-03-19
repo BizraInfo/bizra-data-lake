@@ -123,7 +123,9 @@ pub struct InstalledComponent {
     pub name: String,
     pub version: String,
     pub size_bytes: u64,
-    pub sha256: String,
+    /// BLAKE3 hash of the component binary
+    #[serde(alias = "sha256")]
+    pub blake3_hash: String,
 }
 
 impl InstallReceipt {
@@ -185,7 +187,7 @@ impl InstallReceipt {
         for comp in &self.components {
             hasher.update(comp.name.as_bytes());
             hasher.update(comp.version.as_bytes());
-            hasher.update(comp.sha256.as_bytes());
+            hasher.update(comp.blake3_hash.as_bytes());
         }
 
         hasher.update(&self.duration_seconds.to_le_bytes());
@@ -250,7 +252,7 @@ mod tests {
                 name: "bizra-node".into(),
                 version: "2.0.0".into(),
                 size_bytes: 15_000_000,
-                sha256: "abc123".into(),
+                blake3_hash: "abc123".into(),
             }],
             45.3,
             true,
