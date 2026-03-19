@@ -102,7 +102,9 @@ class EmbeddingService:
             except ImportError as e:
                 raise ImportError("sentence-transformers not installed") from e
 
-            self._model = SentenceTransformer(self.config.model_name)
+            import torch
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self._model = SentenceTransformer(self.config.model_name, device=device)
             self._dimension = self._model.get_sentence_embedding_dimension()
             logger.info(f"Loaded {self.config.model_name} (dim={self._dimension})")
 

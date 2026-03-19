@@ -103,8 +103,8 @@ CHUNKS_TABLE_PATH = GOLD_PATH / "chunks.parquet"
 DUCKDB_PATH = GOLD_PATH / "bizra_lake.duckdb"
 
 # --- HARDWARE OPTIMIZATION ---
-# Optimized for: RTX 4090 (16GB), 128GB RAM
-BATCH_SIZE = 128
+# Optimized for: RTX 4090 (16GB VRAM), 128GB RAM, 24 cores
+BATCH_SIZE = 256  # GPU can handle 2x with 10GB free VRAM
 MAX_SEQ_LENGTH = 512
 GPU_ENABLED = True
 
