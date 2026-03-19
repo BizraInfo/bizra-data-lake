@@ -19,6 +19,8 @@ Use this file first, then follow the role-based reading paths below.
 
 **Current execution program:** [GENESIS_EXECUTION_FRAMEWORK.md](GENESIS_EXECUTION_FRAMEWORK.md)
 
+**Canonical convergence blueprint:** [BIZRA_CONVERGENCE_BLUEPRINT_2026-03-19.md](BIZRA_CONVERGENCE_BLUEPRINT_2026-03-19.md)
+
 **Unified optimization blueprint:** [plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
 
 **Immediate closure program:** [plans/GENESIS_CLOSURE_SPRINT_v1.md](plans/GENESIS_CLOSURE_SPRINT_v1.md)
@@ -43,12 +45,13 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 
 1. [Project Handover](PROJECT_HANDOVER.md) - start here
 2. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
-3. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
-4. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
-5. [Quick Start](QUICK-START.md)
-6. [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md)
-7. [Integration Contracts](INTEGRATION_CONTRACTS.md)
-8. [Testing Guide](TESTING.md)
+3. [Canonical Convergence Blueprint](BIZRA_CONVERGENCE_BLUEPRINT_2026-03-19.md)
+4. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
+5. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
+6. [Quick Start](QUICK-START.md)
+7. [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md)
+8. [Integration Contracts](INTEGRATION_CONTRACTS.md)
+9. [Testing Guide](TESTING.md)
 
 ### 2. Operator / SRE
 
@@ -56,15 +59,16 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 2. [Node0 Activation Planning Principle](constitutional/BIZRA-Node0-Activation-Planning-Principle-v1.0-DRAFT.md) - planning law before the birth gate
 3. [Node0 Definition of Done](constitutional/BIZRA-Node0-Definition-of-Done-v1.0-LOCKED.md) - verification gate
 4. [Operations Runbook](OPERATIONS_RUNBOOK.md) - operator procedure
-5. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
-6. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
-7. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
-8. [DevOps Blueprint](DEVOPS_BLUEPRINT.md)
-9. [Desktop Bridge](DESKTOP_BRIDGE.md)
-10. [Threat Model](THREAT-MODEL-V3.md)
-11. [Security Architecture](SECURITY-ARCHITECTURE.md)
-12. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
-13. [Risk Management Plan](RISK_MANAGEMENT_PLAN.md)
+5. [Canonical Convergence Blueprint](BIZRA_CONVERGENCE_BLUEPRINT_2026-03-19.md)
+6. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
+7. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
+8. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
+9. [DevOps Blueprint](DEVOPS_BLUEPRINT.md)
+10. [Desktop Bridge](DESKTOP_BRIDGE.md)
+11. [Threat Model](THREAT-MODEL-V3.md)
+12. [Security Architecture](SECURITY-ARCHITECTURE.md)
+13. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
+14. [Risk Management Plan](RISK_MANAGEMENT_PLAN.md)
 
 ### 3. Security / Compliance Reviewer
 
@@ -99,19 +103,20 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 ### 6. System Designer / Architect
 
 1. [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md)
-2. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
-3. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
-4. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
-5. [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md)
-6. [The Constitutional Seed](CONSTITUTIONAL_SEED.md)
-7. [Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md)
-8. [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md)
-9. [Rust Integration](RUST_INTEGRATION.md)
-10. [Integration Contracts](INTEGRATION_CONTRACTS.md)
-11. [Spearpoint (RDVE)](SPEARPOINT.md)
-12. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
-13. [Tool and Technology Matrix](TOOL_TECHNOLOGY_MATRIX.md)
-14. [Quality Assurance Strategy](QUALITY_ASSURANCE_STRATEGY.md)
+2. [Canonical Convergence Blueprint](BIZRA_CONVERGENCE_BLUEPRINT_2026-03-19.md)
+3. [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md)
+4. [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md)
+5. [Genesis Closure Sprint](plans/GENESIS_CLOSURE_SPRINT_v1.md)
+6. [Declaration of Digital Sovereignty](DECLARATION_OF_DIGITAL_SOVEREIGNTY.md)
+7. [The Constitutional Seed](CONSTITUTIONAL_SEED.md)
+8. [Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md)
+9. [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md)
+10. [Rust Integration](RUST_INTEGRATION.md)
+11. [Integration Contracts](INTEGRATION_CONTRACTS.md)
+12. [Spearpoint (RDVE)](SPEARPOINT.md)
+13. [Enterprise Implementation Blueprint](ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md)
+14. [Tool and Technology Matrix](TOOL_TECHNOLOGY_MATRIX.md)
+15. [Quality Assurance Strategy](QUALITY_ASSURANCE_STRATEGY.md)
 
 ### 7. Product / Frontend
 
@@ -125,6 +130,7 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 
 | Domain | Primary Doc | Source of Truth in Code |
 |---|---|---|
+| Canonical convergence | [BIZRA Convergence Blueprint](BIZRA_CONVERGENCE_BLUEPRINT_2026-03-19.md) | `config/bizra_convergence_blueprint_20260319.yaml`, `artifacts/program/elite_fullstack_blueprint_report_20260319.json`, `security_audit/` |
 | Genesis execution program | [Genesis Execution Framework](GENESIS_EXECUTION_FRAMEWORK.md) | `config/genesis_execution_framework.json`, `.github/workflows/`, `core/`, `frontend/`, `scripts/` |
 | Unified optimization blueprint | [Unified Optimization Blueprint](plans/BIZRA_UNIFIED_OPTIMIZATION_BLUEPRINT_v1.md) | `config/bizra_unified_optimization_blueprint.json`, `docs/plans/GENESIS_CLOSURE_SPRINT_v1.md`, `core/`, `tests/` |
 | Node0 production canon | [Node0 Production Canon Blueprint](plans/NODE0_PRODUCTION_CANON_BLUEPRINT_v1.md) | `bizra-node0/`, `scripts/node0_standalone.py`, `scripts/node0_genesis_ceremony.sh`, `core/sovereign/`, `.github/workflows/` |
