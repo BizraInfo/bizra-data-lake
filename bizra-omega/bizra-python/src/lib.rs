@@ -1486,6 +1486,72 @@ impl PyEventBridge {
             .map_err(|e| PyRuntimeError::new_err(format!("Emit failed: {e}")))
     }
 
+    /// Emit an event with receipt reference for cross-boundary trust.
+    /// The receipt_id binds this event to a verified proof chain.
+    /// This is the identity-aware handoff: Python hooks can verify
+    /// that the event came from a governed Rust mission pipeline.
+    ///
+    /// Standing on: Lamport (1978) — cross-boundary event ordering
+    /// Amanah: every cross-boundary event carries its receipt provenance
+    fn emit_with_receipt(
+        &mut self,
+        topic: &str,
+        payload: &str,
+        receipt_id: &str,
+        ihsan_score: f64,
+        priority: u8,
+    ) -> PyResult<usize> {
+        let src = self
+            .source
+            .ok_or_else(|| PyRuntimeError::new_err("Call wire_subscribers() first"))?;
+        let prio = match priority {
+            0 => bizra_hooks::types::Priority::Low,
+            1 => bizra_hooks::types::Priority::Normal,
+            2 => bizra_hooks::types::Priority::High,
+            3 => bizra_hooks::types::Priority::Critical,
+            4 => bizra_hooks::types::Priority::Emergency,
+            _ => return Err(PyValueError::new_err("priority must be 0-4")),
+        };
+
+        // Bind receipt reference into payload for cross-boundary verification
+        let governed_payload = format!(
+            "{{\"payload\":\"{payload}\",\"receipt_id\":\"{receipt_id}\",\"ihsan\":{ihsan_score:.4}}}"
+        );
+
+        let now_ns = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+
+        self.system
+            .emit(
+                src,
+                topic,
+                bizra_hooks::types::Payload::from_text(&governed_payload),
+                prio,
+                now_ns,
+            )
+            .map_err(|e| PyRuntimeError::new_err(format!("Emit failed: {e}")))
+    }
+
+    /// Poll the subscriber feedback signals (atomic flags).
+    /// Returns a dict with pending counts for each feedback type.
+    /// Python hooks call this to know what the Rust nervous system detected.
+    fn poll_feedback(&self, py: Python<'_>) -> PyResult<PyObject> {
+        use bizra_hooks::subscribers::{
+            PROMOTE_CHECK_PENDING, QUARANTINE_PENDING, REINFORCE_PENDING,
+            SESSION_COMPILE_PENDING,
+        };
+        use core::sync::atomic::Ordering;
+
+        let dict = pyo3::types::PyDict::new(py);
+        dict.set_item("reinforce_pending", REINFORCE_PENDING.load(Ordering::Relaxed))?;
+        dict.set_item("promote_pending", PROMOTE_CHECK_PENDING.load(Ordering::Relaxed))?;
+        dict.set_item("quarantine_pending", QUARANTINE_PENDING.load(Ordering::Relaxed))?;
+        dict.set_item("compile_pending", SESSION_COMPILE_PENDING.load(Ordering::Relaxed))?;
+        Ok(dict.into())
+    }
+
     /// Get system health as a Python dict.
     fn health(&self, py: Python<'_>) -> PyResult<PyObject> {
         let h = self.system.health();
