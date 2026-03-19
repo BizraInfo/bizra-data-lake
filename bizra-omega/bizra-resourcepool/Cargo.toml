@@ -14,6 +14,7 @@ bizra-core = { path = "../bizra-core" }
 bizra-proofspace = { path = "../bizra-proofspace" }
 bizra-telescript = { path = "../bizra-telescript" }
 bizra-federation = { path = "../bizra-federation" }
+bizra-sippar = { path = "../bizra-sippar" }
 
 # Cryptography - workspace inherited
 blake3.workspace = true

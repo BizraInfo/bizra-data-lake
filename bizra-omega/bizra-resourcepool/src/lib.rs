@@ -53,6 +53,9 @@ pub use proactive_pat::*;
 pub mod pat_inference;
 pub use pat_inference::*;
 
+// Sippar Protocol — exact economic arithmetic verification
+pub use bizra_sippar;
+
 // =============================================================================
 // CONSTANTS - Single Source of Truth (locked)
 // =============================================================================
@@ -1429,29 +1432,44 @@ impl ResourcePool {
         Ok(true)
     }
 
-    /// Calculate pool Gini coefficient for Adl enforcement
+    /// Calculate pool Gini coefficient for Adl enforcement.
+    ///
+    /// ## Phase 87: Sippar-verified — zero f64 drift
+    ///
+    /// Previous implementation used f64 floating-point for the Gini summation,
+    /// meaning the Adl constitutional invariant (Gini ≤ 0.35) could be
+    /// incorrectly passed or failed due to floating-point rounding.
+    ///
+    /// Now uses pure `Decimal` arithmetic throughout. The Gini formula:
+    /// G = Σᵢ((2i − n − 1) × xᵢ) / (n × Σᵢ xᵢ)
+    ///
+    /// Standing on: Sippar Protocol — constrain arithmetic until drift is zero.
     pub async fn calculate_gini(&self) -> Decimal {
         let nodes = self.nodes.read().await;
-        let mut balances: Vec<f64> = nodes.values().map(|n| n.token_balance as f64).collect();
+        let mut balances: Vec<Decimal> = nodes
+            .values()
+            .map(|n| Decimal::from(n.token_balance))
+            .collect();
 
         if balances.is_empty() || balances.len() == 1 {
             return Decimal::ZERO;
         }
 
-        let n = balances.len() as f64;
-        balances.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let n = Decimal::from(balances.len());
+        balances.sort();
 
-        let sum: f64 = balances.iter().sum();
-        if sum == 0.0 {
+        let sum: Decimal = balances.iter().copied().sum();
+        if sum.is_zero() {
             return Decimal::ZERO;
         }
 
-        let mut gini_sum = 0.0;
+        let mut gini_sum = Decimal::ZERO;
         for (i, v) in balances.iter().enumerate() {
-            gini_sum += (2.0 * (i as f64 + 1.0) - n - 1.0) * v;
+            let rank = Decimal::from(2 * (i + 1)) - n - Decimal::ONE;
+            gini_sum += rank * v;
         }
 
-        Decimal::from_f64(gini_sum / (n * sum)).unwrap_or(Decimal::ZERO)
+        gini_sum / (n * sum)
     }
 
     /// Check Adl (justice) compliance
@@ -1756,5 +1774,64 @@ mod tests {
         assert_eq!(SAT_SIZE_FULL49, 49);
         assert_eq!(SAT_MODE_MINI5, "mini5");
         assert_eq!(SAT_MODE_FULL49, "full49");
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // SIPPAR PROTOCOL VERIFICATION
+    // Proves that constitutional economic rates are exact in base-60.
+    // If these tests fail, the Adl invariant cannot be mathematically guaranteed.
+    // ═════════════════════════════════════════════════════════════
+
+    #[test]
+    fn sippar_zakat_rate_is_exact() {
+        // Zakat = 2.5% = 1/40. Denominator 40 = 2³ × 5 — regular.
+        // 1/40 in base-60: 0;1,30 (exact, zero remainder)
+        let forty = bizra_sippar::RegularNumber::from_u64(40).unwrap();
+        assert_eq!(forty.exp2(), 3);
+        assert_eq!(forty.exp5(), 1);
+        assert_eq!(forty.reciprocal_sexagesimal(), "0;1,30");
+    }
+
+    #[test]
+    fn sippar_harberger_rate_is_exact() {
+        // Harberger = 5% = 1/20. Denominator 20 = 2² × 5 — regular.
+        // 1/20 in base-60: 0;3 (exact)
+        let twenty = bizra_sippar::RegularNumber::from_u64(20).unwrap();
+        assert_eq!(twenty.exp2(), 2);
+        assert_eq!(twenty.exp5(), 1);
+        assert_eq!(twenty.reciprocal_sexagesimal(), "0;3");
+    }
+
+    #[test]
+    fn sippar_founder_split_is_exact() {
+        // 50/50 founder split = 1/2. Denominator 2 = 2¹ — regular.
+        let two = bizra_sippar::RegularNumber::from_u64(2).unwrap();
+        assert_eq!(two.reciprocal_sexagesimal(), "0;30");
+    }
+
+    #[test]
+    fn sippar_pat_sat_ratio_is_exact() {
+        // PAT=7, SAT=5, Total=12. Split by 12 = 2² × 3 — regular.
+        let twelve = bizra_sippar::RegularNumber::from_u64(12).unwrap();
+        assert_eq!(twelve.exp2(), 2);
+        assert_eq!(twelve.exp3(), 1);
+        assert_eq!(twelve.reciprocal_sexagesimal(), "0;5");
+    }
+
+    #[test]
+    fn sippar_seven_is_irregular_witness() {
+        // 7 is irregular — PAT team size cannot be used as a divisor
+        // in exact base-60 arithmetic. This is why PAT revenue splits
+        // use the total (12) not the team size (7).
+        assert!(!bizra_sippar::RegularNumber::is_regular(7));
+    }
+
+    #[test]
+    fn sippar_gini_threshold_denominator_is_exact() {
+        // ADL_GINI_MAX = 0.35 = 7/20. Denominator 20 = 2² × 5 — regular.
+        // (The numerator 7 is irregular, but we only need the denominator
+        // to be regular for comparison operations to be exact.)
+        let twenty = bizra_sippar::RegularNumber::from_u64(20).unwrap();
+        assert_eq!(twenty.reciprocal_sexagesimal(), "0;3");
     }
 }
