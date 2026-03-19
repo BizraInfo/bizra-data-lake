@@ -1,0 +1,76 @@
+{
+  "version": "bizra-genesis-verification-v1",
+  "timestamp": "2026-03-20T01:10:05+0400",
+  "node": "unknown",
+  "proofs": [
+    {
+      "name": "Rust constitutional tests (130)",
+      "passed": true,
+      "ms": 1499,
+      "detail": {
+        "total_passed": 130,
+        "crates": [
+          "bizra-hooks",
+          "bizra-protocol",
+          "bizra-sippar"
+        ]
+      }
+    },
+    {
+      "name": "PyO3 bridge loads",
+      "passed": true,
+      "ms": 4,
+      "detail": {
+        "version": "2.0.0",
+        "ihsan_threshold": 0.95,
+        "snr_threshold": 0.85
+      }
+    },
+    {
+      "name": "Synapse fires (11 events)",
+      "passed": true,
+      "ms": 36,
+      "detail": {
+        "event_types": 11,
+        "forwarded": 11,
+        "failed": 0,
+        "chain_valid": true
+      }
+    },
+    {
+      "name": "Sippar exactness (Zakat)",
+      "passed": true,
+      "ms": 3,
+      "detail": {
+        "zakat_exact": true,
+        "ihsan_from_rust": 0.95
+      }
+    },
+    {
+      "name": "SNR engine (Rust-native)",
+      "passed": true,
+      "ms": 0,
+      "detail": {
+        "snr": 0.7956,
+        "signal_strength": 0.6857,
+        "word_count": 35
+      }
+    },
+    {
+      "name": "Topic parity (11/11)",
+      "passed": true,
+      "ms": 0,
+      "detail": {
+        "python_events": 11,
+        "rust_topics": 11,
+        "translations": 3
+      }
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "total": 6,
+    "elapsed_s": 1.5,
+    "all_green": true
+  }
+}
