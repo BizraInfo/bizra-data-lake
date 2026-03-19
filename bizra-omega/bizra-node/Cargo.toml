@@ -26,6 +26,7 @@ bizra-telescript = { path = "../bizra-telescript" }
 bizra-core = { path = "../bizra-core" }
 bizra-inference = { path = "../bizra-inference" }
 bizra-mission = { path = "../bizra-mission" }
+bizra-proofspace = { path = "../bizra-proofspace" }
 blake3 = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

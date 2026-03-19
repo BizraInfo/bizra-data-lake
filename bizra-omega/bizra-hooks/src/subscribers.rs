@@ -39,6 +39,20 @@
 use crate::event_bus::EventHandler;
 use crate::saga;
 use crate::types::*;
+use core::sync::atomic::{AtomicU64, Ordering};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Atomic Feedback Signals — lock-free bridge from subscribers to heartbeat
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// Incremented when a good action completes — heartbeat drains to reinforce memory.
+pub static REINFORCE_PENDING: AtomicU64 = AtomicU64::new(0);
+/// Incremented when atoms may be ready for glacial promotion.
+pub static PROMOTE_CHECK_PENDING: AtomicU64 = AtomicU64::new(0);
+/// Incremented when a failed action needs memory quarantine.
+pub static QUARANTINE_PENDING: AtomicU64 = AtomicU64::new(0);
+/// Incremented at session end — heartbeat triggers mini-compile.
+pub static SESSION_COMPILE_PENDING: AtomicU64 = AtomicU64::new(0);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Topic Constants — Canonical event taxonomy
@@ -81,16 +95,13 @@ pub const TOPIC_POI_CREDIT: &str = "poi.credit";
 ///
 /// Standing on: Hebb (1949) — "neurons that fire together wire together"
 pub fn handle_memory_reinforce(event: &Event) -> HookResult {
-    // Extract memory_ids from payload and reinforce each
-    // In production, this calls LivingMemory::reinforce(memory_id, delta)
-    // For now, emit a reinforcement event for downstream processing
     if event.ihsan_score.meets_ihsan() {
-        // Only reinforce if the action met constitutional quality
-        HookResult::Continue
-    } else {
-        // Sub-threshold action: do not reinforce (prevent bad learning)
-        HookResult::Continue
+        // Good action completed — signal heartbeat to reinforce contributing memories.
+        // Hebbian anti-learning: only strengthen pathways that led to quality.
+        REINFORCE_PENDING.fetch_add(1, Ordering::Relaxed);
     }
+    // Sub-threshold actions: do NOT reinforce (prevent bad learning)
+    HookResult::Continue
 }
 
 /// #2: ActionReceipt → hhmm.check_promotion()
@@ -100,10 +111,12 @@ pub fn handle_memory_reinforce(event: &Event) -> HookResult {
 /// This is the System 2 → System 1 compilation pathway.
 ///
 /// Standing on: Kahneman (2011) — fast/slow thinking systems
-pub fn handle_hhmm_promotion_check(_event: &Event) -> HookResult {
-    // Check if source memory atoms exceed promotion threshold
-    // mem.confidence >= 0.92 AND mem.ttl_category == Fact → promote
-    // Emit MemoryPromoted event if threshold crossed
+pub fn handle_hhmm_promotion_check(event: &Event) -> HookResult {
+    if event.ihsan_score.meets_ihsan() {
+        // Signal heartbeat to check if atoms crossed the glacial promotion threshold.
+        // Kahneman: System 2 → System 1 compilation when confidence >= 0.92.
+        PROMOTE_CHECK_PENDING.fetch_add(1, Ordering::Relaxed);
+    }
     HookResult::Continue
 }
 
@@ -177,9 +190,9 @@ pub fn handle_healing_route(_event: &Event) -> HookResult {
 ///
 /// Standing on: GC theory — batch collection at natural boundaries
 pub fn handle_session_compile(_event: &Event) -> HookResult {
-    // Evaluate session learning delta
-    // If sufficient new patterns: trigger mini-compile
-    // Mini-compile: promote hot reflexes, prune dead paths, update self-model
+    // Session boundary — signal heartbeat to trigger mini-genesis compilation.
+    // GC theory: batch collection at natural boundaries.
+    SESSION_COMPILE_PENDING.fetch_add(1, Ordering::Relaxed);
     HookResult::Continue
 }
 
@@ -191,9 +204,9 @@ pub fn handle_session_compile(_event: &Event) -> HookResult {
 ///
 /// Standing on: Immune system analogy — isolate before infection spreads
 pub fn handle_memory_quarantine(_event: &Event) -> HookResult {
-    // Extract contributing memory_ids from failed receipt
-    // Move to quarantine zone (reduced confidence, flagged for review)
-    // If same memory quarantined 3+ times: permanent removal
+    // Failed action — signal heartbeat to quarantine contributing memories.
+    // Immune system: isolate toxic patterns before they propagate.
+    QUARANTINE_PENDING.fetch_add(1, Ordering::Relaxed);
     HookResult::Continue
 }
 
