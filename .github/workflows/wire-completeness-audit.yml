@@ -144,6 +144,7 @@ jobs:
           # Write GitHub Step Summary
           # ─────────────────────────────────────────────────────────────────
           import os
+          sha = os.environ.get("GITHUB_SHA", "unknown")
           summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
           with open(summary_path, "a") as f:
               total = len(WIRES)
@@ -156,7 +157,7 @@ jobs:
               for r in results:
                   s_icon = "✅" if r["status"] == "WIRED" else ("⚠️" if r["status"] == "CRATE_NOT_FOUND" else "❌")
                   f.write(f"| {r['wire_id']} | `{r['source']}` | `{r['target']}` | {s_icon} {r['status']} | {r['description']} |\n")
-              f.write(f"\n**SHA**: `${{{{ github.sha }}}}`\n")
+              f.write(f"\n**SHA**: `{sha}`\n")
               if missing:
                   f.write(f"\n### Missing Wires\nThe following wires are absent from Cargo.toml: `{'`, `'.join(missing)}`\n")
                   f.write("Add the corresponding `[dependencies]` entries to implement these wires.\n")
