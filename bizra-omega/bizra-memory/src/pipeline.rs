@@ -516,6 +516,46 @@ impl MemoryPipeline {
         &self.store
     }
 
+    /// Boost confidence of the most recent active atoms.
+    /// Called by heartbeat when REINFORCE_PENDING is drained.
+    /// Hebb (1949): strengthen pathways that led to successful actions.
+    pub fn boost_recent_confidence(&mut self, delta: f32) {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        let ids: Vec<_> = self.store.recent_atom_ids(5);
+        for id in ids {
+            self.store.reinforce_atom(&id, now);
+            if let Some(atom) = self.store.atom_mut(&id) {
+                let new_conf = (atom.header.confidence.base + delta).min(1.0);
+                atom.header.confidence =
+                    crate::types::Confidence::new(new_conf, now);
+            }
+        }
+    }
+
+    /// Penalize confidence of the most recent active atoms.
+    /// Called by heartbeat when QUARANTINE_PENDING is drained.
+    /// Immune system: weaken pathways that led to failed actions.
+    pub fn penalize_recent_confidence(&mut self, penalty: f32) {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        let ids: Vec<_> = self.store.recent_atom_ids(3);
+        for id in ids {
+            if let Some(atom) = self.store.atom_mut(&id) {
+                let new_conf = (atom.header.confidence.base - penalty).max(0.0);
+                atom.header.confidence =
+                    crate::types::Confidence::new(new_conf, now);
+                if new_conf < 0.30 {
+                    atom.superseded = true; // quarantine
+                }
+            }
+        }
+    }
+
     pub fn knowledge_summary(&self) -> KnowledgeSummary {
         let profile = self.store.profile();
         KnowledgeSummary {

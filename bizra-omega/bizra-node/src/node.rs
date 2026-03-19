@@ -444,9 +444,51 @@ impl Node {
         }
 
         // ── Loop C: Cognition → Action ───────────────────────
-        // In MVP: report receipt event count from the action executor.
-        // Phase 86-B Day 2-3 will wire real receipt processing here.
+        // Report receipt event count from the action executor.
         report.receipts_processed = self.action_executor.receipt_events_emitted() as usize;
+
+        // ── Loop C.5: Drain subscriber feedback signals ──────
+        // Atomic flags set by EventBus subscribers (#1, #2, #7, #8)
+        // are drained here. This bridges the zero-dependency hooks
+        // crate to the stateful node without coupling.
+        {
+            use bizra_hooks::subscribers::{
+                PROMOTE_CHECK_PENDING, QUARANTINE_PENDING, REINFORCE_PENDING,
+                SESSION_COMPILE_PENDING,
+            };
+            use core::sync::atomic::Ordering;
+
+            let reinforce = REINFORCE_PENDING.swap(0, Ordering::Relaxed);
+            if reinforce > 0 {
+                // Hebbian reinforcement: boost confidence of recently-accessed atoms.
+                let delta = (0.02 * (reinforce as f64).min(5.0)) as f32;
+                self.runtime.pipeline_mut().boost_recent_confidence(delta);
+                report.events_emitted += reinforce as usize;
+            }
+
+            let promote = PROMOTE_CHECK_PENDING.swap(0, Ordering::Relaxed);
+            if promote > 0 {
+                // Kahneman S2→S1: check if atoms crossed glacial promotion threshold.
+                self.runtime.pipeline_mut().extract(now_ms);
+                report.events_emitted += promote as usize;
+            }
+
+            let quarantine = QUARANTINE_PENDING.swap(0, Ordering::Relaxed);
+            if quarantine > 0 {
+                // Immune system: penalize atoms that contributed to failed actions.
+                let penalty = (0.05 * (quarantine as f64).min(3.0)) as f32;
+                self.runtime.pipeline_mut().penalize_recent_confidence(penalty);
+                report.events_emitted += quarantine as usize;
+            }
+
+            let compile = SESSION_COMPILE_PENDING.swap(0, Ordering::Relaxed);
+            if compile > 0 {
+                // GC at session boundary: synthesis + reflex compilation.
+                self.runtime.pipeline_mut().extract(now_ms);
+                self.runtime.synthesize(now_ms);
+                report.events_emitted += compile as usize;
+            }
+        }
 
         // ── Loop D: Action → Evolution ───────────────────────
         // Check if any reflex patterns are compilable.
