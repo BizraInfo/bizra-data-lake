@@ -1101,3 +1101,5 @@ BUDGET_MEGA_RATIO = 0.09
 - PyEventBridge: emit_with_receipt() binds receipt provenance to cross-language events
 - RustEventBridge: poll_feedback() exposes atomic subscriber signals to Python hooks
 - Constitutional triangle (Ihsan + Amanah + Adl) now enforced at type level
+
+- style: cargo fmt + black formatting pass for CI compliance (2026-03-19)
