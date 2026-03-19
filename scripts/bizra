@@ -1,0 +1,196 @@
+#!/bin/bash
+# ═══════════════════════════════════════════════════════════
+# bizra — The Sovereign AI Terminal
+# ═══════════════════════════════════════════════════════════
+#
+# Usage:
+#   bizra                    Interactive sovereign terminal
+#   bizra mission "task"     Execute a mission
+#   bizra status             System health
+#   bizra agents             Show your 12 agents
+#   bizra briefing           Morning briefing
+#   bizra receipts           Receipt chain
+#   bizra teach "fact"       Teach your agents
+#   bizra start              Start kernel daemon
+#   bizra stop               Stop kernel daemon
+#
+# بذرة واحدة تصنع غابة — One seed makes a forest.
+# ═══════════════════════════════════════════════════════════
+
+set -euo pipefail
+
+BIZRA_ROOT="${BIZRA_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+BINARY="$BIZRA_ROOT/bizra-omega/target/release/bizra-node"
+KERNEL="$BIZRA_ROOT/core/sovereign/kernel_daemon.py"
+VENV="$BIZRA_ROOT/.venv-linux"
+STATE_DIR="$HOME/.bizra/node-1"
+
+G="\033[38;2;125;211;192m"  # BIZRA teal
+D="\033[38;2;201;169;98m"   # Gold
+R="\033[0m"                  # Reset
+B="\033[1m"                  # Bold
+DIM="\033[2m"                # Dim
+
+banner() {
+    echo -e "${G}"
+    echo "  ╔═══════════════════════════════════════════════╗"
+    echo "  ║         ${B}بِذْرَة${R}${G} — BIZRA SOVEREIGN AI           ║"
+    echo "  ║                                               ║"
+    echo "  ║  ${DIM}Every human is a node. Every node is a seed.${R}${G} ║"
+    echo "  ╚═══════════════════════════════════════════════╝"
+    echo -e "${R}"
+}
+
+briefing() {
+    source "$VENV/bin/activate" 2>/dev/null
+    python3 -c "
+from core.living_memory.brain import LivingMemory
+mem = LivingMemory().load()
+for line in mem.generate_morning_briefing():
+    print(f'  ▸ {line}')
+" 2>/dev/null || echo -e "  ${DIM}No memory yet. Start with: bizra teach \"your name is ...\"${R}"
+}
+
+agents() {
+    echo -e "  ${D}╔═══ YOUR PERSONAL AGENT TEAM (PAT) ═══╗${R}"
+    echo -e "  ${G}  P1 Navigator  ${DIM}— Intent routing${R}"
+    echo -e "  ${G}  P2 Scholar    ${DIM}— Knowledge retrieval${R}"
+    echo -e "  ${G}  P3 Artisan    ${DIM}— Content creation${R}"
+    echo -e "  ${G}  P4 Guardian   ${DIM}— Safety + Ihsan (VETO)${R}"
+    echo -e "  ${G}  P5 Mentor     ${DIM}— Learning + memory${R}"
+    echo -e "  ${G}  P6 Diplomat   ${DIM}— Communication${R}"
+    echo -e "  ${G}  P7 Oracle     ${DIM}— Prediction + planning${R}"
+    echo -e "  ${D}╠═══ SYSTEM AGENT TEAM (SAT/URP) ═══════╣${R}"
+    echo -e "  ${G}  S1 Validator  ${DIM}— State validation${R}"
+    echo -e "  ${G}  S2 Oracle     ${DIM}— Truth verification${R}"
+    echo -e "  ${G}  S3 Mediator   ${DIM}— Dispute resolution${R}"
+    echo -e "  ${G}  S4 Archivist  ${DIM}— Knowledge archive${R}"
+    echo -e "  ${G}  S5 Sentinel   ${DIM}— Network security${R}"
+    echo -e "  ${D}╚═══════════════════════════════════════╝${R}"
+    echo -e "  ${DIM}All soulbound. Transfer: REJECTED.${R}"
+}
+
+status() {
+    echo -e "  ${D}System Status${R}"
+    # Check kernel
+    if curl -s http://127.0.0.1:9740/api/health >/dev/null 2>&1; then
+        local h=$(curl -s http://127.0.0.1:9740/api/health)
+        echo -e "  ${G}●${R} Kernel:  ALIVE $(echo $h | python3 -c 'import sys,json; d=json.load(sys.stdin); print(f"v{d.get(\"version\",\"?\")}, up {d.get(\"uptime_s\",0):.0f}s")' 2>/dev/null)"
+    else
+        echo -e "  ${R}○ Kernel:  OFFLINE — run: bizra start${R}"
+    fi
+    # Check Ollama
+    if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
+        local models=$(curl -s http://localhost:11434/api/tags | python3 -c 'import sys,json; print(len(json.load(sys.stdin).get("models",[])))' 2>/dev/null)
+        echo -e "  ${G}●${R} Ollama:  ${models} models loaded"
+    else
+        echo -e "  ${R}○ Ollama:  NOT RUNNING${R}"
+    fi
+    # Check binary
+    if [ -f "$BINARY" ]; then
+        echo -e "  ${G}●${R} Binary:  $(ls -lh "$BINARY" | awk '{print $5}')"
+    else
+        echo -e "  ${R}○ Binary:  NOT BUILT — run: cd bizra-omega && cargo build --release -p bizra-node${R}"
+    fi
+    # State
+    echo -e "  ${DIM}  State:   $STATE_DIR${R}"
+}
+
+mission() {
+    local task="$1"
+    echo -e "  ${D}Mission: ${R}${task}"
+    printf 'START_SESSION\t%d\nRECEIVE\t%s\t%d\nEND_SESSION\t%d\nSHUTDOWN\n' \
+        "$(date +%s)" "$task" "$(date +%s)" "$(date +%s)" | \
+        BIZRA_ENABLE_OLLAMA_EXECUTE=1 \
+        BIZRA_OLLAMA_MODEL="${BIZRA_MODEL:-qwen2.5:3b}" \
+        "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null | \
+        while IFS=$'\t' read -r status rest; do
+            case "$rest" in
+                *received=true*)
+                    local receipt=$(echo "$rest" | grep -oP 'receipt_id=\K[a-f0-9]+' || true)
+                    local ihsan=$(echo "$rest" | grep -oP 'inference_ihsan=\K[0-9.]+' || true)
+                    local model=$(echo "$rest" | grep -oP 'inference_model=\K[^ \t]+' || true)
+                    echo -e "  ${G}✓${R} Receipt: ${receipt:0:16}..."
+                    echo -e "  ${DIM}  Model: $model | Ihsan: $ihsan${R}"
+                    ;;
+                *session_started*) ;;
+                *session_ended*) ;;
+                *shutdown*) ;;
+                *) echo -e "  ${DIM}$status $rest${R}" ;;
+            esac
+        done
+}
+
+interactive() {
+    banner
+    briefing
+    echo ""
+    echo -e "  ${DIM}Commands: mission, agents, status, briefing, teach, receipts, help, quit${R}"
+    echo ""
+
+    while true; do
+        echo -ne "  ${G}بذرة${R} ${D}›${R} "
+        read -r cmd args
+
+        case "$cmd" in
+            mission|m)
+                if [ -z "$args" ]; then
+                    echo -ne "  ${DIM}Task: ${R}"
+                    read -r args
+                fi
+                mission "$args"
+                ;;
+            agents|a) agents ;;
+            status|s) status ;;
+            briefing|b) briefing ;;
+            teach|t)
+                printf 'TEACH\tfact\t%s\t9500\t%d\nSHUTDOWN\n' "$args" "$(date +%s)" | \
+                    "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null | \
+                    grep "taught" && echo -e "  ${G}✓${R} Learned." || echo -e "  ${R}✗ Failed${R}"
+                ;;
+            receipts|r)
+                printf 'ACTION_HISTORY\t10\t0\nSHUTDOWN\n' | \
+                    "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null
+                ;;
+            help|h)
+                echo -e "  ${D}mission${R} <task>   Run a mission with your PAT team"
+                echo -e "  ${D}agents${R}           Show your 12 agents"
+                echo -e "  ${D}status${R}           System health"
+                echo -e "  ${D}briefing${R}         Morning briefing"
+                echo -e "  ${D}teach${R} <fact>     Teach your agents"
+                echo -e "  ${D}receipts${R}         View receipt chain"
+                echo -e "  ${D}quit${R}             Exit"
+                ;;
+            quit|q|exit)
+                echo -e "  ${DIM}بذرة واحدة تصنع غابة${R}"
+                break
+                ;;
+            "")
+                ;;
+            *)
+                # Treat anything else as a mission
+                mission "$cmd $args"
+                ;;
+        esac
+        echo ""
+    done
+}
+
+# ═══════════════════════════════════════
+# MAIN DISPATCH
+# ═══════════════════════════════════════
+case "${1:-}" in
+    mission|m)   shift; mission "$*" ;;
+    status|s)    status ;;
+    agents|a)    agents ;;
+    briefing|b)  banner; briefing ;;
+    teach|t)     shift; printf 'TEACH\tfact\t%s\t9500\t%d\nSHUTDOWN\n' "$*" "$(date +%s)" | \
+                     "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null ;;
+    receipts|r)  printf 'ACTION_HISTORY\t10\t0\nSHUTDOWN\n' | \
+                     "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null ;;
+    start)       source "$VENV/bin/activate" && python3 "$KERNEL" & echo "Kernel started." ;;
+    stop)        pkill -f kernel_daemon.py 2>/dev/null && echo "Kernel stopped." || echo "Not running." ;;
+    help|--help|-h) banner; echo "  Usage: bizra [mission|status|agents|briefing|teach|receipts|start|stop|help]" ;;
+    "")          interactive ;;
+    *)           mission "$*" ;;
+esac
