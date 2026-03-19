@@ -49,7 +49,15 @@ class TestMOEEngineToBridge:
         """Each expert dispatches to its assigned Ollama model."""
         from core.sovereign.moe_bridge import MOEBridge
 
-        bridge = MOEBridge.create()
+        bridge = MOEBridge(
+            ollama_url="http://localhost:11434",
+            expert_models={
+                "pat_r": "deepseek-r1:14b",
+                "pat_k": "qwen2.5:3b",
+                "pat_s": "qwen2.5-coder:7b",
+                "sat_g": "phi3:mini",
+            },
+        )
         models_called: list[str] = []
 
         async def capture_model(model, prompt, system=""):

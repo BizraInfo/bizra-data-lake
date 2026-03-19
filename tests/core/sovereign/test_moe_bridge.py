@@ -31,8 +31,16 @@ from core.sovereign.moe_bridge import (
 
 @pytest.fixture
 def bridge() -> MOEBridge:
-    """Bridge with default config (no actual Ollama calls)."""
-    return MOEBridge(ollama_url="http://localhost:11434")
+    """Bridge with documented expert models (no actual Ollama calls)."""
+    return MOEBridge(
+        ollama_url="http://localhost:11434",
+        expert_models={
+            "pat_r": "deepseek-r1:14b",
+            "pat_k": "qwen2.5:3b",
+            "pat_s": "qwen2.5-coder:7b",
+            "sat_g": "phi3:mini",
+        },
+    )
 
 
 @pytest.fixture
