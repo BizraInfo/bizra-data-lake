@@ -210,10 +210,8 @@ pub struct ReceiptChain {
 
 /// Genesis seed for the first receipt in every chain. [VERIFIED — mirrors GENESIS_SEED in receipt.rs]
 pub const GENESIS_SEED: [u8; 32] = [
-    0xb1, 0x2a, 0xf3, 0x7e, 0xd4, 0x91, 0xc8, 0x56,
-    0x2f, 0x0e, 0x8b, 0xd7, 0x43, 0x9a, 0x5c, 0x11,
-    0xe7, 0x2d, 0x60, 0xf8, 0x1b, 0x37, 0xa4, 0xce,
-    0x95, 0x4f, 0x0d, 0x82, 0x76, 0x3c, 0xb9, 0x0a,
+    0xb1, 0x2a, 0xf3, 0x7e, 0xd4, 0x91, 0xc8, 0x56, 0x2f, 0x0e, 0x8b, 0xd7, 0x43, 0x9a, 0x5c, 0x11,
+    0xe7, 0x2d, 0x60, 0xf8, 0x1b, 0x37, 0xa4, 0xce, 0x95, 0x4f, 0x0d, 0x82, 0x76, 0x3c, 0xb9, 0x0a,
 ];
 
 impl ReceiptChain {
@@ -947,7 +945,10 @@ impl SagaDispatcher {
     ///   doesn't allow further compensation.
     pub fn compensate(saga: &mut Saga, from_step: u32, now: u64) -> Result<(), SagaError> {
         // Allow compensation even from a Failed state. [DERIVED — Garcia-Molina 1987]
-        if matches!(saga.status, SagaStatus::Complete | SagaStatus::PartiallyCompensated { .. }) {
+        if matches!(
+            saga.status,
+            SagaStatus::Complete | SagaStatus::PartiallyCompensated { .. }
+        ) {
             return Err(SagaError::AlreadyFinalized);
         }
 
@@ -1146,23 +1147,36 @@ mod tests {
         assert_eq!(handle.submitted_at, 1_000);
 
         // Step 0
-        let idx0 = SagaDispatcher::begin_step(&mut saga, "fetch context", Channel::Memory as u8, 2_000).unwrap();
+        let idx0 =
+            SagaDispatcher::begin_step(&mut saga, "fetch context", Channel::Memory as u8, 2_000)
+                .unwrap();
         assert_eq!(idx0, 0);
         assert_eq!(saga.status, SagaStatus::Executing(0));
 
-        SagaDispatcher::complete_step(&mut saga, 0, ok_result(0.97), test_hash(0x10), 3_000).unwrap();
+        SagaDispatcher::complete_step(&mut saga, 0, ok_result(0.97), test_hash(0x10), 3_000)
+            .unwrap();
 
         // Step 1
-        let idx1 = SagaDispatcher::begin_step(&mut saga, "run inference", Channel::Llm as u8, 4_000).unwrap();
+        let idx1 =
+            SagaDispatcher::begin_step(&mut saga, "run inference", Channel::Llm as u8, 4_000)
+                .unwrap();
         assert_eq!(idx1, 1);
 
-        SagaDispatcher::complete_step(&mut saga, 1, ok_result(0.98), test_hash(0x11), 5_000).unwrap();
+        SagaDispatcher::complete_step(&mut saga, 1, ok_result(0.98), test_hash(0x11), 5_000)
+            .unwrap();
 
         // Step 2
-        let idx2 = SagaDispatcher::begin_step(&mut saga, "persist result", Channel::FileSystem as u8, 6_000).unwrap();
+        let idx2 = SagaDispatcher::begin_step(
+            &mut saga,
+            "persist result",
+            Channel::FileSystem as u8,
+            6_000,
+        )
+        .unwrap();
         assert_eq!(idx2, 2);
 
-        SagaDispatcher::complete_step(&mut saga, 2, ok_result(0.96), test_hash(0x12), 7_000).unwrap();
+        SagaDispatcher::complete_step(&mut saga, 2, ok_result(0.96), test_hash(0x12), 7_000)
+            .unwrap();
 
         // Finalize
         let fin = SagaDispatcher::finalize(&mut saga, 8_000).unwrap();
@@ -1192,7 +1206,8 @@ mod tests {
 
         // Step 0 succeeds.
         SagaDispatcher::begin_step(&mut saga, "step0", Channel::Llm as u8, 1_100).unwrap();
-        SagaDispatcher::complete_step(&mut saga, 0, ok_result(0.97), test_hash(0x20), 1_200).unwrap();
+        SagaDispatcher::complete_step(&mut saga, 0, ok_result(0.97), test_hash(0x20), 1_200)
+            .unwrap();
 
         // Step 1 fails.
         SagaDispatcher::begin_step(&mut saga, "step1", Channel::Browser as u8, 1_300).unwrap();
@@ -1205,7 +1220,9 @@ mod tests {
 
         assert!(matches!(
             saga.status,
-            SagaStatus::PartiallyCompensated { last_compensated: 0 }
+            SagaStatus::PartiallyCompensated {
+                last_compensated: 0
+            }
         ));
 
         // Verify step 0 is now Compensated.
@@ -1258,12 +1275,14 @@ mod tests {
             SagaDispatcher::create_saga(test_hash(0x03), SagaPermit::dev_default(), 1_000);
 
         SagaDispatcher::begin_step(&mut saga, "only step", Channel::Response as u8, 1_100).unwrap();
-        SagaDispatcher::complete_step(&mut saga, 0, ok_result(0.97), test_hash(0x30), 1_200).unwrap();
+        SagaDispatcher::complete_step(&mut saga, 0, ok_result(0.97), test_hash(0x30), 1_200)
+            .unwrap();
         SagaDispatcher::finalize(&mut saga, 1_300).unwrap();
 
         assert!(saga.is_terminal());
 
-        let err = SagaDispatcher::begin_step(&mut saga, "post-finalize step", Channel::Llm as u8, 1_400);
+        let err =
+            SagaDispatcher::begin_step(&mut saga, "post-finalize step", Channel::Llm as u8, 1_400);
         assert_eq!(err, Err(SagaError::AlreadyFinalized));
     }
 

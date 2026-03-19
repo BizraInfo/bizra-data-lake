@@ -119,7 +119,10 @@ pub fn run_skeleton() -> Result<SkeletonReceipt, String> {
 
     let reward = match outcome {
         CycleOutcome::Approved(reward) => reward,
-        CycleOutcome::Halted { reason, ihsan_score } => {
+        CycleOutcome::Halted {
+            reason,
+            ihsan_score,
+        } => {
             return Err(format!(
                 "Autopoietic cycle halted: {reason} (ihsan={ihsan_score:.4})"
             ));
@@ -290,6 +293,9 @@ mod tests {
     fn test_evidence_hash_varies_with_inputs() {
         let h1 = compute_evidence_hash(&[1u8; 32], 1, 0.97, 0.90, &[2u8; 32], "t1");
         let h2 = compute_evidence_hash(&[1u8; 32], 2, 0.97, 0.90, &[2u8; 32], "t1");
-        assert_ne!(h1, h2, "Different cycle counts must produce different hashes");
+        assert_ne!(
+            h1, h2,
+            "Different cycle counts must produce different hashes"
+        );
     }
 }

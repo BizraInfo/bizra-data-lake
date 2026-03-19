@@ -160,9 +160,7 @@ impl AutopoieticState {
             self.improvement_streak = 0;
             self.halt_count += 1;
             return CycleOutcome::Halted {
-                reason: format!(
-                    "Ihsan EMA {ihsan:.4} below threshold {IHSAN_THRESHOLD:.4}"
-                ),
+                reason: format!("Ihsan EMA {ihsan:.4} below threshold {IHSAN_THRESHOLD:.4}"),
                 ihsan_score: ihsan,
             };
         }
@@ -171,9 +169,7 @@ impl AutopoieticState {
             self.improvement_streak = 0;
             self.halt_count += 1;
             return CycleOutcome::Halted {
-                reason: format!(
-                    "SNR {snr:.4} below threshold {SNR_THRESHOLD:.4}"
-                ),
+                reason: format!("SNR {snr:.4} below threshold {SNR_THRESHOLD:.4}"),
                 ihsan_score: ihsan,
             };
         }
@@ -186,12 +182,8 @@ impl AutopoieticState {
         self.total_seed += seed_earned;
 
         // Compute attestation hash (domain-separated BLAKE3)
-        let attestation_hash = self.compute_attestation_hash(
-            actual_quality,
-            snr,
-            prediction_error,
-            self.cycle_count,
-        );
+        let attestation_hash =
+            self.compute_attestation_hash(actual_quality, snr, prediction_error, self.cycle_count);
 
         let reward = VerifiedReward {
             ihsan_score: ihsan,
@@ -234,8 +226,8 @@ impl AutopoieticState {
         // Ihsan trend: compare second half EMA to first half
         let ihsan_trend = if self.prediction_error_history.len() >= 2 {
             let mid = self.prediction_error_history.len() / 2;
-            let first_half: f64 = self.prediction_error_history[..mid].iter().sum::<f64>()
-                / mid as f64;
+            let first_half: f64 =
+                self.prediction_error_history[..mid].iter().sum::<f64>() / mid as f64;
             let second_half: f64 = self.prediction_error_history[mid..].iter().sum::<f64>()
                 / (self.prediction_error_history.len() - mid) as f64;
             // Negative means errors are decreasing (improvement)
@@ -409,10 +401,7 @@ mod tests {
             "Approval rate should be > 0.75, got {:.4}",
             report.approval_rate
         );
-        assert!(
-            report.total_seed > 0.0,
-            "Should have earned SEED"
-        );
+        assert!(report.total_seed > 0.0, "Should have earned SEED");
         assert!(
             report.mean_prediction_error < 0.1,
             "Mean prediction error should be small, got {:.6}",
@@ -427,9 +416,7 @@ mod tests {
         assert!(
             report.self_improvement_proven,
             "Self-improvement should be proven: trend={:.6}, mpe={:.6}, ar={:.4}",
-            report.ihsan_trend,
-            report.mean_prediction_error,
-            report.approval_rate
+            report.ihsan_trend, report.mean_prediction_error, report.approval_rate
         );
     }
 
@@ -450,10 +437,7 @@ mod tests {
             }
         }
 
-        assert!(
-            state.halt_count > 0,
-            "Should have halted at least once"
-        );
+        assert!(state.halt_count > 0, "Should have halted at least once");
         assert!(
             state.ihsan_ema < IHSAN_THRESHOLD,
             "Ihsan EMA should be below threshold after persistent low quality"
@@ -478,10 +462,7 @@ mod tests {
 
         // The trend should be negative (errors decreasing from phase 1 to phase 2
         // as the model adapts)
-        assert!(
-            report.approval_rate > 0.75,
-            "Approval rate should be high"
-        );
+        assert!(report.approval_rate > 0.75, "Approval rate should be high");
         assert!(
             report.mean_prediction_error < 0.1,
             "Mean prediction error should be small, got {:.6}",

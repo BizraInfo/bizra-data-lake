@@ -150,10 +150,7 @@ impl MetaConstitution {
     ///
     /// - `state.improvement_streak > amendment_threshold_streak`
     /// - `state.ihsan_ema > STRICT_IHSAN_THRESHOLD`
-    pub fn propose_amendment(
-        &self,
-        state: &AutopoieticState,
-    ) -> Option<AmendmentProposal> {
+    pub fn propose_amendment(&self, state: &AutopoieticState) -> Option<AmendmentProposal> {
         // Check qualification
         if state.improvement_streak <= self.amendment_threshold_streak {
             return None;
@@ -345,7 +342,10 @@ mod tests {
         );
 
         let proposal = meta.propose_amendment(&state);
-        assert!(proposal.is_some(), "Should propose amendment for high-performing state");
+        assert!(
+            proposal.is_some(),
+            "Should propose amendment for high-performing state"
+        );
 
         let proposal = proposal.unwrap();
         assert!(

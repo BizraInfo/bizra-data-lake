@@ -31,7 +31,7 @@
 //! inconsistency identified in the constitutional audit.
 
 use blake3::Hasher;
-use ed25519_dalek::{SigningKey, VerifyingKey, Signer};
+use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 
@@ -137,7 +137,9 @@ pub fn derive_agent_key(master_secret: &[u8; 32], domain: &str, index: u32) -> S
     hasher.update(master_secret);
     hasher.update(&index.to_le_bytes());
     let hash = hasher.finalize();
-    let seed: [u8; 32] = hash.as_bytes()[..32].try_into().expect("BLAKE3 produces 32+ bytes");
+    let seed: [u8; 32] = hash.as_bytes()[..32]
+        .try_into()
+        .expect("BLAKE3 produces 32+ bytes");
     SigningKey::from_bytes(&seed)
 }
 
@@ -325,7 +327,11 @@ mod tests {
     #[test]
     fn test_all_agent_ids_unique() {
         let (node, _) = mint_node("TestNode");
-        let mut ids: Vec<&str> = node.pat_agents.iter().map(|a| a.agent_id.as_str()).collect();
+        let mut ids: Vec<&str> = node
+            .pat_agents
+            .iter()
+            .map(|a| a.agent_id.as_str())
+            .collect();
         ids.extend(node.sat_agents.iter().map(|a| a.agent_id.as_str()));
         let unique: std::collections::HashSet<&str> = ids.iter().copied().collect();
         assert_eq!(ids.len(), unique.len(), "all 12 agent IDs must be unique");
@@ -364,14 +370,16 @@ mod tests {
             let reconstructed_hex = hex_encode(key.verifying_key().as_bytes());
             assert_eq!(
                 reconstructed_hex, node.pat_agents[i].public_key_hex,
-                "PAT agent {} must reconstruct identically", i
+                "PAT agent {} must reconstruct identically",
+                i
             );
         }
         for (i, key) in sat_keys.iter().enumerate() {
             let reconstructed_hex = hex_encode(key.verifying_key().as_bytes());
             assert_eq!(
                 reconstructed_hex, node.sat_agents[i].public_key_hex,
-                "SAT agent {} must reconstruct identically", i
+                "SAT agent {} must reconstruct identically",
+                i
             );
         }
     }
@@ -380,7 +388,11 @@ mod tests {
     fn test_genesis_hash_is_blake3_not_sha256() {
         let (node, _) = mint_node("HashTest");
         // BLAKE3 hex output is 64 chars (256 bits)
-        assert_eq!(node.genesis_hash.len(), 64, "genesis hash must be BLAKE3 (64 hex chars)");
+        assert_eq!(
+            node.genesis_hash.len(),
+            64,
+            "genesis hash must be BLAKE3 (64 hex chars)"
+        );
         // Verify it's valid hex
         assert!(node.genesis_hash.chars().all(|c| c.is_ascii_hexdigit()));
     }
@@ -390,7 +402,10 @@ mod tests {
         let (node, _) = mint_node("TicketTest");
         assert!(!node.sat_pool_ticket.signature.is_empty());
         assert_eq!(node.sat_pool_ticket.sat_agent_ids.len(), 5);
-        assert_eq!(node.sat_pool_ticket.contributor_node_id, node.identity.node_id);
+        assert_eq!(
+            node.sat_pool_ticket.contributor_node_id,
+            node.identity.node_id
+        );
     }
 
     #[test]

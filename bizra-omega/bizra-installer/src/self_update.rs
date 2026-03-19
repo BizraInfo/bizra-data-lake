@@ -10,8 +10,8 @@
 //! Constitutional: Updates NEVER bypass constitutional gates.
 //! A malformed update is worse than no update.
 
-use serde::{Deserialize, Serialize};
 use blake3::Hasher;
+use serde::{Deserialize, Serialize};
 
 // ─────────────────────────────────────────────────────────────
 // Update Manifest

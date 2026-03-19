@@ -45,11 +45,11 @@
 //! - Al-Ghazali (1095): Maqasid al-Shariah → FATE gate ethics
 //! - Maturana & Varela (1970s): Autopoiesis → self-loops as architecture
 
-pub mod mint;
-pub mod boundary;
 pub mod attestation;
-pub mod flow;
 pub mod autopoiesis;
+pub mod boundary;
+pub mod flow;
+pub mod mint;
 
 /// Protocol version — embedded in every signed artifact
 pub const PROTOCOL_VERSION: &str = "bizra-protocol-v1";
@@ -86,15 +86,15 @@ pub mod constitution {
         "P2-Strategist",
         "P3-Technical",
         "P4-Creative",
-        "P5-Ethicist",   // Frozen — revelation-derived constants
+        "P5-Ethicist", // Frozen — revelation-derived constants
         "P6-Operational",
-        "P7-DEMA-Nexus",  // The Daughter Test gate
+        "P7-DEMA-Nexus", // The Daughter Test gate
     ];
 
     /// SAT agent roles (URP, serve the constitution)
     pub const SAT_ROLES: [&str; 5] = [
         "S1-Auditor",
-        "S2-Oracle",       // Frozen — external truth anchor
+        "S2-Oracle", // Frozen — external truth anchor
         "S3-Compliance",
         "S4-Risk",
         "S5-Constitutional",

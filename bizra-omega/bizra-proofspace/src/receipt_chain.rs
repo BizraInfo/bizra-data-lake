@@ -111,13 +111,13 @@ impl Channel {
     /// [DERIVED] — byte values are assigned in declaration order to remain stable.
     pub fn as_byte(self) -> u8 {
         match self {
-            Channel::Ahk        => 0,
-            Channel::Llm        => 1,
-            Channel::Memory     => 2,
-            Channel::Mcp        => 3,
+            Channel::Ahk => 0,
+            Channel::Llm => 1,
+            Channel::Memory => 2,
+            Channel::Mcp => 3,
             Channel::FileSystem => 4,
-            Channel::Browser    => 5,
-            Channel::Response   => 6,
+            Channel::Browser => 5,
+            Channel::Response => 6,
             Channel::Telescript => 7,
         }
     }
@@ -316,7 +316,12 @@ impl RegularNumber {
             .checked_mul(v3)
             .and_then(|x| x.checked_mul(v5))
             .ok_or(SipparError::Overflow)?;
-        Ok(RegularNumber { exp2, exp3, exp5, value })
+        Ok(RegularNumber {
+            exp2,
+            exp3,
+            exp5,
+            value,
+        })
     }
 
     /// Factor `n` into 2^`a` × 3^`b` × 5^`c`, returning `Err` for any irregular factor.
@@ -327,18 +332,31 @@ impl RegularNumber {
             return Err(SipparError::Zero);
         }
         let (mut e2, mut e3, mut e5) = (0u8, 0u8, 0u8);
-        while n % 2 == 0 { n /= 2; e2 += 1; }
-        while n % 3 == 0 { n /= 3; e3 += 1; }
-        while n % 5 == 0 { n /= 5; e5 += 1; }
+        while n % 2 == 0 {
+            n /= 2;
+            e2 += 1;
+        }
+        while n % 3 == 0 {
+            n /= 3;
+            e3 += 1;
+        }
+        while n % 5 == 0 {
+            n /= 5;
+            e5 += 1;
+        }
         if n != 1 {
             // smallest remaining factor is irregular
             let mut p = n;
             let mut d = 2u64;
             while d * d <= p {
-                if p % d == 0 { break; }
+                if p % d == 0 {
+                    break;
+                }
                 d += 1;
             }
-            if d * d <= p { p = d; }
+            if d * d <= p {
+                p = d;
+            }
             return Err(SipparError::IrregularFactor(p));
         }
         Self::from_factors(e2, e3, e5)
@@ -352,13 +370,21 @@ impl RegularNumber {
     }
 
     /// Return the numeric value.
-    pub fn value(self) -> u64 { self.value }
+    pub fn value(self) -> u64 {
+        self.value
+    }
     /// Return the exponent of 2.
-    pub fn exp2(self) -> u8  { self.exp2  }
+    pub fn exp2(self) -> u8 {
+        self.exp2
+    }
     /// Return the exponent of 3.
-    pub fn exp3(self) -> u8  { self.exp3  }
+    pub fn exp3(self) -> u8 {
+        self.exp3
+    }
     /// Return the exponent of 5.
-    pub fn exp5(self) -> u8  { self.exp5  }
+    pub fn exp5(self) -> u8 {
+        self.exp5
+    }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -566,7 +592,9 @@ impl ProofBlockSubmission {
 
     /// Return `true` if every individual receipt passed the ihsan threshold [DERIVED].
     pub fn all_receipts_pass_ihsan(&self) -> bool {
-        self.ihsan_scores.iter().all(|&s| s >= IHSAN_THRESHOLD - F64_IHSAN_EPS)
+        self.ihsan_scores
+            .iter()
+            .all(|&s| s >= IHSAN_THRESHOLD - F64_IHSAN_EPS)
     }
 }
 
@@ -738,7 +766,11 @@ impl ConstitutionalReceiptAdapter {
     ///
     /// Returns `0.0` for an empty slice [DERIVED].
     pub(crate) fn min_f64(values: &[f64]) -> f64 {
-        values.iter().cloned().fold(f64::INFINITY, f64::min).min(f64::INFINITY)
+        values
+            .iter()
+            .cloned()
+            .fold(f64::INFINITY, f64::min)
+            .min(f64::INFINITY)
             .max(f64::NEG_INFINITY)
     }
 
@@ -808,10 +840,7 @@ impl ReceiptChainBridge for ConstitutionalReceiptAdapter {
     fn to_proof_block(&self, creator_node: &str) -> Result<ProofBlockSubmission, BridgeError> {
         let receipts = self.chain.all_receipts();
 
-        let ihsan_scores: Vec<f64> = receipts
-            .iter()
-            .map(|r| r.ihsan_score.value())
-            .collect();
+        let ihsan_scores: Vec<f64> = receipts.iter().map(|r| r.ihsan_score.value()).collect();
 
         let mean_ihsan = Self::mean(&ihsan_scores);
 
@@ -952,12 +981,17 @@ mod tests {
     #[test]
     fn test_empty_chain_produces_valid_submission() {
         let a = ConstitutionalReceiptAdapter::new(ReceiptChain::new(), 42_000);
-        let sub = a.to_proof_block("node-0").expect("submission should succeed");
+        let sub = a
+            .to_proof_block("node-0")
+            .expect("submission should succeed");
 
         assert_eq!(sub.chain_length, 0, "chain_length must be 0");
         assert_eq!(sub.receipt_chain_hash, [0u8; 32], "head_hash sentinel");
         assert!(sub.ihsan_scores.is_empty(), "no ihsan scores");
-        assert!((sub.mean_ihsan - 0.0).abs() < F64_IHSAN_EPS, "mean_ihsan = 0");
+        assert!(
+            (sub.mean_ihsan - 0.0).abs() < F64_IHSAN_EPS,
+            "mean_ihsan = 0"
+        );
         assert!((sub.min_ihsan - 0.0).abs() < F64_IHSAN_EPS, "min_ihsan = 0");
         assert!(sub.all_channels_used.is_empty(), "no channels");
         assert_eq!(sub.creator_node, "node-0");
@@ -980,7 +1014,9 @@ mod tests {
         let verified_len = a.verify_integrity().expect("chain must be intact");
         assert_eq!(verified_len, 3);
 
-        let sub = a.to_proof_block("node-test").expect("submission must succeed");
+        let sub = a
+            .to_proof_block("node-test")
+            .expect("submission must succeed");
 
         assert_eq!(sub.chain_length, 3);
         assert_eq!(sub.ihsan_scores.len(), 3);
@@ -1004,7 +1040,10 @@ mod tests {
         assert_eq!(sub.all_channels_used, vec![1u8], "only Llm used");
 
         // Exactly at threshold → passes.
-        assert!(sub.passes_ihsan_threshold(), "mean exactly at threshold must pass");
+        assert!(
+            sub.passes_ihsan_threshold(),
+            "mean exactly at threshold must pass"
+        );
     }
 
     // ── test 3 ────────────────────────────────────────────────────────────────
@@ -1045,7 +1084,11 @@ mod tests {
 
         assert!(!digest.is_harmonious, "7 must be irregular");
         assert_eq!(digest.label, "witness");
-        assert_eq!(digest.irregular_witness, Some(7), "7 is itself the irregular factor");
+        assert_eq!(
+            digest.irregular_witness,
+            Some(7),
+            "7 is itself the irregular factor"
+        );
         assert_eq!(digest.chain_length, 7);
 
         // RegularNumber::from_u64 must also reject 7.
@@ -1061,19 +1104,15 @@ mod tests {
 
         // Additional irregular numbers.
         for n in [7u64, 11, 13, 17, 49, 77, 91] {
-            assert!(
-                !RegularNumber::is_regular(n),
-                "{n} must be irregular"
-            );
+            assert!(!RegularNumber::is_regular(n), "{n} must be irregular");
         }
 
         // Additional harmonious numbers.
-        for n in [1u64, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30,
-                  32, 36, 40, 45, 48, 50, 60, 64, 72, 75, 80, 90, 96, 100, 120] {
-            assert!(
-                RegularNumber::is_regular(n),
-                "{n} must be regular"
-            );
+        for n in [
+            1u64, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30, 32, 36, 40, 45, 48,
+            50, 60, 64, 72, 75, 80, 90, 96, 100, 120,
+        ] {
+            assert!(RegularNumber::is_regular(n), "{n} must be regular");
         }
     }
 
@@ -1106,7 +1145,7 @@ mod tests {
         );
 
         // Parenthesis balance check
-        let open  = assertion.chars().filter(|&c| c == '(').count();
+        let open = assertion.chars().filter(|&c| c == '(').count();
         let close = assertion.chars().filter(|&c| c == ')').count();
         assert_eq!(
             open, close,
@@ -1125,10 +1164,16 @@ mod tests {
         let sub = a.to_proof_block("node-smtlib").expect("submission ok");
         let fa = &sub.formal_assertion;
 
-        let open2  = fa.chars().filter(|&c| c == '(').count();
+        let open2 = fa.chars().filter(|&c| c == '(').count();
         let close2 = fa.chars().filter(|&c| c == ')').count();
-        assert_eq!(open2, close2, "unbalanced parentheses in adapter-generated assertion");
-        assert!(fa.contains("(assert (>= ihsan_mean 0.95))"), "threshold line present");
+        assert_eq!(
+            open2, close2,
+            "unbalanced parentheses in adapter-generated assertion"
+        );
+        assert!(
+            fa.contains("(assert (>= ihsan_mean 0.95))"),
+            "threshold line present"
+        );
     }
 
     // ── bonus: multi-channel test ─────────────────────────────────────────────
@@ -1165,10 +1210,16 @@ mod tests {
         assert!(e1.to_string().contains('3'), "index 3 in message: {e1}");
 
         let e2 = BridgeError::SipparFailure(SipparError::IrregularFactor(7));
-        assert!(e2.to_string().contains('7'), "irregular factor 7 in message: {e2}");
+        assert!(
+            e2.to_string().contains('7'),
+            "irregular factor 7 in message: {e2}"
+        );
 
         let e3 = BridgeError::ComputationError("bad input".into());
-        assert!(e3.to_string().contains("bad input"), "description in message: {e3}");
+        assert!(
+            e3.to_string().contains("bad input"),
+            "description in message: {e3}"
+        );
     }
 
     // ── bonus: RegularNumber arithmetic ──────────────────────────────────────
@@ -1199,9 +1250,6 @@ mod tests {
     fn test_kahan_mean_accuracy() {
         let scores: Vec<f64> = vec![0.95; 1000];
         let m = ConstitutionalReceiptAdapter::mean(&scores);
-        assert!(
-            (m - 0.95).abs() < 1e-13,
-            "Kahan mean drifted: {m:.20}"
-        );
+        assert!((m - 0.95).abs() < 1e-13, "Kahan mean drifted: {m:.20}");
     }
 }

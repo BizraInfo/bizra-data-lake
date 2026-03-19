@@ -220,7 +220,9 @@ impl Node {
 
         // Phase 86-B: HEARTBEAT handled directly (needs Node-level state)
         if let protocol::Command::Heartbeat { timestamp_ms } = &cmd {
-            let ts = if *timestamp_ms > 0 { *timestamp_ms } else {
+            let ts = if *timestamp_ms > 0 {
+                *timestamp_ms
+            } else {
                 // Use monotonic counter as fallback when no wall clock provided
                 (self.commands_processed as u64) * 1000
             };
@@ -228,13 +230,20 @@ impl Node {
             return Response::ok(vec![
                 ("heartbeat_count", report.heartbeat_count.to_string()),
                 ("timestamp_ms", report.timestamp_ms.to_string()),
-                ("fragments_processed", report.fragments_processed.to_string()),
-                ("synthesis_triggered", report.synthesis_triggered.to_string()),
+                (
+                    "fragments_processed",
+                    report.fragments_processed.to_string(),
+                ),
+                (
+                    "synthesis_triggered",
+                    report.synthesis_triggered.to_string(),
+                ),
                 ("receipts_processed", report.receipts_processed.to_string()),
                 ("reflexes_compiled", report.reflexes_compiled.to_string()),
                 ("ihsan_raw", report.ihsan_raw.to_string()),
                 ("events_emitted", report.events_emitted.to_string()),
-            ]).to_wire();
+            ])
+            .to_wire();
         }
 
         // Build the handler's borrowed view of our state
@@ -497,7 +506,9 @@ impl Node {
             if quarantine > 0 {
                 // Immune system: penalize atoms that contributed to failed actions.
                 let penalty = (0.05 * (quarantine as f64).min(3.0)) as f32;
-                self.runtime.pipeline_mut().penalize_recent_confidence(penalty);
+                self.runtime
+                    .pipeline_mut()
+                    .penalize_recent_confidence(penalty);
                 report.events_emitted += quarantine as usize;
             }
 
@@ -519,9 +530,7 @@ impl Node {
         self.last_heartbeat_ms = now_ms;
 
         // Self-compilation check (reuse existing interval logic)
-        if self.heartbeat_count > 0
-            && self.heartbeat_count % (SELF_COMPILE_INTERVAL as u64) == 0
-        {
+        if self.heartbeat_count > 0 && self.heartbeat_count % (SELF_COMPILE_INTERVAL as u64) == 0 {
             self.trigger_self_compilation();
         }
 

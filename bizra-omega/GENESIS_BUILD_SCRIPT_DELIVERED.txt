@@ -1,0 +1,3 @@
+Document generated: BIZRA_Genesis_Build_Script.docx
+Delivered to user via outputs directory.
+To be copied to NODE0 by user.

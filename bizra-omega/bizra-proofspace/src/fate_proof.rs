@@ -351,11 +351,7 @@ impl std::fmt::Display for FateBindingError {
                 write!(f, "UnsatisfiableProof({:?}): {}", gate, details)
             }
             FateBindingError::InvalidSmtLib2 { fragment, reason } => {
-                write!(
-                    f,
-                    "InvalidSmtLib2: {} — fragment: {:?}",
-                    reason, fragment
-                )
+                write!(f, "InvalidSmtLib2: {} — fragment: {:?}", reason, fragment)
             }
             FateBindingError::SipparNonRegular {
                 chain_length,
@@ -497,10 +493,7 @@ fn validate_smtlib2_fragment(fragment: &str) -> Vec<String> {
             ')' if !in_string => {
                 depth -= 1;
                 if depth < 0 {
-                    diags.push(format!(
-                        "Unmatched ')' at byte position {}",
-                        pos
-                    ));
+                    diags.push(format!("Unmatched ')' at byte position {}", pos));
                 }
             }
             _ => {}
@@ -731,10 +724,7 @@ impl FateBindingEngine {
         for name in &["ihsan_score", "adl_score", "harm_score", "confidence_score"] {
             assertions.push(SmtAssertion {
                 name: format!("range_{}", name),
-                smtlib2: format!(
-                    "(assert (and (>= {} 0.0) (<= {} 1.0)))",
-                    name, name
-                ),
+                smtlib2: format!("(assert (and (>= {} 0.0) (<= {} 1.0)))", name, name),
                 gate: FateGate::ChainIntegrity,
                 is_hard: false,
             });
@@ -965,11 +955,7 @@ mod tests {
         let proof = engine.generate_fate_proof(&scores, &ZERO_HASH, 60);
 
         // Should have the four hard gate assertions.
-        let gate_names: Vec<&str> = proof
-            .assertions
-            .iter()
-            .map(|a| a.name.as_str())
-            .collect();
+        let gate_names: Vec<&str> = proof.assertions.iter().map(|a| a.name.as_str()).collect();
         assert!(
             gate_names.contains(&"gate_ihsan"),
             "gate_ihsan assertion missing"
@@ -1016,10 +1002,7 @@ mod tests {
             .find(|v| v.name == "ihsan_score")
             .expect("ihsan_score variable missing");
         assert_eq!(ihsan_var.sort, SmtSort::Real);
-        assert_eq!(
-            ihsan_var.value.as_deref(),
-            Some(format_real(0.97).as_str())
-        );
+        assert_eq!(ihsan_var.value.as_deref(), Some(format_real(0.97).as_str()));
     }
 
     // -----------------------------------------------------------------------
@@ -1152,9 +1135,18 @@ mod tests {
         assert!(results[1].is_valid, "Fragment 1 should be valid");
         assert!(results[2].is_valid, "Fragment 2 should be valid");
 
-        assert!(!results[3].is_valid, "Fragment 3 (no paren) should be invalid");
-        assert!(!results[4].is_valid, "Fragment 4 (unbalanced) should be invalid");
-        assert!(!results[5].is_valid, "Fragment 5 (extra close) should be invalid");
+        assert!(
+            !results[3].is_valid,
+            "Fragment 3 (no paren) should be invalid"
+        );
+        assert!(
+            !results[4].is_valid,
+            "Fragment 4 (unbalanced) should be invalid"
+        );
+        assert!(
+            !results[5].is_valid,
+            "Fragment 5 (extra close) should be invalid"
+        );
         assert!(!results[6].is_valid, "Fragment 6 (empty) should be invalid");
 
         // Non-empty diagnostics for invalid fragments.
@@ -1225,10 +1217,9 @@ mod tests {
         let engine = FateBindingEngine::new();
         let scores = passing_scores();
         let chain_hash: [u8; 32] = [
-            0xde, 0xad, 0xbe, 0xef, 0x00, 0x11, 0x22, 0x33,
-            0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb,
-            0xcc, 0xdd, 0xee, 0xff, 0x01, 0x02, 0x03, 0x04,
-            0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
+            0xde, 0xad, 0xbe, 0xef, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+            0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+            0x09, 0x0a, 0x0b, 0x0c,
         ];
 
         let proof_a = engine.generate_fate_proof(&scores, &chain_hash, 100);
@@ -1247,15 +1238,12 @@ mod tests {
     /// The first several regular numbers are accepted. [DERIVED]
     #[test]
     fn test_sippar_small_regulars() {
-        let regulars = [1u64, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25,
-                        27, 30, 32, 36, 40, 45, 48, 50, 54, 60, 64, 72, 75, 80, 90,
-                        96, 100, 120, 125, 128, 144, 150, 160, 180, 192, 200];
+        let regulars = [
+            1u64, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30, 32, 36, 40, 45, 48,
+            50, 54, 60, 64, 72, 75, 80, 90, 96, 100, 120, 125, 128, 144, 150, 160, 180, 192, 200,
+        ];
         for &n in &regulars {
-            assert!(
-                check_regular(n).is_ok(),
-                "{} should be regular",
-                n
-            );
+            assert!(check_regular(n).is_ok(), "{} should be regular", n);
         }
     }
 
@@ -1264,11 +1252,7 @@ mod tests {
     fn test_sippar_irregulars() {
         let irregulars = [7u64, 11, 13, 14, 17, 19, 21, 22, 23, 26, 28, 49, 77, 91];
         for &n in &irregulars {
-            assert!(
-                check_regular(n).is_err(),
-                "{} should be irregular",
-                n
-            );
+            assert!(check_regular(n).is_err(), "{} should be irregular", n);
         }
     }
 

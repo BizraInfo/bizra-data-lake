@@ -529,8 +529,7 @@ impl MemoryPipeline {
             self.store.reinforce_atom(&id, now);
             if let Some(atom) = self.store.atom_mut(&id) {
                 let new_conf = (atom.header.confidence.base + delta).min(1.0);
-                atom.header.confidence =
-                    crate::types::Confidence::new(new_conf, now);
+                atom.header.confidence = crate::types::Confidence::new(new_conf, now);
             }
         }
     }
@@ -547,8 +546,7 @@ impl MemoryPipeline {
         for id in ids {
             if let Some(atom) = self.store.atom_mut(&id) {
                 let new_conf = (atom.header.confidence.base - penalty).max(0.0);
-                atom.header.confidence =
-                    crate::types::Confidence::new(new_conf, now);
+                atom.header.confidence = crate::types::Confidence::new(new_conf, now);
                 if new_conf < 0.30 {
                     atom.superseded = true; // quarantine
                 }

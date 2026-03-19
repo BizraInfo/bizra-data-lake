@@ -1,14 +1,44 @@
 #!/usr/bin/env python3
 """PAT Data Source Census — scan each root separately with progress."""
+
 import os, time, json
 from collections import defaultdict
 from pathlib import Path
 
-SKIP = {".git","node_modules",".venv",".venv-linux",".venv-apex","__pycache__",
-        ".mypy_cache",".pytest_cache",".ruff_cache",".cache",".hypothesis",
-        ".benchmarks","dist",".next",".fastembed_cache","coverage",".codex",
-        ".swarm",".claude-flow",".tmp_prod_artifacts_v2"}
-SKIP_EXT = {".exe",".dll",".so",".dylib",".whl",".pyc",".pyo",".lock",".idx",".pack"}
+SKIP = {
+    ".git",
+    "node_modules",
+    ".venv",
+    ".venv-linux",
+    ".venv-apex",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".cache",
+    ".hypothesis",
+    ".benchmarks",
+    "dist",
+    ".next",
+    ".fastembed_cache",
+    "coverage",
+    ".codex",
+    ".swarm",
+    ".claude-flow",
+    ".tmp_prod_artifacts_v2",
+}
+SKIP_EXT = {
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".whl",
+    ".pyc",
+    ".pyo",
+    ".lock",
+    ".idx",
+    ".pack",
+}
 
 ROOTS = [
     "/mnt/c/BIZRA-DATA-LAKE",
@@ -20,6 +50,7 @@ ROOTS = [
     "/mnt/c/BIZRA-TaskMaster",
 ]
 
+
 def scan(root):
     rp = Path(root)
     if not rp.exists():
@@ -29,15 +60,45 @@ def scan(root):
     by_kind = defaultdict(lambda: {"n": 0, "b": 0})
     total = 0
     KIND_MAP = {
-        ".py":"code",".rs":"code",".ts":"code",".tsx":"code",".js":"code",
-        ".jsx":"code",".sh":"code",".ps1":"code",".bat":"code",".sql":"code",
-        ".md":"doc",".txt":"doc",".pdf":"doc",".docx":"doc",".pptx":"doc",".xlsx":"doc",
-        ".json":"data",".jsonl":"data",".yaml":"data",".yml":"data",".toml":"data",
-        ".csv":"data",".parquet":"data",".db":"data",
-        ".html":"web",".css":"web",".svg":"web",
-        ".png":"media",".jpg":"media",".jpeg":"media",".gif":"media",
-        ".webp":"media",".mp4":"media",".m4a":"media",".wav":"media",
-        ".zip":"archive",".tar":"archive",".gz":"archive",".tgz":"archive",
+        ".py": "code",
+        ".rs": "code",
+        ".ts": "code",
+        ".tsx": "code",
+        ".js": "code",
+        ".jsx": "code",
+        ".sh": "code",
+        ".ps1": "code",
+        ".bat": "code",
+        ".sql": "code",
+        ".md": "doc",
+        ".txt": "doc",
+        ".pdf": "doc",
+        ".docx": "doc",
+        ".pptx": "doc",
+        ".xlsx": "doc",
+        ".json": "data",
+        ".jsonl": "data",
+        ".yaml": "data",
+        ".yml": "data",
+        ".toml": "data",
+        ".csv": "data",
+        ".parquet": "data",
+        ".db": "data",
+        ".html": "web",
+        ".css": "web",
+        ".svg": "web",
+        ".png": "media",
+        ".jpg": "media",
+        ".jpeg": "media",
+        ".gif": "media",
+        ".webp": "media",
+        ".mp4": "media",
+        ".m4a": "media",
+        ".wav": "media",
+        ".zip": "archive",
+        ".tar": "archive",
+        ".gz": "archive",
+        ".tgz": "archive",
     }
     for dp, dns, fns in os.walk(root):
         dns[:] = [d for d in dns if d not in SKIP]
@@ -57,11 +118,14 @@ def scan(root):
                 pass
     elapsed = time.time() - t0
     return {
-        "root": root, "files": total, "time": round(elapsed, 1),
+        "root": root,
+        "files": total,
+        "time": round(elapsed, 1),
         "total_gb": round(sum(v["b"] for v in by_ext.values()) / 1e9, 3),
         "by_ext": dict(sorted(by_ext.items(), key=lambda x: -x[1]["n"])[:12]),
         "by_kind": dict(sorted(by_kind.items(), key=lambda x: -x[1]["b"])),
     }
+
 
 print("=" * 60, flush=True)
 print("  PAT DATA SOURCE CENSUS", flush=True)
@@ -82,11 +146,17 @@ for root in ROOTS:
         results.append(r)
         grand_files += r["files"]
         grand_gb += r["total_gb"]
-        print(f"    {r['files']:>8,} files | {r['total_gb']:>8.3f} GB | {r['time']}s", flush=True)
+        print(
+            f"    {r['files']:>8,} files | {r['total_gb']:>8.3f} GB | {r['time']}s",
+            flush=True,
+        )
         for kind, info in r["by_kind"].items():
             grand_kinds[kind]["n"] += info["n"]
             grand_kinds[kind]["b"] += info["b"]
-            print(f"      {kind:8s}: {info['n']:>7,} files  {info['b']/1e6:>8.1f} MB", flush=True)
+            print(
+                f"      {kind:8s}: {info['n']:>7,} files  {info['b']/1e6:>8.1f} MB",
+                flush=True,
+            )
     print(flush=True)
 
 print(f"  {'='*50}", flush=True)
@@ -105,10 +175,23 @@ manifest = {
     "sources": results,
     "by_kind": {k: dict(v) for k, v in grand_kinds.items()},
     "uncovered_sources": [
-        {"name": "Chat history (Claude/GPT/Gemini/Qwen/DeepSeek)", "est_conversations": "4000-5000", "status": "NOT_SCANNED", "action": "Export from each platform"},
+        {
+            "name": "Chat history (Claude/GPT/Gemini/Qwen/DeepSeek)",
+            "est_conversations": "4000-5000",
+            "status": "NOT_SCANNED",
+            "action": "Export from each platform",
+        },
         {"name": "Google Drive", "status": "NOT_SCANNED", "action": "Mount or export"},
-        {"name": "Mobile device", "status": "NOT_SCANNED", "action": "Transfer to B:\\\\"},
-        {"name": "Email archives", "status": "NOT_SCANNED", "action": "Export .mbox or .eml"},
+        {
+            "name": "Mobile device",
+            "status": "NOT_SCANNED",
+            "action": "Transfer to B:\\\\",
+        },
+        {
+            "name": "Email archives",
+            "status": "NOT_SCANNED",
+            "action": "Export .mbox or .eml",
+        },
     ],
 }
 with open("04_GOLD/data_source_census.json", "w") as f:

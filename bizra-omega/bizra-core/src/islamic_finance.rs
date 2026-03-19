@@ -168,7 +168,9 @@ impl std::ops::Mul<f64> for ExactAmount {
 impl std::ops::Div<f64> for ExactAmount {
     type Output = Self;
     fn div(self, rhs: f64) -> Self {
-        if rhs == 0.0 { return Self(0); }
+        if rhs == 0.0 {
+            return Self(0);
+        }
         Self((self.0 as f64 / rhs) as i64)
     }
 }
@@ -720,13 +722,19 @@ impl MudarabahContract {
         let (investor_return, entrepreneur_payment) = if !self.accumulated_pnl.is_negative() {
             // Profit case: distribute according to ratios (exact arithmetic)
             let investor_profit = self.accumulated_pnl.mul_ratio(self.investor_profit_ratio);
-            let entrepreneur_profit = self.accumulated_pnl.mul_ratio(self.entrepreneur_profit_ratio);
+            let entrepreneur_profit = self
+                .accumulated_pnl
+                .mul_ratio(self.entrepreneur_profit_ratio);
 
             (self.capital + investor_profit, entrepreneur_profit)
         } else {
             // Loss case: investor bears capital loss, entrepreneur gets nothing
             let remaining = self.capital + self.accumulated_pnl;
-            let capped = if remaining.is_negative() { ExactAmount::ZERO } else { remaining };
+            let capped = if remaining.is_negative() {
+                ExactAmount::ZERO
+            } else {
+                remaining
+            };
             (capped, ExactAmount::ZERO)
         };
 
@@ -1995,7 +2003,9 @@ mod tests {
         .unwrap();
 
         contract.activate().unwrap();
-        contract.record_pnl(ExactAmount::from_f64(200.0), true).unwrap();
+        contract
+            .record_pnl(ExactAmount::from_f64(200.0), true)
+            .unwrap();
 
         let settlement = contract.settle().unwrap();
 
@@ -2019,7 +2029,9 @@ mod tests {
         .unwrap();
 
         contract.activate().unwrap();
-        contract.record_pnl(ExactAmount::from_f64(300.0), false).unwrap();
+        contract
+            .record_pnl(ExactAmount::from_f64(300.0), false)
+            .unwrap();
 
         let settlement = contract.settle().unwrap();
 

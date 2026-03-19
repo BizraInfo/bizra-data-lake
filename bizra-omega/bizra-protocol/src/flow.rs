@@ -61,18 +61,14 @@ use crate::boundary::{self, BoundaryError, GuardianVerdict, PermitLink, RequestB
 #[derive(Debug)]
 pub enum FlowResult {
     /// Full circuit completed: PAT worked, SAT attested, SEED minted
-    Completed {
-        attestation: Attestation,
-    },
+    Completed { attestation: Attestation },
     /// Constitutional halt: the system correctly rejected the work
     ConstitutionalHalt {
         reason: String,
         attestation: Option<Attestation>,
     },
     /// Pre-boundary rejection: didn't even reach the trust boundary
-    PreBoundaryRejection {
-        error: BoundaryError,
-    },
+    PreBoundaryRejection { error: BoundaryError },
 }
 
 /// Execute the complete flow for a single action.
@@ -155,7 +151,8 @@ pub fn execute_full_flow(
     // Pearson correlation 1.00 vs token-based at 0.05.
     let seed_amount = if sat_verdict == SatVerdict::Approved {
         // Quality-weighted: base 100 SEED, scaled by Ihsān above floor
-        let quality_multiplier = (ihsan_score - crate::constitution::IHSAN_FLOOR) / (1.0 - crate::constitution::IHSAN_FLOOR);
+        let quality_multiplier = (ihsan_score - crate::constitution::IHSAN_FLOOR)
+            / (1.0 - crate::constitution::IHSAN_FLOOR);
         let base_seed: u64 = 100;
         base_seed + (quality_multiplier * 900.0) as u64 // 100-1000 SEED range
     } else {
@@ -199,8 +196,8 @@ pub fn execute_full_flow(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mint::{derive_agent_key, mint_node};
     use crate::constitution::{PAT_DERIVATION_PREFIX, SAT_DERIVATION_PREFIX};
+    use crate::mint::{derive_agent_key, mint_node};
 
     #[test]
     fn test_complete_flow_approved() {
@@ -262,9 +259,13 @@ mod tests {
 
         // Ihsān below floor — this should be rejected pre-boundary
         let result = execute_full_flow(
-            &pat_key, &sat_key,
-            "node-test", "p1", "s1",
-            "action", "hash",
+            &pat_key,
+            &sat_key,
+            "node-test",
+            "p1",
+            "s1",
+            "action",
+            "hash",
             0.80, // BELOW FLOOR
             vec![permit],
         );
@@ -281,25 +282,39 @@ mod tests {
         let pat_key = derive_agent_key(&master_secret, PAT_DERIVATION_PREFIX, 0);
         let sat_key = derive_agent_key(&master_secret, SAT_DERIVATION_PREFIX, 0);
 
-        let make_permit = || vec![PermitLink {
-            grantor_id: "h".into(),
-            grantee_id: "p1".into(),
-            capabilities: vec!["x".into()],
-            grantor_signature: "s".into(),
-        }];
+        let make_permit = || {
+            vec![PermitLink {
+                grantor_id: "h".into(),
+                grantee_id: "p1".into(),
+                capabilities: vec!["x".into()],
+                grantor_signature: "s".into(),
+            }]
+        };
 
         // Low quality (just above floor): ~0.95 → ~100 SEED
         let result_low = execute_full_flow(
-            &pat_key, &sat_key,
-            "n", "p1", "s1", "a", "h1",
-            0.951, make_permit(),
+            &pat_key,
+            &sat_key,
+            "n",
+            "p1",
+            "s1",
+            "a",
+            "h1",
+            0.951,
+            make_permit(),
         );
 
         // High quality: ~1.00 → ~1000 SEED
         let result_high = execute_full_flow(
-            &pat_key, &sat_key,
-            "n", "p1", "s1", "a", "h2",
-            0.999, make_permit(),
+            &pat_key,
+            &sat_key,
+            "n",
+            "p1",
+            "s1",
+            "a",
+            "h2",
+            0.999,
+            make_permit(),
         );
 
         let seed_low = match result_low {

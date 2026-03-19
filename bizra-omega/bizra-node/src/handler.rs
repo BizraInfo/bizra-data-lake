@@ -153,7 +153,10 @@ pub fn handle(cmd: Command, state: &mut NodeInternals<'_>) -> Response {
         Command::ResourcesRefresh => handle_resources_refresh(state),
         // Heartbeat is handled directly in Node::process() before reaching here
         // Heartbeat is handled directly in Node::process() before reaching here
-        Command::Heartbeat { .. } => Response::err(crate::protocol::ErrorCode::BadCommand, "HEARTBEAT must be handled by Node"),
+        Command::Heartbeat { .. } => Response::err(
+            crate::protocol::ErrorCode::BadCommand,
+            "HEARTBEAT must be handled by Node",
+        ),
     }
 }
 

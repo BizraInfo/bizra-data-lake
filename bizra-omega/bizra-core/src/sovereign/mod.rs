@@ -74,7 +74,7 @@ pub use orchestrator::{OrchestratorConfig, SovereignOrchestrator};
 pub use snr_engine::{SNRConfig, SNREngine, SNRStats, SignalMetrics};
 
 pub use autopoiesis::{AutopoieticState, ConvergenceReport, CycleOutcome, VerifiedReward};
-pub use canonicalize::{Canonicalize, CanonicalChain, CanonicalCheckpoint};
+pub use canonicalize::{CanonicalChain, CanonicalCheckpoint, Canonicalize};
 pub use meta_constitution::{
     AmendmentProposal, AmendmentVerdict, ConstitutionalEra, MetaConstitution,
 };

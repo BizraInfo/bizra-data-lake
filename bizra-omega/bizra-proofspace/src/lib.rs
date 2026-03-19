@@ -17,11 +17,11 @@
 //! - SMT-LIB2: Barrett et al. (2010)
 //! - Z3: de Moura & Bjørner (2008)
 
+use blake3::Hasher;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use blake3::Hasher;
 use std::collections::HashSet;
 use thiserror::Error;
 
@@ -62,14 +62,13 @@ pub const MAX_INSTRUCTION_STRING: usize = 1024;
 static HEX64_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-f0-9]{64}$").unwrap());
 static HEX128_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-f0-9]{128}$").unwrap());
 
-
 // ━━━ Sprint 2: Proof Pyramid Modules ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-/// Receipt chain integrity — Merkle tamper-evidence for constitutional receipts
-pub mod receipt_chain;
-/// Mission → ProofSpace bridge — terminal mission lifecycle to block submission
-pub mod mission_bridge;
 /// Fate-binding formal verification — Z3 SMT-LIB2 proof generation
 pub mod fate_proof;
+/// Mission → ProofSpace bridge — terminal mission lifecycle to block submission
+pub mod mission_bridge;
+/// Receipt chain integrity — Merkle tamper-evidence for constitutional receipts
+pub mod receipt_chain;
 
 // =============================================================================
 // ERROR TYPES

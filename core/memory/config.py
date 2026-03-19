@@ -76,7 +76,9 @@ class MemoryConfig:
     # Embedding pipeline
     auto_embed: bool = True
     embed_model: str = "all-MiniLM-L6-v2"
-    embed_device: str = "auto"  # "cpu", "cuda", "auto" — auto selects CUDA when available
+    embed_device: str = (
+        "auto"  # "cpu", "cuda", "auto" — auto selects CUDA when available
+    )
     embed_batch_size: int = 64
     ollama_embed_url: str = "http://localhost:11434"
     ollama_embed_model: str = "nomic-embed-text"

@@ -75,7 +75,9 @@ class AutopoieticState:
         prediction_error = abs(actual_quality - predicted)
 
         # Score Ihsan (EMA update)
-        self.ihsan_ema = self._alpha * actual_quality + (1.0 - self._alpha) * self.ihsan_ema
+        self.ihsan_ema = (
+            self._alpha * actual_quality + (1.0 - self._alpha) * self.ihsan_ema
+        )
 
         # Constitutional gate: Ihsan
         if self.ihsan_ema < IHSAN_THRESHOLD:

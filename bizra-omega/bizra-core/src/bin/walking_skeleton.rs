@@ -9,8 +9,7 @@ fn main() {
 
     match bizra_core::walking_skeleton::run_skeleton() {
         Ok(receipt) => {
-            let json = serde_json::to_string_pretty(&receipt)
-                .expect("Failed to serialize receipt");
+            let json = serde_json::to_string_pretty(&receipt).expect("Failed to serialize receipt");
             println!("{json}");
 
             eprintln!(

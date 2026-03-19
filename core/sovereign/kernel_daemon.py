@@ -796,8 +796,11 @@ def _ensure_faiss_loaded() -> bool:
                 from sentence_transformers import SentenceTransformer
 
                 import torch
+
                 _device = "cuda" if torch.cuda.is_available() else "cpu"
-                _knowledge_cache["encoder"] = SentenceTransformer("all-MiniLM-L6-v2", device=_device)
+                _knowledge_cache["encoder"] = SentenceTransformer(
+                    "all-MiniLM-L6-v2", device=_device
+                )
                 _knowledge_cache["faiss_encoder_ok"] = True
             except (ImportError, OSError):
                 _knowledge_cache["faiss_encoder_ok"] = False
