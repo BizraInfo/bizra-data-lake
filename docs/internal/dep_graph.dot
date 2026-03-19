@@ -1,0 +1,316 @@
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BIZRA Crate Dependency Graph — Post-Sprint-2 State
+//
+// Render with:
+//   dot -Tsvg dep_graph.dot -o dep_graph.svg
+//   dot -Tpng dep_graph.dot -o dep_graph.png
+//
+// Edges: A → B means "A depends on B" (directed, source has the dep).
+// Edge colors:
+//   black        — pre-existing production dependency
+//   #e06c00 (orange) — Sprint 2 NEW production dependency (W4, W5, W6, W8)
+//   #0072e3 (blue)   — Sprint 2 NEW optional dependency (feature-gated)
+//   #9000cc (purple) — Sprint 2 NEW dev-dependency (W7)
+//   grey dashed  — workspace-only / no dep edge yet (W7 before graduation)
+//
+// Node fill colors:
+//   #f0f0f0 — leaf crates (zero deps)
+//   #d0e8ff — core infrastructure
+//   #d0ffd4 — WBS Sprint 2 destination crates (bizra-proofspace, bizra-action)
+//   #fff0c0 — Sprint 2 source/enabler crates (bizra-mission, bizra-sippar, fate-binding)
+//   #ffffff — all other workspace members
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+digraph bizra_crates {
+    rankdir=BT;
+    fontname="Helvetica Neue, Helvetica, Arial, sans-serif";
+    fontsize=11;
+    node [shape=box, style="filled,rounded", fontname="Helvetica Neue", fontsize=10, margin="0.18,0.08"];
+    edge [fontsize=9, fontname="Helvetica Neue"];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEGEND (invisible rank — renders as a subgraph key in top-left)
+    // ─────────────────────────────────────────────────────────────────────────
+    subgraph cluster_legend {
+        label="Legend";
+        style=filled;
+        color="#cccccc";
+        fillcolor="#fafafa";
+        fontsize=9;
+
+        leg_existing [label="pre-existing dep", shape=plaintext, fillcolor=white, style=""];
+        leg_new      [label="Sprint 2 NEW dep (W4/W5/W6/W8)", shape=plaintext, fillcolor=white, style=""];
+        leg_optional [label="optional / feature-gated dep", shape=plaintext, fillcolor=white, style=""];
+        leg_devdep   [label="dev-dependency (W7)", shape=plaintext, fillcolor=white, style=""];
+        leg_existing -> leg_new      [style=invis];
+        leg_new      -> leg_optional [style=invis];
+        leg_optional -> leg_devdep   [style=invis];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEVEL 0 — Leaf crates (zero dependencies)
+    // ─────────────────────────────────────────────────────────────────────────
+    subgraph cluster_leaves {
+        rank=same;
+        label="Level 0 — Leaves (zero deps)";
+        style=dashed; color="#aaaaaa"; fillcolor=transparent;
+
+        "bizra-sippar"   [label="bizra-sippar\n(RegularNumber, exact arithmetic)", fillcolor="#f0f0f0"];
+        "bizra-hooks"    [label="bizra-hooks\n(Event Bus)", fillcolor="#f0f0f0"];
+        "bizra-ttrl"     [label="bizra-ttrl", fillcolor="#f0f0f0"];
+        "iceoryx-bridge" [label="iceoryx-bridge\n(IPC)", fillcolor="#f0f0f0"];
+        "bizra-hunter"   [label="bizra-hunter", fillcolor="#f0f0f0"];
+        "bizra-hypergraph" [label="bizra-hypergraph", fillcolor="#f0f0f0"];
+        "bizra-cli"      [label="bizra-cli", fillcolor="#f0f0f0"];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEVEL 1 — bizra-core
+    // ─────────────────────────────────────────────────────────────────────────
+    subgraph cluster_core {
+        rank=same;
+        label="Level 1 — Core";
+        style=dashed; color="#aaaaaa"; fillcolor=transparent;
+
+        "bizra-core" [label="bizra-core\n(IHSAN_THRESHOLD, constitutional consts)", fillcolor="#d0e8ff"];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEVEL 2 — Direct core consumers + zero-dep action bus
+    // ─────────────────────────────────────────────────────────────────────────
+    subgraph cluster_level2 {
+        rank=same;
+        label="Level 2";
+        style=dashed; color="#aaaaaa"; fillcolor=transparent;
+
+        "bizra-action"  [label="bizra-action\n(Action Bus, Guardian, ReceiptChain)\n+ saga module [Sprint 2]", fillcolor="#d0ffd4", penwidth=2.0, color="#2a7f2a"];
+        "bizra-mission" [label="bizra-mission\n(Mission lifecycle, MissionReceipt)", fillcolor="#fff0c0", penwidth=2.0, color="#aa6600"];
+        "fate-binding"  [label="fate-binding\n(Z3 FateBindingEngine, ML-DSA-87)", fillcolor="#fff0c0", penwidth=2.0, color="#aa6600"];
+        "bizra-memory"  [label="bizra-memory", fillcolor="white"];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEVEL 3 — bizra-proofspace (primary Sprint 2 destination)
+    // ─────────────────────────────────────────────────────────────────────────
+    subgraph cluster_level3 {
+        rank=same;
+        label="Level 3 — Proof Pyramid";
+        style=dashed; color="#aaaaaa"; fillcolor=transparent;
+
+        "bizra-proofspace" [label="bizra-proofspace\n(Proof Pyramid, FATE gates, EthicalEnvelope)\n+ receipt_chain, mission_bridge, fate_proof [Sprint 2]", fillcolor="#d0ffd4", penwidth=2.5, color="#2a7f2a"];
+        "bizra-inference"  [label="bizra-inference", fillcolor="white"];
+        "bizra-autopoiesis"[label="bizra-autopoiesis", fillcolor="white"];
+        "bizra-federation" [label="bizra-federation", fillcolor="white"];
+        "bizra-telescript" [label="bizra-telescript", fillcolor="white"];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEVEL 4 — Resource pool, installer, python binding
+    // ─────────────────────────────────────────────────────────────────────────
+    subgraph cluster_level4 {
+        rank=same;
+        label="Level 4";
+        style=dashed; color="#aaaaaa"; fillcolor=transparent;
+
+        "bizra-resourcepool" [label="bizra-resourcepool", fillcolor="white"];
+        "bizra-installer"    [label="bizra-installer", fillcolor="white"];
+        "bizra-python"       [label="bizra-python", fillcolor="white"];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEVEL 5 — Agent, API
+    // ─────────────────────────────────────────────────────────────────────────
+    subgraph cluster_level5 {
+        rank=same;
+        label="Level 5";
+        style=dashed; color="#aaaaaa"; fillcolor=transparent;
+
+        "bizra-agent" [label="bizra-agent", fillcolor="white"];
+        "bizra-api"   [label="bizra-api", fillcolor="white"];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEVEL 6 — Node (top of cognitive stack)
+    // ─────────────────────────────────────────────────────────────────────────
+    subgraph cluster_level6 {
+        rank=same;
+        label="Level 6 — Node";
+        style=dashed; color="#aaaaaa"; fillcolor=transparent;
+
+        "bizra-node" [label="bizra-node\n(sovereign desktop agent binary)", fillcolor="white"];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST CRATE (separate rank — consumes multiple levels)
+    // ─────────────────────────────────────────────────────────────────────────
+    "bizra-tests" [label="bizra-tests\n(E2E + integration tests)\n+ proof_pyramid_e2e [Sprint 2]", fillcolor="#d0ffd4", penwidth=2.0, color="#2a7f2a", style="filled,rounded,dashed"];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EDGES — PRE-EXISTING (black)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // bizra-core → bizra-sippar
+    "bizra-core" -> "bizra-sippar" [color=black, label=""];
+
+    // bizra-memory → bizra-hooks
+    "bizra-memory" -> "bizra-hooks" [color=black];
+
+    // bizra-mission → bizra-core
+    "bizra-mission" -> "bizra-core" [color=black];
+
+    // fate-binding → bizra-core
+    "fate-binding" -> "bizra-core" [color=black];
+
+    // bizra-proofspace → bizra-core (pre-existing)
+    "bizra-proofspace" -> "bizra-core" [color=black, label="pre-existing"];
+
+    // bizra-inference → bizra-core
+    "bizra-inference" -> "bizra-core" [color=black];
+
+    // bizra-autopoiesis → bizra-core
+    "bizra-autopoiesis" -> "bizra-core" [color=black];
+
+    // bizra-federation → bizra-core
+    "bizra-federation" -> "bizra-core" [color=black];
+
+    // bizra-telescript → bizra-core
+    "bizra-telescript" -> "bizra-core" [color=black];
+
+    // bizra-installer → bizra-core, bizra-inference
+    "bizra-installer" -> "bizra-core"      [color=black];
+    "bizra-installer" -> "bizra-inference" [color=black];
+
+    // bizra-resourcepool → bizra-core, bizra-proofspace, bizra-telescript, bizra-federation
+    "bizra-resourcepool" -> "bizra-core"       [color=black];
+    "bizra-resourcepool" -> "bizra-proofspace" [color=black];
+    "bizra-resourcepool" -> "bizra-telescript" [color=black];
+    "bizra-resourcepool" -> "bizra-federation" [color=black];
+
+    // bizra-python → bizra-core, bizra-inference, bizra-autopoiesis, bizra-federation,
+    //                bizra-hooks, bizra-memory, bizra-action, bizra-resourcepool
+    "bizra-python" -> "bizra-core"         [color=black];
+    "bizra-python" -> "bizra-inference"    [color=black];
+    "bizra-python" -> "bizra-autopoiesis"  [color=black];
+    "bizra-python" -> "bizra-federation"   [color=black];
+    "bizra-python" -> "bizra-hooks"        [color=black];
+    "bizra-python" -> "bizra-memory"       [color=black];
+    "bizra-python" -> "bizra-action"       [color=black];
+    "bizra-python" -> "bizra-resourcepool" [color=black];
+
+    // bizra-agent → bizra-hooks, bizra-memory, bizra-telescript, bizra-action, bizra-ttrl
+    "bizra-agent" -> "bizra-hooks"      [color=black];
+    "bizra-agent" -> "bizra-memory"     [color=black];
+    "bizra-agent" -> "bizra-telescript" [color=black];
+    "bizra-agent" -> "bizra-action"     [color=black];
+    "bizra-agent" -> "bizra-ttrl"       [color=black];
+
+    // bizra-api → bizra-core, bizra-inference, bizra-federation, bizra-autopoiesis
+    "bizra-api" -> "bizra-core"        [color=black];
+    "bizra-api" -> "bizra-inference"   [color=black];
+    "bizra-api" -> "bizra-federation"  [color=black];
+    "bizra-api" -> "bizra-autopoiesis" [color=black];
+
+    // bizra-node → bizra-hooks, bizra-memory, bizra-agent, bizra-action,
+    //              bizra-telescript, bizra-core, bizra-inference, bizra-mission
+    "bizra-node" -> "bizra-hooks"      [color=black];
+    "bizra-node" -> "bizra-memory"     [color=black];
+    "bizra-node" -> "bizra-agent"      [color=black];
+    "bizra-node" -> "bizra-action"     [color=black];
+    "bizra-node" -> "bizra-telescript" [color=black];
+    "bizra-node" -> "bizra-core"       [color=black];
+    "bizra-node" -> "bizra-inference"  [color=black];
+    "bizra-node" -> "bizra-mission"    [color=black];
+
+    // bizra-tests (pre-existing) → bizra-core, bizra-inference, bizra-federation, bizra-autopoiesis
+    "bizra-tests" -> "bizra-core"        [color=black];
+    "bizra-tests" -> "bizra-inference"   [color=black];
+    "bizra-tests" -> "bizra-federation"  [color=black];
+    "bizra-tests" -> "bizra-autopoiesis" [color=black];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EDGES — SPRINT 2 NEW PRODUCTION DEPENDENCIES (orange, bold)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // W4: bizra-proofspace ← bizra-action  (features = ["production"])
+    "bizra-proofspace" -> "bizra-action" [
+        color="#e06c00", penwidth=2.5,
+        label="W4: features=[\"production\"]",
+        fontcolor="#e06c00"
+    ];
+
+    // W5: bizra-proofspace ← bizra-mission
+    "bizra-proofspace" -> "bizra-mission" [
+        color="#e06c00", penwidth=2.5,
+        label="W5",
+        fontcolor="#e06c00"
+    ];
+
+    // W8: bizra-proofspace ← bizra-sippar
+    "bizra-proofspace" -> "bizra-sippar" [
+        color="#e06c00", penwidth=2.5,
+        label="W8",
+        fontcolor="#e06c00"
+    ];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EDGES — SPRINT 2 NEW OPTIONAL DEPENDENCIES (blue, medium)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // W6: bizra-action ← bizra-mission  (optional, "saga" feature)
+    "bizra-action" -> "bizra-mission" [
+        color="#0072e3", penwidth=2.0, style=dashed,
+        label="W6: optional\nfeature=\"saga\"",
+        fontcolor="#0072e3"
+    ];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EDGES — SPRINT 2 DEV-DEPENDENCY (purple, dashed)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // W7: bizra-proofspace ← fate-binding  (dev-dep, Z3 CI constraint)
+    "bizra-proofspace" -> "fate-binding" [
+        color="#9000cc", penwidth=1.5, style=dashed,
+        label="W7: dev-dep\n(Z3 CI pending)",
+        fontcolor="#9000cc"
+    ];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EDGES — SPRINT 2 E2E TEST ADDITIONS (orange, dashed)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    "bizra-tests" -> "bizra-proofspace" [
+        color="#e06c00", penwidth=1.5, style=dashed,
+        label="Sprint 2\nE2E test",
+        fontcolor="#e06c00"
+    ];
+    "bizra-tests" -> "bizra-action" [
+        color="#e06c00", penwidth=1.5, style=dashed,
+        label="Sprint 2\nE2E test",
+        fontcolor="#e06c00"
+    ];
+    "bizra-tests" -> "bizra-mission" [
+        color="#e06c00", penwidth=1.5, style=dashed,
+        label="Sprint 2\nE2E test",
+        fontcolor="#e06c00"
+    ];
+    "bizra-tests" -> "bizra-sippar" [
+        color="#e06c00", penwidth=1.5, style=dashed,
+        label="Sprint 2\nE2E test",
+        fontcolor="#e06c00"
+    ];
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SPRINT 2 WIRE SUMMARY
+// ──────────────────────
+// W4  bizra-proofspace → bizra-action   [production dep, orange]
+// W5  bizra-proofspace → bizra-mission  [production dep, orange]
+// W6  bizra-action     → bizra-mission  [optional, saga feature, blue dashed]
+// W7  bizra-proofspace → fate-binding   [dev-dep, Z3 CI pending, purple dashed]
+// W8  bizra-proofspace → bizra-sippar   [production dep, orange]
+//
+// CYCLE CHECK: None.  Level assignment proves DAG property.
+//   L(bizra-sippar)=0, L(bizra-core)=1, L(bizra-action)=2,
+//   L(bizra-mission)=2, L(fate-binding)=2, L(bizra-proofspace)=3
+//   All edges go from higher → lower level.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
