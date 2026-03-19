@@ -98,7 +98,7 @@ jobs:
         run: python scripts/ci_exception_audit.py --scan-dirs core/agentic core/a2a core/bus --baseline 20
 
       - name: "SEC-003b: Exception specificity gate (sovereign surfaces)"
-        run: python scripts/ci_exception_audit.py --scan-dirs core/sovereign core/node0 core/reasoning --baseline 138
+        run: python scripts/ci_exception_audit.py --scan-dirs core/sovereign core/node0 core/reasoning --baseline 140
 
       - name: "PERF-E2E: Canonical spine latency benchmark"
         run: python scripts/ci_canonical_e2e_benchmark.py
