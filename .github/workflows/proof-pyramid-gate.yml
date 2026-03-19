@@ -561,26 +561,20 @@ jobs:
       - name: "PP-006 — Full Layer 0→5 proof pyramid E2E tests"
         run: |
           cargo test \
-            --package bizra-proofspace \
-            -- e2e \
-               proof_pyramid \
-               layer_0 \
-               layer_1 \
-               layer_2 \
-               layer_3 \
-               layer_4 \
-               layer_5 \
-            ${{ github.event.inputs.verbose == 'true' && '--nocapture' || '' }}
+            --package bizra-tests \
+            --test proof_pyramid_e2e \
+            ${{ github.event.inputs.verbose == 'true' && '-- --nocapture' || '' }}
 
       - name: "PP-006 — Assert all 7 E2E tests pass"
         run: |
           set -euo pipefail
           RESULT=$(cargo test \
-            --package bizra-proofspace \
-            -- e2e_proof_pyramid \
-            --test-threads 1 \
+            --package bizra-tests \
+            --test proof_pyramid_e2e \
+            -- --test-threads 1 \
             2>&1 | tee /dev/stderr)
-          PASS_COUNT=$(echo "$RESULT" | grep -c "^test.*ok" || true)
+          # Count individual test passes: lines like "test module::test_name ... ok"
+          PASS_COUNT=$(echo "$RESULT" | grep -cE '\.\.\. ok$' || true)
           echo "E2E tests passed: $PASS_COUNT"
           if [ "$PASS_COUNT" -lt 7 ]; then
             echo "::error::PP-006 FAILED: Expected ≥7 E2E tests to pass, got $PASS_COUNT"

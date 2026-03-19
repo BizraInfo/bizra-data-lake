@@ -37,8 +37,12 @@ crate-type = ["rlib", "staticlib"]
 blake3 = { workspace = true, optional = true }
 # ━━━ Sprint 2: Saga→Mission Wire (W6) — optional, preserves zero-dep core ━━━
 bizra-mission = { path = "../bizra-mission", optional = true }
+# ━━━ Sprint 2 Wire W1 — optional, gated behind feature ━━━
+bizra-core = { path = "../bizra-core", optional = true }
 
 [dev-dependencies]
+# W8: Action receipts → ProofBlock conversion (dev-dep to avoid cycle: proofspace → action)
+bizra-proofspace = { path = "../bizra-proofspace" }
 
 [features]
 default = []
@@ -46,5 +50,8 @@ default = []
 production = ["blake3"]
 # Enable saga mission dispatch (W6 wire)
 saga = ["dep:bizra-mission"]
+# W1: Constitutional thresholds from core
+constitutional = ["dep:bizra-core"]
+
 # Enable when used within bizra-omega workspace alongside bizra-hooks
 # workspace = ["dep:bizra-hooks"]
