@@ -18,7 +18,6 @@ from .base import (
     stable_turn_id,
 )
 
-
 _GOAL_RE = re.compile(
     r"\b(goal|objective|plan|roadmap|next step|launch|ship|complete)\b",
     re.IGNORECASE,
@@ -122,9 +121,11 @@ class GeminiParser(PlatformParser):
                 out.append(
                     {
                         "id": item.get("id") or f"contents-{idx}",
-                        "role": "assistant"
-                        if str(item.get("role") or "").strip().lower() == "model"
-                        else item.get("role"),
+                        "role": (
+                            "assistant"
+                            if str(item.get("role") or "").strip().lower() == "model"
+                            else item.get("role")
+                        ),
                         "content": item.get("parts") or item.get("content"),
                         "timestamp": item.get("create_time"),
                     }
@@ -137,7 +138,9 @@ class GeminiParser(PlatformParser):
             for idx, item in enumerate(candidates):
                 if not isinstance(item, dict):
                     continue
-                content = item.get("content") if isinstance(item.get("content"), dict) else {}
+                content = (
+                    item.get("content") if isinstance(item.get("content"), dict) else {}
+                )
                 out.append(
                     {
                         "id": item.get("id") or f"candidate-{idx}",
@@ -163,7 +166,9 @@ class GeminiParser(PlatformParser):
             if prompt.strip():
                 out.append({"id": "prompt-0", "role": "user", "content": prompt})
             if response.strip():
-                out.append({"id": "response-0", "role": "assistant", "content": response})
+                out.append(
+                    {"id": "response-0", "role": "assistant", "content": response}
+                )
             return out
 
         data = conversation.get("data")
@@ -186,7 +191,9 @@ class GeminiParser(PlatformParser):
         hints: list[FragmentHint] = []
         dedupe: set[tuple[str, str]] = set()
 
-        def push(kind: FragmentKind, signal: str, confidence: float, source: str) -> None:
+        def push(
+            kind: FragmentKind, signal: str, confidence: float, source: str
+        ) -> None:
             if confidence < _MIN_CONFIDENCE or len(hints) >= _MAX_HINTS_PER_TURN:
                 return
             normalized = normalize_whitespace(signal).lower()
@@ -206,7 +213,9 @@ class GeminiParser(PlatformParser):
         if _GOAL_RE.search(text):
             push(FragmentKind.GOAL, "goal_or_plan_language", 0.90, "gemini.goal")
         if _FACT_RE.search(text):
-            push(FragmentKind.FACT, "evidence_or_citation_language", 0.88, "gemini.fact")
+            push(
+                FragmentKind.FACT, "evidence_or_citation_language", 0.88, "gemini.fact"
+            )
         if _EXPERTISE_RE.search(text):
             push(
                 FragmentKind.EXPERTISE,
@@ -215,7 +224,9 @@ class GeminiParser(PlatformParser):
                 "gemini.expertise",
             )
         if _TEMPORAL_RE.search(text):
-            push(FragmentKind.TEMPORAL, "time_bound_commitment", 0.85, "gemini.temporal")
+            push(
+                FragmentKind.TEMPORAL, "time_bound_commitment", 0.85, "gemini.temporal"
+            )
         if _EMOTION_RE.search(text):
             push(FragmentKind.EMOTION, "emotion_signal", 0.80, "gemini.emotion")
         if contains_cjk(text) and contains_latin(text):

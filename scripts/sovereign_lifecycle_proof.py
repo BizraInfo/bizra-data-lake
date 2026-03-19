@@ -204,9 +204,9 @@ class SovereignNode:
 
         # Learning state
         self.mission_history: list[MissionRecord] = []
-        self.pattern_observations: dict[
-            str, list[float]
-        ] = {}  # pattern - [ihsan_scores]
+        self.pattern_observations: dict[str, list[float]] = (
+            {}
+        )  # pattern - [ihsan_scores]
         self.precipitation_threshold = 3  # Compile after 3 high-quality repetitions
         self.min_ihsan_for_precipitation = 0.90
 
@@ -710,16 +710,18 @@ class SovereignNode:
             "seed_balance": round(self.seed_balance, 4),
             "bloom_balance": round(self.bloom_balance, 4),
             "reflex_cache_size": len(self.reflex_cache),
-            "cache_hit_rate": (self.cache_hits / total_lookups * 100)
-            if total_lookups > 0
-            else 0,
+            "cache_hit_rate": (
+                (self.cache_hits / total_lookups * 100) if total_lookups > 0 else 0
+            ),
             "health_score": round(self.health_score, 4),
             "ticks_processed": self.tick_number,
             "anomalies_detected": len(self.anomaly_log),
             "corrections_applied": len(self.correction_log),
-            "avg_ihsan": round(sum(self.quality_trend) / len(self.quality_trend), 4)
-            if self.quality_trend
-            else 0,
+            "avg_ihsan": (
+                round(sum(self.quality_trend) / len(self.quality_trend), 4)
+                if self.quality_trend
+                else 0
+            ),
         }
 
 
@@ -993,12 +995,16 @@ def run_lifecycle_proof() -> dict:
         "Evidence chain length",
         {
             "chain_length": len(node.evidence_chain),
-            "first_hash": node.evidence_chain[0]["receipt_hash"][:16]
-            if node.evidence_chain
-            else None,
-            "last_hash": node.evidence_chain[-1]["receipt_hash"][:16]
-            if node.evidence_chain
-            else None,
+            "first_hash": (
+                node.evidence_chain[0]["receipt_hash"][:16]
+                if node.evidence_chain
+                else None
+            ),
+            "last_hash": (
+                node.evidence_chain[-1]["receipt_hash"][:16]
+                if node.evidence_chain
+                else None
+            ),
         },
     )
     if len(node.evidence_chain) > NUM_MISSIONS:
@@ -1280,9 +1286,9 @@ def run_lifecycle_proof() -> dict:
         "evidence_summary": {
             "genesis_hash": genesis_receipt["receipt_hash"],
             "evidence_chain_length": len(node.evidence_chain),
-            "last_receipt_hash": node.evidence_chain[-1]["receipt_hash"]
-            if node.evidence_chain
-            else None,
+            "last_receipt_hash": (
+                node.evidence_chain[-1]["receipt_hash"] if node.evidence_chain else None
+            ),
             "total_seed_minted": round(node.total_seed_minted, 4),
             "reflexes_compiled": len(node.reflex_cache),
             "anomalies_detected": len(node.anomaly_log),

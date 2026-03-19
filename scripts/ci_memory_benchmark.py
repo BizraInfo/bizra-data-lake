@@ -132,7 +132,10 @@ def run_benchmarks(tmp_dir: Path) -> List[BenchmarkResult]:
     )
     results.append(
         BenchmarkResult(
-            "store_single_ms", ms, THRESHOLDS["store_single_ms"], ms <= THRESHOLDS["store_single_ms"]
+            "store_single_ms",
+            ms,
+            THRESHOLDS["store_single_ms"],
+            ms <= THRESHOLDS["store_single_ms"],
         )
     )
 
@@ -334,7 +337,9 @@ def main():
     for r in results:
         status = "✅ PASS" if r.passed else "❌ FAIL"
         detail = f"  ({r.ops_per_sec:.0f} ops/s)" if r.ops_per_sec else ""
-        print(f"  {status}  {r.name:<30s}  {r.latency_ms:8.2f}ms  (limit: {r.threshold_ms:.0f}ms){detail}")
+        print(
+            f"  {status}  {r.name:<30s}  {r.latency_ms:8.2f}ms  (limit: {r.threshold_ms:.0f}ms){detail}"
+        )
         report.results.append(asdict(r))
         if r.passed:
             passed += 1

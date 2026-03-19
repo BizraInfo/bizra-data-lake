@@ -1956,9 +1956,7 @@ class Node0Orchestrator:
         # Try LM Studio first
         try:
             async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
-                resp = await client.get(
-                    f"{self._LM_STUDIO_URL}/v1/models"
-                )
+                resp = await client.get(f"{self._LM_STUDIO_URL}/v1/models")
                 if resp.status_code == 200:
                     models = resp.json().get("data", [])
                     loaded = [m for m in models if m.get("loaded")]

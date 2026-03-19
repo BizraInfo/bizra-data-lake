@@ -12,18 +12,18 @@ Usage:
     python install.py --config profile.yaml  # Pre-configured install
 """
 
-import os
-import sys
-import json
-import platform
-import subprocess
-import urllib.request
 import hashlib
+import json
+import os
+import platform
 import shutil
-from pathlib import Path
-from typing import Dict, Any, Optional
-from dataclasses import dataclass, asdict
+import subprocess
+import sys
+import urllib.request
+from dataclasses import asdict, dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 # ============================================================================
 # CONSTANTS
@@ -46,11 +46,13 @@ RECOMMENDED_DISK_GB = 50
 # SYSTEM DETECTION
 # ============================================================================
 
+
 class SystemTier(Enum):
-    POTATO = 1      # <8GB RAM, no GPU
-    NORMAL = 2      # 8-16GB RAM, optional GPU
-    GAMING = 3      # 16-32GB RAM, dedicated GPU
-    SERVER = 4      # 32GB+ RAM, high-end GPU
+    POTATO = 1  # <8GB RAM, no GPU
+    NORMAL = 2  # 8-16GB RAM, optional GPU
+    GAMING = 3  # 16-32GB RAM, dedicated GPU
+    SERVER = 4  # 32GB+ RAM, high-end GPU
+
 
 @dataclass
 class SystemInfo:
@@ -68,7 +70,7 @@ class SystemInfo:
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
-        d['tier'] = self.tier.name
+        d["tier"] = self.tier.name
         return d
 
 
@@ -119,27 +121,30 @@ def _get_ram_gb() -> float:
     try:
         if platform.system() == "Windows":
             import ctypes
+
             kernel32 = ctypes.windll.kernel32
             c_ulong = ctypes.c_ulong
+
             class MEMORYSTATUS(ctypes.Structure):
                 _fields_ = [
-                    ('dwLength', c_ulong),
-                    ('dwMemoryLoad', c_ulong),
-                    ('dwTotalPhys', c_ulong),
-                    ('dwAvailPhys', c_ulong),
-                    ('dwTotalPageFile', c_ulong),
-                    ('dwAvailPageFile', c_ulong),
-                    ('dwTotalVirtual', c_ulong),
-                    ('dwAvailVirtual', c_ulong),
+                    ("dwLength", c_ulong),
+                    ("dwMemoryLoad", c_ulong),
+                    ("dwTotalPhys", c_ulong),
+                    ("dwAvailPhys", c_ulong),
+                    ("dwTotalPageFile", c_ulong),
+                    ("dwAvailPageFile", c_ulong),
+                    ("dwTotalVirtual", c_ulong),
+                    ("dwAvailVirtual", c_ulong),
                 ]
+
             memoryStatus = MEMORYSTATUS()
             memoryStatus.dwLength = ctypes.sizeof(MEMORYSTATUS)
             kernel32.GlobalMemoryStatus(ctypes.byref(memoryStatus))
             return memoryStatus.dwTotalPhys / (1024**3)
         else:
-            with open('/proc/meminfo', 'r') as f:
+            with open("/proc/meminfo", "r") as f:
                 for line in f:
-                    if line.startswith('MemTotal'):
+                    if line.startswith("MemTotal"):
                         return int(line.split()[1]) / (1024**2)
     except Exception:
         pass
@@ -151,11 +156,13 @@ def _get_disk_free_gb() -> float:
     try:
         if platform.system() == "Windows":
             import ctypes
+
             free_bytes = ctypes.c_ulonglong(0)
             ctypes.windll.kernel32.GetDiskFreeSpaceExW(
                 ctypes.c_wchar_p(str(Path.home())),
-                None, None,
-                ctypes.pointer(free_bytes)
+                None,
+                None,
+                ctypes.pointer(free_bytes),
             )
             return free_bytes.value / (1024**3)
         else:
@@ -171,13 +178,15 @@ def _detect_gpu() -> tuple:
     try:
         # Try nvidia-smi
         result = subprocess.run(
-            ['nvidia-smi', '--query-gpu=name,memory.total', '--format=csv,noheader'],
-            capture_output=True, text=True, timeout=5
+            ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
-            parts = result.stdout.strip().split(',')
+            parts = result.stdout.strip().split(",")
             name = parts[0].strip()
-            vram_str = parts[1].strip().replace(' MiB', '')
+            vram_str = parts[1].strip().replace(" MiB", "")
             vram_gb = float(vram_str) / 1024
             return True, name, vram_gb
     except Exception:
@@ -188,10 +197,7 @@ def _detect_gpu() -> tuple:
 def _check_docker() -> bool:
     """Check if Docker is available."""
     try:
-        result = subprocess.run(
-            ['docker', '--version'],
-            capture_output=True, timeout=5
-        )
+        result = subprocess.run(["docker", "--version"], capture_output=True, timeout=5)
         return result.returncode == 0
     except Exception:
         return False
@@ -212,6 +218,7 @@ def _determine_tier(ram_gb: float, gpu: bool, vram_gb: Optional[float]) -> Syste
 # ============================================================================
 # USER PROFILE
 # ============================================================================
+
 
 @dataclass
 class UserProfile:
@@ -241,9 +248,9 @@ def create_user_profile(system_info: SystemInfo, headless: bool = False) -> User
         )
 
     # Interactive profile creation
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("     BIZRA Personal AI Think Tank - Profile Setup")
-    print("="*60)
+    print("=" * 60)
 
     # Username
     username = input("\nChoose a username (no email needed): ").strip()
@@ -311,40 +318,83 @@ def create_user_profile(system_info: SystemInfo, headless: bool = False) -> User
 
 def _parse_goals(choice: str) -> list:
     goal_map = {
-        '1': 'business', '2': 'learning', '3': 'creative',
-        '4': 'research', '5': 'productivity', '6': 'trading',
-        '7': 'health', '8': 'all'
+        "1": "business",
+        "2": "learning",
+        "3": "creative",
+        "4": "research",
+        "5": "productivity",
+        "6": "trading",
+        "7": "health",
+        "8": "all",
     }
-    if '8' in choice:
+    if "8" in choice:
         return list(goal_map.values())[:-1]
-    return [goal_map.get(c.strip(), 'productivity') for c in choice.split(',') if c.strip() in goal_map]
+    return [
+        goal_map.get(c.strip(), "productivity")
+        for c in choice.split(",")
+        if c.strip() in goal_map
+    ]
 
 
 def _parse_domains(choice: str) -> list:
     domain_map = {
-        '1': 'technology', '2': 'business', '3': 'science',
-        '4': 'arts', '5': 'finance', '6': 'health', '7': 'philosophy'
+        "1": "technology",
+        "2": "business",
+        "3": "science",
+        "4": "arts",
+        "5": "finance",
+        "6": "health",
+        "7": "philosophy",
     }
-    return [domain_map.get(c.strip(), 'general') for c in choice.split(',') if c.strip() in domain_map]
+    return [
+        domain_map.get(c.strip(), "general")
+        for c in choice.split(",")
+        if c.strip() in domain_map
+    ]
 
 
 def _parse_work_style(choice: str) -> str:
-    styles = {'1': 'deep_focus', '2': 'quick_bursts', '3': 'collaborative', '4': 'autonomous'}
-    return styles.get(choice, 'collaborative')
+    styles = {
+        "1": "deep_focus",
+        "2": "quick_bursts",
+        "3": "collaborative",
+        "4": "autonomous",
+    }
+    return styles.get(choice, "collaborative")
 
 
 def _parse_privacy(choice: str) -> str:
-    levels = {'1': 'maximum', '2': 'balanced', '3': 'connected'}
-    return levels.get(choice, 'balanced')
+    levels = {"1": "maximum", "2": "balanced", "3": "connected"}
+    return levels.get(choice, "balanced")
 
 
 def _default_resources(system_info: SystemInfo) -> Dict[str, Any]:
     """Default resource allocation based on system tier."""
     configs = {
-        SystemTier.POTATO: {'cpu_cores': 1, 'ram_gb': 2, 'storage_gb': 10, 'gpu_enabled': False},
-        SystemTier.NORMAL: {'cpu_cores': 2, 'ram_gb': 4, 'storage_gb': 25, 'gpu_enabled': False},
-        SystemTier.GAMING: {'cpu_cores': 4, 'ram_gb': 8, 'storage_gb': 50, 'gpu_enabled': True},
-        SystemTier.SERVER: {'cpu_cores': 8, 'ram_gb': 16, 'storage_gb': 100, 'gpu_enabled': True},
+        SystemTier.POTATO: {
+            "cpu_cores": 1,
+            "ram_gb": 2,
+            "storage_gb": 10,
+            "gpu_enabled": False,
+        },
+        SystemTier.NORMAL: {
+            "cpu_cores": 2,
+            "ram_gb": 4,
+            "storage_gb": 25,
+            "gpu_enabled": False,
+        },
+        SystemTier.GAMING: {
+            "cpu_cores": 4,
+            "ram_gb": 8,
+            "storage_gb": 50,
+            "gpu_enabled": True,
+        },
+        SystemTier.SERVER: {
+            "cpu_cores": 8,
+            "ram_gb": 16,
+            "storage_gb": 100,
+            "gpu_enabled": True,
+        },
     }
     return configs.get(system_info.tier, configs[SystemTier.NORMAL])
 
@@ -354,38 +404,41 @@ def _configure_resources(system_info: SystemInfo) -> Dict[str, Any]:
     default = _default_resources(system_info)
 
     print(f"\n[Resource Allocation] (System: {system_info.tier.name})")
-    print(f"  Available: {system_info.cpu_cores} cores, {system_info.ram_gb:.1f}GB RAM, {system_info.disk_free_gb:.1f}GB disk")
+    print(
+        f"  Available: {system_info.cpu_cores} cores, {system_info.ram_gb:.1f}GB RAM, {system_info.disk_free_gb:.1f}GB disk"
+    )
 
     print(f"\nPress Enter to use defaults, or customize:")
     print(f"  CPU cores for BIZRA [{default['cpu_cores']}]: ", end="")
     cpu_input = input().strip()
-    cpu_cores = int(cpu_input) if cpu_input else default['cpu_cores']
+    cpu_cores = int(cpu_input) if cpu_input else default["cpu_cores"]
 
     print(f"  RAM in GB [{default['ram_gb']}]: ", end="")
     ram_input = input().strip()
-    ram_gb = int(ram_input) if ram_input else default['ram_gb']
+    ram_gb = int(ram_input) if ram_input else default["ram_gb"]
 
     print(f"  Storage in GB [{default['storage_gb']}]: ", end="")
     storage_input = input().strip()
-    storage_gb = int(storage_input) if storage_input else default['storage_gb']
+    storage_gb = int(storage_input) if storage_input else default["storage_gb"]
 
     gpu_enabled = False
     if system_info.gpu_available:
         print(f"  Enable GPU ({system_info.gpu_name})? [Y/n]: ", end="")
         gpu_input = input().strip().lower()
-        gpu_enabled = gpu_input != 'n'
+        gpu_enabled = gpu_input != "n"
 
     return {
-        'cpu_cores': min(cpu_cores, system_info.cpu_cores),
-        'ram_gb': min(ram_gb, int(system_info.ram_gb * 0.75)),
-        'storage_gb': min(storage_gb, int(system_info.disk_free_gb * 0.5)),
-        'gpu_enabled': gpu_enabled,
+        "cpu_cores": min(cpu_cores, system_info.cpu_cores),
+        "ram_gb": min(ram_gb, int(system_info.ram_gb * 0.75)),
+        "storage_gb": min(storage_gb, int(system_info.disk_free_gb * 0.5)),
+        "gpu_enabled": gpu_enabled,
     }
 
 
 # ============================================================================
 # INSTALLATION
 # ============================================================================
+
 
 def install_node(system_info: SystemInfo, profile: UserProfile):
     """Main installation process."""
@@ -398,11 +451,11 @@ def install_node(system_info: SystemInfo, profile: UserProfile):
     # Save configuration
     print("[4/6] Saving configuration...")
     config = {
-        'version': VERSION,
-        'system': system_info.to_dict(),
-        'profile': profile.to_dict(),
+        "version": VERSION,
+        "system": system_info.to_dict(),
+        "profile": profile.to_dict(),
     }
-    with open(CONFIG_FILE, 'w') as f:
+    with open(CONFIG_FILE, "w") as f:
         json.dump(config, f, indent=2)
 
     # Install core components
@@ -561,9 +614,9 @@ def _create_shortcuts(system_info: SystemInfo):
 
 def _show_completion_message(profile: UserProfile):
     """Show completion message."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("     BIZRA NODE INSTALLATION COMPLETE!")
-    print("="*60)
+    print("=" * 60)
     print(f"""
     Welcome, {profile.username}!
 
@@ -597,6 +650,7 @@ def _show_completion_message(profile: UserProfile):
 # MAIN
 # ============================================================================
 
+
 def main():
     """Main installer entry point."""
     print("""
@@ -622,7 +676,9 @@ def main():
     system_info = detect_system()
 
     print(f"\n    System detected: {system_info.os_name.upper()} ({system_info.arch})")
-    print(f"    Tier: {system_info.tier.name} ({system_info.ram_gb:.1f}GB RAM, {system_info.cpu_cores} cores)")
+    print(
+        f"    Tier: {system_info.tier.name} ({system_info.ram_gb:.1f}GB RAM, {system_info.cpu_cores} cores)"
+    )
     if system_info.gpu_available:
         print(f"    GPU: {system_info.gpu_name} ({system_info.gpu_vram_gb:.1f}GB VRAM)")
     print(f"    Docker: {'Available' if system_info.docker_available else 'Not found'}")
@@ -634,7 +690,9 @@ def main():
         print("    Installation may work but performance will be limited.")
 
     if system_info.disk_free_gb < MIN_DISK_GB:
-        print(f"\n    ERROR: Only {system_info.disk_free_gb:.1f}GB disk space available.")
+        print(
+            f"\n    ERROR: Only {system_info.disk_free_gb:.1f}GB disk space available."
+        )
         print(f"    Minimum required: {MIN_DISK_GB}GB")
         sys.exit(1)
 
@@ -643,14 +701,16 @@ def main():
 
     # Step 3: Confirm
     if not headless:
-        print("\n" + "-"*60)
+        print("\n" + "-" * 60)
         print("Ready to install BIZRA Node with these settings:")
         print(f"  User: {profile.username}")
         print(f"  Goals: {', '.join(profile.goals)}")
-        print(f"  Resources: {profile.resource_allocation['cpu_cores']} cores, {profile.resource_allocation['ram_gb']}GB RAM")
-        print("-"*60)
+        print(
+            f"  Resources: {profile.resource_allocation['cpu_cores']} cores, {profile.resource_allocation['ram_gb']}GB RAM"
+        )
+        print("-" * 60)
         confirm = input("\nProceed with installation? [Y/n]: ").strip().lower()
-        if confirm == 'n':
+        if confirm == "n":
             print("Installation cancelled.")
             sys.exit(0)
 

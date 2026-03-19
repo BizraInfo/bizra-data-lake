@@ -16,7 +16,6 @@ from .base import (
     stable_turn_id,
 )
 
-
 _GOAL_RE = re.compile(
     r"\b(goal|objective|plan|roadmap|next step|launch|ship|complete)\b",
     re.IGNORECASE,
@@ -227,7 +226,9 @@ class OpenAIAPIParser(PlatformParser):
         hints: list[FragmentHint] = []
         dedupe: set[tuple[str, str]] = set()
 
-        def push(kind: FragmentKind, signal: str, confidence: float, source: str) -> None:
+        def push(
+            kind: FragmentKind, signal: str, confidence: float, source: str
+        ) -> None:
             if confidence < _MIN_CONFIDENCE or len(hints) >= _MAX_HINTS_PER_TURN:
                 return
             normalized = normalize_whitespace(signal).lower()
@@ -279,4 +280,3 @@ class OpenAIAPIParser(PlatformParser):
             )
 
         return hints
-

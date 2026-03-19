@@ -39,17 +39,17 @@ Events:
   pre_compact       - Pre-compaction memory save
 """
 
-import json
-import sys
-import os
 import hashlib
+import json
+import math
+import os
+import re
+import sys
 import time
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
-from collections import deque
-import math
-import re
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS — Aligned with core/integration/constants.py

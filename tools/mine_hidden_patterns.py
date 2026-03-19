@@ -12,12 +12,13 @@ Embodies:
 - High SNR: Filtering for pure knowledge (Markdown/Text/JSON-Conversations).
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from datetime import datetime
-import matplotlib.pyplot as plt  # Optional, but we'll do ASCII viz
 import re
+from datetime import datetime
+from pathlib import Path
+
+import matplotlib.pyplot as plt  # Optional, but we'll do ASCII viz
+import numpy as np
+import pandas as pd
 
 # Configuration
 from bizra_config import GOLD_PATH

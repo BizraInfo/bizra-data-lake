@@ -39,7 +39,6 @@ from core.sdpo.training.bizra_sdpo_trainer import (
     TrainingState,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 # TrainingConfig
 # ═══════════════════════════════════════════════════════════════════════════
@@ -509,8 +508,11 @@ class TestBIZRASDPOTrainer:
     async def test_evaluate_empty_batches(self, trainer):
         """Evaluate on empty data returns zeros."""
         batch = TrainingBatch(
-            questions=[], failed_attempts=[], feedbacks=[],
-            corrected_attempts=[], quality_scores=[],
+            questions=[],
+            failed_attempts=[],
+            feedbacks=[],
+            corrected_attempts=[],
+            quality_scores=[],
         )
         result = await trainer.evaluate([batch])
         assert result["eval_loss"] == 0

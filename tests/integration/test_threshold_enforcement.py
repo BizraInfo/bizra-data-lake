@@ -117,6 +117,7 @@ class TestRegistryFreshLifecycle:
             # Restore the production singleton
             ThresholdRegistry._reset_for_testing()
             from core.integration.threshold_registry import _boot_registry
+
             # Re-boot sets the module-level `registry`
             _boot_registry()
 

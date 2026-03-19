@@ -7,10 +7,11 @@ Aligned with Unified System Contract §5 & §6.
 """
 
 import json
-import pandas as pd
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from collections import defaultdict
+
+import pandas as pd
 
 from bizra_config import GOLD_PATH
 

@@ -372,12 +372,16 @@ class TestWebsocketStream:
         assert "history" in connected["protocol"]
         assert "ping" in connected["protocol"]
 
-        history = next(message for message in websocket.sent if message["type"] == "history")
+        history = next(
+            message for message in websocket.sent if message["type"] == "history"
+        )
         assert isinstance(history["events"], list)
         assert history["events"]
 
         receipt_event = next(
-            event for event in history["events"] if event["topic"] == "receipt.generated"
+            event
+            for event in history["events"]
+            if event["topic"] == "receipt.generated"
         )
         assert receipt_event["severity"] == "info"
         assert receipt_event["mission_id"]
@@ -390,9 +394,10 @@ class TestWebsocketStream:
 
     @pytest.mark.asyncio
     async def test_stream_history_includes_compiled_reflex_event(self, client, app):
+        from starlette.websockets import WebSocketDisconnect
+
         import core.sovereign.api as api_module
         from core.sovereign.reflex_compiler import ReflexCompiler
-        from starlette.websockets import WebSocketDisconnect
 
         compiler = ReflexCompiler()
         mission_text = "streamed mission"

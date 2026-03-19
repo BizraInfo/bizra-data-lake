@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """PAT Data Source Census — scan each root separately with progress."""
 
-import os, time, json
+import json
+import os
+import time
 from collections import defaultdict
 from pathlib import Path
 

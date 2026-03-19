@@ -52,13 +52,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Tuple
 
-
 # ─────────────────────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────────────────────
 
-DEFAULT_RATCHET_STEP = 1       # Minimum gain (%) to trigger ratchet
-MAX_RATCHET_BUMP = 5           # Maximum single-bump increase (safety)
+DEFAULT_RATCHET_STEP = 1  # Minimum gain (%) to trigger ratchet
+MAX_RATCHET_BUMP = 5  # Maximum single-bump increase (safety)
 PYPROJECT_PATH = "pyproject.toml"
 EVIDENCE_PATH = "04_GOLD/coverage_ratchet_log.jsonl"
 
@@ -66,6 +65,7 @@ EVIDENCE_PATH = "04_GOLD/coverage_ratchet_log.jsonl"
 @dataclass
 class RatchetResult:
     """Result of a coverage ratchet evaluation."""
+
     timestamp: str
     actual_coverage: float
     current_floor: float
@@ -84,6 +84,7 @@ class RatchetResult:
 # ─────────────────────────────────────────────────────────────
 # Coverage XML Parser
 # ─────────────────────────────────────────────────────────────
+
 
 def parse_coverage_xml(xml_path: Path) -> float:
     """Parse Cobertura-format coverage.xml and return line-rate as percentage."""
@@ -105,10 +106,11 @@ def parse_coverage_xml(xml_path: Path) -> float:
 # pyproject.toml Parser (targeted, no TOML dependency)
 # ─────────────────────────────────────────────────────────────
 
+
 def read_coverage_floor(pyproject_path: Path) -> float:
     """Read fail_under from [tool.coverage.report] in pyproject.toml."""
     content = pyproject_path.read_text(encoding="utf-8")
-    match = re.search(r'fail_under\s*=\s*(\d+(?:\.\d+)?)', content)
+    match = re.search(r"fail_under\s*=\s*(\d+(?:\.\d+)?)", content)
     if not match:
         raise ValueError(f"fail_under not found in {pyproject_path}")
     return float(match.group(1))
@@ -120,8 +122,8 @@ def write_coverage_floor(pyproject_path: Path, new_floor: float) -> None:
 
     # Replace fail_under value, preserving formatting context
     new_content = re.sub(
-        r'(fail_under\s*=\s*)\d+(?:\.\d+)?',
-        f'\\g<1>{int(new_floor)}',
+        r"(fail_under\s*=\s*)\d+(?:\.\d+)?",
+        f"\\g<1>{int(new_floor)}",
         content,
         count=1,
     )
@@ -135,6 +137,7 @@ def write_coverage_floor(pyproject_path: Path, new_floor: float) -> None:
 # ─────────────────────────────────────────────────────────────
 # Ratchet Engine
 # ─────────────────────────────────────────────────────────────
+
 
 def evaluate_ratchet(
     actual: float,
@@ -179,6 +182,7 @@ def append_evidence(result: RatchetResult, evidence_path: Path) -> None:
 # ─────────────────────────────────────────────────────────────
 # Multi-Language Coverage Aggregation
 # ─────────────────────────────────────────────────────────────
+
 
 def aggregate_coverage(
     python_xml: Optional[Path] = None,
@@ -235,6 +239,7 @@ def _parse_istanbul_coverage(json_path: Path) -> float:
 # ─────────────────────────────────────────────────────────────
 # CLI
 # ─────────────────────────────────────────────────────────────
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(

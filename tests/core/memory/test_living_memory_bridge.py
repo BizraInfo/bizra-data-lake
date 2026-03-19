@@ -32,7 +32,6 @@ from core.memory.agent_db import AgentDB
 from core.memory.config import MemoryConfig
 from core.memory.types import MemoryKind, MemoryRecord, RecordState
 
-
 # ── Minimal LivingMemory stubs (avoid importing core.living_memory) ─────
 
 
@@ -156,9 +155,7 @@ def agent_db(tmp_path: Path) -> AgentDB:
 
 
 @pytest.fixture
-def bridge(
-    lm_core: _MockLivingMemoryCore, agent_db: AgentDB
-) -> LivingMemoryBridge:
+def bridge(lm_core: _MockLivingMemoryCore, agent_db: AgentDB) -> LivingMemoryBridge:
     return LivingMemoryBridge(lm_core, agent_db)
 
 
@@ -258,16 +255,12 @@ class TestForwardConversion:
 class TestExportAll:
     """Bulk export via export_all()."""
 
-    def test_exports_active_entries_only(
-        self, adapter: LivingMemoryAdapter
-    ) -> None:
+    def test_exports_active_entries_only(self, adapter: LivingMemoryAdapter) -> None:
         records = adapter.export_all()
         # 5 entries total, 1 deleted → 4 exported
         assert len(records) == 4
 
-    def test_all_records_have_source_id(
-        self, adapter: LivingMemoryAdapter
-    ) -> None:
+    def test_all_records_have_source_id(self, adapter: LivingMemoryAdapter) -> None:
         records = adapter.export_all()
         for record in records:
             assert record.source_id is not None
@@ -400,21 +393,23 @@ class TestBridgeSearch:
 
     def test_search_with_type_filter(self, bridge: LivingMemoryBridge) -> None:
         bridge.sync_to_agentdb()
-        results = bridge.search("Ihsan threshold constants", memory_type="semantic", top_k=5)
+        results = bridge.search(
+            "Ihsan threshold constants", memory_type="semantic", top_k=5
+        )
         assert isinstance(results, list)
         # If results found, they should be semantic kind
         for r in results:
             assert r.kind == MemoryKind.SEMANTIC
 
-    def test_search_empty_db_returns_empty(
-        self, bridge: LivingMemoryBridge
-    ) -> None:
+    def test_search_empty_db_returns_empty(self, bridge: LivingMemoryBridge) -> None:
         results = bridge.search("anything")
         assert results == []
 
     def test_search_with_mmr(self, bridge: LivingMemoryBridge) -> None:
         bridge.sync_to_agentdb()
-        results = bridge.search("memory architecture", top_k=5, use_mmr=True, mmr_lambda=0.3)
+        results = bridge.search(
+            "memory architecture", top_k=5, use_mmr=True, mmr_lambda=0.3
+        )
         assert isinstance(results, list)
 
 
@@ -458,7 +453,12 @@ class TestBridgeSyncFromAgentDB:
         from core.memory.types import MemoryRecord as MR
 
         agent_db.store_record(
-            MR(id="ext-fact-001", content="Test fact", source="external", importance=0.5)
+            MR(
+                id="ext-fact-001",
+                content="Test fact",
+                source="external",
+                importance=0.5,
+            )
         )
         entry_dicts = bridge.sync_from_agentdb(source_filter="external")
         assert len(entry_dicts) == 1
@@ -543,9 +543,7 @@ class TestEdgeCases:
         assert len(records) == 1
         assert records[0].state == RecordState.ACTIVE
 
-    def test_decaying_state_maps_to_active(
-        self, adapter: LivingMemoryAdapter
-    ) -> None:
+    def test_decaying_state_maps_to_active(self, adapter: LivingMemoryAdapter) -> None:
         lm = _MockLivingMemoryCore()
         lm.add(
             _MockEntry(
@@ -559,7 +557,5 @@ class TestEdgeCases:
         assert len(records) == 1
         assert records[0].state == RecordState.ACTIVE
 
-    def test_bridge_adapter_accessor(
-        self, bridge: LivingMemoryBridge
-    ) -> None:
+    def test_bridge_adapter_accessor(self, bridge: LivingMemoryBridge) -> None:
         assert isinstance(bridge.adapter, LivingMemoryAdapter)

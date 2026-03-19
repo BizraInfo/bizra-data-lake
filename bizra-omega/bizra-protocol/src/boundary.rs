@@ -384,6 +384,7 @@ fn hex_encode(bytes: &[u8]) -> String {
 }
 
 fn hex_decode(s: &str) -> Result<Vec<u8>, ()> {
+    #[allow(clippy::manual_is_multiple_of)]
     if s.len() % 2 != 0 {
         return Err(());
     }

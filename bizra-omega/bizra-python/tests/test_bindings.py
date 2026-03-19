@@ -4,16 +4,15 @@ Tests for BIZRA Python Bindings
 These tests verify the Python interface to the Rust implementation.
 """
 
-import pytest
 import json
+
+import pytest
 
 
 def test_import():
     """Test that bizra module can be imported."""
-    from bizra import (
-        NodeId, NodeIdentity, Constitution,
-        IHSAN_THRESHOLD, SNR_THRESHOLD
-    )
+    from bizra import IHSAN_THRESHOLD, SNR_THRESHOLD, Constitution, NodeId, NodeIdentity
+
     assert IHSAN_THRESHOLD == 0.95
     assert SNR_THRESHOLD == 0.85
 
@@ -113,8 +112,9 @@ def test_pci_envelope():
 
 def test_performance():
     """Basic performance test."""
-    from bizra import NodeIdentity, domain_separated_digest
     import time
+
+    from bizra import NodeIdentity, domain_separated_digest
 
     # Generate 100 signatures
     identity = NodeIdentity()

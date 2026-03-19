@@ -13,8 +13,8 @@ Standing on Giants: Deming (PDCA, 1950) — verify the document, not just the co
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]

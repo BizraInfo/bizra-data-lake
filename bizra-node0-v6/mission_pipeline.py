@@ -21,36 +21,53 @@ Constitution reference: §4 [pat], §6 [gates], §7 [hhmm]
 
 from __future__ import annotations
 
+import logging
 import time
 import uuid
-import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
 
-from ihsan_gate import IhsanGate, IhsanScore, IhsanTier
-from snr import measure_mission_snr, MissionSNR
 from evidence_receipt import EvidenceLedger, EvidenceReceipt
-from reflex_cache import ReflexCache, ReflexEntry
 from hhmm_router import (
-    HhmmRouter, ClassificationResult, ComplexityTier,
-    ActionBus, MissionTicket,
+    ActionBus,
+    ClassificationResult,
+    ComplexityTier,
+    HhmmRouter,
+    MissionTicket,
 )
+from ihsan_gate import IhsanGate, IhsanScore, IhsanTier
+from reflex_cache import ReflexCache, ReflexEntry
+from snr import MissionSNR, measure_mission_snr
 
 try:
     from generated.generated_constants import (
+        CONSTITUTION_VERSION,
+        IHSAN_BLOOM_ELIGIBILITY,
+        IHSAN_GATE_MINIMUM,
         PAT_AGENT_NAMES,
         PAT_TRUST_STAGES,
-        IHSAN_GATE_MINIMUM,
-        IHSAN_BLOOM_ELIGIBILITY,
-        CONSTITUTION_VERSION,
     )
 except ImportError:
-    PAT_AGENT_NAMES = ["Planner", "Researcher", "Coder", "Evaluator",
-                       "Ethicist", "Publisher", "Integrator"]
-    PAT_TRUST_STAGES = ["abstracting", "gathering", "executing", "attesting",
-                        "certifying", "publishing", "chaining"]
+    PAT_AGENT_NAMES = [
+        "Planner",
+        "Researcher",
+        "Coder",
+        "Evaluator",
+        "Ethicist",
+        "Publisher",
+        "Integrator",
+    ]
+    PAT_TRUST_STAGES = [
+        "abstracting",
+        "gathering",
+        "executing",
+        "attesting",
+        "certifying",
+        "publishing",
+        "chaining",
+    ]
     IHSAN_GATE_MINIMUM = 0.85
     IHSAN_BLOOM_ELIGIBILITY = 0.90
     CONSTITUTION_VERSION = "5.0.0-GENESIS"
@@ -77,6 +94,7 @@ class MissionStatus(Enum):
 @dataclass
 class Mission:
     """A single user mission flowing through the PAT pipeline."""
+
     mission_id: str
     input_text: str
     status: MissionStatus = MissionStatus.PENDING
@@ -117,18 +135,23 @@ class Mission:
             "handler": self.classification.handler if self.classification else None,
             "ihsan_composite": self.ihsan_score.composite if self.ihsan_score else None,
             "ihsan_tier": self.ihsan_score.tier.value if self.ihsan_score else None,
-            "snr_normalized": self.mission_snr.snr_normalized if self.mission_snr else None,
+            "snr_normalized": (
+                self.mission_snr.snr_normalized if self.mission_snr else None
+            ),
             "bloom_eligible": self.bloom_eligible,
             "reflex_hit": self.reflex_hit,
             "total_ms": self.total_ms,
             "agent_count": len(self.agent_trace),
-            "receipt_id": self.evidence_receipt.receipt_id if self.evidence_receipt else None,
+            "receipt_id": (
+                self.evidence_receipt.receipt_id if self.evidence_receipt else None
+            ),
         }
 
 
 @dataclass
 class PipelineStats:
     """Aggregate pipeline statistics."""
+
     missions_completed: int = 0
     missions_failed: int = 0
     gate_passes: int = 0
@@ -387,12 +410,14 @@ class MissionPipeline:
             if entry:
                 mission.output_text = entry.output_template
                 mission.reflex_hit = True
-                mission.agent_trace.append({
-                    "agent": "ReflexCache",
-                    "trust_stage": "s1_retrieval",
-                    "elapsed_ms": 0.0,
-                    "cache_hit": True,
-                })
+                mission.agent_trace.append(
+                    {
+                        "agent": "ReflexCache",
+                        "trust_stage": "s1_retrieval",
+                        "elapsed_ms": 0.0,
+                        "cache_hit": True,
+                    }
+                )
                 self.stats.reflex_hits += 1
                 mission.execute_ms = round((time.monotonic() - start) * 1000, 3)
                 return
@@ -429,18 +454,21 @@ class MissionPipeline:
 
         context = {
             "mission_keywords": mission.input_text.split()[:10],
-            "task_complexity": mission.classification.tier.value if mission.classification else "complex",
+            "task_complexity": (
+                mission.classification.tier.value
+                if mission.classification
+                else "complex"
+            ),
             "is_fallback": False,
             "latency_ms": mission.execute_ms,
             "latency_budget_ms": (
                 mission.classification.latency_budget_ms
-                if mission.classification else 15000
+                if mission.classification
+                else 15000
             ),
         }
 
-        mission.ihsan_score = self.ihsan_gate.evaluate(
-            mission.output_text, context
-        )
+        mission.ihsan_score = self.ihsan_gate.evaluate(mission.output_text, context)
 
         mission.gate_ms = round((time.monotonic() - start) * 1000, 3)
 
@@ -478,7 +506,7 @@ class MissionPipeline:
                 "alpha_7": mission.ihsan_score.passes,
                 "alpha_8": True,  # Dark matter check (placeholder)
                 "alpha_9": True,  # Attestation (self-attested at genesis)
-                "alpha_10": True, # Daughter test (passed in Ethicist agent)
+                "alpha_10": True,  # Daughter test (passed in Ethicist agent)
             },
             snr_normalized=mission.mission_snr.snr_normalized,
             tier=mission.ihsan_score.tier.value,

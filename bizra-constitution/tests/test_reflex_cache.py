@@ -1,17 +1,18 @@
 """Tests for BIZRA Reflex Cache — O(1) HashMap with precipitation."""
 
+import json
 import os
 import sys
-import json
-import time
 import tempfile
 import threading
-import pytest
+import time
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from reflex_cache import ReflexCache, ReflexEntry, PrecipitationCandidate, CacheStats
+from reflex_cache import CacheStats, PrecipitationCandidate, ReflexCache, ReflexEntry
 
 
 @pytest.fixture
@@ -33,9 +34,12 @@ def _observe(cache, text="hello world", ihsan=0.92, n=1):
             output_text=f"Response to: {text}",
             ihsan_composite=ihsan,
             ihsan_tensor={
-                "moral_clarity": 0.95, "epistemic_humility": 0.90,
-                "structural_integrity": 0.92, "verifiability": 0.91,
-                "intent_alignment": 0.93, "resilience": 0.88,
+                "moral_clarity": 0.95,
+                "epistemic_humility": 0.90,
+                "structural_integrity": 0.92,
+                "verifiability": 0.91,
+                "intent_alignment": 0.93,
+                "resilience": 0.88,
             },
         )
     return result

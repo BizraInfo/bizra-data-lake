@@ -217,12 +217,8 @@ def _detect_schema_provider(payload: Any) -> str | None:
             )
         ):
             return "openai_api"
-        if (
-            isinstance(item.get("messages"), list)
-            and (
-                item.get("usage") is not None
-                or item.get("system_fingerprint") is not None
-            )
+        if isinstance(item.get("messages"), list) and (
+            item.get("usage") is not None or item.get("system_fingerprint") is not None
         ):
             model = str(item.get("model") or item.get("model_id") or "").lower()
             if model.startswith(("gpt-", "o1", "o3", "o4")):

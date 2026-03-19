@@ -27,7 +27,6 @@ from core.bounty.impact_proof import (
 )
 from core.proof_engine.receipt import Ed25519Signer
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 # Enums
 # ═══════════════════════════════════════════════════════════════════════════
@@ -212,8 +211,12 @@ class TestImpactProofBuilder:
             title="Reentrancy in withdraw",
             description="Double-spend via reentrant call",
             exploit_code=b"exploit_bytecode",
-            entropy_before=EntropyMeasurement(surface_entropy=0.9, structural_entropy=0.8),
-            entropy_after=EntropyMeasurement(surface_entropy=0.1, structural_entropy=0.1),
+            entropy_before=EntropyMeasurement(
+                surface_entropy=0.9, structural_entropy=0.8
+            ),
+            entropy_after=EntropyMeasurement(
+                surface_entropy=0.1, structural_entropy=0.1
+            ),
             reproduction_steps=[],
             funds_at_risk=1_000_000.0,
             snr_score=0.98,
@@ -251,14 +254,30 @@ class TestImpactProofBuilder:
         signer = Ed25519Signer.generate()
         builder = ImpactProofBuilder(signer)
         p1 = builder.build(
-            "0x1", VulnCategory.LOGIC_ERROR, Severity.LOW, "T", "D",
-            b"code", EntropyMeasurement(surface_entropy=0.5),
-            EntropyMeasurement(), [], snr_score=0.95, ihsan_score=0.95,
+            "0x1",
+            VulnCategory.LOGIC_ERROR,
+            Severity.LOW,
+            "T",
+            "D",
+            b"code",
+            EntropyMeasurement(surface_entropy=0.5),
+            EntropyMeasurement(),
+            [],
+            snr_score=0.95,
+            ihsan_score=0.95,
         )
         p2 = builder.build(
-            "0x2", VulnCategory.LOGIC_ERROR, Severity.LOW, "T", "D",
-            b"code", EntropyMeasurement(surface_entropy=0.5),
-            EntropyMeasurement(), [], snr_score=0.95, ihsan_score=0.95,
+            "0x2",
+            VulnCategory.LOGIC_ERROR,
+            Severity.LOW,
+            "T",
+            "D",
+            b"code",
+            EntropyMeasurement(surface_entropy=0.5),
+            EntropyMeasurement(),
+            [],
+            snr_score=0.95,
+            ihsan_score=0.95,
         )
         assert p1.proof_id != p2.proof_id
 
@@ -276,8 +295,12 @@ class TestImpactProofVerifier:
             "severity": Severity.HIGH,
             "snr_score": 0.96,
             "ihsan_score": 0.97,
-            "entropy_before": EntropyMeasurement(surface_entropy=0.8, structural_entropy=0.6),
-            "entropy_after": EntropyMeasurement(surface_entropy=0.1, structural_entropy=0.1),
+            "entropy_before": EntropyMeasurement(
+                surface_entropy=0.8, structural_entropy=0.6
+            ),
+            "entropy_after": EntropyMeasurement(
+                surface_entropy=0.1, structural_entropy=0.1
+            ),
             "exploit_hash": b"\x01" * 32,
         }
         defaults.update(overrides)

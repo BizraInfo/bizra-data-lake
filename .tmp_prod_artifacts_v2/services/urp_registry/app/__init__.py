@@ -1,2 +1,1 @@
 # URP Registry service package.
-

@@ -39,7 +39,6 @@ from scripts.quality_spine import (
     write_coverage_floor,
 )
 
-
 # ═════════════════════════════════════════════════════════════
 # FIXTURES
 # ═════════════════════════════════════════════════════════════
@@ -48,26 +47,32 @@ from scripts.quality_spine import (
 @pytest.fixture
 def coverage_xml(tmp_path: Path) -> Path:
     xml = tmp_path / "coverage.xml"
-    xml.write_text(textwrap.dedent("""\
+    xml.write_text(
+        textwrap.dedent("""\
         <?xml version="1.0" ?>
         <coverage line-rate="0.45" lines-valid="1000" lines-covered="450">
           <packages/>
         </coverage>
-    """), encoding="utf-8")
+    """),
+        encoding="utf-8",
+    )
     return xml
 
 
 @pytest.fixture
 def pyproject(tmp_path: Path) -> Path:
     f = tmp_path / "pyproject.toml"
-    f.write_text(textwrap.dedent("""\
+    f.write_text(
+        textwrap.dedent("""\
         [project]
         name = "test"
         version = "2.0.0"
         [tool.coverage.report]
         fail_under = 38
         show_missing = true
-    """), encoding="utf-8")
+    """),
+        encoding="utf-8",
+    )
     return f
 
 
@@ -147,7 +152,10 @@ class TestRatchetLogic:
         assert evaluate_ratchet(41.0, 38.0, step=3).ratcheted
 
     def test_hash_unique(self) -> None:
-        assert evaluate_ratchet(40.0, 38.0).evidence_hash != evaluate_ratchet(41.0, 38.0).evidence_hash
+        assert (
+            evaluate_ratchet(40.0, 38.0).evidence_hash
+            != evaluate_ratchet(41.0, 38.0).evidence_hash
+        )
 
     def test_hash_deterministic(self) -> None:
         r1 = RatchetResult("T", 40.0, 38.0, 40.0, True, False, 2.0, False)
@@ -165,12 +173,16 @@ class TestMultiLangCoverage:
         assert parse_lcov(tmp_path / "l.info") == pytest.approx(66.67, abs=0.1)
 
     def test_istanbul(self, tmp_path: Path) -> None:
-        (tmp_path / "c.json").write_text(json.dumps({"f": {"s": {"0": 1, "1": 1, "2": 0, "3": 1}}}))
+        (tmp_path / "c.json").write_text(
+            json.dumps({"f": {"s": {"0": 1, "1": 1, "2": 0, "3": 1}}})
+        )
         assert parse_istanbul(tmp_path / "c.json") == 75.0
 
     def test_aggregate_all(self, coverage_xml: Path, tmp_path: Path) -> None:
         (tmp_path / "l.info").write_text("LF:100\nLH:60\n")
-        (tmp_path / "c.json").write_text(json.dumps({"f": {"s": {"0": 1, "1": 1, "2": 0}}}))
+        (tmp_path / "c.json").write_text(
+            json.dumps({"f": {"s": {"0": 1, "1": 1, "2": 0}}})
+        )
         r = aggregate_coverage(coverage_xml, tmp_path / "l.info", tmp_path / "c.json")
         assert "aggregate" in r and len(r) == 4
 
@@ -243,10 +255,17 @@ class TestLinearSlope:
 
 class TestTrendAnalysis:
     def _improving(self) -> list:
-        return [QualitySnapshot(timestamp=f"T{i}", snr_score=0.85 + i * 0.01,
-                                coverage_pct=38.0 + i * 1.5, mypy_errors=1600 - i * 20,
-                                tests_total=200, tests_passed=195 + min(i, 5))
-                for i in range(10)]
+        return [
+            QualitySnapshot(
+                timestamp=f"T{i}",
+                snr_score=0.85 + i * 0.01,
+                coverage_pct=38.0 + i * 1.5,
+                mypy_errors=1600 - i * 20,
+                tests_total=200,
+                tests_passed=195 + min(i, 5),
+            )
+            for i in range(10)
+        ]
 
     def test_insufficient(self) -> None:
         assert analyze_trend([QualitySnapshot()]).direction == "insufficient_data"
@@ -256,17 +275,31 @@ class TestTrendAnalysis:
         assert t.direction == "improving"
 
     def test_degrading(self) -> None:
-        snaps = [QualitySnapshot(timestamp=f"T{i}", snr_score=0.95 - i * 0.02,
-                                 coverage_pct=50.0 - i * 2.0, mypy_errors=1000 + i * 50,
-                                 tests_total=200, tests_passed=190 - i * 5)
-                 for i in range(10)]
+        snaps = [
+            QualitySnapshot(
+                timestamp=f"T{i}",
+                snr_score=0.95 - i * 0.02,
+                coverage_pct=50.0 - i * 2.0,
+                mypy_errors=1000 + i * 50,
+                tests_total=200,
+                tests_passed=190 - i * 5,
+            )
+            for i in range(10)
+        ]
         assert analyze_trend(snaps).direction == "degrading"
 
     def test_stable(self) -> None:
-        snaps = [QualitySnapshot(timestamp=f"T{i}", snr_score=0.92,
-                                 coverage_pct=42.0, mypy_errors=1500,
-                                 tests_total=200, tests_passed=195)
-                 for i in range(10)]
+        snaps = [
+            QualitySnapshot(
+                timestamp=f"T{i}",
+                snr_score=0.92,
+                coverage_pct=42.0,
+                mypy_errors=1500,
+                tests_total=200,
+                tests_passed=195,
+            )
+            for i in range(10)
+        ]
         assert analyze_trend(snaps).direction == "stable"
 
     def test_summary(self) -> None:
@@ -318,14 +351,27 @@ class TestCommitParsing:
         assert parse_commit("a", "D", "breaking: schema v3").is_breaking
 
     def test_breaking_footer(self) -> None:
-        assert parse_commit("a", "D", "feat: new\n\nBREAKING CHANGE: old removed").is_breaking
+        assert parse_commit(
+            "a", "D", "feat: new\n\nBREAKING CHANGE: old removed"
+        ).is_breaking
 
     def test_non_conventional(self) -> None:
         c = parse_commit("a", "D", "random message")
         assert c.type == "chore"
 
     def test_all_types(self) -> None:
-        for t in ["feat", "fix", "perf", "refactor", "docs", "test", "ci", "chore", "security", "breaking"]:
+        for t in [
+            "feat",
+            "fix",
+            "perf",
+            "refactor",
+            "docs",
+            "test",
+            "ci",
+            "chore",
+            "security",
+            "breaking",
+        ]:
             assert parse_commit("a", "D", f"{t}: msg").type == t
 
     def test_sha_truncation(self) -> None:

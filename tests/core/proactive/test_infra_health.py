@@ -113,4 +113,7 @@ class TestInfraHealthProbeWithGuardian:
         probe.check_and_fix()
         guardian.run_all_probes.assert_called_once()
         call_kwargs = guardian.run_all_probes.call_args
-        assert call_kwargs[1].get("correct", call_kwargs[0][0] if call_kwargs[0] else None) is not None
+        assert (
+            call_kwargs[1].get("correct", call_kwargs[0][0] if call_kwargs[0] else None)
+            is not None
+        )

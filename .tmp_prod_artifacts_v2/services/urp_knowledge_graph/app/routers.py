@@ -1,6 +1,6 @@
+from app.auth import require_admin
 from fastapi import APIRouter, Header
 from pydantic import BaseModel, Field
-from app.auth import require_admin
 
 try:
     from _shared.app.health import build_health_payload, check_redis
@@ -12,6 +12,7 @@ except Exception:  # pragma: no cover - local import fallback
 router = APIRouter()
 APP_VERSION = "4.0.1"
 
+
 class ReflexPattern(BaseModel):
     reflex_id: str
     hhmm_macro_state: str
@@ -21,7 +22,9 @@ class ReflexPattern(BaseModel):
     avg_latency_ms: float | None = None
     ihsan_score: float | None = None
 
+
 _STORE = JsonHashStore("bizra:urp_knowledge_graph:reflexes")
+
 
 @router.get("/health")
 def health():
@@ -32,10 +35,12 @@ def health():
         extra={"store_backend": _STORE.backend(), "records": _STORE.count()},
     )
 
+
 @router.get("/v1/reflexes")
 def list_reflexes():
     items = [ReflexPattern.model_validate(v) for v in _STORE.values()]
     return {"reflexes": items}
+
 
 @router.post("/v1/reflexes", status_code=201)
 def publish_reflex(p: ReflexPattern, x_urp_admin: str | None = Header(default=None)):

@@ -28,12 +28,14 @@ import pytest
 
 from scripts.node0_standalone import Node0StandaloneManager
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _make_genesis_json(state_dir: Path, node_id: str = "node0-mvsa-test") -> Dict[str, Any]:
+
+def _make_genesis_json(
+    state_dir: Path, node_id: str = "node0-mvsa-test"
+) -> Dict[str, Any]:
     """Create a minimal canonical genesis for MVSA acceptance."""
     genesis_hash_bytes = b"test-genesis-hash-for-mvsa-gate!"
     genesis = {
@@ -46,8 +48,16 @@ def _make_genesis_json(state_dir: Path, node_id: str = "node0-mvsa-test") -> Dic
             "agents": [
                 {"agent_id": f"P{i}", "role": r, "public_key": "cd" * 32}
                 for i, r in enumerate(
-                    ["planner", "researcher", "coder", "evaluator",
-                     "ethicist", "publisher", "dema"], 1
+                    [
+                        "planner",
+                        "researcher",
+                        "coder",
+                        "evaluator",
+                        "ethicist",
+                        "publisher",
+                        "dema",
+                    ],
+                    1,
                 )
             ]
         },
@@ -130,6 +140,7 @@ def mvsa_workspace(tmp_path: Path) -> Dict[str, Any]:
 # Acceptance Sequence
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.integration
 class TestMvsaAcceptanceSequence:
     """
@@ -138,13 +149,17 @@ class TestMvsaAcceptanceSequence:
     Python lifecycle including state persistence and restart recovery.
     """
 
-    def test_step1_activate_with_authority(self, mvsa_workspace: Dict[str, Any]) -> None:
+    def test_step1_activate_with_authority(
+        self, mvsa_workspace: Dict[str, Any]
+    ) -> None:
         """activate resolves canonical authority and writes lifecycle v2."""
         ws = mvsa_workspace
         manager = Node0StandaloneManager(project_root=ws["project_root"])
 
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             result = manager.activate(architect="MoMo")
 
         assert result["ok"] is True
@@ -166,8 +181,10 @@ class TestMvsaAcceptanceSequence:
         ws = mvsa_workspace
         manager = Node0StandaloneManager(project_root=ws["project_root"])
 
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             manager.activate(architect="MoMo")
             result = manager.prove_mvsa()
 
@@ -183,13 +200,17 @@ class TestMvsaAcceptanceSequence:
         assert lc["gates"]["mvsa_self_validation_ok"] is True
 
     @pytest.mark.asyncio
-    async def test_step3_task_updates_mission(self, mvsa_workspace: Dict[str, Any]) -> None:
+    async def test_step3_task_updates_mission(
+        self, mvsa_workspace: Dict[str, Any]
+    ) -> None:
         """task writes evidence receipt and updates mission_path_receipted."""
         ws = mvsa_workspace
         manager = Node0StandaloneManager(project_root=ws["project_root"])
 
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             manager.activate(architect="MoMo")
 
         result = await manager.run_task(
@@ -205,13 +226,17 @@ class TestMvsaAcceptanceSequence:
         assert target.exists()
         assert target.read_text(encoding="utf-8") == "node0 mvsa proof"
 
-    def test_step4_health_reads_lifecycle_v2(self, mvsa_workspace: Dict[str, Any]) -> None:
+    def test_step4_health_reads_lifecycle_v2(
+        self, mvsa_workspace: Dict[str, Any]
+    ) -> None:
         """health() reads lifecycle v2 without crashing."""
         ws = mvsa_workspace
         manager = Node0StandaloneManager(project_root=ws["project_root"])
 
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             manager.activate(architect="MoMo")
 
         report = manager.health()
@@ -230,8 +255,10 @@ class TestMvsaAcceptanceSequence:
 
         # First: activate + write all artifacts
         manager1 = Node0StandaloneManager(project_root=ws["project_root"])
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             manager1.activate(architect="MoMo")
 
         # Ensure MVSA proof is persisted (done by the mock)
@@ -248,6 +275,7 @@ class TestMvsaAcceptanceSequence:
 # ═══════════════════════════════════════════════════════════════════════════════
 # Gate Validation
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestLifecycleV2Gates:
     """Validates the 11-gate model per MVSA spec."""
@@ -271,15 +299,19 @@ class TestLifecycleV2Gates:
         ws = mvsa_workspace
         manager = Node0StandaloneManager(project_root=ws["project_root"])
 
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             result = manager.activate(architect="MoMo")
 
         gates = result["lifecycle"]["gates"]
         for gate in self.LIFECYCLE_V2_GATES:
             assert gate in gates, f"Missing gate: {gate}"
 
-    def test_degraded_requires_first_9_gates(self, mvsa_workspace: Dict[str, Any]) -> None:
+    def test_degraded_requires_first_9_gates(
+        self, mvsa_workspace: Dict[str, Any]
+    ) -> None:
         """
         Degraded requires the first 9 gates true, but mission_path_receipted
         and restart_recovery_ready may be false.
@@ -287,8 +319,10 @@ class TestLifecycleV2Gates:
         ws = mvsa_workspace
         manager = Node0StandaloneManager(project_root=ws["project_root"])
 
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             result = manager.activate(architect="MoMo")
 
         lc = result["lifecycle"]
@@ -313,8 +347,10 @@ class TestLifecycleV2Gates:
         ws = mvsa_workspace
         manager = Node0StandaloneManager(project_root=ws["project_root"])
 
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             result = manager.activate(architect="MoMo")
 
         assert result["lifecycle"]["schema_version"] == "2.0.0"
@@ -324,8 +360,10 @@ class TestLifecycleV2Gates:
         ws = mvsa_workspace
         manager = Node0StandaloneManager(project_root=ws["project_root"])
 
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             result = manager.activate(architect="MoMo")
 
         lc = result["lifecycle"]
@@ -337,14 +375,18 @@ class TestLifecycleV2Gates:
 # Schema Compliance
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestMvsaSchemaCompliance:
     """Validates schema compliance for authority + lifecycle + proof artifacts."""
 
-    def test_authority_migration_receipt_schema(self, mvsa_workspace: Dict[str, Any]) -> None:
+    def test_authority_migration_receipt_schema(
+        self, mvsa_workspace: Dict[str, Any]
+    ) -> None:
         """Authority resolution must write a migration receipt with required fields."""
         ws = mvsa_workspace
         # Canonical authority exists → resolution writes receipt or succeeds silently
         from core.sovereign.node0_authority import resolve_authority
+
         result = resolve_authority(ws["state_dir"], ws["project_root"])
         assert result.is_valid
         assert result.result in ("canonical_valid", "migrated")
@@ -353,8 +395,15 @@ class TestMvsaSchemaCompliance:
         """MVSA proof must contain required top-level fields."""
         proof = _make_mvsa_proof(mvsa_workspace["state_dir"])
         required_fields = [
-            "schema_version", "generated_at", "node_id", "genesis_hash",
-            "genesis_hash_valid", "network", "consensus", "status", "reason_code",
+            "schema_version",
+            "generated_at",
+            "node_id",
+            "genesis_hash",
+            "genesis_hash_valid",
+            "network",
+            "consensus",
+            "status",
+            "reason_code",
         ]
         for field in required_fields:
             assert field in proof, f"Missing proof field: {field}"
@@ -363,20 +412,35 @@ class TestMvsaSchemaCompliance:
         assert "bootstrap_ok" in proof["network"]
         assert "self_validation_ok" in proof["consensus"]
 
-    def test_lifecycle_v2_required_sections(self, mvsa_workspace: Dict[str, Any]) -> None:
+    def test_lifecycle_v2_required_sections(
+        self, mvsa_workspace: Dict[str, Any]
+    ) -> None:
         """Lifecycle v2 must contain all required top-level sections."""
         ws = mvsa_workspace
         manager = Node0StandaloneManager(project_root=ws["project_root"])
 
-        with patch("core.sovereign.node0_mvsa.run_mvsa_proof",
-                   side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr)):
+        with patch(
+            "core.sovereign.node0_mvsa.run_mvsa_proof",
+            side_effect=lambda sd, pr: _mock_mvsa_proof_success(sd, pr),
+        ):
             result = manager.activate(architect="MoMo")
 
         lc = result["lifecycle"]
         required_sections = [
-            "schema_version", "updated_at", "status", "ok", "ready",
-            "node_id", "origin", "identity", "artifacts", "gates",
-            "mvsa", "mission", "restart_recovery", "compat",
+            "schema_version",
+            "updated_at",
+            "status",
+            "ok",
+            "ready",
+            "node_id",
+            "origin",
+            "identity",
+            "artifacts",
+            "gates",
+            "mvsa",
+            "mission",
+            "restart_recovery",
+            "compat",
         ]
         for section in required_sections:
             assert section in lc, f"Missing lifecycle section: {section}"

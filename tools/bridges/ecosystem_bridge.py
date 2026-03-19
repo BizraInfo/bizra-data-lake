@@ -46,7 +46,7 @@ import hashlib
 import json
 import logging
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
 from pathlib import Path
@@ -56,7 +56,7 @@ import numpy as np
 
 # PCI Protocol (Proof-Carrying Inference)
 try:
-    from core.pci import PCIEnvelope, EnvelopeBuilder, PCIGateKeeper, RejectCode
+    from core.pci import EnvelopeBuilder, PCIEnvelope, PCIGateKeeper, RejectCode
 
     PCI_AVAILABLE = True
     logging.getLogger("EcosystemBridge").info("✅ PCI Protocol v1.0 imported")
@@ -86,33 +86,33 @@ log = logging.getLogger("EcosystemBridge")
 
 try:
     from ultimate_engine import (
-        UltimateEngine,
-        Constitution,
-        DaughterTest,
-        WinterProofEmbedder,
-        GraphOfThoughts,
-        SNROptimizer,
-        FATEGate,
-        IhsanCalculator,
-        LocalEconomicSystem,
-        LocalMerkleDAG,
-        HookRegistry,
-        HookEvent,
-        CompactionEngine,
-        LocalReasoningEngine,
-        ThoughtNode,
-        ThoughtType,
-        Receipt,
-        EvidencePointer,
-        FATEGateResult,
-        ThirdFactResult,
-        KEPResult,
-        RIBA_ZERO,
-        ZANN_ZERO,
         IHSAN_FLOOR,
-        SNR_MINIMUM,
+        RIBA_ZERO,
         SNR_ACCEPTABLE,
         SNR_IHSAN,
+        SNR_MINIMUM,
+        ZANN_ZERO,
+        CompactionEngine,
+        Constitution,
+        DaughterTest,
+        EvidencePointer,
+        FATEGate,
+        FATEGateResult,
+        GraphOfThoughts,
+        HookEvent,
+        HookRegistry,
+        IhsanCalculator,
+        KEPResult,
+        LocalEconomicSystem,
+        LocalMerkleDAG,
+        LocalReasoningEngine,
+        Receipt,
+        SNROptimizer,
+        ThirdFactResult,
+        ThoughtNode,
+        ThoughtType,
+        UltimateEngine,
+        WinterProofEmbedder,
     )
 
     ULTIMATE_ENGINE_AVAILABLE = True
@@ -145,13 +145,13 @@ except ImportError as e:
 try:
     from sovereign_apex import (
         ApexConfig,
-        VectorLayer,
-        KnowledgeNode,
-        KnowledgeEdge,
-        NodeType,
-        EdgeType,
-        DiscoveredPattern,
         ApexQueryResult,
+        DiscoveredPattern,
+        EdgeType,
+        KnowledgeEdge,
+        KnowledgeNode,
+        NodeType,
+        VectorLayer,
     )
 
     APEX_AVAILABLE = True
@@ -172,7 +172,7 @@ except ImportError as e:
 
 # SovereignBridge
 try:
-    from sovereign_bridge import SovereignBridge, get_bridge, BridgeEventType
+    from sovereign_bridge import BridgeEventType, SovereignBridge, get_bridge
 
     BRIDGE_AVAILABLE = True
     log.info("✅ SovereignBridge imported")

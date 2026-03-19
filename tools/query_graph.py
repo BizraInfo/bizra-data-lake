@@ -1,12 +1,14 @@
 # BIZRA Graph Query Engine v1.0
 # Semantic & Graph-based retrieval over Layer 3
 
-import json
-import pandas as pd
-import networkx as nx
-from pathlib import Path
 import argparse
-from bizra_config import GRAPH_PATH, CORPUS_TABLE_PATH, CHUNKS_TABLE_PATH
+import json
+from pathlib import Path
+
+import networkx as nx
+import pandas as pd
+
+from bizra_config import CHUNKS_TABLE_PATH, CORPUS_TABLE_PATH, GRAPH_PATH
 
 NODES_FILE = GRAPH_PATH / "nodes.jsonl"
 EDGES_FILE = GRAPH_PATH / "edges.jsonl"

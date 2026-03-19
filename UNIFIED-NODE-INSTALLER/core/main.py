@@ -17,7 +17,7 @@ import json
 import signal
 import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Local imports (will be in bizra package)
 # from .pat_engine import create_pat, PATOrchestrator
@@ -25,8 +25,8 @@ from typing import Dict, Any
 
 # For standalone testing, use relative imports
 try:
-    from pat_engine import create_pat, PATOrchestrator
-    from network_node import create_network_node, NetworkNode, ContentFeed
+    from network_node import ContentFeed, NetworkNode, create_network_node
+    from pat_engine import PATOrchestrator, create_pat
 except ImportError:
     # Fallback for module structure
     pass
@@ -45,6 +45,7 @@ DASHBOARD_PORT = 8888
 # ============================================================================
 # BIZRA NODE
 # ============================================================================
+
 
 class BizraNode:
     """
@@ -76,12 +77,15 @@ class BizraNode:
 
         # 2. Network Node
         print("  -> Setting up Network Node...")
-        resource_config = profile.get("resource_allocation", {
-            "cpu_cores": 2,
-            "ram_gb": 4,
-            "storage_gb": 25,
-            "gpu_enabled": False,
-        })
+        resource_config = profile.get(
+            "resource_allocation",
+            {
+                "cpu_cores": 2,
+                "ram_gb": 4,
+                "storage_gb": 25,
+                "gpu_enabled": False,
+            },
+        )
         username = profile.get("username", "bizra_user")
         self.network = create_network_node(username, DATA_DIR, resource_config)
 
@@ -161,14 +165,15 @@ class BizraNode:
 # CLI INTERFACE
 # ============================================================================
 
+
 async def interactive_mode(node: BizraNode):
     """Run in interactive CLI mode."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("BIZRA Interactive Mode")
-    print("="*60)
+    print("=" * 60)
     print("Type your message to talk to your PAT.")
     print("Commands: /status, /balance, /feed, /quit")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     while node.running:
         try:
@@ -189,9 +194,13 @@ async def interactive_mode(node: BizraNode):
                 elif cmd == "status":
                     print("\n" + json.dumps(node.get_status(), indent=2) + "\n")
                 elif cmd == "balance":
-                    balance = node.network.ledger.get_balance(node.network.wallet_address)
+                    balance = node.network.ledger.get_balance(
+                        node.network.wallet_address
+                    )
                     print(f"\n  BZT Balance: {balance['bzt']:.4f}")
-                    print(f"  Contribution Score: {balance['contribution_score']:.4f}\n")
+                    print(
+                        f"  Contribution Score: {balance['contribution_score']:.4f}\n"
+                    )
                 elif cmd == "feed":
                     posts = node.feed.get_feed()
                     if posts:
@@ -222,6 +231,7 @@ async def interactive_mode(node: BizraNode):
 # ============================================================================
 # MAIN
 # ============================================================================
+
 
 def load_config() -> Dict[str, Any]:
     """Load configuration from file."""

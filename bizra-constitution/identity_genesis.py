@@ -35,31 +35,43 @@ from typing import Any
 
 # Use PyNaCl (libsodium) for Ed25519 — the gold standard
 try:
-    from nacl.signing import SigningKey, VerifyKey
     from nacl.encoding import HexEncoder
     from nacl.exceptions import BadSignatureError
+    from nacl.signing import SigningKey, VerifyKey
+
     NACL_AVAILABLE = True
 except ImportError:
     NACL_AVAILABLE = False
 
 try:
     from generated.generated_constants import (
-        IDENTITY_KEY_ALGORITHM,
+        DOMAIN_EVIDENCE_RECEIPT,
         IDENTITY_AGENTS_PER_NODE,
         IDENTITY_GENESIS_DOMAIN,
+        IDENTITY_KEY_ALGORITHM,
         PAT_AGENT_NAMES,
         SAT_BOOTSTRAP_ROLES,
-        DOMAIN_EVIDENCE_RECEIPT,
     )
 except ImportError:
     IDENTITY_KEY_ALGORITHM = "Ed25519"
     IDENTITY_AGENTS_PER_NODE = 12
     IDENTITY_GENESIS_DOMAIN = "bizra-identity-genesis-v1"
-    PAT_AGENT_NAMES = ["Planner", "Researcher", "Coder",
-                       "Evaluator", "Ethicist", "Publisher", "Integrator"]
-    SAT_BOOTSTRAP_ROLES = ["ComputeScheduler", "SecurityMonitor",
-                           "PerformanceAnalyzer", "ConsensusValidator",
-                           "NetworkOrchestrator"]
+    PAT_AGENT_NAMES = [
+        "Planner",
+        "Researcher",
+        "Coder",
+        "Evaluator",
+        "Ethicist",
+        "Publisher",
+        "Integrator",
+    ]
+    SAT_BOOTSTRAP_ROLES = [
+        "ComputeScheduler",
+        "SecurityMonitor",
+        "PerformanceAnalyzer",
+        "ConsensusValidator",
+        "NetworkOrchestrator",
+    ]
     DOMAIN_EVIDENCE_RECEIPT = "bizra-evidence-v1"
 
 
@@ -71,8 +83,9 @@ except ImportError:
 @dataclass(frozen=True)
 class AgentKey:
     """A derived agent key with its role binding."""
+
     agent_name: str
-    agent_type: str            # "pat" or "sat"
+    agent_type: str  # "pat" or "sat"
     derivation_index: int
     public_key_hex: str
     _signing_key: Any = field(repr=False, compare=False)
@@ -87,12 +100,9 @@ class AgentKey:
     def verify(self, message: bytes, signature: bytes, domain: str) -> bool:
         """Verify a domain-separated signature."""
         if not NACL_AVAILABLE:
-            return _fallback_verify(message, signature, domain,
-                                     self.public_key_hex)
+            return _fallback_verify(message, signature, domain, self.public_key_hex)
         try:
-            verify_key = VerifyKey(
-                bytes.fromhex(self.public_key_hex)
-            )
+            verify_key = VerifyKey(bytes.fromhex(self.public_key_hex))
             domain_msg = f"{domain}:{message.hex()}".encode()
             verify_key.verify(domain_msg, signature)
             return True
@@ -103,10 +113,11 @@ class AgentKey:
 @dataclass(frozen=True)
 class NodeIdentity:
     """Complete sovereign node identity."""
-    node_id: str               # SHA-256(master_public_key) — deterministic
-    public_key_hex: str        # Master public key (hex)
-    genesis_timestamp: float   # When this identity was created
-    genesis_domain: str        # Domain separation context
+
+    node_id: str  # SHA-256(master_public_key) — deterministic
+    public_key_hex: str  # Master public key (hex)
+    genesis_timestamp: float  # When this identity was created
+    genesis_domain: str  # Domain separation context
     pat_agents: list[AgentKey]
     sat_agents: list[AgentKey]
     _master_signing_key: Any = field(repr=False, compare=False)
@@ -129,12 +140,10 @@ class NodeIdentity:
         domain_msg = f"{domain}:{message.hex()}".encode()
         return self._master_signing_key.sign(domain_msg).signature
 
-    def verify_master(self, message: bytes, signature: bytes,
-                      domain: str) -> bool:
+    def verify_master(self, message: bytes, signature: bytes, domain: str) -> bool:
         """Verify a master key signature."""
         if not NACL_AVAILABLE:
-            return _fallback_verify(message, signature, domain,
-                                     self.public_key_hex)
+            return _fallback_verify(message, signature, domain, self.public_key_hex)
         try:
             verify_key = VerifyKey(bytes.fromhex(self.public_key_hex))
             domain_msg = f"{domain}:{message.hex()}".encode()
@@ -182,8 +191,9 @@ def _fallback_sign(message: bytes, domain: str, key: bytes) -> bytes:
     return hmac.new(key, domain_msg, hashlib.sha256).digest()
 
 
-def _fallback_verify(message: bytes, signature: bytes, domain: str,
-                      public_key_hex: str) -> bool:
+def _fallback_verify(
+    message: bytes, signature: bytes, domain: str, public_key_hex: str
+) -> bool:
     """HMAC verification — development fallback only.
 
     WARNING: In HMAC fallback mode, we cannot verify authenticity without
@@ -191,6 +201,7 @@ def _fallback_verify(message: bytes, signature: bytes, domain: str,
     length AND emits a warning. Install PyNaCl for production.
     """
     import warnings
+
     if len(signature) != 32:
         return False
     warnings.warn(
@@ -201,12 +212,11 @@ def _fallback_verify(message: bytes, signature: bytes, domain: str,
     return True
 
 
-def _derive_child_key_fallback(master_private: bytes, index: int,
-                                domain: str) -> tuple[bytes, bytes]:
+def _derive_child_key_fallback(
+    master_private: bytes, index: int, domain: str
+) -> tuple[bytes, bytes]:
     """Derive a child key deterministically from master + index."""
-    seed = hashlib.sha256(
-        f"{domain}:{master_private.hex()}:{index}".encode()
-    ).digest()
+    seed = hashlib.sha256(f"{domain}:{master_private.hex()}:{index}".encode()).digest()
     public = hashlib.sha256(b"bizra-pubkey:" + seed).digest()
     return seed, public
 
@@ -216,8 +226,9 @@ def _derive_child_key_fallback(master_private: bytes, index: int,
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def _derive_agent_key(master_key, index: int, agent_name: str,
-                       agent_type: str, domain: str) -> AgentKey:
+def _derive_agent_key(
+    master_key, index: int, agent_name: str, agent_type: str, domain: str
+) -> AgentKey:
     """
     Derive an agent key from the master key using HD derivation.
 
@@ -240,9 +251,7 @@ def _derive_agent_key(master_key, index: int, agent_name: str,
             _signing_key=child_signing,
         )
     else:
-        private, public = _derive_child_key_fallback(
-            master_key, index, domain
-        )
+        private, public = _derive_child_key_fallback(master_key, index, domain)
         return AgentKey(
             agent_name=agent_name,
             agent_type=agent_type,
@@ -294,23 +303,18 @@ def create_identity(
         master_key_for_derivation = master_private
 
     # Derive node ID: SHA-256(public_key) — deterministic, permanent
-    node_id = hashlib.sha256(
-        bytes.fromhex(master_public_hex)
-    ).hexdigest()
+    node_id = hashlib.sha256(bytes.fromhex(master_public_hex)).hexdigest()
 
     # Derive PAT agent keys (indices 0-6)
     pat_agents = [
-        _derive_agent_key(
-            master_key_for_derivation, i, name, "pat", genesis_domain
-        )
+        _derive_agent_key(master_key_for_derivation, i, name, "pat", genesis_domain)
         for i, name in enumerate(pat_names)
     ]
 
     # Derive SAT agent keys (indices 7-11)
     sat_agents = [
         _derive_agent_key(
-            master_key_for_derivation, len(pat_names) + i, name, "sat",
-            genesis_domain
+            master_key_for_derivation, len(pat_names) + i, name, "sat", genesis_domain
         )
         for i, name in enumerate(sat_names)
     ]
@@ -322,9 +326,7 @@ def create_identity(
         genesis_domain=genesis_domain,
         pat_agents=pat_agents,
         sat_agents=sat_agents,
-        _master_signing_key=(
-            master_signing if NACL_AVAILABLE else master_private
-        ),
+        _master_signing_key=(master_signing if NACL_AVAILABLE else master_private),
     )
 
 
@@ -333,8 +335,7 @@ def create_identity(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def save_identity(identity: NodeIdentity, path: Path,
-                   password: str | None = None):
+def save_identity(identity: NodeIdentity, path: Path, password: str | None = None):
     """
     Save identity to disk. Public record only (no private keys in JSON).
 

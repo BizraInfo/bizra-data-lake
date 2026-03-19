@@ -19,7 +19,7 @@ Standing on Giants: Knuth (measure, don't guess), Amdahl (identify bottlenecks)
 __version__ = "0.1.0"
 __author__ = "BIZRA Node0"
 
-from benchmark.runner import BenchmarkRunner, BenchmarkResult, MetricResult
+from benchmark.runner import BenchmarkResult, BenchmarkRunner, MetricResult
 
 __all__ = [
     "BenchmarkRunner",

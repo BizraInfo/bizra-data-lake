@@ -8,21 +8,21 @@
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 """
 
+import heapq
 import json
 import sys
-from pathlib import Path
-from datetime import datetime
 from collections import defaultdict
-from typing import Dict, List, Any
-import heapq
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
 # Project root
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
-    from sentence_transformers import SentenceTransformer
     import numpy as np
+    from sentence_transformers import SentenceTransformer
 
     HAS_ML = True
 except ImportError:

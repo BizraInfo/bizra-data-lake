@@ -6,18 +6,20 @@
 
 import asyncio
 import json
+import logging
 import time
-import uvicorn
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
-from typing import Dict, List, Optional, Any
 from pathlib import Path
-import logging
+from typing import Any, Dict, List, Optional
+
+import uvicorn
 
 # FastAPI imports
 try:
-    from fastapi import FastAPI, HTTPException, BackgroundTasks, Query as QueryParam
+    from fastapi import BackgroundTasks, FastAPI, HTTPException
+    from fastapi import Query as QueryParam
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse, StreamingResponse
     from pydantic import BaseModel, Field
@@ -27,15 +29,16 @@ except ImportError:
     FASTAPI_AVAILABLE = False
     print("FastAPI not available. Install with: pip install fastapi uvicorn")
 
-# BIZRA imports
-from bizra_config import SNR_THRESHOLD, IHSAN_CONSTRAINT
 from bizra_runtime import (
+    BackendStatus,
     BIZRARuntime,
     LoadBalanceStrategy,
     QueryResult,
     RuntimeMetrics,
-    BackendStatus,
 )
+
+# BIZRA imports
+from bizra_config import IHSAN_CONSTRAINT, SNR_THRESHOLD
 
 # Configure logging
 logging.basicConfig(

@@ -1,2 +1,1 @@
 """Node gateway application package."""
-

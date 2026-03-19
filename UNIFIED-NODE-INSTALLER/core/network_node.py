@@ -15,31 +15,33 @@ Core Principle: More users = Better for everyone
 - Private: Anonymity in the crowd
 """
 
-import json
 import asyncio
 import hashlib
-import time
-from pathlib import Path
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, field, asdict
-from enum import Enum
-from abc import ABC, abstractmethod
+import json
 import threading
-
+import time
+from abc import ABC, abstractmethod
+from dataclasses import asdict, dataclass, field
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # ============================================================================
 # TOKEN SYSTEM
 # ============================================================================
 
+
 class TokenType(Enum):
     """BIZRA token types."""
-    BZT = "BZT"      # Utility token - used for services
-    BZG = "BZG"      # Governance token - voting rights
+
+    BZT = "BZT"  # Utility token - used for services
+    BZG = "BZG"  # Governance token - voting rights
 
 
 @dataclass
 class Wallet:
     """User's token wallet."""
+
     address: str
     bzt_balance: float = 0.0
     bzg_balance: float = 0.0
@@ -59,6 +61,7 @@ class Wallet:
 @dataclass
 class Transaction:
     """Token transaction record."""
+
     tx_id: str
     from_address: str
     to_address: str
@@ -70,7 +73,7 @@ class Transaction:
 
     def to_dict(self) -> Dict:
         d = asdict(self)
-        d['token_type'] = self.token_type.value
+        d["token_type"] = self.token_type.value
         return d
 
 
@@ -120,7 +123,9 @@ class TokenLedger:
 
         # Record transaction
         tx = Transaction(
-            tx_id=hashlib.sha256(f"{address}{amount}{time.time()}".encode()).hexdigest()[:16],
+            tx_id=hashlib.sha256(
+                f"{address}{amount}{time.time()}".encode()
+            ).hexdigest()[:16],
             from_address="network_rewards",
             to_address=address,
             token_type=TokenType.BZT,
@@ -145,19 +150,21 @@ class TokenLedger:
 # RESOURCE METERING
 # ============================================================================
 
+
 @dataclass
 class ResourceContribution:
     """Record of resource contribution."""
+
     node_id: str
     period_start: float
     period_end: float
-    compute_units: float      # CPU-seconds contributed
-    gpu_units: float          # GPU-seconds contributed
-    storage_mb: float         # MB stored for network
-    bandwidth_mb: float       # MB relayed
-    uptime_percent: float     # % online during period
-    tasks_completed: int      # Number of tasks processed
-    quality_score: float      # Quality of contributions (0-1)
+    compute_units: float  # CPU-seconds contributed
+    gpu_units: float  # GPU-seconds contributed
+    storage_mb: float  # MB stored for network
+    bandwidth_mb: float  # MB relayed
+    uptime_percent: float  # % online during period
+    tasks_completed: int  # Number of tasks processed
+    quality_score: float  # Quality of contributions (0-1)
 
     @property
     def impact_score(self) -> float:
@@ -177,19 +184,19 @@ class ResourceContribution:
 
         # Normalize values (example normalization)
         normalized_compute = min(self.compute_units / 3600, 1.0)  # Max 1 hour
-        normalized_gpu = min(self.gpu_units / 1800, 1.0)          # Max 30 min
-        normalized_storage = min(self.storage_mb / 1000, 1.0)     # Max 1GB
+        normalized_gpu = min(self.gpu_units / 1800, 1.0)  # Max 30 min
+        normalized_storage = min(self.storage_mb / 1000, 1.0)  # Max 1GB
         normalized_bandwidth = min(self.bandwidth_mb / 500, 1.0)  # Max 500MB
-        normalized_tasks = min(self.tasks_completed / 100, 1.0)   # Max 100 tasks
+        normalized_tasks = min(self.tasks_completed / 100, 1.0)  # Max 100 tasks
 
         score = (
-            compute_weight * normalized_compute +
-            gpu_weight * normalized_gpu +
-            storage_weight * normalized_storage +
-            bandwidth_weight * normalized_bandwidth +
-            uptime_weight * self.uptime_percent +
-            tasks_weight * normalized_tasks +
-            quality_weight * self.quality_score
+            compute_weight * normalized_compute
+            + gpu_weight * normalized_gpu
+            + storage_weight * normalized_storage
+            + bandwidth_weight * normalized_bandwidth
+            + uptime_weight * self.uptime_percent
+            + tasks_weight * normalized_tasks
+            + quality_weight * self.quality_score
         )
 
         return score
@@ -240,7 +247,11 @@ class ResourceMeter:
     def finalize_period(self, uptime_percent: float) -> ResourceContribution:
         """Finalize the current period and return contribution record."""
         with self._lock:
-            avg_quality = sum(self.quality_scores) / len(self.quality_scores) if self.quality_scores else 1.0
+            avg_quality = (
+                sum(self.quality_scores) / len(self.quality_scores)
+                if self.quality_scores
+                else 1.0
+            )
 
             contribution = ResourceContribution(
                 node_id=self.node_id,
@@ -269,6 +280,7 @@ class ResourceMeter:
 # ============================================================================
 # REWARD CALCULATOR
 # ============================================================================
+
 
 class RewardCalculator:
     """
@@ -322,8 +334,10 @@ class RewardCalculator:
 # P2P NETWORK NODE
 # ============================================================================
 
+
 class NodeStatus(Enum):
     """Node operational status."""
+
     OFFLINE = "offline"
     CONNECTING = "connecting"
     ONLINE = "online"
@@ -334,6 +348,7 @@ class NodeStatus(Enum):
 @dataclass
 class PeerInfo:
     """Information about a network peer."""
+
     node_id: str
     address: str
     port: int
@@ -510,9 +525,11 @@ class NetworkNode:
 # FREE VIRTUAL WORLD - Content Layer
 # ============================================================================
 
+
 @dataclass
 class ContentItem:
     """A piece of content in the decentralized network."""
+
     content_id: str
     author_node: str
     content_type: str  # text, image, link, etc.
@@ -573,6 +590,7 @@ class ContentFeed:
             content.sort(key=lambda x: x.timestamp, reverse=True)
         elif algorithm == "random":
             import random
+
             random.shuffle(content)
 
         return content
@@ -591,6 +609,7 @@ class ContentFeed:
 # ============================================================================
 # FACTORY FUNCTION
 # ============================================================================
+
 
 def create_network_node(
     username: str,

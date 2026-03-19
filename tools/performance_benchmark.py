@@ -87,9 +87,9 @@ class PerformanceBenchmark:
 
         try:
             from core.sovereign.runtime import (
-                SovereignRuntime,
                 RuntimeConfig,
                 RuntimeMode,
+                SovereignRuntime,
             )
 
             config = RuntimeConfig(
@@ -155,7 +155,7 @@ class PerformanceBenchmark:
         )
 
         try:
-            from core.inference.gateway import InferenceGateway, InferenceConfig
+            from core.inference.gateway import InferenceConfig, InferenceGateway
 
             config = InferenceConfig(require_local=False)
             gateway = InferenceGateway(config)
@@ -311,7 +311,7 @@ class PerformanceBenchmark:
         )
 
         try:
-            from core.sovereign.runtime import SovereignRuntime, SovereignQuery
+            from core.sovereign.runtime import SovereignQuery, SovereignRuntime
 
             runtime = SovereignRuntime()
             query = SovereignQuery(
@@ -373,15 +373,16 @@ class PerformanceBenchmark:
         )
 
         try:
+            from datetime import datetime, timezone
+
+            from core.pci.crypto import generate_keypair, sign_message
             from core.pci.envelope import (
                 PCIEnvelope,
+                PCIMetadata,
                 PCISender,
                 PCISignature,
-                PCIMetadata,
             )
             from core.pci.gates import PCIGateKeeper
-            from core.pci.crypto import generate_keypair, sign_message
-            from datetime import datetime, timezone
 
             private_key, public_key = generate_keypair()
             gatekeeper = PCIGateKeeper()

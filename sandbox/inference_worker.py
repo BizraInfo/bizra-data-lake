@@ -9,19 +9,20 @@ This module runs inference in a quarantined environment:
 "We do not assume. We verify with formal proofs."
 """
 
+import hashlib
+import json
 import os
 import sys
-import json
 import time
-import hashlib
-from pathlib import Path
-from dataclasses import dataclass, asdict
-from typing import Optional, Dict, Any, List
+from dataclasses import asdict, dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Try to import llama-cpp-python
 try:
     from llama_cpp import Llama
+
     LLAMA_CPP_AVAILABLE = True
 except ImportError:
     LLAMA_CPP_AVAILABLE = False
@@ -30,14 +31,16 @@ except ImportError:
 
 class ModelTier(Enum):
     """Model capability tiers."""
-    EDGE = "EDGE"      # 0.5B-1.5B, CPU
-    LOCAL = "LOCAL"    # 7B-13B, GPU
-    POOL = "POOL"      # 70B+, federated
+
+    EDGE = "EDGE"  # 0.5B-1.5B, CPU
+    LOCAL = "LOCAL"  # 7B-13B, GPU
+    POOL = "POOL"  # 70B+, federated
 
 
 @dataclass
 class InferenceRequest:
     """Request for inference."""
+
     id: str
     prompt: str
     model_id: str
@@ -55,6 +58,7 @@ class InferenceRequest:
 @dataclass
 class InferenceResponse:
     """Response from inference."""
+
     id: str
     content: str
     model_id: str
@@ -107,7 +111,7 @@ class ModelStore:
         model_path: Path,
         model_id: str,
         tier: ModelTier = ModelTier.LOCAL,
-        copy: bool = True
+        copy: bool = True,
     ) -> bool:
         """Import a GGUF model into the store."""
         if not model_path.exists():
@@ -122,6 +126,7 @@ class ModelStore:
         if copy:
             # Copy file to store
             import shutil
+
             shutil.copy2(model_path, target_path)
         else:
             # Create symlink
@@ -279,14 +284,28 @@ class InferenceBackend:
         content_lower = content.lower()
 
         positive_indicators = [
-            "privacy", "consent", "transparency", "user control",
-            "data protection", "security", "ethical", "responsible",
-            "respect", "trust", "confidential", "accountable",
+            "privacy",
+            "consent",
+            "transparency",
+            "user control",
+            "data protection",
+            "security",
+            "ethical",
+            "responsible",
+            "respect",
+            "trust",
+            "confidential",
+            "accountable",
         ]
 
         negative_indicators = [
-            "collect all", "share with third", "without consent",
-            "track", "surveil", "exploit", "manipulate",
+            "collect all",
+            "share with third",
+            "without consent",
+            "track",
+            "surveil",
+            "exploit",
+            "manipulate",
         ]
 
         score = 0.85
@@ -355,8 +374,7 @@ class SandboxWorker:
 
         # Get tier-specific settings
         model_info = next(
-            (m for m in self.model_store.list_models() if m["id"] == model_id),
-            None
+            (m for m in self.model_store.list_models() if m["id"] == model_id), None
         )
 
         tier = ModelTier(model_info["tier"]) if model_info else ModelTier.LOCAL
@@ -434,50 +452,80 @@ class SandboxWorker:
                 elif msg_type == "load_model":
                     model_id = msg["model_id"]
                     success = self.load_model(model_id)
-                    print(json.dumps({
-                        "type": "model_loaded",
-                        "model_id": model_id,
-                        "success": success,
-                    }), flush=True)
+                    print(
+                        json.dumps(
+                            {
+                                "type": "model_loaded",
+                                "model_id": model_id,
+                                "success": success,
+                            }
+                        ),
+                        flush=True,
+                    )
 
                 elif msg_type == "unload_model":
                     model_id = msg["model_id"]
                     success = self.unload_model(model_id)
-                    print(json.dumps({
-                        "type": "model_unloaded",
-                        "model_id": model_id,
-                        "success": success,
-                    }), flush=True)
+                    print(
+                        json.dumps(
+                            {
+                                "type": "model_unloaded",
+                                "model_id": model_id,
+                                "success": success,
+                            }
+                        ),
+                        flush=True,
+                    )
 
                 elif msg_type == "list_models":
                     tier = ModelTier(msg["tier"]) if "tier" in msg else None
                     models = self.model_store.list_models(tier)
-                    print(json.dumps({
-                        "type": "model_list",
-                        "models": models,
-                    }), flush=True)
+                    print(
+                        json.dumps(
+                            {
+                                "type": "model_list",
+                                "models": models,
+                            }
+                        ),
+                        flush=True,
+                    )
 
                 elif msg_type == "shutdown":
                     print(json.dumps({"type": "shutdown", "status": "ok"}), flush=True)
                     break
 
                 else:
-                    print(json.dumps({
-                        "type": "error",
-                        "message": f"Unknown message type: {msg_type}",
-                    }), flush=True)
+                    print(
+                        json.dumps(
+                            {
+                                "type": "error",
+                                "message": f"Unknown message type: {msg_type}",
+                            }
+                        ),
+                        flush=True,
+                    )
 
             except json.JSONDecodeError as e:
-                print(json.dumps({
-                    "type": "error",
-                    "message": f"Invalid JSON: {e}",
-                }), flush=True)
+                print(
+                    json.dumps(
+                        {
+                            "type": "error",
+                            "message": f"Invalid JSON: {e}",
+                        }
+                    ),
+                    flush=True,
+                )
 
             except Exception as e:
-                print(json.dumps({
-                    "type": "error",
-                    "message": str(e),
-                }), flush=True)
+                print(
+                    json.dumps(
+                        {
+                            "type": "error",
+                            "message": str(e),
+                        }
+                    ),
+                    flush=True,
+                )
 
 
 def main():
@@ -485,12 +533,18 @@ def main():
     # SECURITY (SEC-007): Fail-closed sandbox enforcement
     # CRITICAL: Never execute inference outside sandbox environment
     if os.environ.get("BIZRA_SANDBOX") != "1":
-        print(json.dumps({
-            "type": "error",
-            "code": "SANDBOX_VIOLATION",
-            "message": "Refusing execution: BIZRA_SANDBOX not set",
-            "fatal": True
-        }), file=sys.stderr, flush=True)
+        print(
+            json.dumps(
+                {
+                    "type": "error",
+                    "code": "SANDBOX_VIOLATION",
+                    "message": "Refusing execution: BIZRA_SANDBOX not set",
+                    "fatal": True,
+                }
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
         sys.exit(78)  # EX_CONFIG - configuration error
 
     # Initialize model store

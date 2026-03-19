@@ -452,6 +452,12 @@ pub fn analyze_convergence(state: &AutopoieticState) -> ConvergenceReport {
     }
 }
 
+impl Default for AutopoieticState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // =============================================================================
 // TESTS — EMPIRICAL PROOF
 // =============================================================================
@@ -465,7 +471,7 @@ mod tests {
     fn decaying_noise(cycle: u64) -> f64 {
         let amplitude = 0.04 / (1.0 + 0.1 * cycle as f64);
         // Deterministic pseudo-noise using cycle number
-        let phase = (cycle as f64 * 2.7183).sin();
+        let phase = (cycle as f64 * std::f64::consts::E).sin();
         amplitude * phase
     }
 

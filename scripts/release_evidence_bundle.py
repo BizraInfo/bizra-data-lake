@@ -92,9 +92,21 @@ def security_scan_results() -> dict:
         try:
             data = json.loads(bandit_out)
             results["bandit"] = {
-                "high": sum(1 for r in data.get("results", []) if r.get("issue_severity") == "HIGH"),
-                "medium": sum(1 for r in data.get("results", []) if r.get("issue_severity") == "MEDIUM"),
-                "low": sum(1 for r in data.get("results", []) if r.get("issue_severity") == "LOW"),
+                "high": sum(
+                    1
+                    for r in data.get("results", [])
+                    if r.get("issue_severity") == "HIGH"
+                ),
+                "medium": sum(
+                    1
+                    for r in data.get("results", [])
+                    if r.get("issue_severity") == "MEDIUM"
+                ),
+                "low": sum(
+                    1
+                    for r in data.get("results", [])
+                    if r.get("issue_severity") == "LOW"
+                ),
             }
         except json.JSONDecodeError:
             results["bandit"] = "parse-error"
@@ -142,7 +154,10 @@ def rollout_snapshot() -> dict:
         "-o jsonpath='{.status.phase}' 2>/dev/null"
     )
     if not status:
-        return {"phase": "not-available", "note": "kubectl not configured or rollout not found"}
+        return {
+            "phase": "not-available",
+            "note": "kubectl not configured or rollout not found",
+        }
 
     return {
         "phase": status,

@@ -4,8 +4,9 @@ import json
 import os
 import sys
 import tempfile
-import pytest
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -30,8 +31,11 @@ def _sample_receipt_args(**overrides):
         },
         ihsan_composite=0.902,
         gate_results={
-            "alpha_4": True, "alpha_7": True,
-            "alpha_8": True, "alpha_9": True, "alpha_10": True,
+            "alpha_4": True,
+            "alpha_7": True,
+            "alpha_8": True,
+            "alpha_9": True,
+            "alpha_10": True,
         },
         snr_normalized=0.85,
         tier="bloom",
@@ -147,6 +151,7 @@ class TestEvidenceReceipt:
 
     def test_timestamp_is_recent(self, ledger):
         import time
+
         before = time.time()
         r = ledger.append(**_sample_receipt_args())
         after = time.time()

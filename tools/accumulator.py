@@ -87,16 +87,16 @@ Islamic Finance Principles:
 - Zakat integration - automatic tithing at thresholds
 """
 
-import os
-import json
-import hashlib
 import asyncio
-from datetime import datetime, timezone
-from pathlib import Path
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Callable, Awaitable
-from enum import Enum
+import hashlib
+import json
+import os
 import threading
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION

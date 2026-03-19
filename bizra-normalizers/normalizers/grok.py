@@ -16,7 +16,6 @@ from .base import (
     stable_turn_id,
 )
 
-
 _GOAL_RE = re.compile(
     r"\b(goal|objective|plan|roadmap|next step|launch|ship|complete)\b",
     re.IGNORECASE,
@@ -124,8 +123,12 @@ class GrokParser(PlatformParser):
             return [item for item in turns if isinstance(item, dict)]
 
         if any(key in conversation for key in ("prompt", "response", "answer")):
-            prompt = collect_text(conversation.get("prompt") or conversation.get("query"))
-            response = collect_text(conversation.get("response") or conversation.get("answer"))
+            prompt = collect_text(
+                conversation.get("prompt") or conversation.get("query")
+            )
+            response = collect_text(
+                conversation.get("response") or conversation.get("answer")
+            )
             out: list[dict[str, Any]] = []
             if prompt.strip():
                 out.append(
@@ -160,7 +163,9 @@ class GrokParser(PlatformParser):
         hints: list[FragmentHint] = []
         dedupe: set[tuple[str, str]] = set()
 
-        def push(kind: FragmentKind, signal: str, confidence: float, source: str) -> None:
+        def push(
+            kind: FragmentKind, signal: str, confidence: float, source: str
+        ) -> None:
             if confidence < _MIN_CONFIDENCE or len(hints) >= _MAX_HINTS_PER_TURN:
                 return
             normalized = normalize_whitespace(signal).lower()
@@ -180,11 +185,18 @@ class GrokParser(PlatformParser):
         if _GOAL_RE.search(text):
             push(FragmentKind.GOAL, "goal_or_plan_language", 0.92, "grok.goal")
         if _DOMAIN_RE.search(text):
-            push(FragmentKind.DOMAIN, "software_engineering_domain", 0.88, "grok.domain")
+            push(
+                FragmentKind.DOMAIN, "software_engineering_domain", 0.88, "grok.domain"
+            )
         if _STYLE_RE.search(text):
             push(FragmentKind.STYLE, "protocol_or_structured_style", 0.86, "grok.style")
         if _RELATIONSHIP_RE.search(text):
-            push(FragmentKind.RELATIONSHIP, "stakeholder_reference", 0.84, "grok.relationship")
+            push(
+                FragmentKind.RELATIONSHIP,
+                "stakeholder_reference",
+                0.84,
+                "grok.relationship",
+            )
         if _EMOTION_RE.search(text):
             push(FragmentKind.EMOTION, "emotion_signal", 0.82, "grok.emotion")
 
@@ -192,4 +204,3 @@ class GrokParser(PlatformParser):
             push(FragmentKind.PATTERN, "long_form_exchange", 0.80, "grok.length")
 
         return hints
-

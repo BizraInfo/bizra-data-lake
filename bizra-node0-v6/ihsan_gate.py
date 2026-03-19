@@ -25,8 +25,8 @@ Usage:
 
 from __future__ import annotations
 
-import time
 import logging
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -34,14 +34,14 @@ from typing import Any
 # ── Constitutional imports (single source of truth) ──
 try:
     from generated.generated_constants import (
-        IHSAN_OPERATIONAL_WEIGHTS,
-        IHSAN_OPERATIONAL_NAMES,
-        IHSAN_GATE_MINIMUM,
-        IHSAN_BLOOM_ELIGIBILITY,
-        IHSAN_EXCELLENCE,
-        IHSAN_DIMENSIONS_OPERATIONAL,
         GATE_FAIL_MODE,
         GATE_OVERHEAD_BUDGET_MS,
+        IHSAN_BLOOM_ELIGIBILITY,
+        IHSAN_DIMENSIONS_OPERATIONAL,
+        IHSAN_EXCELLENCE,
+        IHSAN_GATE_MINIMUM,
+        IHSAN_OPERATIONAL_NAMES,
+        IHSAN_OPERATIONAL_WEIGHTS,
     )
 except ImportError:
     # Fallback for testing outside generated context
@@ -72,34 +72,37 @@ logger = logging.getLogger("bizra.ihsan_gate")
 
 class IhsanTier(Enum):
     """Quality tier derived from composite score."""
-    REJECTED = "rejected"       # < gate_minimum
-    ACCEPTABLE = "acceptable"   # ≥ gate_minimum, < bloom_eligibility
-    BLOOM_ELIGIBLE = "bloom"    # ≥ bloom_eligibility, < excellence
-    EXCELLENCE = "ihsan"        # ≥ excellence (إحسان)
+
+    REJECTED = "rejected"  # < gate_minimum
+    ACCEPTABLE = "acceptable"  # ≥ gate_minimum, < bloom_eligibility
+    BLOOM_ELIGIBLE = "bloom"  # ≥ bloom_eligibility, < excellence
+    EXCELLENCE = "ihsan"  # ≥ excellence (إحسان)
 
 
 @dataclass(frozen=True)
 class DimensionScore:
     """Score for a single Ihsan dimension."""
+
     name: str
-    raw_score: float        # 0.0 to 1.0
-    weight: float           # Constitutional weight (renormalized 6-dim)
-    weighted_score: float   # raw_score * weight
-    passes: bool            # raw_score ≥ per-dimension minimum
+    raw_score: float  # 0.0 to 1.0
+    weight: float  # Constitutional weight (renormalized 6-dim)
+    weighted_score: float  # raw_score * weight
+    passes: bool  # raw_score ≥ per-dimension minimum
 
 
 @dataclass(frozen=True)
 class IhsanScore:
     """Complete Ihsan evaluation result."""
+
     dimensions: list[DimensionScore]
-    composite: float            # Weighted sum of all dimensions
+    composite: float  # Weighted sum of all dimensions
     tier: IhsanTier
-    passes: bool                # composite ≥ gate_minimum
-    bloom_eligible: bool        # composite ≥ bloom_eligibility
-    is_ihsan: bool              # composite ≥ excellence (إحسان standard)
-    violations: list[str]       # Human-readable list of failures
-    evaluation_ms: float        # Time taken for evaluation
-    gate_minimum: float         # Threshold used (from constitution)
+    passes: bool  # composite ≥ gate_minimum
+    bloom_eligible: bool  # composite ≥ bloom_eligibility
+    is_ihsan: bool  # composite ≥ excellence (إحسان standard)
+    violations: list[str]  # Human-readable list of failures
+    evaluation_ms: float  # Time taken for evaluation
+    gate_minimum: float  # Threshold used (from constitution)
 
     def as_tensor_dict(self) -> dict[str, float]:
         """Return as map<string, double> for poi.proto wire format."""
@@ -161,8 +164,16 @@ def _score_epistemic_humility(output: str, context: dict) -> float:
     score = 0.85  # Baseline
 
     # Reward explicit uncertainty markers
-    uncertainty_markers = ["uncertain", "approximately", "estimate", "likely",
-                          "confidence", "may", "might", "could"]
+    uncertainty_markers = [
+        "uncertain",
+        "approximately",
+        "estimate",
+        "likely",
+        "confidence",
+        "may",
+        "might",
+        "could",
+    ]
     uncertainty_count = sum(1 for m in uncertainty_markers if m in output.lower())
     score += min(uncertainty_count * 0.03, 0.10)
 
@@ -197,6 +208,7 @@ def _score_structural_integrity(output: str, context: dict) -> float:
     expected_format = context.get("expected_format")
     if expected_format == "json":
         import json
+
         try:
             json.loads(output)
             score += 0.05
@@ -218,8 +230,16 @@ def _score_verifiability(output: str, context: dict) -> float:
     score = 0.85
 
     # Reward step-by-step reasoning
-    reasoning_markers = ["because", "therefore", "step", "first", "then",
-                        "reason", "evidence", "based on"]
+    reasoning_markers = [
+        "because",
+        "therefore",
+        "step",
+        "first",
+        "then",
+        "reason",
+        "evidence",
+        "based on",
+    ]
     reasoning_count = sum(1 for m in reasoning_markers if m in output.lower())
     score += min(reasoning_count * 0.02, 0.10)
 
@@ -410,13 +430,15 @@ class IhsanGate:
                     f"{dim_name}: {raw:.3f} < {per_dim_minimum} (per-dimension minimum)"
                 )
 
-            dimension_scores.append(DimensionScore(
-                name=dim_name,
-                raw_score=raw,
-                weight=weight,
-                weighted_score=raw * weight,
-                passes=passes_dim,
-            ))
+            dimension_scores.append(
+                DimensionScore(
+                    name=dim_name,
+                    raw_score=raw,
+                    weight=weight,
+                    weighted_score=raw * weight,
+                    passes=passes_dim,
+                )
+            )
 
         # Composite = weighted sum
         composite = sum(d.weighted_score for d in dimension_scores)
@@ -435,7 +457,9 @@ class IhsanGate:
         else:
             tier = IhsanTier.EXCELLENCE
 
-        passes = composite >= self.gate_minimum and all(d.passes for d in dimension_scores)
+        passes = composite >= self.gate_minimum and all(
+            d.passes for d in dimension_scores
+        )
         elapsed = (time.monotonic() - start) * 1000
 
         if elapsed > GATE_OVERHEAD_BUDGET_MS:

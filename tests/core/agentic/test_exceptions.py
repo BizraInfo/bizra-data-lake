@@ -27,7 +27,6 @@ from core.agentic.exceptions import (
     ToolTimeoutException,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 # AgentException BASE
 # ═══════════════════════════════════════════════════════════════════════════
@@ -100,7 +99,9 @@ class TestLLMValidationException:
 
     def test_inherits_constitutional(self):
         orig = ValueError("timeout")
-        exc = LLMValidationException("call failed", action="validate", original_error=orig)
+        exc = LLMValidationException(
+            "call failed", action="validate", original_error=orig
+        )
         assert isinstance(exc, ConstitutionalException)
         assert isinstance(exc, AgentException)
 
@@ -225,7 +226,9 @@ class TestPlanningException:
 
     def test_message_contains_task_name(self):
         orig = KeyError("missing key")
-        exc = PlanningException(task_id="p3", task_name="design_review", original_error=orig)
+        exc = PlanningException(
+            task_id="p3", task_name="design_review", original_error=orig
+        )
         assert "design_review" in exc.message
 
 
@@ -234,21 +237,30 @@ class TestExecutionException:
     def test_inherits_task_exception(self):
         orig = OSError("disk full")
         exc = ExecutionException(
-            task_id="e1", task_name="write_file", step="save", original_error=orig,
+            task_id="e1",
+            task_name="write_file",
+            step="save",
+            original_error=orig,
         )
         assert isinstance(exc, TaskException)
 
     def test_step_in_context(self):
         orig = PermissionError("denied")
         exc = ExecutionException(
-            task_id="e2", task_name="deploy", step="chmod", original_error=orig,
+            task_id="e2",
+            task_name="deploy",
+            step="chmod",
+            original_error=orig,
         )
         assert exc.context["step"] == "chmod"
 
     def test_message_contains_step(self):
         orig = RuntimeError("oops")
         exc = ExecutionException(
-            task_id="e3", task_name="build", step="compile", original_error=orig,
+            task_id="e3",
+            task_name="build",
+            step="compile",
+            original_error=orig,
         )
         assert "compile" in exc.message
 
@@ -315,7 +327,9 @@ class TestInheritanceTree:
             NetworkException("t", operation="t", original_error=RuntimeError("t")),
         ]
         for exc in types:
-            assert isinstance(exc, AgentException), f"{type(exc).__name__} is not AgentException"
+            assert isinstance(
+                exc, AgentException
+            ), f"{type(exc).__name__} is not AgentException"
 
     def test_can_catch_by_tier(self):
         """Catching by tier base class captures all subtypes."""

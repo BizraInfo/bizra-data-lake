@@ -113,7 +113,12 @@ def client(tmp_path: Path, monkeypatch, agent_db: AgentDB):
 def test_memory_search_backward_compatible_shape(client: TestClient) -> None:
     response = client.post(
         "/v1/memory/search",
-        json={"query": "Alpha memory", "top_k": 5, "min_score": 0.0, "source": "claude_flow_db"},
+        json={
+            "query": "Alpha memory",
+            "top_k": 5,
+            "min_score": 0.0,
+            "source": "claude_flow_db",
+        },
     )
 
     assert response.status_code == 200

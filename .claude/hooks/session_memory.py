@@ -23,13 +23,12 @@ Usage in .claude/settings.json:
 }
 """
 
+import hashlib
 import json
-import sys
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
-import hashlib
-
 
 MEMORY_DIR = Path(".claude-flow/memory")
 

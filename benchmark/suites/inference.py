@@ -11,7 +11,8 @@ Runs fully offline without requiring actual LLM backend.
 """
 
 import time
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from benchmark.runner import BenchmarkRunner
 
 
@@ -27,6 +28,7 @@ class InferenceBenchmark:
 
         Simulates a 100-token inference operation.
         """
+
         def inference_op():
             # Simulate tokenization + inference overhead
             tokens = 100
@@ -47,6 +49,7 @@ class InferenceBenchmark:
 
         Simulates batching of 32 parallel requests.
         """
+
         def batch_op():
             batch_size = 32
             tokens_per_request = 50
@@ -67,6 +70,7 @@ class InferenceBenchmark:
 
         Simulates generating 256 tokens.
         """
+
         def token_gen():
             tokens = 256
             # Mock: 2ms per token (typical for small model)
@@ -80,12 +84,15 @@ class InferenceBenchmark:
         )
         return result.to_dict()
 
-    def benchmark_model_selection_overhead(self, iterations: int = 50) -> Dict[str, Any]:
+    def benchmark_model_selection_overhead(
+        self, iterations: int = 50
+    ) -> Dict[str, Any]:
         """
         Benchmark model selector overhead.
 
         Simulates task complexity analysis and model selection.
         """
+
         def selector_op():
             # Simulate: tokenization + embedding + distance calc
             tokens = 50
@@ -113,13 +120,15 @@ class InferenceBenchmark:
 
         Tests 1K, 4K, and 8K token context windows.
         """
+
         def context_op():
             context_tokens = 4096  # 4K context
             inference_tokens = 100
             time_per_ctx_ms = 0.01  # 10µs per context token
-            time_per_inf_ms = 1.0   # 1ms per inference token
-            total_ms = (context_tokens * time_per_ctx_ms +
-                       inference_tokens * time_per_inf_ms)
+            time_per_inf_ms = 1.0  # 1ms per inference token
+            total_ms = (
+                context_tokens * time_per_ctx_ms + inference_tokens * time_per_inf_ms
+            )
             time.sleep(total_ms / 1000)
 
         result = self.runner.run(

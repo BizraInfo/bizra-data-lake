@@ -4,21 +4,21 @@
 
 import json
 import os
-import time
 import statistics
-from pathlib import Path
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Tuple
-from enum import Enum
-from collections import deque
 import threading
+import time
+from collections import deque
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 # Import unified thresholds from authoritative source
 from core.integration.constants import (
+    STRICT_IHSAN_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    STRICT_IHSAN_THRESHOLD,
 )
 
 # Configuration — cross-platform path resolution
@@ -34,6 +34,7 @@ ALERT_COOLDOWN_SECONDS = 300
 
 class MetricType(Enum):
     """Types of metrics tracked by the dashboard"""
+
     SNR = "snr"
     LATENCY = "latency"
     THROUGHPUT = "throughput"
@@ -46,6 +47,7 @@ class MetricType(Enum):
 
 class AlertLevel(Enum):
     """Alert severity levels"""
+
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -54,6 +56,7 @@ class AlertLevel(Enum):
 @dataclass
 class MetricPoint:
     """Single metric measurement"""
+
     timestamp: str
     metric_type: str
     value: float
@@ -63,6 +66,7 @@ class MetricPoint:
 @dataclass
 class Alert:
     """System alert"""
+
     timestamp: str
     level: str
     metric_type: str
@@ -74,6 +78,7 @@ class Alert:
 @dataclass
 class SNRMetrics:
     """Detailed SNR breakdown"""
+
     overall_snr: float
     signal_strength: float
     information_density: float
@@ -86,6 +91,7 @@ class SNRMetrics:
 @dataclass
 class SystemHealth:
     """Overall system health status"""
+
     status: str  # healthy, degraded, critical
     snr_average: float
     ihsan_compliance_rate: float
@@ -126,7 +132,9 @@ class MetricsCollector:
                             point = json.loads(line)
                             # Only load recent metrics
                             ts = datetime.fromisoformat(point["timestamp"])
-                            if datetime.now() - ts < timedelta(hours=METRICS_RETENTION_HOURS):
+                            if datetime.now() - ts < timedelta(
+                                hours=METRICS_RETENTION_HOURS
+                            ):
                                 if point["metric_type"] == "snr":
                                     self._snr_buffer.append(point)
                                 elif point["metric_type"] == "latency":
@@ -148,8 +156,8 @@ class MetricsCollector:
                     "information_density": snr_metrics.information_density,
                     "symbolic_grounding": snr_metrics.symbolic_grounding,
                     "coverage_balance": snr_metrics.coverage_balance,
-                    "ihsan_achieved": snr_metrics.ihsan_achieved
-                }
+                    "ihsan_achieved": snr_metrics.ihsan_achieved,
+                },
             )
             self._snr_buffer.append(asdict(point))
             self._persist_metric(point)
@@ -161,7 +169,7 @@ class MetricsCollector:
                     MetricType.SNR,
                     f"SNR below acceptable threshold: {snr_metrics.overall_snr:.4f}",
                     snr_metrics.overall_snr,
-                    ACCEPTABLE_THRESHOLD
+                    ACCEPTABLE_THRESHOLD,
                 )
             elif snr_metrics.overall_snr < IHSAN_THRESHOLD:
                 self._trigger_alert(
@@ -169,7 +177,7 @@ class MetricsCollector:
                     MetricType.SNR,
                     f"SNR below Ihsān threshold: {snr_metrics.overall_snr:.4f}",
                     snr_metrics.overall_snr,
-                    IHSAN_THRESHOLD
+                    IHSAN_THRESHOLD,
                 )
 
     def record_latency(self, latency_ms: float, operation: str):
@@ -179,7 +187,7 @@ class MetricsCollector:
                 timestamp=datetime.now().isoformat(),
                 metric_type=MetricType.LATENCY.value,
                 value=latency_ms,
-                context={"operation": operation}
+                context={"operation": operation},
             )
             self._latency_buffer.append(asdict(point))
             self._persist_metric(point)
@@ -191,7 +199,7 @@ class MetricsCollector:
                     MetricType.LATENCY,
                     f"High latency detected: {latency_ms:.0f}ms for {operation}",
                     latency_ms,
-                    5000
+                    5000,
                 )
 
     def record_error(self, error_type: str, message: str, recoverable: bool):
@@ -204,8 +212,8 @@ class MetricsCollector:
                 context={
                     "error_type": error_type,
                     "message": message,
-                    "recoverable": recoverable
-                }
+                    "recoverable": recoverable,
+                },
             )
             self._error_buffer.append(asdict(point))
             self._persist_metric(point)
@@ -216,11 +224,17 @@ class MetricsCollector:
                     MetricType.ERROR_RATE,
                     f"Non-recoverable error: {error_type} - {message}",
                     1.0,
-                    0.0
+                    0.0,
                 )
 
-    def _trigger_alert(self, level: AlertLevel, metric_type: MetricType,
-                       message: str, value: float, threshold: float):
+    def _trigger_alert(
+        self,
+        level: AlertLevel,
+        metric_type: MetricType,
+        message: str,
+        value: float,
+        threshold: float,
+    ):
         """Trigger an alert with cooldown"""
         alert_key = f"{level.value}_{metric_type.value}"
         now = time.time()
@@ -235,14 +249,18 @@ class MetricsCollector:
             metric_type=metric_type.value,
             message=message,
             value=value,
-            threshold=threshold
+            threshold=threshold,
         )
         self._alerts.append(alert)
         self._last_alert_time[alert_key] = now
         self._persist_alert(alert)
 
         # Print alert
-        symbol = "🚨" if level == AlertLevel.CRITICAL else "⚠️" if level == AlertLevel.WARNING else "ℹ️"
+        symbol = (
+            "🚨"
+            if level == AlertLevel.CRITICAL
+            else "⚠️" if level == AlertLevel.WARNING else "ℹ️"
+        )
         print(f"{symbol} [{level.value.upper()}] {message}")
 
     def _persist_metric(self, point: MetricPoint):
@@ -264,8 +282,11 @@ class MetricsCollector:
                 return {"status": "no_data"}
 
             values = [p["value"] for p in self._snr_buffer]
-            ihsan_count = sum(1 for p in self._snr_buffer
-                             if p.get("context", {}).get("ihsan_achieved", False))
+            ihsan_count = sum(
+                1
+                for p in self._snr_buffer
+                if p.get("context", {}).get("ihsan_achieved", False)
+            )
 
             return {
                 "count": len(values),
@@ -275,7 +296,9 @@ class MetricsCollector:
                 "max": max(values),
                 "std_dev": statistics.stdev(values) if len(values) > 1 else 0,
                 "ihsan_compliance_rate": ihsan_count / len(values) if values else 0,
-                "below_threshold_count": sum(1 for v in values if v < ACCEPTABLE_THRESHOLD)
+                "below_threshold_count": sum(
+                    1 for v in values if v < ACCEPTABLE_THRESHOLD
+                ),
             }
 
     def get_latency_statistics(self) -> Dict:
@@ -294,7 +317,7 @@ class MetricsCollector:
                 "median_ms": statistics.median(values),
                 "p95_ms": values[int(len(values) * 0.95)] if values else 0,
                 "p99_ms": values[int(len(values) * 0.99)] if values else 0,
-                "max_ms": max(values)
+                "max_ms": max(values),
             }
 
     def get_error_rate(self) -> float:
@@ -312,8 +335,7 @@ class MetricsCollector:
     def get_active_alerts(self) -> List[Alert]:
         """Get recent active alerts"""
         cutoff = datetime.now() - timedelta(hours=1)
-        return [a for a in self._alerts
-                if datetime.fromisoformat(a.timestamp) > cutoff]
+        return [a for a in self._alerts if datetime.fromisoformat(a.timestamp) > cutoff]
 
 
 class MetricsDashboard:
@@ -348,7 +370,7 @@ class MetricsDashboard:
             error_rate=error_rate,
             latency_p95=latency_stats.get("p95_ms", 0),
             active_alerts=len(active_alerts),
-            last_check=datetime.now().isoformat()
+            last_check=datetime.now().isoformat(),
         )
 
     def print_dashboard(self):
@@ -358,11 +380,9 @@ class MetricsDashboard:
         latency_stats = self.collector.get_latency_statistics()
 
         # Status symbol
-        status_symbol = {
-            "healthy": "✅",
-            "degraded": "⚠️",
-            "critical": "🚨"
-        }.get(health.status, "❓")
+        status_symbol = {"healthy": "✅", "degraded": "⚠️", "critical": "🚨"}.get(
+            health.status, "❓"
+        )
 
         print("\n" + "=" * 60)
         print("           BIZRA OPERATIONAL METRICS DASHBOARD")
@@ -377,9 +397,13 @@ class MetricsDashboard:
             ihsan_symbol = "✅" if snr_stats["ihsan_compliance_rate"] >= 0.95 else "⚠️"
             print(f"  Average SNR:        {snr_stats['average']:.4f}")
             print(f"  Median SNR:         {snr_stats['median']:.4f}")
-            print(f"  Min/Max:            {snr_stats['min']:.4f} / {snr_stats['max']:.4f}")
+            print(
+                f"  Min/Max:            {snr_stats['min']:.4f} / {snr_stats['max']:.4f}"
+            )
             print(f"  Std Deviation:      {snr_stats['std_dev']:.4f}")
-            print(f"  Ihsān Compliance:   {ihsan_symbol} {snr_stats['ihsan_compliance_rate']*100:.1f}%")
+            print(
+                f"  Ihsān Compliance:   {ihsan_symbol} {snr_stats['ihsan_compliance_rate']*100:.1f}%"
+            )
             print(f"  Below Threshold:    {snr_stats['below_threshold_count']} queries")
         else:
             print("  No SNR data collected yet")
@@ -399,7 +423,11 @@ class MetricsDashboard:
         # Error Section
         print("\n  ❌ ERROR METRICS")
         print("  " + "-" * 40)
-        error_symbol = "✅" if health.error_rate < 0.01 else "⚠️" if health.error_rate < 0.05 else "🚨"
+        error_symbol = (
+            "✅"
+            if health.error_rate < 0.01
+            else "⚠️" if health.error_rate < 0.05 else "🚨"
+        )
         print(f"  Error Rate:         {error_symbol} {health.error_rate*100:.2f}%")
 
         # Alerts Section
@@ -434,8 +462,8 @@ class MetricsDashboard:
             "active_alerts": [asdict(a) for a in self.collector.get_active_alerts()],
             "thresholds": {
                 "ihsan": IHSAN_THRESHOLD,
-                "acceptable": ACCEPTABLE_THRESHOLD
-            }
+                "acceptable": ACCEPTABLE_THRESHOLD,
+            },
         }
 
         if output_path:
@@ -459,8 +487,9 @@ def get_collector() -> MetricsCollector:
     return _collector
 
 
-def record_snr(overall: float, signal: float, density: float,
-               grounding: float, balance: float):
+def record_snr(
+    overall: float, signal: float, density: float, grounding: float, balance: float
+):
     """Quick SNR recording function"""
     collector = get_collector()
     metrics = SNRMetrics(
@@ -470,7 +499,7 @@ def record_snr(overall: float, signal: float, density: float,
         symbolic_grounding=grounding,
         coverage_balance=balance,
         ihsan_achieved=overall >= IHSAN_THRESHOLD,
-        timestamp=datetime.now().isoformat()
+        timestamp=datetime.now().isoformat(),
     )
     collector.record_snr(metrics)
 
@@ -498,6 +527,7 @@ if __name__ == "__main__":
 
     # Simulate SNR measurements
     import random
+
     for i in range(20):
         snr = random.uniform(0.92, 1.0)
         record_snr(
@@ -505,7 +535,7 @@ if __name__ == "__main__":
             signal=random.uniform(0.9, 1.0),
             density=random.uniform(0.85, 1.0),
             grounding=random.uniform(0.88, 1.0),
-            balance=random.uniform(0.9, 1.0)
+            balance=random.uniform(0.9, 1.0),
         )
 
     # Simulate latency measurements

@@ -55,21 +55,21 @@ Usage:
     python nucleus.py shell       # Interactive REPL
 """
 
-import os
-import sys
-import json
-import time
-import signal
-import asyncio
 import argparse
-import threading
-from pathlib import Path
-from datetime import datetime, timezone
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable
-from enum import Enum
-import subprocess
+import asyncio
+import json
+import os
+import signal
 import socket
+import subprocess
+import sys
+import threading
+import time
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -179,8 +179,8 @@ def check_port(host: str, port: int, timeout: float = 2.0) -> bool:
 
 def check_url(url: str, timeout: float = 5.0) -> tuple[bool, float, Optional[str]]:
     """Check if URL is reachable. Returns (success, latency_ms, error)."""
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     start = time.time()
     try:

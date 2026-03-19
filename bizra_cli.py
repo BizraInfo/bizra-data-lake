@@ -21,15 +21,15 @@ Every seed has infinite potential.
 "One mission, one proof, remembered forever."
 """
 
-import os
-import sys
 import json
+import os
+import platform
+import shutil
 import signal
 import socket
 import subprocess
+import sys
 import time
-import shutil
-import platform
 from pathlib import Path
 from typing import Optional
 
@@ -52,6 +52,7 @@ BIZRA_IDENTITY = BIZRA_STATE / "identity.json"
 API_PORT = int(os.environ.get("BIZRA_API_PORT", "8010"))
 WEB_PORT = int(os.environ.get("BIZRA_WEB_PORT", "3000"))
 OLLAMA_PORT = 11434
+
 
 # Colors (ANSI)
 class C:
@@ -85,6 +86,7 @@ if not _supports_color():
 
 
 # ─── Utility Functions ───────────────────────────────────────────
+
 
 def _print_banner():
     """Print BIZRA startup banner."""
@@ -193,6 +195,7 @@ def _api_health() -> Optional[dict]:
     """Check API health."""
     try:
         import urllib.request
+
         req = urllib.request.Request(
             f"http://127.0.0.1:{API_PORT}/v1/health",
             headers={"Accept": "application/json"},
@@ -227,6 +230,7 @@ def _clear_pids():
 
 
 # ─── Commands ────────────────────────────────────────────────────
+
 
 def cmd_doctor():
     """Diagnose the BIZRA installation."""
@@ -303,7 +307,9 @@ def cmd_doctor():
     if BIZRA_IDENTITY.exists():
         _print_status("Node identity", "Exists", True)
     else:
-        _print_status("Node identity", "Not created (will generate on first run)", False)
+        _print_status(
+            "Node identity", "Not created (will generate on first run)", False
+        )
 
     print(f"\n{C.GRAY}{'─' * 50}{C.RESET}")
     if issues == 0:
@@ -356,11 +362,16 @@ def cmd_start(foreground: bool = False):
     env["BIZRA_ENV"] = os.environ.get("BIZRA_ENV", "development")
 
     api_cmd = [
-        py, "-m", "uvicorn",
+        py,
+        "-m",
+        "uvicorn",
         "core.sovereign.api:app",
-        "--host", "0.0.0.0",
-        "--port", str(API_PORT),
-        "--log-level", "info",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        str(API_PORT),
+        "--log-level",
+        "info",
     ]
 
     if foreground:
@@ -388,7 +399,10 @@ def cmd_start(foreground: bool = False):
             sys.stdout.flush()
 
         print()
-        _print_warn("Runtime started but not yet healthy. Check logs: " + str(BIZRA_LOGS / "api.log"))
+        _print_warn(
+            "Runtime started but not yet healthy. Check logs: "
+            + str(BIZRA_LOGS / "api.log")
+        )
 
 
 def cmd_stop():
@@ -441,6 +455,7 @@ def cmd_status():
     # Try to get more data
     try:
         import urllib.request
+
         # Seed potential
         req = urllib.request.Request(f"http://127.0.0.1:{API_PORT}/v1/seed/potential")
         with urllib.request.urlopen(req, timeout=3) as resp:
@@ -477,14 +492,17 @@ def cmd_mission(text: str):
         sys.exit(1)
 
     print(f"\n{C.TEAL}🎯 Submitting mission...{C.RESET}")
-    print(f"  {C.GRAY}\"{text}\"{C.RESET}\n")
+    print(f'  {C.GRAY}"{text}"{C.RESET}\n')
 
     try:
         import urllib.request
-        data = json.dumps({
-            "intent": text,
-            "context": {},
-        }).encode()
+
+        data = json.dumps(
+            {
+                "intent": text,
+                "context": {},
+            }
+        ).encode()
 
         req = urllib.request.Request(
             f"http://127.0.0.1:{API_PORT}/v1/plan",
@@ -520,11 +538,15 @@ def cmd_mission(text: str):
             # Check for reflex compilation
             reflex = result.get("reflex_delta", {})
             if reflex.get("compiled"):
-                print(f"\n  {C.GOLD}⚡ REFLEX COMPILED — next execution will be System-1{C.RESET}")
+                print(
+                    f"\n  {C.GOLD}⚡ REFLEX COMPILED — next execution will be System-1{C.RESET}"
+                )
             elif reflex.get("near_compile"):
                 count = reflex.get("compile_count", 0)
                 threshold = reflex.get("threshold", 3)
-                print(f"\n  {C.GOLD}🔥 Near-compile: {count}/{threshold} toward reflex{C.RESET}")
+                print(
+                    f"\n  {C.GOLD}🔥 Near-compile: {count}/{threshold} toward reflex{C.RESET}"
+                )
 
             print()
 
@@ -542,7 +564,10 @@ def cmd_briefing():
 
     try:
         import urllib.request
-        req = urllib.request.Request(f"http://127.0.0.1:{API_PORT}/v1/terminal/briefing")
+
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{API_PORT}/v1/terminal/briefing"
+        )
         with urllib.request.urlopen(req, timeout=5) as resp:
             briefing = json.loads(resp.read())
 
@@ -571,6 +596,7 @@ def cmd_wallet():
 
     try:
         import urllib.request
+
         req = urllib.request.Request(f"http://127.0.0.1:{API_PORT}/v1/token/balance")
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read())
@@ -586,8 +612,14 @@ def cmd_wallet():
                 bal = info.get("balance", 0) if isinstance(info, dict) else 0
                 staked = info.get("staked", 0) if isinstance(info, dict) else 0
                 color = C.GOLD if token == "SEED" else C.PURPLE
-                print(f"  {color}  {token}: {bal:.2f}{C.RESET}" +
-                      (f" {C.GRAY}(staked: {staked:.2f}){C.RESET}" if staked > 0 else ""))
+                print(
+                    f"  {color}  {token}: {bal:.2f}{C.RESET}"
+                    + (
+                        f" {C.GRAY}(staked: {staked:.2f}){C.RESET}"
+                        if staked > 0
+                        else ""
+                    )
+                )
 
             print()
 
@@ -619,7 +651,7 @@ def cmd_version():
     print(f"\n  {C.BOLD}{C.WHITE}BIZRA{C.RESET} v{VERSION} ({CODENAME})")
     print(f"  {C.GRAY}Sovereign Mission Operating System{C.RESET}")
     print(f"  {C.GRAY}Dubai · BIZRA Foundation · 2026{C.RESET}")
-    print(f"  {C.TEAL}\"One mission, one proof, remembered forever.\"{C.RESET}")
+    print(f'  {C.TEAL}"One mission, one proof, remembered forever."{C.RESET}')
     print()
 
 
@@ -693,18 +725,23 @@ def cmd_launch():
     print(f"  {C.WHITE}API Docs:{C.RESET}  http://localhost:{API_PORT}/docs")
 
     print(f"\n  {C.GRAY}Commands:{C.RESET}")
-    print(f"    {C.TEAL}bizra mission \"organize my files\"{C.RESET}  — Submit a mission")
-    print(f"    {C.TEAL}bizra briefing{C.RESET}                      — Morning briefing")
+    print(f'    {C.TEAL}bizra mission "organize my files"{C.RESET}  — Submit a mission')
+    print(
+        f"    {C.TEAL}bizra briefing{C.RESET}                      — Morning briefing"
+    )
     print(f"    {C.TEAL}bizra wallet{C.RESET}                        — Check balance")
     print(f"    {C.TEAL}bizra status{C.RESET}                        — Node status")
-    print(f"    {C.TEAL}bizra stop{C.RESET}                          — Stop all services")
+    print(
+        f"    {C.TEAL}bizra stop{C.RESET}                          — Stop all services"
+    )
 
     print(f"\n  {C.PURPLE}💜 {DEMA_GREETING}{C.RESET}")
-    print(f"  {C.GOLD}\"One mission, one proof, remembered forever.\"{C.RESET}")
+    print(f'  {C.GOLD}"One mission, one proof, remembered forever."{C.RESET}')
     print()
 
 
 # ─── CLI Entry Point ─────────────────────────────────────────────
+
 
 def main():
     """
@@ -714,9 +751,9 @@ def main():
     that auto-discovers commands from core.cli.commands. All behavior
     is preserved. Bare `bizra` (no args) still launches the full terminal.
     """
-    from core.cli.registry import CommandRegistry
-    from core.cli.hooks import CLIHooksManager
     from core.cli.commands import ALL_COMMANDS
+    from core.cli.hooks import CLIHooksManager
+    from core.cli.registry import CommandRegistry
 
     # Build registry
     registry = CommandRegistry()

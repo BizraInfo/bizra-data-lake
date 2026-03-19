@@ -20,15 +20,15 @@
 ═══════════════════════════════════════════════════════════════════════════════════════════════
 """
 
+import argparse
+import json
+import logging
 import os
 import sys
-import json
-import argparse
-import logging
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from dataclasses import asdict
-from typing import Dict, Any, Optional, List
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any, Dict, List, Optional
 
 # Lazy import to avoid TensorFlow/PyTorch conflict at startup
 PeakMasterpieceEngine = None
@@ -41,18 +41,18 @@ def _lazy_import():
     global PeakMasterpieceEngine, CommandType, EvidencePointer
     if PeakMasterpieceEngine is None:
         try:
-            from peak_masterpiece import PeakMasterpieceEngine as PME
             from peak_masterpiece import CommandType as CT
             from peak_masterpiece import EvidencePointer as EP
+            from peak_masterpiece import PeakMasterpieceEngine as PME
 
             PeakMasterpieceEngine = PME
             CommandType = CT
             EvidencePointer = EP
         except ImportError:
             sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-            from peak_masterpiece import PeakMasterpieceEngine as PME
             from peak_masterpiece import CommandType as CT
             from peak_masterpiece import EvidencePointer as EP
+            from peak_masterpiece import PeakMasterpieceEngine as PME
 
             PeakMasterpieceEngine = PME
             CommandType = CT

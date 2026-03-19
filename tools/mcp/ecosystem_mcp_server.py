@@ -20,17 +20,17 @@ TRANSPORT:
 Migrated to MCP SDK: 2026-02-18
 """
 
-import sys
-import os
-import json
-import asyncio
-import logging
 import argparse
-import time
+import asyncio
 import contextlib
 import hashlib
+import json
+import logging
+import os
+import sys
+import time
 from collections import OrderedDict
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import StringIO
 from typing import Any, Dict, Optional
 
@@ -160,10 +160,10 @@ def _lazy_import():
 
     log.info("Lazy importing Ecosystem Bridge...")
     from ecosystem_bridge import (
-        initialize_ecosystem,
         EcosystemBridge,
         UnifiedQuery,
         UnifiedResponse,
+        initialize_ecosystem,
     )
 
     _EcosystemBridge = EcosystemBridge
@@ -285,9 +285,9 @@ def _do_mcp_health() -> Dict[str, Any]:
 # MCP SERVER via SDK (proper stdio transport with content-length framing)
 # ===============================================================================
 
+import mcp.types as types
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-import mcp.types as types
 
 server = Server(SERVER_NAME, version=SERVER_VERSION)
 

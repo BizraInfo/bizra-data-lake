@@ -86,12 +86,9 @@ def load_config(path: Path) -> CanonicalEmpiricalConfig:
         min_score=float(thresholds.get("min_score", 0.95)),
         min_empirical_pass_rate=float(thresholds.get("min_empirical_pass_rate", 1.0)),
         required_proof_planes=[
-            str(item)
-            for item in (thresholds.get("required_proof_planes") or [])
+            str(item) for item in (thresholds.get("required_proof_planes") or [])
         ],
-        giants_protocol=[
-            str(item) for item in (payload.get("giants_protocol") or [])
-        ],
+        giants_protocol=[str(item) for item in (payload.get("giants_protocol") or [])],
         program=payload.get("program") or {},
     )
 
@@ -478,7 +475,9 @@ def build_report(
         constraints[label] = plane_constraints.get(label, False)
 
     gate_passed = all(constraints.values())
-    proof_planes_passed = sum(1 for plane in proof_planes.values() if plane.get("passed"))
+    proof_planes_passed = sum(
+        1 for plane in proof_planes.values() if plane.get("passed")
+    )
 
     if gate_passed:
         canonical_status = "CANONICAL"
@@ -488,7 +487,11 @@ def build_report(
             "action": "Promote canonical empirical packet into protected CI and release evidence artifacts.",
         }
     else:
-        canonical_status = "DEGRADED" if (passed_validations > 0 or proof_planes_passed > 0) else "BLOCKED"
+        canonical_status = (
+            "DEGRADED"
+            if (passed_validations > 0 or proof_planes_passed > 0)
+            else "BLOCKED"
+        )
         failed = [name for name, ok in constraints.items() if not ok]
         next_step = {
             "priority": "P1",
@@ -508,7 +511,9 @@ def build_report(
             {
                 "id": label,
                 "score": plane_score,
-                "status": _status_for(plane_score, bool(proof_planes[label].get("passed", False))),
+                "status": _status_for(
+                    plane_score, bool(proof_planes[label].get("passed", False))
+                ),
             }
         )
     graph_nodes.append(
@@ -524,7 +529,8 @@ def build_report(
         graph_edges.append({"from": label, "to": "canonical_empirical_status"})
 
     return {
-        "program": cfg.program or {
+        "program": cfg.program
+        or {
             "id": "canonical_empirical_validation",
             "version": "1.0.0",
         },
@@ -626,9 +632,7 @@ def _emit_github_outputs(report: dict[str, Any], output_path: Path) -> None:
         handle.write(
             f"canonical_empirical_passed={str(report.get('gate_passed', False)).lower()}\n"
         )
-        handle.write(
-            f"canonical_empirical_score={metrics.get('score', 0.0)}\n"
-        )
+        handle.write(f"canonical_empirical_score={metrics.get('score', 0.0)}\n")
         handle.write(
             f"canonical_empirical_status={report.get('canonical_status', 'UNKNOWN')}\n"
         )
@@ -762,7 +766,9 @@ def _run_live_canonical_validation() -> int:
         checks["boot_identity"] = {
             "passed": hb._node_id is not None and hb._node_id != "" and hb.booted,
             "node_id": hb._node_id[:24] + "..." if hb._node_id else "",
-            "boot_node_id": boot_receipt.node_id[:24] + "..." if boot_receipt.node_id else "",
+            "boot_node_id": (
+                boot_receipt.node_id[:24] + "..." if boot_receipt.node_id else ""
+            ),
             "detail": "Node0Heartbeat booted with derived identity",
         }
     except Exception as exc:
@@ -813,12 +819,14 @@ def _run_live_canonical_validation() -> int:
     try:
         if hb is None:
             raise RuntimeError("Skipped — boot failed")
-        hb.ingest_mission_receipt({
-            "mission_id": "live-E4-test",
-            "description": "live validation mission",
-            "source": "E4",
-            "ihsan_score": 0.96,
-        })
+        hb.ingest_mission_receipt(
+            {
+                "mission_id": "live-E4-test",
+                "description": "live validation mission",
+                "source": "E4",
+                "ihsan_score": 0.96,
+            }
+        )
         receipt3 = hb.breathe()
         mission_processed = receipt3.missions_processed > 0
         checks["mission_ingest"] = {

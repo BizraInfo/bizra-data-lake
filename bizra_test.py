@@ -111,7 +111,12 @@ class TestLockReceipt:
 def run_cmd(cmd: str, timeout: int = 600) -> subprocess.CompletedProcess:
     """Run a shell command and return result."""
     return subprocess.run(
-        cmd, shell=True, capture_output=True, text=True, timeout=timeout, cwd=PROJECT_ROOT
+        cmd,
+        shell=True,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        cwd=PROJECT_ROOT,
     )
 
 
@@ -303,7 +308,7 @@ def run_contract() -> int:
 def run_full(with_coverage: bool = True) -> tuple:
     """T3: Full test suite — all tests."""
     cov_flag = "--cov=core --cov-report=term" if with_coverage else ""
-    cmd = f'{PYTEST_BASE} tests/ -q --timeout=120 {PYTEST_EXCLUDE} {PYTEST_IGNORE} {cov_flag}'
+    cmd = f"{PYTEST_BASE} tests/ -q --timeout=120 {PYTEST_EXCLUDE} {PYTEST_IGNORE} {cov_flag}"
 
     print("T3 FULL — Running ALL tests...")
     start = time.time()
@@ -316,7 +321,9 @@ def run_full(with_coverage: bool = True) -> tuple:
     coverage = parse_coverage(r.stdout) if with_coverage else 0.0
 
     if r.returncode == 0:
-        print(f"\nFull suite: {results['passed']} passed in {elapsed:.0f}s (coverage: {coverage}%)")
+        print(
+            f"\nFull suite: {results['passed']} passed in {elapsed:.0f}s (coverage: {coverage}%)"
+        )
     else:
         print(f"\nFull suite FAILED: {results['failed']} failures in {elapsed:.0f}s")
 
@@ -354,7 +361,9 @@ def run_lock() -> int:
 
     # Check coverage ratchet
     if prev_lock and coverage < prev_lock.coverage_floor:
-        print(f"\nCannot lock — coverage {coverage}% < floor {prev_lock.coverage_floor}%")
+        print(
+            f"\nCannot lock — coverage {coverage}% < floor {prev_lock.coverage_floor}%"
+        )
         print("   Coverage ratchet: coverage can only go UP.")
         return 1
 
@@ -384,7 +393,9 @@ def run_lock() -> int:
     LOCK_CURRENT.write_text(json.dumps(asdict(receipt), indent=2))
 
     # Create git tag
-    r = run_cmd(f'git tag -a {tag} -m "Lock: {results["passed"]} tests, {coverage}% coverage"')
+    r = run_cmd(
+        f'git tag -a {tag} -m "Lock: {results["passed"]} tests, {coverage}% coverage"'
+    )
     if r.returncode != 0:
         print(f"Git tag note: {r.stderr.strip()}")
 
@@ -420,7 +431,9 @@ def show_status() -> int:
     # Check what changed since lock
     changed = get_changed_files_since(lock.git_tag)
     if not changed:
-        print(f"\nNo changes since {lock.git_tag}. All {lock.total_tests} tests proven.")
+        print(
+            f"\nNo changes since {lock.git_tag}. All {lock.total_tests} tests proven."
+        )
         return 0
 
     affected = get_affected_tests(changed)

@@ -15,17 +15,16 @@ Blueprint Reference: P3 Coverage Ratchet — hrm module (0.25 → higher)
 import pytest
 
 from core.hrm.abstraction_levels import (
-    AbstractionLevel,
-    BridgeNodeType,
     HRM_SNR_GRADIENT,
     HRM_TEMPORAL_SCALE,
+    AbstractionLevel,
+    BridgeNodeType,
     LevelBoundary,
     LevelConfig,
     TemporalScale,
     default_boundaries,
     default_level_configs,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Enums
@@ -205,7 +204,9 @@ class TestDefaultLevelConfigs:
     def test_learning_rate_decreases(self):
         configs = default_level_configs()
         for i in range(len(configs) - 1):
-            assert configs[i].learning_rate_factor >= configs[i + 1].learning_rate_factor
+            assert (
+                configs[i].learning_rate_factor >= configs[i + 1].learning_rate_factor
+            )
 
     def test_noise_tolerance_decreases(self):
         configs = default_level_configs()

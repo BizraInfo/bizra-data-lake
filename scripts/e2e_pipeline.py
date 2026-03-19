@@ -49,7 +49,6 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from core.integration.constants import LMSTUDIO_URL
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════

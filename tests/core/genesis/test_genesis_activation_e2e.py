@@ -195,10 +195,14 @@ class TestGenesisActivationE2E:
         result = activation.activate()
 
         pat_lines = [
-            l for l in result.ceremony_result.pat_roster.strip().split("\n") if l.strip()
+            l
+            for l in result.ceremony_result.pat_roster.strip().split("\n")
+            if l.strip()
         ]
         sat_lines = [
-            l for l in result.ceremony_result.sat_roster.strip().split("\n") if l.strip()
+            l
+            for l in result.ceremony_result.sat_roster.strip().split("\n")
+            if l.strip()
         ]
 
         assert len(pat_lines) == 7, f"Expected 7 PAT agents, got {len(pat_lines)}"

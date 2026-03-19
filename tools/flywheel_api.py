@@ -23,23 +23,23 @@ from dataclasses import asdict
 from typing import Optional
 
 from fastapi import (
+    Depends,
     FastAPI,
+    Header,
     HTTPException,
     WebSocket,
     WebSocketDisconnect,
-    Header,
-    Depends,
 )
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
 
 # Import the flywheel core
 from flywheel import (
+    AUTH_TOKEN_ENV,
+    AuthResult,
     Flywheel,
     FlywheelState,
-    AuthResult,
-    AUTH_TOKEN_ENV,
 )
+from pydantic import BaseModel, Field
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION

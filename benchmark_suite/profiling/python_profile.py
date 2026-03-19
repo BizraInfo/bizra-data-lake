@@ -15,17 +15,17 @@ Output:
 """
 
 import cProfile
-import pstats
-import tracemalloc
-import time
-import sys
 import io
 import json
-from pathlib import Path
-from functools import wraps
-from typing import Callable, Any, Dict, List, Optional
-from dataclasses import dataclass, asdict
+import pstats
+import sys
+import time
+import tracemalloc
 from contextlib import contextmanager
+from dataclasses import asdict, dataclass
+from functools import wraps
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 
@@ -38,8 +38,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # PROFILING DECORATORS
 # ============================================================================
 
+
 def profile_cpu(func: Callable) -> Callable:
     """Decorator to profile function CPU usage with cProfile."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         profiler = cProfile.Profile()
@@ -57,7 +59,7 @@ def profile_cpu(func: Callable) -> Callable:
             print(f"{'='*70}")
 
             stats = pstats.Stats(profiler)
-            stats.sort_stats('cumulative')
+            stats.sort_stats("cumulative")
             stats.print_stats(20)
 
     return wrapper
@@ -65,6 +67,7 @@ def profile_cpu(func: Callable) -> Callable:
 
 def profile_memory(func: Callable) -> Callable:
     """Decorator to profile function memory usage with tracemalloc."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         tracemalloc.start()
@@ -87,6 +90,7 @@ def profile_memory(func: Callable) -> Callable:
 
 def profile_time(func: Callable) -> Callable:
     """Decorator to profile function execution time."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         start = time.perf_counter_ns()
@@ -109,6 +113,7 @@ def profile_time(func: Callable) -> Callable:
 
 def profile_all(func: Callable) -> Callable:
     """Decorator to profile CPU, memory, and time."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Start tracemalloc
@@ -146,7 +151,7 @@ def profile_all(func: Callable) -> Callable:
 
             print(f"\n--- CPU (top 10 by cumulative time) ---")
             stats = pstats.Stats(profiler)
-            stats.sort_stats('cumulative')
+            stats.sort_stats("cumulative")
             stats.print_stats(10)
 
     return wrapper
@@ -155,6 +160,7 @@ def profile_all(func: Callable) -> Callable:
 # ============================================================================
 # PROFILING CONTEXT MANAGERS
 # ============================================================================
+
 
 @contextmanager
 def profile_section(name: str):
@@ -169,18 +175,22 @@ def profile_section(name: str):
         current_mem, peak_mem = tracemalloc.get_traced_memory()
         tracemalloc.stop()
 
-        print(f"[{name}] time={elapsed_ns/1e6:.3f}ms, "
-              f"mem_current={current_mem/1024:.1f}KB, "
-              f"mem_peak={peak_mem/1024:.1f}KB")
+        print(
+            f"[{name}] time={elapsed_ns/1e6:.3f}ms, "
+            f"mem_current={current_mem/1024:.1f}KB, "
+            f"mem_peak={peak_mem/1024:.1f}KB"
+        )
 
 
 # ============================================================================
 # PROFILE REPORT GENERATION
 # ============================================================================
 
+
 @dataclass
 class ProfileResult:
     """Structured profiling result."""
+
     function_name: str
     execution_time_ns: int
     memory_current_bytes: int
@@ -214,23 +224,25 @@ class ProfileReportGenerator:
         # Extract top functions
         stream = io.StringIO()
         stats = pstats.Stats(profiler, stream=stream)
-        stats.sort_stats('cumulative')
+        stats.sort_stats("cumulative")
         stats.print_stats(10)
 
         # Parse stats output (simplified)
         top_functions = []
-        for line in stream.getvalue().split('\n'):
-            if 'cumtime' in line or not line.strip():
+        for line in stream.getvalue().split("\n"):
+            if "cumtime" in line or not line.strip():
                 continue
             parts = line.split()
             if len(parts) >= 6:
                 try:
-                    top_functions.append({
-                        "ncalls": parts[0],
-                        "tottime": float(parts[1]),
-                        "cumtime": float(parts[3]),
-                        "function": parts[5] if len(parts) > 5 else "unknown"
-                    })
+                    top_functions.append(
+                        {
+                            "ncalls": parts[0],
+                            "tottime": float(parts[1]),
+                            "cumtime": float(parts[3]),
+                            "function": parts[5] if len(parts) > 5 else "unknown",
+                        }
+                    )
                 except (ValueError, IndexError):
                     continue
 
@@ -239,7 +251,7 @@ class ProfileReportGenerator:
             execution_time_ns=elapsed_ns,
             memory_current_bytes=current_mem,
             memory_peak_bytes=peak_mem,
-            top_functions=top_functions[:10]
+            top_functions=top_functions[:10],
         )
 
         self.results.append(result)
@@ -248,7 +260,7 @@ class ProfileReportGenerator:
     def save_report(self, filename: str = "profile_report.json"):
         """Save profiling results to JSON."""
         report_path = self.output_dir / filename
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump([asdict(r) for r in self.results], f, indent=2)
         print(f"Report saved to: {report_path}")
 
@@ -257,11 +269,13 @@ class ProfileReportGenerator:
 # SPECIFIC PROFILERS
 # ============================================================================
 
+
 class NTUProfiler:
     """Profiler specific to NTU implementation."""
 
     def __init__(self):
         from core.ntu import NTU, NTUConfig
+
         self.NTU = NTU
         self.NTUConfig = NTUConfig
 
@@ -322,6 +336,7 @@ class NTUProfiler:
 
         with profile_section("neural_prior (100 lookups)"):
             from core.ntu.ntu import Observation
+
             obs = Observation(value=0.75)
             for _ in range(100):
                 ntu._compute_neural_prior(obs)
@@ -339,6 +354,7 @@ class FATEProfiler:
 
     def __init__(self):
         from core.elite.hooks import FATEGate, HookContext
+
         self.FATEGate = FATEGate
         self.HookContext = HookContext
 
@@ -350,7 +366,7 @@ class FATEProfiler:
             operation_name="test_op",
             operation_type="function",
             input_data={"test": "data"},
-            metadata={"description": "test"}
+            metadata={"description": "test"},
         )
         return gate.validate(context, "test intent", 0.9)
 
@@ -375,6 +391,7 @@ class SNRProfiler:
 
     def __init__(self):
         from core.iaas.snr_v2 import SNRCalculatorV2
+
         self.SNRCalculatorV2 = SNRCalculatorV2
 
     @profile_all
@@ -432,6 +449,7 @@ class SNRProfiler:
 # ============================================================================
 # MAIN
 # ============================================================================
+
 
 def run_all_profiles():
     """Run all profilers and generate comprehensive report."""

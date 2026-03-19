@@ -7,9 +7,9 @@ import functools
 import logging
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
-from datetime import datetime, timedelta
 
 logger = logging.getLogger("BIZRA.Resilience")
 

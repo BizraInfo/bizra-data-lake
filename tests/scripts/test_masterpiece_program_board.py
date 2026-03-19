@@ -121,26 +121,48 @@ def _blueprint_report(gate_passed: bool = True) -> dict:
             "security": 1.0 if gate_passed else 0.5,
         },
         "ethical_integrity_posture": {
-            "ihsan": {"score": 0.99 if gate_passed else 0.7, "status": "PASS" if gate_passed else "BLOCKED"},
-            "adl": {"score": 0.98 if gate_passed else 0.68, "status": "PASS" if gate_passed else "BLOCKED"},
-            "amanah": {"score": 0.97 if gate_passed else 0.72, "status": "PASS" if gate_passed else "BLOCKED"},
-            "overall": {"score": 0.98 if gate_passed else 0.7, "status": "PASS" if gate_passed else "BLOCKED"},
+            "ihsan": {
+                "score": 0.99 if gate_passed else 0.7,
+                "status": "PASS" if gate_passed else "BLOCKED",
+            },
+            "adl": {
+                "score": 0.98 if gate_passed else 0.68,
+                "status": "PASS" if gate_passed else "BLOCKED",
+            },
+            "amanah": {
+                "score": 0.97 if gate_passed else 0.72,
+                "status": "PASS" if gate_passed else "BLOCKED",
+            },
+            "overall": {
+                "score": 0.98 if gate_passed else 0.7,
+                "status": "PASS" if gate_passed else "BLOCKED",
+            },
         },
         "implementation_strategy": {
-            "current_phase": "promote_release_evidence" if gate_passed else "stabilize_truth_and_trust",
-            "phase_objective": "Promote synchronized release evidence." if gate_passed else "Resolve blueprint blockers first.",
+            "current_phase": (
+                "promote_release_evidence"
+                if gate_passed
+                else "stabilize_truth_and_trust"
+            ),
+            "phase_objective": (
+                "Promote synchronized release evidence."
+                if gate_passed
+                else "Resolve blueprint blockers first."
+            ),
         },
-        "risk_register": []
-        if gate_passed
-        else [
-            {
-                "risk_id": "R001",
-                "priority": "P0",
-                "dimension": "devops",
-                "owner": "devops",
-                "cascade": "Broken orchestration allows incomplete evidence to ship.",
-            }
-        ],
+        "risk_register": (
+            []
+            if gate_passed
+            else [
+                {
+                    "risk_id": "R001",
+                    "priority": "P0",
+                    "dimension": "devops",
+                    "owner": "devops",
+                    "cascade": "Broken orchestration allows incomplete evidence to ship.",
+                }
+            ]
+        ),
         "standing_on_giants_protocol": [
             "Shannon:SNR maximization",
             "Deming:PDCA quality discipline",
@@ -156,16 +178,18 @@ def _blueprint_report(gate_passed: bool = True) -> dict:
             ],
             "edges": [{"from": "files", "to": "release_readiness"}],
         },
-        "optimization_roadmap": []
-        if gate_passed
-        else [
-            {
-                "priority": "P0",
-                "owner": "devops",
-                "check": "pipeline:missing",
-                "action": "Fix CI/CD orchestration and job dependency chain.",
-            }
-        ],
+        "optimization_roadmap": (
+            []
+            if gate_passed
+            else [
+                {
+                    "priority": "P0",
+                    "owner": "devops",
+                    "check": "pipeline:missing",
+                    "action": "Fix CI/CD orchestration and job dependency chain.",
+                }
+            ]
+        ),
     }
 
 
@@ -192,9 +216,11 @@ def _autonomous_report(gate_passed: bool = True) -> dict:
         "autonomous_next_step": {
             "priority": "P0" if gate_passed else "P1",
             "owner": "autonomous-engine",
-            "action": "Promote autonomous profile to protected release pipeline."
-            if gate_passed
-            else "Recalibrate autonomous gate.",
+            "action": (
+                "Promote autonomous profile to protected release pipeline."
+                if gate_passed
+                else "Recalibrate autonomous gate."
+            ),
         },
     }
 
@@ -235,9 +261,11 @@ def _canonical_empirical_report(gate_passed: bool = True) -> dict:
         "autonomous_next_step": {
             "priority": "P0" if gate_passed else "P1",
             "owner": "release-evidence" if gate_passed else "validation-lane",
-            "action": "Promote canonical empirical packet into protected CI and release evidence artifacts."
-            if gate_passed
-            else "Repair failing empirical proof planes.",
+            "action": (
+                "Promote canonical empirical packet into protected CI and release evidence artifacts."
+                if gate_passed
+                else "Repair failing empirical proof planes."
+            ),
         },
     }
 
@@ -263,9 +291,9 @@ def test_masterpiece_program_board_passes_and_emits_graph(tmp_path: Path) -> Non
             )
         ),
         optimization_blueprint=json.loads(
-            (tmp_path / "config" / "bizra_unified_optimization_blueprint.json").read_text(
-                encoding="utf-8"
-            )
+            (
+                tmp_path / "config" / "bizra_unified_optimization_blueprint.json"
+            ).read_text(encoding="utf-8")
         ),
     )
 
@@ -274,18 +302,25 @@ def test_masterpiece_program_board_passes_and_emits_graph(tmp_path: Path) -> Non
     assert board["metrics"]["empirical_score"] >= 1.0
     assert board["metrics"]["composite_snr"] >= 0.90
     assert board["ethical_integrity_posture"]["overall"]["status"] == "PASS"
-    assert board["implementation_strategy"]["current_phase"] == "promote_release_evidence"
+    assert (
+        board["implementation_strategy"]["current_phase"] == "promote_release_evidence"
+    )
     node_ids = {node["id"] for node in board["graph_of_thought"]["nodes"]}
     assert "blueprint:release_readiness" in node_ids
     assert "autonomous:release_decision" in node_ids
     assert "empirical:canonical_empirical_status" in node_ids
     assert "board:program_board" in node_ids
     assert board["top_workstreams"][0]["priority"] == "P0"
-    assert "Besta:graph-of-thought reasoning topology" in board["standing_on_giants_protocol"]
+    assert (
+        "Besta:graph-of-thought reasoning topology"
+        in board["standing_on_giants_protocol"]
+    )
     assert board["source_reports"]["canonical_empirical"]["status"] == "CANONICAL"
 
 
-def test_masterpiece_program_board_fails_when_blueprint_gate_fails(tmp_path: Path) -> None:
+def test_masterpiece_program_board_fails_when_blueprint_gate_fails(
+    tmp_path: Path,
+) -> None:
     config_path = _seed_config(tmp_path)
     _seed_source_artifacts(tmp_path)
     config = load_config(config_path)
@@ -306,9 +341,9 @@ def test_masterpiece_program_board_fails_when_blueprint_gate_fails(tmp_path: Pat
             )
         ),
         optimization_blueprint=json.loads(
-            (tmp_path / "config" / "bizra_unified_optimization_blueprint.json").read_text(
-                encoding="utf-8"
-            )
+            (
+                tmp_path / "config" / "bizra_unified_optimization_blueprint.json"
+            ).read_text(encoding="utf-8")
         ),
     )
 
@@ -319,7 +354,9 @@ def test_masterpiece_program_board_fails_when_blueprint_gate_fails(tmp_path: Pat
     assert board["risk_register"][0]["priority"] == "P0"
 
 
-def test_masterpiece_program_board_fails_when_empirical_gate_fails(tmp_path: Path) -> None:
+def test_masterpiece_program_board_fails_when_empirical_gate_fails(
+    tmp_path: Path,
+) -> None:
     config_path = _seed_config(tmp_path)
     _seed_source_artifacts(tmp_path)
     config = load_config(config_path)
@@ -340,16 +377,19 @@ def test_masterpiece_program_board_fails_when_empirical_gate_fails(tmp_path: Pat
             )
         ),
         optimization_blueprint=json.loads(
-            (tmp_path / "config" / "bizra_unified_optimization_blueprint.json").read_text(
-                encoding="utf-8"
-            )
+            (
+                tmp_path / "config" / "bizra_unified_optimization_blueprint.json"
+            ).read_text(encoding="utf-8")
         ),
     )
 
     assert board["gate_passed"] is False
     assert board["constraints"]["canonical_empirical_gate"] is False
     assert board["autonomous_next_step"]["priority"] == "P1"
-    assert "Repair failing empirical proof planes" in board["autonomous_next_step"]["action"]
+    assert (
+        "Repair failing empirical proof planes"
+        in board["autonomous_next_step"]["action"]
+    )
 
 
 def test_masterpiece_program_board_markdown_contains_next_step(tmp_path: Path) -> None:
@@ -373,9 +413,9 @@ def test_masterpiece_program_board_markdown_contains_next_step(tmp_path: Path) -
             )
         ),
         optimization_blueprint=json.loads(
-            (tmp_path / "config" / "bizra_unified_optimization_blueprint.json").read_text(
-                encoding="utf-8"
-            )
+            (
+                tmp_path / "config" / "bizra_unified_optimization_blueprint.json"
+            ).read_text(encoding="utf-8")
         ),
     )
     rendered = render_markdown(board)

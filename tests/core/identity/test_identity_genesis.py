@@ -10,10 +10,10 @@ from __future__ import annotations
 import hashlib
 import os
 
+import pytest
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-import pytest
 
 from core.identity.genesis import (
     GENESIS_SIGNATURE_DOMAIN,
@@ -261,12 +261,16 @@ class TestIdentityGenesisExtensions:
 
     def test_genesis_hash_is_stable_for_fixed_payload_and_changes_with_persona(self):
         pk = os.urandom(32)
-        persona = PersonaSeed(display_name="Mumo", mission_statement="BIZRA", locale="en")
+        persona = PersonaSeed(
+            display_name="Mumo", mission_statement="BIZRA", locale="en"
+        )
         same_1 = IdentityGenesis.create(pk, persona_seed=persona, created_at=1234.5)
         same_2 = IdentityGenesis.create(pk, persona_seed=persona, created_at=1234.5)
         changed = IdentityGenesis.create(
             pk,
-            persona_seed=PersonaSeed(display_name="DEMA", mission_statement="BIZRA", locale="en"),
+            persona_seed=PersonaSeed(
+                display_name="DEMA", mission_statement="BIZRA", locale="en"
+            ),
             created_at=1234.5,
         )
 
@@ -288,7 +292,9 @@ class TestIdentityGenesisExtensions:
 
         genesis = IdentityGenesis.create(
             public_key,
-            persona_seed=PersonaSeed(display_name="Mumo", mission_statement="BIZRA", locale="en"),
+            persona_seed=PersonaSeed(
+                display_name="Mumo", mission_statement="BIZRA", locale="en"
+            ),
             created_at=1234.5,
             genesis_signing_key=private_bytes,
         )
@@ -298,9 +304,14 @@ class TestIdentityGenesisExtensions:
         assert genesis.verify_genesis_signature()
 
         verifier = private_key.public_key()
-        verifier.verify(bytes.fromhex(genesis.genesis_signature), genesis.signable_payload())
+        verifier.verify(
+            bytes.fromhex(genesis.genesis_signature), genesis.signable_payload()
+        )
         with pytest.raises(InvalidSignature):
-            verifier.verify(bytes.fromhex(genesis.genesis_signature), genesis.genesis_hash.encode("ascii"))
+            verifier.verify(
+                bytes.fromhex(genesis.genesis_signature),
+                genesis.genesis_hash.encode("ascii"),
+            )
 
     def test_genesis_signature_rejects_mismatched_signing_key(self):
         expected_private_key = Ed25519PrivateKey.generate()

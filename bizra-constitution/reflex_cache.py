@@ -24,22 +24,22 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time
 import logging
 import threading
+import time
 from collections import OrderedDict
-from dataclasses import dataclass, field, asdict
-from typing import Any, Callable
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any, Callable
 
 try:
     from generated.generated_constants import (
+        REFLEX_INVALIDATION_DELTA,
+        REFLEX_INVALIDATION_INTERVAL,
         REFLEX_MAX_ENTRIES,
         REFLEX_PRECIPITATION_HITS,
         REFLEX_PRECIPITATION_IHSAN,
         REFLEX_SIMILARITY_THRESHOLD,
-        REFLEX_INVALIDATION_INTERVAL,
-        REFLEX_INVALIDATION_DELTA,
         REFLEX_STALENESS_DAYS,
     )
 except ImportError:
@@ -62,18 +62,19 @@ logger = logging.getLogger("bizra.reflex_cache")
 @dataclass
 class ReflexEntry:
     """A single cached reflex pattern."""
-    pattern_hash: str           # SHA-256 of normalized input
-    input_template: str         # The input pattern (stripped of specifics)
-    output_template: str        # The cached response
-    ihsan_composite: float      # Ihsan score when precipitated
+
+    pattern_hash: str  # SHA-256 of normalized input
+    input_template: str  # The input pattern (stripped of specifics)
+    output_template: str  # The cached response
+    ihsan_composite: float  # Ihsan score when precipitated
     ihsan_tensor: dict[str, float]
-    hit_count: int = 0          # Times this reflex was served
+    hit_count: int = 0  # Times this reflex was served
     precipitation_count: int = 0  # Times pattern repeated before precipitation
-    created_at: float = 0.0     # Unix timestamp
-    last_hit_at: float = 0.0    # Last time this reflex was used
+    created_at: float = 0.0  # Unix timestamp
+    last_hit_at: float = 0.0  # Last time this reflex was used
     last_validated_at: float = 0.0  # Last freshness check
     validation_hits_since: int = 0  # Hits since last validation
-    stale: bool = False         # Marked for invalidation
+    stale: bool = False  # Marked for invalidation
 
     def age_days(self) -> float:
         return (time.time() - self.created_at) / 86400
@@ -92,6 +93,7 @@ class ReflexEntry:
 @dataclass
 class PrecipitationCandidate:
     """Tracks a pattern that may precipitate into a reflex."""
+
     pattern_hash: str
     input_template: str
     observations: list[dict] = field(default_factory=list)
@@ -120,6 +122,7 @@ class PrecipitationCandidate:
 @dataclass
 class CacheStats:
     """Runtime statistics for the reflex cache."""
+
     total_lookups: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
@@ -262,12 +265,14 @@ class ReflexCache:
                 )
 
             candidate = self._candidates[pattern_hash]
-            candidate.observations.append({
-                "output": output_text,
-                "ihsan_composite": ihsan_composite,
-                "ihsan_tensor": dict(ihsan_tensor),
-                "timestamp": time.time(),
-            })
+            candidate.observations.append(
+                {
+                    "output": output_text,
+                    "ihsan_composite": ihsan_composite,
+                    "ihsan_tensor": dict(ihsan_tensor),
+                    "timestamp": time.time(),
+                }
+            )
 
             # Keep only last 10 observations to bound memory
             if len(candidate.observations) > 10:
@@ -379,9 +384,7 @@ class ReflexCache:
 
         with self._lock:
             data = {
-                "entries": {
-                    k: asdict(v) for k, v in self._cache.items()
-                },
+                "entries": {k: asdict(v) for k, v in self._cache.items()},
                 "stats": self._stats.as_dict(),
                 "saved_at": time.time(),
             }
@@ -401,7 +404,9 @@ class ReflexCache:
             for k, v in data.get("entries", {}).items():
                 self._cache[k] = ReflexEntry(**v)
 
-            logger.info(f"Loaded {len(self._cache)} reflexes from {self._persistence_path}")
+            logger.info(
+                f"Loaded {len(self._cache)} reflexes from {self._persistence_path}"
+            )
         except (json.JSONDecodeError, TypeError, KeyError) as e:
             logger.warning(f"Failed to load reflex cache: {e}")
 

@@ -69,8 +69,7 @@ def load_config(path: Path) -> BoardConfig:
     payload = _load_json(path)
     source_artifacts_raw = payload.get("source_artifacts") or {}
     source_artifacts = {
-        key: Path(str(value))
-        for key, value in source_artifacts_raw.items()
+        key: Path(str(value)) for key, value in source_artifacts_raw.items()
     }
     thresholds = payload.get("thresholds") or {}
     return BoardConfig(
@@ -154,7 +153,9 @@ def _extract_optimization_workstreams(payload: dict[str, Any]) -> list[dict[str,
                 "id": item.get("id"),
                 "priority": str(item.get("priority", "P2")),
                 "owner": "systems-integration",
-                "title": str(item.get("name", item.get("id", "optimization_workstream"))),
+                "title": str(
+                    item.get("name", item.get("id", "optimization_workstream"))
+                ),
                 "detail": ", ".join(str(x) for x in (item.get("focus") or [])),
                 "success_gate": "",
             }
@@ -215,7 +216,9 @@ def _extract_empirical_action(report: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _composite_snr(blueprint_report: dict[str, Any], autonomous_report: dict[str, Any]) -> float:
+def _composite_snr(
+    blueprint_report: dict[str, Any], autonomous_report: dict[str, Any]
+) -> float:
     blueprint_snr = float((blueprint_report.get("snr") or {}).get("normalized", 0.0))
     metrics = autonomous_report.get("metrics") or {}
     prompt_snr = float(metrics.get("prompt_snr", 0.0))
@@ -254,9 +257,11 @@ def _build_graph_of_thought(
             {
                 "id": f"autonomous:{node.get('id')}",
                 "score": node.get("score", 0.0),
-                "status": "PASS"
-                if float(node.get("score", 0.0) or 0.0) >= 0.78
-                else "DEGRADED",
+                "status": (
+                    "PASS"
+                    if float(node.get("score", 0.0) or 0.0) >= 0.78
+                    else "DEGRADED"
+                ),
             }
         )
     for edge in (autonomous_report.get("graph_of_thought") or {}).get("edges") or []:
@@ -267,7 +272,9 @@ def _build_graph_of_thought(
             }
         )
 
-    for node in (canonical_empirical_report.get("graph_of_thought") or {}).get("nodes") or []:
+    for node in (canonical_empirical_report.get("graph_of_thought") or {}).get(
+        "nodes"
+    ) or []:
         nodes.append(
             {
                 "id": f"empirical:{node.get('id')}",
@@ -275,7 +282,9 @@ def _build_graph_of_thought(
                 "status": node.get("status", "UNKNOWN"),
             }
         )
-    for edge in (canonical_empirical_report.get("graph_of_thought") or {}).get("edges") or []:
+    for edge in (canonical_empirical_report.get("graph_of_thought") or {}).get(
+        "edges"
+    ) or []:
         edges.append(
             {
                 "from": f"empirical:{edge.get('from')}",
@@ -285,7 +294,11 @@ def _build_graph_of_thought(
 
     nodes.extend(
         [
-            {"id": "framework:genesis_execution_framework", "score": 1.0, "status": "PASS"},
+            {
+                "id": "framework:genesis_execution_framework",
+                "score": 1.0,
+                "status": "PASS",
+            },
             {"id": "framework:mastery_framework", "score": 1.0, "status": "PASS"},
             {"id": "framework:optimization_blueprint", "score": 1.0, "status": "PASS"},
             {
@@ -309,7 +322,10 @@ def _build_graph_of_thought(
                 "from": "empirical:canonical_empirical_status",
                 "to": "board:signal_fusion",
             },
-            {"from": "framework:genesis_execution_framework", "to": "board:program_board"},
+            {
+                "from": "framework:genesis_execution_framework",
+                "to": "board:program_board",
+            },
             {"from": "framework:mastery_framework", "to": "board:program_board"},
             {"from": "framework:optimization_blueprint", "to": "board:program_board"},
             {"from": "board:signal_fusion", "to": "board:program_board"},
@@ -380,13 +396,17 @@ def _derive_board_next_step(
     canonical_empirical_report: dict[str, Any],
     top_workstreams: list[dict[str, Any]],
 ) -> dict[str, str]:
-    if not gate_passed and not bool(canonical_empirical_report.get("gate_passed", False)):
+    if not gate_passed and not bool(
+        canonical_empirical_report.get("gate_passed", False)
+    ):
         next_step = canonical_empirical_report.get("autonomous_next_step") or {}
         return {
             "priority": str(next_step.get("priority", "P1")),
             "owner": str(next_step.get("owner", "validation-lane")),
             "action": str(
-                next_step.get("action", "repair canonical empirical validation failures")
+                next_step.get(
+                    "action", "repair canonical empirical validation failures"
+                )
             ),
         }
     if not gate_passed and (blueprint_report.get("optimization_roadmap") or []):
@@ -394,7 +414,9 @@ def _derive_board_next_step(
         return {
             "priority": str(top.get("priority", "P1")),
             "owner": str(top.get("owner", "team")),
-            "action": str(top.get("action", top.get("check", "resolve blueprint failures"))),
+            "action": str(
+                top.get("action", top.get("check", "resolve blueprint failures"))
+            ),
         }
     if not gate_passed:
         next_step = autonomous_report.get("autonomous_next_step") or {}
@@ -444,7 +466,9 @@ def build_program_board(
 
     blueprint_gate = bool(blueprint_report.get("gate_passed", False))
     autonomous_gate = bool(autonomous_report.get("gate_passed", False))
-    canonical_empirical_gate = bool(canonical_empirical_report.get("gate_passed", False))
+    canonical_empirical_gate = bool(
+        canonical_empirical_report.get("gate_passed", False)
+    )
     gate_constraints = {
         "blueprint_gate": blueprint_gate or (not config.require_blueprint_gate),
         "autonomous_gate": autonomous_gate or (not config.require_autonomous_gate),
@@ -527,9 +551,7 @@ def build_program_board(
         },
         "control_planes": blueprint_report.get("control_planes") or [],
         "interdisciplinary_lenses": lenses,
-        "ethical_integrity_posture": blueprint_report.get(
-            "ethical_integrity_posture"
-        )
+        "ethical_integrity_posture": blueprint_report.get("ethical_integrity_posture")
         or {},
         "implementation_strategy": blueprint_report.get("implementation_strategy")
         or {},
@@ -548,7 +570,9 @@ def build_program_board(
                 "gate_passed": autonomous_gate,
             },
             "canonical_empirical": {
-                "program_id": (canonical_empirical_report.get("program") or {}).get("id"),
+                "program_id": (canonical_empirical_report.get("program") or {}).get(
+                    "id"
+                ),
                 "gate_passed": canonical_empirical_gate,
                 "status": canonical_empirical_report.get("canonical_status"),
             },
@@ -636,7 +660,9 @@ def _write_github_outputs(path: Path, board: dict[str, Any]) -> None:
     metrics = board.get("metrics") or {}
     next_step = board.get("autonomous_next_step") or {}
     with path.open("a", encoding="utf-8") as fh:
-        fh.write(f"masterpiece_board_passed={str(board.get('gate_passed', False)).lower()}\n")
+        fh.write(
+            f"masterpiece_board_passed={str(board.get('gate_passed', False)).lower()}\n"
+        )
         fh.write(f"masterpiece_board_score={metrics.get('board_score', 0.0)}\n")
         fh.write(f"masterpiece_composite_snr={metrics.get('composite_snr', 0.0)}\n")
         fh.write(f"masterpiece_empirical_score={metrics.get('empirical_score', 0.0)}\n")

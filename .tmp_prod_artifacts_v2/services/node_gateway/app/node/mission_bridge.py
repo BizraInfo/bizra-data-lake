@@ -26,7 +26,9 @@ class MissionBridge:
         flag = (os.environ.get("BIZRA_MISSION_BRIDGE_ENABLED") or "1").strip().lower()
         return flag in ("1", "true", "yes", "on")
 
-    async def run(self, text: str, context: dict[str, str], macro_state: str) -> MissionPlan | None:
+    async def run(
+        self, text: str, context: dict[str, str], macro_state: str
+    ) -> MissionPlan | None:
         if not self._enabled():
             return None
 
@@ -46,7 +48,8 @@ class MissionBridge:
                         "BIZRA_MISSION_MEMORY_PATH", "/tmp/bizra-mission/memory"
                     ),
                     "evidence_path": os.environ.get(
-                        "BIZRA_MISSION_EVIDENCE_PATH", "/tmp/bizra-mission/evidence.jsonl"
+                        "BIZRA_MISSION_EVIDENCE_PATH",
+                        "/tmp/bizra-mission/evidence.jsonl",
                     ),
                     "hda_port": int(os.environ.get("BIZRA_HDA_PORT", "9743")),
                 }
@@ -68,7 +71,9 @@ class MissionBridge:
         timeout_s = float(os.environ.get("BIZRA_MISSION_TIMEOUT_SEC", "25"))
         result = await asyncio.wait_for(self._orch.execute(request), timeout=timeout_s)
 
-        steps = self._derive_steps(result.synthesis, result.channels_executed, result.evidence_receipt_id)
+        steps = self._derive_steps(
+            result.synthesis, result.channels_executed, result.evidence_receipt_id
+        )
         poi = max(0.0, min((result.ihsan_score + result.snr_score) / 2.0, 1.0))
 
         return MissionPlan(
@@ -79,7 +84,9 @@ class MissionBridge:
         )
 
     @staticmethod
-    def _derive_steps(synthesis: str, channels_executed: list, receipt_id: str) -> list[str]:
+    def _derive_steps(
+        synthesis: str, channels_executed: list, receipt_id: str
+    ) -> list[str]:
         steps: list[str] = []
 
         for channel in channels_executed:
@@ -97,4 +104,3 @@ class MissionBridge:
             steps.append(f"Emit evidence receipt {receipt_id}")
 
         return steps
-

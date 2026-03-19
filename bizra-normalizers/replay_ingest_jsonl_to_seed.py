@@ -10,7 +10,6 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-
 _FALLBACK_KIND_SIGNAL_RE = re.compile(r"kind=([^;]+);\s*signal=([^;]+);")
 
 _KIND_MAP = {
@@ -161,10 +160,18 @@ def _write_checksum(out_path: Path) -> tuple[Path, str]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Replay ingest JSONL to deterministic TEACH seed")
-    parser.add_argument("--in", dest="input_path", required=True, help="Input ingest JSONL path")
-    parser.add_argument("--out", dest="output_path", required=True, help="Output .seed file path")
-    parser.add_argument("--json", action="store_true", help="Emit machine-readable summary")
+    parser = argparse.ArgumentParser(
+        description="Replay ingest JSONL to deterministic TEACH seed"
+    )
+    parser.add_argument(
+        "--in", dest="input_path", required=True, help="Input ingest JSONL path"
+    )
+    parser.add_argument(
+        "--out", dest="output_path", required=True, help="Output .seed file path"
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="Emit machine-readable summary"
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input_path).expanduser().resolve()

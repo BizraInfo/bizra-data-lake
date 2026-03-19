@@ -6,24 +6,24 @@ Tests for the runtime constitutional enforcement layer.
 Every assertion derived from constitution.toml thresholds.
 """
 
-import pytest
-import time
-import sys
 import os
+import sys
+import time
+
+import pytest
 
 # Ensure imports work from project root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ihsan_gate import IhsanGate, IhsanScore, IhsanTier, DimensionScore
+from ihsan_gate import DimensionScore, IhsanGate, IhsanScore, IhsanTier
 from snr import (
+    SAPE_WEIGHTS,
+    compute_sape_composite,
+    db_to_snr,
+    measure_mission_snr,
     normalize_snr,
     snr_to_db,
-    db_to_snr,
-    compute_sape_composite,
-    measure_mission_snr,
-    SAPE_WEIGHTS,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # IHSAN GATE TESTS
@@ -53,13 +53,15 @@ class TestIhsanGateConstruction:
     def test_wrong_dimension_count_rejected(self):
         # 5 dimensions instead of 6
         with pytest.raises(ValueError, match="Expected 6"):
-            IhsanGate(weights={
-                "moral_clarity": 0.20,
-                "epistemic_humility": 0.20,
-                "structural_integrity": 0.20,
-                "verifiability": 0.20,
-                "intent_alignment": 0.20,
-            })
+            IhsanGate(
+                weights={
+                    "moral_clarity": 0.20,
+                    "epistemic_humility": 0.20,
+                    "structural_integrity": 0.20,
+                    "verifiability": 0.20,
+                    "intent_alignment": 0.20,
+                }
+            )
 
 
 class TestIhsanGateEvaluation:
@@ -161,6 +163,7 @@ class TestIhsanGateFailClosed:
         gate = IhsanGate()
         # Monkey-patch a scorer to raise
         from ihsan_gate import SCORERS
+
         original = SCORERS["moral_clarity"]
         try:
             SCORERS["moral_clarity"] = lambda o, c: (_ for _ in ()).throw(
@@ -177,6 +180,7 @@ class TestIhsanGateFailClosed:
         """Raw scores must be clamped to [0, 1]."""
         gate = IhsanGate()
         from ihsan_gate import SCORERS
+
         original = SCORERS["resilience"]
         try:
             SCORERS["resilience"] = lambda o, c: -5.0  # Invalid negative
@@ -306,12 +310,12 @@ class TestSapeComposite:
         """After constitution.toml + 6-dim Ihsan + SNR promotion: projected T1."""
         scores = {
             "security": 0.96,
-            "architecture": 0.97,    # +0.02 single source of truth
+            "architecture": 0.97,  # +0.02 single source of truth
             "error_handling": 0.94,  # +0.02 SNR promotion + conftest fix
             "scalability": 0.92,
             "testing": 0.97,
-            "documentation": 0.98,   # +0.13 constitution IS the spec
-            "dependencies": 0.92,    # +0.10 generated constants, zero hardcoded
+            "documentation": 0.98,  # +0.13 constitution IS the spec
+            "dependencies": 0.92,  # +0.10 generated constants, zero hardcoded
             "performance": 0.93,
         }
         result = compute_sape_composite(scores)

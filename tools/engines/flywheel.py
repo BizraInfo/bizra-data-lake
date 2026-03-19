@@ -21,16 +21,16 @@ import asyncio
 import hashlib
 import json
 import os
+import queue
 import signal
 import sys
+import threading
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
-import threading
-import queue
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -50,9 +50,7 @@ from core.integration.constants import LMSTUDIO_URL as _LMSTUDIO_DEFAULT
 
 # Inference endpoints
 OLLAMA_INTERNAL_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-LMSTUDIO_URL = os.getenv(
-    "LMSTUDIO_URL", _LMSTUDIO_DEFAULT
-)  # LM Studio on host
+LMSTUDIO_URL = os.getenv("LMSTUDIO_URL", _LMSTUDIO_DEFAULT)  # LM Studio on host
 INFERENCE_TIMEOUT_SECONDS = 30
 
 # Inference backend preference: "ollama", "lmstudio", "auto"
@@ -626,8 +624,8 @@ class AudioStreaming:
         if not self.whisper_model:
             raise RuntimeError("Whisper not initialized. Call initialize() first.")
 
-        import tempfile
         import os
+        import tempfile
 
         # Write audio to temp file (faster-whisper needs file path)
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
@@ -663,8 +661,9 @@ class AudioStreaming:
         if not self.tts_available:
             raise RuntimeError("TTS not available. Install edge-tts.")
 
-        import edge_tts
         import tempfile
+
+        import edge_tts
 
         communicate = edge_tts.Communicate(text, voice)
 

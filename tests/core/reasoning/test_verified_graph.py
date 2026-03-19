@@ -139,7 +139,9 @@ class FakeGraphEngine:
             ],
         }
 
-    def to_artifact(self, build_id: str = "", policy_version: str = "1.0.0") -> dict[str, Any]:
+    def to_artifact(
+        self, build_id: str = "", policy_version: str = "1.0.0"
+    ) -> dict[str, Any]:
         nodes = [
             {
                 "confidence": round(node.confidence, 6),

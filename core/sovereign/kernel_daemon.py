@@ -36,8 +36,8 @@ from collections import deque
 from datetime import datetime, timezone
 from functools import partial
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from socketserver import ThreadingMixIn
 from pathlib import Path
+from socketserver import ThreadingMixIn
 from typing import Any
 
 # Note: urllib removed — desktop_bridge uses raw TCP JSON-RPC, not HTTP
@@ -793,9 +793,8 @@ def _ensure_faiss_loaded() -> bool:
             _knowledge_cache["faiss_ids"] = json.loads(ids_path.read_text())
 
             try:
-                from sentence_transformers import SentenceTransformer
-
                 import torch
+                from sentence_transformers import SentenceTransformer
 
                 _device = "cuda" if torch.cuda.is_available() else "cpu"
                 _knowledge_cache["encoder"] = SentenceTransformer(
@@ -1010,10 +1009,10 @@ def _generate_briefing(state: "SovereignState") -> dict[str, Any]:
     # 4. Constitution
     try:
         from core.integration.constants import (
-            UNIFIED_IHSAN_THRESHOLD,
-            UNIFIED_SNR_THRESHOLD,
             ADL_GINI_THRESHOLD,
             KERNEL_INVARIANTS,
+            UNIFIED_IHSAN_THRESHOLD,
+            UNIFIED_SNR_THRESHOLD,
         )
 
         sections.append(

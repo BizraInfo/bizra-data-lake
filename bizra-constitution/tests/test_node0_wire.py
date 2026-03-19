@@ -2,12 +2,14 @@
 
 import os
 import sys
-import pytest
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-os.environ.setdefault("BIZRA_CONSTITUTION_PATH",
-                       str(Path(__file__).parent.parent / "constitution.toml"))
+os.environ.setdefault(
+    "BIZRA_CONSTITUTION_PATH", str(Path(__file__).parent.parent / "constitution.toml")
+)
 
 from node0_wire import GenesisWire, WireResult, wire_genesis_engine
 

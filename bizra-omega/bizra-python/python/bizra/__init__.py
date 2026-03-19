@@ -16,47 +16,39 @@ from __future__ import annotations
 
 # Import Rust bindings (will be available after maturin build)
 try:
-    from .bizra import (
-        NodeId,
-        NodeIdentity,
-        Constitution,
-        PCIEnvelope,
-        # Inference gateway (Phase 18: Python↔Rust unified inference path)
-        InferenceGateway,
-        InferenceResponse,
-        # Inference types
-        TaskComplexity,
-        ModelTier,
-        ModelSelector,
-        # Gate chain
-        GateChain,
-        # Autopoiesis
-        PatternMemory,
-        PreferenceTracker,
-        # Nervous System: Event Bridge (UCF Phase 3)
-        PyEventBridge,
-        # Saga: Request lifecycle tracking
-        SagaPhase,
-        SagaRegistry,
-        # Functions
-        domain_separated_digest,
-        get_ihsan_threshold,
-        get_snr_threshold,
+    from .bizra import (  # Inference gateway (Phase 18: Python↔Rust unified inference path); Inference types; Gate chain; Autopoiesis; Nervous System: Event Bridge (UCF Phase 3); Saga: Request lifecycle tracking; Functions; URP Bridge: ResourcePool types and operations (Phase 82)
         IHSAN_THRESHOLD,
         SNR_THRESHOLD,
-        __version__,
-        # URP Bridge: ResourcePool types and operations (Phase 82)
+        Constitution,
+        GateChain,
+        InferenceGateway,
+        InferenceResponse,
+        ModelSelector,
+        ModelTier,
+        NodeId,
+        NodeIdentity,
+        PatternMemory,
+        PCIEnvelope,
+        PreferenceTracker,
+        PyContributionReceipt,
+        PyEventBridge,
+        PyPoolNode,
+        PyPoolStats,
         PyResourcePool,
         PyURPPledge,
-        PyPoolNode,
-        PyContributionReceipt,
-        PyPoolStats,
-        submit_pledge,
-        contribute_resources,
-        get_rewards,
-        process_zakat,
+        SagaPhase,
+        SagaRegistry,
+        TaskComplexity,
+        __version__,
         check_adl,
+        contribute_resources,
+        domain_separated_digest,
+        get_ihsan_threshold,
+        get_rewards,
+        get_snr_threshold,
         pool_stats,
+        process_zakat,
+        submit_pledge,
     )
 except ImportError:
     # Fallback for development without compiled Rust

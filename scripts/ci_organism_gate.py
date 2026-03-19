@@ -59,11 +59,13 @@ async def run_gate(verbose: bool = True) -> Dict[str, Any]:
     }
 
     def check(name: str, passed: bool, detail: str = "") -> bool:
-        results["checks"].append({
-            "name": name,
-            "passed": passed,
-            "detail": detail,
-        })
+        results["checks"].append(
+            {
+                "name": name,
+                "passed": passed,
+                "detail": detail,
+            }
+        )
         if verbose:
             icon = "✅" if passed else "❌"
             msg = f"  {icon} {name}"
@@ -90,7 +92,9 @@ async def run_gate(verbose: bool = True) -> Dict[str, Any]:
     # ── Check 2: Health after boot ─────────────────────────────
     h = org.health
     all_ok &= check("health.alive", h.alive)
-    all_ok &= check("health.agents", h.agents_registered == 12, f"{h.agents_registered} agents")
+    all_ok &= check(
+        "health.agents", h.agents_registered == 12, f"{h.agents_registered} agents"
+    )
 
     # ── Check 3: Run 3 missions (§6 Mode 2) ───────────────────
     missions = [
@@ -160,7 +164,9 @@ async def run_gate(verbose: bool = True) -> Dict[str, Any]:
     if verbose:
         print(f"\n{'═' * 40}")
         icon = "✅" if all_ok else "❌"
-        print(f"{icon} ORGANISM GATE: {checks_passed}/{checks_total} checks in {duration_ms}ms")
+        print(
+            f"{icon} ORGANISM GATE: {checks_passed}/{checks_total} checks in {duration_ms}ms"
+        )
         if not all_ok:
             failed = [c["name"] for c in results["checks"] if not c["passed"]]
             print(f"   FAILED: {', '.join(failed)}")

@@ -9,21 +9,24 @@ These tests verify that the running system conforms to the constitution.
 To modify: edit constitution.toml, then re-run generate_from_constitution.py
 """
 
-import pytest
 from pathlib import Path
 
+import pytest
 
 # ── Fixture: Load constitution ──
+
 
 @pytest.fixture(scope="session")
 def constitution():
     from bizra_constitution import load_constitution
+
     return load_constitution()
 
 
 # ═══════════════════════════════════════════════════════════
 # §1 — Constitutional Self-Consistency
 # ═══════════════════════════════════════════════════════════
+
 
 class TestConstitutionalInvariants:
     """The constitution must be internally consistent."""
@@ -74,6 +77,7 @@ class TestConstitutionalInvariants:
 # §2 — Ihsan Tensor Verification
 # ═══════════════════════════════════════════════════════════
 
+
 class TestIhsanTensor:
     """The Ihsan tensor must be correctly configured."""
 
@@ -107,6 +111,7 @@ class TestIhsanTensor:
 # §3 — Gate Configuration
 # ═══════════════════════════════════════════════════════════
 
+
 class TestGates:
     """Constitutional gates must be correctly weighted."""
 
@@ -116,13 +121,16 @@ class TestGates:
     def test_gate_overhead_budget(self, constitution):
         assert constitution.gates.total_overhead_budget_ms == 50
 
-    @pytest.mark.parametrize("gate_name,expected_weight", [
-        ("alpha_4", 0.15),
-        ("alpha_7", 0.25),
-        ("alpha_8", 0.2),
-        ("alpha_9", 0.25),
-        ("alpha_10", 0.15),
-    ])
+    @pytest.mark.parametrize(
+        "gate_name,expected_weight",
+        [
+            ("alpha_4", 0.15),
+            ("alpha_7", 0.25),
+            ("alpha_8", 0.2),
+            ("alpha_9", 0.25),
+            ("alpha_10", 0.15),
+        ],
+    )
     def test_individual_gate_weight(self, constitution, gate_name, expected_weight):
         gate = getattr(constitution.gates, gate_name)
         assert gate.weight == expected_weight
@@ -132,17 +140,21 @@ class TestGates:
 # §4 — Security Domain Separation
 # ═══════════════════════════════════════════════════════════
 
+
 class TestSecurity:
     """Domain separation must be enforced for all signing contexts."""
 
-    @pytest.mark.parametrize("context_name,expected_value", [
-        ("evidence_receipt", "bizra-evidence-v1"),
-        ("urp_lease", "bizra-urp-lease-v1"),
-        ("poi_attestation", "bizra-poi-v1"),
-        ("identity_genesis", "bizra-identity-genesis-v1"),
-        ("telescript_publish", "bizra-telescript-v1"),
-        ("bloom_mint", "bizra-bloom-mint-v1"),
-    ])
+    @pytest.mark.parametrize(
+        "context_name,expected_value",
+        [
+            ("evidence_receipt", "bizra-evidence-v1"),
+            ("urp_lease", "bizra-urp-lease-v1"),
+            ("poi_attestation", "bizra-poi-v1"),
+            ("identity_genesis", "bizra-identity-genesis-v1"),
+            ("telescript_publish", "bizra-telescript-v1"),
+            ("bloom_mint", "bizra-bloom-mint-v1"),
+        ],
+    )
     def test_domain_context_defined(self, constitution, context_name, expected_value):
         actual = getattr(constitution.security.domain_separation, context_name)
         assert actual == expected_value
@@ -157,6 +169,7 @@ class TestSecurity:
 # ═══════════════════════════════════════════════════════════
 # §5 — Daughter Test (Liveness Property)
 # ═══════════════════════════════════════════════════════════
+
 
 class TestDaughterTest:
     """The Daughter Test must be enforced as a CI test, not philosophy."""
@@ -178,6 +191,7 @@ class TestDaughterTest:
 # §6 — Economics (Thermodynamic Invariants)
 # ═══════════════════════════════════════════════════════════
 
+
 class TestEconomics:
     """Economic parameters must maintain thermodynamic stability."""
 
@@ -191,7 +205,10 @@ class TestEconomics:
         assert constitution.economics.gini_threshold == 0.45
 
     def test_local_model_advantage(self, constitution):
-        assert constitution.economics.local_cost_per_mission < constitution.economics.cloud_cost_per_mission
+        assert (
+            constitution.economics.local_cost_per_mission
+            < constitution.economics.cloud_cost_per_mission
+        )
 
     def test_bloom_not_purchasable(self, constitution):
         # BLOOM threshold requires real Ihsan, cannot be bought
@@ -202,6 +219,7 @@ class TestEconomics:
 # §7 — Cross-Language Consistency Marker
 # ═══════════════════════════════════════════════════════════
 
+
 class TestCrossLanguage:
     """Marker tests for cross-language verification."""
 
@@ -211,5 +229,6 @@ class TestCrossLanguage:
     def test_constitution_hash_deterministic(self, constitution):
         """Re-loading must produce the same hash."""
         from bizra_constitution import load_constitution
+
         c2 = load_constitution()
         assert c2.raw_hash == constitution.raw_hash

@@ -30,33 +30,33 @@ Principle: لا نفترض — We do not assume. We verify, synthesize, execute.
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-import os
-import sys
-import json
-import time
 import asyncio
 import hashlib
+import json
+import os
+import sys
+import time
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Any, Optional, Tuple, Callable
 from enum import Enum
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # Add golden_gems to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from golden_gems.unified_stalk import UnifiedStalk
-from golden_gems.temporal_memory import TemporalMemoryHierarchy, MemoryItem
-from golden_gems.ihsan_circuit import IhsanCircuit, IhsanVector, IhsanViolation
-from golden_gems.context_router import ContextRouter, CognitiveDepth, QueryAnalyzer
-from golden_gems.colimit_interface import ColimitDispatcher, UniversalOp
 from golden_gems.algebraic_effects import (
-    EffectRuntime,
-    Effect,
-    LogEffect,
     AuthEffect,
+    Effect,
+    EffectRuntime,
     IhsanEffect,
+    LogEffect,
 )
+from golden_gems.colimit_interface import ColimitDispatcher, UniversalOp
+from golden_gems.context_router import CognitiveDepth, ContextRouter, QueryAnalyzer
+from golden_gems.ihsan_circuit import IhsanCircuit, IhsanVector, IhsanViolation
+from golden_gems.temporal_memory import MemoryItem, TemporalMemoryHierarchy
+from golden_gems.unified_stalk import UnifiedStalk
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -529,7 +529,7 @@ class PinnacleEngine:
     def _init_components(self):
         """Initialize all components."""
         # Register effect handlers
-        from golden_gems.algebraic_effects import LogHandler, AuthHandler, IhsanHandler
+        from golden_gems.algebraic_effects import AuthHandler, IhsanHandler, LogHandler
 
         self.effects.register(LogHandler())
         self.effects.register(AuthHandler())

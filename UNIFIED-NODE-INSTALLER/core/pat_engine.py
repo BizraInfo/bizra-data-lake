@@ -17,40 +17,43 @@ This is the user's personal Think Tank and Task Force.
 """
 
 import json
-from pathlib import Path
-from typing import List, Dict, Any, Optional
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from abc import ABC, abstractmethod
-
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # ============================================================================
 # AGENT BASE CLASSES
 # ============================================================================
 
+
 class AgentRole(Enum):
     """Core agent roles in the PAT system."""
-    STRATEGIST = "strategist"          # Big picture, long-term planning
-    RESEARCHER = "researcher"          # Information gathering, fact-checking
-    ANALYST = "analyst"                # Data analysis, pattern recognition
-    CREATOR = "creator"                # Content creation, ideation
-    EXECUTOR = "executor"              # Task execution, action taking
-    GUARDIAN = "guardian"              # Quality control, risk assessment
-    COORDINATOR = "coordinator"        # Orchestration, task management
+
+    STRATEGIST = "strategist"  # Big picture, long-term planning
+    RESEARCHER = "researcher"  # Information gathering, fact-checking
+    ANALYST = "analyst"  # Data analysis, pattern recognition
+    CREATOR = "creator"  # Content creation, ideation
+    EXECUTOR = "executor"  # Task execution, action taking
+    GUARDIAN = "guardian"  # Quality control, risk assessment
+    COORDINATOR = "coordinator"  # Orchestration, task management
 
 
 class ThinkingMode(Enum):
     """Modes of cognitive processing."""
-    FAST = "fast"              # Quick, intuitive responses
-    DEEP = "deep"              # Thorough, analytical processing
-    CREATIVE = "creative"      # Divergent, exploratory thinking
-    CRITICAL = "critical"      # Skeptical, validation-focused
-    SYNTHESIS = "synthesis"    # Combining multiple perspectives
+
+    FAST = "fast"  # Quick, intuitive responses
+    DEEP = "deep"  # Thorough, analytical processing
+    CREATIVE = "creative"  # Divergent, exploratory thinking
+    CRITICAL = "critical"  # Skeptical, validation-focused
+    SYNTHESIS = "synthesis"  # Combining multiple perspectives
 
 
 @dataclass
 class AgentConfig:
     """Configuration for an individual agent."""
+
     name: str
     role: AgentRole
     expertise: List[str]
@@ -94,6 +97,7 @@ class BaseAgent(ABC):
 # ============================================================================
 # SPECIALIZED AGENTS
 # ============================================================================
+
 
 class StrategicPlanner(BaseAgent):
     """
@@ -404,6 +408,7 @@ Nothing leaves the PAT without meeting the highest standards.
 # DOMAIN EXPERT FACTORY
 # ============================================================================
 
+
 class DomainExpert(BaseAgent):
     """
     Domain Expert - Specialized knowledge in a specific field.
@@ -428,7 +433,11 @@ class DomainExpert(BaseAgent):
             "tools": ["image_gen", "style_guide", "inspiration_board"],
         },
         "finance": {
-            "expertise": ["financial analysis", "investment strategy", "risk management"],
+            "expertise": [
+                "financial analysis",
+                "investment strategy",
+                "risk management",
+            ],
             "tools": ["market_data", "portfolio_tracker", "financial_models"],
         },
         "health": {
@@ -442,10 +451,13 @@ class DomainExpert(BaseAgent):
     }
 
     def __init__(self, domain: str):
-        domain_config = self.DOMAIN_CONFIGS.get(domain, {
-            "expertise": [f"{domain} knowledge"],
-            "tools": ["research"],
-        })
+        domain_config = self.DOMAIN_CONFIGS.get(
+            domain,
+            {
+                "expertise": [f"{domain} knowledge"],
+                "tools": ["research"],
+            },
+        )
 
         config = AgentConfig(
             name=f"{domain.title()} Expert",
@@ -495,9 +507,11 @@ You bridge the gap between deep expertise and practical application.
 # PAT ORCHESTRATOR
 # ============================================================================
 
+
 @dataclass
 class UserProfile:
     """User's personalization profile."""
+
     username: str
     goals: List[str]
     domains: List[str]
@@ -681,6 +695,7 @@ class PATOrchestrator:
 # ============================================================================
 # FACTORY FUNCTION
 # ============================================================================
+
 
 def create_pat(profile_dict: Dict[str, Any]) -> PATOrchestrator:
     """

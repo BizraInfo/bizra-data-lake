@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import sys
 import types
+from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
@@ -11,7 +11,9 @@ from starlette.testclient import TestClient
 from scripts.node0_standalone import Node0StandaloneManager, create_app
 
 
-def _make_genesis_json(state_dir: Path, node_id: str = "node0-test") -> dict[str, object]:
+def _make_genesis_json(
+    state_dir: Path, node_id: str = "node0-test"
+) -> dict[str, object]:
     genesis_hash = list(range(32))
     genesis = {
         "timestamp": 1000,
@@ -197,7 +199,9 @@ def test_create_app_activate_accepts_json_body(tmp_path: Path) -> None:
     manager = Node0StandaloneManager(project_root=tmp_path)
     seen: dict[str, object] = {}
 
-    def _fake_activate(architect: str = "MoMo", strict: bool = False) -> dict[str, object]:
+    def _fake_activate(
+        architect: str = "MoMo", strict: bool = False
+    ) -> dict[str, object]:
         seen["architect"] = architect
         seen["strict"] = strict
         return {"ok": True, "architect": architect, "strict": strict}
@@ -265,10 +269,15 @@ def test_create_app_mvsa_routes_enforce_api_key(tmp_path: Path) -> None:
     assert client.get("/health").status_code == 200
     assert client.get("/mvsa").status_code == 401
     assert client.post("/prove-mvsa").status_code == 401
-    assert client.get("/mvsa", headers={"x-api-key": "secret"}).json()["status"] == "ready"
-    assert client.post(
-        "/prove-mvsa", headers={"x-api-key": "secret"}
-    ).json()["lifecycle_status"] == "degraded"
+    assert (
+        client.get("/mvsa", headers={"x-api-key": "secret"}).json()["status"] == "ready"
+    )
+    assert (
+        client.post("/prove-mvsa", headers={"x-api-key": "secret"}).json()[
+            "lifecycle_status"
+        ]
+        == "degraded"
+    )
 
 
 def test_create_app_lists_agents_and_models(
@@ -293,9 +302,7 @@ def test_create_app_lists_agents_and_models(
         async def __aenter__(self) -> "_FakeAsyncClient":
             return self
 
-        async def __aexit__(
-            self, exc_type: object, exc: object, tb: object
-        ) -> bool:
+        async def __aexit__(self, exc_type: object, exc: object, tb: object) -> bool:
             return False
 
         async def get(self, url: str) -> _FakeResponse:
@@ -339,14 +346,10 @@ def test_create_app_query_accepts_json_body(
         async def __aenter__(self) -> "_FakeAsyncClient":
             return self
 
-        async def __aexit__(
-            self, exc_type: object, exc: object, tb: object
-        ) -> bool:
+        async def __aexit__(self, exc_type: object, exc: object, tb: object) -> bool:
             return False
 
-        async def post(
-            self, url: str, json: dict[str, object]
-        ) -> _FakeResponse:
+        async def post(self, url: str, json: dict[str, object]) -> _FakeResponse:
             assert url.endswith("/api/generate")
             assert json["prompt"] == "What is 2+2?"
             return _FakeResponse()
@@ -391,8 +394,12 @@ def test_prove_mvsa_updates_lifecycle_from_authority(tmp_path: Path) -> None:
     manager = Node0StandaloneManager(project_root=tmp_path)
     state_dir = tmp_path / "sovereign_state"
     _make_genesis_json(state_dir)
-    manager.assets_path.write_text(json.dumps({"integrations": {}}, indent=2), encoding="utf-8")
-    manager.awareness_path.write_text(json.dumps({"node_id": "node0-test"}, indent=2), encoding="utf-8")
+    manager.assets_path.write_text(
+        json.dumps({"integrations": {}}, indent=2), encoding="utf-8"
+    )
+    manager.awareness_path.write_text(
+        json.dumps({"node_id": "node0-test"}, indent=2), encoding="utf-8"
+    )
     manager.urp_path.write_text(
         json.dumps({"signed": True, "signature_verified": True}, indent=2),
         encoding="utf-8",
@@ -422,13 +429,19 @@ def test_prove_mvsa_updates_lifecycle_from_authority(tmp_path: Path) -> None:
     assert lifecycle["status"] == "degraded"
 
 
-def test_update_lifecycle_mission_marks_ready_when_recovery_passes(tmp_path: Path) -> None:
+def test_update_lifecycle_mission_marks_ready_when_recovery_passes(
+    tmp_path: Path,
+) -> None:
     manager = Node0StandaloneManager(project_root=tmp_path)
     state_dir = tmp_path / "sovereign_state"
     _make_genesis_json(state_dir)
     _make_mvsa_proof(state_dir)
-    manager.assets_path.write_text(json.dumps({"integrations": {}}, indent=2), encoding="utf-8")
-    manager.awareness_path.write_text(json.dumps({"node_id": "node0-test"}, indent=2), encoding="utf-8")
+    manager.assets_path.write_text(
+        json.dumps({"integrations": {}}, indent=2), encoding="utf-8"
+    )
+    manager.awareness_path.write_text(
+        json.dumps({"node_id": "node0-test"}, indent=2), encoding="utf-8"
+    )
     manager.urp_path.write_text(
         json.dumps({"signed": True, "signature_verified": True}, indent=2),
         encoding="utf-8",

@@ -162,7 +162,9 @@ def build_report(cfg: RuntimeCanonLockConfig) -> dict[str, Any]:
 
 def _write_github_output(path: Path, report: dict[str, Any]) -> None:
     with path.open("a", encoding="utf-8") as handle:
-        handle.write(f"runtime_canon_lock_passed={str(report['gate_passed']).lower()}\n")
+        handle.write(
+            f"runtime_canon_lock_passed={str(report['gate_passed']).lower()}\n"
+        )
         handle.write(f"runtime_canon_lock_status={report['status']}\n")
         handle.write(f"runtime_canon_lock_score={report['score']}\n")
 

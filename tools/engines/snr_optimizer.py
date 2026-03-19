@@ -17,11 +17,12 @@ Optimization techniques:
 5. Coherence Filtering - remove low-value chunks
 """
 
-import numpy as np
 import logging
-from typing import List, Dict, Tuple, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s | %(levelname)s | SNR-OPT | %(message)s"

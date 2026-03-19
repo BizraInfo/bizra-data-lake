@@ -19,10 +19,10 @@ from core.devops.quality_trend import (
     compute_linear_trend,
 )
 
-
 # ─────────────────────────────────────────────────────────────
 # Fixtures
 # ─────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def trend_path(tmp_path: Path) -> Path:
@@ -39,24 +39,27 @@ def sample_snapshots() -> list:
     """Generate 10 snapshots simulating gradual improvement."""
     snapshots = []
     for i in range(10):
-        snapshots.append(QualitySnapshot(
-            timestamp=f"2025-01-{i+1:02d}T00:00:00Z",
-            commit_sha=f"abc{i:04d}",
-            snr_score=0.85 + i * 0.01,
-            ihsan_score=0.90 + i * 0.005,
-            coverage_pct=38.0 + i * 1.5,
-            coverage_floor=38.0 + max(0, i - 2),
-            mypy_errors=1600 - i * 20,
-            tests_total=200 + i * 5,
-            tests_passed=190 + i * 5,
-            tests_failed=10 - min(i, 10),
-        ))
+        snapshots.append(
+            QualitySnapshot(
+                timestamp=f"2025-01-{i+1:02d}T00:00:00Z",
+                commit_sha=f"abc{i:04d}",
+                snr_score=0.85 + i * 0.01,
+                ihsan_score=0.90 + i * 0.005,
+                coverage_pct=38.0 + i * 1.5,
+                coverage_floor=38.0 + max(0, i - 2),
+                mypy_errors=1600 - i * 20,
+                tests_total=200 + i * 5,
+                tests_passed=190 + i * 5,
+                tests_failed=10 - min(i, 10),
+            )
+        )
     return snapshots
 
 
 # ─────────────────────────────────────────────────────────────
 # Tests: QualitySnapshot
 # ─────────────────────────────────────────────────────────────
+
 
 class TestQualitySnapshot:
     """Test snapshot data model."""
@@ -100,6 +103,7 @@ class TestQualitySnapshot:
 # Tests: QualityTrendStore
 # ─────────────────────────────────────────────────────────────
 
+
 class TestQualityTrendStore:
     """Test JSONL persistence and hash chaining."""
 
@@ -128,7 +132,9 @@ class TestQualityTrendStore:
         # Second snapshot's parent_hash should be first's snapshot_hash
         assert all_snaps[1].parent_hash == all_snaps[0].snapshot_hash
 
-    def test_read_last_n(self, store: QualityTrendStore, sample_snapshots: list) -> None:
+    def test_read_last_n(
+        self, store: QualityTrendStore, sample_snapshots: list
+    ) -> None:
         for s in sample_snapshots:
             store.append(s)
         last_3 = store.read_last_n(3)
@@ -155,6 +161,7 @@ class TestQualityTrendStore:
 # ─────────────────────────────────────────────────────────────
 # Tests: Linear Trend Computation
 # ─────────────────────────────────────────────────────────────
+
 
 class TestLinearTrend:
     """Test linear regression slope computation."""
@@ -183,6 +190,7 @@ class TestLinearTrend:
 # Tests: Trend Analysis
 # ─────────────────────────────────────────────────────────────
 
+
 class TestTrendAnalysis:
     """Test quality trend analysis engine."""
 
@@ -200,28 +208,32 @@ class TestTrendAnalysis:
     def test_degrading_trend(self) -> None:
         snapshots = []
         for i in range(10):
-            snapshots.append(QualitySnapshot(
-                timestamp=f"2025-01-{i+1:02d}T00:00:00Z",
-                snr_score=0.95 - i * 0.02,
-                coverage_pct=50.0 - i * 2.0,
-                mypy_errors=1000 + i * 50,
-                tests_total=200,
-                tests_passed=190 - i * 5,
-            ))
+            snapshots.append(
+                QualitySnapshot(
+                    timestamp=f"2025-01-{i+1:02d}T00:00:00Z",
+                    snr_score=0.95 - i * 0.02,
+                    coverage_pct=50.0 - i * 2.0,
+                    mypy_errors=1000 + i * 50,
+                    tests_total=200,
+                    tests_passed=190 - i * 5,
+                )
+            )
         result = analyze_trend(snapshots)
         assert result.direction == "degrading"
 
     def test_stable_trend(self) -> None:
         snapshots = []
         for i in range(10):
-            snapshots.append(QualitySnapshot(
-                timestamp=f"2025-01-{i+1:02d}T00:00:00Z",
-                snr_score=0.92,
-                coverage_pct=42.0,
-                mypy_errors=1500,
-                tests_total=200,
-                tests_passed=195,
-            ))
+            snapshots.append(
+                QualitySnapshot(
+                    timestamp=f"2025-01-{i+1:02d}T00:00:00Z",
+                    snr_score=0.92,
+                    coverage_pct=42.0,
+                    mypy_errors=1500,
+                    tests_total=200,
+                    tests_passed=195,
+                )
+            )
         result = analyze_trend(snapshots)
         assert result.direction == "stable"
 
@@ -239,15 +251,19 @@ class TestTrendAnalysis:
         # Create snapshots with a large final outlier
         snapshots = []
         for i in range(8):
-            snapshots.append(QualitySnapshot(
-                timestamp=f"2025-01-{i+1:02d}T00:00:00Z",
-                snr_score=0.92,
-            ))
+            snapshots.append(
+                QualitySnapshot(
+                    timestamp=f"2025-01-{i+1:02d}T00:00:00Z",
+                    snr_score=0.92,
+                )
+            )
         # Outlier
-        snapshots.append(QualitySnapshot(
-            timestamp="2025-01-09T00:00:00Z",
-            snr_score=0.50,  # Way below mean
-        ))
+        snapshots.append(
+            QualitySnapshot(
+                timestamp="2025-01-09T00:00:00Z",
+                snr_score=0.50,  # Way below mean
+            )
+        )
         result = analyze_trend(snapshots)
         # At least check it ran without error; anomaly detection depends on σ
         assert isinstance(result.anomalies, list)

@@ -18,7 +18,7 @@ import logging
 import os
 import sys
 import time
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Set up path to ensure tools/ sibling imports work
 _mcp_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,16 +28,16 @@ sys.path.insert(0, os.path.join(_tools_dir, "bridges"))
 sys.path.insert(0, os.path.join(_tools_dir, "engines"))
 sys.path.insert(0, _project_root)
 
-# MCP Framework
-from fastmcp import FastMCP
-
 # BIZRA Ecosystem
 from ecosystem_bridge import (
-    initialize_ecosystem,
-    UnifiedQuery,
     EcosystemBridge,
+    UnifiedQuery,
     UnifiedResponse,
+    initialize_ecosystem,
 )
+
+# MCP Framework
+from fastmcp import FastMCP
 
 # Setup Logging
 logging.basicConfig(

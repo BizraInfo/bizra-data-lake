@@ -3,18 +3,21 @@
 # Implements: Query expansion, ensemble fusion, iterative refinement
 
 import asyncio
-import numpy as np
+import json
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Dict, Optional, Any, Tuple, Callable
-import logging
 from pathlib import Path
-import json
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import numpy as np
 
 # Configuration — canonical source: core.integration.constants
 # NOTE: Uses STRICT threshold (0.99) intentionally for optimizer convergence
-from core.integration.constants import STRICT_IHSAN_THRESHOLD as IHSAN_THRESHOLD  # type: ignore[import-untyped]
+from core.integration.constants import (
+    STRICT_IHSAN_THRESHOLD as IHSAN_THRESHOLD,  # type: ignore[import-untyped]
+)
 
 ACCEPTABLE_THRESHOLD = 0.95
 MAX_OPTIMIZATION_ROUNDS = 5

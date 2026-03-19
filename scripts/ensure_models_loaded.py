@@ -74,9 +74,7 @@ def _load_config() -> Dict[str, Any]:
         return {}
 
 
-async def get_loaded_models(
-    base_url: str, token: str
-) -> tuple[List[str], List[str]]:
+async def get_loaded_models(base_url: str, token: str) -> tuple[List[str], List[str]]:
     """Check which models are available and which are loaded in VRAM.
 
     Returns (available_ids, loaded_ids).

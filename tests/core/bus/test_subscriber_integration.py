@@ -37,7 +37,6 @@ from core.bus.subscribers import (
     wire_all_subscribers,
 )
 
-
 # ═══════════════════════════════════════════════════════════════
 # Mock dependencies — minimal stubs that track side effects
 # ═══════════════════════════════════════════════════════════════
@@ -392,7 +391,11 @@ class TestPhase3Economics:
         bus, _, deps = wired_bus
         bus.publish(
             EventType.ACTION_RECEIPT,
-            {"action_type": "promoted", "ihsan_composite": 0.97, "result_summary": "ok"},
+            {
+                "action_type": "promoted",
+                "ihsan_composite": 0.97,
+                "result_summary": "ok",
+            },
         )
         assert len(deps["hhmm_engine"].classifications) == 1
 
@@ -455,7 +458,9 @@ class TestFullSequence:
 
         # Phase 1: Learning Loop
         bus.publish(EventType.ACTION_INTENT, {"intent": "task", "session_id": "s1"})
-        bus.publish(EventType.TELESCRIPT_STEP, {"step_id": "1", "ihsan_composite": 0.95})
+        bus.publish(
+            EventType.TELESCRIPT_STEP, {"step_id": "1", "ihsan_composite": 0.95}
+        )
         bus.publish(
             EventType.ACTION_RECEIPT,
             {"action_type": "task", "ihsan_composite": 0.96, "result_summary": "ok"},
@@ -529,7 +534,9 @@ class TestFullSequence:
 
         # Fire all events
         bus.publish(EventType.ACTION_INTENT, {"intent": "t", "session_id": "s1"})
-        bus.publish(EventType.TELESCRIPT_STEP, {"step_id": "1", "ihsan_composite": 0.95})
+        bus.publish(
+            EventType.TELESCRIPT_STEP, {"step_id": "1", "ihsan_composite": 0.95}
+        )
         bus.publish(
             EventType.ACTION_RECEIPT,
             {"action_type": "t", "ihsan_composite": 0.96, "result_summary": "ok"},

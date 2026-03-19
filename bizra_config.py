@@ -7,6 +7,7 @@
 import os
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load credentials
@@ -111,8 +112,10 @@ GPU_ENABLED = True
 # --- REASONING PARAMETERS ---
 # Import from authoritative single source of truth
 from core.integration.constants import (
-    UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD,  # 0.85 minimum signal quality
     STRICT_IHSAN_THRESHOLD as IHSAN_CONSTRAINT,  # 0.99 strict excellence target
+)
+from core.integration.constants import (
+    UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD,  # 0.85 minimum signal quality
 )
 
 ARTE_TENSION_LIMIT = 0.75

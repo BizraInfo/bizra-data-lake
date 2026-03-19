@@ -65,6 +65,7 @@ class ValidationResult:
 # V1: ECONOMIC SUSTAINABILITY
 # ============================================================================
 
+
 def v1_economic_sustainability() -> ValidationResult:
     """
     Hypothesis: A single node running 10 missions/day sustains positive
@@ -77,9 +78,9 @@ def v1_economic_sustainability() -> ValidationResult:
     daily_missions = 10
     base_seed_per_mission = 1.0
     avg_ihsan = 0.92
-    zakat_daily = 0.025 / 365        # 2.5% annual prorated daily
-    harberger_daily = 0.05 / 365     # 5% annual prorated daily
-    bloom_decay_daily = 0.02 / 30    # 2% monthly prorated daily
+    zakat_daily = 0.025 / 365  # 2.5% annual prorated daily
+    harberger_daily = 0.05 / 365  # 5% annual prorated daily
+    bloom_decay_daily = 0.02 / 30  # 2% monthly prorated daily
     bloom_per_day = 0.1
 
     daily_balances = []
@@ -112,7 +113,7 @@ def v1_economic_sustainability() -> ValidationResult:
 
         # BLOOM: earn and decay
         bloom_balance += bloom_per_day
-        bloom_balance *= (1 - bloom_decay_daily)
+        bloom_balance *= 1 - bloom_decay_daily
 
         daily_balances.append(seed_balance)
 
@@ -128,12 +129,16 @@ def v1_economic_sustainability() -> ValidationResult:
 
     # Quarterly snapshots
     quarterly = [daily_balances[i] for i in range(89, len(daily_balances), 90)]
-    quarterly_growth = all(quarterly[i] >= quarterly[i-1] * 0.95 for i in range(1, len(quarterly)))
+    quarterly_growth = all(
+        quarterly[i] >= quarterly[i - 1] * 0.95 for i in range(1, len(quarterly))
+    )
 
     passed = never_negative and final_seed > 100 and quarterly_growth
 
     return ValidationResult(
-        id="V1", name="Economic Sustainability", category="ECONOMICS",
+        id="V1",
+        name="Economic Sustainability",
+        category="ECONOMICS",
         hypothesis="Single node sustains positive SEED over 3 years",
         method=f"Simulated {NUM_SIMULATED_DAYS} days, {daily_missions} missions/day, zakat 2.5%, Harberger 5%",
         result=final_seed,
@@ -160,6 +165,7 @@ def v1_economic_sustainability() -> ValidationResult:
 # V2: REVERSE SCALING
 # ============================================================================
 
+
 def v2_reverse_scaling() -> ValidationResult:
     """
     Hypothesis: Cache hit rate increases logarithmically with node count.
@@ -174,7 +180,17 @@ def v2_reverse_scaling() -> ValidationResult:
     # Simulate unique task space (Zipf distribution — common tasks more common)
     total_task_types = 100_000
 
-    node_counts = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 100_000_000, 8_000_000_000]
+    node_counts = [
+        1,
+        10,
+        100,
+        1_000,
+        10_000,
+        100_000,
+        1_000_000,
+        100_000_000,
+        8_000_000_000,
+    ]
     results = []
 
     for N in node_counts:
@@ -193,7 +209,9 @@ def v2_reverse_scaling() -> ValidationResult:
         # Zipf: 80% of requests come from 20% of task types
         # At extreme scale, even rare tasks get covered
         zipf_factor = 0.80 + 0.15 * min(1.0, math.log10(max(1, N)) / 10)
-        hit_rate = min(0.99, coverage * zipf_factor + coverage * (1 - zipf_factor) * 0.6)
+        hit_rate = min(
+            0.99, coverage * zipf_factor + coverage * (1 - zipf_factor) * 0.6
+        )
 
         # Effective model size (log2 scaling)
         effective_multiplier = 1 + math.log2(max(1, N))
@@ -203,23 +221,29 @@ def v2_reverse_scaling() -> ValidationResult:
         # Average latency (S1 hit = 50ms, S2 miss = 1200ms)
         avg_latency = hit_rate * 50 + (1 - hit_rate) * 1200
 
-        results.append({
-            "nodes": N,
-            "total_reflexes": total_reflexes,
-            "cache_hit_rate": round(hit_rate, 4),
-            "effective_per_agent_B": round(effective_1b, 1),
-            "effective_total_B": round(effective_12b, 1),
-            "avg_latency_ms": round(avg_latency, 1),
-        })
+        results.append(
+            {
+                "nodes": N,
+                "total_reflexes": total_reflexes,
+                "cache_hit_rate": round(hit_rate, 4),
+                "effective_per_agent_B": round(effective_1b, 1),
+                "effective_total_B": round(effective_12b, 1),
+                "avg_latency_ms": round(avg_latency, 1),
+            }
+        )
 
     # Check hypotheses
     hit_at_1m = next(r["cache_hit_rate"] for r in results if r["nodes"] == 1_000_000)
-    hit_at_8b = next(r["cache_hit_rate"] for r in results if r["nodes"] == 8_000_000_000)
+    hit_at_8b = next(
+        r["cache_hit_rate"] for r in results if r["nodes"] == 8_000_000_000
+    )
 
     passed = hit_at_1m >= 0.80 and hit_at_8b >= 0.95
 
     return ValidationResult(
-        id="V2", name="Reverse Scaling", category="SCALABILITY",
+        id="V2",
+        name="Reverse Scaling",
+        category="SCALABILITY",
         hypothesis="Cache hit ≥80% at 1M nodes, ≥95% at 8B nodes",
         method="Zipf-distributed task simulation with exponential coverage model",
         result=hit_at_1m,
@@ -234,6 +258,7 @@ def v2_reverse_scaling() -> ValidationResult:
 # ============================================================================
 # V3: TRIPLE HELIX LATENCY DISTRIBUTION
 # ============================================================================
+
 
 def v3_triple_helix_latency() -> ValidationResult:
     """
@@ -306,13 +331,17 @@ def v3_triple_helix_latency() -> ValidationResult:
 
         if (day + 1) % 30 == 0:
             month = (day + 1) // 30
-            monthly_stats.append({
-                "month": month,
-                "avg_latency_ms": round(statistics.mean(daily_avg_latency[-30:]), 1),
-                "s1_rate": round(statistics.mean(daily_s1_rate[-30:]), 4),
-                "reflexes_compiled": len(reflex_cache),
-                "s3_events_this_month": s3_events,
-            })
+            monthly_stats.append(
+                {
+                    "month": month,
+                    "avg_latency_ms": round(
+                        statistics.mean(daily_avg_latency[-30:]), 1
+                    ),
+                    "s1_rate": round(statistics.mean(daily_s1_rate[-30:]), 4),
+                    "reflexes_compiled": len(reflex_cache),
+                    "s3_events_this_month": s3_events,
+                }
+            )
 
     # Check hypothesis
     final_month_latency = monthly_stats[-1]["avg_latency_ms"]
@@ -324,13 +353,15 @@ def v3_triple_helix_latency() -> ValidationResult:
     crossover_day = None
     window = 7
     for i in range(window, len(daily_avg_latency)):
-        week_avg = statistics.mean(daily_avg_latency[i-window:i])
+        week_avg = statistics.mean(daily_avg_latency[i - window : i])
         if week_avg < 200:
             crossover_day = i
             break
 
     return ValidationResult(
-        id="V3", name="Triple Helix Latency", category="PERFORMANCE",
+        id="V3",
+        name="Triple Helix Latency",
+        category="PERFORMANCE",
         hypothesis="Average latency < 200ms within 6 months",
         method=f"Simulated {days} days, {missions_per_day} missions/day, Zipf task distribution",
         result=final_month_latency,
@@ -346,7 +377,11 @@ def v3_triple_helix_latency() -> ValidationResult:
             "crossover_month": round(crossover_day / 30, 1) if crossover_day else None,
             "day1_latency": round(daily_avg_latency[0], 1),
             "day180_latency": round(daily_avg_latency[-1], 1),
-            "speedup_factor": round(daily_avg_latency[0] / daily_avg_latency[-1], 1) if daily_avg_latency[-1] > 0 else 0,
+            "speedup_factor": (
+                round(daily_avg_latency[0] / daily_avg_latency[-1], 1)
+                if daily_avg_latency[-1] > 0
+                else 0
+            ),
         },
         duration_ms=(time.time() - start) * 1000,
     )
@@ -355,6 +390,7 @@ def v3_triple_helix_latency() -> ValidationResult:
 # ============================================================================
 # V4: GINI CONVERGENCE
 # ============================================================================
+
 
 def v4_gini_convergence() -> ValidationResult:
     """
@@ -369,7 +405,9 @@ def v4_gini_convergence() -> ValidationResult:
     zakat_daily = 0.025 / 365
 
     # Initialize nodes with varying activity levels (Pareto distribution)
-    node_missions_per_day = [max(1, int(random.paretovariate(1.5) * 5)) for _ in range(num_nodes)]
+    node_missions_per_day = [
+        max(1, int(random.paretovariate(1.5) * 5)) for _ in range(num_nodes)
+    ]
     node_balances = [0.0] * num_nodes
 
     daily_gini = []
@@ -387,7 +425,7 @@ def v4_gini_convergence() -> ValidationResult:
 
         # Apply zakat
         for i in range(num_nodes):
-            node_balances[i] *= (1 - zakat_daily)
+            node_balances[i] *= 1 - zakat_daily
 
         # Calculate Gini
         sorted_b = sorted(node_balances)
@@ -409,17 +447,21 @@ def v4_gini_convergence() -> ValidationResult:
         if gini > throttle_trigger:
             throttle_events += 1
             overshoot = (gini - throttle_trigger) / throttle_trigger
-            redistribution_rate = min(0.10, 0.02 + overshoot * 0.15)  # 2%-10% progressive
+            redistribution_rate = min(
+                0.10, 0.02 + overshoot * 0.15
+            )  # 2%-10% progressive
 
-            sorted_indices = sorted(range(n), key=lambda i: node_balances[i], reverse=True)
-            top_10 = sorted_indices[:n // 10]
-            bottom_50 = sorted_indices[n // 2:]
+            sorted_indices = sorted(
+                range(n), key=lambda i: node_balances[i], reverse=True
+            )
+            top_10 = sorted_indices[: n // 10]
+            bottom_50 = sorted_indices[n // 2 :]
 
             redistribution = sum(node_balances[i] * redistribution_rate for i in top_10)
             per_bottom = redistribution / len(bottom_50) if bottom_50 else 0
 
             for i in top_10:
-                node_balances[i] *= (1 - redistribution_rate)
+                node_balances[i] *= 1 - redistribution_rate
             for i in bottom_50:
                 node_balances[i] += per_bottom
 
@@ -434,7 +476,9 @@ def v4_gini_convergence() -> ValidationResult:
     # Honest metric: after warm-up, Gini stays below ceiling
     warmup = 90
     post_warmup_gini = daily_gini[warmup:]
-    gini_below_ceiling_pct = sum(1 for g in post_warmup_gini if g <= gini_ceiling) / len(post_warmup_gini)
+    gini_below_ceiling_pct = sum(
+        1 for g in post_warmup_gini if g <= gini_ceiling
+    ) / len(post_warmup_gini)
 
     # Full-year metric for transparency
     full_year_below = sum(1 for g in daily_gini if g <= gini_ceiling) / len(daily_gini)
@@ -444,10 +488,14 @@ def v4_gini_convergence() -> ValidationResult:
     last_quarter = statistics.mean(daily_gini[-90:])
     converging = last_quarter <= first_quarter
 
-    passed = final_gini <= gini_ceiling and gini_below_ceiling_pct >= 0.90 and converging
+    passed = (
+        final_gini <= gini_ceiling and gini_below_ceiling_pct >= 0.90 and converging
+    )
 
     return ValidationResult(
-        id="V4", name="Gini Convergence", category="ECONOMICS",
+        id="V4",
+        name="Gini Convergence",
+        category="ECONOMICS",
         hypothesis=f"Gini ≤ {gini_ceiling} post-warmup (90d) with 100 heterogeneous nodes",
         method=f"Simulated {num_nodes} nodes, Pareto-distributed activity, {days} days, progressive throttle",
         result=final_gini,
@@ -466,7 +514,7 @@ def v4_gini_convergence() -> ValidationResult:
             "last_quarter_avg": round(last_quarter, 4),
             "converging": converging,
             "quarterly_gini": [
-                round(statistics.mean(daily_gini[i:i+90]), 4)
+                round(statistics.mean(daily_gini[i : i + 90]), 4)
                 for i in range(0, len(daily_gini), 90)
             ],
         },
@@ -477,6 +525,7 @@ def v4_gini_convergence() -> ValidationResult:
 # ============================================================================
 # V5: REFLEX PRECIPITATION RATES
 # ============================================================================
+
 
 def v5_precipitation_rates() -> ValidationResult:
     """
@@ -528,7 +577,9 @@ def v5_precipitation_rates() -> ValidationResult:
     passed = common_pct >= 0.60
 
     return ValidationResult(
-        id="V5", name="Reflex Precipitation", category="PERFORMANCE",
+        id="V5",
+        name="Reflex Precipitation",
+        category="PERFORMANCE",
         hypothesis="≥60% of common tasks precipitate within 30 days",
         method=f"{days} days, {missions_per_day} missions/day, threshold={precipitation_threshold}, min_ihsan={min_ihsan}",
         result=common_pct,
@@ -542,7 +593,10 @@ def v5_precipitation_rates() -> ValidationResult:
             "total_precipitated": len(precipitated),
             "total_patterns_seen": len(pattern_obs),
             "daily_precipitations": daily_precipitations,
-            "cumulative_by_day": [sum(daily_precipitations[:i+1]) for i in range(len(daily_precipitations))],
+            "cumulative_by_day": [
+                sum(daily_precipitations[: i + 1])
+                for i in range(len(daily_precipitations))
+            ],
         },
         duration_ms=(time.time() - start) * 1000,
     )
@@ -551,6 +605,7 @@ def v5_precipitation_rates() -> ValidationResult:
 # ============================================================================
 # V6: HHMM ROUTING EFFICIENCY
 # ============================================================================
+
 
 def v6_hhmm_routing() -> ValidationResult:
     """
@@ -561,11 +616,21 @@ def v6_hhmm_routing() -> ValidationResult:
 
     # Simulated task types and optimal expert mapping
     task_expert_map = {
-        "code_review": "P3", "write_email": "P6", "plan_project": "P1",
-        "research_topic": "P2", "analyze_data": "P2", "fix_bug": "P3",
-        "write_doc": "P6", "evaluate_quality": "P4", "schedule_meeting": "P1",
-        "translate_text": "P6", "debug_crash": "P3", "summarize_paper": "P2",
-        "design_api": "P1", "optimize_code": "P3", "check_ethics": "P5",
+        "code_review": "P3",
+        "write_email": "P6",
+        "plan_project": "P1",
+        "research_topic": "P2",
+        "analyze_data": "P2",
+        "fix_bug": "P3",
+        "write_doc": "P6",
+        "evaluate_quality": "P4",
+        "schedule_meeting": "P1",
+        "translate_text": "P6",
+        "debug_crash": "P3",
+        "summarize_paper": "P2",
+        "design_api": "P1",
+        "optimize_code": "P3",
+        "check_ethics": "P5",
     }
 
     tasks = list(task_expert_map.keys())
@@ -597,7 +662,7 @@ def v6_hhmm_routing() -> ValidationResult:
                 task_counts[best_expert] / total_obs
 
                 # Explore with decreasing probability
-                explore_prob = max(0.05, 0.5 * (0.9 ** day))
+                explore_prob = max(0.05, 0.5 * (0.9**day))
                 if random.random() < explore_prob:
                     predicted_expert = random.choice(experts)
                 else:
@@ -612,7 +677,9 @@ def v6_hhmm_routing() -> ValidationResult:
             total += 1
 
             # Update HHMM (learn from feedback)
-            transition_counts[task][optimal_expert] = transition_counts[task].get(optimal_expert, 0) + 1
+            transition_counts[task][optimal_expert] = (
+                transition_counts[task].get(optimal_expert, 0) + 1
+            )
 
         accuracy = correct / total if total > 0 else 0
         daily_accuracy.append(accuracy)
@@ -625,7 +692,9 @@ def v6_hhmm_routing() -> ValidationResult:
     passed = final_week_accuracy >= 0.85
 
     return ValidationResult(
-        id="V6", name="HHMM Routing Efficiency", category="ARCHITECTURE",
+        id="V6",
+        name="HHMM Routing Efficiency",
+        category="ARCHITECTURE",
         hypothesis="≥85% routing accuracy within 4 weeks",
         method=f"Simulated {days} days, {missions_per_day} missions/day, {len(tasks)} task types, Bayesian learning",
         result=final_week_accuracy,
@@ -638,7 +707,7 @@ def v6_hhmm_routing() -> ValidationResult:
             "improvement": round(improvement, 4),
             "daily_accuracy": [round(a, 4) for a in daily_accuracy],
             "weekly_accuracy": [
-                round(statistics.mean(daily_accuracy[i:i+7]), 4)
+                round(statistics.mean(daily_accuracy[i : i + 7]), 4)
                 for i in range(0, len(daily_accuracy), 7)
             ],
         },
@@ -649,6 +718,7 @@ def v6_hhmm_routing() -> ValidationResult:
 # ============================================================================
 # V7: EVIDENCE CHAIN INTEGRITY
 # ============================================================================
+
 
 def v7_chain_integrity() -> ValidationResult:
     """
@@ -671,8 +741,7 @@ def v7_chain_integrity() -> ValidationResult:
             "prev_hash": prev_hash,
         }
         receipt_hash = hashlib.blake2b(
-            json.dumps(receipt, sort_keys=True).encode(),
-            digest_size=32
+            json.dumps(receipt, sort_keys=True).encode(), digest_size=32
         ).hexdigest()
         receipt["hash"] = receipt_hash
         chain.append(receipt)
@@ -685,14 +754,13 @@ def v7_chain_integrity() -> ValidationResult:
             stored_hash = c[i].get("hash", "")
             verify_data = {k: v for k, v in c[i].items() if k != "hash"}
             expected_hash = hashlib.blake2b(
-                json.dumps(verify_data, sort_keys=True).encode(),
-                digest_size=32
+                json.dumps(verify_data, sort_keys=True).encode(), digest_size=32
             ).hexdigest()
             if stored_hash != expected_hash:
                 return False, i  # Content was tampered
 
             # Verify prev_hash linkage
-            if i > 0 and c[i]["prev_hash"] != c[i-1]["hash"]:
+            if i > 0 and c[i]["prev_hash"] != c[i - 1]["hash"]:
                 return False, i  # Chain broken
         return True, -1
 
@@ -718,7 +786,9 @@ def v7_chain_integrity() -> ValidationResult:
     # Test 4: Insert a fake receipt
     inserted = [dict(r) for r in chain]
     fake = {
-        "id": 999, "data": "FAKE", "ihsan": 1.0,
+        "id": 999,
+        "data": "FAKE",
+        "ihsan": 1.0,
         "timestamp": time.time(),
         "prev_hash": chain[40]["hash"],
         "hash": hashlib.blake2b(b"fake", digest_size=32).hexdigest(),
@@ -740,25 +810,34 @@ def v7_chain_integrity() -> ValidationResult:
     valid_swap, idx = verify_chain(swapped)
     test_results["swap_detected"] = not valid_swap
 
-    all_attacks_detected = all([
-        test_results["legitimate"],
-        test_results["modify_detected"],
-        test_results["delete_detected"],
-        test_results["insert_detected"],
-        test_results["replay_detected"],
-        test_results["swap_detected"],
-    ])
+    all_attacks_detected = all(
+        [
+            test_results["legitimate"],
+            test_results["modify_detected"],
+            test_results["delete_detected"],
+            test_results["insert_detected"],
+            test_results["replay_detected"],
+            test_results["swap_detected"],
+        ]
+    )
 
-    detection_rate = sum([
-        test_results["modify_detected"],
-        test_results["delete_detected"],
-        test_results["insert_detected"],
-        test_results["replay_detected"],
-        test_results["swap_detected"],
-    ]) / 5
+    detection_rate = (
+        sum(
+            [
+                test_results["modify_detected"],
+                test_results["delete_detected"],
+                test_results["insert_detected"],
+                test_results["replay_detected"],
+                test_results["swap_detected"],
+            ]
+        )
+        / 5
+    )
 
     return ValidationResult(
-        id="V7", name="Evidence Chain Integrity", category="SECURITY",
+        id="V7",
+        name="Evidence Chain Integrity",
+        category="SECURITY",
         hypothesis="100% tampering detection (modify, delete, insert, replay, swap)",
         method=f"Built {chain_length}-receipt chain, applied 5 attack types",
         result=detection_rate,
@@ -773,6 +852,7 @@ def v7_chain_integrity() -> ValidationResult:
 # ============================================================================
 # V8: SELF-CRITIQUE DETECTION LATENCY
 # ============================================================================
+
 
 def v8_self_critique() -> ValidationResult:
     """
@@ -803,7 +883,7 @@ def v8_self_critique() -> ValidationResult:
         # Detection: rolling average drops below threshold
         detected_at = None
         for i in range(window_size, len(ihsan_scores)):
-            window = ihsan_scores[i - window_size:i]
+            window = ihsan_scores[i - window_size : i]
             avg = statistics.mean(window)
             if avg < ihsan_threshold:
                 detected_at = i
@@ -819,17 +899,21 @@ def v8_self_critique() -> ValidationResult:
     if detection_latencies:
         avg_latency = statistics.mean(detection_latencies)
         max_latency = max(detection_latencies)
-        within_3_ticks = sum(1 for l in detection_latencies if l <= window_size) / len(detection_latencies)
+        within_3_ticks = sum(1 for l in detection_latencies if l <= window_size) / len(
+            detection_latencies
+        )
     else:
-        avg_latency = float('inf')
-        max_latency = float('inf')
+        avg_latency = float("inf")
+        max_latency = float("inf")
         within_3_ticks = 0
 
     detection_rate = (trials - false_negatives) / trials
     passed = detection_rate >= 0.95 and avg_latency <= 4
 
     return ValidationResult(
-        id="V8", name="Self-Critique Detection", category="RESILIENCE",
+        id="V8",
+        name="Self-Critique Detection",
+        category="RESILIENCE",
         hypothesis="Detect degradation within 3 ticks in ≥95% of cases",
         method=f"{trials} trials, random injection points, {window_size}-mission rolling average",
         result=detection_rate,
@@ -852,6 +936,7 @@ def v8_self_critique() -> ValidationResult:
 # V9: ECONOMIC IMPOSSIBILITY (Token vs Quality Revenue)
 # ============================================================================
 
+
 def v9_economic_impossibility() -> ValidationResult:
     """
     Hypothesis: Token-based revenue (OpenAI model) creates incentive for
@@ -870,26 +955,35 @@ def v9_economic_impossibility() -> ValidationResult:
         token_price = 0.00003  # $0.03/1K tokens
         verbose_length = optimal_length * (1.5 + random.random())  # 1.5-2.5× verbose
         token_revenue = verbose_length * token_price
-        token_quality = max(0.5, 1.0 - (verbose_length - optimal_length) / optimal_length * 0.3)
+        token_quality = max(
+            0.5, 1.0 - (verbose_length - optimal_length) / optimal_length * 0.3
+        )
 
         # Quality-based model: revenue = ihsan × base_rate
-        concise_length = optimal_length * (0.8 + random.random() * 0.4)  # 0.8-1.2× optimal
-        quality_ihsan = max(0.7, min(1.0, 1.0 - abs(concise_length - optimal_length) / optimal_length * 0.5))
+        concise_length = optimal_length * (
+            0.8 + random.random() * 0.4
+        )  # 0.8-1.2× optimal
+        quality_ihsan = max(
+            0.7,
+            min(1.0, 1.0 - abs(concise_length - optimal_length) / optimal_length * 0.5),
+        )
         quality_revenue = quality_ihsan * 1.0  # 1 SEED base
 
-        tasks.append({
-            "optimal_length": optimal_length,
-            "token_model": {
-                "output_length": int(verbose_length),
-                "revenue": round(token_revenue, 6),
-                "quality": round(token_quality, 4),
-            },
-            "quality_model": {
-                "output_length": int(concise_length),
-                "revenue": round(quality_revenue, 4),
-                "quality": round(quality_ihsan, 4),
-            },
-        })
+        tasks.append(
+            {
+                "optimal_length": optimal_length,
+                "token_model": {
+                    "output_length": int(verbose_length),
+                    "revenue": round(token_revenue, 6),
+                    "quality": round(token_quality, 4),
+                },
+                "quality_model": {
+                    "output_length": int(concise_length),
+                    "revenue": round(quality_revenue, 4),
+                    "quality": round(quality_ihsan, 4),
+                },
+            }
+        )
 
     # Correlation analysis
     token_lengths = [t["token_model"]["output_length"] for t in tasks]
@@ -925,7 +1019,9 @@ def v9_economic_impossibility() -> ValidationResult:
     passed = token_length_revenue_corr > 0.8 and quality_length_revenue_corr < 0.3
 
     return ValidationResult(
-        id="V9", name="Economic Impossibility", category="ECONOMICS",
+        id="V9",
+        name="Economic Impossibility",
+        category="ECONOMICS",
         hypothesis="Token revenue correlates with length (>0.8). Quality revenue does not (<0.3).",
         method=f"{NUM_TRIALS} tasks, compared token-based vs quality-based revenue incentives",
         result=incentive_misalignment,
@@ -938,8 +1034,16 @@ def v9_economic_impossibility() -> ValidationResult:
             "incentive_misalignment": round(incentive_misalignment, 4),
             "avg_token_quality": round(avg_token_quality, 4),
             "avg_quality_quality": round(avg_quality_quality, 4),
-            "token_model_verbose_factor": round(statistics.mean(token_lengths) / statistics.mean(t["optimal_length"] for t in tasks), 2),
-            "quality_model_length_factor": round(statistics.mean(quality_lengths) / statistics.mean(t["optimal_length"] for t in tasks), 2),
+            "token_model_verbose_factor": round(
+                statistics.mean(token_lengths)
+                / statistics.mean(t["optimal_length"] for t in tasks),
+                2,
+            ),
+            "quality_model_length_factor": round(
+                statistics.mean(quality_lengths)
+                / statistics.mean(t["optimal_length"] for t in tasks),
+                2,
+            ),
         },
         duration_ms=(time.time() - start) * 1000,
     )
@@ -948,6 +1052,7 @@ def v9_economic_impossibility() -> ValidationResult:
 # ============================================================================
 # V10: P5 FROZEN INVARIANT
 # ============================================================================
+
 
 def v10_p5_frozen() -> ValidationResult:
     """
@@ -996,11 +1101,13 @@ def v10_p5_frozen() -> ValidationResult:
             assert p5_constants[key] == CONSTITUTIONAL[key], f"DRIFT: {key} changed!"
 
         if cycle % 100 == 0:
-            constant_snapshots.append({
-                "cycle": cycle,
-                "constants": dict(p5_constants),
-                "other_weights_sum": round(sum(other_agent_weights.values()), 4),
-            })
+            constant_snapshots.append(
+                {
+                    "cycle": cycle,
+                    "constants": dict(p5_constants),
+                    "other_weights_sum": round(sum(other_agent_weights.values()), 4),
+                }
+            )
 
     # Verify ALL constants are EXACTLY original values
     all_unchanged = all(p5_constants[k] == CONSTITUTIONAL[k] for k in CONSTITUTIONAL)
@@ -1008,7 +1115,9 @@ def v10_p5_frozen() -> ValidationResult:
     passed = all_unchanged and drift_blocked == drift_attempts
 
     return ValidationResult(
-        id="V10", name="P5 Frozen Invariant", category="CONSTITUTIONAL",
+        id="V10",
+        name="P5 Frozen Invariant",
+        category="CONSTITUTIONAL",
         hypothesis="Constitutional constants unchanged across 1000 evolution cycles",
         method=f"{evolution_cycles} cycles, {drift_attempts} drift attempts, all other agents evolving",
         result=1.0 if all_unchanged else 0.0,
@@ -1033,6 +1142,7 @@ def v10_p5_frozen() -> ValidationResult:
 # RUNNER
 # ============================================================================
 
+
 def run_all_validations(results_dir: Path | str | None = None):
     print("""
 ╔══════════════════════════════════════════════════════════════════════╗
@@ -1048,16 +1158,16 @@ def run_all_validations(results_dir: Path | str | None = None):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     validators = [
-        ("V1",  "Economic Sustainability",    v1_economic_sustainability),
-        ("V2",  "Reverse Scaling",            v2_reverse_scaling),
-        ("V3",  "Triple Helix Latency",       v3_triple_helix_latency),
-        ("V4",  "Gini Convergence",           v4_gini_convergence),
-        ("V5",  "Reflex Precipitation",       v5_precipitation_rates),
-        ("V6",  "HHMM Routing",              v6_hhmm_routing),
-        ("V7",  "Evidence Chain Integrity",   v7_chain_integrity),
-        ("V8",  "Self-Critique Detection",    v8_self_critique),
-        ("V9",  "Economic Impossibility",     v9_economic_impossibility),
-        ("V10", "P5 Frozen Invariant",        v10_p5_frozen),
+        ("V1", "Economic Sustainability", v1_economic_sustainability),
+        ("V2", "Reverse Scaling", v2_reverse_scaling),
+        ("V3", "Triple Helix Latency", v3_triple_helix_latency),
+        ("V4", "Gini Convergence", v4_gini_convergence),
+        ("V5", "Reflex Precipitation", v5_precipitation_rates),
+        ("V6", "HHMM Routing", v6_hhmm_routing),
+        ("V7", "Evidence Chain Integrity", v7_chain_integrity),
+        ("V8", "Self-Critique Detection", v8_self_critique),
+        ("V9", "Economic Impossibility", v9_economic_impossibility),
+        ("V10", "P5 Frozen Invariant", v10_p5_frozen),
     ]
 
     results = []
@@ -1072,12 +1182,20 @@ def run_all_validations(results_dir: Path | str | None = None):
             print(f"{icon} ({result.duration_ms:.0f}ms)")
         except Exception as e:
             print(f"💥 ERROR: {e}")
-            results.append(ValidationResult(
-                id=vid, name=name, category="ERROR",
-                hypothesis="", method="", result=0, threshold=0,
-                passed=False, confidence=0,
-                raw_data={"error": str(e)},
-            ))
+            results.append(
+                ValidationResult(
+                    id=vid,
+                    name=name,
+                    category="ERROR",
+                    hypothesis="",
+                    method="",
+                    result=0,
+                    threshold=0,
+                    passed=False,
+                    confidence=0,
+                    raw_data={"error": str(e)},
+                )
+            )
 
     total_duration = time.time() - total_start
 
@@ -1087,14 +1205,20 @@ def run_all_validations(results_dir: Path | str | None = None):
     total = len(results)
 
     print(f"\n{'═'*75}")
-    print(f"  {'ID':<6} {'Category':<16} {'Result':<8} {'Measured':>10} {'Threshold':>10} {'Conf':>6}  Hypothesis")
+    print(
+        f"  {'ID':<6} {'Category':<16} {'Result':<8} {'Measured':>10} {'Threshold':>10} {'Conf':>6}  Hypothesis"
+    )
     print(f"  {'─'*73}")
 
     for r in results:
         icon = "✅" if r.passed else "❌"
         measured = f"{r.result:.4f}" if isinstance(r.result, float) else str(r.result)
-        threshold = f"{r.threshold:.4f}" if isinstance(r.threshold, float) else str(r.threshold)
-        print(f"  {r.id:<6} {r.category:<16} {icon:<8} {measured:>10} {threshold:>10} {r.confidence:>5.0%}  {r.hypothesis[:50]}")
+        threshold = (
+            f"{r.threshold:.4f}" if isinstance(r.threshold, float) else str(r.threshold)
+        )
+        print(
+            f"  {r.id:<6} {r.category:<16} {icon:<8} {measured:>10} {threshold:>10} {r.confidence:>5.0%}  {r.hypothesis[:50]}"
+        )
 
     print(f"  {'─'*73}")
     print(f"  TOTAL: {passed}/{total} PASSED ({passed/total*100:.0f}%)")
@@ -1126,7 +1250,9 @@ def run_all_validations(results_dir: Path | str | None = None):
             elif r.id == "V6":
                 key_metric = f"Week 1: {rd.get('first_week_accuracy', 0)*100:.0f}% → Week 4: {rd.get('final_week_accuracy', 0)*100:.0f}%"
             elif r.id == "V7":
-                key_metric = "5/5 attacks detected (modify, delete, insert, replay, swap)"
+                key_metric = (
+                    "5/5 attacks detected (modify, delete, insert, replay, swap)"
+                )
             elif r.id == "V8":
                 key_metric = f"{rd.get('detection_rate', 0)*100:.0f}% detected, avg {rd.get('avg_detection_latency_ticks', 0):.1f} ticks"
             elif r.id == "V9":
@@ -1138,7 +1264,9 @@ def run_all_validations(results_dir: Path | str | None = None):
                 print(f"║  {r.id}: {key_metric:<63}║")
 
     print(f"║{'─'*70}║")
-    print(f"║  PASSED: {passed}/{total} | Duration: {total_duration:.2f}s | Seed: 42 (reproducible)     ║")
+    print(
+        f"║  PASSED: {passed}/{total} | Duration: {total_duration:.2f}s | Seed: 42 (reproducible)     ║"
+    )
     print("╚══════════════════════════════════════════════════════════════════════╝")
 
     # Save results
@@ -1154,8 +1282,7 @@ def run_all_validations(results_dir: Path | str | None = None):
     }
 
     proof_hash = hashlib.blake2b(
-        json.dumps(output, sort_keys=True, default=str).encode(),
-        digest_size=32
+        json.dumps(output, sort_keys=True, default=str).encode(), digest_size=32
     ).hexdigest()
     output["proof_hash"] = proof_hash
 
@@ -1163,10 +1290,9 @@ def run_all_validations(results_dir: Path | str | None = None):
     results_file.write_text(json.dumps(output, indent=2, default=str))
 
     raw_file = output_dir / "raw_data.json"
-    raw_file.write_text(json.dumps(
-        {r.id: r.raw_data for r in results},
-        indent=2, default=str
-    ))
+    raw_file.write_text(
+        json.dumps({r.id: r.raw_data for r in results}, indent=2, default=str)
+    )
 
     output["results_file"] = str(results_file)
     output["raw_data_file"] = str(raw_file)

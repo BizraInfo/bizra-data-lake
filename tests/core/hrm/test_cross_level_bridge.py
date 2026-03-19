@@ -27,7 +27,6 @@ from core.hrm.cross_level_bridge import (
     SyncResult,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 # Data Structures
 # ═══════════════════════════════════════════════════════════════════════════
@@ -80,7 +79,10 @@ class TestCascadeResult:
 class TestSyncResult:
     def test_sync_complete_false(self):
         result = SyncResult()
-        result.participating_levels = {AbstractionLevel.PERCEPTUAL, AbstractionLevel.OPERATIONAL}
+        result.participating_levels = {
+            AbstractionLevel.PERCEPTUAL,
+            AbstractionLevel.OPERATIONAL,
+        }
         assert result.sync_complete is False
 
     def test_sync_complete_true(self):
@@ -182,43 +184,58 @@ class TestValidationCascade:
 class TestIntegrationSync:
     def test_sync_single_level(self):
         bridge = CrossLevelBridge()
-        result = bridge.synchronize_integration({
-            AbstractionLevel.PERCEPTUAL: {"snr_scores": [0.9]},
-        })
+        result = bridge.synchronize_integration(
+            {
+                AbstractionLevel.PERCEPTUAL: {"snr_scores": [0.9]},
+            }
+        )
         assert result.sync_quality == 1.0  # trivial sync
 
     def test_sync_no_contradictions(self):
         bridge = CrossLevelBridge()
-        result = bridge.synchronize_integration({
-            AbstractionLevel.PERCEPTUAL: {"snr_scores": [0.85]},
-            AbstractionLevel.OPERATIONAL: {"snr_scores": [0.87]},
-        })
+        result = bridge.synchronize_integration(
+            {
+                AbstractionLevel.PERCEPTUAL: {"snr_scores": [0.85]},
+                AbstractionLevel.OPERATIONAL: {"snr_scores": [0.87]},
+            }
+        )
         assert result.contradictions_found == 0
         assert result.sync_quality > 0.8
 
     def test_sync_with_contradictions(self):
         bridge = CrossLevelBridge()
-        result = bridge.synchronize_integration({
-            AbstractionLevel.PERCEPTUAL: {"snr_scores": [0.5]},
-            AbstractionLevel.OPERATIONAL: {"snr_scores": [0.95]},
-        })
+        result = bridge.synchronize_integration(
+            {
+                AbstractionLevel.PERCEPTUAL: {"snr_scores": [0.5]},
+                AbstractionLevel.OPERATIONAL: {"snr_scores": [0.95]},
+            }
+        )
         assert result.contradictions_found >= 1
         assert result.sync_quality < 1.0
 
     def test_sync_detects_gaps(self):
         bridge = CrossLevelBridge()
-        result = bridge.synchronize_integration({
-            AbstractionLevel.PERCEPTUAL: {"snr_scores": [0.9]},  # no active_hypotheses
-            AbstractionLevel.OPERATIONAL: {"snr_scores": [0.9], "active_hypotheses": True},
-        })
+        result = bridge.synchronize_integration(
+            {
+                AbstractionLevel.PERCEPTUAL: {
+                    "snr_scores": [0.9]
+                },  # no active_hypotheses
+                AbstractionLevel.OPERATIONAL: {
+                    "snr_scores": [0.9],
+                    "active_hypotheses": True,
+                },
+            }
+        )
         assert result.gaps_identified >= 1
 
     def test_sync_detects_transfers(self):
         bridge = CrossLevelBridge()
-        result = bridge.synchronize_integration({
-            AbstractionLevel.PERCEPTUAL: {"insights": ["a"]},
-            AbstractionLevel.OPERATIONAL: {"insights": ["b"]},
-        })
+        result = bridge.synchronize_integration(
+            {
+                AbstractionLevel.PERCEPTUAL: {"insights": ["a"]},
+                AbstractionLevel.OPERATIONAL: {"insights": ["b"]},
+            }
+        )
         assert result.transfers_discovered >= 1
 
 
@@ -287,14 +304,18 @@ class TestBridgeMetrics:
     def test_metrics_after_operations(self):
         bridge = CrossLevelBridge()
         bridge.propagate_hypothesis(
-            {"x": 1}, AbstractionLevel.TACTICAL,
-            PropagationDirection.BOTH, confidence=0.9,
+            {"x": 1},
+            AbstractionLevel.TACTICAL,
+            PropagationDirection.BOTH,
+            confidence=0.9,
         )
         bridge.request_validation({"h": "test"}, AbstractionLevel.OPERATIONAL)
-        bridge.synchronize_integration({
-            AbstractionLevel.PERCEPTUAL: {},
-            AbstractionLevel.OPERATIONAL: {},
-        })
+        bridge.synchronize_integration(
+            {
+                AbstractionLevel.PERCEPTUAL: {},
+                AbstractionLevel.OPERATIONAL: {},
+            }
+        )
         metrics = bridge.get_bridge_metrics()
         assert metrics["total_messages"] >= 2
         assert metrics["cascade_count"] == 1

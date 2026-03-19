@@ -18,12 +18,12 @@ Usage in .claude/settings.json:
 """
 
 import json
-import sys
+import math
 import os
+import sys
+from collections import deque
 from datetime import datetime
 from pathlib import Path
-from collections import deque
-import math
 
 # NTU Parameters (from core/ntu/ntu.py)
 WINDOW_SIZE = 64

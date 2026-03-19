@@ -1,6 +1,6 @@
+from app.auth import require_admin
 from fastapi import APIRouter, Header
 from pydantic import BaseModel, Field
-from app.auth import require_admin
 
 try:
     from _shared.app.health import build_health_payload, check_redis
@@ -12,6 +12,7 @@ except Exception:  # pragma: no cover - local import fallback
 router = APIRouter()
 APP_VERSION = "4.0.1"
 
+
 class ModelRecord(BaseModel):
     model_id: str
     capability_embedding: list[float] = Field(default_factory=list)
@@ -21,7 +22,9 @@ class ModelRecord(BaseModel):
     policy_compliance: list[str] = Field(default_factory=list)
     version: str | None = None
 
+
 _STORE = JsonHashStore("bizra:urp_registry:models")
+
 
 @router.get("/health")
 def health():
@@ -32,10 +35,12 @@ def health():
         extra={"store_backend": _STORE.backend(), "records": _STORE.count()},
     )
 
+
 @router.get("/v1/models")
 def list_models():
     items = [ModelRecord.model_validate(v) for v in _STORE.values()]
     return {"models": items}
+
 
 @router.post("/v1/models", status_code=201)
 def register_model(rec: ModelRecord, x_urp_admin: str | None = Header(default=None)):

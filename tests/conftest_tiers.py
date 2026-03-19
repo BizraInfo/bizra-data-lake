@@ -3,14 +3,15 @@
 # Usage: pytest -m "smoke" / pytest -m "contract" / pytest -m "not slow"
 
 
-
 def pytest_configure(config):
     """Register BIZRA test tier markers."""
     config.addinivalue_line("markers", "smoke: T0 — runs on every save (< 30 sec)")
     config.addinivalue_line("markers", "unit: T1 — runs on every commit (< 2 min)")
     config.addinivalue_line("markers", "contract: T2 — runs on merge to main (< 5 min)")
     config.addinivalue_line("markers", "slow: T3 — runs on version lock only (20+ min)")
-    config.addinivalue_line("markers", "genesis_gate: T4 — runs on release candidate only")
+    config.addinivalue_line(
+        "markers", "genesis_gate: T4 — runs on release candidate only"
+    )
     config.addinivalue_line("markers", "requires_ollama: needs Ollama runtime")
     config.addinivalue_line("markers", "requires_gpu: needs GPU acceleration")
     config.addinivalue_line("markers", "requires_network: needs internet access")

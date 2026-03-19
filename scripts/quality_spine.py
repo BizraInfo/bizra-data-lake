@@ -102,6 +102,7 @@ SPINE_LOG = EVIDENCE_DIR / "quality_spine_log.jsonl"
 @dataclass
 class RatchetResult:
     """Result of a coverage ratchet evaluation."""
+
     timestamp: str
     actual_coverage: float
     current_floor: float
@@ -152,7 +153,9 @@ def write_coverage_floor(pyproject_path: Path, new_floor: float) -> None:
     pyproject_path.write_text(new_content, encoding="utf-8")
 
 
-def evaluate_ratchet(actual: float, floor: float, step: int = RATCHET_STEP) -> RatchetResult:
+def evaluate_ratchet(
+    actual: float, floor: float, step: int = RATCHET_STEP
+) -> RatchetResult:
     """Evaluate whether coverage qualifies for a ratchet bump."""
     headroom = actual - floor
     regression = actual < floor
@@ -226,6 +229,7 @@ def aggregate_coverage(
 @dataclass
 class QualitySnapshot:
     """Point-in-time quality measurement, hash-chained."""
+
     timestamp: str = ""
     commit_sha: str = ""
     snr_score: float = 0.0
@@ -257,7 +261,9 @@ class QualitySnapshot:
     def compute_hash(self) -> str:
         d = asdict(self)
         d.pop("snapshot_hash", None)
-        return hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()[:32]
+        return hashlib.sha256(
+            json.dumps(d, sort_keys=True, default=str).encode()
+        ).hexdigest()[:32]
 
     def finalize(self) -> None:
         self.snapshot_hash = self.compute_hash()
@@ -266,6 +272,7 @@ class QualitySnapshot:
 @dataclass
 class TrendAnalysis:
     """Quality trend over a window of snapshots."""
+
     window_size: int = 0
     direction: str = "stable"
     snr_trend: float = 0.0
@@ -321,10 +328,13 @@ class TrendStore:
     @staticmethod
     def _deserialize(line: str) -> QualitySnapshot:
         data = json.loads(line)
-        return QualitySnapshot(**{
-            k: v for k, v in data.items()
-            if k in QualitySnapshot.__dataclass_fields__
-        })
+        return QualitySnapshot(
+            **{
+                k: v
+                for k, v in data.items()
+                if k in QualitySnapshot.__dataclass_fields__
+            }
+        )
 
 
 def _linear_slope(values: List[float]) -> float:
@@ -354,7 +364,9 @@ def analyze_trend(snapshots: List[QualitySnapshot]) -> TrendAnalysis:
     snr_vals = [s.snr_score for s in snapshots if s.snr_score > 0]
     cov_vals = [s.coverage_pct for s in snapshots if s.coverage_pct > 0]
     mypy_vals = [float(s.mypy_errors) for s in snapshots if s.mypy_errors > 0]
-    pass_rates = [s.tests_passed / s.tests_total for s in snapshots if s.tests_total > 0]
+    pass_rates = [
+        s.tests_passed / s.tests_total for s in snapshots if s.tests_total > 0
+    ]
 
     if snr_vals:
         a.snr_trend = _linear_slope(snr_vals)
@@ -373,7 +385,9 @@ def analyze_trend(snapshots: List[QualitySnapshot]) -> TrendAnalysis:
             if std_v > 0:
                 z = (vals[-1] - mean_v) / std_v
                 if abs(z) > 2.0:
-                    anomalies.append(f"{label}: {vals[-1]:.3f} is {z:+.1f}σ from mean {mean_v:.3f}")
+                    anomalies.append(
+                        f"{label}: {vals[-1]:.3f} is {z:+.1f}σ from mean {mean_v:.3f}"
+                    )
 
     a.anomalies = anomalies
 
@@ -408,6 +422,7 @@ def analyze_trend(snapshots: List[QualitySnapshot]) -> TrendAnalysis:
 @dataclass
 class GateResult:
     """Single quality gate verdict."""
+
     name: str
     category: str
     passed: bool
@@ -420,6 +435,7 @@ class GateResult:
 @dataclass
 class SpineVerdict:
     """Complete spine enforcement result."""
+
     timestamp: str = ""
     commit_sha: str = ""
     gates: List[Dict[str, Any]] = field(default_factory=list)
@@ -436,110 +452,206 @@ class SpineVerdict:
             self.timestamp = datetime.now(timezone.utc).isoformat()
 
 
-def _run_tool(cmd: List[str], cwd: Path, timeout: int = 120) -> subprocess.CompletedProcess:
+def _run_tool(
+    cmd: List[str], cwd: Path, timeout: int = 120
+) -> subprocess.CompletedProcess:
     """Run a subprocess with timeout, capturing output."""
-    return subprocess.run(cmd, capture_output=True, text=True, cwd=str(cwd), timeout=timeout)
+    return subprocess.run(
+        cmd, capture_output=True, text=True, cwd=str(cwd), timeout=timeout
+    )
 
 
 def gate_python_tests(ws: Path) -> GateResult:
     r = _run_tool(
-        [sys.executable, "-m", "pytest", "tests/", "-x", "--tb=line", "-q",
-         "-m", "not requires_ollama and not requires_gpu and not slow"],
-        ws, timeout=300,
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "tests/",
+            "-x",
+            "--tb=line",
+            "-q",
+            "-m",
+            "not requires_ollama and not requires_gpu and not slow",
+        ],
+        ws,
+        timeout=300,
     )
     passed = r.returncode == 0
     summary = r.stdout.strip().split("\n")[-1] if r.stdout.strip() else "no output"
-    return GateResult("python_tests", "quality", passed, 1.0 if passed else 0.0, 0.20, summary)
+    return GateResult(
+        "python_tests", "quality", passed, 1.0 if passed else 0.0, 0.20, summary
+    )
 
 
 def gate_coverage_floor(ws: Path) -> GateResult:
     cov_xml = ws / "coverage.xml"
     pyp = ws / "pyproject.toml"
     if not cov_xml.exists():
-        return GateResult("coverage_floor", "quality", False, 0.0, 0.15,
-                          "coverage.xml missing", blocking=False)
+        return GateResult(
+            "coverage_floor",
+            "quality",
+            False,
+            0.0,
+            0.15,
+            "coverage.xml missing",
+            blocking=False,
+        )
     try:
         actual = parse_coverage_xml(cov_xml)
         floor = read_coverage_floor(pyp)
-        return GateResult("coverage_floor", "quality", actual >= floor,
-                          min(actual / 100.0, 1.0), 0.15,
-                          f"{actual:.1f}% vs {floor:.0f}% floor")
+        return GateResult(
+            "coverage_floor",
+            "quality",
+            actual >= floor,
+            min(actual / 100.0, 1.0),
+            0.15,
+            f"{actual:.1f}% vs {floor:.0f}% floor",
+        )
     except (FileNotFoundError, ValueError) as e:
-        return GateResult("coverage_floor", "quality", False, 0.0, 0.15,
-                          str(e), blocking=False)
+        return GateResult(
+            "coverage_floor", "quality", False, 0.0, 0.15, str(e), blocking=False
+        )
 
 
 def gate_lint(ws: Path) -> GateResult:
-    ruff = _run_tool([sys.executable, "-m", "ruff", "check", "core/", "--quiet"], ws, 60)
-    black = _run_tool([sys.executable, "-m", "black", "--check", "--quiet", "core/"], ws, 60)
+    ruff = _run_tool(
+        [sys.executable, "-m", "ruff", "check", "core/", "--quiet"], ws, 60
+    )
+    black = _run_tool(
+        [sys.executable, "-m", "black", "--check", "--quiet", "core/"], ws, 60
+    )
     both = ruff.returncode == 0 and black.returncode == 0
     parts = []
     if ruff.returncode != 0:
         parts.append("ruff:FAIL")
     if black.returncode != 0:
         parts.append("black:FAIL")
-    return GateResult("lint", "quality", both,
-                      1.0 if both else (0.5 if ruff.returncode == 0 or black.returncode == 0 else 0.0),
-                      0.10, ", ".join(parts) or "PASS")
+    return GateResult(
+        "lint",
+        "quality",
+        both,
+        (
+            1.0
+            if both
+            else (0.5 if ruff.returncode == 0 or black.returncode == 0 else 0.0)
+        ),
+        0.10,
+        ", ".join(parts) or "PASS",
+    )
 
 
 def gate_mypy_ratchet(ws: Path) -> GateResult:
     r = _run_tool(
-        [sys.executable, "-m", "mypy", "core/", "--ignore-missing-imports", "--no-error-summary"],
-        ws, 120,
+        [
+            sys.executable,
+            "-m",
+            "mypy",
+            "core/",
+            "--ignore-missing-imports",
+            "--no-error-summary",
+        ],
+        ws,
+        120,
     )
     errors = sum(1 for line in r.stdout.splitlines() if line.startswith("core/"))
     passed = errors <= MYPY_BASELINE
-    return GateResult("mypy_ratchet", "quality", passed,
-                      max(0.0, 1.0 - errors / MYPY_BASELINE * 0.5), 0.10,
-                      f"{errors} errors (baseline {MYPY_BASELINE})")
+    return GateResult(
+        "mypy_ratchet",
+        "quality",
+        passed,
+        max(0.0, 1.0 - errors / MYPY_BASELINE * 0.5),
+        0.10,
+        f"{errors} errors (baseline {MYPY_BASELINE})",
+    )
 
 
 def gate_security(ws: Path) -> GateResult:
     r = _run_tool(
-        [sys.executable, "-m", "pip_audit", "--strict", "--progress-spinner=off"], ws, 120,
+        [sys.executable, "-m", "pip_audit", "--strict", "--progress-spinner=off"],
+        ws,
+        120,
     )
     passed = r.returncode == 0
     vulns = r.stdout.count("FAIL") if not passed else 0
-    return GateResult("security", "security", passed,
-                      1.0 if passed else max(0.0, 1.0 - vulns * 0.1), 0.10,
-                      f"{vulns} vulns" if vulns else "clean")
+    return GateResult(
+        "security",
+        "security",
+        passed,
+        1.0 if passed else max(0.0, 1.0 - vulns * 0.1),
+        0.10,
+        f"{vulns} vulns" if vulns else "clean",
+    )
 
 
 def gate_version_sync(ws: Path) -> GateResult:
     versions: Dict[str, str] = {}
-    for name, path in [("python", ws / "pyproject.toml"), ("rust", ws / "bizra-omega" / "Cargo.toml")]:
+    for name, path in [
+        ("python", ws / "pyproject.toml"),
+        ("rust", ws / "bizra-omega" / "Cargo.toml"),
+    ]:
         if path.exists():
-            m = re.search(r'^version\s*=\s*"([^"]+)"', path.read_text(encoding="utf-8"), re.MULTILINE)
+            m = re.search(
+                r'^version\s*=\s*"([^"]+)"',
+                path.read_text(encoding="utf-8"),
+                re.MULTILINE,
+            )
             if m:
                 versions[name] = m.group(1)
     if len(versions) <= 1:
-        return GateResult("version_sync", "governance", True, 1.0, 0.05,
-                          f"{versions}", blocking=False)
+        return GateResult(
+            "version_sync", "governance", True, 1.0, 0.05, f"{versions}", blocking=False
+        )
     ok = len(set(versions.values())) == 1
-    return GateResult("version_sync", "governance", ok, 1.0 if ok else 0.5, 0.05,
-                      f"{versions}" + (" MISMATCH" if not ok else ""), blocking=False)
+    return GateResult(
+        "version_sync",
+        "governance",
+        ok,
+        1.0 if ok else 0.5,
+        0.05,
+        f"{versions}" + (" MISMATCH" if not ok else ""),
+        blocking=False,
+    )
 
 
 def gate_cross_lang_constants(ws: Path) -> GateResult:
     script = ws / ".claude" / "skills" / "cross-lang-sync" / "audit_constants.py"
     if not script.exists():
-        return GateResult("cross_lang_sync", "governance", True, 1.0, 0.05,
-                          "audit script not found", blocking=False)
+        return GateResult(
+            "cross_lang_sync",
+            "governance",
+            True,
+            1.0,
+            0.05,
+            "audit script not found",
+            blocking=False,
+        )
     r = _run_tool([sys.executable, str(script)], ws, 30)
-    return GateResult("cross_lang_sync", "governance", r.returncode == 0,
-                      1.0 if r.returncode == 0 else 0.0, 0.05,
-                      "in sync" if r.returncode == 0 else "drift detected")
+    return GateResult(
+        "cross_lang_sync",
+        "governance",
+        r.returncode == 0,
+        1.0 if r.returncode == 0 else 0.0,
+        0.05,
+        "in sync" if r.returncode == 0 else "drift detected",
+    )
 
 
 def gate_frontend(ws: Path) -> GateResult:
     fe = ws / "frontend"
     if not fe.exists():
-        return GateResult("frontend", "quality", True, 1.0, 0.05, "skipped", blocking=False)
+        return GateResult(
+            "frontend", "quality", True, 1.0, 0.05, "skipped", blocking=False
+        )
     r = _run_tool(["npm", "run", "ci"], fe, 120)
-    return GateResult("frontend", "quality", r.returncode == 0,
-                      1.0 if r.returncode == 0 else 0.0, 0.05,
-                      "PASS" if r.returncode == 0 else "FAIL")
+    return GateResult(
+        "frontend",
+        "quality",
+        r.returncode == 0,
+        1.0 if r.returncode == 0 else 0.0,
+        0.05,
+        "PASS" if r.returncode == 0 else "FAIL",
+    )
 
 
 ALL_GATES: List[Callable[[Path], GateResult]] = [
@@ -554,15 +666,21 @@ ALL_GATES: List[Callable[[Path], GateResult]] = [
 ]
 
 
-def enforce_gates(ws: Path, gate_fns: Optional[List[Callable]] = None) -> List[GateResult]:
+def enforce_gates(
+    ws: Path, gate_fns: Optional[List[Callable]] = None
+) -> List[GateResult]:
     """Run all gates, return results list."""
     results = []
-    for fn in (gate_fns or ALL_GATES):
+    for fn in gate_fns or ALL_GATES:
         name = fn.__name__.replace("gate_", "")
         try:
             results.append(fn(ws))
         except Exception as e:
-            results.append(GateResult(name, "error", False, 0.0, 0.0, f"error: {e}", blocking=False))
+            results.append(
+                GateResult(
+                    name, "error", False, 0.0, 0.0, f"error: {e}", blocking=False
+                )
+            )
     return results
 
 
@@ -578,10 +696,16 @@ _CC_RE = re.compile(
 )
 
 _SECTIONS = {
-    "breaking": "Breaking Changes", "security": "Security",
-    "feat": "Features", "fix": "Bug Fixes", "perf": "Performance",
-    "refactor": "Refactoring", "docs": "Documentation", "test": "Tests",
-    "ci": "CI/CD", "chore": "Chores",
+    "breaking": "Breaking Changes",
+    "security": "Security",
+    "feat": "Features",
+    "fix": "Bug Fixes",
+    "perf": "Performance",
+    "refactor": "Refactoring",
+    "docs": "Documentation",
+    "test": "Tests",
+    "ci": "CI/CD",
+    "chore": "Chores",
 }
 
 
@@ -604,15 +728,28 @@ def parse_commit(sha: str, author: str, message: str) -> Commit:
     breaking = m.group("bang") == "!" or m.group("type") == "breaking"
     if "BREAKING CHANGE:" in body or "BREAKING-CHANGE:" in body:
         breaking = True
-    return Commit(sha[:8], m.group("type"), m.group("scope"), m.group("desc"), breaking, author)
+    return Commit(
+        sha[:8], m.group("type"), m.group("scope"), m.group("desc"), breaking, author
+    )
 
 
-def git_commits(from_ref: str, to_ref: str = "HEAD", cwd: Path = Path(".")) -> List[Tuple[str, str, str]]:
+def git_commits(
+    from_ref: str, to_ref: str = "HEAD", cwd: Path = Path(".")
+) -> List[Tuple[str, str, str]]:
     """(sha, author, message) from git log."""
     sep = "---QS---"
     r = subprocess.run(
-        ["git", "log", f"{from_ref}..{to_ref}", f"--format=%H{sep}%an{sep}%B{sep}", "--no-merges"],
-        capture_output=True, text=True, cwd=str(cwd), timeout=30,
+        [
+            "git",
+            "log",
+            f"{from_ref}..{to_ref}",
+            f"--format=%H{sep}%an{sep}%B{sep}",
+            "--no-merges",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=str(cwd),
+        timeout=30,
     )
     if r.returncode != 0:
         raise RuntimeError(f"git log failed: {r.stderr}")
@@ -757,7 +894,9 @@ def enforce(
                 verdict.ratchet = asdict(rr)
                 print(f"  APPLIED: pyproject.toml updated")
         else:
-            print(f"  OK: {actual:.1f}% (floor {floor:.0f}%, headroom {rr.headroom:+.1f}%)")
+            print(
+                f"  OK: {actual:.1f}% (floor {floor:.0f}%, headroom {rr.headroom:+.1f}%)"
+            )
     except (FileNotFoundError, ValueError) as e:
         print(f"  SKIP: {e}")
         verdict.ratchet = {"error": str(e)}
@@ -799,7 +938,9 @@ def enforce(
 
     verdict.gates = [asdict(g) for g in results]
     total_w = sum(g.weight for g in results)
-    verdict.overall_score = sum(g.score * g.weight for g in results) / total_w if total_w else 0.0
+    verdict.overall_score = (
+        sum(g.score * g.weight for g in results) / total_w if total_w else 0.0
+    )
     verdict.passed = len(verdict.blocking_failures) == 0
 
     # ── Summary ──────────────────────────────────────────────
@@ -931,7 +1072,9 @@ def main() -> int:
         if args.apply and rr.ratcheted and rr.new_floor is not None:
             write_coverage_floor(args.pyproject, rr.new_floor)
             rr.applied = True
-        multi = aggregate_coverage(args.coverage_xml, args.rust_lcov, args.frontend_json)
+        multi = aggregate_coverage(
+            args.coverage_xml, args.rust_lcov, args.frontend_json
+        )
         _append_evidence(asdict(rr))
         if args.json:
             out = asdict(rr)
@@ -939,8 +1082,10 @@ def main() -> int:
                 out["multi_language"] = multi
             print(json.dumps(out, indent=2))
         else:
-            print(f"Coverage: {actual:.1f}% | Floor: {floor:.0f}% | "
-                  f"Headroom: {rr.headroom:+.1f}% | Ratchet: {rr.ratcheted}")
+            print(
+                f"Coverage: {actual:.1f}% | Floor: {floor:.0f}% | "
+                f"Headroom: {rr.headroom:+.1f}% | Ratchet: {rr.ratcheted}"
+            )
             if multi:
                 for k, v in multi.items():
                     print(f"  {k}: {v:.1f}%")
@@ -950,11 +1095,15 @@ def main() -> int:
         store = TrendStore()
         if args.trend_cmd == "record":
             snap = QualitySnapshot(
-                commit_sha=args.commit_sha, branch=args.branch,
-                snr_score=args.snr, ihsan_score=args.ihsan,
-                coverage_pct=args.coverage, coverage_floor=args.coverage_floor,
+                commit_sha=args.commit_sha,
+                branch=args.branch,
+                snr_score=args.snr,
+                ihsan_score=args.ihsan,
+                coverage_pct=args.coverage,
+                coverage_floor=args.coverage_floor,
                 mypy_errors=args.mypy_errors,
-                tests_total=args.tests_total, tests_passed=args.tests_passed,
+                tests_total=args.tests_total,
+                tests_passed=args.tests_passed,
                 ci_run_id=args.ci_run_id,
             )
             store.append(snap)
@@ -967,8 +1116,11 @@ def main() -> int:
                 print(f"  ANOMALY: {a}")
         elif args.trend_cmd == "export":
             data = [asdict(s) for s in store.read_all()]
-            out_str = json.dumps(data, indent=2, default=str) if args.format == "json" else \
-                "\n".join(json.dumps(d, default=str) for d in data)
+            out_str = (
+                json.dumps(data, indent=2, default=str)
+                if args.format == "json"
+                else "\n".join(json.dumps(d, default=str) for d in data)
+            )
             if args.output:
                 Path(args.output).write_text(out_str, encoding="utf-8")
                 print(f"Exported {len(data)} snapshots to {args.output}")
@@ -995,8 +1147,13 @@ def main() -> int:
     elif args.cmd == "changelog":
         from_ref = args.from_sha or args.from_tag
         if not from_ref:
-            r = subprocess.run(["git", "describe", "--tags", "--abbrev=0"],
-                               capture_output=True, text=True, cwd=str(args.workspace), timeout=10)
+            r = subprocess.run(
+                ["git", "describe", "--tags", "--abbrev=0"],
+                capture_output=True,
+                text=True,
+                cwd=str(args.workspace),
+                timeout=10,
+            )
             from_ref = r.stdout.strip() if r.returncode == 0 else None
         if not from_ref:
             print("[ERROR] No from-ref and no tags found", file=sys.stderr)
@@ -1012,21 +1169,34 @@ def main() -> int:
         parsed = [parse_commit(s, a, m) for s, a, m in raw]
         md = render_changelog(parsed, args.version)
         if args.json:
-            print(json.dumps({"version": args.version, "total": len(parsed),
-                              "markdown": md}, indent=2))
+            print(
+                json.dumps(
+                    {"version": args.version, "total": len(parsed), "markdown": md},
+                    indent=2,
+                )
+            )
         else:
             print(md)
         if args.append:
-            existing = args.append.read_text(encoding="utf-8") if args.append.exists() else ""
+            existing = (
+                args.append.read_text(encoding="utf-8") if args.append.exists() else ""
+            )
             marker = existing.find("\n## ")
-            new = (existing[:marker] + "\n" + md + existing[marker:]) if marker >= 0 else \
-                ("# Changelog\n\n" + md + "\n" + existing)
+            new = (
+                (existing[:marker] + "\n" + md + existing[marker:])
+                if marker >= 0
+                else ("# Changelog\n\n" + md + "\n" + existing)
+            )
             args.append.write_text(new, encoding="utf-8")
         return 0
 
     elif args.cmd == "summary":
         ratcheted = args.ratcheted.lower() in ("true", "1", "yes")
-        nf = float(args.new_floor) if args.new_floor not in ("none", "None", "") else None
+        nf = (
+            float(args.new_floor)
+            if args.new_floor not in ("none", "None", "")
+            else None
+        )
         md = render_pr_summary(args.coverage, args.floor, ratcheted, nf, args.commit)
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)

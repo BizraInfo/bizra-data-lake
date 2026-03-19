@@ -32,7 +32,7 @@ import socket
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -41,11 +41,12 @@ from typing import Any, Dict, List, Optional, TypedDict
 # Optional: aiohttp for async HTTP (falls back to urllib)
 try:
     import aiohttp
+
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
-    import urllib.request
     import urllib.error
+    import urllib.request
 
 # ==============================================================================
 # CONFIGURATION
@@ -56,13 +57,16 @@ IHSAN_THRESHOLD = 0.95
 IHSAN_DEGRADED_THRESHOLD = 0.80
 SNR_THRESHOLD = 0.85
 
+
 # Auto-detect WSL2 gateway IP for LM Studio (runs on Windows host)
 def _detect_wsl_gateway() -> str:
     """Detect WSL2 default gateway IP, falling back to 127.0.0.1."""
     try:
         result = subprocess.run(
             ["ip", "route", "show", "default"],
-            capture_output=True, text=True, timeout=3,
+            capture_output=True,
+            text=True,
+            timeout=3,
         )
         for part in result.stdout.split():
             if part.count(".") == 3:  # first dotted-quad after 'via'
@@ -70,6 +74,7 @@ def _detect_wsl_gateway() -> str:
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         pass
     return os.environ.get("LMSTUDIO_HOST", "127.0.0.1")
+
 
 LMSTUDIO_HOST = os.environ.get("LMSTUDIO_HOST") or _detect_wsl_gateway()
 
@@ -136,8 +141,10 @@ SERVICES = {
 # TYPE DEFINITIONS
 # ==============================================================================
 
+
 class HealthStatus(Enum):
     """Health status enumeration."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -146,6 +153,7 @@ class HealthStatus(Enum):
 
 class ServiceCheckResult(TypedDict):
     """Type definition for service check result."""
+
     name: str
     status: str
     latency_ms: float
@@ -156,7 +164,10 @@ class ServiceCheckResult(TypedDict):
 @dataclass
 class HealthReport:
     """Comprehensive health report."""
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     node_id: str = "node0-genesis"
     overall_status: HealthStatus = HealthStatus.UNKNOWN
     ihsan_score: float = 0.0
@@ -199,6 +210,7 @@ logger = logging.getLogger("bizra.health")
 # SERVICE CHECKS
 # ==============================================================================
 
+
 def check_tcp_port(host: str, port: int, timeout: float = 5.0) -> tuple[bool, float]:
     """Check if a TCP port is reachable."""
     start = time.perf_counter()
@@ -229,7 +241,9 @@ def check_http_endpoint_sync(url: str, timeout: float = 5.0) -> tuple[bool, floa
         return False, latency, str(e)
 
 
-async def check_http_endpoint_async(url: str, timeout: float = 5.0) -> tuple[bool, float, str]:
+async def check_http_endpoint_async(
+    url: str, timeout: float = 5.0
+) -> tuple[bool, float, str]:
     """Check HTTP endpoint (asynchronous)."""
     if not AIOHTTP_AVAILABLE:
         return check_http_endpoint_sync(url, timeout)
@@ -279,6 +293,7 @@ async def check_service(service_id: str, config: Dict[str, Any]) -> ServiceCheck
 # ==============================================================================
 # HARDWARE CHECKS
 # ==============================================================================
+
 
 def check_gpu() -> Dict[str, Any]:
     """Check GPU status using nvidia-smi."""
@@ -373,6 +388,7 @@ def check_disk() -> Dict[str, Any]:
 # METRICS EXTRACTION
 # ==============================================================================
 
+
 async def get_sovereign_metrics() -> tuple[float, float]:
     """Get Ihsan and SNR scores from Sovereign Engine."""
     try:
@@ -385,8 +401,12 @@ async def get_sovereign_metrics() -> tuple[float, float]:
         # Try to parse JSON response
         try:
             data = json.loads(content)
-            ihsan = float(data.get("ihsan_score", data.get("health", {}).get("ihsan_score", 0.0)))
-            snr = float(data.get("snr_score", data.get("health", {}).get("snr_score", 0.0)))
+            ihsan = float(
+                data.get("ihsan_score", data.get("health", {}).get("ihsan_score", 0.0))
+            )
+            snr = float(
+                data.get("snr_score", data.get("health", {}).get("snr_score", 0.0))
+            )
             return ihsan, snr
         except (json.JSONDecodeError, ValueError, KeyError):
             # Default values if parsing fails
@@ -400,6 +420,7 @@ async def get_sovereign_metrics() -> tuple[float, float]:
 # HEALTH CHECK ORCHESTRATION
 # ==============================================================================
 
+
 async def run_health_check() -> HealthReport:
     """Run complete health check."""
     report = HealthReport()
@@ -407,8 +428,7 @@ async def run_health_check() -> HealthReport:
 
     # Check all services concurrently
     tasks = [
-        check_service(service_id, config)
-        for service_id, config in SERVICES.items()
+        check_service(service_id, config) for service_id, config in SERVICES.items()
     ]
     service_results = await asyncio.gather(*tasks)
     report.services = list(service_results)
@@ -425,7 +445,8 @@ async def run_health_check() -> HealthReport:
 
     # Evaluate overall status
     critical_failures = [
-        s for s in report.services
+        s
+        for s in report.services
         if s["critical"] and s["status"] == HealthStatus.UNHEALTHY.value
     ]
 
@@ -438,7 +459,9 @@ async def run_health_check() -> HealthReport:
     # Determine status
     if critical_failures:
         report.overall_status = HealthStatus.UNHEALTHY
-        alerts.append(f"Critical services down: {', '.join(s['name'] for s in critical_failures)}")
+        alerts.append(
+            f"Critical services down: {', '.join(s['name'] for s in critical_failures)}"
+        )
     elif not inference_available:
         report.overall_status = HealthStatus.UNHEALTHY
         alerts.append("No inference backend available")
@@ -447,10 +470,14 @@ async def run_health_check() -> HealthReport:
         alerts.append(f"Ihsan score critically low: {report.ihsan_score:.3f}")
     elif report.ihsan_score < IHSAN_THRESHOLD:
         report.overall_status = HealthStatus.DEGRADED
-        alerts.append(f"Ihsan score below threshold: {report.ihsan_score:.3f} < {IHSAN_THRESHOLD}")
+        alerts.append(
+            f"Ihsan score below threshold: {report.ihsan_score:.3f} < {IHSAN_THRESHOLD}"
+        )
     elif report.snr_score < SNR_THRESHOLD:
         report.overall_status = HealthStatus.DEGRADED
-        alerts.append(f"SNR score below threshold: {report.snr_score:.3f} < {SNR_THRESHOLD}")
+        alerts.append(
+            f"SNR score below threshold: {report.snr_score:.3f} < {SNR_THRESHOLD}"
+        )
     else:
         report.overall_status = HealthStatus.HEALTHY
 
@@ -482,6 +509,7 @@ async def run_health_check() -> HealthReport:
 # ==============================================================================
 # OUTPUT FORMATTING
 # ==============================================================================
+
 
 def print_report(report: HealthReport, as_json: bool = False) -> None:
     """Print health report."""
@@ -515,8 +543,12 @@ def print_report(report: HealthReport, as_json: bool = False) -> None:
     print("-" * 70)
     ihsan_color = "\033[32m" if report.ihsan_score >= IHSAN_THRESHOLD else "\033[33m"
     snr_color = "\033[32m" if report.snr_score >= SNR_THRESHOLD else "\033[33m"
-    print(f"  Ihsan Score: {ihsan_color}{report.ihsan_score:.4f}{reset} (threshold: {IHSAN_THRESHOLD})")
-    print(f"  SNR Score:   {snr_color}{report.snr_score:.4f}{reset} (threshold: {SNR_THRESHOLD})")
+    print(
+        f"  Ihsan Score: {ihsan_color}{report.ihsan_score:.4f}{reset} (threshold: {IHSAN_THRESHOLD})"
+    )
+    print(
+        f"  SNR Score:   {snr_color}{report.snr_score:.4f}{reset} (threshold: {SNR_THRESHOLD})"
+    )
     print()
 
     # Services
@@ -531,7 +563,9 @@ def print_report(report: HealthReport, as_json: bool = False) -> None:
         }.get(service["status"], f"\033[90mUNKNOWN{reset}")
 
         critical_mark = " [CRITICAL]" if service["critical"] else ""
-        print(f"  {service['name']:20} {status_icon:20} {service['latency_ms']:>8.1f}ms{critical_mark}")
+        print(
+            f"  {service['name']:20} {status_icon:20} {service['latency_ms']:>8.1f}ms{critical_mark}"
+        )
     print()
 
     # Hardware
@@ -542,18 +576,26 @@ def print_report(report: HealthReport, as_json: bool = False) -> None:
     gpu = report.hardware.get("gpu", {})
     if gpu.get("available"):
         print(f"  GPU:     {gpu.get('name', 'Unknown')}")
-        print(f"           VRAM: {gpu.get('memory_used_mb', 0)}/{gpu.get('memory_total_mb', 0)} MB")
-        print(f"           Temp: {gpu.get('temperature_c', 0)}C | Util: {gpu.get('utilization_pct', 0)}%")
+        print(
+            f"           VRAM: {gpu.get('memory_used_mb', 0)}/{gpu.get('memory_total_mb', 0)} MB"
+        )
+        print(
+            f"           Temp: {gpu.get('temperature_c', 0)}C | Util: {gpu.get('utilization_pct', 0)}%"
+        )
     else:
         print(f"  GPU:     UNAVAILABLE ({gpu.get('error', 'unknown')})")
 
     memory = report.hardware.get("memory", {})
     if "total_gb" in memory:
-        print(f"  Memory:  {memory['used_gb']:.1f}/{memory['total_gb']:.1f} GB ({memory['usage_pct']}%)")
+        print(
+            f"  Memory:  {memory['used_gb']:.1f}/{memory['total_gb']:.1f} GB ({memory['usage_pct']}%)"
+        )
 
     disk = report.hardware.get("disk", {})
     if "total_gb" in disk:
-        print(f"  Disk:    {disk['used_gb']:.1f}/{disk['total_gb']:.1f} GB ({disk['usage_pct']}%)")
+        print(
+            f"  Disk:    {disk['used_gb']:.1f}/{disk['total_gb']:.1f} GB ({disk['usage_pct']}%)"
+        )
     print()
 
     # Alerts
@@ -572,6 +614,7 @@ def print_report(report: HealthReport, as_json: bool = False) -> None:
 # ==============================================================================
 # MAIN
 # ==============================================================================
+
 
 async def main_async(args: argparse.Namespace) -> int:
     """Main async entry point."""

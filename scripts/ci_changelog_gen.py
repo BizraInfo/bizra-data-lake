@@ -43,16 +43,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-
 # ─────────────────────────────────────────────────────────────
 # Conventional Commit Parser
 # ─────────────────────────────────────────────────────────────
 
 COMMIT_PATTERN = re.compile(
-    r'^(?P<type>feat|fix|perf|refactor|docs|test|ci|chore|security|breaking)'
-    r'(?:\((?P<scope>[^)]+)\))?'
-    r'(?P<breaking_mark>!)?:\s*'
-    r'(?P<description>.+)$'
+    r"^(?P<type>feat|fix|perf|refactor|docs|test|ci|chore|security|breaking)"
+    r"(?:\((?P<scope>[^)]+)\))?"
+    r"(?P<breaking_mark>!)?:\s*"
+    r"(?P<description>.+)$"
 )
 
 # Display order and section titles
@@ -73,6 +72,7 @@ TYPE_SECTIONS: Dict[str, str] = {
 @dataclass
 class ParsedCommit:
     """A parsed conventional commit."""
+
     sha: str
     type: str
     scope: Optional[str]
@@ -87,6 +87,7 @@ class ParsedCommit:
 @dataclass
 class ChangelogSection:
     """A grouped section of the changelog."""
+
     title: str
     type_key: str
     commits: List[ParsedCommit] = field(default_factory=list)
@@ -95,6 +96,7 @@ class ChangelogSection:
 @dataclass
 class ChangelogRelease:
     """A complete changelog for a release."""
+
     version: str
     date: str
     sections: List[ChangelogSection] = field(default_factory=list)
@@ -107,6 +109,7 @@ class ChangelogRelease:
 # Git Interface
 # ─────────────────────────────────────────────────────────────
 
+
 def get_commits(
     from_ref: str,
     to_ref: str = "HEAD",
@@ -118,7 +121,8 @@ def get_commits(
 
     result = subprocess.run(
         [
-            "git", "log",
+            "git",
+            "log",
             f"{from_ref}..{to_ref}",
             f"--format={fmt}",
             "--no-merges",
@@ -171,6 +175,7 @@ def get_latest_tag(workspace: Path = Path(".")) -> Optional[str]:
 # Commit Parser
 # ─────────────────────────────────────────────────────────────
 
+
 def parse_commit(sha: str, author: str, date: str, message: str) -> ParsedCommit:
     """Parse a commit message into a structured ParsedCommit."""
     lines = message.strip().split("\n")
@@ -215,6 +220,7 @@ def parse_commit(sha: str, author: str, date: str, message: str) -> ParsedCommit
 # Changelog Generator
 # ─────────────────────────────────────────────────────────────
 
+
 def generate_changelog(
     commits: List[ParsedCommit],
     version: str = "Unreleased",
@@ -232,11 +238,13 @@ def generate_changelog(
     sections = []
     for type_key, title in TYPE_SECTIONS.items():
         if type_key in grouped:
-            sections.append(ChangelogSection(
-                title=title,
-                type_key=type_key,
-                commits=grouped[type_key],
-            ))
+            sections.append(
+                ChangelogSection(
+                    title=title,
+                    type_key=type_key,
+                    commits=grouped[type_key],
+                )
+            )
 
     # Unique contributors
     contributors = sorted(set(c.author for c in commits if c.author))
@@ -291,15 +299,20 @@ def render_markdown(release: ChangelogRelease) -> str:
 # CLI
 # ─────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="BIZRA Automated Changelog Generator",
     )
     parser.add_argument("--from-tag", help="Generate from this tag")
     parser.add_argument("--from-sha", help="Generate from this commit SHA")
-    parser.add_argument("--to-sha", default="HEAD", help="Generate to this ref (default: HEAD)")
+    parser.add_argument(
+        "--to-sha", default="HEAD", help="Generate to this ref (default: HEAD)"
+    )
     parser.add_argument("--version", default="Unreleased", help="Version label")
-    parser.add_argument("--workspace", type=Path, default=Path("."), help="Workspace root")
+    parser.add_argument(
+        "--workspace", type=Path, default=Path("."), help="Workspace root"
+    )
     parser.add_argument("--append", type=Path, default=None, help="Append to this file")
     parser.add_argument("--json", action="store_true", help="Output structured JSON")
     parser.add_argument(
@@ -330,7 +343,9 @@ def main() -> int:
         print("[INFO] No commits found in range")
         return 1
 
-    parsed = [parse_commit(sha, author, date, msg) for sha, author, date, msg in raw_commits]
+    parsed = [
+        parse_commit(sha, author, date, msg) for sha, author, date, msg in raw_commits
+    ]
     release = generate_changelog(parsed, version=args.version)
 
     # Output
@@ -341,12 +356,16 @@ def main() -> int:
         print(md)
 
         if args.append:
-            existing = args.append.read_text(encoding="utf-8") if args.append.exists() else ""
+            existing = (
+                args.append.read_text(encoding="utf-8") if args.append.exists() else ""
+            )
             # Insert after the first heading
             if existing:
                 insert_marker = existing.find("\n## ")
                 if insert_marker >= 0:
-                    new_content = existing[:insert_marker] + "\n" + md + existing[insert_marker:]
+                    new_content = (
+                        existing[:insert_marker] + "\n" + md + existing[insert_marker:]
+                    )
                 else:
                     new_content = existing + "\n" + md
             else:
@@ -358,14 +377,20 @@ def main() -> int:
     # Evidence
     args.evidence.parent.mkdir(parents=True, exist_ok=True)
     with open(args.evidence, "a", encoding="utf-8") as f:
-        f.write(json.dumps({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "version": release.version,
-            "total_commits": release.total_commits,
-            "from_ref": from_ref,
-            "to_ref": args.to_sha,
-            "evidence_hash": release.evidence_hash,
-        }, default=str) + "\n")
+        f.write(
+            json.dumps(
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "version": release.version,
+                    "total_commits": release.total_commits,
+                    "from_ref": from_ref,
+                    "to_ref": args.to_sha,
+                    "evidence_hash": release.evidence_hash,
+                },
+                default=str,
+            )
+            + "\n"
+        )
 
     return 0
 

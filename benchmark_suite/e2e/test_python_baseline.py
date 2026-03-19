@@ -17,12 +17,12 @@ Target Metrics (from PERFORMANCE_ENGINEERING_PLAN.md):
 import sys
 import time
 import tracemalloc
-from pathlib import Path
-from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
-import pytest
 import numpy as np
+import pytest
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -33,10 +33,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # FIXTURES
 # ============================================================================
 
+
 @pytest.fixture
 def ntu_instance():
     """Create NTU instance for benchmarks."""
     from core.ntu import NTU, NTUConfig
+
     config = NTUConfig(window_size=64, ihsan_threshold=0.95)
     return NTU(config)
 
@@ -45,6 +47,7 @@ def ntu_instance():
 def fate_gate():
     """Create FATE gate for benchmarks."""
     from core.elite.hooks import FATEGate, HookContext
+
     return FATEGate(ihsan_threshold=0.95, snr_threshold=0.85)
 
 
@@ -52,6 +55,7 @@ def fate_gate():
 def snr_calculator():
     """Create SNR calculator for benchmarks."""
     from core.iaas.snr_v2 import SNRCalculatorV2
+
     return SNRCalculatorV2()
 
 
@@ -78,6 +82,7 @@ def sample_texts():
 # NTU BENCHMARKS
 # ============================================================================
 
+
 class TestNTUBenchmarks:
     """Benchmarks for NeuroTemporal Unit (NTU)."""
 
@@ -87,6 +92,7 @@ class TestNTUBenchmarks:
 
         Target: 8ms (Python) -> 100ns (Rust)
         """
+
         def observe_single():
             ntu_instance.observe(0.75)
 
@@ -94,11 +100,15 @@ class TestNTUBenchmarks:
 
         # Record baseline
         stats = benchmark.stats
-        print(f"\nNTU single observe: mean={stats.mean*1000:.3f}ms, "
-              f"median={stats.median*1000:.3f}ms, stddev={stats.stddev*1000:.3f}ms")
+        print(
+            f"\nNTU single observe: mean={stats.mean*1000:.3f}ms, "
+            f"median={stats.median*1000:.3f}ms, stddev={stats.stddev*1000:.3f}ms"
+        )
 
     @pytest.mark.benchmark(group="ntu", min_rounds=50)
-    def test_ntu_batch_100_observations(self, benchmark, ntu_instance, sample_observations):
+    def test_ntu_batch_100_observations(
+        self, benchmark, ntu_instance, sample_observations
+    ):
         """Benchmark batch of 100 observations.
 
         Target: 800ms (Python) -> 10us (Rust)
@@ -112,8 +122,10 @@ class TestNTUBenchmarks:
         result = benchmark(observe_batch)
 
         stats = benchmark.stats
-        print(f"\nNTU batch 100: mean={stats.mean*1000:.3f}ms, "
-              f"per_obs={stats.mean*10:.3f}ms")
+        print(
+            f"\nNTU batch 100: mean={stats.mean*1000:.3f}ms, "
+            f"per_obs={stats.mean*10:.3f}ms"
+        )
 
     @pytest.mark.benchmark(group="ntu", min_rounds=10)
     def test_ntu_pattern_detection_1000(self, benchmark, sample_observations):
@@ -131,11 +143,15 @@ class TestNTUBenchmarks:
         result = benchmark(detect_pattern)
 
         stats = benchmark.stats
-        print(f"\nNTU pattern detection 1000: mean={stats.mean*1000:.1f}ms, "
-              f"throughput={1000/stats.mean:.0f} obs/sec")
+        print(
+            f"\nNTU pattern detection 1000: mean={stats.mean*1000:.1f}ms, "
+            f"throughput={1000/stats.mean:.0f} obs/sec"
+        )
 
     @pytest.mark.benchmark(group="ntu", min_rounds=50)
-    def test_ntu_temporal_consistency(self, benchmark, ntu_instance, sample_observations):
+    def test_ntu_temporal_consistency(
+        self, benchmark, ntu_instance, sample_observations
+    ):
         """Benchmark temporal consistency calculation.
 
         This is a key bottleneck identified in profiling.
@@ -158,6 +174,7 @@ class TestNTUBenchmarks:
 
         Uses eigendecomposition - expensive but O(1) for 3x3 matrix.
         """
+
         def compute_stationary():
             return ntu_instance.stationary_distribution
 
@@ -170,6 +187,7 @@ class TestNTUBenchmarks:
 # ============================================================================
 # FATE GATE BENCHMARKS
 # ============================================================================
+
 
 class TestFATEBenchmarks:
     """Benchmarks for FATE Gate validation."""
@@ -186,7 +204,7 @@ class TestFATEBenchmarks:
             operation_name="test_operation",
             operation_type="function",
             input_data={"test": "data"},
-            metadata={"description": "test operation"}
+            metadata={"description": "test operation"},
         )
 
         def validate_single():
@@ -195,8 +213,10 @@ class TestFATEBenchmarks:
         result = benchmark(validate_single)
 
         stats = benchmark.stats
-        print(f"\nFATE validate: mean={stats.mean*1000:.3f}ms, "
-              f"throughput={1/stats.mean:.0f} validations/sec")
+        print(
+            f"\nFATE validate: mean={stats.mean*1000:.3f}ms, "
+            f"throughput={1/stats.mean:.0f} validations/sec"
+        )
 
     @pytest.mark.benchmark(group="fate", min_rounds=50)
     def test_fate_batch_100_validations(self, benchmark, fate_gate):
@@ -221,8 +241,10 @@ class TestFATEBenchmarks:
         result = benchmark(validate_batch)
 
         stats = benchmark.stats
-        print(f"\nFATE batch 100: mean={stats.mean*1000:.1f}ms, "
-              f"per_validation={stats.mean*10:.3f}ms")
+        print(
+            f"\nFATE batch 100: mean={stats.mean*1000:.1f}ms, "
+            f"per_validation={stats.mean*10:.3f}ms"
+        )
 
     @pytest.mark.benchmark(group="fate", min_rounds=100)
     def test_fate_score_computation(self, benchmark):
@@ -231,10 +253,7 @@ class TestFATEBenchmarks:
 
         def compute_score():
             score = FATEScore(
-                fidelity=0.85,
-                accountability=0.90,
-                transparency=0.88,
-                ethics=0.92
+                fidelity=0.85, accountability=0.90, transparency=0.88, ethics=0.92
             )
             return score.overall, score.passed, score.weakest_dimension
 
@@ -247,6 +266,7 @@ class TestFATEBenchmarks:
 # ============================================================================
 # SNR BENCHMARKS
 # ============================================================================
+
 
 class TestSNRBenchmarks:
     """Benchmarks for Signal-to-Noise Ratio calculation."""
@@ -269,7 +289,9 @@ class TestSNRBenchmarks:
         print(f"\nSNR simple (10 texts): mean={stats.mean*1000:.1f}ms")
 
     @pytest.mark.benchmark(group="snr", min_rounds=10)
-    def test_snr_full_calculation_with_embeddings(self, benchmark, snr_calculator, sample_texts):
+    def test_snr_full_calculation_with_embeddings(
+        self, benchmark, snr_calculator, sample_texts
+    ):
         """Benchmark full SNR calculation with mock embeddings.
 
         This tests the full computation including semantic similarity.
@@ -314,6 +336,7 @@ class TestSNRBenchmarks:
 # MEMORY BENCHMARKS
 # ============================================================================
 
+
 class TestMemoryBenchmarks:
     """Memory usage benchmarks."""
 
@@ -333,8 +356,10 @@ class TestMemoryBenchmarks:
         tracemalloc.stop()
 
         per_instance_kb = current / 100 / 1024
-        print(f"\nNTU memory: {per_instance_kb:.2f} KB per instance "
-              f"(target: 0.5 KB in Rust)")
+        print(
+            f"\nNTU memory: {per_instance_kb:.2f} KB per instance "
+            f"(target: 0.5 KB in Rust)"
+        )
 
         # Assert Python baseline is within expected range
         assert per_instance_kb < 10, f"NTU memory too high: {per_instance_kb} KB"
@@ -361,14 +386,17 @@ class TestMemoryBenchmarks:
         window_bytes = current
         per_observation = window_bytes / 64
 
-        print(f"\nWindow memory: {window_bytes} bytes total, "
-              f"{per_observation:.1f} bytes per observation "
-              f"(target: 24 bytes in Rust)")
+        print(
+            f"\nWindow memory: {window_bytes} bytes total, "
+            f"{per_observation:.1f} bytes per observation "
+            f"(target: 24 bytes in Rust)"
+        )
 
 
 # ============================================================================
 # THROUGHPUT BENCHMARKS
 # ============================================================================
+
 
 class TestThroughputBenchmarks:
     """Throughput-focused benchmarks."""
@@ -392,9 +420,11 @@ class TestThroughputBenchmarks:
         ops_per_sec = len(observations) / elapsed
         latency_us = elapsed / len(observations) * 1e6
 
-        print(f"\nNTU throughput: {ops_per_sec:.0f} ops/sec, "
-              f"latency: {latency_us:.1f} us/op "
-              f"(target: 10M ops/sec in Rust)")
+        print(
+            f"\nNTU throughput: {ops_per_sec:.0f} ops/sec, "
+            f"latency: {latency_us:.1f} us/op "
+            f"(target: 10M ops/sec in Rust)"
+        )
 
     def test_fate_sustained_throughput(self):
         """Measure sustained FATE validation throughput."""
@@ -417,14 +447,17 @@ class TestThroughputBenchmarks:
         ops_per_sec = len(contexts) / elapsed
         latency_ms = elapsed / len(contexts) * 1000
 
-        print(f"\nFATE throughput: {ops_per_sec:.0f} validations/sec, "
-              f"latency: {latency_ms:.2f} ms/validation "
-              f"(target: 100K ops/sec in Rust)")
+        print(
+            f"\nFATE throughput: {ops_per_sec:.0f} validations/sec, "
+            f"latency: {latency_ms:.2f} ms/validation "
+            f"(target: 100K ops/sec in Rust)"
+        )
 
 
 # ============================================================================
 # SCALE SIMULATION BENCHMARKS
 # ============================================================================
+
 
 class TestScaleSimulationBenchmarks:
     """Simulate planetary scale operations."""
@@ -456,8 +489,10 @@ class TestScaleSimulationBenchmarks:
         print(f"  Processed: {OBSERVATIONS:,} observations in {elapsed:.2f}s")
         print(f"  Throughput: {ops_per_sec:,.0f} obs/sec")
         print(f"  Time for 8B (Python): {time_for_8b:,.0f} hours")
-        print(f"  Target (Rust): {TARGET_SCALE / 10_000_000:.0f} seconds "
-              f"(at 10M ops/sec)")
+        print(
+            f"  Target (Rust): {TARGET_SCALE / 10_000_000:.0f} seconds "
+            f"(at 10M ops/sec)"
+        )
 
 
 # ============================================================================

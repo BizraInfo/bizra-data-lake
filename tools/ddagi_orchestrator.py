@@ -2,20 +2,21 @@
 # Decentralized Distributed Agentic General Intelligence Core
 # Integrates SAPE, URP, BlockTree, and Hypergraph RAG
 
-import os
-import sys
 import json
 import logging
+import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
 # Import BIZRA Foundation
 try:
     from activate_urp import BIZRA_URP
-    from blocktree import BlockTree
-    from self_healing import HealingAgent
-    from cognitive_awaken import BIZRA_WorldModel, ImaginationAgent
     from agent_swarm import AgentSwarm
+    from blocktree import BlockTree
+    from cognitive_awaken import BIZRA_WorldModel, ImaginationAgent
+    from self_healing import HealingAgent
+
     from arte_engine import ARTEEngine
 except ImportError:
     print("❌ Critical Core Components missing. Run Foundation setup first.")

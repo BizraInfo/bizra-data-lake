@@ -14,10 +14,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.cli.registry import CommandRegistry, CommandResult, CommandEntry
-from core.cli.hooks import CLIHooksManager, CLIEvent
-from core.cli.shared import VERSION, CODENAME
-
+from core.cli.hooks import CLIEvent, CLIHooksManager
+from core.cli.registry import CommandEntry, CommandRegistry, CommandResult
+from core.cli.shared import CODENAME, VERSION
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
@@ -101,7 +100,9 @@ class TestRegistration:
         registry.register(fake_cmd)
         assert "fake" in registry.command_names
 
-    def test_register_creates_category(self, registry: CommandRegistry, fake_cmd: FakeCommand):
+    def test_register_creates_category(
+        self, registry: CommandRegistry, fake_cmd: FakeCommand
+    ):
         registry.register(fake_cmd)
         cats = registry.list_commands()
         assert "test" in cats
@@ -124,12 +125,16 @@ class TestResolve:
         assert entry is not None
         assert entry.command.name == "fake"
 
-    def test_resolve_strips_dashes(self, registry: CommandRegistry, fake_cmd: FakeCommand):
+    def test_resolve_strips_dashes(
+        self, registry: CommandRegistry, fake_cmd: FakeCommand
+    ):
         registry.register(fake_cmd)
         entry = registry.resolve("--fake")
         assert entry is not None
 
-    def test_resolve_case_insensitive(self, registry: CommandRegistry, fake_cmd: FakeCommand):
+    def test_resolve_case_insensitive(
+        self, registry: CommandRegistry, fake_cmd: FakeCommand
+    ):
         registry.register(fake_cmd)
         entry = registry.resolve("FAKE")
         assert entry is not None
@@ -143,7 +148,9 @@ class TestFuzzyMatch:
         suggestions = populated_registry.suggest("doctr")
         assert "doctor" in suggestions
 
-    def test_suggest_returns_empty_for_gibberish(self, populated_registry: CommandRegistry):
+    def test_suggest_returns_empty_for_gibberish(
+        self, populated_registry: CommandRegistry
+    ):
         suggestions = populated_registry.suggest("zzzzz")
         assert suggestions == []
 
@@ -194,7 +201,9 @@ class TestDispatch:
 
 
 class TestPerformanceTracking:
-    def test_metrics_after_dispatch(self, registry: CommandRegistry, fake_cmd: FakeCommand):
+    def test_metrics_after_dispatch(
+        self, registry: CommandRegistry, fake_cmd: FakeCommand
+    ):
         registry.register(fake_cmd)
         registry.dispatch(["fake"])
         metrics = registry.get_metrics()
@@ -311,7 +320,9 @@ class TestCLIHooksManager:
 class TestHooksIntegration:
     """Verify hooks wire into registry correctly."""
 
-    def test_pre_post_hooks_fire(self, registry: CommandRegistry, fake_cmd: FakeCommand):
+    def test_pre_post_hooks_fire(
+        self, registry: CommandRegistry, fake_cmd: FakeCommand
+    ):
         hooks = CLIHooksManager()
         registry.register(fake_cmd)
         registry.add_pre_hook(hooks.pre_command)
@@ -345,6 +356,7 @@ class TestCommandModules:
 
     def test_all_commands_have_required_attrs(self):
         from core.cli.commands import ALL_COMMANDS
+
         for cmd_class in ALL_COMMANDS:
             cmd = cmd_class()
             assert hasattr(cmd, "name"), f"{cmd_class} missing name"
@@ -355,6 +367,7 @@ class TestCommandModules:
 
     def test_all_commands_register(self):
         from core.cli.commands import ALL_COMMANDS
+
         r = CommandRegistry()
         for cmd_class in ALL_COMMANDS:
             r.register(cmd_class())
@@ -362,23 +375,26 @@ class TestCommandModules:
 
     def test_no_alias_collisions(self):
         from core.cli.commands import ALL_COMMANDS
+
         seen_aliases: Dict[str, str] = {}
         for cmd_class in ALL_COMMANDS:
             cmd = cmd_class()
             for alias in cmd.aliases:
-                assert alias not in seen_aliases, (
-                    f"Alias '{alias}' used by both {seen_aliases[alias]} and {cmd.name}"
-                )
+                assert (
+                    alias not in seen_aliases
+                ), f"Alias '{alias}' used by both {seen_aliases[alias]} and {cmd.name}"
                 seen_aliases[alias] = cmd.name
 
     def test_version_command(self):
         from core.cli.commands.version import VersionCommand
+
         result = VersionCommand().execute([])
         assert result.success
         assert result.data["version"] == VERSION
 
     def test_doctor_command_runs(self, capsys):
         from core.cli.commands.doctor import DoctorCommand
+
         result = DoctorCommand().execute([])
         assert result.success
         assert "issues" in result.data
@@ -387,6 +403,7 @@ class TestCommandModules:
 
     def test_status_command_offline(self, capsys):
         from core.cli.commands.status import StatusCommand
+
         with patch("core.cli.commands.status.api_health", return_value=None):
             result = StatusCommand().execute([])
         assert result.success
@@ -394,6 +411,7 @@ class TestCommandModules:
 
     def test_identity_command_no_file(self, capsys):
         from core.cli.commands.identity import IdentityCommand
+
         with patch("core.cli.commands.identity.BIZRA_IDENTITY") as mock_id:
             mock_id.exists.return_value = False
             result = IdentityCommand().execute([])
@@ -402,23 +420,27 @@ class TestCommandModules:
 
     def test_mission_command_no_args(self, capsys):
         from core.cli.commands.mission import MissionCommand
+
         result = MissionCommand().execute([])
         assert not result.success
 
     def test_mission_command_offline(self, capsys):
         from core.cli.commands.mission import MissionCommand
+
         with patch("core.cli.commands.mission.api_health", return_value=None):
             result = MissionCommand().execute(["test mission"])
         assert not result.success
 
     def test_wallet_command_offline(self, capsys):
         from core.cli.commands.wallet import WalletCommand
+
         with patch("core.cli.commands.wallet.api_health", return_value=None):
             result = WalletCommand().execute([])
         assert not result.success
 
     def test_briefing_command_offline(self, capsys):
         from core.cli.commands.wallet import BriefingCommand
+
         with patch("core.cli.commands.wallet.api_health", return_value=None):
             result = BriefingCommand().execute([])
         assert not result.success
@@ -435,6 +457,7 @@ class TestFullRegistryIntegration:
     @pytest.fixture
     def full_registry(self) -> CommandRegistry:
         from core.cli.commands import ALL_COMMANDS
+
         r = CommandRegistry()
         hooks = CLIHooksManager()
         r.add_pre_hook(hooks.pre_command)

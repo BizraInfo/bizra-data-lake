@@ -121,8 +121,10 @@ class TestRunMvsaProof:
             json.dumps(proof), encoding="utf-8"
         )
 
-        with patch("core.sovereign.node0_mvsa._resolve_binary") as mock_resolve, \
-             patch("core.sovereign.node0_mvsa._run_binary", return_value=fake_result):
+        with (
+            patch("core.sovereign.node0_mvsa._resolve_binary") as mock_resolve,
+            patch("core.sovereign.node0_mvsa._run_binary", return_value=fake_result),
+        ):
             mock_resolve.return_value = Path("/fake/node0-mvsa")
             result = run_mvsa_proof(state_dir, tmp_path)
 

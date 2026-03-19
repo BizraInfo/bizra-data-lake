@@ -16,7 +16,6 @@ from .base import (
     stable_turn_id,
 )
 
-
 _CITATION_RE = re.compile(r"\[[0-9]+\]|https?://\S+", re.IGNORECASE)
 _RESEARCH_RE = re.compile(
     r"\b(source|citation|references?|study|paper|benchmark|evidence|report)\b",
@@ -184,7 +183,9 @@ class PerplexityParser(PlatformParser):
         hints: list[FragmentHint] = []
         dedupe: set[tuple[str, str]] = set()
 
-        def push(kind: FragmentKind, signal: str, confidence: float, source: str) -> None:
+        def push(
+            kind: FragmentKind, signal: str, confidence: float, source: str
+        ) -> None:
             if confidence < _MIN_CONFIDENCE or len(hints) >= _MAX_HINTS_PER_TURN:
                 return
             normalized = normalize_whitespace(signal).lower()

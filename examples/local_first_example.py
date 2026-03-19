@@ -8,10 +8,11 @@ Run:
 """
 
 import asyncio
+
 from core.inference import (
+    LocalBackend,
     LocalFirstDetector,
     get_local_first_backend,
-    LocalBackend,
 )
 
 

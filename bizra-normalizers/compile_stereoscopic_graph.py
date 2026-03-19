@@ -16,9 +16,19 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from engine import AutonomousSNRGoTEngine  # noqa: E402
-from genesis_gate import GenesisGateConfig, NodeMaturityStage, evaluate_genesis_gate  # noqa: E402
+from genesis_gate import (  # noqa: E402
+    GenesisGateConfig,
+    NodeMaturityStage,
+    evaluate_genesis_gate,
+)
 from memory_bridge import ingest_report_nodes  # noqa: E402
-from normalizers import CORE8, EXPORTABLE_NOW, COLLECTION_GAP, CONVERSATION_PLATFORMS, CONVERSATION_GAP  # noqa: E402
+from normalizers import (  # noqa: E402
+    COLLECTION_GAP,
+    CONVERSATION_GAP,
+    CONVERSATION_PLATFORMS,
+    CORE8,
+    EXPORTABLE_NOW,
+)
 
 _GATE_PROVIDER_SET_CHOICES = ("exportable_now", "conversation_platforms", "core8")
 _GATE_PROFILE_CHOICES = ("seed", "sprout", "growing", "rooted")
@@ -70,17 +80,25 @@ def _write_checkpoint(
 ) -> dict[str, str]:
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     stamp = _iso_now()
-    slug = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in label).strip("_")
+    slug = "".join(
+        ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in label
+    ).strip("_")
     if not slug:
         slug = "run"
 
     report_path = checkpoint_dir / f"{stamp}_report.json"
-    canonical = json.dumps(report, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    canonical = json.dumps(
+        report, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
     report_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-    report_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     latest_path = checkpoint_dir / "latest_report.json"
-    latest_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+    latest_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     checkpoint_row = {
         "timestamp": stamp,
@@ -94,7 +112,9 @@ def _write_checkpoint(
         "node_count": report.get("node_count", 0),
         "edge_count": report.get("edge_count", 0),
         "elite_count": report.get("elite_count", 0),
-        "genesis_gate_passed": bool((report.get("genesis_gate") or {}).get("passed", False)),
+        "genesis_gate_passed": bool(
+            (report.get("genesis_gate") or {}).get("passed", False)
+        ),
     }
     checkpoints_path = checkpoint_dir / "drift_checkpoints.jsonl"
     with checkpoints_path.open("a", encoding="utf-8") as fh:
@@ -213,7 +233,9 @@ def main() -> int:
         help="Label stamped into drift checkpoint rows",
     )
     parser.add_argument("--json", action="store_true", help="Print JSON report")
-    parser.add_argument("--out", type=str, default="", help="Write JSON report to file path")
+    parser.add_argument(
+        "--out", type=str, default="", help="Write JSON report to file path"
+    )
     args = parser.parse_args()
 
     paths: list[Path] = []
@@ -231,7 +253,9 @@ def main() -> int:
     report = engine.compile_paths(paths).to_dict()
 
     if args.fixtures:
-        merged_coverage = sorted(set(report["provider_coverage"]) | set(CONVERSATION_PLATFORMS))
+        merged_coverage = sorted(
+            set(report["provider_coverage"]) | set(CONVERSATION_PLATFORMS)
+        )
         report["provider_coverage"] = merged_coverage
         report["cv"] = round(len(merged_coverage) / len(CONVERSATION_PLATFORMS), 4)
 
@@ -308,7 +332,9 @@ def main() -> int:
     if args.out:
         out_path = Path(args.out).expanduser().resolve()
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+        out_path.write_text(
+            json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
+        )
 
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))

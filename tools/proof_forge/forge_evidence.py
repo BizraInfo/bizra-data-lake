@@ -78,7 +78,7 @@ def _sign_receipt(receipt_body: str, private_key_hex: str) -> str:
     Returns hex-encoded signature.
     """
     try:
-        from core.pci.crypto import sign_message, domain_separated_digest
+        from core.pci.crypto import domain_separated_digest, sign_message
 
         digest = domain_separated_digest(receipt_body.encode("utf-8"))
         return sign_message(digest, private_key_hex)

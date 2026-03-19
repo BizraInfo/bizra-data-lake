@@ -3,8 +3,8 @@
 # Implements Engineering Excellence: Provenance, Hashing, Multi-Modal Extraction
 # Now supports: Documents, Images (OCR), Audio (Whisper)
 
-import os
 import hashlib
+import os
 
 # SEC-001: Prefer BLAKE3 for Rust interop, graceful fallback to SHA-256
 try:
@@ -12,27 +12,37 @@ try:
 
     def _content_hash(data: bytes) -> str:
         return _blake3.blake3(data).hexdigest()
+
 except ImportError:
+
     def _content_hash(data: bytes) -> str:
         return hashlib.sha256(data).hexdigest()
-import pandas as pd
-from pathlib import Path
-from datetime import datetime
-from tqdm import tqdm
+
+
 import json
-from typing import Optional, Dict, Any
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import pandas as pd
+from tqdm import tqdm
+from unstructured.partition.auto import partition
 
 from bizra_config import (
-    PROCESSED_PATH, CORPUS_TABLE_PATH,
-    VISION_ENABLED, AUDIO_ENABLED,
-    IMAGE_EXTENSIONS, AUDIO_EXTENSIONS,
-    LOG_DIR, INGEST_GATE_ENFORCE
+    AUDIO_ENABLED,
+    AUDIO_EXTENSIONS,
+    CORPUS_TABLE_PATH,
+    IMAGE_EXTENSIONS,
+    INGEST_GATE_ENFORCE,
+    LOG_DIR,
+    PROCESSED_PATH,
+    VISION_ENABLED,
 )
-from unstructured.partition.auto import partition
 
 # Optional multi-modal imports
 try:
-    from multimodal_engine import MultiModalEngine, ModalityType
+    from multimodal_engine import ModalityType, MultiModalEngine
+
     MULTIMODAL_AVAILABLE = True
 except ImportError:
     MULTIMODAL_AVAILABLE = False
@@ -40,9 +50,11 @@ except ImportError:
 # Optional ingestion gate
 try:
     from core.iaas.ingest_gates import IngestGate
+
     INGEST_GATE_AVAILABLE = True
 except Exception:
     INGEST_GATE_AVAILABLE = False
+
 
 class CorpusManager:
     """
@@ -56,7 +68,9 @@ class CorpusManager:
     - Audio: MP3, WAV, FLAC, etc. (Whisper transcription)
     """
 
-    def __init__(self, enable_multimodal: bool = True, enforce_ingest_gate: bool = False):
+    def __init__(
+        self, enable_multimodal: bool = True, enforce_ingest_gate: bool = False
+    ):
         print("🏛️ Initializing BIZRA Corpus Manager v2.0")
         self.processed_dir = PROCESSED_PATH
         self.output_path = CORPUS_TABLE_PATH
@@ -80,7 +94,9 @@ class CorpusManager:
 
         # Ingestion gate (optional)
         if INGEST_GATE_AVAILABLE:
-            self.ingest_gate = IngestGate(enforce=(enforce_ingest_gate or INGEST_GATE_ENFORCE))
+            self.ingest_gate = IngestGate(
+                enforce=(enforce_ingest_gate or INGEST_GATE_ENFORCE)
+            )
         else:
             self.ingest_gate = None
         if self.ingest_gate:
@@ -109,23 +125,44 @@ class CorpusManager:
                 return self._process_image_file(file_path, stat)
             elif self._is_audio_file(file_path):
                 return self._process_audio_file(file_path, stat)
-            elif file_path.suffix.lower() in ['.pdf', '.docx', '.pptx', '.html', '.txt', '.md']:
+            elif file_path.suffix.lower() in [
+                ".pdf",
+                ".docx",
+                ".pptx",
+                ".html",
+                ".txt",
+                ".md",
+            ]:
                 # Use Unstructured for documents
                 print(f"📄 Partitioning: {file_path.name}")
                 elements = partition(filename=str(file_path))
                 text_content = "\n\n".join([str(el) for el in elements])
-            elif file_path.suffix.lower() in ['.py', '.rs', '.js', '.ts', '.json', '.yaml', '.yml', '.toml', '.sh', '.bat', '.ps1']:
+            elif file_path.suffix.lower() in [
+                ".py",
+                ".rs",
+                ".js",
+                ".ts",
+                ".json",
+                ".yaml",
+                ".yml",
+                ".toml",
+                ".sh",
+                ".bat",
+                ".ps1",
+            ]:
                 # Code files
-                text_content = file_path.read_text(errors='ignore')
+                text_content = file_path.read_text(errors="ignore")
                 modality = "code"
             else:
                 # Try to read as text, skip binary files
                 try:
-                    text_content = file_path.read_text(errors='ignore')
+                    text_content = file_path.read_text(errors="ignore")
                 except:
                     text_content = ""
 
-            file_hash = _content_hash(text_content.encode() if text_content else str(file_path).encode())
+            file_hash = _content_hash(
+                text_content.encode() if text_content else str(file_path).encode()
+            )
 
             return {
                 "doc_id": f"{file_hash[:16]}",
@@ -138,16 +175,24 @@ class CorpusManager:
                 "lang": "en",
                 "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
                 "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                "project": file_path.parts[-3] if len(file_path.parts) > 3 else "unknown",
+                "project": (
+                    file_path.parts[-3] if len(file_path.parts) > 3 else "unknown"
+                ),
                 "hash_sha256": file_hash,
                 "text": text_content,
-                "text_quality": "high_fidelity" if elements else ("ok" if text_content else "no_text"),
-                "metadata_json": json.dumps({
-                    "size_bytes": stat.st_size,
-                    "extension": file_path.suffix,
-                    "element_count": len(elements),
-                    **extra_metadata
-                })
+                "text_quality": (
+                    "high_fidelity"
+                    if elements
+                    else ("ok" if text_content else "no_text")
+                ),
+                "metadata_json": json.dumps(
+                    {
+                        "size_bytes": stat.st_size,
+                        "extension": file_path.suffix,
+                        "element_count": len(elements),
+                        **extra_metadata,
+                    }
+                ),
             }
         except Exception as e:
             print(f"❌ Error processing {file_path}: {e}")
@@ -159,7 +204,11 @@ class CorpusManager:
         ocr_text = None
         image_info = {}
 
-        if self.multimodal_enabled and self.multimodal and self.multimodal.image_processor:
+        if (
+            self.multimodal_enabled
+            and self.multimodal
+            and self.multimodal.image_processor
+        ):
             try:
                 print(f"🖼️ Processing image: {file_path.name}")
                 image_content = self.multimodal.image_processor.process_image(
@@ -167,12 +216,14 @@ class CorpusManager:
                 )
                 if image_content:
                     ocr_text = image_content.ocr_text
-                    text_content = ocr_text if ocr_text else f"[IMAGE: {file_path.name}]"
+                    text_content = (
+                        ocr_text if ocr_text else f"[IMAGE: {file_path.name}]"
+                    )
                     image_info = {
                         "width": image_content.width,
                         "height": image_content.height,
                         "format": image_content.format,
-                        "has_ocr": ocr_text is not None
+                        "has_ocr": ocr_text is not None,
                     }
             except Exception as e:
                 print(f"   ⚠️ Image processing failed: {e}")
@@ -197,11 +248,13 @@ class CorpusManager:
             "hash_sha256": file_hash,
             "text": text_content,
             "text_quality": "ocr" if ocr_text else "placeholder",
-            "metadata_json": json.dumps({
-                "size_bytes": stat.st_size,
-                "extension": file_path.suffix,
-                **image_info
-            })
+            "metadata_json": json.dumps(
+                {
+                    "size_bytes": stat.st_size,
+                    "extension": file_path.suffix,
+                    **image_info,
+                }
+            ),
         }
 
     def _process_audio_file(self, file_path: Path, stat) -> Optional[Dict[str, Any]]:
@@ -210,17 +263,25 @@ class CorpusManager:
         transcript = None
         audio_info = {}
 
-        if self.multimodal_enabled and self.multimodal and self.multimodal.audio_processor:
+        if (
+            self.multimodal_enabled
+            and self.multimodal
+            and self.multimodal.audio_processor
+        ):
             try:
                 print(f"🎵 Transcribing: {file_path.name}")
-                audio_content = self.multimodal.audio_processor.process_audio(str(file_path))
+                audio_content = self.multimodal.audio_processor.process_audio(
+                    str(file_path)
+                )
                 if audio_content:
                     transcript = audio_content.transcript
-                    text_content = transcript if transcript else f"[AUDIO: {file_path.name}]"
+                    text_content = (
+                        transcript if transcript else f"[AUDIO: {file_path.name}]"
+                    )
                     audio_info = {
                         "duration_seconds": audio_content.duration_seconds,
                         "language": audio_content.language,
-                        "has_transcript": transcript is not None
+                        "has_transcript": transcript is not None,
                     }
             except Exception as e:
                 print(f"   ⚠️ Audio processing failed: {e}")
@@ -245,18 +306,24 @@ class CorpusManager:
             "hash_sha256": file_hash,
             "text": text_content,
             "text_quality": "transcript" if transcript else "placeholder",
-            "metadata_json": json.dumps({
-                "size_bytes": stat.st_size,
-                "extension": file_path.suffix,
-                **audio_info
-            })
+            "metadata_json": json.dumps(
+                {
+                    "size_bytes": stat.st_size,
+                    "extension": file_path.suffix,
+                    **audio_info,
+                }
+            ),
         }
 
     def _detect_source_type(self, path: Path):
-        if "code" in path.parts: return "repo_file"
-        if "chat_history" in str(path): return "chat_turn"
-        if path.suffix == ".pdf": return "pdf"
-        if path.suffix in [".md", ".txt"]: return "note"
+        if "code" in path.parts:
+            return "repo_file"
+        if "chat_history" in str(path):
+            return "chat_turn"
+        if path.suffix == ".pdf":
+            return "pdf"
+        if path.suffix in [".md", ".txt"]:
+            return "note"
         return "generic"
 
     def _get_mime(self, path: Path) -> str:
@@ -322,7 +389,10 @@ class CorpusManager:
                     try:
                         self.ingest_log_path.parent.mkdir(parents=True, exist_ok=True)
                         with open(self.ingest_log_path, "a", encoding="utf-8") as logf:
-                            logf.write(json.dumps({"file": meta.get("file_path"), **verdict}) + "\n")
+                            logf.write(
+                                json.dumps({"file": meta.get("file_path"), **verdict})
+                                + "\n"
+                            )
                     except Exception:
                         pass
 
@@ -356,11 +426,13 @@ class CorpusManager:
 
         stats = {
             "total_documents": len(df),
-            "by_modality": df.get("modality", pd.Series(["text"] * len(df))).value_counts().to_dict(),
+            "by_modality": df.get("modality", pd.Series(["text"] * len(df)))
+            .value_counts()
+            .to_dict(),
             "by_source_type": df["source_type"].value_counts().to_dict(),
             "by_text_quality": df["text_quality"].value_counts().to_dict(),
             "total_text_chars": df["text"].str.len().sum(),
-            "multimodal_enabled": self.multimodal_enabled
+            "multimodal_enabled": self.multimodal_enabled,
         }
 
         return stats
@@ -376,16 +448,16 @@ if __name__ == "__main__":
     for key, value in stats.items():
         print(f"  {key}: {value}")
 
-
     def build_corpus_parallel(self, workers: int = 4):
         """Parallel corpus build (folder-level batching)."""
         print(f"🔍 Parallel crawling with {workers} workers...")
-        files = [f for f in self.processed_dir.rglob('*') if f.is_file()]
+        files = [f for f in self.processed_dir.rglob("*") if f.is_file()]
         if not files:
             print("⚠️ No files to process.")
             return
 
         import concurrent.futures
+
         modality_counts = {"text": 0, "code": 0, "image": 0, "audio": 0}
         gate_rejects = 0
 
@@ -407,7 +479,10 @@ if __name__ == "__main__":
                     try:
                         self.ingest_log_path.parent.mkdir(parents=True, exist_ok=True)
                         with open(self.ingest_log_path, "a", encoding="utf-8") as logf:
-                            logf.write(json.dumps({"file": meta.get("file_path"), **verdict}) + "\n")
+                            logf.write(
+                                json.dumps({"file": meta.get("file_path"), **verdict})
+                                + "\n"
+                            )
                     except Exception:
                         pass
                     if self.ingest_gate.enforce and not verdict.get("passed", False):

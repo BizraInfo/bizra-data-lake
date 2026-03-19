@@ -129,10 +129,12 @@ class TestURPRustBridgeMocked:
 
         with patch.dict(
             "sys.modules",
-            {"bizra": MagicMock(
-                PyURPPledge=MagicMock(from_dict=MagicMock()),
-                submit_pledge=MagicMock(return_value=mock_node),
-            )},
+            {
+                "bizra": MagicMock(
+                    PyURPPledge=MagicMock(from_dict=MagicMock()),
+                    submit_pledge=MagicMock(return_value=mock_node),
+                )
+            },
         ):
             result = bridge.submit_pledge(fake_pledge)
             assert result == {"id": "node1", "class": "standard"}
@@ -142,11 +144,13 @@ class TestURPRustBridgeMocked:
 
         with patch.dict(
             "sys.modules",
-            {"bizra": MagicMock(
-                PyURPPledge=MagicMock(
-                    from_dict=MagicMock(side_effect=RuntimeError("bad pledge")),
-                ),
-            )},
+            {
+                "bizra": MagicMock(
+                    PyURPPledge=MagicMock(
+                        from_dict=MagicMock(side_effect=RuntimeError("bad pledge")),
+                    ),
+                )
+            },
         ):
             result = bridge.submit_pledge(fake_pledge)
             assert result is None
@@ -161,9 +165,11 @@ class TestURPRustBridgeMocked:
 
         with patch.dict(
             "sys.modules",
-            {"bizra": MagicMock(
-                contribute_resources=MagicMock(return_value=mock_receipt),
-            )},
+            {
+                "bizra": MagicMock(
+                    contribute_resources=MagicMock(return_value=mock_receipt),
+                )
+            },
         ):
             result = bridge.contribute("n1", "cpu", 2.0, 3600000, "h")
             assert result is not None
@@ -209,9 +215,11 @@ class TestURPRustBridgeMocked:
 
         with patch.dict(
             "sys.modules",
-            {"bizra": MagicMock(
-                process_zakat=MagicMock(return_value=expected),
-            )},
+            {
+                "bizra": MagicMock(
+                    process_zakat=MagicMock(return_value=expected),
+                )
+            },
         ):
             result = bridge.process_zakat()
             assert result == expected

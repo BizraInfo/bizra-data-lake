@@ -55,9 +55,7 @@ def _make_runtime(state_dir: Path) -> MagicMock:
 
 def export_schema(out_path: str | None = None) -> dict:
     """Export the OpenAPI schema from the live FastAPI app."""
-    os.environ.setdefault(
-        "BIZRA_USERSTORE_MASTER_SECRET", "schema-export-ephemeral"
-    )
+    os.environ.setdefault("BIZRA_USERSTORE_MASTER_SECRET", "schema-export-ephemeral")
 
     with tempfile.TemporaryDirectory() as td:
         runtime = _make_runtime(Path(td))

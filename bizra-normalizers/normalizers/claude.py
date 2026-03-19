@@ -16,7 +16,6 @@ from .base import (
     stable_turn_id,
 )
 
-
 _FACT_RE = re.compile(
     r"\b(i am|i'm|my name is|i live in|based in|founder|ceo|i work as)\b",
     re.IGNORECASE,
@@ -75,7 +74,9 @@ class ClaudeParser(PlatformParser):
                 or conversation.get("conversation_id")
                 or self._conversation_id(conversation, convo_index)
             )
-            model = str(conversation.get("model") or conversation.get("assistant") or "")
+            model = str(
+                conversation.get("model") or conversation.get("assistant") or ""
+            )
             messages = self._extract_messages(conversation)
 
             for index, message in enumerate(messages):
@@ -160,7 +161,9 @@ class ClaudeParser(PlatformParser):
         hints: list[FragmentHint] = []
         dedupe: set[tuple[str, str]] = set()
 
-        def push(kind: FragmentKind, signal: str, confidence: float, source: str) -> None:
+        def push(
+            kind: FragmentKind, signal: str, confidence: float, source: str
+        ) -> None:
             if confidence < _MIN_CONFIDENCE or len(hints) >= _MAX_HINTS_PER_TURN:
                 return
             normalized = normalize_whitespace(signal).lower()

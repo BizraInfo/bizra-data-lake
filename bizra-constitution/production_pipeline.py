@@ -22,16 +22,16 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time
 import logging
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from mission_pipeline import MissionPipeline, Mission, MissionStatus
-from identity_genesis import NodeIdentity, create_identity, save_identity
-from ollama_provider import OllamaProvider, InferenceResult
 from evidence_receipt import EvidenceLedger, EvidenceReceipt
+from identity_genesis import NodeIdentity, create_identity, save_identity
+from mission_pipeline import Mission, MissionPipeline, MissionStatus
+from ollama_provider import InferenceResult, OllamaProvider
 
 try:
     from generated.generated_constants import (
@@ -44,8 +44,15 @@ except ImportError:
     CONSTITUTION_HASH = "unknown"
     CONSTITUTION_VERSION = "5.0.0-GENESIS"
     DOMAIN_EVIDENCE_RECEIPT = "bizra-evidence-v1"
-    PAT_AGENT_NAMES = ["Planner", "Researcher", "Coder",
-                       "Evaluator", "Ethicist", "Publisher", "Integrator"]
+    PAT_AGENT_NAMES = [
+        "Planner",
+        "Researcher",
+        "Coder",
+        "Evaluator",
+        "Ethicist",
+        "Publisher",
+        "Integrator",
+    ]
 
 logger = logging.getLogger("bizra.production")
 
@@ -200,9 +207,8 @@ def create_node0(
     # Connect to Ollama
     ollama = OllamaProvider(
         base_url=ollama_url,
-        model_chain=model_chain or [
-            "phi3:mini", "llama3.2:3b", "mistral:7b", "qwen2.5:3b"
-        ],
+        model_chain=model_chain
+        or ["phi3:mini", "llama3.2:3b", "mistral:7b", "qwen2.5:3b"],
     )
 
     # Create pipeline

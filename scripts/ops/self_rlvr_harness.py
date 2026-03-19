@@ -27,7 +27,10 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from core.integration.constants import SNR_THRESHOLD_T2_STANDARD, UNIFIED_IHSAN_THRESHOLD
+from core.integration.constants import (
+    SNR_THRESHOLD_T2_STANDARD,
+    UNIFIED_IHSAN_THRESHOLD,
+)
 from core.token.rl_rewards import composite_reward
 
 
@@ -36,7 +39,9 @@ def _clamp01(value: float) -> float:
 
 
 def _canonical_json(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
 
 
 def _hash_payload(payload: dict[str, Any]) -> str:
@@ -314,7 +319,9 @@ def run_self_rlvr_harness(
                 "raw": round(snr_raw, 4),
                 "normalized": round(snr_normalized, 4),
             },
-            "last_receipt_hash": receipts[-1]["receipt_hash"] if receipts else "GENESIS",
+            "last_receipt_hash": (
+                receipts[-1]["receipt_hash"] if receipts else "GENESIS"
+            ),
         },
         "decision": decision,
         "receipts": receipts,
@@ -374,7 +381,9 @@ def main() -> int:
         if args.episodes_file is not None
         else generate_synthetic_episodes(count=args.episodes, seed=args.seed)
     )
-    report = run_self_rlvr_harness(agent_id=args.agent_id, episodes=episodes, config=cfg)
+    report = run_self_rlvr_harness(
+        agent_id=args.agent_id, episodes=episodes, config=cfg
+    )
 
     encoded = json.dumps(report, indent=2)
     if args.out is not None:

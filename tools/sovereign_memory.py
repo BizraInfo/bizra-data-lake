@@ -15,13 +15,14 @@ Value Proposition:
 
 import json
 import sqlite3
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple, Any, Iterable
-from dataclasses import dataclass
 from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
 
 from bizra_config import DATA_LAKE_ROOT, GOLD_PATH, INDEXED_PATH
 

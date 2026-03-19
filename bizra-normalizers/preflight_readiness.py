@@ -14,7 +14,13 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from normalizers import CORE8, EXPORTABLE_NOW, COLLECTION_GAP, _detect_schema_provider, detect_provider  # noqa: E402
+from normalizers import (  # noqa: E402
+    COLLECTION_GAP,
+    CORE8,
+    EXPORTABLE_NOW,
+    _detect_schema_provider,
+    detect_provider,
+)
 
 
 def _iter_json_files(paths: list[Path], limit: int = 0) -> list[Path]:
@@ -148,11 +154,17 @@ def _format_readiness(result: dict[str, Any]) -> str:
         gaps = [p for p in missing if p in COLLECTION_GAP]
         real_missing = [p for p in missing if p not in COLLECTION_GAP]
         if real_missing:
-            lines.append(f"STATUS: NOT READY — missing exports: {', '.join(real_missing)}")
+            lines.append(
+                f"STATUS: NOT READY — missing exports: {', '.join(real_missing)}"
+            )
         if gaps:
-            lines.append(f"COLLECTION GAPS: {', '.join(gaps)} — requires PAT-based scraping")
+            lines.append(
+                f"COLLECTION GAPS: {', '.join(gaps)} — requires PAT-based scraping"
+            )
         if not real_missing and gaps:
-            lines.append("TIP: Use --available-only to gate on exportable providers only")
+            lines.append(
+                "TIP: Use --available-only to gate on exportable providers only"
+            )
 
     return "\n".join(lines)
 

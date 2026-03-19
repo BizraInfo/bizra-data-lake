@@ -31,6 +31,7 @@ from typing import Any, Optional
 # LIBRARY LOADING
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def _find_library() -> Path:
     """Find the bizra_hooks shared library."""
     # Search order:
@@ -78,8 +79,10 @@ def _find_library() -> Path:
 # ENUMS — Mirror Rust enum ordinals exactly.
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class ComponentKind(IntEnum):
     """Component type for registration."""
+
     CORE = 0
     AGENT = 1
     ENGINE = 2
@@ -90,6 +93,7 @@ class ComponentKind(IntEnum):
 
 class HealthStatus(IntEnum):
     """Component health state."""
+
     HEALTHY = 0
     DEGRADED = 1
     FAILED = 2
@@ -98,6 +102,7 @@ class HealthStatus(IntEnum):
 
 class EventKind(IntEnum):
     """Event type for publishing. Must match Rust EventKind ordinal exactly."""
+
     # Conversation lifecycle
     USER_MESSAGE = 0
     AGENT_RESPONSE = 1
@@ -145,6 +150,7 @@ class EventKind(IntEnum):
 # KERNEL — The Python interface to Node0's nervous system.
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class Kernel:
     """
     Python interface to the BIZRA Node0 Kernel (Rust).
@@ -185,8 +191,12 @@ class Kernel:
 
         L.bizra_publish_scored.restype = ctypes.c_uint64
         L.bizra_publish_scored.argtypes = [
-            ctypes.c_uint32, ctypes.c_uint64, ctypes.c_char_p,
-            ctypes.c_double, ctypes.c_double, ctypes.c_uint64,
+            ctypes.c_uint32,
+            ctypes.c_uint64,
+            ctypes.c_char_p,
+            ctypes.c_double,
+            ctypes.c_double,
+            ctypes.c_uint64,
         ]
 
         # Queries
@@ -246,7 +256,9 @@ class Kernel:
         """
         cid = self._lib.bizra_register(name.encode("utf-8"), int(kind))
         if cid == 0:
-            raise ValueError(f"Failed to register '{name}' (duplicate name or kernel not initialized)")
+            raise ValueError(
+                f"Failed to register '{name}' (duplicate name or kernel not initialized)"
+            )
         return cid
 
     def set_health(self, component_id: int, health: HealthStatus | str) -> None:
@@ -303,8 +315,12 @@ class Kernel:
         """
         text_bytes = text.encode("utf-8") if text else None
         eid = self._lib.bizra_publish_scored(
-            int(kind), source_id, text_bytes,
-            snr, confidence, latency_us,
+            int(kind),
+            source_id,
+            text_bytes,
+            snr,
+            confidence,
+            latency_us,
         )
         if eid == 0:
             raise RuntimeError(f"Failed to publish scored event {kind.name}")
@@ -366,12 +382,14 @@ class Kernel:
 
 _GLOBAL_KERNEL: Optional[Kernel] = None
 
+
 def boot(**kwargs) -> Kernel:
     """Boot the global kernel singleton."""
     global _GLOBAL_KERNEL
     if _GLOBAL_KERNEL is None:
         _GLOBAL_KERNEL = Kernel.boot(**kwargs)
     return _GLOBAL_KERNEL
+
 
 def get_kernel() -> Kernel:
     """Get the global kernel. Raises if not booted."""
@@ -383,6 +401,7 @@ def get_kernel() -> Kernel:
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 46 INTEGRATION — Register existing engines.
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 def register_phase46_engines(kernel: Kernel) -> dict[str, int]:
     """

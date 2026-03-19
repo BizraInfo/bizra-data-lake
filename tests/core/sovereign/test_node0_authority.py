@@ -65,11 +65,19 @@ def _make_genesis(
         },
         "hardware": {},
         "knowledge": {},
-        "pat_team": {"owner_node": node_id, "agents": pat_agents, "team_hash": list(range(32))},
+        "pat_team": {
+            "owner_node": node_id,
+            "agents": pat_agents,
+            "team_hash": list(range(32)),
+        },
         "sat_team": {
             "agents": sat_agents,
             "team_hash": list(range(32)),
-            "governance": {"quorum": 0.67, "voting_period_hours": 72, "upgrade_threshold": 0.8},
+            "governance": {
+                "quorum": 0.67,
+                "voting_period_hours": 72,
+                "upgrade_threshold": 0.8,
+            },
         },
         "partnership_hash": list(range(32)),
         "genesis_hash": genesis_hash,
@@ -180,9 +188,7 @@ class TestLegacyMigration:
         bs_dir.mkdir(parents=True, exist_ok=True)
         g2 = _make_genesis(node_id="BIZRA-B")
         g2["genesis_hash"] = list(range(32, 64))  # Different hash
-        (bs_dir / "genesis.json").write_text(
-            json.dumps(g2, indent=2), encoding="utf-8"
-        )
+        (bs_dir / "genesis.json").write_text(json.dumps(g2, indent=2), encoding="utf-8")
 
         result = resolve_authority(state_dir, tmp_path)
         assert not result.is_valid

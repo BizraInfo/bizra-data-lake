@@ -33,6 +33,7 @@
 //! - Lehmer (1964): Regular (5-smooth / Hamming) numbers for harmonic chain
 //!   lengths, ensuring exact reciprocal arithmetic. [VERIFIED]
 
+#![allow(clippy::manual_is_multiple_of)]
 #![warn(missing_docs)]
 
 // ---------------------------------------------------------------------------

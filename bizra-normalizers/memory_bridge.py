@@ -115,7 +115,11 @@ def build_fragment_inputs_from_report(
         ts = int(dt.datetime.now(dt.timezone.utc).timestamp())
 
     rows = sorted(
-        [n for n in (report.get("nodes") or []) if float(n.get("snr_score", 0.0)) >= min_snr],
+        [
+            n
+            for n in (report.get("nodes") or [])
+            if float(n.get("snr_score", 0.0)) >= min_snr
+        ],
         key=lambda n: (-float(n.get("snr_score", 0.0)), str(n.get("node_id") or "")),
     )
 

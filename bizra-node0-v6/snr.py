@@ -32,7 +32,6 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # CANONICAL NORMALIZATION — The one function. No copies. No variants.
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -95,6 +94,7 @@ SAPE_WEIGHTS = {
 @dataclass
 class SapeScore:
     """SAPE dimensional score with weighted composite."""
+
     dimensions: dict[str, float]
     composite: float
     t1_threshold: float = 0.950
@@ -152,11 +152,12 @@ def compute_sape_composite(
 @dataclass
 class MissionSNR:
     """SNR measurement for a single mission execution."""
-    signal_power: float     # Useful information in the output
-    noise_power: float      # Irrelevant/harmful/redundant content
-    snr_linear: float       # signal / noise
-    snr_normalized: float   # normalize_snr(snr_linear)
-    snr_db: float           # 10 * log10(snr_linear)
+
+    signal_power: float  # Useful information in the output
+    noise_power: float  # Irrelevant/harmful/redundant content
+    snr_linear: float  # signal / noise
+    snr_normalized: float  # normalize_snr(snr_linear)
+    snr_db: float  # 10 * log10(snr_linear)
 
     def as_evidence(self) -> dict[str, float]:
         return {

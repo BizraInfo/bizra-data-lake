@@ -42,4 +42,3 @@ class HHMM:
             except Exception:
                 parts.append(str(context))
         return " ".join(parts).lower()
-

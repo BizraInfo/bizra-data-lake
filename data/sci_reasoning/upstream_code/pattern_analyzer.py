@@ -4,19 +4,22 @@ Thinking Patterns Analysis Engine
 Uses GPT-5-mini to discover and classify thinking patterns in ML paper synthesis narratives.
 """
 
-import os
 import json
+import os
 import random
 import time
-from pathlib import Path
 from collections import defaultdict
-from typing import List, Dict, Any, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
 import openai
 
 # Configuration
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 MODEL = "gpt-5-mini"
-BASE_PATH = Path("/home/orchestra/projects/synthesis_graph_pipeline/results/conferences")
+BASE_PATH = Path(
+    "/home/orchestra/projects/synthesis_graph_pipeline/results/conferences"
+)
 OUTPUT_PATH = Path("/home/orchestra/projects/thinking_patterns_llm_analysis/results")
 
 # Analysis parameters
@@ -28,61 +31,69 @@ CLASSIFICATION_BATCH_SIZE = 5
 INPUT_COST_PER_M = 0.25  # $ per million input tokens
 OUTPUT_COST_PER_M = 2.0  # $ per million output tokens
 
+
 class CostTracker:
     def __init__(self):
         self.total_input_tokens = 0
         self.total_output_tokens = 0
         self.calls = []
-    
+
     def add_call(self, input_tokens: int, output_tokens: int, phase: str):
         self.total_input_tokens += input_tokens
         self.total_output_tokens += output_tokens
-        cost = (input_tokens / 1_000_000 * INPUT_COST_PER_M + 
-                output_tokens / 1_000_000 * OUTPUT_COST_PER_M)
-        self.calls.append({
-            "phase": phase,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "cost": cost
-        })
+        cost = (
+            input_tokens / 1_000_000 * INPUT_COST_PER_M
+            + output_tokens / 1_000_000 * OUTPUT_COST_PER_M
+        )
+        self.calls.append(
+            {
+                "phase": phase,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cost": cost,
+            }
+        )
         return cost
-    
+
     def get_total_cost(self) -> float:
-        return (self.total_input_tokens / 1_000_000 * INPUT_COST_PER_M + 
-                self.total_output_tokens / 1_000_000 * OUTPUT_COST_PER_M)
-    
+        return (
+            self.total_input_tokens / 1_000_000 * INPUT_COST_PER_M
+            + self.total_output_tokens / 1_000_000 * OUTPUT_COST_PER_M
+        )
+
     def get_summary(self) -> Dict:
         return {
             "total_input_tokens": self.total_input_tokens,
             "total_output_tokens": self.total_output_tokens,
             "total_cost_usd": round(self.get_total_cost(), 4),
-            "num_calls": len(self.calls)
+            "num_calls": len(self.calls),
         }
 
+
 cost_tracker = CostTracker()
+
 
 def call_gpt(messages: List[Dict], phase: str, retry_count: int = 3) -> str:
     """Call GPT-5-mini API and track costs."""
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
-    
+
     for attempt in range(retry_count):
         try:
-            response = client.chat.completions.create(
-                model=MODEL,
-                messages=messages
-            )
-            
+            response = client.chat.completions.create(model=MODEL, messages=messages)
+
             input_tokens = response.usage.prompt_tokens
             output_tokens = response.usage.completion_tokens
             cost = cost_tracker.add_call(input_tokens, output_tokens, phase)
-            
-            print(f"  [API] {phase}: in={input_tokens}, out={output_tokens}, cost=${cost:.4f}, total=${cost_tracker.get_total_cost():.4f}")
-            
+
+            print(
+                f"  [API] {phase}: in={input_tokens}, out={output_tokens}, cost=${cost:.4f}, total=${cost_tracker.get_total_cost():.4f}"
+            )
+
             return response.choices[0].message.content
         except Exception as e:
             print(f"  [API Error] Attempt {attempt+1}/{retry_count}: {e}")
             if attempt < retry_count - 1:
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
             else:
                 raise
 
@@ -90,11 +101,11 @@ def call_gpt(messages: List[Dict], phase: str, retry_count: int = 3) -> str:
 def load_all_papers() -> List[Dict]:
     """Load all synthesis narratives from the conference directories."""
     papers = []
-    
+
     for conf_dir in BASE_PATH.iterdir():
         if not conf_dir.is_dir():
             continue
-        
+
         # Parse conference info from directory name
         parts = conf_dir.name.split("-")
         if len(parts) >= 3:
@@ -103,71 +114,83 @@ def load_all_papers() -> List[Dict]:
             presentation_type = parts[2]
         else:
             continue
-        
+
         for json_file in conf_dir.glob("synthesis_*.json"):
             try:
                 with open(json_file) as f:
                     data = json.load(f)
-                
+
                 if data.get("status") != "success":
                     continue
-                
+
                 synthesis_graph = data.get("synthesis_graph", {})
                 narrative = synthesis_graph.get("synthesis_narrative", "")
-                
+
                 if not narrative or len(narrative) < 100:
                     continue
-                
-                papers.append({
-                    "title": data.get("title", ""),
-                    "conference": conference,
-                    "year": int(year),
-                    "presentation_type": presentation_type,
-                    "synthesis_narrative": narrative,
-                    "thinking_trajectory": synthesis_graph.get("thinking_trajectory", {}),
-                    "file_path": str(json_file)
-                })
+
+                papers.append(
+                    {
+                        "title": data.get("title", ""),
+                        "conference": conference,
+                        "year": int(year),
+                        "presentation_type": presentation_type,
+                        "synthesis_narrative": narrative,
+                        "thinking_trajectory": synthesis_graph.get(
+                            "thinking_trajectory", {}
+                        ),
+                        "file_path": str(json_file),
+                    }
+                )
             except Exception as e:
                 print(f"Error loading {json_file}: {e}")
-    
+
     return papers
 
 
-def create_stratified_sample(papers: List[Dict], sample_size: int, seed: int = 42) -> List[Dict]:
+def create_stratified_sample(
+    papers: List[Dict], sample_size: int, seed: int = 42
+) -> List[Dict]:
     """Create a stratified sample across conferences, years, and presentation types."""
     random.seed(seed)
-    
+
     # Group papers by strata
     strata = defaultdict(list)
     for paper in papers:
         key = (paper["conference"], paper["year"], paper["presentation_type"])
         strata[key].append(paper)
-    
+
     # Calculate proportional sample sizes
     total = len(papers)
     sampled = []
-    
+
     for key, group_papers in strata.items():
         proportion = len(group_papers) / total
         group_sample_size = max(1, int(sample_size * proportion))
-        group_sample = random.sample(group_papers, min(group_sample_size, len(group_papers)))
+        group_sample = random.sample(
+            group_papers, min(group_sample_size, len(group_papers))
+        )
         sampled.extend(group_sample)
-    
+
     # If we need more samples, add randomly
     if len(sampled) < sample_size:
         remaining = [p for p in papers if p not in sampled]
-        additional = random.sample(remaining, min(sample_size - len(sampled), len(remaining)))
+        additional = random.sample(
+            remaining, min(sample_size - len(sampled), len(remaining))
+        )
         sampled.extend(additional)
-    
+
     random.shuffle(sampled)
     return sampled[:sample_size]
 
 
 def discover_patterns_batch(narratives: List[str], batch_num: int) -> Dict:
     """Use GPT-5-mini to discover patterns in a batch of narratives."""
-    
-    narratives_text = "\n\n---\n\n".join([f"Paper {i+1}:\n{n}" for i, n in enumerate(narratives)])
-    
+
+    narratives_text = "\n\n---\n\n".join(
+        [f"Paper {i+1}:\n{n}" for i, n in enumerate(narratives)]
+    )
+
     system_prompt = """You are an expert research methodology analyst specializing in understanding how breakthrough ideas emerge. Your task is to analyze synthesis narratives from top ML research papers (oral/spotlight at NeurIPS, ICML, ICLR) and identify recurring THINKING PATTERNS.
 
 Focus on the COGNITIVE STRATEGIES and INTELLECTUAL MOVES researchers make:
@@ -207,11 +230,11 @@ Output as JSON:
 
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
+        {"role": "user", "content": user_prompt},
     ]
-    
+
     response = call_gpt(messages, f"discovery_batch_{batch_num}")
-    
+
     try:
         if "```json" in response:
             json_str = response.split("```json")[1].split("```")[0]
@@ -219,7 +242,7 @@ Output as JSON:
             json_str = response.split("```")[1].split("```")[0]
         else:
             json_str = response
-        
+
         return json.loads(json_str)
     except json.JSONDecodeError as e:
         print(f"  Warning: JSON parse error: {e}")
@@ -228,7 +251,7 @@ Output as JSON:
 
 def consolidate_patterns(all_discovered_patterns: List[Dict]) -> Dict:
     """Use GPT-5-mini to consolidate patterns into a unified taxonomy."""
-    
+
     all_patterns = []
     all_meta = []
     for batch_result in all_discovered_patterns:
@@ -236,10 +259,10 @@ def consolidate_patterns(all_discovered_patterns: List[Dict]) -> Dict:
         all_patterns.extend(patterns)
         if batch_result.get("meta_observations"):
             all_meta.append(batch_result["meta_observations"])
-    
+
     patterns_text = json.dumps(all_patterns, indent=2)
     meta_text = "\n".join([f"- {m}" for m in all_meta])
-    
+
     system_prompt = """You are an expert taxonomist specializing in research methodology and cognitive science. Create a comprehensive, well-organized taxonomy of thinking patterns from the discovered patterns."""
 
     user_prompt = f"""I discovered {len(all_patterns)} thinking patterns from analyzing 350 top ML papers. Many overlap or are variations.
@@ -290,11 +313,11 @@ Output as JSON:
 
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
+        {"role": "user", "content": user_prompt},
     ]
-    
+
     response = call_gpt(messages, "consolidation")
-    
+
     try:
         if "```json" in response:
             json_str = response.split("```json")[1].split("```")[0]
@@ -302,26 +325,32 @@ Output as JSON:
             json_str = response.split("```")[1].split("```")[0]
         else:
             json_str = response
-        
+
         return json.loads(json_str)
     except json.JSONDecodeError as e:
         print(f"  Warning: Consolidation JSON parse error: {e}")
         return {"taxonomy": [], "raw_response": response}
 
 
-def classify_papers_batch(papers: List[Dict], taxonomy: List[Dict], batch_num: int) -> List[Dict]:
+def classify_papers_batch(
+    papers: List[Dict], taxonomy: List[Dict], batch_num: int
+) -> List[Dict]:
     """Classify a batch of papers using the discovered taxonomy."""
-    
-    taxonomy_ref = "\n".join([
-        f"- {p['id']}: {p['name']} ({p['category']}) - {p['description']}"
-        for p in taxonomy
-    ])
-    
-    papers_text = "\n\n---\n\n".join([
-        f"Paper {i+1}: \"{p['title'][:80]}\"\nNarrative: {p['synthesis_narrative']}"
-        for i, p in enumerate(papers)
-    ])
-    
+
+    taxonomy_ref = "\n".join(
+        [
+            f"- {p['id']}: {p['name']} ({p['category']}) - {p['description']}"
+            for p in taxonomy
+        ]
+    )
+
+    papers_text = "\n\n---\n\n".join(
+        [
+            f"Paper {i+1}: \"{p['title'][:80]}\"\nNarrative: {p['synthesis_narrative']}"
+            for i, p in enumerate(papers)
+        ]
+    )
+
     system_prompt = """You are an expert at analyzing research thinking patterns. Classify each paper's synthesis narrative according to the provided taxonomy. Be precise and identify both primary and secondary patterns."""
 
     user_prompt = f"""TAXONOMY:
@@ -351,11 +380,11 @@ Output as JSON:
 
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
+        {"role": "user", "content": user_prompt},
     ]
-    
+
     response = call_gpt(messages, f"classify_{batch_num}")
-    
+
     try:
         if "```json" in response:
             json_str = response.split("```json")[1].split("```")[0]
@@ -363,55 +392,76 @@ Output as JSON:
             json_str = response.split("```")[1].split("```")[0]
         else:
             json_str = response
-        
+
         result = json.loads(json_str)
         classifications = result.get("classifications", [])
-        
+
         for i, paper in enumerate(papers):
             if i < len(classifications):
                 paper["classification"] = classifications[i]
             else:
-                paper["classification"] = {"primary_pattern": "unknown", "secondary_patterns": []}
-        
+                paper["classification"] = {
+                    "primary_pattern": "unknown",
+                    "secondary_patterns": [],
+                }
+
         return papers
     except json.JSONDecodeError as e:
         print(f"  Warning: Classification JSON parse error: {e}")
         for paper in papers:
-            paper["classification"] = {"primary_pattern": "unknown", "secondary_patterns": [], "error": str(e)}
+            paper["classification"] = {
+                "primary_pattern": "unknown",
+                "secondary_patterns": [],
+                "error": str(e),
+            }
         return papers
 
 
-def generate_deep_insights(taxonomy: List[Dict], analysis: Dict, papers: List[Dict]) -> Dict:
+def generate_deep_insights(
+    taxonomy: List[Dict], analysis: Dict, papers: List[Dict]
+) -> Dict:
     """Generate deep insights about the patterns discovered."""
-    
+
     # Prepare summary data
-    top_patterns = sorted(analysis["primary_pattern_counts"].items(), key=lambda x: x[1], reverse=True)[:10]
+    top_patterns = sorted(
+        analysis["primary_pattern_counts"].items(), key=lambda x: x[1], reverse=True
+    )[:10]
     pattern_names = analysis["pattern_names"]
-    
-    top_patterns_text = "\n".join([
-        f"- {pid}: {pattern_names.get(pid, pid)} - {count} papers ({count/analysis['total_papers']*100:.1f}%)"
-        for pid, count in top_patterns
-    ])
-    
+
+    top_patterns_text = "\n".join(
+        [
+            f"- {pid}: {pattern_names.get(pid, pid)} - {count} papers ({count/analysis['total_papers']*100:.1f}%)"
+            for pid, count in top_patterns
+        ]
+    )
+
     # Year trends
     year_trends = {}
     for year, patterns in analysis["by_year"].items():
         total = sum(patterns.values())
-        year_trends[year] = {pid: count/total*100 for pid, count in patterns.items()}
-    
+        year_trends[year] = {
+            pid: count / total * 100 for pid, count in patterns.items()
+        }
+
     # Conference differences
     conf_patterns = {}
     for conf, patterns in analysis["by_conference"].items():
         total = sum(patterns.values())
-        conf_patterns[conf] = {pid: count/total*100 for pid, count in patterns.items()}
-    
+        conf_patterns[conf] = {
+            pid: count / total * 100 for pid, count in patterns.items()
+        }
+
     # Sample high-confidence classifications for examples
-    high_conf_examples = [p for p in papers if p.get("classification", {}).get("confidence") == "high"][:20]
-    examples_text = "\n".join([
-        f"- \"{p['title'][:60]}...\" -> {p['classification']['primary_pattern']}: {p['classification'].get('reasoning', 'N/A')}"
-        for p in high_conf_examples[:10]
-    ])
-    
+    high_conf_examples = [
+        p for p in papers if p.get("classification", {}).get("confidence") == "high"
+    ][:20]
+    examples_text = "\n".join(
+        [
+            f"- \"{p['title'][:60]}...\" -> {p['classification']['primary_pattern']}: {p['classification'].get('reasoning', 'N/A')}"
+            for p in high_conf_examples[:10]
+        ]
+    )
+
     system_prompt = """You are a research strategist and cognitive scientist analyzing patterns in how top ML researchers think. Provide deep, actionable insights."""
 
     user_prompt = f"""Based on analyzing {analysis['total_papers']} top ML papers (NeurIPS, ICML, ICLR oral/spotlight 2023-2025), here are the findings:
@@ -451,57 +501,57 @@ Be specific, cite the data, and provide actionable recommendations."""
 
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
+        {"role": "user", "content": user_prompt},
     ]
-    
+
     response = call_gpt(messages, "deep_insights")
-    
+
     return {
         "insights_text": response,
         "data_summary": {
             "top_patterns": top_patterns,
             "year_trends": year_trends,
-            "conference_patterns": conf_patterns
-        }
+            "conference_patterns": conf_patterns,
+        },
     }
 
 
 def analyze_results(classified_papers: List[Dict], taxonomy: List[Dict]) -> Dict:
     """Analyze the classification results."""
-    
+
     primary_counts = defaultdict(int)
     secondary_counts = defaultdict(int)
     total_counts = defaultdict(int)
-    
+
     by_conference = defaultdict(lambda: defaultdict(int))
     by_year = defaultdict(lambda: defaultdict(int))
     by_type = defaultdict(lambda: defaultdict(int))
-    
+
     cooccurrence = defaultdict(lambda: defaultdict(int))
     confidence_dist = defaultdict(int)
-    
+
     for paper in classified_papers:
         classification = paper.get("classification", {})
         primary = classification.get("primary_pattern", "unknown")
         secondary = classification.get("secondary_patterns", [])
         confidence = classification.get("confidence", "unknown")
-        
+
         primary_counts[primary] += 1
         total_counts[primary] += 1
         confidence_dist[confidence] += 1
-        
+
         for s in secondary:
             secondary_counts[s] += 1
             total_counts[s] += 1
             cooccurrence[primary][s] += 1
-        
+
         by_conference[paper["conference"]][primary] += 1
         by_year[paper["year"]][primary] += 1
         by_type[paper["presentation_type"]][primary] += 1
-    
+
     pattern_names = {p["id"]: p["name"] for p in taxonomy}
     pattern_categories = {p["id"]: p.get("category", "Unknown") for p in taxonomy}
-    
+
     return {
         "total_papers": len(classified_papers),
         "primary_pattern_counts": dict(primary_counts),
@@ -513,7 +563,7 @@ def analyze_results(classified_papers: List[Dict], taxonomy: List[Dict]) -> Dict
         "cooccurrence": {k: dict(v) for k, v in cooccurrence.items()},
         "confidence_distribution": dict(confidence_dist),
         "pattern_names": pattern_names,
-        "pattern_categories": pattern_categories
+        "pattern_categories": pattern_categories,
     }
 
 
@@ -522,151 +572,170 @@ def main():
     print("=" * 70)
     print("THINKING PATTERNS ANALYSIS ENGINE - GPT-5-mini")
     print("=" * 70)
-    
+
     # Ensure output directory exists
     OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-    
+
     # Phase 1: Load all papers
     print("\n[Phase 1] Loading all papers...")
     papers = load_all_papers()
     print(f"  ✓ Loaded {len(papers)} papers")
-    
+
     stats = defaultdict(lambda: defaultdict(int))
     for p in papers:
         stats[p["conference"]][f"{p['year']}-{p['presentation_type']}"] += 1
-    
+
     print("\n  Distribution:")
     for conf in sorted(stats.keys()):
         years = stats[conf]
         total = sum(years.values())
         print(f"    {conf}: {total} papers - {dict(sorted(years.items()))}")
-    
+
     # Phase 2: Pattern Discovery
-    print(f"\n[Phase 2] Pattern Discovery ({NUM_DISCOVERY_BATCHES} batches × {PAPERS_PER_DISCOVERY_BATCH} papers = {NUM_DISCOVERY_BATCHES * PAPERS_PER_DISCOVERY_BATCH} samples)...")
-    
+    print(
+        f"\n[Phase 2] Pattern Discovery ({NUM_DISCOVERY_BATCHES} batches × {PAPERS_PER_DISCOVERY_BATCH} papers = {NUM_DISCOVERY_BATCHES * PAPERS_PER_DISCOVERY_BATCH} samples)..."
+    )
+
     all_discovered_patterns = []
-    
+
     for batch_num in range(NUM_DISCOVERY_BATCHES):
         print(f"\n  Batch {batch_num + 1}/{NUM_DISCOVERY_BATCHES}...")
-        
-        sample = create_stratified_sample(papers, PAPERS_PER_DISCOVERY_BATCH, seed=42 + batch_num * 137)
+
+        sample = create_stratified_sample(
+            papers, PAPERS_PER_DISCOVERY_BATCH, seed=42 + batch_num * 137
+        )
         narratives = [p["synthesis_narrative"] for p in sample]
-        
+
         batch_patterns = discover_patterns_batch(narratives, batch_num + 1)
         all_discovered_patterns.append(batch_patterns)
-        
+
         num_patterns = len(batch_patterns.get("patterns", []))
         print(f"    → Found {num_patterns} patterns")
-        
+
         time.sleep(0.5)
-    
+
     with open(OUTPUT_PATH / "raw_discovered_patterns.json", "w") as f:
         json.dump(all_discovered_patterns, f, indent=2)
     print(f"\n  ✓ Saved raw patterns to raw_discovered_patterns.json")
-    
+
     # Phase 3: Consolidate
     print("\n[Phase 3] Consolidating into taxonomy...")
     taxonomy_result = consolidate_patterns(all_discovered_patterns)
     taxonomy = taxonomy_result.get("taxonomy", [])
     print(f"  ✓ Created taxonomy with {len(taxonomy)} patterns")
-    
+
     if taxonomy:
         print("\n  Pattern Taxonomy:")
         categories = defaultdict(list)
         for p in taxonomy:
             categories[p.get("category", "Other")].append(p)
-        
+
         for cat, patterns in sorted(categories.items()):
             print(f"    [{cat}]")
             for p in patterns:
                 print(f"      - {p['id']}: {p['name']}")
-    
+
     with open(OUTPUT_PATH / "pattern_taxonomy.json", "w") as f:
         json.dump(taxonomy_result, f, indent=2)
-    
+
     # Phase 4: Classify ALL papers
-    print(f"\n[Phase 4] Classifying all {len(papers)} papers (batch size: {CLASSIFICATION_BATCH_SIZE})...")
-    
+    print(
+        f"\n[Phase 4] Classifying all {len(papers)} papers (batch size: {CLASSIFICATION_BATCH_SIZE})..."
+    )
+
     classified_papers = []
-    total_batches = (len(papers) + CLASSIFICATION_BATCH_SIZE - 1) // CLASSIFICATION_BATCH_SIZE
-    
+    total_batches = (
+        len(papers) + CLASSIFICATION_BATCH_SIZE - 1
+    ) // CLASSIFICATION_BATCH_SIZE
+
     for i in range(0, len(papers), CLASSIFICATION_BATCH_SIZE):
-        batch = papers[i:i + CLASSIFICATION_BATCH_SIZE]
+        batch = papers[i : i + CLASSIFICATION_BATCH_SIZE]
         batch_num = i // CLASSIFICATION_BATCH_SIZE + 1
-        
+
         if batch_num % 50 == 1 or batch_num == total_batches:
-            print(f"\n  Batch {batch_num}/{total_batches} ({len(classified_papers)}/{len(papers)} done, cost: ${cost_tracker.get_total_cost():.4f})...")
-        
+            print(
+                f"\n  Batch {batch_num}/{total_batches} ({len(classified_papers)}/{len(papers)} done, cost: ${cost_tracker.get_total_cost():.4f})..."
+            )
+
         classified_batch = classify_papers_batch(batch, taxonomy, batch_num)
         classified_papers.extend(classified_batch)
-        
+
         time.sleep(0.2)
-    
+
     # Save classifications
     with open(OUTPUT_PATH / "classified_papers.json", "w") as f:
-        save_data = [{
-            "title": p["title"],
-            "conference": p["conference"],
-            "year": p["year"],
-            "presentation_type": p["presentation_type"],
-            "classification": p["classification"]
-        } for p in classified_papers]
+        save_data = [
+            {
+                "title": p["title"],
+                "conference": p["conference"],
+                "year": p["year"],
+                "presentation_type": p["presentation_type"],
+                "classification": p["classification"],
+            }
+            for p in classified_papers
+        ]
         json.dump(save_data, f, indent=2)
     print(f"\n  ✓ Saved classifications to classified_papers.json")
-    
+
     # Phase 5: Analysis
     print("\n[Phase 5] Analyzing results...")
     analysis = analyze_results(classified_papers, taxonomy)
-    
+
     with open(OUTPUT_PATH / "analysis_results.json", "w") as f:
         json.dump(analysis, f, indent=2)
-    
+
     # Phase 6: Deep Insights
     print("\n[Phase 6] Generating deep insights...")
     insights = generate_deep_insights(taxonomy, analysis, classified_papers)
-    
+
     with open(OUTPUT_PATH / "deep_insights.json", "w") as f:
         json.dump(insights, f, indent=2)
-    
+
     with open(OUTPUT_PATH / "deep_insights.md", "w") as f:
         f.write("# Deep Insights: Thinking Patterns in Top ML Research\n\n")
         f.write(insights["insights_text"])
-    
+
     # Final Summary
     print("\n" + "=" * 70)
     print("ANALYSIS COMPLETE")
     print("=" * 70)
-    
+
     print(f"\n📊 RESULTS SUMMARY")
     print(f"   Total papers analyzed: {analysis['total_papers']}")
     print(f"   Patterns in taxonomy: {len(taxonomy)}")
-    
+
     print(f"\n📈 TOP 10 PRIMARY PATTERNS:")
-    sorted_patterns = sorted(analysis["primary_pattern_counts"].items(), key=lambda x: x[1], reverse=True)[:10]
+    sorted_patterns = sorted(
+        analysis["primary_pattern_counts"].items(), key=lambda x: x[1], reverse=True
+    )[:10]
     for rank, (pid, count) in enumerate(sorted_patterns, 1):
         name = analysis["pattern_names"].get(pid, pid)
         pct = count / analysis["total_papers"] * 100
         print(f"   {rank:2}. {pid}: {name}")
         print(f"       {count} papers ({pct:.1f}%)")
-    
+
     print(f"\n📅 BY YEAR:")
     for year in sorted(analysis["by_year"].keys()):
         year_data = analysis["by_year"][year]
         total = sum(year_data.values())
         top_pattern = max(year_data.items(), key=lambda x: x[1])
-        print(f"   {year}: {total} papers, top pattern: {analysis['pattern_names'].get(top_pattern[0], top_pattern[0])}")
-    
+        print(
+            f"   {year}: {total} papers, top pattern: {analysis['pattern_names'].get(top_pattern[0], top_pattern[0])}"
+        )
+
     print(f"\n🏛️ BY CONFERENCE:")
     for conf in sorted(analysis["by_conference"].keys()):
         conf_data = analysis["by_conference"][conf]
         total = sum(conf_data.values())
         top_pattern = max(conf_data.items(), key=lambda x: x[1])
-        print(f"   {conf}: {total} papers, top pattern: {analysis['pattern_names'].get(top_pattern[0], top_pattern[0])}")
-    
+        print(
+            f"   {conf}: {total} papers, top pattern: {analysis['pattern_names'].get(top_pattern[0], top_pattern[0])}"
+        )
+
     print(f"\n✅ CONFIDENCE DISTRIBUTION:")
     for conf, count in sorted(analysis["confidence_distribution"].items()):
         print(f"   {conf}: {count} ({count/analysis['total_papers']*100:.1f}%)")
-    
+
     # Cost summary
     cost_summary = cost_tracker.get_summary()
     print(f"\n💰 API COST SUMMARY:")
@@ -674,12 +743,12 @@ def main():
     print(f"   Input tokens: {cost_summary['total_input_tokens']:,}")
     print(f"   Output tokens: {cost_summary['total_output_tokens']:,}")
     print(f"   Total cost: ${cost_summary['total_cost_usd']:.4f}")
-    
+
     with open(OUTPUT_PATH / "cost_tracking.json", "w") as f:
         json.dump({"summary": cost_summary, "calls": cost_tracker.calls}, f, indent=2)
-    
+
     print(f"\n📁 Results saved to: {OUTPUT_PATH}")
-    
+
     return taxonomy, classified_papers, analysis, insights
 
 

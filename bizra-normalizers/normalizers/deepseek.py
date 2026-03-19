@@ -16,7 +16,6 @@ from .base import (
     stable_turn_id,
 )
 
-
 _THINK_BLOCK_RE = re.compile(r"<think>(.*?)</think>", re.IGNORECASE | re.DOTALL)
 
 
@@ -43,12 +42,22 @@ class DeepSeekParser(PlatformParser):
                     or message.get("sender")
                     or (message.get("author") or {}).get("role")
                 )
-                content = collect_text(message.get("content") or message.get("text") or message.get("message"))
+                content = collect_text(
+                    message.get("content")
+                    or message.get("text")
+                    or message.get("message")
+                )
                 if not content.strip():
                     continue
 
                 hints, clean_content = self._reasoning_hints(content, message)
-                turn_id = str(message.get("id") or message.get("message_id") or stable_turn_id(self.platform, conversation_id, index, clean_content))
+                turn_id = str(
+                    message.get("id")
+                    or message.get("message_id")
+                    or stable_turn_id(
+                        self.platform, conversation_id, index, clean_content
+                    )
+                )
                 timestamp = parse_timestamp(
                     message.get("created_at")
                     or message.get("timestamp")
@@ -88,14 +97,19 @@ class DeepSeekParser(PlatformParser):
                 if not isinstance(msg, dict):
                     continue
 
-                author_role = canonical_role((msg.get("author") or {}).get("role") if isinstance(msg.get("author"), dict) else None)
+                author_role = canonical_role(
+                    (msg.get("author") or {}).get("role")
+                    if isinstance(msg.get("author"), dict)
+                    else None
+                )
                 if author_role != "unknown":
                     out.append(
                         {
                             "id": msg.get("id") or node_id,
                             "role": author_role,
                             "content": msg.get("content"),
-                            "created_at": msg.get("create_time") or msg.get("inserted_at"),
+                            "created_at": msg.get("create_time")
+                            or msg.get("inserted_at"),
                             "reasoning_content": msg.get("reasoning_content"),
                         }
                     )
@@ -119,7 +133,8 @@ class DeepSeekParser(PlatformParser):
                                 "id": f"{msg.get('id') or node_id}:{frag_index}",
                                 "role": role,
                                 "content": fragment.get("content"),
-                                "created_at": msg.get("inserted_at") or msg.get("create_time"),
+                                "created_at": msg.get("inserted_at")
+                                or msg.get("create_time"),
                             }
                         )
             return out
@@ -133,7 +148,9 @@ class DeepSeekParser(PlatformParser):
     ) -> tuple[list[FragmentHint], str]:
         hints: list[FragmentHint] = []
 
-        reasoning_chunks = [normalize_whitespace(chunk) for chunk in _THINK_BLOCK_RE.findall(content)]
+        reasoning_chunks = [
+            normalize_whitespace(chunk) for chunk in _THINK_BLOCK_RE.findall(content)
+        ]
         reasoning_field = collect_text(message.get("reasoning_content"))
         if reasoning_field.strip():
             reasoning_chunks.append(normalize_whitespace(reasoning_field))

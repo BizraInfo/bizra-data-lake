@@ -1,6 +1,6 @@
+from app.auth import require_admin
 from fastapi import APIRouter, Header
 from pydantic import BaseModel, Field
-from app.auth import require_admin
 
 try:
     from _shared.app.health import build_health_payload, check_redis
@@ -12,6 +12,7 @@ except Exception:  # pragma: no cover - local import fallback
 router = APIRouter()
 APP_VERSION = "4.0.1"
 
+
 class PoISubmission(BaseModel):
     reflex_id: str
     node_id: str
@@ -19,7 +20,9 @@ class PoISubmission(BaseModel):
     ihsan_tensor: dict[str, float] = Field(default_factory=dict)
     signature: str | None = None  # placeholder
 
+
 _STORE = JsonListStore("bizra:urp_consensus:poi")
+
 
 @router.get("/health")
 def health():
@@ -29,6 +32,7 @@ def health():
         checks={"redis": check_redis()},
         extra={"store_backend": _STORE.backend(), "records": _STORE.count()},
     )
+
 
 @router.post("/v1/poi", status_code=201)
 def submit_poi(s: PoISubmission, x_urp_admin: str | None = Header(default=None)):

@@ -32,6 +32,5 @@ def test_memory_quality_gate_fails_when_import_floor_is_impossible(
     assert exit_code == 1
     assert report["gate"]["passed"] is False
     assert any(
-        reason.startswith("imported_records=")
-        for reason in report["gate"]["reasons"]
+        reason.startswith("imported_records=") for reason in report["gate"]["reasons"]
     )

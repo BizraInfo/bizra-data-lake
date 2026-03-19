@@ -3,19 +3,19 @@
 # ⚠️ ARCHITECTURE WARNING: This script is intended to run inside WSL (connecting to /mnt/c/BIZRA-DATA-LAKE).
 #    Running it on Windows (Direct C:) will conflict with the WSL port binding (8443).
 
-import json
 import argparse
+import json
 import platform
-
-from pathlib import Path
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import sys
-from io import StringIO
 import ssl
+import sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from io import StringIO
+from pathlib import Path
 
 # Import local graph logic
 try:
     from query_graph import query_graph
+
     from bizra_config import GRAPH_PATH  # noqa: F401
 except ImportError:
     # In stdio mode, we can't easily print errors without corrupting the stream

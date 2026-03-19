@@ -25,7 +25,6 @@ from core.sovereign.organism import (
     SovereignOrganism,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════
 # TEST FIXTURES
 # ═══════════════════════════════════════════════════════════════════
@@ -147,9 +146,9 @@ class TestMission:
     def test_on_receipt_callback(self) -> None:
         received: List[OrganismReceipt] = []
         echo = EchoInference()
-        org = asyncio.run(SovereignOrganism.boot(
-            inference=echo, on_receipt=received.append
-        ))
+        org = asyncio.run(
+            SovereignOrganism.boot(inference=echo, on_receipt=received.append)
+        )
         asyncio.run(org.mission("test callback"))
         assert len(received) == 1
         assert received[0].mission_id != ""
@@ -410,7 +409,9 @@ class TestInferenceProvenance:
         assert result.inference_provenance is not None
         assert isinstance(result.inference_provenance, InferenceProvenance)
 
-    def test_provenance_backend_is_template_when_llm_disabled(self, tmp_path: Any) -> None:
+    def test_provenance_backend_is_template_when_llm_disabled(
+        self, tmp_path: Any
+    ) -> None:
         """Without BIZRA_ENABLE_LLM, backend must be 'template'."""
         import os
 

@@ -2,17 +2,19 @@
 # Builds multi-dimensional knowledge graph with Assertion/Fact nodes
 # Layer 3: Knowledge Graph + Hypergraph RAG logic
 
-import os
-import json
-import networkx as nx
 import hashlib
-import pandas as pd
-from pathlib import Path
+import json
+import os
+import re
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
+
+import networkx as nx
+import pandas as pd
 from tqdm import tqdm
-import re
-from bizra_config import CORPUS_TABLE_PATH, CHUNKS_TABLE_PATH, GRAPH_PATH
+
+from bizra_config import CHUNKS_TABLE_PATH, CORPUS_TABLE_PATH, GRAPH_PATH
 
 # Output files
 NODES_FILE = GRAPH_PATH / "nodes.jsonl"
