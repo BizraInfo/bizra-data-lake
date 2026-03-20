@@ -221,9 +221,7 @@ impl BoundedRatio {
 
     /// Multiply an ExactAmount by this ratio. Integer arithmetic — no drift.
     pub fn of(self, amount: ExactAmount) -> ExactAmount {
-        ExactAmount::from_raw(
-            (amount.raw() as i128 * self.0 as i128 / Self::SCALE as i128) as i64,
-        )
+        ExactAmount::from_raw((amount.raw() as i128 * self.0 as i128 / Self::SCALE as i128) as i64)
     }
 
     /// Raw value (billionths).
