@@ -88,7 +88,12 @@ mission_result() {
         [ -n "$model" ] && \
         echo -e "  ${G}║${R}  ${DIM}Model:${R}    ${model} ${DIM}|${R} Ihsan ${PU}${ihsan}${R}          ${G}║${R}"
         echo -e "  ${G}║${R}  ${DIM}Receipt:${R}  ${BL}${receipt:0:24}${R}${DIM}...${R}  ${G}║${R}"
-        echo -e "  ${G}║${R}  ${DIM}SEED:${R}     ${D}+12 earned${R}                         ${G}║${R}"
+        local seed_info=$(python3 -c "
+from core.proof_engine.seed_calc import calculate_seed_reward, format_seed_reward
+r = calculate_seed_reward(${ihsan:-0.95}, 0.95, ${agents:-1}, 200, True)
+print(format_seed_reward(r))
+" 2>/dev/null || echo "+? SEED")
+        echo -e "  ${G}║${R}  ${DIM}SEED:${R}     ${D}${seed_info}${R}  ${G}║${R}"
         [ "$reflex" = "true" ] && \
         echo -e "  ${G}║${R}  ${PU}⚡ REFLEX HIT — instant route${R}               ${G}║${R}"
         echo -e "  ${G}╚═══════════════════════════════════════════════╝${R}"
