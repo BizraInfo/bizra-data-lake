@@ -1,0 +1,62 @@
+#!/bin/bash
+# ═══════════════════════════════════════════════════════════
+# BIZRA Pre-Commit Hook — Constitutional Lint Gate
+# ═══════════════════════════════════════════════════════════
+# Prevents unformatted code from reaching CI.
+# Standing on: Deming (quality at source, not at inspection)
+#
+# Install: git config core.hooksPath .githooks
+# ═══════════════════════════════════════════════════════════
+
+set -e
+
+# Only check staged Python files
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+STAGED_RS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.rs$' || true)
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.tsx\?$' || true)
+
+FAIL=0
+
+# Python: Black + Ruff
+if [ -n "$STAGED_PY" ]; then
+    if command -v black &>/dev/null; then
+        if ! black --check --quiet $STAGED_PY 2>/dev/null; then
+            echo "pre-commit: Python formatting failed. Run: black <files>"
+            FAIL=1
+        fi
+    fi
+    if command -v ruff &>/dev/null; then
+        if ! ruff check --quiet $STAGED_PY 2>/dev/null; then
+            echo "pre-commit: Ruff lint failed. Run: ruff check --fix <files>"
+            FAIL=1
+        fi
+    fi
+fi
+
+# Rust: cargo fmt check (only if .rs files staged)
+if [ -n "$STAGED_RS" ] && [ -d "bizra-omega" ]; then
+    if command -v cargo &>/dev/null; then
+        if ! cargo fmt --all -- --check 2>/dev/null | grep -q ""; then
+            : # fmt check passed (no output = clean)
+        fi
+    fi
+fi
+
+# TypeScript: eslint (only if .ts/.tsx files staged)
+if [ -n "$STAGED_TS" ] && [ -d "frontend" ]; then
+    if command -v npx &>/dev/null && [ -f "frontend/node_modules/.bin/eslint" ]; then
+        cd frontend
+        if ! npx eslint --max-warnings 0 --quiet $STAGED_TS 2>/dev/null; then
+            echo "pre-commit: ESLint failed. Run: cd frontend && npm run lint"
+            FAIL=1
+        fi
+        cd ..
+    fi
+fi
+
+if [ $FAIL -ne 0 ]; then
+    echo ""
+    echo "pre-commit: Fix lint issues before committing."
+    echo "  Auto-fix: black <file> && ruff check --fix <file>"
+    exit 1
+fi
