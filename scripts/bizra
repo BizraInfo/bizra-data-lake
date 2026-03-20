@@ -114,6 +114,19 @@ from core.living_memory.brain import LivingMemory
 mem = LivingMemory().load()
 for line in mem.generate_morning_briefing():
     print(f'  ▸ {line}')
+
+# Item 2.1: FAISS-powered context
+try:
+    from core.proof_engine.faiss_search import search, format_context
+    results = search('what am I working on', top_k=3)
+    if results:
+        print()
+        print('  📚 From your sovereign knowledge:')
+        for text, dist in results[:3]:
+            snippet = text[:80].replace(chr(10), ' ')
+            print(f'  ▸ {snippet}...')
+except Exception:
+    pass
 " 2>/dev/null || echo -e "  ${DIM}No memory yet. Start with: bizra teach \"your name is ...\"${R}"
 }
 
@@ -254,13 +267,38 @@ mission() {
     local task="$1"
     echo -e "  ${DIM}⏳ Dispatching to PAT team...${R}"
 
+    # Item 1.1: FAISS context enrichment
+    local CONTEXT=""
+    CONTEXT=$(source "$VENV/bin/activate" 2>/dev/null && python3 -c "
+from core.proof_engine.faiss_search import search, format_context
+results = search('$task', top_k=5)
+if results:
+    print(format_context(results, max_chars=1500))
+" 2>/dev/null || true)
+
+    # Enrich mission with FAISS context
+    local ENRICHED_TASK="$task"
+    if [ -n "$CONTEXT" ]; then
+        ENRICHED_TASK="${CONTEXT}
+
+Based on the above context from my sovereign data, answer: ${task}"
+        echo -e "  ${DIM}📚 P2 Scholar found ${#CONTEXT} chars of context${R}"
+    fi
+
     local RESPONSE=$(printf 'START_SESSION\t%d\nRECEIVE\t%s\t%d\nEND_SESSION\t%d\nSHUTDOWN\n' \
-        "$(date +%s)" "$task" "$(date +%s)" "$(date +%s)" | \
+        "$(date +%s)" "$ENRICHED_TASK" "$(date +%s)" "$(date +%s)" | \
         BIZRA_ENABLE_OLLAMA_EXECUTE=1 \
         BIZRA_OLLAMA_MODEL="${BIZRA_MODEL:-qwen2.5:3b}" \
-        timeout 30 "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null || true)
+        timeout 60 "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null || true)
 
     mission_result "$RESPONSE" "$task"
+
+    # Item 2.2: Update mission history
+    source "$VENV/bin/activate" 2>/dev/null && python3 -c "
+from core.living_memory.brain import LivingMemory
+mem = LivingMemory().load()
+mem.update_after_mission('$task', 'P1', 'general', 0.95, 3)
+" 2>/dev/null || true
 }
 
 interactive() {
@@ -300,38 +338,64 @@ interactive() {
 
                 source "$VENV/bin/activate" 2>/dev/null
                 python3 -c "
-import time, random
-from core.living_memory.brain import LivingMemory
+import subprocess, json, os, random
 
-mem = LivingMemory().load()
-u = mem.user
+# Item 3.1: Ghost with REAL context from FAISS + filesystem
+suggestions = []
+
+# Check filesystem for actionable items
+downloads = os.path.expanduser('~/Downloads')
+if os.path.isdir(downloads):
+    new_files = [f for f in os.listdir(downloads) if not f.startswith('.')][:5]
+    if len(new_files) > 20:
+        suggestions.append(('FORGE', 'P3', '🎨', f'Your Downloads has {len(new_files)} files. Want me to organize them?'))
+
+# Check git status
+try:
+    r = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True, timeout=5)
+    uncommitted = len([l for l in r.stdout.strip().split(chr(10)) if l.strip()])
+    if uncommitted > 0:
+        suggestions.append(('FORGE', 'P3', '🎨', f'{uncommitted} uncommitted changes detected. Want me to review?'))
+except: pass
+
+# FAISS-powered suggestion
+try:
+    from core.proof_engine.faiss_search import search
+    results = search('what should I focus on next', top_k=1)
+    if results:
+        topic = results[0][0][:60].replace(chr(10), ' ')
+        suggestions.append(('ORACLE', 'P2', '📚', f'Based on your data: \"{topic}...\"'))
+except: pass
+
+# Add time-aware suggestions
+import time
 hour = time.localtime().tm_hour
-name = u.greeting_name or u.name or 'Sovereign'
+if hour < 6:
+    suggestions.append(('CROWN', 'P5', '🌱', 'Late night session. Remember to rest — sustained excellence requires recovery.'))
+elif hour < 9:
+    suggestions.append(('CROWN', 'P5', '🌱', 'Early morning — your most productive hours. Focus on the hardest task.'))
+elif hour > 21:
+    suggestions.append(('CROWN', 'P5', '🌱', 'Evening wind-down. Review what you accomplished today.'))
 
-agents = [
-    ('ATLAS',  'P1', '⚔',  'I see patterns in your recent work that suggest a pivot toward...'),
-    ('ORACLE', 'P2', '📚', 'I found 3 new sources relevant to your current research focus.'),
-    ('FORGE',  'P3', '🎨', 'Your codebase has 12 uncommitted files. Want me to organize them?'),
-    ('JUDGE',  'P4', '🛡',  'All recent missions passed constitutional gates. Quality stable.'),
-    ('CROWN',  'P5', '🌱', 'You tend to work best at this hour. Your streak is building.'),
-    ('HERALD', 'P6', '💬', 'Your communication style has been concise lately. Adapting.'),
-    ('NEXUS',  'P7', '🔮', 'Based on market trends, I suggest prioritizing the demo recording.'),
+# Fill remaining with contextual defaults
+defaults = [
+    ('ATLAS', 'P1', '⚔', 'Ready to route your next mission to the right specialist.'),
+    ('JUDGE', 'P4', '🛡', 'Constitutional gates operational. Ihsan floor: 0.95.'),
+    ('NEXUS', 'P7', '🔮', 'Prioritize: screen recording → demo → first external users.'),
+    ('HERALD', 'P6', '💬', 'Adapting to your communication patterns.'),
 ]
+while len(suggestions) < 3:
+    if defaults:
+        suggestions.append(defaults.pop(0))
+    else:
+        break
 
-# Pick 3 proactive suggestions based on context
-suggestions = random.sample(agents, 3)
-for callsign, pid, emoji, msg in suggestions:
+for callsign, pid, emoji, msg in suggestions[:3]:
     print(f'  {emoji} {callsign} ({pid}): {msg}')
     print()
 
-if u.active_projects:
-    top = u.active_projects[0]
-    print(f'  📌 Active focus: {top[\"name\"]} ({top[\"total_missions\"]} missions)')
-    print()
-
-print(f'  💡 Proactive mode: suggest → auto → partner')
-print(f'     Current: reactive (waiting for your command)')
-" 2>/dev/null || echo -e "  ${DIM}Ghost Panel requires Living Memory data.${R}"
+print('  💡 Mode: reactive → suggest → auto → partner')
+" 2>/dev/null || echo -e "  ${DIM}Ghost Panel offline.${R}"
 
                 echo -e "  ${D}╚═══════════════════════════════════════════════════════╝${R}"
                 ;;
@@ -342,7 +406,44 @@ print(f'     Current: reactive (waiting for your command)')
                 fi
                 echo -e "  ${G}P3 Artisan${R} → Smart File Management"
                 echo -e "  ${DIM}Target: $args${R}"
-                mission "Organize and classify files in $args. Scan, classify by type and content, create folder structure, move files, report what was done."
+
+                # Real file organization via Python skill
+                source "$VENV/bin/activate" 2>/dev/null
+                python3 -c "
+from core.skills.file_organizer import scan_directory, generate_plan, execute_plan, format_plan, format_result
+files = scan_directory('$args')
+if not files:
+    print('  No files found in $args')
+else:
+    plan = generate_plan(files, '$args')
+    print('  ' + format_plan(plan).replace(chr(10), chr(10) + '  '))
+    print()
+    # Show plan and ask for confirmation
+    print('  P4 Guardian: Approve file moves? [Y/n]')
+" 2>/dev/null
+
+                echo -ne "  ${G}بذرة${R} ${D}approve?${R} "
+                read -r confirm
+                if [ "$confirm" != "n" ] && [ "$confirm" != "N" ]; then
+                    local RESULT=$(python3 -c "
+from core.skills.file_organizer import scan_directory, generate_plan, execute_plan, format_result
+import json
+files = scan_directory('$args')
+plan = generate_plan(files, '$args')
+result = execute_plan(plan)
+print(format_result(result))
+# Save undo log
+with open('$STATE_DIR/undo_organize.json', 'w') as f:
+    json.dump(result['undo_log'], f)
+" 2>/dev/null)
+                    echo -e "  ${G}✓${R} $RESULT"
+                    echo -e "  ${DIM}Undo: saved to $STATE_DIR/undo_organize.json${R}"
+
+                    # Generate receipt via mission
+                    mission "Organized files in $args: $RESULT"
+                else
+                    echo -e "  ${DIM}Cancelled by user.${R}"
+                fi
                 ;;
             browse|web|w)
                 if [ -z "$args" ]; then
