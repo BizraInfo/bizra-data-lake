@@ -198,6 +198,11 @@ pub use sovereign::{
     ThoughtType,
     VerifiedReward,
 };
+pub use canonical::{
+    block_hash, chain_hash, constitution_hash, domain_hash, episode_hash, hex, identity_hash,
+    receipt_hash, DOMAIN_BLOCK, DOMAIN_CHAIN, DOMAIN_CONSTITUTION, DOMAIN_EPISODE,
+    DOMAIN_IDENTITY, DOMAIN_POLICY, DOMAIN_RECEIPT,
+};
 pub use walking_skeleton::{run_skeleton, SkeletonReceipt};
 
 /// Domain separation prefix for all cryptographic operations
