@@ -19,11 +19,11 @@ Day 30 they're colleagues. Day 365 they're your team.
 """
 
 import json
-import time
 import re
-from pathlib import Path
+import time
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
 
 DIR = Path.home() / ".bizra"
 
