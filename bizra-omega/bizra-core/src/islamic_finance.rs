@@ -184,6 +184,61 @@ impl fmt::Display for ExactAmount {
 }
 
 // =============================================================================
+// BOUNDED RATIO — Constitutional ratio type (Arithmetic Densification)
+// =============================================================================
+
+/// A ratio constrained to [0.0, 1.0], stored as u32 with 10^9 precision.
+///
+/// f64 ratios accumulate comparison errors: `0.30 + 0.70 != 1.0` in IEEE 754.
+/// BoundedRatio guarantees `a + complement == ONE` by construction.
+///
+/// Standing on: Dijkstra — "if we wish to count, use integers."
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct BoundedRatio(u32);
+
+impl BoundedRatio {
+    /// Precision: 10^9 (billionths).
+    pub const SCALE: u32 = 1_000_000_000;
+    /// Zero ratio.
+    pub const ZERO: Self = Self(0);
+    /// Unit ratio (1.0).
+    pub const ONE: Self = Self(1_000_000_000);
+
+    /// Create from f64, clamped to [0.0, 1.0].
+    pub fn from_f64(value: f64) -> Self {
+        Self((value.clamp(0.0, 1.0) * Self::SCALE as f64).round() as u32)
+    }
+
+    /// Convert to f64 for display.
+    pub fn to_f64(self) -> f64 {
+        self.0 as f64 / Self::SCALE as f64
+    }
+
+    /// Complement: 1.0 - self. Guaranteed: self + complement == ONE.
+    pub fn complement(self) -> Self {
+        Self(Self::SCALE - self.0)
+    }
+
+    /// Multiply an ExactAmount by this ratio. Integer arithmetic — no drift.
+    pub fn of(self, amount: ExactAmount) -> ExactAmount {
+        ExactAmount::from_raw(
+            (amount.raw() as i128 * self.0 as i128 / Self::SCALE as i128) as i64,
+        )
+    }
+
+    /// Raw value (billionths).
+    pub fn raw(self) -> u32 {
+        self.0
+    }
+}
+
+impl fmt::Display for BoundedRatio {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:.4}", self.to_f64())
+    }
+}
+
+// =============================================================================
 // ERROR TYPES
 // =============================================================================
 
