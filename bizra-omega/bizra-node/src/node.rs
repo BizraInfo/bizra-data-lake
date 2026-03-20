@@ -140,6 +140,11 @@ pub struct Node {
     /// Receipts are only valid if signed by a registered, active agent.
     /// Genesis review P0: "no claim without identity-bound proof."
     identity_registry: crate::identity_registry::IdentityRegistry,
+    // ── Sprint 4: Federation ────────────────────────────────────────────────
+    /// Federation node — gossip, consensus, peer discovery.
+    /// NODE0 is the bootstrap seed. Other nodes connect via gossip_addr.
+    /// Standing on: Lamport (distributed agreement), Nakamoto (peer consensus).
+    federation: Option<bizra_federation::FederationNode>,
 }
 
 impl Node {
@@ -149,6 +154,7 @@ impl Node {
         // ihsan_floor is 0-10000 scale from CLI; convert to f64 (0.0-1.0) for IhsanScore.
         // 9500 CLI → 0.95 f64 → 62258 raw u16. NOT from_raw(9500) which gives 0.145.
         let ihsan = IhsanScore::from_f64(config.ihsan_floor.max(9500) as f64 / 10000.0);
+        let user_hash = config.user_hash;
 
         let mut node = Node {
             config,
@@ -174,6 +180,36 @@ impl Node {
                 let mut reg = crate::identity_registry::IdentityRegistry::new();
                 reg.mint_genesis_agents(); // 12 founding agents with Ed25519 keys
                 reg
+            },
+            federation: {
+                // Initialize federation if BIZRA_FEDERATION_ENABLED=1
+                if std::env::var("BIZRA_FEDERATION_ENABLED")
+                    .map(|v| v == "1" || v == "true")
+                    .unwrap_or(false)
+                {
+                    let gossip_port: u16 = std::env::var("BIZRA_GOSSIP_PORT")
+                        .ok()
+                        .and_then(|v| v.parse().ok())
+                        .unwrap_or(9750);
+                    let seeds: Vec<std::net::SocketAddr> =
+                        std::env::var("BIZRA_SEED_NODES")
+                            .unwrap_or_default()
+                            .split(',')
+                            .filter(|s| !s.is_empty())
+                            .filter_map(|s| s.trim().parse().ok())
+                            .collect();
+                    let fed_config = bizra_federation::NodeConfig {
+                        name: format!("node-{}", user_hash),
+                        gossip_addr: ([0, 0, 0, 0], gossip_port).into(),
+                        seeds,
+                        data_dir: format!("{}/.bizra/federation", std::env::var("HOME").unwrap_or_default()),
+                    };
+                    let identity = bizra_core::NodeIdentity::generate();
+                    let constitution = bizra_core::Constitution::default();
+                    Some(bizra_federation::FederationNode::new(fed_config, identity, constitution))
+                } else {
+                    None
+                }
             },
         };
 
