@@ -118,22 +118,110 @@ for line in mem.generate_morning_briefing():
 }
 
 agents() {
-    echo -e "  ${D}╔═══ YOUR PERSONAL AGENT TEAM (PAT) ═══╗${R}"
-    echo -e "  ${G}  P1 Navigator  ${DIM}— Intent routing${R}"
-    echo -e "  ${G}  P2 Scholar    ${DIM}— Knowledge retrieval${R}"
-    echo -e "  ${G}  P3 Artisan    ${DIM}— Content creation${R}"
-    echo -e "  ${G}  P4 Guardian   ${DIM}— Safety + Ihsan (VETO)${R}"
-    echo -e "  ${G}  P5 Mentor     ${DIM}— Learning + memory${R}"
-    echo -e "  ${G}  P6 Diplomat   ${DIM}— Communication${R}"
-    echo -e "  ${G}  P7 Oracle     ${DIM}— Prediction + planning${R}"
-    echo -e "  ${D}╠═══ SYSTEM AGENT TEAM (SAT/URP) ═══════╣${R}"
-    echo -e "  ${G}  S1 Validator  ${DIM}— State validation${R}"
-    echo -e "  ${G}  S2 Oracle     ${DIM}— Truth verification${R}"
-    echo -e "  ${G}  S3 Mediator   ${DIM}— Dispute resolution${R}"
-    echo -e "  ${G}  S4 Archivist  ${DIM}— Knowledge archive${R}"
-    echo -e "  ${G}  S5 Sentinel   ${DIM}— Network security${R}"
-    echo -e "  ${D}╚═══════════════════════════════════════╝${R}"
-    echo -e "  ${DIM}All soulbound. Transfer: REJECTED.${R}"
+    echo -e "  ${D}╔═══════════════════════════════════════════════════════╗${R}"
+    echo -e "  ${D}║${R}  ${B}YOUR SOVEREIGN AGENT TEAM${R}  ${DIM}(12 agents, soulbound)${R}  ${D}║${R}"
+    echo -e "  ${D}╠═══════════════════════════════════════════════════════╣${R}"
+    echo -e "  ${D}║${R}                                                       ${D}║${R}"
+    echo -e "  ${D}║${R}  ${D}PAT — Personal Agent Team (yours)${R}                   ${D}║${R}"
+    echo -e "  ${D}║${R}  ${G}⚔${R}  P1 ${B}Navigator${R}   ${DIM}Route tasks to the right agent${R}   ${D}║${R}"
+    echo -e "  ${D}║${R}  ${BL}📚${R} P2 ${B}Scholar${R}     ${DIM}Research, retrieve knowledge${R}     ${D}║${R}"
+    echo -e "  ${D}║${R}  ${PU}🎨${R} P3 ${B}Artisan${R}     ${DIM}Create content, write code${R}       ${D}║${R}"
+    echo -e "  ${D}║${R}  ${RD}🛡${R}  P4 ${B}Guardian${R}    ${DIM}Safety gate (VETO power)${R}         ${D}║${R}"
+    echo -e "  ${D}║${R}  ${GN}🌱${R} P5 ${B}Mentor${R}      ${DIM}Learn patterns, grow memory${R}      ${D}║${R}"
+    echo -e "  ${D}║${R}  ${BL}💬${R} P6 ${B}Diplomat${R}     ${DIM}Match your communication style${R}  ${D}║${R}"
+    echo -e "  ${D}║${R}  ${PU}🔮${R} P7 ${B}Oracle${R}      ${DIM}Predict, plan, suggest proactively${R}${D}║${R}"
+    echo -e "  ${D}║${R}                                                       ${D}║${R}"
+    echo -e "  ${D}║${R}  ${GN}SAT — System Agent Team (URP network)${R}               ${D}║${R}"
+    echo -e "  ${D}║${R}  ${GN}✓${R}  S1 ${B}Validator${R}   ${DIM}Verify transactions + state${R}      ${D}║${R}"
+    echo -e "  ${D}║${R}  ${GN}◉${R}  S2 ${B}Oracle${R}      ${DIM}External truth verification${R}      ${D}║${R}"
+    echo -e "  ${D}║${R}  ${GN}⚖${R}  S3 ${B}Mediator${R}    ${DIM}Resolve disputes fairly${R}          ${D}║${R}"
+    echo -e "  ${D}║${R}  ${GN}📦${R} S4 ${B}Archivist${R}   ${DIM}Preserve knowledge permanently${R}   ${D}║${R}"
+    echo -e "  ${D}║${R}  ${GN}👁${R}  S5 ${B}Sentinel${R}    ${DIM}Network security + threats${R}       ${D}║${R}"
+    echo -e "  ${D}║${R}                                                       ${D}║${R}"
+    echo -e "  ${D}║${R}  ${DIM}All soulbound. Transfer: REJECTED.${R}                  ${D}║${R}"
+    echo -e "  ${D}║${R}  ${DIM}Permission: Human → DEMA → PAT → Pool → SAT${R}        ${D}║${R}"
+    echo -e "  ${D}╚═══════════════════════════════════════════════════════╝${R}"
+}
+
+chain() {
+    echo -e "  ${D}╔═══════════════════════════════════════════════════════╗${R}"
+    echo -e "  ${D}║${R}  ${B}RECEIPT CHAIN${R}  ${DIM}(BLAKE3 + Ed25519 signed)${R}          ${D}║${R}"
+    echo -e "  ${D}╠═══════════════════════════════════════════════════════╣${R}"
+    printf 'ACTION_HISTORY\t10\t0\nSHUTDOWN\n' | \
+        "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null | \
+        grep "OK" | head -10 | while IFS=$'\t' read -r status rest; do
+            echo -e "  ${D}║${R}  ${BL}⬡${R} ${DIM}${rest:0:52}${R}  ${D}║${R}"
+        done
+    echo -e "  ${D}╚═══════════════════════════════════════════════════════╝${R}"
+}
+
+wallet() {
+    source "$VENV/bin/activate" 2>/dev/null
+    python3 -c "
+from core.living_memory.brain import LivingMemory
+mem = LivingMemory().load()
+u = mem.user
+seed = u.total_missions * 3  # Average SEED per mission
+streak = u.current_streak
+tier = u.tier
+ihsan = u.avg_ihsan if u.avg_ihsan > 0 else 0.95
+trend = u.ihsan_trend
+
+# Tier thresholds
+tiers = {'Novice': 50, 'Apprentice': 200, 'Adept': 500, 'Expert': 1000, 'Master': 5000, 'Grandmaster': 999999}
+next_tier_at = tiers.get(tier, 50)
+progress = min(100, int((u.total_missions / max(1, next_tier_at)) * 100))
+bar_len = 20
+filled = int(bar_len * progress / 100)
+bar = '█' * filled + '░' * (bar_len - filled)
+
+print(f'TIER|{tier}|{bar}|{progress}%|{u.total_missions}/{next_tier_at}')
+print(f'SEED|{seed}')
+print(f'STREAK|{streak}|{u.streak_record}')
+print(f'IHSAN|{ihsan:.4f}|{trend}')
+print(f'MISSIONS|{u.total_missions}')
+
+# Near-compilation
+near = mem.procedural.near_compilation()
+if near:
+    r = near[0]
+    print(f'REFLEX|{r.get(\"p\",\"?\")[:30]}|{r.get(\"cnt\",0)}/5')
+else:
+    compiled = mem.procedural.compiled_count()
+    print(f'REFLEX|{compiled} compiled|ready')
+" 2>/dev/null | while IFS='|' read -r type rest; do
+        case "$type" in
+            TIER)
+                IFS='|' read -r name bar pct progress <<< "$rest"
+                echo -e "  ${D}Tier:${R}      ${B}${name}${R}  ${G}${bar}${R} ${pct} (${progress})"
+                ;;
+            SEED)
+                echo -e "  ${D}SEED:${R}      ${D}🌱${R} ${B}${rest}${R} earned"
+                ;;
+            STREAK)
+                IFS='|' read -r current record <<< "$rest"
+                echo -e "  ${D}Streak:${R}    ${GN}🔥${R} ${current} current (record: ${record})"
+                ;;
+            IHSAN)
+                IFS='|' read -r score trend <<< "$rest"
+                local arrow="→"
+                [ "$trend" = "improving" ] && arrow="${GN}↑${R}"
+                [ "$trend" = "declining" ] && arrow="${RD}↓${R}"
+                echo -e "  ${D}Ihsan:${R}     ${PU}إحسان${R} ${score} ${arrow}"
+                ;;
+            MISSIONS)
+                echo -e "  ${D}Missions:${R}  ${rest} completed"
+                ;;
+            REFLEX)
+                IFS='|' read -r pattern progress <<< "$rest"
+                if [ "$progress" = "ready" ]; then
+                    echo -e "  ${D}Reflexes:${R}  ${PU}⚡${R} ${pattern}"
+                else
+                    echo -e "  ${D}Reflexes:${R}  ${PU}⚡${R} \"${pattern}\" ${D}${progress}${R}"
+                fi
+                ;;
+        esac
+    done
 }
 
 status() {
@@ -203,10 +291,8 @@ interactive() {
                     "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null | \
                     grep "taught" && echo -e "  ${G}✓${R} Learned." || echo -e "  ${R}✗ Failed${R}"
                 ;;
-            receipts|r)
-                printf 'ACTION_HISTORY\t10\t0\nSHUTDOWN\n' | \
-                    "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null
-                ;;
+            receipts|r) chain ;;
+            wallet|w) wallet ;;
             organize|o)
                 if [ -z "$args" ]; then
                     echo -ne "  ${DIM}Target directory: ${R}"
@@ -259,6 +345,7 @@ interactive() {
                 echo -e "  ${D}briefing${R}         Morning briefing"
                 echo -e "  ${D}teach${R} <fact>     Teach your agents"
                 echo -e "  ${D}receipts${R}         View receipt chain"
+                echo -e "  ${D}wallet${R}           SEED balance, tier, streak, Ihsan"
                 echo -e "  ${D}quit${R}             Exit"
                 ;;
             quit|q|exit)
