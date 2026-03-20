@@ -172,9 +172,10 @@ wallet() {
     source "$VENV/bin/activate" 2>/dev/null
     python3 -c "
 from core.living_memory.brain import LivingMemory
+from core.proof_engine.seed_ledger import balance
 mem = LivingMemory().load()
 u = mem.user
-seed = u.total_missions * 3  # Average SEED per mission
+seed = balance()  # Real SEED from persistent ledger
 streak = u.current_streak
 tier = u.tier
 ihsan = u.avg_ihsan if u.avg_ihsan > 0 else 0.95
@@ -293,11 +294,17 @@ Based on the above context from my sovereign data, answer: ${task}"
 
     mission_result "$RESPONSE" "$task"
 
-    # Item 2.2: Update mission history
+    # Item 2.2 + 5.1: Update mission history + persist SEED
     source "$VENV/bin/activate" 2>/dev/null && python3 -c "
 from core.living_memory.brain import LivingMemory
+from core.proof_engine.seed_calc import calculate_seed_reward
+from core.proof_engine.seed_ledger import append
 mem = LivingMemory().load()
 mem.update_after_mission('$task', 'P1', 'general', 0.95, 3)
+# Persist SEED
+reward = calculate_seed_reward(0.95, 0.95, 3, 200, True)
+if reward['net'] > 0:
+    append(reward['net'], 'mission: $task'[:50])
 " 2>/dev/null || true
 }
 
