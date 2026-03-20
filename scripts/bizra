@@ -683,7 +683,69 @@ print(f'  Bridge: ALIVE (uptime {resp.get(\"result\",{}).get(\"uptime_s\",0):.0f
         echo -e "  ${D}╚═══════════════════════════════════════════════════╝${R}"
         ;;
     stop)        pkill -f kernel_daemon.py 2>/dev/null && echo "Kernel stopped." || echo "Not running." ;;
-    help|--help|-h) banner; echo "  Usage: bizra [mission|agents|wallet|ghost|skills|organize|browse|scan|desktop|status|briefing|teach|receipts|start|stop|help]" ;;
+    proactive)
+        # Item 3.3: Auto-execute pre-approved actions
+        echo -e "  ${G}P7 Oracle${R} → Proactive Auto-Execute"
+        source "$VENV/bin/activate" 2>/dev/null
+        python3 -c "
+from core.skills.proactive_watcher import scan_for_changes
+from core.skills.file_organizer import scan_directory, generate_plan, execute_plan, format_result
+import os, json
+
+# Pre-approved: organize Downloads if > 30 unorganized files
+downloads = os.path.expanduser('~/Downloads')
+files = scan_directory(downloads)
+if len(files) > 30:
+    plan = generate_plan(files, downloads)
+    result = execute_plan(plan)
+    print(f'  ✓ Auto-organized Downloads: {format_result(result)}')
+    # Save undo
+    state_dir = os.path.expanduser('~/.bizra/node-1')
+    os.makedirs(state_dir, exist_ok=True)
+    with open(f'{state_dir}/undo_organize.json', 'w') as f:
+        json.dump(result['undo_log'], f)
+else:
+    print(f'  Downloads: {len(files)} files (below auto-organize threshold of 30)')
+
+# Check for other proactive actions
+changes = scan_for_changes()
+if changes:
+    print(f'  Detected {len(changes)} filesystem changes since last check')
+else:
+    print(f'  No new filesystem changes detected')
+" 2>/dev/null
+        ;;
+    frontend)
+        # Item 6.1: Launch frontend connected to kernel
+        echo -e "  ${G}Starting frontend...${R}"
+        cd "$BIZRA_ROOT/frontend" && npm run dev &
+        echo -e "  ${G}●${R} Frontend: http://localhost:3000"
+        echo -e "  ${DIM}  Proxying /api → :9740 (kernel)${R}"
+        ;;
+    install-skill)
+        # Item 5.2: Install a skill from URL or path
+        shift
+        local SKILL_SRC="$1"
+        if [ -z "$SKILL_SRC" ]; then
+            echo -e "  ${DIM}Usage: bizra install-skill <url-or-path>${R}"
+        else
+            local SKILL_DIR="$BIZRA_ROOT/.claude/skills/sovereign"
+            mkdir -p "$SKILL_DIR"
+            if [[ "$SKILL_SRC" == http* ]]; then
+                local SKILL_NAME=$(basename "$SKILL_SRC")
+                curl -fsSL "$SKILL_SRC" -o "$SKILL_DIR/$SKILL_NAME" && \
+                    echo -e "  ${G}✓${R} Installed: $SKILL_NAME" || \
+                    echo -e "  ${RD}✗${R} Failed to download"
+            elif [ -f "$SKILL_SRC" ]; then
+                cp "$SKILL_SRC" "$SKILL_DIR/" && \
+                    echo -e "  ${G}✓${R} Installed: $(basename "$SKILL_SRC")" || \
+                    echo -e "  ${RD}✗${R} Failed to copy"
+            else
+                echo -e "  ${RD}✗${R} Not found: $SKILL_SRC"
+            fi
+        fi
+        ;;
+    help|--help|-h) banner; echo "  Usage: bizra [mission|agents|wallet|ghost|skills|organize|browse|scan|desktop|desktop-exec|status|briefing|teach|receipts|frontend|install-skill|start|stop|help]" ;;
     "")          interactive ;;
     *)           mission "$*" ;;
 esac
