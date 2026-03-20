@@ -441,9 +441,55 @@ print(f'\n  Mode: reactive → suggest → auto → partner')
     scan)        scripts/bizra scan 2>/dev/null ;;
     organize|o)  shift; mission "Organize and classify files in $*" ;;
     browse|web)  shift; mission "Browse and extract: $*" ;;
-    start)       source "$VENV/bin/activate" && python3 "$KERNEL" & echo "Kernel started." ;;
+    start)
+        source "$VENV/bin/activate"
+        echo -e "  ${G}Starting sovereign stack...${R}"
+        python3 "$KERNEL" &
+        echo -e "  ${G}●${R} Kernel daemon (port 9740)"
+        sleep 2
+        python3 -c "
+import asyncio
+from core.bridges.desktop_bridge import create_and_run_bridge
+asyncio.run(create_and_run_bridge())
+" &
+        echo -e "  ${G}●${R} Desktop bridge (port 9742)"
+        echo -e "  ${DIM}Start AHK: bin/bizra_bridge.ahk${R}"
+        ;;
+    desktop)
+        echo -e "  ${D}╔═══ DESKTOP NERVOUS SYSTEM ═══════════════════════╗${R}"
+        # Check bridge
+        if python3 -c "
+import socket, json
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(2)
+s.connect(('127.0.0.1', 9742))
+req = json.dumps({'jsonrpc':'2.0','method':'ping','id':1}) + '\n'
+s.send(req.encode())
+resp = json.loads(s.recv(4096))
+s.close()
+print(f'  Bridge: ALIVE (uptime {resp.get(\"result\",{}).get(\"uptime_s\",0):.0f}s)')
+" 2>/dev/null; then
+            echo -e "  ${G}●${R} Desktop Bridge: CONNECTED (port 9742)"
+        else
+            echo -e "  ${RD}○${R} Desktop Bridge: OFFLINE"
+            echo -e "  ${DIM}  Start with: bizra start${R}"
+        fi
+        # Check AHK
+        if powershell.exe -Command "Get-Process AutoHotkey -ErrorAction SilentlyContinue" 2>/dev/null | grep -q "AutoHotkey"; then
+            echo -e "  ${G}●${R} AHK Bridge: RUNNING"
+        else
+            echo -e "  ${DIM}○${R} AHK Bridge: NOT RUNNING"
+            echo -e "  ${DIM}  Start: bin/bizra_bridge.ahk${R}"
+        fi
+        echo -e "  ${D}║${R}                                                   ${D}║${R}"
+        echo -e "  ${D}║${R}  ${DIM}Hotkeys (when AHK active):${R}                      ${D}║${R}"
+        echo -e "  ${D}║${R}    ${G}Win+B${R}        Ping bridge                      ${D}║${R}"
+        echo -e "  ${D}║${R}    ${G}Ctrl+B, Q${R}    Sovereign query                  ${D}║${R}"
+        echo -e "  ${D}║${R}    ${G}Ctrl+B, S${R}    Node status                      ${D}║${R}"
+        echo -e "  ${D}╚═══════════════════════════════════════════════════╝${R}"
+        ;;
     stop)        pkill -f kernel_daemon.py 2>/dev/null && echo "Kernel stopped." || echo "Not running." ;;
-    help|--help|-h) banner; echo "  Usage: bizra [mission|agents|wallet|ghost|skills|organize|browse|scan|status|briefing|teach|receipts|start|stop|help]" ;;
+    help|--help|-h) banner; echo "  Usage: bizra [mission|agents|wallet|ghost|skills|organize|browse|scan|desktop|status|briefing|teach|receipts|start|stop|help]" ;;
     "")          interactive ;;
     *)           mission "$*" ;;
 esac
