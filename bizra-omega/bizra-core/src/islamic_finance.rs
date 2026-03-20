@@ -616,10 +616,10 @@ pub struct MudarabahContract {
     pub entrepreneur_node: String,
     /// Principal capital amount (exact fixed-point — Adl compliant)
     pub capital: ExactAmount,
-    /// Investor's profit share ratio (0.0 to MAX_RABBULMAL_SHARE)
-    pub investor_profit_ratio: f64,
-    /// Entrepreneur's profit share ratio (MIN_MUDARIB_SHARE to 1.0)
-    pub entrepreneur_profit_ratio: f64,
+    /// Investor's profit share ratio (exact — Arithmetic Densification)
+    pub investor_profit_ratio: BoundedRatio,
+    /// Entrepreneur's profit share ratio (complement of investor)
+    pub entrepreneur_profit_ratio: BoundedRatio,
     /// Contract creation timestamp
     pub created_at: u64,
     /// Contract expiry timestamp
@@ -669,7 +669,7 @@ impl MudarabahContract {
         duration_days: u64,
         service_type: String,
     ) -> IslamicFinanceResult<Self> {
-        // Validate profit ratios
+        // Validate profit ratios (f64 at boundary, BoundedRatio inside)
         let entrepreneur_profit_ratio = 1.0 - investor_profit_ratio;
 
         if entrepreneur_profit_ratio < MIN_MUDARIB_SHARE {
@@ -688,6 +688,10 @@ impl MudarabahContract {
             });
         }
 
+        // Convert to BoundedRatio (exact from here forward)
+        let investor_ratio = BoundedRatio::from_f64(investor_profit_ratio);
+        let entrepreneur_ratio = investor_ratio.complement();
+
         let now_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -700,8 +704,8 @@ impl MudarabahContract {
             investor_node,
             entrepreneur_node,
             capital,
-            investor_profit_ratio,
-            entrepreneur_profit_ratio,
+            investor_profit_ratio: investor_ratio,
+            entrepreneur_profit_ratio: entrepreneur_ratio,
             created_at: now_ms,
             expires_at,
             status: MudarabahStatus::Proposed,
@@ -775,11 +779,9 @@ impl MudarabahContract {
             .as_millis() as u64;
 
         let (investor_return, entrepreneur_payment) = if !self.accumulated_pnl.is_negative() {
-            // Profit case: distribute according to ratios (exact arithmetic)
-            let investor_profit = self.accumulated_pnl.mul_ratio(self.investor_profit_ratio);
-            let entrepreneur_profit = self
-                .accumulated_pnl
-                .mul_ratio(self.entrepreneur_profit_ratio);
+            // Profit case: distribute via BoundedRatio (integer arithmetic, zero drift)
+            let investor_profit = self.investor_profit_ratio.of(self.accumulated_pnl);
+            let entrepreneur_profit = self.entrepreneur_profit_ratio.of(self.accumulated_pnl);
 
             (self.capital + investor_profit, entrepreneur_profit)
         } else {
