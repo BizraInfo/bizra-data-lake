@@ -20,6 +20,8 @@
 //! - 5 SAT agents (Shared Agentic Team) — Public utility in Resource Pool
 //! - Standing on Giants protocol — Mandatory attribution chain
 
+/// Canonical layer — domain-separated hashing, chain integrity, 5 invariants.
+pub mod canonical;
 /// Constitutional governance — Ihsan thresholds, SNR rules, enforcement policies.
 pub mod constitution;
 /// Genesis primitives — BLAKE3 hashing, cryptographic manifests, execution receipts.
