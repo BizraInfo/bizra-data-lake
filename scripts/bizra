@@ -152,8 +152,53 @@ interactive() {
                 printf 'ACTION_HISTORY\t10\t0\nSHUTDOWN\n' | \
                     "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null
                 ;;
+            organize|o)
+                if [ -z "$args" ]; then
+                    echo -ne "  ${DIM}Target directory: ${R}"
+                    read -r args
+                fi
+                echo -e "  ${G}P3 Artisan${R} → Smart File Management"
+                echo -e "  ${DIM}Target: $args${R}"
+                mission "Organize and classify files in $args. Scan, classify by type and content, create folder structure, move files, report what was done."
+                ;;
+            browse|web|w)
+                if [ -z "$args" ]; then
+                    echo -ne "  ${DIM}URL or task: ${R}"
+                    read -r args
+                fi
+                echo -e "  ${G}P2 Scholar${R} → Autonomous Browser Control"
+                mission "Browse and extract information: $args. Navigate, extract relevant data, summarize findings."
+                ;;
+            scan)
+                echo -e "  ${G}P1 Navigator${R} → Home Scan"
+                echo -e "  ${DIM}Scanning sovereign data...${R}"
+                echo ""
+                echo -e "  ${D}Hardware:${R}"
+                echo "    CPU:  $(lscpu 2>/dev/null | grep 'Model name' | sed 's/.*: *//')"
+                echo "    RAM:  $(free -h 2>/dev/null | grep Mem | awk '{print $2}')"
+                echo "    GPU:  $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'N/A')"
+                echo "    Disk: $(df -h /mnt/c 2>/dev/null | tail -1 | awk '{print $2 " total, " $4 " free"}')"
+                echo ""
+                echo -e "  ${D}Sovereign Data:${R}"
+                for d in /mnt/c/BIZRA-*/; do
+                    [ -d "$d" ] && printf "    %-35s %s\n" "$(basename "$d")" "$(find "$d" -maxdepth 2 -type f 2>/dev/null | wc -l) files"
+                done 2>/dev/null
+                ;;
+            skills)
+                echo -e "  ${D}╔═══ SOVEREIGN SKILLS ═══════════════════╗${R}"
+                echo -e "  ${G}  organize${R}  ${DIM}Smart File Management (classify, rename, merge)${R}"
+                echo -e "  ${G}  browse${R}    ${DIM}Autonomous Browser Control (extract, interact)${R}"
+                echo -e "  ${G}  scan${R}      ${DIM}Home Scan (hardware + data inventory)${R}"
+                echo -e "  ${G}  mission${R}   ${DIM}Any task → PAT team routes to best agent${R}"
+                echo -e "  ${G}  teach${R}     ${DIM}Teach your agents a new fact${R}"
+                echo -e "  ${D}╚════════════════════════════════════════╝${R}"
+                ;;
             help|h)
                 echo -e "  ${D}mission${R} <task>   Run a mission with your PAT team"
+                echo -e "  ${D}organize${R} <dir>  Organize files (P3 Artisan)"
+                echo -e "  ${D}browse${R} <url>    Browse & extract (P2 Scholar)"
+                echo -e "  ${D}scan${R}            Home scan (hardware + data)"
+                echo -e "  ${D}skills${R}          List sovereign skills"
                 echo -e "  ${D}agents${R}           Show your 12 agents"
                 echo -e "  ${D}status${R}           System health"
                 echo -e "  ${D}briefing${R}         Morning briefing"
