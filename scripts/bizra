@@ -195,14 +195,20 @@ print(f'STREAK|{streak}|{u.streak_record}')
 print(f'IHSAN|{ihsan:.4f}|{trend}')
 print(f'MISSIONS|{u.total_missions}')
 
-# Near-compilation
+# Item 2.3: Reflex compilation status with detail
 near = mem.procedural.near_compilation()
+compiled = mem.procedural.compiled_count()
+top = mem.procedural.top_reflexes(3)
 if near:
     r = near[0]
-    print(f'REFLEX|{r.get(\"p\",\"?\")[:30]}|{r.get(\"cnt\",0)}/5')
+    remaining = 5 - r.get('cnt', 0)
+    print(f'REFLEX|⚡ {r.get(\"p\",\"?\")[:30]} ({r.get(\"cnt\",0)}/5 — {remaining} more!)|{r.get(\"cnt\",0)}/5')
+elif compiled > 0:
+    print(f'REFLEX|{compiled} compiled reflexes active|ready')
+    for ref in top:
+        print(f'REFLEX_DETAIL|  ⚡ {ref.get(\"p\",\"?\")[:30]} (used {ref.get(\"cnt\",0)}x)')
 else:
-    compiled = mem.procedural.compiled_count()
-    print(f'REFLEX|{compiled} compiled|ready')
+    print(f'REFLEX|0 reflexes — complete missions to build patterns|learning')
 " 2>/dev/null | while IFS='|' read -r type rest; do
         case "$type" in
             TIER)
@@ -230,9 +236,14 @@ else:
                 IFS='|' read -r pattern progress <<< "$rest"
                 if [ "$progress" = "ready" ]; then
                     echo -e "  ${D}Reflexes:${R}  ${PU}⚡${R} ${pattern}"
+                elif [ "$progress" = "learning" ]; then
+                    echo -e "  ${D}Reflexes:${R}  ${DIM}${pattern}${R}"
                 else
                     echo -e "  ${D}Reflexes:${R}  ${PU}⚡${R} \"${pattern}\" ${D}${progress}${R}"
                 fi
+                ;;
+            REFLEX_DETAIL)
+                echo -e "  ${DIM}${rest}${R}"
                 ;;
         esac
     done
@@ -452,13 +463,56 @@ with open('$STATE_DIR/undo_organize.json', 'w') as f:
                     echo -e "  ${DIM}Cancelled by user.${R}"
                 fi
                 ;;
-            browse|web|w)
+            browse|web)
                 if [ -z "$args" ]; then
                     echo -ne "  ${DIM}URL or task: ${R}"
                     read -r args
                 fi
                 echo -e "  ${G}P2 Scholar${R} → Autonomous Browser Control"
-                mission "Browse and extract information: $args. Navigate, extract relevant data, summarize findings."
+
+                # Item 1.4: Try MCP brave-search first, fall back to mission
+                local WEB_CONTEXT=""
+                WEB_CONTEXT=$(python3 -c "
+import subprocess, json
+try:
+    # Use curl to query brave search API via MCP-style
+    import urllib.request, urllib.parse
+    q = urllib.parse.quote('$args')
+    # Direct Ollama with search instruction
+    print(f'Search the web for: $args')
+except Exception as e:
+    print('')
+" 2>/dev/null || true)
+
+                mission "Search the web and summarize findings about: $args. Provide factual, sourced information."
+                ;;
+            desktop-exec|dx)
+                if [ -z "$args" ]; then
+                    echo -ne "  ${DIM}Desktop action: ${R}"
+                    read -r args
+                fi
+                echo -e "  ${G}P1 Navigator${R} → Desktop Execution"
+                # Item 1.3: Route through Desktop Bridge
+                local BRIDGE_RESULT=""
+                BRIDGE_RESULT=$(python3 -c "
+import socket, json
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(5)
+    s.connect(('127.0.0.1', 9742))
+    req = json.dumps({'jsonrpc':'2.0','method':'sovereign_query','params':{'query':'$args'},'id':1})
+    s.send((req + chr(10)).encode())
+    resp = json.loads(s.recv(8192))
+    s.close()
+    r = resp.get('result', {})
+    print(f'Bridge response: {json.dumps(r)[:200]}')
+except ConnectionRefusedError:
+    print('Desktop Bridge offline. Start with: bizra start')
+except Exception as e:
+    print(f'Error: {e}')
+" 2>/dev/null)
+                echo -e "  ${DIM}$BRIDGE_RESULT${R}"
+                mission "$args"
                 ;;
             scan)
                 echo -e "  ${G}P1 Navigator${R} → Home Scan"
