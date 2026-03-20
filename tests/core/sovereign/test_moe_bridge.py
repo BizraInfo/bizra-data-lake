@@ -12,16 +12,14 @@ Validates that the MOE Bridge:
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from core.sovereign.moe_bridge import (
     _EXPERT_MODEL_MAP,
     _EXPERT_SYSTEM_PROMPTS,
-    ExpertCallResult,
     MOEBridge,
-    MOEBridgeStats,
 )
 
 # ═══════════════════════════════════════════════════════════════════
@@ -265,10 +263,11 @@ class TestModelManagement:
     """Expert-to-model mapping and hot-swap."""
 
     def test_default_model_map(self, bridge: MOEBridge) -> None:
-        assert bridge.get_expert_model("pat_r") == _EXPERT_MODEL_MAP["pat_r"]
-        assert bridge.get_expert_model("pat_k") == _EXPERT_MODEL_MAP["pat_k"]
-        assert bridge.get_expert_model("pat_s") == _EXPERT_MODEL_MAP["pat_s"]
-        assert bridge.get_expert_model("sat_g") == _EXPERT_MODEL_MAP["sat_g"]
+        # Fixture overrides defaults — verify fixture models are loaded
+        assert bridge.get_expert_model("pat_r") == "deepseek-r1:14b"
+        assert bridge.get_expert_model("pat_k") == "qwen2.5:3b"
+        assert bridge.get_expert_model("pat_s") == "qwen2.5-coder:7b"
+        assert bridge.get_expert_model("sat_g") == "phi3:mini"
         assert bridge.get_expert_model("sat_v") == _EXPERT_MODEL_MAP["sat_v"]
 
     def test_hot_swap_model(self, bridge: MOEBridge) -> None:
