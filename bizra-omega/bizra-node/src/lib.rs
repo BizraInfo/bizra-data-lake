@@ -350,7 +350,8 @@ mod integration_tests {
         let syn = node.execute("SYNTHESIZE\t2000");
         assert!(syn.starts_with("OK\t"));
 
-        // agent: receive → orchestrate → respond
+        // agent: receive → orchestrate → respond (session required for mission lifecycle)
+        node.execute("START_SESSION\t2500");
         let recv = node.execute("RECEIVE\ttest message through full stack\t3000");
         assert!(recv.starts_with("OK\t"));
 

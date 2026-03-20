@@ -123,4 +123,6 @@ pub enum DegradationReason {
     UnpersistedReceipt,
     FallbackModelUsed,
     PartialMemoryExtract,
+    /// Guardian vetoed — response quality below constitutional standard.
+    GuardianVeto,
 }

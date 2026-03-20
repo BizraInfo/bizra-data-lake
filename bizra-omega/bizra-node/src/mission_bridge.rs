@@ -112,9 +112,10 @@ pub fn execute_governed_mission(
     m.ihsan_score = Some(ihsan.as_f64() as f32);
     m.guardian_approved = Some(result.guardian_approved);
 
-    // Guardian veto → fail with receipt
+    // Guardian veto → degrade with receipt (Scoring→Failed is illegal, Scoring→Degraded is legal)
     if !result.guardian_approved {
-        m.fail(FailureCode::GuardianVeto, t + 8).unwrap();
+        m.degrade(vec![DegradationReason::GuardianVeto], t + 8)
+            .unwrap();
         sign_and_return!(m, Some(result));
     }
 
