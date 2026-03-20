@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_id": "receipt-1773479241",
+  "timestamp": "2026-03-14T09:07:21.144595+00:00",
+  "description": "ThresholdRegistry: sealed-after-boot constitutional enforcement singleton (31 thresholds across 5 categories: ihsan/snr/adl/gate/confidence). Shadow audit via AST scanning detects 10+ module-level threshold redefinitions. IdentityGenesis DOMAIN_IDENTITY_GENESIS wired to constants.py (eliminates hardcode). 47 tests (22 registry + 25 identity), 0 lint errors. Architecture gap analysis: 5 gaps identified, ThresholdRegistry is keystone fix.",
+  "chain_position": 4,
+  "hashes": {
+    "evidence_hash": "8a5118b49ea9c95b2ee775046693a58316b70f92e16605c68c82fd37fee7402b",
+    "previous_hash": "9928757e76ad2489d1572e4e9fa67f13f2c52f2e8c3f2569fb5a6e6d394daad5",
+    "chain_hash": "2fa6465d45546f6bf7a9db3e20d3fddc3b79fe48f81e54ddc3a4af1be839e586"
+  },
+  "confidence": {
+    "level": 4,
+    "label": "Strong",
+    "criteria": "test_suite(47 pass) + static_analysis(0 lint errors) + shadow_audit(AST scan) = 3 check types"
+  },
+  "artifacts": {
+    "count": 6,
+    "summary": {
+      "code": 3,
+      "config": 1,
+      "test": 2
+    }
+  },
+  "verification": {
+    "verification_id": "verify-1773479241",
+    "timestamp": "2026-03-14T09:07:21.144595+00:00",
+    "ecosystems": [
+      "python"
+    ],
+    "checks": [
+      {
+        "type": "test_suite",
+        "command": "python -m pytest tests/integration/test_threshold_enforcement.py tests/core/identity/test_identity_genesis.py -v",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 11200,
+        "summary": "47 passed in 11.20s (22 registry + 25 identity)",
+        "output_excerpt": "TestRegistryBootstrap 6 PASS | TestRegistrySeal 5 PASS | TestRegistrySingleton 2 PASS | TestRegistryFreshLifecycle 1 PASS | TestCanonicalThresholdSync 2 PASS | TestModuleShadowAudit 3 PASS | TestRegistryRepr 2 PASS | TestIdentity 25 PASS"
+      },
+      {
+        "type": "static_analysis",
+        "command": "python -m ruff check core/integration/threshold_registry.py core/identity/genesis.py core/integration/__init__.py tests/integration/test_threshold_enforcement.py",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 500,
+        "summary": "0 lint errors across 4 files",
+        "output_excerpt": "All checks passed\\!"
+      },
+      {
+        "type": "benchmark",
+        "command": "ThresholdRegistry.audit_module_shadows() AST scan",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 200,
+        "summary": "AST shadow scan completed, 10+ threshold shadows detected across core/",
+        "output_excerpt": "autonomous/__init__.py:SNR_THRESHOLDS, proof_engine/ihsan_gate.py:_CONSTITUTION_IHSAN_EXCELLENCE, node0/heartbeat.py:PRECIPITATION_IHSAN_FLOOR, sovereign/helix3.py:PRECIPITATION_IHSAN_FLOOR"
+      }
+    ],
+    "checks_run": 3,
+    "checks_passed": 3,
+    "checks_failed": 0,
+    "overall_pass": true,
+    "manual_attestation": null
+  }
+}

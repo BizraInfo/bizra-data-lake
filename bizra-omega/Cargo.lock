@@ -698,6 +698,7 @@ dependencies = [
  "bizra-core",
  "bizra-federation",
  "bizra-proofspace",
+ "bizra-sippar",
  "bizra-telescript",
  "blake3",
  "chrono",

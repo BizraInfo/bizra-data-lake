@@ -1,12 +1,12 @@
 {
   "version": "bizra-genesis-verification-v1",
-  "timestamp": "2026-03-20T01:10:05+0400",
+  "timestamp": "2026-03-20T08:27:54+0400",
   "node": "unknown",
   "proofs": [
     {
       "name": "Rust constitutional tests (130)",
       "passed": true,
-      "ms": 1499,
+      "ms": 2331,
       "detail": {
         "total_passed": 130,
         "crates": [
@@ -19,7 +19,7 @@
     {
       "name": "PyO3 bridge loads",
       "passed": true,
-      "ms": 4,
+      "ms": 5,
       "detail": {
         "version": "2.0.0",
         "ihsan_threshold": 0.95,
@@ -29,7 +29,7 @@
     {
       "name": "Synapse fires (11 events)",
       "passed": true,
-      "ms": 36,
+      "ms": 40,
       "detail": {
         "event_types": 11,
         "forwarded": 11,
@@ -70,7 +70,7 @@
   "summary": {
     "passed": 6,
     "total": 6,
-    "elapsed_s": 1.5,
+    "elapsed_s": 2.4,
     "all_green": true
   }
 }
