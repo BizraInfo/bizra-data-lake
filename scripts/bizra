@@ -293,6 +293,48 @@ interactive() {
                 ;;
             receipts|r) chain ;;
             wallet|w) wallet ;;
+            ghost|g)
+                echo -e "  ${D}╔═══════════════════════════════════════════════════════╗${R}"
+                echo -e "  ${D}║${R}  ${PU}👻 GHOST PANEL${R} — ${DIM}Proactive Agent Intelligence${R}         ${D}║${R}"
+                echo -e "  ${D}╠═══════════════════════════════════════════════════════╣${R}"
+
+                source "$VENV/bin/activate" 2>/dev/null
+                python3 -c "
+import time, random
+from core.living_memory.brain import LivingMemory
+
+mem = LivingMemory().load()
+u = mem.user
+hour = time.localtime().tm_hour
+name = u.greeting_name or u.name or 'Sovereign'
+
+agents = [
+    ('ATLAS',  'P1', '⚔',  'I see patterns in your recent work that suggest a pivot toward...'),
+    ('ORACLE', 'P2', '📚', 'I found 3 new sources relevant to your current research focus.'),
+    ('FORGE',  'P3', '🎨', 'Your codebase has 12 uncommitted files. Want me to organize them?'),
+    ('JUDGE',  'P4', '🛡',  'All recent missions passed constitutional gates. Quality stable.'),
+    ('CROWN',  'P5', '🌱', 'You tend to work best at this hour. Your streak is building.'),
+    ('HERALD', 'P6', '💬', 'Your communication style has been concise lately. Adapting.'),
+    ('NEXUS',  'P7', '🔮', 'Based on market trends, I suggest prioritizing the demo recording.'),
+]
+
+# Pick 3 proactive suggestions based on context
+suggestions = random.sample(agents, 3)
+for callsign, pid, emoji, msg in suggestions:
+    print(f'  {emoji} {callsign} ({pid}): {msg}')
+    print()
+
+if u.active_projects:
+    top = u.active_projects[0]
+    print(f'  📌 Active focus: {top[\"name\"]} ({top[\"total_missions\"]} missions)')
+    print()
+
+print(f'  💡 Proactive mode: suggest → auto → partner')
+print(f'     Current: reactive (waiting for your command)')
+" 2>/dev/null || echo -e "  ${DIM}Ghost Panel requires Living Memory data.${R}"
+
+                echo -e "  ${D}╚═══════════════════════════════════════════════════════╝${R}"
+                ;;
             organize|o)
                 if [ -z "$args" ]; then
                     echo -ne "  ${DIM}Target directory: ${R}"
@@ -373,11 +415,35 @@ case "${1:-}" in
     briefing|b)  banner; briefing ;;
     teach|t)     shift; printf 'TEACH\tfact\t%s\t9500\t%d\nSHUTDOWN\n' "$*" "$(date +%s)" | \
                      "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null ;;
-    receipts|r)  printf 'ACTION_HISTORY\t10\t0\nSHUTDOWN\n' | \
-                     "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null ;;
+    receipts|r|chain) chain ;;
+    wallet|w)    wallet ;;
+    ghost|g)
+        source "$VENV/bin/activate" 2>/dev/null
+        python3 -c "
+import random
+from core.living_memory.brain import LivingMemory
+mem = LivingMemory().load()
+agents = [
+    ('ATLAS','P1','⚔','Patterns in your work suggest focusing on the demo.'),
+    ('ORACLE','P2','📚','Found new sources relevant to your research.'),
+    ('FORGE','P3','🎨','Uncommitted changes detected. Want me to organize?'),
+    ('JUDGE','P4','🛡','All missions passed constitutional gates.'),
+    ('CROWN','P5','🌱','Your streak is building. Keep the momentum.'),
+    ('HERALD','P6','💬','Adapting to your communication style.'),
+    ('NEXUS','P7','🔮','Market trends suggest: prioritize screen recording.'),
+]
+for c,p,e,m in random.sample(agents,3):
+    print(f'  {e} {c} ({p}): {m}')
+print(f'\n  Mode: reactive → suggest → auto → partner')
+" 2>/dev/null || echo "Ghost Panel offline"
+        ;;
+    skills)      echo -e "  ${D}╔═══ SOVEREIGN SKILLS ═══╗${R}"; echo -e "  ${G}  organize${R} · ${G}browse${R} · ${G}scan${R} · ${G}mission${R} · ${G}teach${R}"; echo -e "  ${D}╚════════════════════════╝${R}" ;;
+    scan)        scripts/bizra scan 2>/dev/null ;;
+    organize|o)  shift; mission "Organize and classify files in $*" ;;
+    browse|web)  shift; mission "Browse and extract: $*" ;;
     start)       source "$VENV/bin/activate" && python3 "$KERNEL" & echo "Kernel started." ;;
     stop)        pkill -f kernel_daemon.py 2>/dev/null && echo "Kernel stopped." || echo "Not running." ;;
-    help|--help|-h) banner; echo "  Usage: bizra [mission|status|agents|briefing|teach|receipts|start|stop|help]" ;;
+    help|--help|-h) banner; echo "  Usage: bizra [mission|agents|wallet|ghost|skills|organize|browse|scan|status|briefing|teach|receipts|start|stop|help]" ;;
     "")          interactive ;;
     *)           mission "$*" ;;
 esac
