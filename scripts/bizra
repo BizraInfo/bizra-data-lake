@@ -361,12 +361,21 @@ import subprocess, json, os, random
 # Item 3.1: Ghost with REAL context from FAISS + filesystem
 suggestions = []
 
-# Check filesystem for actionable items
+# Item 3.2: Proactive filesystem watcher
+try:
+    from core.skills.proactive_watcher import scan_for_changes, format_suggestions
+    changes = scan_for_changes()
+    for s in format_suggestions(changes):
+        suggestions.append(('FORGE', 'P3', '🎨', s))
+except Exception:
+    pass
+
+# Fallback: check Downloads count
 downloads = os.path.expanduser('~/Downloads')
 if os.path.isdir(downloads):
-    new_files = [f for f in os.listdir(downloads) if not f.startswith('.')][:5]
-    if len(new_files) > 20:
-        suggestions.append(('FORGE', 'P3', '🎨', f'Your Downloads has {len(new_files)} files. Want me to organize them?'))
+    dl_files = [f for f in os.listdir(downloads) if not f.startswith('.')]
+    if len(dl_files) > 20:
+        suggestions.append(('FORGE', 'P3', '🎨', f'Downloads has {len(dl_files)} files. Organize?'))
 
 # Check git status
 try:
@@ -606,16 +615,39 @@ print(f'\n  Mode: reactive → suggest → auto → partner')
     start)
         source "$VENV/bin/activate"
         echo -e "  ${G}Starting sovereign stack...${R}"
+
+        # Kernel daemon
         python3 "$KERNEL" &
         echo -e "  ${G}●${R} Kernel daemon (port 9740)"
         sleep 2
+
+        # Desktop bridge
         python3 -c "
 import asyncio
 from core.bridges.desktop_bridge import create_and_run_bridge
 asyncio.run(create_and_run_bridge())
 " &
         echo -e "  ${G}●${R} Desktop bridge (port 9742)"
-        echo -e "  ${DIM}Start AHK: bin/bizra_bridge.ahk${R}"
+
+        # Item 4.1: Federation gossip (if enabled)
+        if [ "${BIZRA_FEDERATION_ENABLED:-0}" = "1" ]; then
+            GOSSIP_PORT="${BIZRA_GOSSIP_PORT:-9750}"
+            echo -e "  ${G}●${R} Federation gossip (port $GOSSIP_PORT)"
+            echo -e "  ${DIM}  Seeds: ${BIZRA_SEED_NODES:-none (bootstrap mode)}${R}"
+        fi
+
+        # Item 1.5: AHK notification
+        if command -v powershell.exe &>/dev/null; then
+            powershell.exe -Command "
+                if (Test-Path 'C:\\BIZRA-DATA-LAKE\\bin\\bizra_bridge.ahk') {
+                    Write-Host 'AHK bridge available: bin\\bizra_bridge.ahk'
+                }
+            " 2>/dev/null
+            echo -e "  ${DIM}  AHK: bin/bizra_bridge.ahk (start manually on Windows)${R}"
+        fi
+
+        echo -e ""
+        echo -e "  ${G}Sovereign stack running.${R} Use: bizra status"
         ;;
     desktop)
         echo -e "  ${D}╔═══ DESKTOP NERVOUS SYSTEM ═══════════════════════╗${R}"
