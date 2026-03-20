@@ -31,14 +31,75 @@ R="\033[0m"                  # Reset
 B="\033[1m"                  # Bold
 DIM="\033[2m"                # Dim
 
+PU="\033[38;2;167;139;250m"  # Purple
+BL="\033[38;2;96;165;250m"  # Blue
+RD="\033[38;2;239;68;68m"   # Red
+GN="\033[38;2;52;211;153m"  # Green
+
 banner() {
     echo -e "${G}"
-    echo "  ╔═══════════════════════════════════════════════╗"
-    echo "  ║         ${B}بِذْرَة${R}${G} — BIZRA SOVEREIGN AI           ║"
-    echo "  ║                                               ║"
-    echo "  ║  ${DIM}Every human is a node. Every node is a seed.${R}${G} ║"
-    echo "  ╚═══════════════════════════════════════════════╝"
+    echo "  ╔═══════════════════════════════════════════════════════╗"
+    echo "  ║                                                       ║"
+    echo "  ║           ${B}بِذْرَة${R}${G}  —  BIZRA SOVEREIGN AI              ║"
+    echo "  ║                                                       ║"
+    echo "  ║   ${DIM}Every human is a node. Every node is a seed.${R}${G}       ║"
+    echo "  ║                                                       ║"
+    echo "  ╚═══════════════════════════════════════════════════════╝"
     echo -e "${R}"
+}
+
+status_bar() {
+    source "$VENV/bin/activate" 2>/dev/null
+    local info=$(python3 -c "
+from core.living_memory.brain import LivingMemory
+import json
+mem = LivingMemory().load()
+u = mem.user
+seed = u.total_missions * 12
+trend = '↑' if u.ihsan_trend == 'improving' else '↓' if u.ihsan_trend == 'declining' else '→'
+ihsan = f'{u.avg_ihsan:.2f}' if u.avg_ihsan > 0 else '0.95'
+print(f'{u.tier}|{seed}|{u.current_streak}|{ihsan}|{trend}|{u.total_missions}')
+" 2>/dev/null || echo "Novice|0|0|0.95|→|0")
+
+    IFS='|' read -r tier seed streak ihsan trend missions <<< "$info"
+
+    echo -e "  ${DIM}┌─────────────────────────────────────────────────────┐${R}"
+    echo -e "  ${DIM}│${R} ${D}⚔${R} ${B}${tier}${R}  ${DIM}│${R} ${D}🌱${R} ${seed} SEED  ${DIM}│${R} ${GN}🔥${R} ${streak} streak  ${DIM}│${R} ${PU}إحسان${R} ${ihsan}${trend}  ${DIM}│${R}"
+    echo -e "  ${DIM}└─────────────────────────────────────────────────────┘${R}"
+}
+
+mission_result() {
+    local response="$1"
+    local task="$2"
+
+    local receipt=$(echo "$response" | grep -oP 'receipt_id=\K[a-f0-9]+' | head -1 || true)
+    local guardian=$(echo "$response" | grep -oP 'guardian_approved=\K[a-z]+' | head -1 || true)
+    local agents=$(echo "$response" | grep -oP 'agents_consulted=\K[0-9]+' | head -1 || true)
+    local ihsan=$(echo "$response" | grep -oP 'inference_ihsan=\K[0-9.]+' | head -1 || true)
+    local model=$(echo "$response" | grep -oP 'inference_model=\K[^ \t]+' | head -1 || true)
+    local reflex=$(echo "$response" | grep -oP 'reflex_hit=\K[a-z]+' | head -1 || true)
+
+    if [ -n "$receipt" ] && [ "$guardian" = "true" ]; then
+        echo -e "  ${G}╔═══════════════════════════════════════════════╗${R}"
+        echo -e "  ${G}║${R}  ${GN}✓${R} ${B}Mission Complete${R}                            ${G}║${R}"
+        echo -e "  ${G}╠═══════════════════════════════════════════════╣${R}"
+        echo -e "  ${G}║${R}  ${DIM}Task:${R}     ${task:0:38}  ${G}║${R}"
+        echo -e "  ${G}║${R}  ${DIM}Agents:${R}   ${agents} consulted ${DIM}|${R} P4 Guardian ${GN}✓${R}     ${G}║${R}"
+        [ -n "$model" ] && \
+        echo -e "  ${G}║${R}  ${DIM}Model:${R}    ${model} ${DIM}|${R} Ihsan ${PU}${ihsan}${R}          ${G}║${R}"
+        echo -e "  ${G}║${R}  ${DIM}Receipt:${R}  ${BL}${receipt:0:24}${R}${DIM}...${R}  ${G}║${R}"
+        echo -e "  ${G}║${R}  ${DIM}SEED:${R}     ${D}+12 earned${R}                         ${G}║${R}"
+        [ "$reflex" = "true" ] && \
+        echo -e "  ${G}║${R}  ${PU}⚡ REFLEX HIT — instant route${R}               ${G}║${R}"
+        echo -e "  ${G}╚═══════════════════════════════════════════════╝${R}"
+    elif [ "$guardian" = "false" ]; then
+        echo -e "  ${RD}╔═══════════════════════════════════════════════╗${R}"
+        echo -e "  ${RD}║${R}  ${RD}✗ P4 GUARDIAN VETO${R}                          ${RD}║${R}"
+        echo -e "  ${RD}║${R}  ${DIM}Task rejected by constitutional gate${R}       ${RD}║${R}"
+        echo -e "  ${RD}╚═══════════════════════════════════════════════╝${R}"
+    else
+        echo -e "  ${DIM}Response received. No receipt (inference may be offline).${R}"
+    fi
 }
 
 briefing() {
@@ -98,34 +159,23 @@ status() {
 
 mission() {
     local task="$1"
-    echo -e "  ${D}Mission: ${R}${task}"
-    printf 'START_SESSION\t%d\nRECEIVE\t%s\t%d\nEND_SESSION\t%d\nSHUTDOWN\n' \
+    echo -e "  ${DIM}⏳ Dispatching to PAT team...${R}"
+
+    local RESPONSE=$(printf 'START_SESSION\t%d\nRECEIVE\t%s\t%d\nEND_SESSION\t%d\nSHUTDOWN\n' \
         "$(date +%s)" "$task" "$(date +%s)" "$(date +%s)" | \
         BIZRA_ENABLE_OLLAMA_EXECUTE=1 \
         BIZRA_OLLAMA_MODEL="${BIZRA_MODEL:-qwen2.5:3b}" \
-        "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null | \
-        while IFS=$'\t' read -r status rest; do
-            case "$rest" in
-                *received=true*)
-                    local receipt=$(echo "$rest" | grep -oP 'receipt_id=\K[a-f0-9]+' || true)
-                    local ihsan=$(echo "$rest" | grep -oP 'inference_ihsan=\K[0-9.]+' || true)
-                    local model=$(echo "$rest" | grep -oP 'inference_model=\K[^ \t]+' || true)
-                    echo -e "  ${G}✓${R} Receipt: ${receipt:0:16}..."
-                    echo -e "  ${DIM}  Model: $model | Ihsan: $ihsan${R}"
-                    ;;
-                *session_started*) ;;
-                *session_ended*) ;;
-                *shutdown*) ;;
-                *) echo -e "  ${DIM}$status $rest${R}" ;;
-            esac
-        done
+        timeout 30 "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null || true)
+
+    mission_result "$RESPONSE" "$task"
 }
 
 interactive() {
     banner
+    status_bar
     briefing
     echo ""
-    echo -e "  ${DIM}Commands: mission, agents, status, briefing, teach, receipts, help, quit${R}"
+    echo -e "  ${DIM}Commands: mission, organize, browse, scan, agents, skills, status, briefing, teach, receipts, help, quit${R}"
     echo ""
 
     while true; do
