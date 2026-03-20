@@ -68,6 +68,7 @@ pub enum QuarantineReason {
     PolicyHashMismatch,
     ManualInvalidation,
     MissingPolicyHash,
+    OwnerDrift,
 }
 
 impl QuarantineReason {
@@ -78,6 +79,7 @@ impl QuarantineReason {
             QuarantineReason::PolicyHashMismatch => "policy_hash_mismatch",
             QuarantineReason::ManualInvalidation => "manual_invalidation",
             QuarantineReason::MissingPolicyHash => "missing_policy_hash",
+            QuarantineReason::OwnerDrift => "owner_drift",
         }
     }
 
@@ -88,6 +90,7 @@ impl QuarantineReason {
             "policy_hash_mismatch" => Some(Self::PolicyHashMismatch),
             "manual_invalidation" => Some(Self::ManualInvalidation),
             "missing_policy_hash" => Some(Self::MissingPolicyHash),
+            "owner_drift" => Some(Self::OwnerDrift),
             _ => None,
         }
     }

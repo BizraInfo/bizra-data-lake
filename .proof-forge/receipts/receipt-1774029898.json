@@ -1,0 +1,38 @@
+{
+  "receipt_id": "ed9c21eddf2f8663e3b476a07114efbf1fde86f069291e7c32809cc42819ab44",
+  "timestamp": "2026-03-20T18:04:58Z",
+  "session": "Phase 87-88 Marathon",
+  "commits": 49,
+  "verification": {
+    "rust_tests": {
+      "passed": 1519,
+      "failed": 0
+    },
+    "python_tests": {
+      "passed": 12644,
+      "failed": 0
+    },
+    "genesis_missions": {
+      "passed": 10,
+      "failed": 0
+    },
+    "agent_evaluation": {
+      "passed": 12,
+      "failed": 0
+    }
+  },
+  "artifacts": {
+    "block_zero": "350d642099bde68bba4c8df89e7acd09364b4da2b706c5fb0b2d08e7c5e8f26d",
+    "releases": [
+      "v0.87.0",
+      "v0.87.2"
+    ],
+    "binary": "bizra-node 2.8M",
+    "tui_commands": 15,
+    "skills_installed": 2,
+    "agents_minted": 12,
+    "seed_net": 1124695
+  },
+  "confidence": 5,
+  "confidence_label": "Ironclad"
+}
