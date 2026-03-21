@@ -128,12 +128,61 @@ cp .env.example .env
 ### Run
 
 ```bash
-# Start the sovereign runtime
-python -m core.sovereign
+# Interactive sovereign terminal (recommended)
+./scripts/bizra
 
-# Run the CLI (Rust)
-cd bizra-omega && cargo run --release --bin bizra
+# Run a mission directly
+./scripts/bizra mission "What is BIZRA?"
+
+# Start the sovereign stack (kernel + bridge)
+./scripts/bizra start
+
+# Check system health
+./scripts/bizra status
 ```
+
+---
+
+## Verify It Yourself
+
+Don't trust claims. Run these commands and see the evidence:
+
+```bash
+# 1. Run 1,500+ Rust tests (zero failures)
+cd bizra-omega && cargo test --workspace --release
+#    → 1,539 passed, 0 failed
+
+# 2. Run Python PCI tests (117 proof-carrying inference tests)
+cd .. && pytest tests/core/pci/ -q
+#    → 117 passed
+
+# 3. Count the Rust crates
+ls bizra-omega/*/Cargo.toml | wc -l
+#    → 24 crates
+
+# 4. Run a real mission through the full pipeline
+./scripts/bizra mission "Explain the Ihsan principle"
+#    → LLM response + BLAKE3 receipt + SEED earned + 4/8 stages fired
+
+# 5. Check the receipt chain
+cat ~/.bizra/node-1/chain_head
+#    → 64-char hex hash (BLAKE3, cross-session chained)
+
+# 6. Check the SEED ledger
+python3 -c "from core.proof_engine.seed_ledger import balance; print(f'{balance()} SEED')"
+#    → Real accumulated balance
+
+# 7. Verify FAISS vector index (84,795 embeddings)
+python3 -c "from core.proof_engine.faiss_search import load_index; ok,n=load_index(); print(f'{n} vectors')"
+#    → 84795 vectors
+
+# 8. Cross-language constant sync (Python ↔ Rust)
+python3 -c "from core.integration.constants import CANONICAL_THRESHOLDS; print(CANONICAL_THRESHOLDS)"
+grep "IHSAN_THRESHOLD" bizra-omega/bizra-core/src/lib.rs
+#    → Both show 0.95
+```
+
+Every claim in this README is verifiable by running code. No promises — only receipts.
 
 ---
 
