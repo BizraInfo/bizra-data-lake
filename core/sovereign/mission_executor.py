@@ -35,6 +35,16 @@ class MissionExecutor:
         self.seed_earned = 0
         self.response_text = ""
 
+    def _emit(self, stage: str, fired: bool, detail: str = ""):
+        """Stream stage progress to stderr (TUI reads this live)."""
+        import sys
+
+        mark = "\033[38;2;52;211;153m+\033[0m" if fired else "\033[2m-\033[0m"
+        line = f"  {mark} {stage}"
+        if detail:
+            line += f"  \033[2m{detail}\033[0m"
+        print(line, file=sys.stderr, flush=True)
+
     def execute(self, task: str, skill: str = None) -> Dict[str, Any]:
         """Run the FULL pipeline. Returns complete mission report."""
         report = {
@@ -50,14 +60,18 @@ class MissionExecutor:
             "fired": bool(context),
             "chars": len(context),
         }
+        self._emit(
+            "FAISS", bool(context), f"{len(context)} chars" if context else "cold"
+        )
 
         # Stage 2: Ollama Inference via bizra-node
         node_result = self._stage_inference(task, context)
         # Unescape \\n from tab-delimited protocol back to real newlines
         raw_text = node_result.get("inference_text", "")
         self.response_text = raw_text.replace("\\n", "\n") if raw_text else ""
+        inf_fired = node_result.get("inference_executed") == "true"
         report["stages"]["inference"] = {
-            "fired": node_result.get("inference_executed") == "true",
+            "fired": inf_fired,
             "model": node_result.get("inference_model", ""),
             "ihsan": node_result.get("inference_ihsan", ""),
             "receipt_id": node_result.get("receipt_id", ""),
@@ -65,6 +79,11 @@ class MissionExecutor:
             "agents": node_result.get("agents_consulted", "0"),
         }
         self.receipt_id = node_result.get("receipt_id", "")
+        self._emit(
+            "Inference",
+            inf_fired,
+            node_result.get("inference_model", "") if inf_fired else "offline",
+        )
 
         # Stage 3: Skill Execution (if applicable)
         skill_result = {}
@@ -77,15 +96,19 @@ class MissionExecutor:
             "type": skill or "inference_only",
             "result": skill_result,
         }
+        if skill:
+            self._emit("Skill", bool(skill_result), skill)
 
         # Stage 4: SEED Reward Calculation
         seed_result = self._stage_seed(node_result)
         report["stages"]["seed"] = seed_result
         self.seed_earned = seed_result.get("net", 0)
+        self._emit("SEED", seed_result.get("fired", False), f"+{self.seed_earned}")
 
         # Stage 5: Living Memory Update
         memory_result = self._stage_memory(task, skill)
         report["stages"]["memory"] = {"fired": memory_result}
+        self._emit("Memory", memory_result)
 
         # Stage 6: EventBus Signal (Rust atomic flags)
         eventbus_result = self._stage_eventbus()

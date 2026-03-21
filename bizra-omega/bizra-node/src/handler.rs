@@ -532,6 +532,13 @@ fn execute_with_ollama_gateway(content: &str, timestamp: u64) -> Result<(String,
         let request = InferenceRequest {
             id: format!("node0_exec_{timestamp}"),
             prompt: content.to_string(),
+            system: Some(
+                "You are BIZRA (بذرة — seed), a sovereign AI running on the user's own hardware. \
+                 You serve ONE human. You are direct, concise, and grounded. \
+                 When context from the user's sovereign data is provided, use it. \
+                 Never hallucinate — if you don't know, say so."
+                    .to_string(),
+            ),
             complexity: TaskComplexity::Medium,
             preferred_tier: Some(ModelTier::Local),
             ..Default::default()

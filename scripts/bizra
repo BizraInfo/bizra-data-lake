@@ -291,7 +291,7 @@ report = executor.execute('''$task''', skill='$skill' if '$skill' else None)
 # Output structured JSON for bash parsing, then human-readable report
 print('BIZRA_JSON:' + json.dumps(report))
 print('BIZRA_REPORT:' + format_report(report))
-" 2>/dev/null || echo "BIZRA_JSON:{}" )
+" || echo "BIZRA_JSON:{}" )
 
     # Extract JSON and report
     local JSON_LINE=$(echo "$REPORT" | grep "^BIZRA_JSON:" | sed 's/^BIZRA_JSON://')

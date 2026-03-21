@@ -29,6 +29,7 @@ bizra-mission = { path = "../bizra-mission" }
 bizra-proofspace = { path = "../bizra-proofspace" }
 bizra-federation = { path = "../bizra-federation" }
 blake3 = { workspace = true }
+hex = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 

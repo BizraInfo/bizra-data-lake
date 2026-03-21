@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 struct OllamaRequest {
     model: String,
     prompt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    system: Option<String>,
     stream: bool,
     options: OllamaOptions,
 }
@@ -58,6 +60,7 @@ impl Backend for OllamaBackend {
         let req = OllamaRequest {
             model: self.config.model.clone(),
             prompt: request.prompt.clone(),
+            system: request.system.clone(),
             stream: false,
             options: OllamaOptions {
                 temperature: request.temperature,

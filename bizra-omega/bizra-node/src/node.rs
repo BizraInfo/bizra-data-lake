@@ -436,6 +436,16 @@ impl Node {
         self.resource_manifest = ResourceManifest::discover();
     }
 
+    /// Set receipt chain head (restored from disk on boot).
+    pub fn set_last_receipt_id(&mut self, id: Option<[u8; 32]>) {
+        self.last_receipt_id = id;
+    }
+
+    /// Get receipt chain head (for persisting to disk on shutdown).
+    pub fn last_receipt_id(&self) -> Option<[u8; 32]> {
+        self.last_receipt_id
+    }
+
     /// Mutable access to the AgentRuntime (used by persistence).
     pub fn runtime_mut(&mut self) -> &mut AgentRuntime {
         &mut self.runtime

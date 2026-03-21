@@ -110,6 +110,21 @@ fn main() {
             }
         }
 
+        // Restore receipt chain head (Lamport: happened-before ordering)
+        let chain_head_path = state_dir.join("chain_head");
+        if chain_head_path.exists() {
+            if let Ok(hex) = std::fs::read_to_string(&chain_head_path) {
+                let hex = hex.trim();
+                if hex.len() == 64 {
+                    let mut bytes = [0u8; 32];
+                    if let Ok(decoded) = hex::decode(hex) {
+                        bytes.copy_from_slice(&decoded);
+                        node.set_last_receipt_id(Some(bytes));
+                    }
+                }
+            }
+        }
+
         // Restore action receipt history
         let actions_log_path = state_dir.join("actions.log");
         if actions_log_path.exists() {
@@ -188,6 +203,11 @@ fn main() {
             }
             if let Err(e) = save_action_log_quietly(&node, &state_dir) {
                 eprintln!("  actions: error saving log: {e}");
+            }
+            // Persist receipt chain head for cross-session chaining
+            if let Some(head) = node.last_receipt_id() {
+                let hex = hex::encode(head);
+                let _ = std::fs::write(state_dir.join("chain_head"), &hex);
             }
         }
     }
