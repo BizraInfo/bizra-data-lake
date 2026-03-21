@@ -262,3 +262,15 @@ class TestEventEmission:
         await bus.propose(_make_action())
         topics = [call.args[0] for call in eb.publish.call_args_list]
         assert "policy.telescript.denied" in topics
+
+    @pytest.mark.asyncio
+    async def test_supports_sovereign_event_bus_shape(self) -> None:
+        from core.sovereign.event_bus import EventBus
+
+        eb = EventBus()
+        bus = _bus(event_bus=eb)
+        await bus.propose(_make_action())
+
+        stats = eb.stats()
+        assert stats["events_published"] == 2
+        assert stats["queue_size"] == 2

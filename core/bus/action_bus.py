@@ -23,6 +23,7 @@ import logging
 from typing import Any, Protocol, runtime_checkable
 
 from core.bus.channels import ChannelExecutor, ChannelResult
+from core.bus.event_publisher import publish_topic_event
 from core.bus.telescript import TeleScriptEngine
 from core.bus.types import ActionEnvelope, ActionStatus, BusActionReceipt
 
@@ -299,4 +300,4 @@ class ActionBus:
     async def _emit(self, topic: str, payload: dict[str, Any]) -> None:
         """Emit event via EventBus if configured."""
         if self._event_bus is not None:
-            await self._event_bus.publish(topic, payload)
+            await publish_topic_event(self._event_bus, topic, payload)

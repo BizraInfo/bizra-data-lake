@@ -619,17 +619,30 @@ class SovereignNervousSystem:
 
         assert self._bus is not None
 
+        action_type = f"mission:{input_text[:96]}"
         base_payload = {
             "mission_id": mission_id,
+            "session_id": mission_id,
             "ihsan": ihsan,
+            "ihsan_composite": ihsan,
             "snr": snr,
+            "snr_score": snr,
             "system": "S1" if reflex_hit else "S2",
         }
 
         # ACTION_INTENT — triggers TeleScript begin
         self._bus.publish(
             EventType.ACTION_INTENT,
-            {**base_payload, "description": input_text[:500]},
+            {
+                **base_payload,
+                "intent": input_text[:500],
+                "description": input_text[:500],
+                "context": {
+                    "mission_id": mission_id,
+                    "snr_score": snr,
+                    "system": base_payload["system"],
+                },
+            },
         )
         published.append("action.intent")
 
@@ -638,6 +651,8 @@ class SovereignNervousSystem:
             EventType.ACTION_RECEIPT,
             {
                 **base_payload,
+                "action_type": action_type,
+                "result_summary": output_text[:1000],
                 "output": output_text[:1000],
                 "success": ihsan >= UNIFIED_IHSAN_THRESHOLD,
             },
@@ -648,7 +663,12 @@ class SovereignNervousSystem:
             # IHSAN_GATE_BREACHED — triggers safety handlers
             self._bus.publish(
                 EventType.IHSAN_GATE_BREACHED,
-                {**base_payload, "threshold": UNIFIED_IHSAN_THRESHOLD},
+                {
+                    **base_payload,
+                    "action_type": action_type,
+                    "threshold": UNIFIED_IHSAN_THRESHOLD,
+                    "violation_dimensions": ["ihsan_below_threshold"],
+                },
             )
             published.append("ihsan.gate.breached")
 
@@ -657,6 +677,12 @@ class SovereignNervousSystem:
             EventType.SESSION_END,
             {
                 **base_payload,
+                "actions": [
+                    {
+                        "action_type": action_type,
+                        "ihsan_composite": ihsan,
+                    }
+                ],
                 "output": output_text[:1000],
                 "duration_ms": 0,  # Filled by caller
             },

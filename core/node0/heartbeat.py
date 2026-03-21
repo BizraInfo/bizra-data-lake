@@ -1122,6 +1122,13 @@ class Node0Heartbeat:
             "action.receipt",
             {
                 "source": "node0:ingest",
+                "session_id": receipt.get("mission_id", ""),
+                "mission_id": receipt.get("mission_id", ""),
+                "action_type": receipt.get("action_type")
+                or str(receipt.get("description", ""))[:96]
+                or "mission",
+                "result_summary": receipt.get("description", ""),
+                "ihsan_composite": receipt.get("ihsan_score", 0.0),
                 "ihsan_score": receipt.get("ihsan_score", 0.0),
                 "description": receipt.get("description", ""),
                 "fate_verdict": receipt.get("fate_verdict", "unknown"),

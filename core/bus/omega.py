@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Protocol, runtime_checkable
 
+from core.bus.event_publisher import publish_topic_event
+
 logger = logging.getLogger(__name__)
 
 
@@ -303,4 +305,4 @@ class OmegaLoopController:
     async def _emit(self, topic: str, payload: dict[str, Any]) -> None:
         """Emit event via EventBus if configured."""
         if self._event_bus is not None:
-            await self._event_bus.publish(topic, payload)
+            await publish_topic_event(self._event_bus, topic, payload)

@@ -197,6 +197,7 @@ class ConsensusEngine:
         self.active_proposals: Dict[str, Proposal] = {}
         self.votes: Dict[str, List[Vote]] = {}  # proposal_id -> List[Vote]
         self.committed_patterns: Set[str] = set()
+        self._surfaced_commits: Set[str] = set()
 
         # PBFT State (GAP-C3)
         self._consensus_state: Dict[str, ConsensusState] = {}
@@ -819,6 +820,41 @@ class ConsensusEngine:
     def get_registered_peers(self) -> Dict[str, str]:
         """Get all registered peer_id -> public_key mappings."""
         return self._peer_keys.copy()
+
+    def _final_impact_for(self, proposal_id: str) -> float:
+        """Best-effort final impact score for surfaced committed proposals."""
+        proposal = self.active_proposals.get(proposal_id)
+        pattern_data = proposal.pattern_data if proposal is not None else {}
+
+        impact_value = pattern_data.get("impact")
+        if isinstance(impact_value, dict):
+            score = impact_value.get("score")
+            if isinstance(score, (int, float)):
+                return float(score)
+
+        for key in ("final_impact", "impact_score", "ihsan_score", "ihsan"):
+            score = pattern_data.get(key)
+            if isinstance(score, (int, float)):
+                return float(score)
+
+        votes = self.votes.get(proposal_id, [])
+        if votes:
+            return sum(v.ihsan_score for v in votes) / len(votes)
+
+        return float(UNIFIED_IHSAN_THRESHOLD)
+
+    def check_and_finalize(self) -> List[tuple[str, bool, float]]:
+        """Surface newly committed proposals exactly once for polling loops.
+
+        The commit itself already occurs in receive_commit()/receive_vote().
+        This method exists for compatibility with polling federation nodes that
+        periodically ask the engine which proposals have crossed the finish line.
+        """
+        results: List[tuple[str, bool, float]] = []
+        for proposal_id in sorted(self.committed_patterns - self._surfaced_commits):
+            results.append((proposal_id, True, self._final_impact_for(proposal_id)))
+            self._surfaced_commits.add(proposal_id)
+        return results
 
     def propose_pattern(self, pattern: Dict) -> Optional[Proposal]:
         """

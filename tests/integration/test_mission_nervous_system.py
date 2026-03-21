@@ -439,6 +439,44 @@ class TestEventBusFlow:
 
         assert "ihsan.gate.breached" not in receipt.events_published
 
+    def test_low_ihsan_breach_payload_matches_subscriber_schema(self):
+        from core.bus.subscribers import EventBus, EventType
+
+        bus = EventBus()
+        ns = _build_ns(bus=bus)
+
+        receipt = asyncio.run(ns.run("Low quality", ihsan_override=0.80))
+        breach = next(
+            e for e in bus._chain if e.event_type == EventType.IHSAN_GATE_BREACHED
+        )
+
+        assert breach.payload["session_id"] == receipt.mission_id
+        assert breach.payload["ihsan_composite"] == pytest.approx(0.80)
+        assert breach.payload["action_type"].startswith("mission:")
+        assert breach.payload["violation_dimensions"] == ["ihsan_below_threshold"]
+
+    def test_action_receipt_payload_matches_subscriber_schema(self):
+        from core.bus.subscribers import EventBus, EventType
+
+        bus = EventBus()
+        ns = _build_ns(bus=bus)
+
+        receipt = asyncio.run(ns.run("Eventful mission", ihsan_override=0.96))
+        action_receipt = next(
+            e for e in bus._chain if e.event_type == EventType.ACTION_RECEIPT
+        )
+        session_end = next(
+            e for e in bus._chain if e.event_type == EventType.SESSION_END
+        )
+
+        assert action_receipt.payload["action_type"].startswith("mission:")
+        assert action_receipt.payload["ihsan_composite"] == pytest.approx(0.96)
+        assert action_receipt.payload["result_summary"]
+        assert session_end.payload["session_id"] == receipt.mission_id
+        assert session_end.payload["actions"][0]["ihsan_composite"] == pytest.approx(
+            0.96
+        )
+
 
 # ═══════════════════════════════════════════════════════════════════
 # 8. FACTORY WIRING (all Phase 80 modules compose)

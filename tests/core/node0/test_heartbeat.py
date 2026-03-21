@@ -1189,12 +1189,15 @@ class TestNervousSystemBridge:
         event = bus._chain[0]
         assert event.event_type == EventType.ACTION_RECEIPT
         assert event.payload["source"] == "node0:ingest"
+        assert event.payload["action_type"] == "test mission"
+        assert event.payload["result_summary"] == "test mission"
+        assert event.payload["ihsan_composite"] == 0.96
         assert event.payload["ihsan_score"] == 0.96
         assert event.payload["fate_verdict"] == "approved"
 
     def test_breath_event_carries_approved_rejected_counts(self, data_dir):
         """Breath event payload includes FATE approved/rejected counts."""
-        from unittest.mock import MagicMock, PropertyMock
+        from unittest.mock import MagicMock
 
         from core.bus.subscribers import EventBus
         from core.node0.heartbeat import Node0Heartbeat

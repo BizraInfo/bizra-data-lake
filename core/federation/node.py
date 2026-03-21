@@ -18,7 +18,7 @@ import asyncio
 import json
 import logging
 import uuid
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Coroutine, Dict, List, Optional
 
 from .consensus import ConsensusEngine, Proposal, Vote
 from .gossip import GossipEngine
@@ -101,6 +101,7 @@ class FederationNode:
         self._running = False
         self._message_handlers: Dict[str, Callable] = {}
         self._pending_votes: List[Vote] = []
+        self._background_tasks: set[asyncio.Task[None]] = set()
 
         # Register message handlers
         self._register_handlers()
@@ -156,8 +157,8 @@ class FederationNode:
                 print(f"   Joined via seed: {seed}")
 
         # Start background tasks
-        asyncio.create_task(self._pattern_sync_loop())
-        asyncio.create_task(self._consensus_check_loop())
+        self._spawn_background_task(self._pattern_sync_loop(), "pattern_sync")
+        self._spawn_background_task(self._consensus_check_loop(), "consensus_check")
 
         print(f"✅ FederationNode {self.node_id} started (P2P ENABLED)")
 
@@ -167,7 +168,30 @@ class FederationNode:
         self._running = False
         # Stop gossip engine and close network connections
         await self.gossip.stop()
+        if self._background_tasks:
+            tasks = tuple(self._background_tasks)
+            for task in tasks:
+                task.cancel()
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception) and not isinstance(
+                    result, asyncio.CancelledError
+                ):
+                    logger.warning(
+                        "Background federation task ended with error: %s", result
+                    )
         print(f"✅ FederationNode {self.node_id} stopped")
+
+    def _spawn_background_task(
+        self,
+        coro: Coroutine[Any, Any, None],
+        name: str,
+    ) -> asyncio.Task[None]:
+        """Track background tasks so they can be cancelled on shutdown."""
+        task = asyncio.create_task(coro, name=f"federation:{self.node_id}:{name}")
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
 
     # ═══════════════════════════════════════════════════════════════════════════
     # PATTERN OPERATIONS
@@ -266,42 +290,55 @@ class FederationNode:
 
     async def _pattern_sync_loop(self):
         """Periodically share local patterns with the network."""
-        while self._running:
-            await asyncio.sleep(SYNC_INTERVAL_SECONDS)
+        try:
+            while self._running:
+                await asyncio.sleep(SYNC_INTERVAL_SECONDS)
+                if not self._running:
+                    break
 
-            # Auto-share eligible patterns
-            self.propagation.auto_share_elevated()
-            count = self.propagation.propagate_pending()
+                # Auto-share eligible patterns
+                self.propagation.auto_share_elevated()
+                count = self.propagation.propagate_pending()
 
-            if count > 0:
-                print(f"📡 Synced {count} patterns to network")
+                if count > 0:
+                    print(f"📡 Synced {count} patterns to network")
+        except asyncio.CancelledError:
+            logger.debug("Pattern sync loop cancelled for %s", self.node_id)
+            raise
 
     async def _consensus_check_loop(self):
         """Periodically check and finalize consensus rounds."""
-        while self._running:
-            await asyncio.sleep(CONSENSUS_CHECK_INTERVAL)
+        try:
+            while self._running:
+                await asyncio.sleep(CONSENSUS_CHECK_INTERVAL)
+                if not self._running:
+                    break
 
-            # Broadcast pending votes
-            for vote in self._pending_votes:
-                msg = json.dumps({"type": "PATTERN_VOTE", **vote.__dict__})
-                self._broadcast_pattern(msg.encode("utf-8"))
-            self._pending_votes.clear()
-
-            # Check for completed rounds
-            results = self.consensus.check_and_finalize()  # type: ignore[attr-defined]
-
-            for pattern_id, accepted, impact in results:
-                if accepted:
-                    self.contribution_count += 1
-                    # Broadcast acceptance
-                    msg = json.dumps(
-                        {
-                            "type": "PATTERN_ACCEPTED",
-                            "pattern_id": pattern_id,
-                            "final_impact": impact,
-                        }
-                    )
+                # Broadcast pending votes
+                for vote in self._pending_votes:
+                    msg = json.dumps({"type": "PATTERN_VOTE", **vote.__dict__})
                     self._broadcast_pattern(msg.encode("utf-8"))
+                self._pending_votes.clear()
+
+                # Check for completed rounds
+                finalize = getattr(self.consensus, "check_and_finalize", None)
+                results = finalize() if callable(finalize) else []
+
+                for pattern_id, accepted, impact in results:
+                    if accepted:
+                        self.contribution_count += 1
+                        # Broadcast acceptance
+                        msg = json.dumps(
+                            {
+                                "type": "PATTERN_ACCEPTED",
+                                "pattern_id": pattern_id,
+                                "final_impact": impact,
+                            }
+                        )
+                        self._broadcast_pattern(msg.encode("utf-8"))
+        except asyncio.CancelledError:
+            logger.debug("Consensus check loop cancelled for %s", self.node_id)
+            raise
 
     # ═══════════════════════════════════════════════════════════════════════════
     # NETWORK METRICS

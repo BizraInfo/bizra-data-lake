@@ -275,3 +275,19 @@ class TestOmegaEvents:
         )
         topics = [call.args[0] for call in eb.publish.call_args_list]
         assert "omega.completed" in topics
+
+    @pytest.mark.asyncio
+    async def test_supports_sovereign_event_bus_shape(self) -> None:
+        from core.sovereign.event_bus import EventBus
+
+        eb = EventBus()
+        ctrl = OmegaLoopController(event_bus=eb)
+        await ctrl.run(
+            mission_id="m-ev4",
+            proof_conditions=[ProofCondition(kind="always_true")],
+            max_iterations=1,
+        )
+
+        stats = eb.stats()
+        assert stats["events_published"] == 4
+        assert stats["queue_size"] == 4
