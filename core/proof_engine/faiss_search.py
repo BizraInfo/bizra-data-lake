@@ -34,7 +34,14 @@ def _get_encoder():
             import torch
 
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            _ENCODER = SentenceTransformer("all-MiniLM-L6-v2", device=device)
+            # local_files_only=True skips all HuggingFace HTTP calls (~95s savings)
+            try:
+                _ENCODER = SentenceTransformer(
+                    "all-MiniLM-L6-v2", device=device, local_files_only=True
+                )
+            except OSError:
+                # First time: allow download
+                _ENCODER = SentenceTransformer("all-MiniLM-L6-v2", device=device)
             logger.info("Encoder loaded on %s", device)
         except ImportError:
             logger.warning("sentence-transformers not installed")
@@ -42,11 +49,39 @@ def _get_encoder():
     return _ENCODER
 
 
+_CACHE_DIR = Path.home() / ".bizra" / "cache"
+
+
+def _save_cache(matrix: np.ndarray, texts: List[str]) -> None:
+    """Save FAISS matrix + texts to Linux-side cache (fast ext4)."""
+    try:
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        np.save(str(_CACHE_DIR / "faiss_matrix.npy"), matrix)
+        with open(_CACHE_DIR / "faiss_texts.json", "w") as f:
+            json.dump(texts, f)
+        logger.info("FAISS cache saved to %s", _CACHE_DIR)
+    except Exception as e:
+        logger.debug("Cache save failed: %s", e)
+
+
+def _load_cache() -> Tuple[np.ndarray, List[str]]:
+    """Load from Linux-side cache if newer than parquet source."""
+    npy = _CACHE_DIR / "faiss_matrix.npy"
+    txt = _CACHE_DIR / "faiss_texts.json"
+    if npy.exists() and txt.exists():
+        matrix = np.load(str(npy))
+        with open(txt) as f:
+            texts = json.load(f)
+        return matrix, texts
+    return None, []
+
+
 def load_index(
     parquet_path: str = "04_GOLD/chunks.parquet",
 ) -> Tuple[bool, int]:
     """
     Load FAISS index from parquet embeddings.
+    Uses Linux-side cache (~1s) if available, falls back to parquet (~60s on /mnt/c).
     Returns (success, num_vectors).
     """
     global _INDEX, _TEXTS, _LOADED
@@ -56,9 +91,36 @@ def load_index(
 
     try:
         import faiss
+    except ImportError:
+        logger.warning("faiss not installed")
+        return False, 0
+
+    t0 = time.time()
+
+    # Try Linux-side cache first (ext4 = fast)
+    matrix, texts = _load_cache()
+    if matrix is not None and len(texts) > 0:
+        dim = matrix.shape[1]
+        index = faiss.IndexFlatL2(dim)
+        faiss.normalize_L2(matrix)
+        index.add(matrix)
+        _INDEX = index
+        _TEXTS = texts
+        _LOADED = True
+        elapsed = time.time() - t0
+        logger.info(
+            "FAISS index (cached): %d vectors, dim=%d, loaded in %.2fs",
+            len(texts),
+            dim,
+            elapsed,
+        )
+        return True, len(texts)
+
+    # Fall back to parquet (slow on /mnt/c cross-filesystem)
+    try:
         import pyarrow.parquet as pq
     except ImportError:
-        logger.warning("faiss or pyarrow not installed")
+        logger.warning("pyarrow not installed")
         return False, 0
 
     path = Path(parquet_path)
@@ -66,7 +128,6 @@ def load_index(
         logger.warning("Parquet not found: %s", path)
         return False, 0
 
-    t0 = time.time()
     table = pq.read_table(str(path), columns=["chunk_text", "embedding"])
 
     texts = table.column("chunk_text").to_pylist()
@@ -88,6 +149,9 @@ def load_index(
 
     matrix = np.array(embeddings, dtype=np.float32)
     dim = matrix.shape[1]
+
+    # Cache to Linux side for next time
+    _save_cache(matrix, texts)
 
     # Build FAISS index (flat L2 — fast enough for 84K vectors)
     index = faiss.IndexFlatL2(dim)

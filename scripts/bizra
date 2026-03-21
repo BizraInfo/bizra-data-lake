@@ -277,46 +277,63 @@ status() {
 
 mission() {
     local task="$1"
-    echo -e "  ${DIM}⏳ Dispatching to PAT team...${R}"
+    local skill="${2:-}"
+    echo -e "  ${DIM}⏳ Dispatching to PAT team (full pipeline)...${R}"
 
-    # Item 1.1: FAISS context enrichment
-    local CONTEXT=""
-    CONTEXT=$(source "$VENV/bin/activate" 2>/dev/null && python3 -c "
-from core.proof_engine.faiss_search import search, format_context
-results = search('$task', top_k=5)
-if results:
-    print(format_context(results, max_chars=1500))
-" 2>/dev/null || true)
+    # Run ALL 8 stages through MissionExecutor — the unified pipeline
+    source "$VENV/bin/activate" 2>/dev/null
+    local REPORT=$(python3 -c "
+import sys, json
+sys.path.insert(0, '$BIZRA_ROOT')
+from core.sovereign.mission_executor import MissionExecutor, format_report
+executor = MissionExecutor(state_dir='$STATE_DIR')
+report = executor.execute('''$task''', skill='$skill' if '$skill' else None)
+# Output structured JSON for bash parsing, then human-readable report
+print('BIZRA_JSON:' + json.dumps(report))
+print('BIZRA_REPORT:' + format_report(report))
+" 2>/dev/null || echo "BIZRA_JSON:{}" )
 
-    # Enrich mission with FAISS context
-    local ENRICHED_TASK="$task"
-    if [ -n "$CONTEXT" ]; then
-        ENRICHED_TASK="${CONTEXT}
+    # Extract JSON and report
+    local JSON_LINE=$(echo "$REPORT" | grep "^BIZRA_JSON:" | sed 's/^BIZRA_JSON://')
+    local REPORT_TEXT=$(echo "$REPORT" | grep "^BIZRA_REPORT:" | sed 's/^BIZRA_REPORT://')
 
-Based on the above context from my sovereign data, answer: ${task}"
-        echo -e "  ${DIM}📚 P2 Scholar found ${#CONTEXT} chars of context${R}"
+    # Parse key fields from JSON
+    local receipt_id=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('receipt_id',''))" 2>/dev/null || true)
+    local stages_fired=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stages_fired',0))" 2>/dev/null || true)
+    local stages_total=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stages_total',0))" 2>/dev/null || true)
+    local seed_earned=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('seed_earned',0))" 2>/dev/null || true)
+    local duration=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('duration_s',0))" 2>/dev/null || true)
+    local guardian=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stages',{}).get('inference',{}).get('guardian',''))" 2>/dev/null || true)
+    local model=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stages',{}).get('inference',{}).get('model',''))" 2>/dev/null || true)
+    local ihsan=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stages',{}).get('inference',{}).get('ihsan',''))" 2>/dev/null || true)
+
+    if [ -n "$receipt_id" ] && [ "$receipt_id" != "" ]; then
+        echo -e "  ${G}╔═══════════════════════════════════════════════╗${R}"
+        echo -e "  ${G}║${R}  ${GN}✓${R} ${B}Mission Complete${R}  ${DIM}(${stages_fired}/${stages_total} stages)${R}     ${G}║${R}"
+        echo -e "  ${G}╠═══════════════════════════════════════════════╣${R}"
+        echo -e "  ${G}║${R}  ${DIM}Task:${R}     ${task:0:38}  ${G}║${R}"
+        [ -n "$model" ] && [ "$model" != "" ] && \
+        echo -e "  ${G}║${R}  ${DIM}Model:${R}    ${model} ${DIM}|${R} Ihsan ${PU}${ihsan}${R}          ${G}║${R}"
+        echo -e "  ${G}║${R}  ${DIM}Receipt:${R}  ${BL}${receipt_id:0:24}${R}${DIM}...${R}  ${G}║${R}"
+        echo -e "  ${G}║${R}  ${DIM}SEED:${R}     ${D}+${seed_earned}${R}  ${G}║${R}"
+        echo -e "  ${G}║${R}  ${DIM}Duration:${R} ${duration}s  ${G}║${R}"
+        echo -e "  ${G}╚═══════════════════════════════════════════════╝${R}"
+    elif [ "$guardian" = "false" ]; then
+        echo -e "  ${RD}╔═══════════════════════════════════════════════╗${R}"
+        echo -e "  ${RD}║${R}  ${RD}✗ P4 GUARDIAN VETO${R}                          ${RD}║${R}"
+        echo -e "  ${RD}║${R}  ${DIM}Task rejected by constitutional gate${R}       ${RD}║${R}"
+        echo -e "  ${RD}╚═══════════════════════════════════════════════╝${R}"
+    else
+        # Show pipeline report even when inference is offline
+        echo -e "  ${DIM}Pipeline ran ${stages_fired:-0}/${stages_total:-8} stages (inference may be offline)${R}"
     fi
 
-    local RESPONSE=$(printf 'START_SESSION\t%d\nRECEIVE\t%s\t%d\nEND_SESSION\t%d\nSHUTDOWN\n' \
-        "$(date +%s)" "$ENRICHED_TASK" "$(date +%s)" "$(date +%s)" | \
-        BIZRA_ENABLE_OLLAMA_EXECUTE=1 \
-        BIZRA_OLLAMA_MODEL="${BIZRA_MODEL:-qwen2.5:3b}" \
-        timeout 60 "$BINARY" --user 1 --ihsan 9500 --state-dir "$STATE_DIR" --no-banner 2>/dev/null || true)
-
-    mission_result "$RESPONSE" "$task"
-
-    # Item 2.2 + 5.1: Update mission history + persist SEED
-    source "$VENV/bin/activate" 2>/dev/null && python3 -c "
-from core.living_memory.brain import LivingMemory
-from core.proof_engine.seed_calc import calculate_seed_reward
-from core.proof_engine.seed_ledger import append
-mem = LivingMemory().load()
-mem.update_after_mission('$task', 'P1', 'general', 0.95, 3)
-# Persist SEED
-reward = calculate_seed_reward(0.95, 0.95, 3, 200, True)
-if reward['net'] > 0:
-    append(reward['net'], 'mission: $task'[:50])
-" 2>/dev/null || true
+    # Show pipeline breakdown (stages only)
+    echo "$REPORT" | grep "^BIZRA_REPORT:" | sed 's/^BIZRA_REPORT://' | while IFS= read -r line; do
+        case "$line" in
+            *"✓"*|*"○"*) echo -e "  ${DIM}${line}${R}" ;;
+        esac
+    done
 }
 
 interactive() {
@@ -434,10 +451,10 @@ print('  💡 Mode: reactive → suggest → auto → partner')
                 echo -e "  ${G}P3 Artisan${R} → Smart File Management"
                 echo -e "  ${DIM}Target: $args${R}"
 
-                # Real file organization via Python skill
+                # Preview plan first
                 source "$VENV/bin/activate" 2>/dev/null
                 python3 -c "
-from core.skills.file_organizer import scan_directory, generate_plan, execute_plan, format_plan, format_result
+from core.skills.file_organizer import scan_directory, generate_plan, format_plan
 files = scan_directory('$args')
 if not files:
     print('  No files found in $args')
@@ -445,29 +462,14 @@ else:
     plan = generate_plan(files, '$args')
     print('  ' + format_plan(plan).replace(chr(10), chr(10) + '  '))
     print()
-    # Show plan and ask for confirmation
     print('  P4 Guardian: Approve file moves? [Y/n]')
 " 2>/dev/null
 
                 echo -ne "  ${G}بذرة${R} ${D}approve?${R} "
                 read -r confirm
                 if [ "$confirm" != "n" ] && [ "$confirm" != "N" ]; then
-                    local RESULT=$(python3 -c "
-from core.skills.file_organizer import scan_directory, generate_plan, execute_plan, format_result
-import json
-files = scan_directory('$args')
-plan = generate_plan(files, '$args')
-result = execute_plan(plan)
-print(format_result(result))
-# Save undo log
-with open('$STATE_DIR/undo_organize.json', 'w') as f:
-    json.dump(result['undo_log'], f)
-" 2>/dev/null)
-                    echo -e "  ${G}✓${R} $RESULT"
-                    echo -e "  ${DIM}Undo: saved to $STATE_DIR/undo_organize.json${R}"
-
-                    # Generate receipt via mission
-                    mission "Organized files in $args: $RESULT"
+                    # Run through FULL pipeline with file_management skill
+                    mission "Organize files in $args" "file_management"
                 else
                     echo -e "  ${DIM}Cancelled by user.${R}"
                 fi
@@ -493,7 +495,7 @@ except Exception as e:
     print('')
 " 2>/dev/null || true)
 
-                mission "Search the web and summarize findings about: $args. Provide factual, sourced information."
+                mission "Search the web and summarize findings about: $args. Provide factual, sourced information." "browse"
                 ;;
             desktop-exec|dx)
                 if [ -z "$args" ]; then
@@ -610,8 +612,8 @@ print(f'\n  Mode: reactive → suggest → auto → partner')
         ;;
     skills)      echo -e "  ${D}╔═══ SOVEREIGN SKILLS ═══╗${R}"; echo -e "  ${G}  organize${R} · ${G}browse${R} · ${G}scan${R} · ${G}mission${R} · ${G}teach${R}"; echo -e "  ${D}╚════════════════════════╝${R}" ;;
     scan)        scripts/bizra scan 2>/dev/null ;;
-    organize|o)  shift; mission "Organize and classify files in $*" ;;
-    browse|web)  shift; mission "Browse and extract: $*" ;;
+    organize|o)  shift; mission "Organize and classify files in $*" "file_management" ;;
+    browse|web)  shift; mission "Browse and extract: $*" "browse" ;;
     start)
         source "$VENV/bin/activate"
         echo -e "  ${G}Starting sovereign stack...${R}"
