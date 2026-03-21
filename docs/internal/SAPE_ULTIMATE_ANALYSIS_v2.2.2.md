@@ -1,3 +1,14 @@
+---
+> **DOCUMENT CLASSIFICATION: Architectural Exploration — AI-Assisted**
+>
+> This document was produced through AI-assisted collaborative analysis.
+> It represents architectural thinking and design exploration, NOT verified
+> test output or empirical measurement. Claims within should be validated
+> against the canonical codebase (`cargo test`, `pytest`, STATUS.md).
+>
+> For verified evidence, see: `artifacts/CANONICAL_SPEARPOINT_V1/`
+---
+
 # BIZRA Sovereign Organism: Ultimate SAPE Analysis
 ## Genesis Strict Synthesis v2.2.2 — Peak Masterpiece Evaluation
 

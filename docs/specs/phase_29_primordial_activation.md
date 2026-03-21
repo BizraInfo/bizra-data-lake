@@ -1,3 +1,14 @@
+---
+> **DOCUMENT CLASSIFICATION: Architectural Exploration — AI-Assisted**
+>
+> This document was produced through AI-assisted collaborative analysis.
+> It represents architectural thinking and design exploration, NOT verified
+> test output or empirical measurement. Claims within should be validated
+> against the canonical codebase (`cargo test`, `pytest`, STATUS.md).
+>
+> For verified evidence, see: `artifacts/CANONICAL_SPEARPOINT_V1/`
+---
+
 # Phase 29: Primordial Activation Blueprint
 
 > The unified activation sequence that wires Genesis, HRM, NorthStar, Guild/Quest, RSL, AgentDB, and the Proactive Engine into ONE sovereign cognitive pipeline — the peak masterpiece.

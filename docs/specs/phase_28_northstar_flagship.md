@@ -1,3 +1,14 @@
+---
+> **DOCUMENT CLASSIFICATION: Architectural Exploration — AI-Assisted**
+>
+> This document was produced through AI-assisted collaborative analysis.
+> It represents architectural thinking and design exploration, NOT verified
+> test output or empirical measurement. Claims within should be validated
+> against the canonical codebase (`cargo test`, `pytest`, STATUS.md).
+>
+> For verified evidence, see: `artifacts/CANONICAL_SPEARPOINT_V1/`
+---
+
 # Phase 28: NorthStar Flagship Cognitive Module
 
 > Makes Node0 the NorthStar for all future BIZRA nodes — golden gems, thought flows, bridge nodes, unified analysis.

@@ -1,3 +1,14 @@
+---
+> **DOCUMENT CLASSIFICATION: Architectural Exploration — AI-Assisted**
+>
+> This document was produced through AI-assisted collaborative analysis.
+> It represents architectural thinking and design exploration, NOT verified
+> test output or empirical measurement. Claims within should be validated
+> against the canonical codebase (`cargo test`, `pytest`, STATUS.md).
+>
+> For verified evidence, see: `artifacts/CANONICAL_SPEARPOINT_V1/`
+---
+
 # Phase 30: BIZRA DDAGI OS — System Definition
 
 > Verifies and codifies the complete definition of BIZRA as a Proactive Distributed Decentralized AGI Operating System where every human is a node, every node is a seed, and every seed has infinite potential.
