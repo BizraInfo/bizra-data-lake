@@ -48,6 +48,17 @@ Examples:
         help="Runtime mode",
     )
     parser.add_argument("--snr", type=float, default=0.95, help="SNR threshold")
+    parser.add_argument(
+        "--enable-autopoiesis",
+        action="store_true",
+        help="Enable the runtime autopoiesis loop",
+    )
+    parser.add_argument(
+        "--autopoiesis-cycle-seconds",
+        type=float,
+        default=60.0,
+        help="Autopoiesis cycle interval in seconds",
+    )
     parser.add_argument("--json", action="store_true", help="Output as JSON")
 
     args = parser.parse_args()
@@ -57,6 +68,8 @@ Examples:
         mode=RuntimeMode[args.mode],
         snr_threshold=args.snr,
         enable_autonomous_loop=(args.mode == "AUTONOMOUS"),
+        enable_autopoiesis=args.enable_autopoiesis,
+        autopoiesis_cycle_seconds=args.autopoiesis_cycle_seconds,
     )
 
     if args.command == "version":

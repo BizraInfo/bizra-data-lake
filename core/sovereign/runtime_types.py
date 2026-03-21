@@ -305,6 +305,10 @@ class RuntimeConfig:
     proactive_kernel_emit_events: bool = False
     proactive_kernel_event_topic: str = "pek.proof.block"
 
+    # Autopoiesis (opt-in runtime self-improvement loop)
+    enable_autopoiesis: bool = False
+    autopoiesis_cycle_seconds: float = 60.0
+
     # Phase 31: Cognitive Fusion Engine
     enable_cognitive_fusion: bool = True
     enable_memory_synthesizer: bool = True
@@ -347,6 +351,7 @@ class RuntimeConfig:
             enable_guardian_validation=False,
             enable_autonomous_loop=False,
             enable_proactive_kernel=False,
+            enable_autopoiesis=False,
             enable_zpk_preflight=False,
             enable_hrm=False,
             enable_northstar=False,
@@ -365,6 +370,7 @@ class RuntimeConfig:
         return cls(
             mode=RuntimeMode.STANDARD,
             enable_proactive_kernel=True,
+            enable_autopoiesis=False,
             proactive_kernel_cycle_seconds=10.0,
             proactive_kernel_min_confidence=0.74,
             proactive_kernel_min_auto_confidence=0.95,  # Very high → proposals only
@@ -380,6 +386,7 @@ class RuntimeConfig:
             mode=RuntimeMode.AUTONOMOUS,
             enable_autonomous_loop=True,
             enable_proactive_kernel=True,
+            enable_autopoiesis=True,
         )
 
 

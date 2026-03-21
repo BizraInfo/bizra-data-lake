@@ -57,3 +57,27 @@ async def test_run_mission_uses_runtime_mission_and_emits_canonical_fields(
     assert payload["signer_public_key_prefix"] == "abcd1234efgh5678"
     assert payload["fate_verdict"] == "approved"
     assert payload["hash_chain_ref"] == "f" * 64
+
+
+@pytest.mark.asyncio
+async def test_run_server_forwards_autopoiesis_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_mock = AsyncMock()
+    monkeypatch.setattr("core.sovereign.api.serve", serve_mock)
+
+    await cli_main.run_server(
+        "127.0.0.1",
+        8080,
+        ["k1"],
+        enable_autopoiesis=True,
+        autopoiesis_cycle_seconds=12.5,
+    )
+
+    serve_mock.assert_awaited_once_with(
+        "127.0.0.1",
+        8080,
+        ["k1"],
+        enable_autopoiesis=True,
+        autopoiesis_cycle_seconds=12.5,
+    )

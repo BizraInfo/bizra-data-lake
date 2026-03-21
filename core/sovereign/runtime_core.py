@@ -353,6 +353,11 @@ class SovereignRuntime:
         self._living_memory: Optional[object] = None  # LivingMemoryCore
         self._pek: Optional[object] = None  # ProactiveExecutionKernel
         self._zpk_bootstrap_result: Optional[object] = None
+        self._autopoietic_loop: Optional[object] = None  # AutopoieticLoop
+        self._learning_loop: Optional[object] = None  # LearningLoopOrchestrator
+        self._autopoiesis_task: Optional[asyncio.Task[Any]] = None
+        self._autopoiesis_learning_task: Optional[asyncio.Task[Any]] = None
+        self._autopoiesis_learning_source: str = "disabled"
 
         # Phase 58: Equalizer Agent + Unified Model Router
         self._equalizer_agent: Optional[object] = None  # EqualizerAgent
@@ -510,6 +515,7 @@ class SovereignRuntime:
         # Proactive Execution Kernel (PEK) overrides
         _set_bool("PEK_ENABLED", "enable_proactive_kernel")
         _set_bool("PEK_EMIT_PROOF_EVENTS", "proactive_kernel_emit_events")
+        _set_bool("BIZRA_AUTOPOIESIS_ENABLED", "enable_autopoiesis")
 
         pek_topic = os.getenv("PEK_PROOF_EVENT_TOPIC")
         if pek_topic:
@@ -521,6 +527,7 @@ class SovereignRuntime:
         _set_float("PEK_BASE_TAU", "proactive_kernel_base_tau")
         _set_float("PEK_AUTO_EXECUTE_TAU", "proactive_kernel_auto_execute_tau")
         _set_float("PEK_QUEUE_SILENT_TAU", "proactive_kernel_queue_silent_tau")
+        _set_float("BIZRA_AUTOPOIESIS_CYCLE_SECONDS", "autopoiesis_cycle_seconds")
         _set_float(
             "PEK_ATTENTION_BUDGET_CAPACITY",
             "proactive_kernel_attention_budget_capacity",
@@ -662,6 +669,150 @@ class SovereignRuntime:
                 "Runtime-owned organism stack unavailable; mission authority degraded",
                 exc_info=True,
             )
+
+    def _init_autopoiesis_stack(self) -> None:
+        """Wire the opt-in autopoiesis loop into the runtime lifecycle."""
+        self._autopoietic_loop = None
+        self._learning_loop = None
+        self._autopoiesis_learning_source = "disabled"
+
+        if not self.config.enable_autopoiesis:
+            self.logger.info("○ Autopoiesis disabled by config")
+            return
+
+        try:
+            from core.autopoiesis.loop import AutopoiesisConfig, AutopoieticLoop
+
+            node0_learning_loop = (
+                getattr(self._node0, "_learning_loop", None)
+                if self._node0 is not None
+                else None
+            )
+            node0_reflex_bridge = (
+                getattr(self._node0, "_reflex_bridge", None)
+                if self._node0 is not None
+                else None
+            )
+
+            learning_loop = node0_learning_loop
+            learning_source = "node0_shared"
+
+            if learning_loop is None:
+                from core.orchestration.learning_loop import LearningLoopOrchestrator
+
+                learning_loop = LearningLoopOrchestrator(
+                    reflex_bridge=node0_reflex_bridge,
+                )
+                learning_source = "standalone"
+
+            on_integration = None
+            if learning_loop is not None and hasattr(learning_loop, "on_candidate"):
+                on_integration = getattr(learning_loop, "on_candidate")
+
+            loop_config = AutopoiesisConfig(
+                ihsan_threshold=self.config.ihsan_threshold,
+                snr_threshold=self.config.snr_threshold,
+                cycle_interval_seconds=self.config.autopoiesis_cycle_seconds,
+            )
+            self._autopoietic_loop = AutopoieticLoop(
+                config=loop_config,
+                on_integration=on_integration,
+            )
+            self._learning_loop = learning_loop
+            self._autopoiesis_learning_source = learning_source
+            self.logger.info(
+                "✓ Autopoiesis wired (learning_source=%s, learning_loop=%s, cycle=%.1fs)",
+                learning_source,
+                learning_loop is not None,
+                self.config.autopoiesis_cycle_seconds,
+            )
+        except (
+            ImportError,
+            AttributeError,
+            RuntimeError,
+            TypeError,
+            ValueError,
+            OSError,
+        ):
+            self._autopoietic_loop = None
+            self._learning_loop = None
+            self._autopoiesis_learning_source = "unavailable"
+            self.logger.warning(
+                "Autopoiesis stack unavailable; runtime continuing without self-improvement",
+                exc_info=True,
+            )
+
+    def _task_is_running(self, task: asyncio.Task[Any] | None) -> bool:
+        """Return True when an asyncio task exists and has not completed."""
+        return task is not None and not task.done()
+
+    async def _run_autopoiesis_learning_loop(self) -> None:
+        """Periodically flush learning-loop training + compilation."""
+        cycle_seconds = max(1.0, float(self.config.autopoiesis_cycle_seconds))
+
+        while True:
+            try:
+                learning_loop = self._learning_loop
+                if learning_loop is not None and hasattr(
+                    learning_loop, "run_full_cycle"
+                ):
+                    cycle_result = getattr(learning_loop, "run_full_cycle")()
+                    if inspect.isawaitable(cycle_result):
+                        await cycle_result
+                await asyncio.sleep(cycle_seconds)
+            except asyncio.CancelledError:
+                raise
+            except (RuntimeError, AttributeError, TypeError, ValueError, OSError):
+                self.logger.warning("Autopoiesis learning cycle error", exc_info=True)
+                await asyncio.sleep(cycle_seconds)
+
+    def _start_autopoiesis_tasks(self) -> None:
+        """Start tracked background tasks for autopoiesis and learning."""
+        if not self.config.enable_autopoiesis or self._autopoietic_loop is None:
+            return
+        if self._task_is_running(self._autopoiesis_task):
+            return
+
+        self._autopoiesis_task = asyncio.create_task(
+            self._autopoietic_loop.start(),
+            name="runtime_autopoiesis_loop",
+        )
+
+        if self._learning_loop is not None and not self._task_is_running(
+            self._autopoiesis_learning_task
+        ):
+            self._autopoiesis_learning_task = asyncio.create_task(
+                self._run_autopoiesis_learning_loop(),
+                name="runtime_autopoiesis_learning",
+            )
+
+        self.logger.info(
+            "Autopoiesis background tasks started (learning_source=%s)",
+            self._autopoiesis_learning_source,
+        )
+
+    async def _stop_autopoiesis_tasks(self) -> None:
+        """Stop and await any running autopoiesis background tasks."""
+        loop_obj = self._autopoietic_loop
+        if loop_obj is not None and hasattr(loop_obj, "stop"):
+            try:
+                stop_result = getattr(loop_obj, "stop")()
+                if inspect.isawaitable(stop_result):
+                    await stop_result
+            except (RuntimeError, AttributeError, TypeError, ValueError, OSError):
+                self.logger.debug("Autopoiesis stop hook failed", exc_info=True)
+
+        for attr_name in ("_autopoiesis_learning_task", "_autopoiesis_task"):
+            task = getattr(self, attr_name)
+            if task is None:
+                continue
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+            setattr(self, attr_name, None)
 
     async def _preflight_mission(
         self,
@@ -898,10 +1049,12 @@ class SovereignRuntime:
 
         # Runtime-canonical organism authority — one organism, one Node0, one signer.
         await self._init_canonical_organism_stack()
+        self._init_autopoiesis_stack()
 
         self._initialized = True
         self._running = True
         self.metrics.started_at = datetime.now()
+        self._start_autopoiesis_tasks()
 
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME READY")
@@ -2830,6 +2983,8 @@ class SovereignRuntime:
         if self._autonomous_loop:
             self._autonomous_loop.stop()
 
+        await self._stop_autopoiesis_tasks()
+
         if self._pek and hasattr(self._pek, "stop"):
             try:
                 await self._pek.stop()
@@ -4124,6 +4279,34 @@ class SovereignRuntime:
             else {"running": False}
         )
 
+        autopoiesis_status: dict[str, Any] = {
+            "enabled": self.config.enable_autopoiesis,
+            "wired": self._autopoietic_loop is not None,
+            "task_running": self._task_is_running(self._autopoiesis_task),
+            "learning_task_running": self._task_is_running(
+                self._autopoiesis_learning_task
+            ),
+            "learning_source": self._autopoiesis_learning_source,
+        }
+        if self._autopoietic_loop is not None and hasattr(
+            self._autopoietic_loop, "get_status"
+        ):
+            try:
+                autopoiesis_status["loop"] = self._autopoietic_loop.get_status()
+            except (RuntimeError, ValueError, TypeError, OSError):
+                self.logger.debug(
+                    "Failed to collect autopoiesis loop status", exc_info=True
+                )
+        if self._learning_loop is not None and hasattr(
+            self._learning_loop, "get_status"
+        ):
+            try:
+                autopoiesis_status["learning_loop"] = self._learning_loop.get_status()
+            except (RuntimeError, ValueError, TypeError, OSError):
+                self.logger.debug(
+                    "Failed to collect autopoiesis learning status", exc_info=True
+                )
+
         # Impact / sovereignty progression
         sovereignty_info: dict[str, Any] = {"tracking": False}
         if self._impact_tracker:
@@ -4182,6 +4365,7 @@ class SovereignRuntime:
                 },
             },
             "autonomous": loop_status,
+            "autopoiesis": autopoiesis_status,
             "omega_point": omega_status,
             "memory": memory_status,
             "sovereignty": sovereignty_info,

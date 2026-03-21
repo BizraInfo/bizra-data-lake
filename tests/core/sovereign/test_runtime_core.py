@@ -140,6 +140,10 @@ class TestInit:
         assert rt._omega is None
         assert rt._living_memory is None
         assert rt._pek is None
+        assert rt._autopoietic_loop is None
+        assert rt._learning_loop is None
+        assert rt._autopoiesis_task is None
+        assert rt._autopoiesis_learning_task is None
         assert rt._zpk_bootstrap_result is None
 
     def test_state_flags_initial(self, rt: SovereignRuntime) -> None:
@@ -464,6 +468,22 @@ class TestApplyEnvOverrides:
         finally:
             os.environ.pop("PEK_PROOF_EVENT_TOPIC", None)
 
+    def test_autopoiesis_enabled_env_override(self, rt: SovereignRuntime) -> None:
+        os.environ["BIZRA_AUTOPOIESIS_ENABLED"] = "true"
+        try:
+            rt._apply_env_overrides()
+            assert rt.config.enable_autopoiesis is True
+        finally:
+            os.environ.pop("BIZRA_AUTOPOIESIS_ENABLED", None)
+
+    def test_autopoiesis_cycle_seconds_env_override(self, rt: SovereignRuntime) -> None:
+        os.environ["BIZRA_AUTOPOIESIS_CYCLE_SECONDS"] = "42.5"
+        try:
+            rt._apply_env_overrides()
+            assert rt.config.autopoiesis_cycle_seconds == pytest.approx(42.5)
+        finally:
+            os.environ.pop("BIZRA_AUTOPOIESIS_CYCLE_SECONDS", None)
+
     def test_no_env_vars_set_leaves_defaults(self, rt: SovereignRuntime) -> None:
         """When no env vars are present, config should stay at defaults."""
         # Wipe all potentially conflicting env vars
@@ -481,6 +501,8 @@ class TestApplyEnvOverrides:
             "PEK_PROOF_EVENT_TOPIC",
             "PEK_CYCLE_SECONDS",
             "PEK_MIN_CONFIDENCE",
+            "BIZRA_AUTOPOIESIS_ENABLED",
+            "BIZRA_AUTOPOIESIS_CYCLE_SECONDS",
         ]
         saved = {}
         for k in keys:
@@ -2394,6 +2416,132 @@ class TestCanonicalIdentityBinding:
         assert kwargs["signer_public_key_prefix"] == "abcd1234efgh5678"
         assert rt._organism is mock_organism
         assert rt._node0 is mock_organism._node0
+
+
+class TestAutopoiesisLifecycle:
+    """Focused tests for runtime-owned autopoiesis wiring and shutdown."""
+
+    def test_init_autopoiesis_stack_reuses_node0_learning_loop(
+        self, rt: SovereignRuntime
+    ) -> None:
+        rt.config.enable_autopoiesis = True
+        rt.config.autopoiesis_cycle_seconds = 17.5
+
+        node0_learning_loop = MagicMock()
+        node0_learning_loop.on_candidate = MagicMock()
+        rt._node0 = SimpleNamespace(
+            _learning_loop=node0_learning_loop,
+            _reflex_bridge=MagicMock(),
+        )
+
+        captured: dict[str, Any] = {}
+
+        class _FakeAutopoieticLoop:
+            def __init__(self, config: object, on_integration: object = None) -> None:
+                captured["config"] = config
+                captured["on_integration"] = on_integration
+
+            async def start(self) -> None:
+                return None
+
+            async def stop(self) -> None:
+                return None
+
+            def get_status(self) -> dict[str, Any]:
+                return {"running": False}
+
+        with patch("core.autopoiesis.loop.AutopoieticLoop", _FakeAutopoieticLoop):
+            rt._init_autopoiesis_stack()
+
+        assert rt._learning_loop is node0_learning_loop
+        assert rt._autopoiesis_learning_source == "node0_shared"
+        assert captured["on_integration"] is node0_learning_loop.on_candidate
+        assert captured["config"].cycle_interval_seconds == pytest.approx(17.5)
+
+    def test_status_includes_autopoiesis_details(self, rt: SovereignRuntime) -> None:
+        rt.config.enable_autopoiesis = True
+        rt._autopoietic_loop = MagicMock()
+        rt._autopoietic_loop.get_status.return_value = {
+            "running": True,
+            "paused": False,
+        }
+        rt._learning_loop = MagicMock()
+        rt._learning_loop.get_status.return_value = {"enabled": True}
+        rt._autopoiesis_learning_source = "node0_shared"
+
+        autopoiesis_task = MagicMock()
+        autopoiesis_task.done.return_value = False
+        learning_task = MagicMock()
+        learning_task.done.return_value = False
+        rt._autopoiesis_task = autopoiesis_task
+        rt._autopoiesis_learning_task = learning_task
+
+        status = rt.status()["autopoiesis"]
+
+        assert status["enabled"] is True
+        assert status["wired"] is True
+        assert status["task_running"] is True
+        assert status["learning_task_running"] is True
+        assert status["learning_source"] == "node0_shared"
+        assert status["loop"] == {"running": True, "paused": False}
+        assert status["learning_loop"] == {"enabled": True}
+
+    @pytest.mark.asyncio
+    async def test_start_autopoiesis_tasks_starts_background_loops(
+        self, rt: SovereignRuntime
+    ) -> None:
+        rt.config.enable_autopoiesis = True
+        rt.config.autopoiesis_cycle_seconds = 0.01
+
+        started = asyncio.Event()
+        learned = asyncio.Event()
+
+        class _FakeLoop:
+            async def start(self) -> None:
+                started.set()
+                await asyncio.sleep(60)
+
+            async def stop(self) -> None:
+                return None
+
+        class _FakeLearningLoop:
+            async def run_full_cycle(self) -> dict[str, Any]:
+                learned.set()
+                return {"training_executed": False}
+
+        rt._autopoietic_loop = _FakeLoop()
+        rt._learning_loop = _FakeLearningLoop()
+
+        rt._start_autopoiesis_tasks()
+
+        await asyncio.wait_for(started.wait(), timeout=1.0)
+        await asyncio.wait_for(learned.wait(), timeout=1.0)
+
+        assert rt._autopoiesis_task is not None
+        assert rt._autopoiesis_learning_task is not None
+
+        await rt._stop_autopoiesis_tasks()
+        assert rt._autopoiesis_task is None
+        assert rt._autopoiesis_learning_task is None
+
+    @pytest.mark.asyncio
+    async def test_shutdown_stops_autopoiesis_tasks(self, rt: SovereignRuntime) -> None:
+        rt._running = True
+        loop_obj = SimpleNamespace(stop=AsyncMock())
+        rt._autopoietic_loop = loop_obj
+
+        async def _sleep_forever() -> None:
+            await asyncio.sleep(60)
+
+        rt._autopoiesis_task = asyncio.create_task(_sleep_forever())
+        rt._autopoiesis_learning_task = asyncio.create_task(_sleep_forever())
+
+        await rt.shutdown()
+
+        loop_obj.stop.assert_awaited_once()
+        assert rt._autopoiesis_task is None
+        assert rt._autopoiesis_learning_task is None
+        assert rt._running is False
 
 
 # ---------------------------------------------------------------------------

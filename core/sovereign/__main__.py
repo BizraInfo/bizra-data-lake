@@ -372,11 +372,24 @@ async def run_query(query: str, json_output: bool = False) -> None:
                 sys.exit(1)
 
 
-async def run_server(host: str, port: int, api_keys: Optional[list] = None) -> None:
+async def run_server(
+    host: str,
+    port: int,
+    api_keys: Optional[list] = None,
+    *,
+    enable_autopoiesis: bool = False,
+    autopoiesis_cycle_seconds: float | None = None,
+) -> None:
     """Run API server."""
     from .api import serve
 
-    await serve(host, port, api_keys)
+    await serve(
+        host,
+        port,
+        api_keys,
+        enable_autopoiesis=enable_autopoiesis,
+        autopoiesis_cycle_seconds=autopoiesis_cycle_seconds,
+    )
 
 
 async def run_mission(
@@ -810,6 +823,16 @@ Examples:
     serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind")
     serve_parser.add_argument("--port", type=int, default=8080, help="Port to bind")
     serve_parser.add_argument("--api-key", action="append", help="API keys")
+    serve_parser.add_argument(
+        "--enable-autopoiesis",
+        action="store_true",
+        help="Enable the runtime autopoiesis loop",
+    )
+    serve_parser.add_argument(
+        "--autopoiesis-cycle-seconds",
+        type=float,
+        help="Override the autopoiesis cycle interval in seconds",
+    )
 
     # Status command
     status_parser = subparsers.add_parser("status", help="Show system status")
@@ -967,7 +990,15 @@ Examples:
     elif args.command == "mission":
         asyncio.run(run_mission(args.text, json_output=args.json))
     elif args.command == "serve":
-        asyncio.run(run_server(args.host, args.port, args.api_key))
+        asyncio.run(
+            run_server(
+                args.host,
+                args.port,
+                args.api_key,
+                enable_autopoiesis=args.enable_autopoiesis,
+                autopoiesis_cycle_seconds=args.autopoiesis_cycle_seconds,
+            )
+        )
     elif args.command == "status":
         asyncio.run(run_status(args.json))
     elif args.command == "test":

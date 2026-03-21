@@ -6450,6 +6450,9 @@ async def serve(
     port: int = 8080,
     api_keys: Optional[list[str]] = None,
     use_fastapi: bool = True,
+    *,
+    enable_autopoiesis: bool = False,
+    autopoiesis_cycle_seconds: float | None = None,
 ) -> None:
     """
     Run the Sovereign API server.
@@ -6462,7 +6465,12 @@ async def serve(
     """
     from .runtime import RuntimeConfig, SovereignRuntime
 
-    config = RuntimeConfig(autonomous_enabled=True)
+    config = RuntimeConfig(
+        autonomous_enabled=True,
+        enable_autopoiesis=enable_autopoiesis,
+    )
+    if autopoiesis_cycle_seconds is not None:
+        config.autopoiesis_cycle_seconds = autopoiesis_cycle_seconds
     resolved_api_keys = _resolved_api_keys(api_keys)
     _ensure_production_auth_prerequisites(
         use_fastapi=use_fastapi,
