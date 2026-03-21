@@ -227,7 +227,7 @@ spec:
                 restartPolicy: Never
                 containers:
                   - name: chaos-runner
-                    image: ghcr.io/chaos-mesh/chaos-mesh:latest
+                    image: ghcr.io/chaos-mesh/chaos-mesh:2.7.0
                     command:
                       - /bin/sh
                       - -c

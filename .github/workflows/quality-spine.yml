@@ -46,7 +46,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   ratchet:
     name: "📈 Coverage Ratchet"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       actual_coverage: ${{ steps.ratchet.outputs.actual_coverage }}
       current_floor: ${{ steps.ratchet.outputs.current_floor }}
@@ -116,7 +116,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   trend:
     name: "📊 Quality Trend"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ratchet]
     outputs:
       direction: ${{ steps.analyze.outputs.direction }}
@@ -167,7 +167,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   enforce:
     name: "🔒 Spine Enforce"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ratchet, trend]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
@@ -206,7 +206,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   pr-summary:
     name: "📋 PR Summary"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ratchet, trend]
     if: github.event_name == 'pull_request'
     steps:
@@ -247,7 +247,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   changelog:
     name: "📝 Changelog"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4

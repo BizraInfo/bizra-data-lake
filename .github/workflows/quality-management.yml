@@ -43,7 +43,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   coverage-ratchet:
     name: "📈 Coverage Ratchet"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       actual_coverage: ${{ steps.ratchet.outputs.actual_coverage }}
       current_floor: ${{ steps.ratchet.outputs.current_floor }}
@@ -123,7 +123,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   quality-trend:
     name: "📊 Quality Trend"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [coverage-ratchet]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
@@ -176,7 +176,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   pr-quality-summary:
     name: "📋 PR Quality Summary"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [coverage-ratchet, quality-trend]
     if: github.event_name == 'pull_request'
     steps:
@@ -216,7 +216,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   release-changelog:
     name: "📝 Release Changelog"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
