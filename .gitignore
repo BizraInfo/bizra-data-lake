@@ -290,3 +290,9 @@ replace_script.py
 
 # ── Corpus data (contains personal metadata) ───────────────
 artifacts/corpus/
+
+# ── Spearpoint runtime state (contains credentials) ──────────
+artifacts/CANONICAL_SPEARPOINT_V1/_runtime_state/
+
+# ── Security audit artifacts (credential reports) ─────────────
+security_audit/
