@@ -33,6 +33,7 @@ class MissionExecutor:
         self.stages_fired = {}
         self.receipt_id = ""
         self.seed_earned = 0
+        self.response_text = ""
 
     def execute(self, task: str, skill: str = None) -> Dict[str, Any]:
         """Run the FULL pipeline. Returns complete mission report."""
@@ -52,6 +53,9 @@ class MissionExecutor:
 
         # Stage 2: Ollama Inference via bizra-node
         node_result = self._stage_inference(task, context)
+        # Unescape \\n from tab-delimited protocol back to real newlines
+        raw_text = node_result.get("inference_text", "")
+        self.response_text = raw_text.replace("\\n", "\n") if raw_text else ""
         report["stages"]["inference"] = {
             "fired": node_result.get("inference_executed") == "true",
             "model": node_result.get("inference_model", ""),
@@ -99,6 +103,7 @@ class MissionExecutor:
         report["duration_s"] = round(report["completed_at"] - report["started_at"], 2)
         report["receipt_id"] = self.receipt_id
         report["seed_earned"] = self.seed_earned
+        report["response_text"] = self.response_text
         report["stages_fired"] = sum(
             1 for s in report["stages"].values() if s.get("fired")
         )
@@ -291,6 +296,22 @@ class MissionExecutor:
             mem = LivingMemory().load()
             domain = skill or "general"
             mem.update_after_mission(task[:100], "P1", domain, 0.95, 3)
+
+            # Tulving: episodic memory needs the actual event, not just metadata
+            if self.response_text:
+                mem.episodic.events.append(
+                    {
+                        "ts": int(time.time() * 1000),
+                        "task": task[:100],
+                        "response": self.response_text[:500],
+                        "receipt_id": self.receipt_id[:16],
+                    }
+                )
+                # Keep episodic window bounded (last 100 events)
+                if len(mem.episodic.events) > 100:
+                    mem.episodic.events = mem.episodic.events[-100:]
+                mem.save()
+
             return True
         except Exception:
             return False

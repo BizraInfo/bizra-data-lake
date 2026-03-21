@@ -22,8 +22,6 @@ use bizra_hooks::IhsanScore;
 use bizra_inference::{BackendConfig, InferenceGateway, InferenceRequest, OllamaBackend};
 use bizra_inference::{ModelTier, TaskComplexity};
 use bizra_memory::types::{AtomKind, Confidence};
-use bizra_mission::mission::Mission;
-use bizra_mission::receipt::MissionReceipt;
 use bizra_mission::state::MissionState;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -281,14 +279,27 @@ fn handle_ihsan(state: &mut NodeInternals<'_>, score: u16) -> Response {
 
 fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) -> Response {
     *state.message_counter += 1;
-    let msg_seq = *state.message_counter as u32;
 
     // Create a saga to track this request through the pipeline.
     let saga_owner = bizra_hooks::ComponentId::from_name("node0", "1.0.0");
     let saga_id = state.saga_registry.create(saga_owner, timestamp);
 
-    let msg = Message::inbound(MessageId::new(msg_seq, 1), content, timestamp, *state.ihsan);
-    let result = state.runtime.receive(msg, timestamp);
+    // ── GOVERNED MISSION LIFECYCLE (Phase 85 unification) ─────────
+    // Single execution path: every RECEIVE flows through advance!() macro.
+    // No more inline Mission with `let _ =` silenced transitions.
+    let available_models = crate::mission_bridge::extract_model_names(state.resource_manifest);
+    let mission_result = crate::mission_bridge::execute_governed_mission(
+        state.runtime,
+        state.ihsan,
+        content,
+        timestamp,
+        &available_models,
+        *state.last_receipt_id,
+        state.signing_key,
+    );
+
+    // Extract runtime response (may be None if preflight failed)
+    let result = mission_result.runtime_response.as_ref();
 
     let inference_execution = maybe_execute_inference(content, timestamp);
 
@@ -329,7 +340,8 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
             }
 
             // Gate phase: advance through constitutional check
-            if !execution_failed && result.guardian_approved {
+            let guardian_ok = result.map(|r| r.guardian_approved).unwrap_or(false);
+            if !execution_failed && guardian_ok {
                 saga.mark_gated();
                 saga.advance(ihsan, timestamp); // Drafted → Gated
                 saga.advance(ihsan, timestamp); // Gated → Attested
@@ -345,90 +357,66 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
         }
     }
 
-    // ── Wire W4: Saga completion → Mission lifecycle → Receipt chain ──
-    // Every RECEIVE command that passes Guardian produces a signed,
-    // hash-chained receipt. This is the proof pyramid closure.
-    let mut receipt_id_hex = String::new();
-    if result.guardian_approved {
-        let input_hash: [u8; 32] = blake3::hash(content.as_bytes()).into();
-        let mut mission = Mission::new(input_hash, timestamp);
+    // ── Receipt chain update (signing already done in governed bridge) ──
+    let receipt = &mission_result.receipt;
+    let receipt_id_hex = receipt.id_hex();
+    *state.last_receipt_id = Some(receipt.receipt_id);
 
-        // Walk the mission through its governed lifecycle
-        let _ = mission.transition(MissionState::Queued, timestamp + 1, "saga completed");
-        let _ = mission.transition(MissionState::Routing, timestamp + 2, "intent classified");
-
-        if let Some(model) = inference_execution.model() {
-            mission.chosen_model = Some(model);
-        }
-
-        let _ = mission.transition(MissionState::Running, timestamp + 3, "inference");
-        mission.ihsan_score = Some(state.ihsan.as_f64() as f32);
-        mission.guardian_approved = Some(true);
-        let _ = mission.transition(MissionState::Scoring, timestamp + 4, "scored");
-        let _ = mission.transition(MissionState::Persisting, timestamp + 5, "persisting");
-        let _ = mission.complete(timestamp + 6);
-
-        // Generate receipt chained to previous
-        let mut receipt = MissionReceipt::from_mission(&mission, *state.last_receipt_id);
-
-        // Sign with node's Ed25519 key — Amanah enforcement
-        if let Some(key) = state.signing_key {
-            receipt.sign(key);
-        }
-
-        // Amanah gate: warn if receipt is unsigned (key missing)
-        if let Err(reason) = receipt.require_signed() {
-            eprintln!("  WARNING: {reason}");
-        }
-
-        receipt_id_hex = receipt.id_hex();
-        *state.last_receipt_id = Some(receipt.receipt_id);
-
-        // ── Wire WBS 2.1: Commit episode to ExperienceLedger ──
-        // Every receipt-producing mission also records a cognitive episode.
-        // Tulving (1972): episodic memory is the substrate of learning.
-        let actions = vec![bizra_core::EpisodeAction {
-            action_type: "inference".to_string(),
-            description: content.to_string(),
-            success: true,
-            duration_us: 0,
-        }];
-        let impact = bizra_core::EpisodeImpact {
-            snr_score: 0.95,
-            ihsan_score: state.ihsan.as_f64(),
-            snr_ok: true,
-            user_feedback: None,
-            tokens_used: 0,
-            efficiency_score: 0.0,
-        };
-        state.experience_ledger.commit(
-            content.to_string(),
-            receipt_id_hex.clone(),
-            1,
-            actions,
-            impact,
-            None,
-            None,
-        );
-    }
+    // ── Wire WBS 2.1: Commit episode to ExperienceLedger ──────────
+    // Tulving (1972): episodic memory is the substrate of learning.
+    // Now fires for ALL governed missions (not just guardian-approved).
+    let ep_success = mission_result.mission.state == MissionState::Complete;
+    let actions = vec![bizra_core::EpisodeAction {
+        action_type: "inference".to_string(),
+        description: content.to_string(),
+        success: ep_success,
+        duration_us: 0,
+    }];
+    let impact = bizra_core::EpisodeImpact {
+        snr_score: 0.95,
+        ihsan_score: state.ihsan.as_f64(),
+        snr_ok: true,
+        user_feedback: None,
+        tokens_used: 0,
+        efficiency_score: 0.0,
+    };
+    state.experience_ledger.commit(
+        content.to_string(),
+        receipt_id_hex.clone(),
+        1,
+        actions,
+        impact,
+        None,
+        None,
+    );
 
     let saga_id_str = saga_id.map(|s| format!("{}", s.0)).unwrap_or_default();
 
+    // Extract runtime response fields (governed bridge may return None on preflight failure)
+    let agents_consulted = result.map(|r| r.agents_consulted).unwrap_or(0);
+    let fragments_extracted = result.map(|r| r.fragments_extracted).unwrap_or(0);
+    let guardian_approved = result.map(|r| r.guardian_approved).unwrap_or(false);
+    let knows_me = result.map(|r| r.knows_me_score).unwrap_or(0.0);
+    let decision_mode = result.map(|r| r.decision_mode.as_str()).unwrap_or("none");
+    let action_hash = result.map(|r| r.action_hash.as_str()).unwrap_or("");
+    let reflex_hit = result.map(|r| r.reflex_hit).unwrap_or(false);
+    let action_id = result.and_then(|r| r.action_id.as_deref()).unwrap_or("");
+
     Response::ok(vec![
         ("received", "true".to_string()),
-        ("agents_consulted", format!("{}", result.agents_consulted)),
-        (
-            "fragments_extracted",
-            format!("{}", result.fragments_extracted),
-        ),
-        ("guardian_approved", format!("{}", result.guardian_approved)),
-        ("knows_me", format!("{:.4}", result.knows_me_score)),
-        ("decision_mode", result.decision_mode.as_str().to_string()),
-        ("action_hash", result.action_hash),
-        ("reflex_hit", format!("{}", result.reflex_hit)),
-        ("action_id", result.action_id.unwrap_or_default()),
+        ("governed", "true".to_string()),
+        ("mission_state", format!("{:?}", mission_result.mission.state)),
+        ("agents_consulted", format!("{}", agents_consulted)),
+        ("fragments_extracted", format!("{}", fragments_extracted)),
+        ("guardian_approved", format!("{}", guardian_approved)),
+        ("knows_me", format!("{:.4}", knows_me)),
+        ("decision_mode", decision_mode.to_string()),
+        ("action_hash", action_hash.to_string()),
+        ("reflex_hit", format!("{}", reflex_hit)),
+        ("action_id", action_id.to_string()),
         ("saga_id", saga_id_str),
         ("receipt_id", receipt_id_hex),
+        ("receipt_chained", format!("{}", receipt.previous_receipt_hash.is_some())),
         (
             "inference_executed",
             format!("{}", inference_execution.is_executed()),
@@ -448,13 +436,26 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
             "inference_error",
             inference_execution.error().unwrap_or_default(),
         ),
+        (
+            "inference_text",
+            inference_execution
+                .response_text()
+                .unwrap_or_default()
+                // Collapse newlines/tabs — tab-delimited protocol
+                .replace('\n', "\\n")
+                .replace('\t', " "),
+        ),
     ])
 }
 
 #[derive(Debug)]
 enum InferenceExecution {
     Disabled,
-    Succeeded { model: String, ihsan_score: f64 },
+    Succeeded {
+        model: String,
+        ihsan_score: f64,
+        response_text: String,
+    },
     Failed { error: String },
 }
 
@@ -477,6 +478,13 @@ impl InferenceExecution {
         }
     }
 
+    fn response_text(&self) -> Option<String> {
+        match self {
+            Self::Succeeded { response_text, .. } => Some(response_text.clone()),
+            _ => None,
+        }
+    }
+
     fn error(&self) -> Option<String> {
         match self {
             Self::Failed { error } => Some(error.clone()),
@@ -491,12 +499,14 @@ fn maybe_execute_inference(content: &str, timestamp: u64) -> InferenceExecution 
     }
 
     match execute_with_ollama_gateway(content, timestamp) {
-        Ok((model, ihsan_score)) => InferenceExecution::Succeeded { model, ihsan_score },
+        Ok((model, ihsan_score, response_text)) => {
+            InferenceExecution::Succeeded { model, ihsan_score, response_text }
+        }
         Err(error) => InferenceExecution::Failed { error },
     }
 }
 
-fn execute_with_ollama_gateway(content: &str, timestamp: u64) -> Result<(String, f64), String> {
+fn execute_with_ollama_gateway(content: &str, timestamp: u64) -> Result<(String, f64, String), String> {
     let endpoint = std::env::var("BIZRA_OLLAMA_ENDPOINT")
         .unwrap_or_else(|_| "http://localhost:11434".to_string());
     let model = std::env::var("BIZRA_OLLAMA_MODEL").unwrap_or_else(|_| "llama3.2".to_string());
@@ -536,7 +546,7 @@ fn execute_with_ollama_gateway(content: &str, timestamp: u64) -> Result<(String,
             .map_err(|e| format!("inference_error:{e}"))?;
 
         let score = InferenceGateway::estimate_ihsan_score(&response);
-        Ok((response.model, score))
+        Ok((response.model, score, response.text))
     })
 }
 

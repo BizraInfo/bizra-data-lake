@@ -306,17 +306,26 @@ print('BIZRA_REPORT:' + format_report(report))
     local guardian=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stages',{}).get('inference',{}).get('guardian',''))" 2>/dev/null || true)
     local model=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stages',{}).get('inference',{}).get('model',''))" 2>/dev/null || true)
     local ihsan=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stages',{}).get('inference',{}).get('ihsan',''))" 2>/dev/null || true)
+    local response_text=$(echo "$JSON_LINE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('response_text',''))" 2>/dev/null || true)
 
     if [ -n "$receipt_id" ] && [ "$receipt_id" != "" ]; then
+        # Show the LLM response first — this is what the user asked for
+        if [ -n "$response_text" ] && [ "$response_text" != "" ]; then
+            echo ""
+            echo -e "  ${B}Response:${R}"
+            echo "$response_text" | fold -s -w 72 | while IFS= read -r line; do
+                echo -e "  ${line}"
+            done
+            echo ""
+        fi
+
         echo -e "  ${G}╔═══════════════════════════════════════════════╗${R}"
         echo -e "  ${G}║${R}  ${GN}✓${R} ${B}Mission Complete${R}  ${DIM}(${stages_fired}/${stages_total} stages)${R}     ${G}║${R}"
         echo -e "  ${G}╠═══════════════════════════════════════════════╣${R}"
-        echo -e "  ${G}║${R}  ${DIM}Task:${R}     ${task:0:38}  ${G}║${R}"
         [ -n "$model" ] && [ "$model" != "" ] && \
         echo -e "  ${G}║${R}  ${DIM}Model:${R}    ${model} ${DIM}|${R} Ihsan ${PU}${ihsan}${R}          ${G}║${R}"
         echo -e "  ${G}║${R}  ${DIM}Receipt:${R}  ${BL}${receipt_id:0:24}${R}${DIM}...${R}  ${G}║${R}"
-        echo -e "  ${G}║${R}  ${DIM}SEED:${R}     ${D}+${seed_earned}${R}  ${G}║${R}"
-        echo -e "  ${G}║${R}  ${DIM}Duration:${R} ${duration}s  ${G}║${R}"
+        echo -e "  ${G}║${R}  ${DIM}SEED:${R}     ${D}+${seed_earned}${R} ${DIM}|${R} ${duration}s  ${G}║${R}"
         echo -e "  ${G}╚═══════════════════════════════════════════════╝${R}"
     elif [ "$guardian" = "false" ]; then
         echo -e "  ${RD}╔═══════════════════════════════════════════════╗${R}"
@@ -339,6 +348,16 @@ print('BIZRA_REPORT:' + format_report(report))
 interactive() {
     banner
     status_bar
+
+    # Maturana: autopoiesis — warm FAISS in background so first mission fires 5/8 stages
+    source "$VENV/bin/activate" 2>/dev/null
+    python3 -c "
+from core.proof_engine.faiss_search import load_index, _get_encoder
+load_index()
+_get_encoder()
+" &>/dev/null &
+    FAISS_PID=$!
+
     briefing
     echo ""
     echo -e "  ${DIM}Commands: mission, organize, browse, scan, agents, skills, status, briefing, teach, receipts, help, quit${R}"
