@@ -2,7 +2,7 @@
   "project": "BIZRA-DATA-LAKE",
   "created": "2026-02-10T01:15:06.460894+00:00",
   "last_updated": "2026-03-14T09:07:21.144595+00:00",
-  "chain_length": 4,
+  "chain_length": 10,
   "latest_receipt": "receipt-1773479241.json",
   "latest_chain_hash": "2fa6465d45546f6bf7a9db3e20d3fddc3b79fe48f81e54ddc3a4af1be839e586",
   "genesis_hash": "5aa9996c2e878adcd06dc97db984e80516320d7ebdf01fbfdfb65cb66ed70cf2",
@@ -42,8 +42,16 @@
       "evidence_hash": "b72a0b369742ec36c25f2f96d7829ac28e03883fc359f7f469a1aa92068a4d01",
       "confidence": "Strong",
       "receipt_file": "receipt-1773503081.json"
+    },
+    {
+      "id": "v0.88.1-organism-release",
+      "hash": "5f40748340c501cf7f3e0a269b4c5cd0f88b3ff88689eaf7474b45bc8e42d189",
+      "chain_position": 10,
+      "date": "2026-03-22T05:30:00Z",
+      "confidence": "Strong"
     }
   ],
   "latest_hash": "b72a0b369742ec36c25f2f96d7829ac28e03883fc359f7f469a1aa92068a4d01",
-  "total_receipts": 5
+  "total_receipts": 5,
+  "latest": "5f40748340c501cf7f3e0a269b4c5cd0f88b3ff88689eaf7474b45bc8e42d189"
 }

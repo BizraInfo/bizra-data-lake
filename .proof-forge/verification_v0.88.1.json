@@ -1,0 +1,29 @@
+{
+  "session": "v0.88.1-organism",
+  "date": "2026-03-22",
+  "verification": {
+    "rust_tests": {
+      "passed": 1517,
+      "failed": 0
+    },
+    "pipeline": {
+      "stages": 8,
+      "seed_balance": 14,
+      "chain_head": "9d625782ebb39af3b96c556a9b6e5feb"
+    },
+    "autopoiesis": {
+      "wired": true,
+      "source": "standalone"
+    },
+    "security": {
+      "secrets_in_code": 0,
+      "secrets_in_history": 0,
+      "repo_visibility": "PUBLIC"
+    },
+    "repo": {
+      "commits": 593,
+      "files": 7280,
+      "tag": "v0.88.1"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "receipt_id": "v0.88.1-organism-release",
+  "timestamp": "2026-03-22T05:30:00Z",
+  "session": "v0.88.1 \u2014 The Organism Release",
+  "description": "Unified 8-stage pipeline, governed RSI wired, bus seam closed, security audited, repo PUBLIC",
+  "commits": 17,
+  "files_changed": 224,
+  "lines_added": 7657,
+  "lines_removed": 603,
+  "verification": {
+    "rust_tests": {
+      "passed": 1517,
+      "failed": 0
+    },
+    "pipeline": {
+      "stages": 8,
+      "seed_balance": 14,
+      "chain_head": "9d625782ebb39af3b96c556a9b6e5feb"
+    },
+    "autopoiesis": {
+      "wired": true,
+      "source": "standalone"
+    },
+    "security": {
+      "secrets_in_code": 0,
+      "secrets_in_history": 0,
+      "repo_visibility": "PUBLIC"
+    },
+    "repo": {
+      "commits": 593,
+      "files": 7280,
+      "tag": "v0.88.1"
+    }
+  },
+  "confidence_level": 4,
+  "confidence_label": "Strong",
+  "confidence_basis": "1,517 Rust tests + pipeline live + autopoiesis wired + security 8-point gate",
+  "key_artifacts": [
+    "core/sovereign/mission_executor.py \u2014 8-stage unified pipeline",
+    "core/bus/event_publisher.py \u2014 bus dialect unification",
+    "bizra-omega/bizra-node/src/handler.rs \u2014 inference_text + system prompt",
+    "core/sovereign/runtime_core.py \u2014 autopoiesis lifecycle wiring",
+    "README.md \u2014 Verify It Yourself (8 commands)"
+  ],
+  "previous_receipt_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "receipt_hash": "5f40748340c501cf7f3e0a269b4c5cd0f88b3ff88689eaf7474b45bc8e42d189",
+  "chain_hash": "d75aa766247a9ad1d228c1fc27d39dd43acaf3106b8cf67510c1d0ec2da3e97e",
+  "chain_position": 10
+}
