@@ -53,7 +53,15 @@ async def publish_topic_event(
 
             result = publish(Event(topic=topic, payload=payload))
         else:
-            result = publish(topic, payload)
+            publish_topic: Any = topic
+            try:
+                from core.bus.subscribers import EventType
+
+                if isinstance(topic, str):
+                    publish_topic = EventType(topic)
+            except (ImportError, ValueError):
+                publish_topic = topic
+            result = publish(publish_topic, payload)
 
         if inspect.isawaitable(result):
             await result
@@ -67,3 +75,24 @@ async def publish_topic_event(
         return
 
     raise TypeError("Event bus must expose publish() or emit()")
+
+
+class FanoutEventBus:
+    """Emit one topic/payload event into multiple heterogeneous buses."""
+
+    def __init__(self, *buses: Any) -> None:
+        self._buses = tuple(bus for bus in buses if bus is not None)
+
+    async def emit(self, topic: str, payload: dict[str, Any]) -> None:
+        for bus in self._buses:
+            await publish_topic_event(bus, topic, payload)
+
+
+def combine_event_buses(*buses: Any) -> Any:
+    """Return one bus-like object spanning all provided buses."""
+    active = tuple(bus for bus in buses if bus is not None)
+    if not active:
+        return None
+    if len(active) == 1:
+        return active[0]
+    return FanoutEventBus(*active)

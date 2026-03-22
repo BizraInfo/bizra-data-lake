@@ -2408,12 +2408,14 @@ class TestCanonicalIdentityBinding:
             "core.sovereign.organism.SovereignOrganism.boot",
             new=AsyncMock(return_value=mock_organism),
         ) as mock_boot:
+            rt._event_bus = object()
             await rt._init_canonical_organism_stack()
 
         mock_boot.assert_awaited_once()
         kwargs = mock_boot.await_args.kwargs
         assert kwargs["signer_public_key_hex"] == "abcd1234efgh5678" + ("00" * 24)
         assert kwargs["signer_public_key_prefix"] == "abcd1234efgh5678"
+        assert kwargs["event_bus"] is rt._event_bus
         assert rt._organism is mock_organism
         assert rt._node0 is mock_organism._node0
 
@@ -2525,6 +2527,41 @@ class TestAutopoiesisLifecycle:
         assert rt._autopoiesis_learning_task is None
 
     @pytest.mark.asyncio
+    async def test_event_bus_task_start_and_stop_are_owned(
+        self, rt: SovereignRuntime
+    ) -> None:
+        started = asyncio.Event()
+        stopped = MagicMock()
+
+        class _FakeEventBus:
+            def __init__(self) -> None:
+                self.running = False
+
+            def stats(self) -> dict[str, Any]:
+                return {"running": self.running}
+
+            async def start(self) -> None:
+                self.running = True
+                started.set()
+                await asyncio.sleep(60)
+
+            def stop(self) -> None:
+                self.running = False
+                stopped()
+
+        rt._event_bus = _FakeEventBus()
+        rt._start_event_bus_task()
+
+        await asyncio.wait_for(started.wait(), timeout=1.0)
+        assert rt._task_is_running(rt._event_bus_task) is True
+        assert rt.status()["state"]["event_bus_running"] is True
+
+        await rt._stop_event_bus_task()
+        stopped.assert_called_once()
+        assert rt._event_bus_task is None
+        assert rt.status()["state"]["event_bus_running"] is False
+
+    @pytest.mark.asyncio
     async def test_shutdown_stops_autopoiesis_tasks(self, rt: SovereignRuntime) -> None:
         rt._running = True
         loop_obj = SimpleNamespace(stop=AsyncMock())
@@ -2542,6 +2579,56 @@ class TestAutopoiesisLifecycle:
         assert rt._autopoiesis_task is None
         assert rt._autopoiesis_learning_task is None
         assert rt._running is False
+
+    @pytest.mark.asyncio
+    async def test_mission_feeds_autopoiesis_with_mission_and_breath_receipts(
+        self, rt: SovereignRuntime
+    ) -> None:
+        rt._initialized = True
+        rt._preflight_mission = AsyncMock(return_value={"ok": True})
+
+        mission_receipt = SimpleNamespace(
+            mission_id="mission-001",
+            ihsan_score=0.97,
+            snr_score=0.95,
+            duration_ms=22.5,
+            gate_passed=True,
+            fate_verdict="approved",
+        )
+        breath_receipt = SimpleNamespace(
+            tick_number=11,
+            ihsan_composite=0.94,
+            duration_ms=33.0,
+            gini_ok=True,
+            missions_processed=1,
+            reflexes_precipitated=1,
+            helix_result={"approved_count": 1, "rejected_count": 0},
+        )
+        rt._organism = SimpleNamespace(
+            mission=AsyncMock(return_value=mission_receipt),
+            tick=AsyncMock(return_value=breath_receipt),
+        )
+
+        recorder = MagicMock()
+        rt._autopoietic_loop = SimpleNamespace(record_receipt_observation=recorder)
+
+        result = await rt.mission("verify canonical receipt bridge", source="test")
+
+        assert result is mission_receipt
+        assert recorder.call_count == 2
+
+        mission_payload = recorder.call_args_list[0].args[0]
+        mission_kind = recorder.call_args_list[0].kwargs["receipt_kind"]
+        assert mission_kind == "mission"
+        assert mission_payload["mission_id"] == "mission-001"
+        assert mission_payload["ihsan_score"] == pytest.approx(0.97)
+
+        breath_payload = recorder.call_args_list[1].args[0]
+        breath_kind = recorder.call_args_list[1].kwargs["receipt_kind"]
+        assert breath_kind == "heartbeat"
+        assert breath_payload["tick_number"] == 11
+        assert breath_payload["approved_count"] == 1
+        assert breath_payload["rejected_count"] == 0
 
 
 # ---------------------------------------------------------------------------

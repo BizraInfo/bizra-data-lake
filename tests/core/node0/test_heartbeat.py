@@ -14,6 +14,8 @@ Standing on Giants:
 
 from __future__ import annotations
 
+import asyncio
+import json
 from pathlib import Path
 
 import pytest
@@ -1240,6 +1242,7 @@ class TestNervousSystemBridge:
         health = hb.health()
         assert health["subsystems"]["event_bus"] is True
         assert health["total_events_emitted"] == 1
+        assert health["total_event_delivery_failures"] == 0
 
     def test_health_reports_no_bus(self, data_dir):
         """health() reports event_bus=False when not wired."""
@@ -1268,6 +1271,45 @@ class TestNervousSystemBridge:
         receipt = hb.breathe()
         assert receipt.tick_number == 1
         assert receipt.chain_hash != "0" * 64
+        health = hb.health()
+        assert health["total_event_delivery_failures"] == 1
+        assert "RuntimeError: bus on fire" in health["last_event_delivery_error"]
+
+        dead_letters = (
+            data_dir / "audit" / "event_dead_letters.jsonl"
+        ).read_text(encoding="utf-8").strip().splitlines()
+        assert len(dead_letters) == 1
+        entry = json.loads(dead_letters[0])
+        assert entry["event_type"] == "action.receipt"
+        assert entry["error"] == "RuntimeError: bus on fire"
+
+    @pytest.mark.asyncio
+    async def test_async_sovereign_bus_publication_is_recorded(self, data_dir):
+        """Node0 should publish successfully to the async sovereign bus."""
+        from core.node0.heartbeat import Node0Heartbeat
+        from core.sovereign.event_bus import EventBus
+
+        bus = EventBus()
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="async-bus", event_bus=bus)
+        hb.boot()
+
+        hb.ingest_mission_receipt(
+            {
+                "mission_id": "mission-async-001",
+                "ihsan_score": 0.98,
+                "description": "async mission",
+                "fate_verdict": "approved",
+            }
+        )
+        for _ in range(20):
+            if hb.health()["total_events_emitted"] == 1:
+                break
+            await asyncio.sleep(0.01)
+
+        assert bus.stats()["events_published"] == 1
+        health = hb.health()
+        assert health["total_events_emitted"] == 1
+        assert health["total_event_delivery_failures"] == 0
 
     def test_subscriber_receives_breath_event(self, data_dir):
         """End-to-end: a wired subscriber receives the heartbeat event."""

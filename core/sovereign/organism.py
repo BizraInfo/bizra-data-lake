@@ -211,6 +211,7 @@ class SovereignOrganism:
         inference: InferenceBackend,
         *,
         persistence_dir: Optional[Path] = None,
+        event_bus: Optional[Any] = None,
         reward_per_mission: float = 1.0,
         on_receipt: Optional[Callable[[OrganismReceipt], None]] = None,
         on_heartbeat: Optional[Callable[[Any], None]] = None,
@@ -278,7 +279,7 @@ class SovereignOrganism:
         # Step 5: Wire Node0Heartbeat — the ONE canonical ingest authority.
         # Passes the organism's NervousSystem-wired Helix3 so there is
         # exactly one Helix3 instance (no duplication).
-        org._boot_node0(persistence_dir, node_id=node_id)
+        org._boot_node0(persistence_dir, event_bus=event_bus, node_id=node_id)
 
         # Step 6: Start heartbeat if requested
         if start_heartbeat:
@@ -452,6 +453,7 @@ class SovereignOrganism:
         self,
         persistence_dir: Optional[Path],
         *,
+        event_bus: Optional[Any] = None,
         node_id: Optional[str] = None,
     ) -> None:
         """Wire Node0Heartbeat with the organism's Helix3.
@@ -467,13 +469,16 @@ class SovereignOrganism:
           Nakamoto (2008) — One hash chain, one authority
         """
         try:
+            from core.bus.event_publisher import combine_event_buses
             from core.node0.heartbeat import Node0Heartbeat
 
             data_dir = persistence_dir or Path("sovereign_state") / "node0"
+            node0_bus = combine_event_buses(self._cqrs_bus, event_bus)
             self._node0 = Node0Heartbeat(
                 data_dir=data_dir,
                 node_id=node_id,
                 helix3=self._helix3,
+                event_bus=node0_bus,
                 identity_mode=self._identity_mode,
                 signer_public_key_prefix=self._signer_public_key_prefix,
                 signer_public_key_hex=self._signer_public_key_hex,

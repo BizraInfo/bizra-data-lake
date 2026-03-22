@@ -37,7 +37,9 @@ Constitutional Authority:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import json
 import logging
 import time
 from dataclasses import dataclass, field
@@ -223,8 +225,13 @@ class Node0Heartbeat:
         self._total_evidence_entries = 0
         self._total_reflexes = 0
         self._total_events_emitted = 0
+        self._total_event_delivery_failures = 0
         self._total_rb_experiences = 0
         self._total_learning_cycles = 0
+        self._last_event_delivery_error = ""
+        self._last_dead_letter: Optional[Dict[str, Any]] = None
+        self._dead_letter_path = self._data_dir / "audit" / "event_dead_letters.jsonl"
+        self._pending_event_tasks: set[asyncio.Task[Any]] = set()
 
     # ═══════════════════════════════════════════════════════════════
     # §9 BOOT — Genesis Ceremony (Block Zero)
@@ -495,6 +502,10 @@ class Node0Heartbeat:
             "total_rb_experiences": self._total_rb_experiences,
             "total_learning_cycles": self._total_learning_cycles,
             "total_events_emitted": self._total_events_emitted,
+            "total_event_delivery_failures": self._total_event_delivery_failures,
+            "pending_event_publications": len(self._pending_event_tasks),
+            "last_event_delivery_error": self._last_event_delivery_error,
+            "last_event_dead_letter": self._last_dead_letter,
             "subsystems": {
                 "asset_registry": self._asset_registry is not None,
                 "helix3": self._helix3 is not None,
@@ -1079,25 +1090,82 @@ class Node0Heartbeat:
         """
         if self._event_bus is None:
             return
+
+        from core.bus.event_publisher import publish_topic_event
+
         try:
-            # Support both bus.subscribers.EventBus and sovereign.event_bus.EventBus
-            if hasattr(self._event_bus, "publish"):
-                # bus.subscribers.EventBus: publish(EventType, payload)
-                from core.bus.subscribers import EventType
+            try:
+                running_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                running_loop = None
 
-                try:
-                    event_type = EventType(event_type_name)
-                except ValueError:
-                    event_type = None
-
-                if event_type is not None:
-                    self._event_bus.publish(event_type, payload)
-                    self._total_events_emitted += 1
-            elif hasattr(self._event_bus, "emit"):
-                self._event_bus.emit(event_type_name, payload)
+            if running_loop is None:
+                asyncio.run(
+                    publish_topic_event(self._event_bus, event_type_name, payload)
+                )
                 self._total_events_emitted += 1
+                return
+
+            task = running_loop.create_task(
+                publish_topic_event(self._event_bus, event_type_name, payload),
+                name=f"node0_publish:{event_type_name}",
+            )
+            self._pending_event_tasks.add(task)
+            task.add_done_callback(
+                lambda done: self._finalize_event_publication(
+                    done, event_type_name, payload
+                )
+            )
+        except (
+            RuntimeError,
+            AttributeError,
+            TypeError,
+            ValueError,
+            OSError,
+        ) as exc:
+            self._record_event_delivery_failure(event_type_name, payload, exc)
+
+    def _finalize_event_publication(
+        self,
+        task: asyncio.Task[Any],
+        event_type_name: str,
+        payload: Dict[str, Any],
+    ) -> None:
+        """Convert async event publication completion into local evidence."""
+        self._pending_event_tasks.discard(task)
+        try:
+            task.result()
+        except asyncio.CancelledError as exc:
+            self._record_event_delivery_failure(event_type_name, payload, exc)
         except (RuntimeError, AttributeError, TypeError, ValueError, OSError) as exc:
-            logger.debug("EventBus emission failed (non-fatal): %s", exc)
+            self._record_event_delivery_failure(event_type_name, payload, exc)
+        else:
+            self._total_events_emitted += 1
+
+    def _record_event_delivery_failure(
+        self,
+        event_type_name: str,
+        payload: Dict[str, Any],
+        exc: BaseException,
+    ) -> None:
+        """Persist publication failure as a local dead-letter artifact."""
+        self._total_event_delivery_failures += 1
+        self._last_event_delivery_error = f"{type(exc).__name__}: {exc}"
+        dead_letter = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "node_id": self._node_id,
+            "event_type": event_type_name,
+            "payload": payload,
+            "error": self._last_event_delivery_error,
+        }
+        self._last_dead_letter = dead_letter
+        try:
+            self._dead_letter_path.parent.mkdir(parents=True, exist_ok=True)
+            with self._dead_letter_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(dead_letter, ensure_ascii=True) + "\n")
+        except (OSError, TypeError, ValueError):
+            logger.debug("Failed to persist Node0 dead letter", exc_info=True)
+        logger.debug("EventBus emission failed (non-fatal): %s", self._last_event_delivery_error)
 
     # ═══════════════════════════════════════════════════════════════
     # INGEST — Feed missions into the heartbeat cycle

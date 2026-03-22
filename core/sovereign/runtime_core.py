@@ -287,6 +287,7 @@ class SovereignRuntime:
         self._autonomous_loop: Optional[AutonomousLoopProtocol] = None
         self._orchestrator: Optional[object] = None
         self._event_bus: Optional[object] = None
+        self._event_bus_task: Optional[asyncio.Task[Any]] = None
 
         # Genesis Identity (persistent across restarts)
         self._genesis: Optional[GenesisState] = None
@@ -650,6 +651,7 @@ class SovereignRuntime:
             organism = await SovereignOrganism.boot(
                 inference=_RuntimeInferenceBackend(self),
                 persistence_dir=self.config.state_dir / "node0",
+                event_bus=self._event_bus,
                 start_heartbeat=False,
                 node_id=self.config.node_id,
                 identity_mode=self._identity_mode,
@@ -745,6 +747,60 @@ class SovereignRuntime:
     def _task_is_running(self, task: asyncio.Task[Any] | None) -> bool:
         """Return True when an asyncio task exists and has not completed."""
         return task is not None and not task.done()
+
+    def _record_autopoiesis_receipt(
+        self,
+        payload: dict[str, Any],
+        *,
+        receipt_kind: str,
+    ) -> None:
+        """Feed canonical runtime receipts into the autopoiesis observe plane."""
+        loop_obj = self._autopoietic_loop
+        recorder = getattr(loop_obj, "record_receipt_observation", None)
+        if loop_obj is None or not callable(recorder):
+            return
+        try:
+            recorder(payload, receipt_kind=receipt_kind)
+        except (RuntimeError, AttributeError, TypeError, ValueError, OSError):
+            self.logger.debug(
+                "Autopoiesis receipt observation failed for %s",
+                receipt_kind,
+                exc_info=True,
+            )
+
+    def _observe_autopoiesis_mission_receipt(self, receipt: Any) -> None:
+        """Normalize an organism mission receipt into autopoiesis truth."""
+        payload = {
+            "mission_id": str(getattr(receipt, "mission_id", "") or ""),
+            "ihsan_score": float(getattr(receipt, "ihsan_score", 0.0) or 0.0),
+            "snr_score": float(getattr(receipt, "snr_score", 0.0) or 0.0),
+            "duration_ms": float(getattr(receipt, "duration_ms", 0.0) or 0.0),
+            "gate_passed": bool(getattr(receipt, "gate_passed", False)),
+            "fate_verdict": str(getattr(receipt, "fate_verdict", "unknown") or ""),
+        }
+        self._record_autopoiesis_receipt(payload, receipt_kind="mission")
+
+    def _observe_autopoiesis_breath_receipt(self, breath: Any) -> None:
+        """Normalize a heartbeat receipt into autopoiesis truth."""
+        helix_result = getattr(breath, "helix_result", {}) or {}
+        payload = {
+            "tick_number": int(getattr(breath, "tick_number", 0) or 0),
+            "ihsan_composite": float(
+                getattr(breath, "ihsan_composite", 0.0) or 0.0
+            ),
+            "snr_score": float(getattr(breath, "ihsan_composite", 0.0) or 0.0),
+            "duration_ms": float(getattr(breath, "duration_ms", 0.0) or 0.0),
+            "gini_ok": bool(getattr(breath, "gini_ok", False)),
+            "missions_processed": int(
+                getattr(breath, "missions_processed", 0) or 0
+            ),
+            "approved_count": int(helix_result.get("approved_count", 0) or 0),
+            "rejected_count": int(helix_result.get("rejected_count", 0) or 0),
+            "reflexes_precipitated": int(
+                getattr(breath, "reflexes_precipitated", 0) or 0
+            ),
+        }
+        self._record_autopoiesis_receipt(payload, receipt_kind="heartbeat")
 
     async def _run_autopoiesis_learning_loop(self) -> None:
         """Periodically flush learning-loop training + compilation."""
@@ -947,6 +1003,7 @@ class SovereignRuntime:
 
         # Initialize sovereign event bus for cross-component pub/sub.
         self._init_event_bus()
+        self._start_event_bus_task()
 
         # Initialize Phase 70 bus infrastructure (ActionBus, TopicRegistry, Config, Capsules)
         self._init_bus_infrastructure()
@@ -1097,6 +1154,55 @@ class SovereignRuntime:
         except (ImportError, RuntimeError, AttributeError) as e:
             self._event_bus = None
             self.logger.warning("⚠ Sovereign EventBus unavailable: %s", e)
+
+    def _start_event_bus_task(self) -> None:
+        """Start the sovereign async event bus when it exposes a run loop."""
+        if self._task_is_running(self._event_bus_task):
+            return
+        if self._event_bus is None or not hasattr(self._event_bus, "start"):
+            return
+        stats = getattr(self._event_bus, "stats", None)
+        if callable(stats):
+            try:
+                if bool(stats().get("running", False)):
+                    return
+            except (RuntimeError, AttributeError, TypeError, ValueError, OSError):
+                self.logger.debug("Event bus stats unavailable during start", exc_info=True)
+        start = getattr(self._event_bus, "start", None)
+        if not callable(start):
+            return
+        self._event_bus_task = asyncio.create_task(
+            start(),
+            name="runtime_event_bus",
+        )
+
+    async def _stop_event_bus_task(self) -> None:
+        """Stop and await the sovereign event bus loop if running."""
+        task = self._event_bus_task
+        if task is None:
+            return
+
+        bus = self._event_bus
+        if bus is not None and hasattr(bus, "stop"):
+            stop = getattr(bus, "stop", None)
+            if callable(stop):
+                try:
+                    stop()
+                except (RuntimeError, AttributeError, TypeError, ValueError, OSError):
+                    self.logger.debug("Event bus stop hook failed", exc_info=True)
+
+        if not self._task_is_running(task):
+            self._event_bus_task = None
+            return
+
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except (RuntimeError, AttributeError, TypeError, ValueError, OSError):
+            self.logger.debug("Event bus shutdown failed", exc_info=True)
+        self._event_bus_task = None
 
     def _init_bus_infrastructure(self) -> None:
         """Initialize Phase 70 bus infrastructure with graceful fallback.
@@ -2984,6 +3090,7 @@ class SovereignRuntime:
             self._autonomous_loop.stop()
 
         await self._stop_autopoiesis_tasks()
+        await self._stop_event_bus_task()
 
         if self._pek and hasattr(self._pek, "stop"):
             try:
@@ -3054,8 +3161,10 @@ class SovereignRuntime:
             context=mission_context,
         )
         receipt = await self._organism.mission(description, preflight=preflight)
+        self._observe_autopoiesis_mission_receipt(receipt)
         try:
-            await self._organism.tick()
+            breath = await self._organism.tick()
+            self._observe_autopoiesis_breath_receipt(breath)
         except (RuntimeError, AttributeError, TypeError, OSError):
             if self._canonical_mode:
                 raise
@@ -4333,6 +4442,7 @@ class SovereignRuntime:
                     "organism" if self._organism is not None else "legacy"
                 ),
                 "fate_mode": self._fate_mode,
+                "event_bus_running": self._task_is_running(self._event_bus_task),
             },
             "canonical": {
                 "enabled": self._canonical_mode,

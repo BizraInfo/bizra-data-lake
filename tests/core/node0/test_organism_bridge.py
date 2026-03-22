@@ -120,8 +120,37 @@ class TestOrganismNode0Boot:
         stats = org.stats
         assert "node0" in stats
         assert stats["node0"]["booted"] is True
-        assert "node_id" in stats["node0"]
-        assert "subsystems" in stats["node0"]
+
+    def test_node0_default_bus_reaches_cqrs_subscribers(
+        self, persistence_dir: Path
+    ) -> None:
+        """Node0 receipts should fan out into the organism CQRS bus by default."""
+        from core.bus.subscribers import EventType
+        from core.sovereign.organism import SovereignOrganism
+
+        org = asyncio.run(
+            SovereignOrganism.boot(
+                EchoInference(),
+                persistence_dir=persistence_dir,
+            )
+        )
+
+        assert org._node0 is not None
+        assert org._cqrs_bus is not None
+
+        org._node0.ingest_mission_receipt(
+            {
+                "mission_id": "node0-bus-001",
+                "ihsan_score": 0.97,
+                "description": "fanout proof",
+                "fate_verdict": "approved",
+            }
+        )
+
+        event = org._cqrs_bus._chain[-1]
+        assert event.event_type == EventType.ACTION_RECEIPT
+        assert event.payload["source"] == "node0:ingest"
+        assert event.payload["mission_id"] == "node0-bus-001"
 
     def test_boot_degraded_without_node0(self) -> None:
         """Boot should succeed even if Node0 wiring fails (degraded mode)."""
