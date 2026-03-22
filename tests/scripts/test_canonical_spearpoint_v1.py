@@ -28,6 +28,10 @@ def test_run_canonical_spearpoint_v1_proves_s2_to_s1_replay(tmp_path: Path) -> N
     run2 = _load(artifact_dir / "run2_receipt.json")
     chain = _load(artifact_dir / "chain_verification.json")
     reflex_store = _load(state_dir / "node0" / "reflexes.json")
+    cqrs_delivery_path = state_dir / "node0" / "audit" / "cqrs_delivery_receipts.jsonl"
+    canonical_delivery_path = (
+        state_dir / "node0" / "audit" / "canonical_delivery_receipts.jsonl"
+    )
 
     assert pre_state["artifact_status"] == spearpoint.ARTIFACT_STATUS_POPULATED
     assert (
@@ -44,6 +48,18 @@ def test_run_canonical_spearpoint_v1_proves_s2_to_s1_replay(tmp_path: Path) -> N
     assert run1["run1_receipt"]["reflex_used"] is False
     assert run1["run1_receipt"]["verified_success"] is True
     assert run1["run1_receipt"]["policy_compliant"] is True
+    assert run1["run1_receipt"]["subscriber_delivery_verified"] is True
+    assert run1["run1_receipt"]["subscriber_delivery_mirror_verified"] is True
+    assert run1["run1_receipt"]["subscriber_delivery_delta"]["delivery_acks"] >= 1
+    assert (
+        run1["run1_receipt"]["subscriber_delivery_delta"]["delivery_dead_letters"] == 0
+    )
+    assert (
+        run1["run1_receipt"]["subscriber_delivery_delta"][
+            "delivery_mirror_successes"
+        ]
+        >= 1
+    )
 
     assert (
         reward["reward_result"]["reward"]
@@ -63,6 +79,8 @@ def test_run_canonical_spearpoint_v1_proves_s2_to_s1_replay(tmp_path: Path) -> N
     assert run2["run2_receipt"]["selected_route"] == "reflex_s1"
     assert run2["run2_receipt"]["reflex_used"] is True
     assert run2["run2_receipt"]["replay_effect_visible"] is True
+    assert run2["run2_receipt"]["subscriber_delivery_verified"] is True
+    assert run2["run2_receipt"]["subscriber_delivery_mirror_verified"] is True
     assert (
         run2["run2_receipt"]["prev_receipt_hash"]
         == run1["run1_receipt"]["receipt_hash"]
@@ -76,3 +94,19 @@ def test_run_canonical_spearpoint_v1_proves_s2_to_s1_replay(tmp_path: Path) -> N
     assert chain["verification_result"]["canonical_status_achieved"] is True
     assert chain["verification_result"]["hash_link_valid"] is True
     assert chain["verification_result"]["state_delta_reflected_in_run2"] is True
+    assert cqrs_delivery_path.exists()
+    persisted = [
+        json.loads(line)
+        for line in cqrs_delivery_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(persisted) >= 1
+    assert all(entry["status"] == "ack" for entry in persisted)
+    assert canonical_delivery_path.exists()
+    canonical_persisted = [
+        json.loads(line)
+        for line in canonical_delivery_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(canonical_persisted) >= 1
+    assert all(entry["source"] == "node0:cqrs.delivery" for entry in canonical_persisted)

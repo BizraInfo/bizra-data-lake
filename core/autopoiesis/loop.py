@@ -18,10 +18,11 @@ Genesis Strict Synthesis v2.2.2
 
 import asyncio
 import logging
+from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Deque, Dict, List, Optional
 
 from core.autopoiesis import GENERATION_LIMIT, POPULATION_SIZE
 from core.autopoiesis.emergence import EmergenceDetector, EmergenceReport
@@ -74,6 +75,12 @@ class AutopoiesisState:
     avg_fitness: float = 0.0
     diversity: float = 1.0
     ihsan_compliance_rate: float = 1.0
+    recent_receipt_count: int = 0
+    recent_receipt_success_rate: float = 1.0
+    recent_receipt_ihsan: float = 0.0
+    recent_receipt_snr: float = 0.0
+    recent_receipt_latency_ms: float = 0.0
+    recent_receipt_trend: str = "unknown"
     emergences_detected: int = 0
     integrations_performed: int = 0
     last_update: Optional[datetime] = None
@@ -88,6 +95,12 @@ class AutopoiesisState:
             "avg_fitness": self.avg_fitness,
             "diversity": self.diversity,
             "ihsan_rate": self.ihsan_compliance_rate,
+            "receipt_count": self.recent_receipt_count,
+            "receipt_success_rate": self.recent_receipt_success_rate,
+            "receipt_ihsan": self.recent_receipt_ihsan,
+            "receipt_snr": self.recent_receipt_snr,
+            "receipt_latency_ms": self.recent_receipt_latency_ms,
+            "receipt_trend": self.recent_receipt_trend,
             "emergences": self.emergences_detected,
             "integrations": self.integrations_performed,
         }
@@ -163,6 +176,55 @@ class AutopoieticLoop:
         self._population_history: List[List[AgentGenome]] = []
         self._integration_history: List[IntegrationCandidate] = []
         self._production_agents: Dict[str, AgentGenome] = {}
+        self._receipt_history: Deque[Dict[str, Any]] = deque(maxlen=128)
+
+    def record_receipt_observation(
+        self,
+        receipt: Dict[str, Any],
+        *,
+        receipt_kind: str = "mission",
+    ) -> None:
+        """Record a canonical mission/heartbeat receipt for the OBSERVE phase.
+
+        The autopoietic loop already monitors its internal population.
+        This method extends that observation plane with production-truth
+        receipts emitted by the canonical runtime path.
+        """
+        ihsan = self._coerce_float(
+            receipt.get("ihsan_score", receipt.get("ihsan_composite", 0.0))
+        )
+        snr = self._coerce_float(receipt.get("snr_score", ihsan))
+        latency_ms = self._coerce_float(receipt.get("duration_ms", 0.0))
+
+        if receipt_kind == "heartbeat":
+            success = (
+                self._coerce_bool(receipt.get("gini_ok", True))
+                and ihsan >= self.config.ihsan_threshold
+            )
+        else:
+            success = (
+                self._coerce_bool(receipt.get("gate_passed", True))
+                and str(receipt.get("fate_verdict", "approved")) != "rejected"
+                and ihsan >= self.config.ihsan_threshold
+            )
+
+        normalized = {
+            "kind": receipt_kind,
+            "timestamp": datetime.now(timezone.utc),
+            "ihsan_score": ihsan,
+            "snr_score": snr,
+            "latency_ms": latency_ms,
+            "success": success,
+            "mission_id": str(receipt.get("mission_id", "")),
+            "tick_number": int(receipt.get("tick_number", 0) or 0),
+            "approved_count": int(receipt.get("approved_count", 0) or 0),
+            "rejected_count": int(receipt.get("rejected_count", 0) or 0),
+            "missions_processed": int(receipt.get("missions_processed", 0) or 0),
+            "reflexes_precipitated": int(
+                receipt.get("reflexes_precipitated", 0) or 0
+            ),
+        }
+        self._receipt_history.append(normalized)
 
     async def start(self):
         """Start the autopoietic loop."""
@@ -230,14 +292,13 @@ class AutopoieticLoop:
         self.state.phase = AutopoiesisPhase.OBSERVING
 
         population = self.evolution_engine.population
-        if not population:
-            return
-
         self.state.population_size = len(population)
 
-        # Evaluate current fitness
-        context = EvaluationContext(peer_genomes=population)
-        results = await self.fitness_evaluator.rank_population(population, context)
+        results = []
+        if population:
+            # Evaluate current fitness
+            context = EvaluationContext(peer_genomes=population)
+            results = await self.fitness_evaluator.rank_population(population, context)
 
         if results:
             self.state.best_fitness = results[0].overall_fitness
@@ -248,10 +309,29 @@ class AutopoieticLoop:
                 1 for r in results if r.ihsan_compliant
             ) / len(results)
 
+        receipt_summary = self._summarize_receipt_window()
+        self.state.recent_receipt_count = receipt_summary["count"]
+        self.state.recent_receipt_success_rate = receipt_summary["success_rate"]
+        self.state.recent_receipt_ihsan = receipt_summary["avg_ihsan"]
+        self.state.recent_receipt_snr = receipt_summary["avg_snr"]
+        self.state.recent_receipt_latency_ms = receipt_summary["avg_latency_ms"]
+        self.state.recent_receipt_trend = receipt_summary["trend"]
+
+        if receipt_summary["count"] > 0 and not results:
+            # When the internal population is still cold, let production-truth
+            # receipts seed the observation state instead of reporting zeros.
+            self.state.best_fitness = max(
+                self.state.best_fitness,
+                receipt_summary["avg_ihsan"],
+            )
+            self.state.avg_fitness = receipt_summary["avg_snr"]
+            self.state.ihsan_compliance_rate = receipt_summary["success_rate"]
+
         logger.debug(
             f"Observed: pop={self.state.population_size}, "
             f"best={self.state.best_fitness:.3f}, "
-            f"ihsan_rate={self.state.ihsan_compliance_rate:.2%}"
+            f"ihsan_rate={self.state.ihsan_compliance_rate:.2%}, "
+            f"receipt_count={receipt_summary['count']}"
         )
 
     async def _phase_evolve(self) -> EvolutionResult:
@@ -391,6 +471,8 @@ class AutopoieticLoop:
                     f"Decreased mutation rate to {new_rate:.2f} for exploitation"
                 )
 
+        self._adapt_to_external_receipt_signal()
+
         # Update state
         self.state.phase = AutopoiesisPhase.IDLE
 
@@ -442,10 +524,107 @@ class AutopoieticLoop:
             "state": self.state.to_dict(),
             "evolution": self.evolution_engine.get_stats(),
             "emergence": self.emergence_detector.get_stats(),
+            "receipt_observations": self._summarize_receipt_window(),
             "production_agents": len(self._production_agents),
             "running": self._running,
             "paused": self._paused,
         }
+
+    @staticmethod
+    def _coerce_float(value: Any) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
+
+    @staticmethod
+    def _coerce_bool(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() not in {"", "0", "false", "no"}
+        return bool(value)
+
+    def _summarize_receipt_window(self) -> Dict[str, Any]:
+        """Summarize recent runtime receipts into one observation window."""
+        if not self._receipt_history:
+            return {
+                "count": 0,
+                "mission_count": 0,
+                "heartbeat_count": 0,
+                "avg_ihsan": 0.0,
+                "avg_snr": 0.0,
+                "avg_latency_ms": 0.0,
+                "success_rate": 1.0,
+                "trend": "unknown",
+            }
+
+        window = list(self._receipt_history)[-16:]
+        mission_count = sum(1 for item in window if item["kind"] == "mission")
+        heartbeat_count = len(window) - mission_count
+        avg_ihsan = sum(item["ihsan_score"] for item in window) / len(window)
+        avg_snr = sum(item["snr_score"] for item in window) / len(window)
+        avg_latency = sum(item["latency_ms"] for item in window) / len(window)
+        success_rate = sum(1 for item in window if item["success"]) / len(window)
+
+        trend = "stable"
+        if len(window) >= 4:
+            midpoint = len(window) // 2
+            older = window[:midpoint]
+            newer = window[midpoint:]
+            older_ihsan = sum(item["ihsan_score"] for item in older) / len(older)
+            newer_ihsan = sum(item["ihsan_score"] for item in newer) / len(newer)
+            delta = newer_ihsan - older_ihsan
+            if delta > 0.01:
+                trend = "improving"
+            elif delta < -0.01:
+                trend = "degrading"
+
+        return {
+            "count": len(window),
+            "mission_count": mission_count,
+            "heartbeat_count": heartbeat_count,
+            "avg_ihsan": round(avg_ihsan, 4),
+            "avg_snr": round(avg_snr, 4),
+            "avg_latency_ms": round(avg_latency, 2),
+            "success_rate": round(success_rate, 4),
+            "trend": trend,
+        }
+
+    def _adapt_to_external_receipt_signal(self) -> None:
+        """Use recent production receipts to bias exploration/exploitation."""
+        summary = self._summarize_receipt_window()
+        if summary["count"] < 3:
+            return
+
+        current_rate = self.evolution_engine.config.mutation_rate
+        new_rate = current_rate
+
+        if (
+            summary["trend"] == "degrading"
+            or summary["success_rate"] < 0.85
+            or summary["avg_ihsan"] < self.config.ihsan_threshold
+        ):
+            new_rate = min(0.3, current_rate * 1.1)
+            reason = "receipt_degradation"
+        elif (
+            summary["trend"] == "improving"
+            and summary["avg_ihsan"] >= self.config.ihsan_threshold
+            and summary["avg_snr"] >= self.config.snr_threshold
+        ):
+            new_rate = max(0.05, current_rate * 0.95)
+            reason = "receipt_stability"
+        else:
+            return
+
+        if abs(new_rate - current_rate) > 1e-9:
+            self.evolution_engine.config.mutation_rate = new_rate
+            logger.info(
+                "Adjusted mutation rate to %.3f from receipt signal (%s, count=%d)",
+                new_rate,
+                reason,
+                summary["count"],
+            )
 
 
 # Factory function

@@ -151,6 +151,9 @@ class TestOrganismNode0Boot:
         assert event.event_type == EventType.ACTION_RECEIPT
         assert event.payload["source"] == "node0:ingest"
         assert event.payload["mission_id"] == "node0-bus-001"
+        summary = org._cqrs_bus.delivery_summary()
+        assert summary["delivery_acks"] >= 1
+        assert summary["delivery_dead_letters"] == 0
 
     def test_boot_degraded_without_node0(self) -> None:
         """Boot should succeed even if Node0 wiring fails (degraded mode)."""

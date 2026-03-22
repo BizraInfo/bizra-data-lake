@@ -271,6 +271,95 @@ def _silent_fallback_detected(receipt: Any, authority_path: str) -> bool:
     )
 
 
+def _cqrs_delivery_snapshot(runtime: SovereignRuntime) -> dict[str, Any]:
+    bus = getattr(getattr(runtime, "_organism", None), "_cqrs_bus", None)
+    summary_fn = getattr(bus, "delivery_summary", None)
+    if not callable(summary_fn):
+        return {
+            "delivery_receipts": 0,
+            "delivery_acks": 0,
+            "delivery_dead_letters": 0,
+            "dead_letter_rate": 0.0,
+            "delivery_mirror_enabled": False,
+            "delivery_mirror_successes": 0,
+            "delivery_mirror_failures": 0,
+        }
+    organism_stats = getattr(getattr(runtime, "_organism", None), "stats", {})
+    cqrs_stats = organism_stats.get("cqrs_bus", {}) if isinstance(organism_stats, dict) else {}
+    summary = summary_fn()
+    return {
+        "delivery_receipts": int(summary.get("delivery_receipts", 0) or 0),
+        "delivery_acks": int(summary.get("delivery_acks", 0) or 0),
+        "delivery_dead_letters": int(summary.get("delivery_dead_letters", 0) or 0),
+        "dead_letter_rate": float(summary.get("dead_letter_rate", 0.0) or 0.0),
+        "delivery_mirror_enabled": bool(
+            cqrs_stats.get("delivery_mirror_enabled", False)
+        ),
+        "delivery_mirror_successes": int(
+            cqrs_stats.get("delivery_mirror_successes", 0) or 0
+        ),
+        "delivery_mirror_failures": int(
+            cqrs_stats.get("delivery_mirror_failures", 0) or 0
+        ),
+    }
+
+
+def _delivery_delta(
+    before: dict[str, Any],
+    after: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "delivery_receipts": max(
+            int(after["delivery_receipts"]) - int(before["delivery_receipts"]),
+            0,
+        ),
+        "delivery_acks": max(
+            int(after["delivery_acks"]) - int(before["delivery_acks"]),
+            0,
+        ),
+        "delivery_dead_letters": max(
+            int(after["delivery_dead_letters"]) - int(before["delivery_dead_letters"]),
+            0,
+        ),
+        "delivery_mirror_successes": max(
+            int(after["delivery_mirror_successes"])
+            - int(before["delivery_mirror_successes"]),
+            0,
+        ),
+        "delivery_mirror_failures": max(
+            int(after["delivery_mirror_failures"])
+            - int(before["delivery_mirror_failures"]),
+            0,
+        ),
+    }
+
+
+async def _await_delivery_settlement(
+    runtime: SovereignRuntime,
+    before: dict[str, Any],
+    *,
+    timeout_s: float = 0.5,
+) -> dict[str, Any]:
+    deadline = asyncio.get_running_loop().time() + timeout_s
+    while True:
+        after = _cqrs_delivery_snapshot(runtime)
+        acked = after["delivery_acks"] > before["delivery_acks"]
+        if not after["delivery_mirror_enabled"]:
+            if acked:
+                return after
+        else:
+            mirrored = (
+                after["delivery_mirror_successes"] > before["delivery_mirror_successes"]
+                or after["delivery_mirror_failures"] > before["delivery_mirror_failures"]
+            )
+            if acked and mirrored:
+                return after
+
+        if asyncio.get_running_loop().time() >= deadline:
+            return after
+        await asyncio.sleep(0.01)
+
+
 def _build_run_receipt(
     *,
     runtime: SovereignRuntime,
@@ -282,12 +371,15 @@ def _build_run_receipt(
     receipt: Any,
     previous_hash: str,
     previous_hash_semantics: str,
+    delivery_before: dict[str, Any],
+    delivery_after: dict[str, Any],
     state_delta_ref: str | None = None,
     prior_state_value: str | None = None,
     current_state_value: str | None = None,
 ) -> dict[str, Any]:
     canonical_status = runtime.status()["canonical"]
     body = doc[body_key]
+    delivery_delta = _delivery_delta(delivery_before, delivery_after)
     verified_success, verification_notes = _verify_output(
         str(getattr(receipt, "output_text", "") or ""),
         mission_contract["verification_contract"],
@@ -295,12 +387,25 @@ def _build_run_receipt(
     status = _status_from_receipt(receipt)
     authority_path = str(canonical_status.get("authority_path", "") or "")
     silent_fallback_detected = _silent_fallback_detected(receipt, authority_path)
+    subscriber_delivery_verified = (
+        delivery_delta["delivery_acks"] > 0
+        and delivery_delta["delivery_dead_letters"] == 0
+    )
+    subscriber_delivery_mirror_verified = (
+        (not delivery_after["delivery_mirror_enabled"])
+        or (
+            delivery_delta["delivery_mirror_successes"] > 0
+            and delivery_delta["delivery_mirror_failures"] == 0
+        )
+    )
     policy_compliant = (
         verified_success
         and status == "COMPLETE"
         and authority_path == AUTHORITY_PATH
         and canonical_status.get("mission_authority") == "organism"
         and float(getattr(receipt, "ihsan_score", 0.0) or 0.0) >= MISSION_POLICY_FLOOR
+        and subscriber_delivery_verified
+        and subscriber_delivery_mirror_verified
         and not silent_fallback_detected
     )
 
@@ -337,11 +442,18 @@ def _build_run_receipt(
     body["status"] = status
     body["policy_compliant"] = policy_compliant
     body["silent_fallback_detected"] = silent_fallback_detected
+    body["subscriber_delivery_verified"] = subscriber_delivery_verified
+    body["subscriber_delivery_mirror_verified"] = subscriber_delivery_mirror_verified
+    body["subscriber_delivery_delta"] = delivery_delta
     body["verified_success"] = verified_success
     body["reward_eligible"] = policy_compliant
     body["verification_notes"] = verification_notes + [
         f"runtime_receipt:{getattr(receipt, 'mission_id', '')}",
         f"fate_verdict:{getattr(receipt, 'fate_verdict', '')}",
+        f"subscriber_acks:{delivery_delta['delivery_acks']}",
+        f"subscriber_dead_letters:{delivery_delta['delivery_dead_letters']}",
+        f"delivery_mirror_successes:{delivery_delta['delivery_mirror_successes']}",
+        f"delivery_mirror_failures:{delivery_delta['delivery_mirror_failures']}",
     ]
     body["prev_receipt_hash"] = previous_hash
     body["prev_receipt_hash_semantics"] = previous_hash_semantics
@@ -591,8 +703,12 @@ async def _run_async(artifact_dir: Path, state_dir: Path) -> dict[str, Any]:
                     gateway,
                     mission_prompt,
                 )
+                delivery_before1 = _cqrs_delivery_snapshot(runtime1)
                 receipt1 = await runtime1.mission(
                     mission_prompt, source="canonical_spearpoint_v1", context={}
+                )
+                delivery_after1 = await _await_delivery_settlement(
+                    runtime1, delivery_before1
                 )
                 runtime1._last_mission_receipt = receipt1
                 run1_doc = _build_run_receipt(
@@ -605,6 +721,8 @@ async def _run_async(artifact_dir: Path, state_dir: Path) -> dict[str, Any]:
                     receipt=receipt1,
                     previous_hash=GENESIS_ZERO_HASH,
                     previous_hash_semantics="GENESIS_ZERO_HASH",
+                    delivery_before=delivery_before1,
+                    delivery_after=delivery_after1,
                 )
                 reward_doc = _compute_reward(
                     pre_state_doc, run1_doc, reward_doc, reward_path
@@ -622,8 +740,12 @@ async def _run_async(artifact_dir: Path, state_dir: Path) -> dict[str, Any]:
 
             runtime2 = await _build_runtime(state_dir, gateway)
             try:
+                delivery_before2 = _cqrs_delivery_snapshot(runtime2)
                 receipt2 = await runtime2.mission(
                     mission_prompt, source="canonical_spearpoint_v1", context={}
+                )
+                delivery_after2 = await _await_delivery_settlement(
+                    runtime2, delivery_before2
                 )
                 run2_doc = _build_run_receipt(
                     runtime=runtime2,
@@ -635,6 +757,8 @@ async def _run_async(artifact_dir: Path, state_dir: Path) -> dict[str, Any]:
                     receipt=receipt2,
                     previous_hash=run1_doc["run1_receipt"]["receipt_hash"],
                     previous_hash_semantics="CHAINED_ARTIFACT_RECEIPT",
+                    delivery_before=delivery_before2,
+                    delivery_after=delivery_after2,
                     state_delta_ref=str(state_delta_path),
                     prior_state_value=str(
                         state_delta_doc["state_delta_result"]["previous_value"]

@@ -1040,6 +1040,78 @@ class TestEdgeCases:
 
         await loop._run_cycle()
 
+
+class TestReceiptObservationBridge:
+    """Receipt-backed observation tests for the autopoietic loop."""
+
+    @pytest.mark.asyncio
+    async def test_receipt_observations_surface_in_status(self, basic_config):
+        loop = AutopoieticLoop(config=basic_config)
+
+        loop.record_receipt_observation(
+            {
+                "mission_id": "mission-001",
+                "ihsan_score": 0.96,
+                "snr_score": 0.94,
+                "duration_ms": 18.5,
+                "gate_passed": True,
+                "fate_verdict": "approved",
+            },
+            receipt_kind="mission",
+        )
+        loop.record_receipt_observation(
+            {
+                "tick_number": 7,
+                "ihsan_composite": 0.92,
+                "duration_ms": 41.0,
+                "gini_ok": True,
+                "missions_processed": 3,
+                "approved_count": 3,
+                "rejected_count": 0,
+            },
+            receipt_kind="heartbeat",
+        )
+
+        await loop._phase_observe()
+        status = loop.get_status()
+
+        assert status["receipt_observations"]["count"] == 2
+        assert status["receipt_observations"]["mission_count"] == 1
+        assert status["receipt_observations"]["heartbeat_count"] == 1
+        assert status["receipt_observations"]["avg_ihsan"] == pytest.approx(0.94)
+        assert status["state"]["receipt_count"] == 2
+        assert status["state"]["receipt_trend"] == "stable"
+
+    @pytest.mark.asyncio
+    async def test_degrading_receipts_increase_mutation_pressure(
+        self, initialized_loop
+    ):
+        loop = initialized_loop
+        starting_rate = loop.evolution_engine.config.mutation_rate
+
+        for index, ihsan in enumerate((0.98, 0.96, 0.82, 0.78), start=1):
+            loop.record_receipt_observation(
+                {
+                    "mission_id": f"mission-{index:03d}",
+                    "ihsan_score": ihsan,
+                    "snr_score": max(0.5, ihsan - 0.02),
+                    "duration_ms": 12.0 + index,
+                    "gate_passed": ihsan >= loop.config.ihsan_threshold,
+                    "fate_verdict": (
+                        "approved"
+                        if ihsan >= loop.config.ihsan_threshold
+                        else "rejected"
+                    ),
+                },
+                receipt_kind="mission",
+            )
+
+        await loop._phase_observe()
+        await loop._phase_reflect()
+
+        assert loop.state.recent_receipt_trend == "degrading"
+        assert loop.evolution_engine.config.mutation_rate > starting_rate
+
         # All genomes should still be valid
         for genome in loop.evolution_engine.population:
             assert genome.is_ihsan_compliant()

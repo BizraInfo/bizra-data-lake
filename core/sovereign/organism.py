@@ -198,6 +198,12 @@ class SovereignOrganism:
         self._identity_mode = "placeholder_degraded"
         self._signer_public_key_prefix = ""
         self._signer_public_key_hex = ""
+        self._persistence_dir: Optional[Path] = None
+        self._external_event_bus: Optional[Any] = None
+        self._pending_delivery_mirror_tasks: set[asyncio.Task[Any]] = set()
+        self._delivery_mirror_successes = 0
+        self._delivery_mirror_failures = 0
+        self._last_delivery_mirror_error = ""
 
         # Callbacks
         self._on_receipt: Optional[Callable[[OrganismReceipt], None]] = None
@@ -256,6 +262,8 @@ class SovereignOrganism:
         org._identity_mode = identity_mode
         org._signer_public_key_prefix = signer_public_key_prefix
         org._signer_public_key_hex = signer_public_key_hex
+        org._persistence_dir = persistence_dir
+        org._external_event_bus = event_bus
 
         # Step 1: Create NervousSystem with all Phase 80 modules
         org._nervous_system = SovereignNervousSystem.create(
@@ -306,7 +314,16 @@ class SovereignOrganism:
             logger.warning("core.bus.subscribers not available — skipping CQRS wiring")
             return
 
-        bus = EventBus()
+        delivery_receipt_path = None
+        if self._persistence_dir is not None:
+            delivery_receipt_path = (
+                self._persistence_dir / "audit" / "cqrs_delivery_receipts.jsonl"
+            )
+
+        bus = EventBus(
+            delivery_receipt_path=delivery_receipt_path,
+            delivery_receipt_sink=self._mirror_cqrs_delivery_receipt,
+        )
 
         # Adapters: delegate to real subsystems where available,
         # no-op stubs where the organism doesn't yet own the dependency.
@@ -784,6 +801,83 @@ class SovereignOrganism:
         except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
             logger.warning("CQRS receipt emission failed: %s", exc, exc_info=True)
 
+    def _mirror_cqrs_delivery_receipt(self, payload: Dict[str, Any]) -> None:
+        """Mirror CQRS subscriber delivery evidence into the sovereign async bus."""
+        node0 = self._node0
+        if node0 is not None:
+            recorder = getattr(node0, "record_cqrs_delivery_receipt", None)
+            if callable(recorder):
+                try:
+                    recorder(payload)
+                except (RuntimeError, AttributeError, TypeError, ValueError, OSError) as exc:
+                    logger.debug(
+                        "Node0 CQRS delivery persistence failed (non-fatal): %s",
+                        exc,
+                    )
+
+        if self._external_event_bus is None:
+            return
+
+        from core.bus.event_publisher import publish_topic_event
+
+        try:
+            try:
+                running_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                running_loop = None
+
+            if running_loop is None:
+                asyncio.run(
+                    publish_topic_event(
+                        self._external_event_bus,
+                        "cqrs.delivery.receipt",
+                        payload,
+                    )
+                )
+                self._delivery_mirror_successes += 1
+                self._last_delivery_mirror_error = ""
+                return
+
+            task = running_loop.create_task(
+                publish_topic_event(
+                    self._external_event_bus,
+                    "cqrs.delivery.receipt",
+                    payload,
+                ),
+                name="cqrs_delivery_mirror",
+            )
+            self._pending_delivery_mirror_tasks.add(task)
+            task.add_done_callback(self._finalize_delivery_mirror)
+        except (
+            RuntimeError,
+            AttributeError,
+            TypeError,
+            ValueError,
+            OSError,
+        ) as exc:
+            self._record_delivery_mirror_failure(exc)
+
+    def _finalize_delivery_mirror(self, task: asyncio.Task[Any]) -> None:
+        """Turn async delivery mirror completion into observable stats."""
+        self._pending_delivery_mirror_tasks.discard(task)
+        try:
+            task.result()
+        except asyncio.CancelledError as exc:
+            self._record_delivery_mirror_failure(exc)
+        except (RuntimeError, AttributeError, TypeError, ValueError, OSError) as exc:
+            self._record_delivery_mirror_failure(exc)
+        else:
+            self._delivery_mirror_successes += 1
+            self._last_delivery_mirror_error = ""
+
+    def _record_delivery_mirror_failure(self, exc: BaseException) -> None:
+        self._delivery_mirror_failures += 1
+        self._last_delivery_mirror_error = f"{type(exc).__name__}: {exc}"
+        logger.debug(
+            "CQRS delivery mirror failed (non-fatal): %s",
+            self._last_delivery_mirror_error,
+        )
+
     # ─── Evolutionary Heartbeat (§2 Helix 3) ─────────────────────
 
     async def tick(self) -> Any:
@@ -881,6 +975,11 @@ class SovereignOrganism:
             except (RuntimeError, ValueError) as exc:
                 logger.warning("Final tick failed: %s", exc)
 
+        if self._pending_delivery_mirror_tasks:
+            pending = tuple(self._pending_delivery_mirror_tasks)
+            await asyncio.gather(*pending, return_exceptions=True)
+            self._pending_delivery_mirror_tasks.clear()
+
         logger.info(
             "Organism shut down: %d missions, %d ticks",
             self._mission_counter,
@@ -971,10 +1070,23 @@ class SovereignOrganism:
                 "total": ns_stats.total_missions,
             }
         if self._cqrs_bus:
+            delivery_summary = {}
+            summary_fn = getattr(self._cqrs_bus, "delivery_summary", None)
+            if callable(summary_fn):
+                try:
+                    delivery_summary = summary_fn()
+                except (RuntimeError, AttributeError, TypeError, ValueError, OSError):
+                    logger.debug("CQRS delivery summary unavailable", exc_info=True)
             result["cqrs_bus"] = {
                 "subscribers_wired": len(self._subscribers),
                 "chain_height": self._cqrs_bus.chain_height,
                 "chain_valid": self._cqrs_bus.verify_chain(),
+                "delivery_mirror_enabled": self._external_event_bus is not None,
+                "delivery_mirror_successes": self._delivery_mirror_successes,
+                "delivery_mirror_failures": self._delivery_mirror_failures,
+                "pending_delivery_mirrors": len(self._pending_delivery_mirror_tasks),
+                "last_delivery_mirror_error": self._last_delivery_mirror_error,
+                **delivery_summary,
             }
         if self._node0:
             result["node0"] = self._node0.health()

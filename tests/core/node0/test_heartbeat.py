@@ -1355,6 +1355,44 @@ class TestNervousSystemBridge:
         assert bus.verify_chain()
         assert bus._chain[1].prev_hash == bus._chain[0].event_hash
 
+    def test_record_cqrs_delivery_receipt_persists_canonical_evidence(self, data_dir):
+        """Node0 should persist CQRS delivery receipts onto its canonical audit path."""
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="delivery-node0")
+        hb.boot()
+
+        ok = hb.record_cqrs_delivery_receipt(
+            {
+                "event_id": "evt-001",
+                "event_hash": "abc123",
+                "event_type": "action.receipt",
+                "subscriber_name": "ActionReceiptMemoryReinforce",
+                "status": "ack",
+                "safety_critical": False,
+                "delivery_hash": "delivery-xyz",
+            }
+        )
+
+        assert ok is True
+        health = hb.health()
+        assert health["total_cqrs_delivery_receipts"] == 1
+        assert health["total_cqrs_delivery_receipt_failures"] == 0
+        assert health["last_cqrs_delivery_receipt"]["subscriber_name"] == (
+            "ActionReceiptMemoryReinforce"
+        )
+
+        path = data_dir / "audit" / "canonical_delivery_receipts.jsonl"
+        assert path.exists()
+        persisted = [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        assert len(persisted) == 1
+        assert persisted[0]["source"] == "node0:cqrs.delivery"
+        assert persisted[0]["status"] == "ack"
+
 
 # ═══════════════════════════════════════════════════════════════
 # §12 LEARNING LOOP INTEGRATION TESTS

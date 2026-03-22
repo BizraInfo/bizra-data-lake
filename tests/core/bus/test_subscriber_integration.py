@@ -14,6 +14,7 @@ Standing on Giants: Hewitt (actor model), Deming (PDCA), Boyd (OODA)
 
 from __future__ import annotations
 
+import json
 import time
 
 import pytest
@@ -677,6 +678,9 @@ class TestSafetyFailClosed:
                     "violation_dimensions": ["safety"],
                 },
             )
+        summary = bus.delivery_summary()
+        assert summary["delivery_dead_letters"] == 1
+        assert summary["last_dead_letter"]["safety_critical"] is True
 
     def test_quarantine_error_propagates(self):
         """If FailedActionQuarantine.handle() raises, EventBus re-raises."""
@@ -698,6 +702,11 @@ class TestSafetyFailClosed:
                 EventType.ACTION_RECEIPT_FAILED,
                 {"action_type": "broken", "error": "err"},
             )
+        summary = bus.delivery_summary()
+        assert summary["delivery_dead_letters"] == 1
+        assert summary["last_dead_letter"]["subscriber_name"] == (
+            "FailedActionQuarantine"
+        )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -731,3 +740,83 @@ class TestNonSafetyFailOpen:
             {"action_type": "test", "ihsan_composite": 0.96, "result_summary": "ok"},
         )
         assert event.event_hash  # Bus continued, event was recorded
+        summary = bus.delivery_summary()
+        assert summary["delivery_dead_letters"] == 1
+        assert summary["delivery_acks"] == 0
+        assert summary["last_dead_letter"]["subscriber_name"] == (
+            "ActionReceiptMemoryReinforce"
+        )
+        assert summary["last_dead_letter"]["status"] == "dead_letter"
+
+    def test_delivery_receipts_capture_acks(self, wired_bus):
+        """Successful subscribers should emit ack receipts into the bus ledger."""
+        bus, _, _ = wired_bus
+
+        event = bus.publish(
+            EventType.ACTION_RECEIPT,
+            {
+                "action_type": "promote-worthy",
+                "ihsan_composite": 0.97,
+                "result_summary": "ok",
+            },
+        )
+
+        receipts = bus.delivery_receipts(event_id=event.event_id)
+        assert len(receipts) >= 2
+        assert all(receipt["status"] == "ack" for receipt in receipts)
+        summary = bus.delivery_summary()
+        assert summary["delivery_acks"] >= 2
+        assert summary["delivery_dead_letters"] == 0
+        assert summary["last_delivery_ack"]["event_id"] == event.event_id
+
+    def test_delivery_receipts_persist_when_path_configured(self, tmp_path):
+        """Ack receipts should append to durable JSONL storage when enabled."""
+        bus = EventBus(delivery_receipt_path=tmp_path / "audit" / "deliveries.jsonl")
+        store = TrackingStore()
+        bus.subscribe(ActionReceiptMemoryReinforce(store))
+
+        event = bus.publish(
+            EventType.ACTION_RECEIPT,
+            {
+                "action_type": "persist-me",
+                "ihsan_composite": 0.96,
+                "result_summary": "ok",
+            },
+        )
+
+        path = tmp_path / "audit" / "deliveries.jsonl"
+        assert path.exists()
+        persisted = [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        assert len(persisted) == 1
+        assert persisted[0]["event_id"] == event.event_id
+        assert persisted[0]["status"] == "ack"
+        assert bus.delivery_summary()["persisted_delivery_receipts"] == 1
+
+    def test_delivery_receipt_sink_failure_is_recorded(self):
+        """Mirroring failures should be visible without breaking local delivery."""
+
+        def _broken_sink(payload):  # type: ignore[no-untyped-def]
+            del payload
+            raise RuntimeError("mirror sink unavailable")
+
+        bus = EventBus(delivery_receipt_sink=_broken_sink)
+        store = TrackingStore()
+        bus.subscribe(ActionReceiptMemoryReinforce(store))
+
+        bus.publish(
+            EventType.ACTION_RECEIPT,
+            {
+                "action_type": "mirror-failure",
+                "ihsan_composite": 0.95,
+                "result_summary": "ok",
+            },
+        )
+
+        summary = bus.delivery_summary()
+        assert summary["delivery_acks"] == 1
+        assert summary["delivery_sink_failures"] == 1
+        assert "RuntimeError: mirror sink unavailable" in summary["last_delivery_sink_error"]

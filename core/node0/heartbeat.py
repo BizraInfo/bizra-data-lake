@@ -226,11 +226,18 @@ class Node0Heartbeat:
         self._total_reflexes = 0
         self._total_events_emitted = 0
         self._total_event_delivery_failures = 0
+        self._total_cqrs_delivery_receipts = 0
+        self._total_cqrs_delivery_receipt_failures = 0
         self._total_rb_experiences = 0
         self._total_learning_cycles = 0
         self._last_event_delivery_error = ""
         self._last_dead_letter: Optional[Dict[str, Any]] = None
         self._dead_letter_path = self._data_dir / "audit" / "event_dead_letters.jsonl"
+        self._last_cqrs_delivery_receipt: Optional[Dict[str, Any]] = None
+        self._last_cqrs_delivery_receipt_error = ""
+        self._canonical_delivery_receipt_path = (
+            self._data_dir / "audit" / "canonical_delivery_receipts.jsonl"
+        )
         self._pending_event_tasks: set[asyncio.Task[Any]] = set()
 
     # ═══════════════════════════════════════════════════════════════
@@ -503,9 +510,15 @@ class Node0Heartbeat:
             "total_learning_cycles": self._total_learning_cycles,
             "total_events_emitted": self._total_events_emitted,
             "total_event_delivery_failures": self._total_event_delivery_failures,
+            "total_cqrs_delivery_receipts": self._total_cqrs_delivery_receipts,
+            "total_cqrs_delivery_receipt_failures": (
+                self._total_cqrs_delivery_receipt_failures
+            ),
             "pending_event_publications": len(self._pending_event_tasks),
             "last_event_delivery_error": self._last_event_delivery_error,
             "last_event_dead_letter": self._last_dead_letter,
+            "last_cqrs_delivery_receipt": self._last_cqrs_delivery_receipt,
+            "last_cqrs_delivery_receipt_error": self._last_cqrs_delivery_receipt_error,
             "subsystems": {
                 "asset_registry": self._asset_registry is not None,
                 "helix3": self._helix3 is not None,
@@ -1168,6 +1181,69 @@ class Node0Heartbeat:
         logger.debug(
             "EventBus emission failed (non-fatal): %s", self._last_event_delivery_error
         )
+
+    def record_cqrs_delivery_receipt(self, delivery_receipt: Dict[str, Any]) -> bool:
+        """Persist CQRS subscriber delivery evidence onto Node0's canonical plane."""
+        canonical_receipt = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "node_id": self._node_id,
+            "source": "node0:cqrs.delivery",
+            **delivery_receipt,
+        }
+        self._last_cqrs_delivery_receipt = canonical_receipt
+
+        try:
+            self._canonical_delivery_receipt_path.parent.mkdir(parents=True, exist_ok=True)
+            with self._canonical_delivery_receipt_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(canonical_receipt, ensure_ascii=True) + "\n")
+        except (OSError, TypeError, ValueError) as exc:
+            self._total_cqrs_delivery_receipt_failures += 1
+            self._last_cqrs_delivery_receipt_error = f"{type(exc).__name__}: {exc}"
+            logger.warning(
+                "Canonical CQRS delivery receipt persistence failed: %s",
+                self._last_cqrs_delivery_receipt_error,
+            )
+            return False
+
+        self._total_cqrs_delivery_receipts += 1
+        self._last_cqrs_delivery_receipt_error = ""
+
+        evidence_metadata = {
+            "event": "cqrs_delivery_receipt",
+            "subscriber_name": canonical_receipt.get("subscriber_name", ""),
+            "status": canonical_receipt.get("status", ""),
+            "event_type": canonical_receipt.get("event_type", ""),
+            "event_id": canonical_receipt.get("event_id", ""),
+            "delivery_hash": canonical_receipt.get("delivery_hash", ""),
+            "safety_critical": canonical_receipt.get("safety_critical", False),
+        }
+        content = (
+            "CQRS delivery receipt: "
+            f"{canonical_receipt.get('subscriber_name', 'unknown')} -> "
+            f"{canonical_receipt.get('status', 'unknown')}"
+        )
+        if self._evidence is not None:
+            try:
+                self._evidence.store(
+                    content=content,
+                    source="node0:cqrs.delivery",
+                    metadata=evidence_metadata,
+                )
+                self._total_evidence_entries += 1
+            except (RuntimeError, AttributeError, TypeError, OSError) as exc:
+                logger.warning("CQRS delivery evidence store failed: %s", exc)
+        elif self._memory is not None:
+            try:
+                self._store_in_memory(
+                    content=content,
+                    source="node0:cqrs.delivery",
+                    metadata=evidence_metadata,
+                )
+                self._total_memories_stored += 1
+            except (RuntimeError, AttributeError, TypeError, OSError) as exc:
+                logger.warning("CQRS delivery memory fallback failed: %s", exc)
+
+        return True
 
     # ═══════════════════════════════════════════════════════════════
     # INGEST — Feed missions into the heartbeat cycle

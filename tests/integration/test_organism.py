@@ -537,6 +537,76 @@ class TestCQRSSubscriberWiring:
         assert s["cqrs_bus"]["subscribers_wired"] == 12
         assert s["cqrs_bus"]["chain_valid"] is True
         assert s["cqrs_bus"]["chain_height"] >= 1
+        assert s["cqrs_bus"]["delivery_acks"] >= 1
+        assert s["cqrs_bus"]["delivery_dead_letters"] == 0
+
+    def test_cqrs_delivery_receipts_persist_with_persistence_dir(
+        self, tmp_path: Any
+    ) -> None:
+        """CQRS delivery receipts should persist under the organism audit path."""
+        echo = EchoInference()
+        org = asyncio.run(
+            SovereignOrganism.boot(
+                inference=echo,
+                persistence_dir=tmp_path / "sovereign",
+            )
+        )
+        asyncio.run(org.mission("persist cqrs delivery"))
+
+        s = org.stats
+        assert s["cqrs_bus"]["delivery_persistence_enabled"] is True
+        assert s["cqrs_bus"]["persisted_delivery_receipts"] >= 1
+
+        receipt_path = tmp_path / "sovereign" / "audit" / "cqrs_delivery_receipts.jsonl"
+        assert receipt_path.exists()
+        canonical_path = (
+            tmp_path / "sovereign" / "audit" / "canonical_delivery_receipts.jsonl"
+        )
+        assert canonical_path.exists()
+        assert org.stats["node0"]["total_cqrs_delivery_receipts"] >= 1
+
+    def test_cqrs_delivery_receipts_mirror_to_sovereign_bus(self, tmp_path: Any) -> None:
+        """CQRS delivery receipts should mirror into the sovereign async bus."""
+        from core.sovereign.event_bus import EventBus as SovereignEventBus
+
+        async def _scenario() -> None:
+            echo = EchoInference()
+            mirror_bus = SovereignEventBus()
+            received = []
+
+            async def _handler(event):  # type: ignore[no-untyped-def]
+                received.append(event)
+
+            mirror_bus.subscribe("cqrs.delivery.receipt", _handler)
+            task = asyncio.create_task(mirror_bus.start())
+            try:
+                org = await SovereignOrganism.boot(
+                    inference=echo,
+                    persistence_dir=tmp_path / "sovereign-mirror",
+                    event_bus=mirror_bus,
+                )
+                try:
+                    await org.mission("mirror subscriber evidence")
+                    for _ in range(50):
+                        if received:
+                            break
+                        await asyncio.sleep(0.01)
+
+                    stats = org.stats
+                    assert stats["cqrs_bus"]["delivery_mirror_enabled"] is True
+                    assert stats["cqrs_bus"]["delivery_mirror_successes"] >= 1
+                    assert stats["cqrs_bus"]["delivery_mirror_failures"] == 0
+                    assert received
+                    assert received[0].topic == "cqrs.delivery.receipt"
+                    assert received[0].payload["status"] == "ack"
+                    assert received[0].payload["subscriber_name"]
+                finally:
+                    await org.shutdown()
+            finally:
+                mirror_bus.stop()
+                await asyncio.wait_for(task, timeout=2.0)
+
+        asyncio.run(_scenario())
 
     def test_graceful_degradation_without_bus(self) -> None:
         """Organism must boot and run even if CQRS wiring fails."""

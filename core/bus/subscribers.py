@@ -20,10 +20,11 @@ import hashlib
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Protocol
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Protocol
 
 logger = logging.getLogger("bizra.bus.subscribers")
 
@@ -86,6 +87,50 @@ class Event:
         ).hexdigest()
 
 
+@dataclass
+class SubscriberDeliveryReceipt:
+    """Per-subscriber delivery evidence for one published event."""
+
+    event_id: str
+    event_hash: str
+    event_type: str
+    subscriber_name: str
+    status: str
+    safety_critical: bool
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    error: str = ""
+    delivery_hash: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.delivery_hash:
+            self.delivery_hash = self._compute_hash()
+
+    def _compute_hash(self) -> str:
+        content = json.dumps(
+            {
+                "event_id": self.event_id,
+                "event_hash": self.event_hash,
+                "event_type": self.event_type,
+                "subscriber_name": self.subscriber_name,
+                "status": self.status,
+                "safety_critical": self.safety_critical,
+                "timestamp": self.timestamp,
+                "error": self.error,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.blake2b(
+            b"EVENTBUS_DELIVERY_DOMAIN:" + content.encode(),
+            digest_size=32,
+        ).hexdigest()
+
+    def as_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
 # ═══════════════════════════════════════════════════════════════════
 # SUBSCRIBER PROTOCOL
 # ═══════════════════════════════════════════════════════════════════
@@ -110,10 +155,28 @@ class EventBus:
     Single source of truth for all state changes.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        delivery_receipt_path: Optional[Path | str] = None,
+        delivery_receipt_sink: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ):
         self._subscribers: Dict[EventType, List[Subscriber]] = {}
         self._chain: List[Event] = []
         self._chain_hash = "0" * 64  # Genesis hash
+        self._delivery_receipts: List[SubscriberDeliveryReceipt] = []
+        self._last_delivery_ack: Optional[Dict[str, Any]] = None
+        self._last_dead_letter: Optional[Dict[str, Any]] = None
+        self._delivery_ack_count = 0
+        self._dead_letter_count = 0
+        self._delivery_receipt_path = (
+            Path(delivery_receipt_path) if delivery_receipt_path else None
+        )
+        self._delivery_receipt_sink = delivery_receipt_sink
+        self._persisted_delivery_receipts = 0
+        self._last_persistence_error = ""
+        self._delivery_sink_failures = 0
+        self._last_delivery_sink_error = ""
 
     def subscribe(self, subscriber: Subscriber) -> None:
         for et in subscriber.event_types:
@@ -133,15 +196,29 @@ class EventBus:
 
         handlers = self._subscribers.get(event_type, [])
         for subscriber in handlers:
+            safety_critical = self._is_fail_closed_subscriber(subscriber)
             try:
                 subscriber.handle(event)
             except Exception as e:  # noqa: BLE001 — boundary boundary
+                error = f"{type(e).__name__}: {e}"
+                self._record_delivery_receipt(
+                    event=event,
+                    subscriber=subscriber,
+                    status="dead_letter",
+                    safety_critical=safety_critical,
+                    error=error,
+                )
                 logger.error(f"Subscriber {subscriber.__class__.__name__} failed: {e}")
                 # Fail-open for non-safety subscribers, fail-closed for safety
-                if isinstance(
-                    subscriber, (IhsanGateBreachHandler, FailedActionQuarantine)
-                ):
+                if safety_critical:
                     raise
+            else:
+                self._record_delivery_receipt(
+                    event=event,
+                    subscriber=subscriber,
+                    status="ack",
+                    safety_critical=safety_critical,
+                )
 
         return event
 
@@ -156,6 +233,109 @@ class EventBus:
                 return False
             prev = event.event_hash
         return True
+
+    def delivery_summary(self) -> Dict[str, Any]:
+        total = len(self._delivery_receipts)
+        dead_letter_rate = (
+            round(self._dead_letter_count / total, 4) if total else 0.0
+        )
+        return {
+            "delivery_receipts": total,
+            "delivery_acks": self._delivery_ack_count,
+            "delivery_dead_letters": self._dead_letter_count,
+            "dead_letter_rate": dead_letter_rate,
+            "delivery_persistence_enabled": self._delivery_receipt_path is not None,
+            "delivery_receipt_path": (
+                str(self._delivery_receipt_path) if self._delivery_receipt_path else ""
+            ),
+            "persisted_delivery_receipts": self._persisted_delivery_receipts,
+            "last_persistence_error": self._last_persistence_error,
+            "delivery_sink_enabled": self._delivery_receipt_sink is not None,
+            "delivery_sink_failures": self._delivery_sink_failures,
+            "last_delivery_sink_error": self._last_delivery_sink_error,
+            "last_delivery_ack": self._last_delivery_ack,
+            "last_dead_letter": self._last_dead_letter,
+        }
+
+    def delivery_receipts(
+        self, *, event_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        receipts = self._delivery_receipts
+        if event_id is not None:
+            receipts = [receipt for receipt in receipts if receipt.event_id == event_id]
+        return [receipt.as_dict() for receipt in receipts]
+
+    @property
+    def delivery_receipt_count(self) -> int:
+        return len(self._delivery_receipts)
+
+    @property
+    def dead_letter_count(self) -> int:
+        return self._dead_letter_count
+
+    def _is_fail_closed_subscriber(self, subscriber: Subscriber) -> bool:
+        return isinstance(subscriber, (IhsanGateBreachHandler, FailedActionQuarantine))
+
+    def _record_delivery_receipt(
+        self,
+        *,
+        event: Event,
+        subscriber: Subscriber,
+        status: str,
+        safety_critical: bool,
+        error: str = "",
+    ) -> None:
+        receipt = SubscriberDeliveryReceipt(
+            event_id=event.event_id,
+            event_hash=event.event_hash,
+            event_type=str(event.event_type.value),
+            subscriber_name=subscriber.__class__.__name__,
+            status=status,
+            safety_critical=safety_critical,
+            error=error,
+        )
+        payload = receipt.as_dict()
+        self._delivery_receipts.append(receipt)
+        if status == "ack":
+            self._delivery_ack_count += 1
+            self._last_delivery_ack = payload
+        else:
+            self._dead_letter_count += 1
+            self._last_dead_letter = payload
+        self._persist_delivery_receipt(payload)
+        self._emit_delivery_receipt(payload)
+
+    def _persist_delivery_receipt(self, payload: Dict[str, Any]) -> None:
+        if self._delivery_receipt_path is None:
+            return
+        try:
+            self._delivery_receipt_path.parent.mkdir(parents=True, exist_ok=True)
+            with self._delivery_receipt_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(payload, ensure_ascii=True) + "\n")
+        except (OSError, TypeError, ValueError) as exc:
+            self._last_persistence_error = f"{type(exc).__name__}: {exc}"
+            logger.error(
+                "Failed to persist subscriber delivery receipt: %s",
+                self._last_persistence_error,
+            )
+            return
+        self._persisted_delivery_receipts += 1
+        self._last_persistence_error = ""
+
+    def _emit_delivery_receipt(self, payload: Dict[str, Any]) -> None:
+        if self._delivery_receipt_sink is None:
+            return
+        try:
+            self._delivery_receipt_sink(payload)
+        except Exception as exc:  # noqa: BLE001 — boundary boundary
+            self._delivery_sink_failures += 1
+            self._last_delivery_sink_error = f"{type(exc).__name__}: {exc}"
+            logger.error(
+                "Failed to mirror subscriber delivery receipt: %s",
+                self._last_delivery_sink_error,
+            )
+        else:
+            self._last_delivery_sink_error = ""
 
 
 # ═══════════════════════════════════════════════════════════════════
