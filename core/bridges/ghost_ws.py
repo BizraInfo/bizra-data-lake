@@ -604,3 +604,19 @@ async def _startup() -> None:
 @app.on_event("shutdown")
 async def _shutdown() -> None:
     logger.info("Ghost WS Bridge shutting down — %d clients", manager.client_count)
+
+
+# ---------------------------------------------------------------------------
+# Entry point — allows `python -m core.bridges.ghost_ws`
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=WS_PORT,
+        log_level="info",
+        access_log=False,
+    )
