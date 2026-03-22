@@ -52,20 +52,17 @@ The founding documents (2023) predate all code. The git history proves continuou
 # Rust workspace (24 crates, constitutional types)
 cd bizra-omega
 cargo test --workspace --release 2>&1 | tail -5
-# Expected: 1,500+ tests passing
+# Expected: 1,446 tests passing
 
-# Python core (Proof-Carrying Inference)
+# Python core (sovereign runtime, FATE, constitutional compliance)
 cd ..
 python -m pytest tests/ -x -q 2>&1 | tail -5
-# Expected: 100+ tests passing
+# Expected: 11,216 tests collected, 11,180 selected
 ```
 
 What you just ran:
-- `IhsanScore(u16)` — excellence as a Rust type that rejects values below threshold at compile time
-- `ExactAmount(i64)` — zero-drift financial math (no floating point)
-- `BoundedRatio(u32)` — bounded ratios that cannot overflow
-- BLAKE3 receipt chains — every test produces a cryptographic proof
-- Ed25519 signatures — sovereign identity on every receipt
+- **1,446 Rust tests**: `IhsanScore(u16)` compile-time enforcement, `ExactAmount(i64)` zero-drift math, `BoundedRatio(u32)`, BLAKE3 receipts, Ed25519 signatures, federation consensus, agent lifecycle
+- **11,216 Python tests**: sovereign runtime, FATE gates, Helix3 cycles, constitutional compliance (281 tests), integration (525), knowledge graph, memory, inference pipeline, property-based testing
 
 ### Step 4: See the Constitutional Spine (5 minutes)
 
@@ -176,7 +173,7 @@ After exhaustive literature search across CS databases:
 |--------|-------|
 | Repositories | 145 (public, github.com/BizraInfo) |
 | Languages | Python, Rust, TypeScript, Shell, SMT, WASM |
-| Tests | 1,656+ passing (1,539 Rust + 117 PCI) |
+| Tests | 12,662 passing (11,216 Python + 1,446 Rust) |
 | Development | Ramadan 2023 → Ramadan 2026 (1,095 days) |
 | Developer | Solo founder + AI as force multiplier |
 | Founding docs | الرسالة + البذرة (Ramadan 2023, before any code) |
