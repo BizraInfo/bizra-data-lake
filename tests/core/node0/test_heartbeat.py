@@ -1229,6 +1229,56 @@ class TestNervousSystemBridge:
         assert event.payload["rejected_count"] == 1
         assert event.payload["missions_processed"] == 5
 
+    def test_breath_tracks_cqrs_delivery_window(self, data_dir):
+        """Breath receipts and events should expose CQRS delivery deltas."""
+        from core.bus.subscribers import EventBus
+        from core.node0.heartbeat import Node0Heartbeat
+
+        bus = EventBus()
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="cqrs-breath", event_bus=bus)
+        hb.boot()
+
+        assert hb.record_cqrs_delivery_receipt(
+            {
+                "event_id": "evt-ack-001",
+                "event_hash": "hash-ack-001",
+                "event_type": "action.receipt",
+                "subscriber_name": "ActionReceiptMemoryReinforce",
+                "status": "ack",
+                "safety_critical": False,
+                "delivery_hash": "delivery-ack-001",
+            }
+        )
+        assert hb.record_cqrs_delivery_receipt(
+            {
+                "event_id": "evt-dead-001",
+                "event_hash": "hash-dead-001",
+                "event_type": "action.receipt",
+                "subscriber_name": "ActionReceiptMemoryReinforce",
+                "status": "dead_letter",
+                "safety_critical": False,
+                "delivery_hash": "delivery-dead-001",
+            }
+        )
+
+        receipt = hb.breathe()
+        assert receipt.cqrs_delivery_receipts == 2
+        assert receipt.cqrs_delivery_acks == 1
+        assert receipt.cqrs_delivery_dead_letters == 1
+
+        event = bus._chain[0]
+        assert event.payload["cqrs_delivery_receipts"] == 2
+        assert event.payload["cqrs_delivery_acks"] == 1
+        assert event.payload["cqrs_delivery_dead_letters"] == 1
+
+        health = hb.health()
+        assert health["total_cqrs_delivery_receipts"] == 2
+        assert health["total_cqrs_delivery_ack_receipts"] == 1
+        assert health["total_cqrs_delivery_dead_letters"] == 1
+        assert health["last_breath_cqrs_delivery_receipts"] == 2
+        assert health["last_breath_cqrs_delivery_acks"] == 1
+        assert health["last_breath_cqrs_delivery_dead_letters"] == 1
+
     def test_health_reports_event_bus_status(self, data_dir):
         """health() includes event_bus in subsystems and total_events_emitted."""
         from core.bus.subscribers import EventBus
@@ -1377,6 +1427,8 @@ class TestNervousSystemBridge:
         assert ok is True
         health = hb.health()
         assert health["total_cqrs_delivery_receipts"] == 1
+        assert health["total_cqrs_delivery_ack_receipts"] == 1
+        assert health["total_cqrs_delivery_dead_letters"] == 0
         assert health["total_cqrs_delivery_receipt_failures"] == 0
         assert health["last_cqrs_delivery_receipt"]["subscriber_name"] == (
             "ActionReceiptMemoryReinforce"

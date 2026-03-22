@@ -201,6 +201,34 @@ jobs:
             echo "::notice::scripts/ci_docs_truth_gate.py not found — skipping (non-blocking)"
           fi
 
+      - name: Run delivery program gate (if artifacts exist)
+        shell: bash
+        run: |
+          if [ -f "scripts/ci_delivery_program_gate.py" ] && [ -f "docs/program/bizra_delivery_program.json" ]; then
+            python scripts/ci_delivery_program_gate.py
+          else
+            echo "::notice::delivery program gate inputs not found — skipping (non-blocking)"
+          fi
+
+      - name: Generate delivery scorecard artifact (if artifacts exist)
+        shell: bash
+        run: |
+          if [ -f "scripts/ci_delivery_scorecard.py" ] && [ -f "docs/program/bizra_delivery_program.json" ]; then
+            python scripts/ci_delivery_scorecard.py --output /tmp/delivery_scorecard.md
+            cat /tmp/delivery_scorecard.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::notice::delivery scorecard inputs not found — skipping (non-blocking)"
+          fi
+
+      - name: Upload delivery scorecard
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: delivery-scorecard
+          path: /tmp/delivery_scorecard.md
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Check local links in existing canonical docs
         shell: bash
         id: link_check

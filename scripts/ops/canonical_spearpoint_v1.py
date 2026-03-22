@@ -274,6 +274,9 @@ def _silent_fallback_detected(receipt: Any, authority_path: str) -> bool:
 def _cqrs_delivery_snapshot(runtime: SovereignRuntime) -> dict[str, Any]:
     bus = getattr(getattr(runtime, "_organism", None), "_cqrs_bus", None)
     summary_fn = getattr(bus, "delivery_summary", None)
+    organism_stats = getattr(getattr(runtime, "_organism", None), "stats", {})
+    cqrs_stats = organism_stats.get("cqrs_bus", {}) if isinstance(organism_stats, dict) else {}
+    node0_stats = organism_stats.get("node0", {}) if isinstance(organism_stats, dict) else {}
     if not callable(summary_fn):
         return {
             "delivery_receipts": 0,
@@ -283,9 +286,11 @@ def _cqrs_delivery_snapshot(runtime: SovereignRuntime) -> dict[str, Any]:
             "delivery_mirror_enabled": False,
             "delivery_mirror_successes": 0,
             "delivery_mirror_failures": 0,
+            "node0_canonical_delivery_receipts": 0,
+            "node0_canonical_delivery_failures": 0,
+            "node0_canonical_delivery_acks": 0,
+            "node0_canonical_delivery_dead_letters": 0,
         }
-    organism_stats = getattr(getattr(runtime, "_organism", None), "stats", {})
-    cqrs_stats = organism_stats.get("cqrs_bus", {}) if isinstance(organism_stats, dict) else {}
     summary = summary_fn()
     return {
         "delivery_receipts": int(summary.get("delivery_receipts", 0) or 0),
@@ -300,6 +305,18 @@ def _cqrs_delivery_snapshot(runtime: SovereignRuntime) -> dict[str, Any]:
         ),
         "delivery_mirror_failures": int(
             cqrs_stats.get("delivery_mirror_failures", 0) or 0
+        ),
+        "node0_canonical_delivery_receipts": int(
+            node0_stats.get("total_cqrs_delivery_receipts", 0) or 0
+        ),
+        "node0_canonical_delivery_failures": int(
+            node0_stats.get("total_cqrs_delivery_receipt_failures", 0) or 0
+        ),
+        "node0_canonical_delivery_acks": int(
+            node0_stats.get("total_cqrs_delivery_ack_receipts", 0) or 0
+        ),
+        "node0_canonical_delivery_dead_letters": int(
+            node0_stats.get("total_cqrs_delivery_dead_letters", 0) or 0
         ),
     }
 
@@ -331,6 +348,26 @@ def _delivery_delta(
             - int(before["delivery_mirror_failures"]),
             0,
         ),
+        "node0_canonical_delivery_receipts": max(
+            int(after["node0_canonical_delivery_receipts"])
+            - int(before["node0_canonical_delivery_receipts"]),
+            0,
+        ),
+        "node0_canonical_delivery_failures": max(
+            int(after["node0_canonical_delivery_failures"])
+            - int(before["node0_canonical_delivery_failures"]),
+            0,
+        ),
+        "node0_canonical_delivery_acks": max(
+            int(after["node0_canonical_delivery_acks"])
+            - int(before["node0_canonical_delivery_acks"]),
+            0,
+        ),
+        "node0_canonical_delivery_dead_letters": max(
+            int(after["node0_canonical_delivery_dead_letters"])
+            - int(before["node0_canonical_delivery_dead_letters"]),
+            0,
+        ),
     }
 
 
@@ -344,15 +381,21 @@ async def _await_delivery_settlement(
     while True:
         after = _cqrs_delivery_snapshot(runtime)
         acked = after["delivery_acks"] > before["delivery_acks"]
+        canonical_recorded = (
+            after["node0_canonical_delivery_receipts"]
+            > before["node0_canonical_delivery_receipts"]
+            or after["node0_canonical_delivery_failures"]
+            > before["node0_canonical_delivery_failures"]
+        )
         if not after["delivery_mirror_enabled"]:
-            if acked:
+            if acked and canonical_recorded:
                 return after
         else:
             mirrored = (
                 after["delivery_mirror_successes"] > before["delivery_mirror_successes"]
                 or after["delivery_mirror_failures"] > before["delivery_mirror_failures"]
             )
-            if acked and mirrored:
+            if acked and mirrored and canonical_recorded:
                 return after
 
         if asyncio.get_running_loop().time() >= deadline:
@@ -398,6 +441,12 @@ def _build_run_receipt(
             and delivery_delta["delivery_mirror_failures"] == 0
         )
     )
+    node0_canonical_delivery_verified = (
+        delivery_delta["node0_canonical_delivery_receipts"] > 0
+        and delivery_delta["node0_canonical_delivery_acks"] > 0
+        and delivery_delta["node0_canonical_delivery_dead_letters"] == 0
+        and delivery_delta["node0_canonical_delivery_failures"] == 0
+    )
     policy_compliant = (
         verified_success
         and status == "COMPLETE"
@@ -406,6 +455,7 @@ def _build_run_receipt(
         and float(getattr(receipt, "ihsan_score", 0.0) or 0.0) >= MISSION_POLICY_FLOOR
         and subscriber_delivery_verified
         and subscriber_delivery_mirror_verified
+        and node0_canonical_delivery_verified
         and not silent_fallback_detected
     )
 
@@ -444,6 +494,7 @@ def _build_run_receipt(
     body["silent_fallback_detected"] = silent_fallback_detected
     body["subscriber_delivery_verified"] = subscriber_delivery_verified
     body["subscriber_delivery_mirror_verified"] = subscriber_delivery_mirror_verified
+    body["node0_canonical_delivery_verified"] = node0_canonical_delivery_verified
     body["subscriber_delivery_delta"] = delivery_delta
     body["verified_success"] = verified_success
     body["reward_eligible"] = policy_compliant
@@ -454,6 +505,11 @@ def _build_run_receipt(
         f"subscriber_dead_letters:{delivery_delta['delivery_dead_letters']}",
         f"delivery_mirror_successes:{delivery_delta['delivery_mirror_successes']}",
         f"delivery_mirror_failures:{delivery_delta['delivery_mirror_failures']}",
+        f"node0_canonical_delivery_acks:{delivery_delta['node0_canonical_delivery_acks']}",
+        "node0_canonical_delivery_dead_letters:"
+        f"{delivery_delta['node0_canonical_delivery_dead_letters']}",
+        "node0_canonical_delivery_failures:"
+        f"{delivery_delta['node0_canonical_delivery_failures']}",
     ]
     body["prev_receipt_hash"] = previous_hash
     body["prev_receipt_hash_semantics"] = previous_hash_semantics

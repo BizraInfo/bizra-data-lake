@@ -122,6 +122,9 @@ class BreathReceipt:
     # Memory effect
     memories_stored: int
     evidence_entries: int
+    cqrs_delivery_receipts: int
+    cqrs_delivery_acks: int
+    cqrs_delivery_dead_letters: int
 
     # Chain integrity
     evidence_hash: str
@@ -145,6 +148,9 @@ class BreathReceipt:
             "reflexes_precipitated": self.reflexes_precipitated,
             "memories_stored": self.memories_stored,
             "evidence_entries": self.evidence_entries,
+            "cqrs_delivery_receipts": self.cqrs_delivery_receipts,
+            "cqrs_delivery_acks": self.cqrs_delivery_acks,
+            "cqrs_delivery_dead_letters": self.cqrs_delivery_dead_letters,
             "evidence_hash": self.evidence_hash,
             "chain_hash": self.chain_hash,
             "prev_chain_hash": self.prev_chain_hash,
@@ -227,6 +233,8 @@ class Node0Heartbeat:
         self._total_events_emitted = 0
         self._total_event_delivery_failures = 0
         self._total_cqrs_delivery_receipts = 0
+        self._total_cqrs_delivery_ack_receipts = 0
+        self._total_cqrs_delivery_dead_letters = 0
         self._total_cqrs_delivery_receipt_failures = 0
         self._total_rb_experiences = 0
         self._total_learning_cycles = 0
@@ -235,6 +243,9 @@ class Node0Heartbeat:
         self._dead_letter_path = self._data_dir / "audit" / "event_dead_letters.jsonl"
         self._last_cqrs_delivery_receipt: Optional[Dict[str, Any]] = None
         self._last_cqrs_delivery_receipt_error = ""
+        self._last_breath_cqrs_delivery_receipts = 0
+        self._last_breath_cqrs_delivery_acks = 0
+        self._last_breath_cqrs_delivery_dead_letters = 0
         self._canonical_delivery_receipt_path = (
             self._data_dir / "audit" / "canonical_delivery_receipts.jsonl"
         )
@@ -407,6 +418,8 @@ class Node0Heartbeat:
         # ── Step 4c: Learning Loop Compilation Cycle ──────────────
         self._run_learning_cycle(helix_result)
 
+        cqrs_delivery_window = self._capture_cqrs_delivery_window()
+
         # ── Step 5: Chain Integrity ──────────────────────────────
         duration_ms = (time.monotonic() - start) * 1000
 
@@ -417,6 +430,9 @@ class Node0Heartbeat:
             "missions": helix_result.get("missions_processed", 0),
             "memories": memory_count,
             "reflexes": reflexes,
+            "cqrs_delivery_receipts": cqrs_delivery_window["receipts"],
+            "cqrs_delivery_acks": cqrs_delivery_window["acks"],
+            "cqrs_delivery_dead_letters": cqrs_delivery_window["dead_letters"],
         }
         evidence_hash = hashlib.blake2b(
             str(sorted(evidence_data.items())).encode(),
@@ -441,6 +457,9 @@ class Node0Heartbeat:
             reflexes_precipitated=reflexes,
             memories_stored=memory_count,
             evidence_entries=evidence_count,
+            cqrs_delivery_receipts=cqrs_delivery_window["receipts"],
+            cqrs_delivery_acks=cqrs_delivery_window["acks"],
+            cqrs_delivery_dead_letters=cqrs_delivery_window["dead_letters"],
             evidence_hash=evidence_hash,
             chain_hash=chain_hash,
             prev_chain_hash=prev_chain,
@@ -460,12 +479,15 @@ class Node0Heartbeat:
         self._contribute_urp_witness(receipt)
 
         logger.info(
-            "Node0 BREATH #%d | ihsan=%.3f | gini=%.4f | mem=%d | ev=%d | %.1fms",
+            "Node0 BREATH #%d | ihsan=%.3f | gini=%.4f | mem=%d | ev=%d | "
+            "cqrs_ack=%d | cqrs_dead=%d | %.1fms",
             self._tick_number,
             receipt.ihsan_composite,
             receipt.gini_coefficient,
             memory_count,
             evidence_count,
+            receipt.cqrs_delivery_acks,
+            receipt.cqrs_delivery_dead_letters,
             duration_ms,
         )
 
@@ -511,8 +533,15 @@ class Node0Heartbeat:
             "total_events_emitted": self._total_events_emitted,
             "total_event_delivery_failures": self._total_event_delivery_failures,
             "total_cqrs_delivery_receipts": self._total_cqrs_delivery_receipts,
+            "total_cqrs_delivery_ack_receipts": self._total_cqrs_delivery_ack_receipts,
+            "total_cqrs_delivery_dead_letters": self._total_cqrs_delivery_dead_letters,
             "total_cqrs_delivery_receipt_failures": (
                 self._total_cqrs_delivery_receipt_failures
+            ),
+            "last_breath_cqrs_delivery_receipts": self._last_breath_cqrs_delivery_receipts,
+            "last_breath_cqrs_delivery_acks": self._last_breath_cqrs_delivery_acks,
+            "last_breath_cqrs_delivery_dead_letters": (
+                self._last_breath_cqrs_delivery_dead_letters
             ),
             "pending_event_publications": len(self._pending_event_tasks),
             "last_event_delivery_error": self._last_event_delivery_error,
@@ -1089,6 +1118,9 @@ class Node0Heartbeat:
                 "seed_minted": receipt.seed_minted,
                 "missions_processed": receipt.missions_processed,
                 "reflexes_precipitated": receipt.reflexes_precipitated,
+                "cqrs_delivery_receipts": receipt.cqrs_delivery_receipts,
+                "cqrs_delivery_acks": receipt.cqrs_delivery_acks,
+                "cqrs_delivery_dead_letters": receipt.cqrs_delivery_dead_letters,
                 "chain_hash": receipt.chain_hash,
                 "approved_count": receipt.helix_result.get("approved_count", 0),
                 "rejected_count": receipt.helix_result.get("rejected_count", 0),
@@ -1182,6 +1214,32 @@ class Node0Heartbeat:
             "EventBus emission failed (non-fatal): %s", self._last_event_delivery_error
         )
 
+    def _capture_cqrs_delivery_window(self) -> Dict[str, int]:
+        """Convert cumulative CQRS delivery counters into per-breath deltas."""
+        receipts = max(
+            self._total_cqrs_delivery_receipts - self._last_breath_cqrs_delivery_receipts,
+            0,
+        )
+        acks = max(
+            self._total_cqrs_delivery_ack_receipts - self._last_breath_cqrs_delivery_acks,
+            0,
+        )
+        dead_letters = max(
+            self._total_cqrs_delivery_dead_letters
+            - self._last_breath_cqrs_delivery_dead_letters,
+            0,
+        )
+        self._last_breath_cqrs_delivery_receipts = self._total_cqrs_delivery_receipts
+        self._last_breath_cqrs_delivery_acks = self._total_cqrs_delivery_ack_receipts
+        self._last_breath_cqrs_delivery_dead_letters = (
+            self._total_cqrs_delivery_dead_letters
+        )
+        return {
+            "receipts": receipts,
+            "acks": acks,
+            "dead_letters": dead_letters,
+        }
+
     def record_cqrs_delivery_receipt(self, delivery_receipt: Dict[str, Any]) -> bool:
         """Persist CQRS subscriber delivery evidence onto Node0's canonical plane."""
         canonical_receipt = {
@@ -1206,6 +1264,11 @@ class Node0Heartbeat:
             return False
 
         self._total_cqrs_delivery_receipts += 1
+        status = str(canonical_receipt.get("status", "") or "").lower()
+        if status == "ack":
+            self._total_cqrs_delivery_ack_receipts += 1
+        elif status == "dead_letter":
+            self._total_cqrs_delivery_dead_letters += 1
         self._last_cqrs_delivery_receipt_error = ""
 
         evidence_metadata = {

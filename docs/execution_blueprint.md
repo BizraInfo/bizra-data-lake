@@ -50,6 +50,13 @@ The current blueprint stands on the following verified anchors in the repo:
 | Canonical spearpoint proof | [artifacts/CANONICAL_SPEARPOINT_V1](../artifacts/CANONICAL_SPEARPOINT_V1) |
 | Hidden-flow and system review evidence | [docs/reviews/BIZRA_PEAK_HIDDEN_FLOW_AUDIT_2026-03-21.md](reviews/BIZRA_PEAK_HIDDEN_FLOW_AUDIT_2026-03-21.md), [docs/reviews/BIZRA_HIDDEN_FLOW_AND_GEMS.md](reviews/BIZRA_HIDDEN_FLOW_AND_GEMS.md), [docs/reviews/BIZRA_SAPE_SYSTEM_REVIEW.md](reviews/BIZRA_SAPE_SYSTEM_REVIEW.md) |
 
+## Companion Execution Artifacts
+
+The blueprint is now paired with two operator-focused artifacts:
+
+- [program/BIZRA_UNIFIED_DELIVERY_FRAMEWORK_2026-03-22.md](program/BIZRA_UNIFIED_DELIVERY_FRAMEWORK_2026-03-22.md) — the PMBOK, DevOps, CI/CD, KPI, and risk operating layer
+- [program/bizra_delivery_program.json](program/bizra_delivery_program.json) — machine-readable workstreams, gates, horizons, and ethical invariants for future dashboards and automation
+
 ## SAPE Graph Of Evidence
 
 This blueprint uses SAPE as a delivery filter, not just an analysis lens.

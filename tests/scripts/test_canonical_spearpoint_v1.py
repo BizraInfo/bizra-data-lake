@@ -50,6 +50,7 @@ def test_run_canonical_spearpoint_v1_proves_s2_to_s1_replay(tmp_path: Path) -> N
     assert run1["run1_receipt"]["policy_compliant"] is True
     assert run1["run1_receipt"]["subscriber_delivery_verified"] is True
     assert run1["run1_receipt"]["subscriber_delivery_mirror_verified"] is True
+    assert run1["run1_receipt"]["node0_canonical_delivery_verified"] is True
     assert run1["run1_receipt"]["subscriber_delivery_delta"]["delivery_acks"] >= 1
     assert (
         run1["run1_receipt"]["subscriber_delivery_delta"]["delivery_dead_letters"] == 0
@@ -59,6 +60,18 @@ def test_run_canonical_spearpoint_v1_proves_s2_to_s1_replay(tmp_path: Path) -> N
             "delivery_mirror_successes"
         ]
         >= 1
+    )
+    assert (
+        run1["run1_receipt"]["subscriber_delivery_delta"][
+            "node0_canonical_delivery_acks"
+        ]
+        >= 1
+    )
+    assert (
+        run1["run1_receipt"]["subscriber_delivery_delta"][
+            "node0_canonical_delivery_dead_letters"
+        ]
+        == 0
     )
 
     assert (
@@ -81,6 +94,7 @@ def test_run_canonical_spearpoint_v1_proves_s2_to_s1_replay(tmp_path: Path) -> N
     assert run2["run2_receipt"]["replay_effect_visible"] is True
     assert run2["run2_receipt"]["subscriber_delivery_verified"] is True
     assert run2["run2_receipt"]["subscriber_delivery_mirror_verified"] is True
+    assert run2["run2_receipt"]["node0_canonical_delivery_verified"] is True
     assert (
         run2["run2_receipt"]["prev_receipt_hash"]
         == run1["run1_receipt"]["receipt_hash"]
