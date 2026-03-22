@@ -60,7 +60,7 @@ The external network consists of other nodes' SAT agents operating within the UR
 
 All traffic crossing the membrane passes through a fail-closed governance spine consisting of: (a) a canonical gate that rejects requests lacking runtime-owned mission authority, (b) a constitutional aggregator (Helix3) that accepts only approved receipts, (c) BLAKE3 cryptographic receipt chains binding all actions to provenance, and (d) Ed25519 signatures for sovereign identity on every receipt.
 
-One agent in the system is permanently frozen: the SAT Oracle (S2). External truth verification is derived from constitutional axioms, not from learned data, addressing the self-referential evaluation problem identified by Godel's incompleteness theorems.
+Two agents in the system are permanently frozen: the PAT Ethicist (P5) and the SAT Oracle (S2). Ethics and external truth verification are derived from constitutional axioms, not from learned data, resolving the self-referential evaluation problem identified by Godel's incompleteness theorems. No agent evaluates its own ethical constraints — the constraints come from outside the system.
 
 ## 4. Membrane Properties
 
