@@ -6,14 +6,15 @@
 // input validation, zeroize-on-drop, and other defensive measures.
 // ============================================================
 
-use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
-use bizra_agent::key_vault::{constant_time_eq, KeyVault, SecretString, VaultBackend, VaultError};
-use bizra_agent::vault_env::EnvBackend;
-use bizra_agent::vault_file::FileBackend;
+use bizra_agent::{
+    key_vault::{constant_time_eq, KeyVault, SecretString, VaultBackend, VaultError},
+    vault_env::EnvBackend,
+    vault_file::FileBackend,
+};
 
 // ── Helper functions ────────────────────────────────────────
 

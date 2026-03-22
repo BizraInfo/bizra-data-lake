@@ -10,9 +10,10 @@
 //! Constitutional: Each profile is a sovereign node. Data isolation
 //! is absolute — no cross-profile leakage.
 
+use std::path::{Path, PathBuf};
+
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 // ─────────────────────────────────────────────────────────────
 // User Profile

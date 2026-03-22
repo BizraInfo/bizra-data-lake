@@ -9,8 +9,7 @@ use rand::rngs::OsRng;
 use thiserror::Error;
 use uuid::Uuid;
 
-use super::types::*;
-use super::AGENT_MINT_IHSAN_THRESHOLD;
+use super::{types::*, AGENT_MINT_IHSAN_THRESHOLD};
 use crate::identity::{hex_encode, NodeId, NodeIdentity};
 
 // =============================================================================

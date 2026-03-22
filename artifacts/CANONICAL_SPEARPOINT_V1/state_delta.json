@@ -1,0 +1,28 @@
+{
+  "artifact_id": "CANONICAL_SPEARPOINT_V1",
+  "artifact_status": "POPULATED_EXECUTION",
+  "schema_version": "1.0.0",
+  "state_delta_contract": {
+    "one_bounded_update_only": true,
+    "parameter_name": "reflex_route_preference",
+    "parameter_path": "canonical_spearpoint_v1.reflex_route_preference.9af19e0723f34201ffd3c02576cbbf7126b87a64c2b19a26b0bfdf33ea5f8361",
+    "update_rule": "If reward_calc.reward_result.reward >= 0.75 and run1_receipt.policy_compliant is true and run1_receipt.verified_success is true, compile exactly one persisted reflex entry for the mission pattern and set the route preference to prefer_reflex. Otherwise make no change.",
+    "why_this_parameter": "This produces a measurable replay delta on the actual organism path. Run 1 should use S2 deliberation, while run 2 should use S1 reflex on the same mission without lowering constitutional quality floors.",
+    "persistence_required": true,
+    "persistence_targets": [
+      "artifacts/CANONICAL_SPEARPOINT_V1/state_delta.json",
+      "canonical runtime reflex cache"
+    ]
+  },
+  "state_delta_result": {
+    "applied": true,
+    "previous_value": "prefer_deliberation",
+    "new_value": "prefer_reflex",
+    "mission_pattern_hash": "9af19e0723f34201ffd3c02576cbbf7126b87a64c2b19a26b0bfdf33ea5f8361",
+    "state_store_kind": "reflex_cache_json",
+    "state_store_key": "node0/reflexes.json:9af19e0723f34201ffd3c02576cbbf7126b87a64c2b19a26b0bfdf33ea5f8361",
+    "state_store_write_verified": true,
+    "reward_source_receipt_hash": "351b7eba580eaf8b3df9734327b7b7ea905ceaa4ed197c825b2cbf64d87e32a8",
+    "persisted_at": "2026-03-21T17:25:51.731201+00:00"
+  }
+}

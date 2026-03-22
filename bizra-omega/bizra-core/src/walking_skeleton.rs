@@ -30,10 +30,14 @@
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
 
-use crate::sovereign::autopoiesis::{AutopoieticState, CycleOutcome};
-use crate::sovereign::canonicalize::{CanonicalChain, CanonicalCheckpoint};
-use crate::sovereign::meta_constitution::MetaConstitution;
-use crate::{IHSAN_THRESHOLD, SNR_THRESHOLD};
+use crate::{
+    sovereign::{
+        autopoiesis::{AutopoieticState, CycleOutcome},
+        canonicalize::{CanonicalChain, CanonicalCheckpoint},
+        meta_constitution::MetaConstitution,
+    },
+    IHSAN_THRESHOLD, SNR_THRESHOLD,
+};
 
 /// Domain separation prefix for walking skeleton evidence hashes.
 const SKELETON_DOMAIN: &[u8] = b"bizra-walking-skeleton-v1:";

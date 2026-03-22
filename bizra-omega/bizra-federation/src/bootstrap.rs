@@ -8,14 +8,13 @@
 //!
 //! Giants: Hashicorp (Serf/Consul), Bitcoin (peer discovery)
 
+use std::{net::SocketAddr, time::Duration};
+
+use bizra_core::NodeId;
 use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
-use std::time::Duration;
-use tokio::net::UdpSocket;
-use tokio::time::timeout;
+use tokio::{net::UdpSocket, time::timeout};
 
 use crate::gossip::GossipProtocol;
-use bizra_core::NodeId;
 
 /// Bootstrap configuration
 #[derive(Clone, Debug, Serialize, Deserialize)]

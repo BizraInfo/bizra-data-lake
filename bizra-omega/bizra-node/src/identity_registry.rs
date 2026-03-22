@@ -17,8 +17,9 @@
 // - Amanah: no claim without identity-bound proof
 // ============================================================
 
-use ed25519_dalek::{SigningKey, VerifyingKey};
 use std::collections::HashMap;
+
+use ed25519_dalek::{SigningKey, VerifyingKey};
 
 /// An agent's cryptographic identity.
 #[derive(Debug, Clone)]

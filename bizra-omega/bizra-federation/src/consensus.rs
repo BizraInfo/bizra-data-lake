@@ -5,11 +5,12 @@
 //!
 //! Standing on Giants: Lamport (1982) — Byzantine Generals Problem
 
+use std::collections::{HashMap, HashSet};
+
 use bizra_core::{NodeId, NodeIdentity, IHSAN_THRESHOLD};
 use chrono::{DateTime, Utc};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Proposal {

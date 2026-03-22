@@ -19,8 +19,9 @@
 //!
 //! Cross-platform: x86_64 (AVX2), aarch64 (NEON)
 
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::IHSAN_THRESHOLD;

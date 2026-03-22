@@ -23,8 +23,7 @@ mod linux;
 #[cfg(target_os = "windows")]
 mod windows;
 
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 // ── Shared Types ───────────────────────────────────────────
 

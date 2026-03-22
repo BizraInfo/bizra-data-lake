@@ -8,14 +8,17 @@
 //!
 //! LM Studio runs on the Windows host (WSL gateway, env: LMSTUDIO_HOST)
 
+use std::time::Duration;
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use tracing::{debug, error, info, warn};
 
 use super::{Backend, BackendError};
-use crate::gateway::{InferenceRequest, InferenceResponse};
-use crate::selector::ModelTier;
+use crate::{
+    gateway::{InferenceRequest, InferenceResponse},
+    selector::ModelTier,
+};
 
 /// LM Studio host configuration (WSL2 gateway — use env LMSTUDIO_HOST to override)
 const DEFAULT_LMSTUDIO_HOST: &str = "172.22.48.1";

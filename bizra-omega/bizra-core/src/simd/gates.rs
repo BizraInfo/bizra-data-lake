@@ -4,10 +4,15 @@
 //! On x86_64 with AVX-512: 8x parallel validation
 //! On ARM with NEON: 4x parallel validation
 
-use crate::pci::gates::{GateContext, GateResult};
-use crate::pci::RejectCode;
-use crate::{IHSAN_THRESHOLD, SNR_THRESHOLD};
 use std::time::Duration;
+
+use crate::{
+    pci::{
+        gates::{GateContext, GateResult},
+        RejectCode,
+    },
+    IHSAN_THRESHOLD, SNR_THRESHOLD,
+};
 
 /// Batch gate validation results
 #[derive(Debug)]

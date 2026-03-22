@@ -7,9 +7,9 @@
 //! بذرة واحدة تصنع غابة
 //! One seed makes a forest.
 
+use std::{fs, path::Path};
+
 use bizra_resourcepool::genesis::*;
-use std::fs;
-use std::path::Path;
 
 fn main() -> anyhow::Result<()> {
     // MoMo's hardware contribution

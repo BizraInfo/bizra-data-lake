@@ -9,8 +9,10 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use crate::app::{AgentState, AgentStatus};
-use crate::theme::{borders, symbols, Theme};
+use crate::{
+    app::{AgentState, AgentStatus},
+    theme::{borders, symbols, Theme},
+};
 
 pub struct AgentCard<'a> {
     state: &'a AgentState,

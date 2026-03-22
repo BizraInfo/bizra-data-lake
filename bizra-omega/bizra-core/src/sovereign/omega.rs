@@ -44,15 +44,22 @@
 //! 4. **Bernstein's Security**: Fail-secure by default
 //! 5. **Torvalds' Composability**: Unix philosophy
 
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::Arc;
-use std::time::Instant;
+use std::{
+    sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc,
+    },
+    time::Instant,
+};
+
 use tokio::sync::RwLock;
 
-use super::error::{SovereignError, SovereignResult};
-use super::giants::GiantRegistry;
-use super::graph_of_thoughts::{ReasoningPath, ThoughtGraph, ThoughtNode};
-use super::snr_engine::{SNRConfig, SNREngine, SignalMetrics};
+use super::{
+    error::{SovereignError, SovereignResult},
+    giants::GiantRegistry,
+    graph_of_thoughts::{ReasoningPath, ThoughtGraph, ThoughtNode},
+    snr_engine::{SNRConfig, SNREngine, SignalMetrics},
+};
 use crate::{Constitution, NodeIdentity, IHSAN_THRESHOLD, SNR_THRESHOLD};
 
 /// Omega Engine configuration

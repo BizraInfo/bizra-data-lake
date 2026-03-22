@@ -3,8 +3,9 @@
 //! Ensures deterministic BLAKE3 hashing of policy files regardless of
 //! platform line endings. All content is normalized to LF before hashing.
 
-use anyhow::{Context, Result};
 use std::path::Path;
+
+use anyhow::{Context, Result};
 
 /// Normalize policy content to a canonical form:
 /// - Replace all CRLF sequences with LF

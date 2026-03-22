@@ -1,10 +1,11 @@
 //! Node Identity — Ed25519 + BLAKE3 Cryptography
 
+use std::fmt;
+
 use blake3::Hasher;
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 use crate::DOMAIN_PREFIX;
 

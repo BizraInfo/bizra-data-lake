@@ -3,8 +3,7 @@
 //! Phase 13: Test Sprint
 
 use bizra_core::{Constitution, NodeId, NodeIdentity};
-use bizra_federation::node::*;
-use bizra_federation::{BootstrapConfig, PeerInfo};
+use bizra_federation::{node::*, BootstrapConfig, PeerInfo};
 
 fn make_node(name: &str) -> FederationNode {
     let identity = NodeIdentity::generate();

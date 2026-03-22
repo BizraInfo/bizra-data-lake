@@ -5,12 +5,8 @@ Tests for Ed25519 cryptographic signing and signature verification (SEC-016/SEC-
 Target: 80% coverage of gossip.py security-critical paths
 """
 
-import asyncio
-import json
 import sys
-import time
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -19,15 +15,10 @@ _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
 from core.federation.gossip import (
-    DEAD_TIMEOUT_MS,
-    GOSSIP_INTERVAL_MS,
-    MAX_FANOUT,
-    SUSPICION_TIMEOUT_MS,
     GossipEngine,
     GossipMessage,
     MessageType,
     NodeInfo,
-    NodeState,
 )
 from core.pci.crypto import generate_keypair
 

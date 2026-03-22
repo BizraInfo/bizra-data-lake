@@ -1,7 +1,8 @@
 //! Prometheus Metrics Handler
 
-use axum::{extract::State, response::IntoResponse};
 use std::sync::Arc;
+
+use axum::{extract::State, response::IntoResponse};
 
 use crate::state::AppState;
 

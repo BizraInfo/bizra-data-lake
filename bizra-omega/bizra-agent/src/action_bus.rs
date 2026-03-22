@@ -7,10 +7,12 @@ use std::collections::HashMap;
 
 use bizra_telescript::Permit;
 
-use crate::action_types::{
-    ActionChannel, ActionError, ActionExecutionStatus, ActionPlan, ActionResult, PlannedStep,
+use crate::{
+    action_types::{
+        ActionChannel, ActionError, ActionExecutionStatus, ActionPlan, ActionResult, PlannedStep,
+    },
+    permit_guard::{PermitGuard, PermitUsage},
 };
-use crate::permit_guard::{PermitGuard, PermitUsage};
 
 pub struct ActionBus {
     permit_guard: PermitGuard,
@@ -106,9 +108,10 @@ impl Default for ActionBus {
 
 #[cfg(test)]
 mod tests {
+    use bizra_telescript::{Authority, Capability, Permit, ResourceLimits};
+
     use super::*;
     use crate::action_types::{ActionChannel, ActionKind, ActionPlan, PlannedStep};
-    use bizra_telescript::{Authority, Capability, Permit, ResourceLimits};
 
     fn permit_all() -> Permit {
         Permit::new(

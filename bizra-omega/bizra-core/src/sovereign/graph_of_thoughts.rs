@@ -50,8 +50,7 @@
 //! - Yao et al. (2023): "Tree of Thoughts: Deliberate Problem Solving with Large Language Models"
 //! - Wei et al. (2022): "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models"
 
-use std::collections::HashMap;
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 /// Types of thought nodes in the reasoning graph.
 ///

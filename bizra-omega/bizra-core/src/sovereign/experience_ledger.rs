@@ -43,10 +43,13 @@
 //! - **Besta et al.** (2024): Graph-of-Thoughts as first-class artifact
 //! - **Shannon** (1948): Information-theoretic SNR measurement
 
+use std::{
+    collections::{HashMap, VecDeque},
+    time::{SystemTime, UNIX_EPOCH},
+};
+
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, VecDeque};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::genesis::blake3_domain_hash;
 

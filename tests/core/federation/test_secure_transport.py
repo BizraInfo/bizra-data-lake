@@ -19,7 +19,6 @@ import struct
 import sys
 import time
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -43,7 +42,6 @@ from core.federation.secure_transport import (  # Error types; Data structures; 
     ReplayError,
     ReplayWindow,
     SecureSession,
-    SecureTransportError,
     SecureTransportManager,
     SessionError,
     SymmetricState,
@@ -1158,7 +1156,7 @@ class TestPerformance:
 
         start = time.time()
         for _ in range(iterations):
-            encrypted = manager1.encrypt_message(addr2, message)
+            manager1.encrypt_message(addr2, message)
         elapsed = time.time() - start
 
         throughput_mbps = (iterations * len(message) * 8) / (elapsed * 1_000_000)

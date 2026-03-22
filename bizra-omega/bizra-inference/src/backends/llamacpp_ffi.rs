@@ -10,14 +10,16 @@
 //!
 //! Giants: Gerganov (llama.cpp), NVIDIA (CUDA), Rust llama-cpp-2 team
 
+use std::{path::Path, sync::Arc};
+
 use async_trait::async_trait;
-use std::path::Path;
-use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use super::{Backend, BackendConfig, BackendError};
-use crate::gateway::{InferenceRequest, InferenceResponse};
-use crate::selector::ModelTier;
+use crate::{
+    gateway::{InferenceRequest, InferenceResponse},
+    selector::ModelTier,
+};
 
 /// Configuration for real llama.cpp backend
 #[derive(Clone, Debug)]

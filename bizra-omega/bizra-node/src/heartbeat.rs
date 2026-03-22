@@ -28,8 +28,7 @@
 // - Boyd (1976): OODA — observe/orient/decide/act at clock speed
 // ============================================================
 
-use std::collections::VecDeque;
-use std::fmt;
+use std::{collections::VecDeque, fmt};
 
 // ============================================================
 // HEARTBEAT REPORT

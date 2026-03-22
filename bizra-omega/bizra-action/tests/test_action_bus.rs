@@ -10,12 +10,14 @@
 
 #[cfg(test)]
 mod tests {
-    use bizra_action::channels::*;
-    use bizra_action::dispatcher::{DispatchError, Dispatcher};
-    use bizra_action::guardian::Guardian;
-    use bizra_action::receipt::{chain_hash, content_hash, hash_payload, ReceiptChain};
-    use bizra_action::reflex::{ReflexError, ReflexLedger};
-    use bizra_action::*;
+    use bizra_action::{
+        channels::*,
+        dispatcher::{DispatchError, Dispatcher},
+        guardian::Guardian,
+        receipt::{chain_hash, content_hash, hash_payload, ReceiptChain},
+        reflex::{ReflexError, ReflexLedger},
+        *,
+    };
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Ihsan Score

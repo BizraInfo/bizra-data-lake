@@ -15,19 +15,21 @@
 // The Node is self-contained. No global state. No singletons.
 // ============================================================
 
-use std::collections::HashMap;
-use std::io::{self, BufRead, Write};
+use std::{
+    collections::HashMap,
+    io::{self, BufRead, Write},
+};
 
 use bizra_agent::runtime::{AgentRuntime, RuntimeConfig};
-use bizra_hooks::saga::SagaRegistry;
-use bizra_hooks::IhsanScore;
-
+use bizra_hooks::{saga::SagaRegistry, IhsanScore};
 use bizra_memory::bridge::export_atoms_as_turns;
 
-use crate::action_executor::ActionExecutor;
-use crate::handler::{self, NodeInternals, SapSessionState};
-use crate::protocol::{self, Response, NODE_NAME, NODE_VERSION};
-use crate::resource_manifest::ResourceManifest;
+use crate::{
+    action_executor::ActionExecutor,
+    handler::{self, NodeInternals, SapSessionState},
+    protocol::{self, Response, NODE_NAME, NODE_VERSION},
+    resource_manifest::ResourceManifest,
+};
 
 // ============================================================
 // NODE STATE
@@ -191,22 +193,28 @@ impl Node {
                         .ok()
                         .and_then(|v| v.parse().ok())
                         .unwrap_or(9750);
-                    let seeds: Vec<std::net::SocketAddr> =
-                        std::env::var("BIZRA_SEED_NODES")
-                            .unwrap_or_default()
-                            .split(',')
-                            .filter(|s| !s.is_empty())
-                            .filter_map(|s| s.trim().parse().ok())
-                            .collect();
+                    let seeds: Vec<std::net::SocketAddr> = std::env::var("BIZRA_SEED_NODES")
+                        .unwrap_or_default()
+                        .split(',')
+                        .filter(|s| !s.is_empty())
+                        .filter_map(|s| s.trim().parse().ok())
+                        .collect();
                     let fed_config = bizra_federation::NodeConfig {
                         name: format!("node-{}", user_hash),
                         gossip_addr: ([0, 0, 0, 0], gossip_port).into(),
                         seeds,
-                        data_dir: format!("{}/.bizra/federation", std::env::var("HOME").unwrap_or_default()),
+                        data_dir: format!(
+                            "{}/.bizra/federation",
+                            std::env::var("HOME").unwrap_or_default()
+                        ),
                     };
                     let identity = bizra_core::NodeIdentity::generate();
                     let constitution = bizra_core::Constitution::default();
-                    Some(bizra_federation::FederationNode::new(fed_config, identity, constitution))
+                    Some(bizra_federation::FederationNode::new(
+                        fed_config,
+                        identity,
+                        constitution,
+                    ))
                 } else {
                     None
                 }
@@ -528,11 +536,12 @@ impl Node {
         // are drained here. This bridges the zero-dependency hooks
         // crate to the stateful node without coupling.
         {
+            use core::sync::atomic::Ordering;
+
             use bizra_hooks::subscribers::{
                 PROMOTE_CHECK_PENDING, QUARANTINE_PENDING, REINFORCE_PENDING,
                 SESSION_COMPILE_PENDING,
             };
-            use core::sync::atomic::Ordering;
 
             let reinforce = REINFORCE_PENDING.swap(0, Ordering::Relaxed);
             if reinforce > 0 {

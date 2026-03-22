@@ -7,8 +7,10 @@ use std::collections::HashSet;
 
 use bizra_telescript::Capability;
 
-use crate::action_types::ActionPlan;
-use crate::spawn_policy::{SpawnDenied, SpawnPolicy};
+use crate::{
+    action_types::ActionPlan,
+    spawn_policy::{SpawnDenied, SpawnPolicy},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SubAgentStatus {

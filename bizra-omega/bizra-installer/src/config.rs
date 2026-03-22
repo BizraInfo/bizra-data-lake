@@ -3,9 +3,10 @@
 //! Manages the install.toml and provider.env files that describe a
 //! completed Alpha-100 installation. All serialization uses TOML.
 
+use std::path::{Path, PathBuf};
+
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 /// Full install configuration for an Alpha-100 node.
 #[derive(Debug, Clone, Serialize, Deserialize)]

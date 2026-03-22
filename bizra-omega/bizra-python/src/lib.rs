@@ -5,9 +5,6 @@
 
 mod urp_bridge;
 
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
-use pyo3::prelude::*;
-
 use bizra_autopoiesis::{
     pattern_memory::PatternMemory,
     preference_tracker::{PreferenceTracker, PreferenceType},
@@ -16,6 +13,10 @@ use bizra_core::{
     domain_separated_digest as rust_domain_digest, Constitution as RustConstitution,
     NodeId as RustNodeId, NodeIdentity as RustNodeIdentity, PCIEnvelope as RustPCIEnvelope,
     IHSAN_THRESHOLD, SNR_THRESHOLD,
+};
+use pyo3::{
+    exceptions::{PyRuntimeError, PyValueError},
+    prelude::*,
 };
 
 /// Python wrapper for NodeId
@@ -1538,10 +1539,11 @@ impl PyEventBridge {
     /// Returns a dict with pending counts for each feedback type.
     /// Python hooks call this to know what the Rust nervous system detected.
     fn poll_feedback(&self, py: Python<'_>) -> PyResult<PyObject> {
+        use core::sync::atomic::Ordering;
+
         use bizra_hooks::subscribers::{
             PROMOTE_CHECK_PENDING, QUARANTINE_PENDING, REINFORCE_PENDING, SESSION_COMPILE_PENDING,
         };
-        use core::sync::atomic::Ordering;
 
         let dict = pyo3::types::PyDict::new(py);
         dict.set_item(

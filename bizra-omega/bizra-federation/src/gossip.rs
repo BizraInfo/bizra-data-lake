@@ -5,13 +5,12 @@
 //!
 //! Standing on Giants: SWIM (Das et al., 2002)
 
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+
 use bizra_core::NodeId;
 use chrono::{DateTime, Utc};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 

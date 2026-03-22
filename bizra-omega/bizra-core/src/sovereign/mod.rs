@@ -62,6 +62,8 @@ pub mod orchestrator;
 /// Signal-to-Noise Ratio measurement engine.
 pub mod snr_engine;
 
+pub use autopoiesis::{AutopoieticState, ConvergenceReport, CycleOutcome, VerifiedReward};
+pub use canonicalize::{CanonicalChain, CanonicalCheckpoint, Canonicalize};
 pub use error::{ErrorContext, SovereignError, SovereignResult};
 pub use experience_ledger::{Episode, EpisodeAction, EpisodeImpact, ExperienceLedger, RIRConfig};
 pub use giants::{Contribution, Giant, GiantRegistry};
@@ -69,12 +71,9 @@ pub use graph_of_thoughts::{
     AggregateResult, GraphStats, ReasoningPath, ThoughtGraph, ThoughtNode, ThoughtType,
 };
 pub use judgment_telemetry::{simulate_epoch_distribution, JudgmentTelemetry, JudgmentVerdict};
-pub use omega::{CircuitState, OmegaConfig, OmegaEngine, OmegaMetrics};
-pub use orchestrator::{OrchestratorConfig, SovereignOrchestrator};
-pub use snr_engine::{SNRConfig, SNREngine, SNRStats, SignalMetrics};
-
-pub use autopoiesis::{AutopoieticState, ConvergenceReport, CycleOutcome, VerifiedReward};
-pub use canonicalize::{CanonicalChain, CanonicalCheckpoint, Canonicalize};
 pub use meta_constitution::{
     AmendmentProposal, AmendmentVerdict, ConstitutionalEra, MetaConstitution,
 };
+pub use omega::{CircuitState, OmegaConfig, OmegaEngine, OmegaMetrics};
+pub use orchestrator::{OrchestratorConfig, SovereignOrchestrator};
+pub use snr_engine::{SNRConfig, SNREngine, SNRStats, SignalMetrics};

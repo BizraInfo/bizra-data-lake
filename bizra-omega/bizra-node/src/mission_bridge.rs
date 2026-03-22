@@ -7,13 +7,17 @@
 // stage inside the Mission Control Plane's state machine.
 // ============================================================
 
-use bizra_agent::runtime::{AgentRuntime, RuntimeResponse};
-use bizra_agent::types::{Message, MessageId};
+use bizra_agent::{
+    runtime::{AgentRuntime, RuntimeResponse},
+    types::{Message, MessageId},
+};
 use bizra_hooks::IhsanScore;
-use bizra_mission::mission::Mission;
-use bizra_mission::preflight::{self, Capability};
-use bizra_mission::receipt::MissionReceipt;
-use bizra_mission::state::{DegradationReason, FailureCode, MissionState};
+use bizra_mission::{
+    mission::Mission,
+    preflight::{self, Capability},
+    receipt::MissionReceipt,
+    state::{DegradationReason, FailureCode, MissionState},
+};
 use ed25519_dalek::SigningKey;
 
 /// Result of a governed mission execution.

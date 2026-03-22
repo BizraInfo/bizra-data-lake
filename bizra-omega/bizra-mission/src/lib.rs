@@ -28,9 +28,11 @@ pub mod state;
 
 #[cfg(test)]
 mod tests {
-    use crate::mission::Mission;
-    use crate::preflight::{self, Capability, PreflightResult};
-    use crate::state::{DegradationReason, FailureCode, MissionState};
+    use crate::{
+        mission::Mission,
+        preflight::{self, Capability, PreflightResult},
+        state::{DegradationReason, FailureCode, MissionState},
+    };
 
     fn now() -> u64 {
         1773662000

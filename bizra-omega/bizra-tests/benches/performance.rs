@@ -364,10 +364,11 @@ pub fn estimate_memory_usage() {
 
 #[cfg(test)]
 mod tests {
-    #[allow(unused_imports)] // Used in test fns, not visible in bench compilation mode
-    use super::{estimate_memory_usage, run_all_benchmarks};
     #[allow(unused_imports)] // Used in assertions, not visible in bench compilation mode
     use std::time::Duration;
+
+    #[allow(unused_imports)] // Used in test fns, not visible in bench compilation mode
+    use super::{estimate_memory_usage, run_all_benchmarks};
 
     #[test]
     fn test_run_benchmarks() {

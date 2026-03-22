@@ -1,13 +1,18 @@
 //! Inference Gateway
 
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
+
+use bizra_core::{Constitution, NodeIdentity};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
-use crate::backends::{Backend, BackendError};
-use crate::selector::{ModelSelector, ModelTier, TaskComplexity};
-use bizra_core::{Constitution, NodeIdentity};
+use crate::{
+    backends::{Backend, BackendError},
+    selector::{ModelSelector, ModelTier, TaskComplexity},
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InferenceRequest {

@@ -7,9 +7,10 @@
 //! Spec Reference: BIZRA Universal Sovereign Installer §17
 //! Standing on Giants: Lamport (hash chains, 1979), Shannon (entropy)
 
-use crate::device_profile::{DeviceProfile, ModelTier};
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
+
+use crate::device_profile::{DeviceProfile, ModelTier};
 
 // ─────────────────────────────────────────────────────────────
 // Install Receipt (Spec §17)

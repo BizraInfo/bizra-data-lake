@@ -2,6 +2,8 @@
 //!
 //! Standing on Giants: Tanenbaum (token bucket, 1981)
 
+use std::{net::SocketAddr, sync::Arc};
+
 use axum::{
     body::Body,
     extract::State,
@@ -9,8 +11,6 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use std::net::SocketAddr;
-use std::sync::Arc;
 
 use crate::state::{AppState, TokenBucket};
 

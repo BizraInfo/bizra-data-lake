@@ -1,9 +1,12 @@
 //! PCI Gate Chain — Tiered verification
 
+use std::{
+    collections::HashSet,
+    sync::{Arc, RwLock},
+    time::{Duration, Instant},
+};
+
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
-use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant};
 
 use super::RejectCode;
 use crate::constitution::Constitution;

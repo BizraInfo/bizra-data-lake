@@ -191,9 +191,10 @@ impl Default for PermitGuard {
 
 #[cfg(test)]
 mod tests {
+    use bizra_telescript::{Authority, Permit, ResourceLimits};
+
     use super::*;
     use crate::action_types::{ActionChannel, ActionKind, ActionPlan, PlannedStep};
-    use bizra_telescript::{Authority, Permit, ResourceLimits};
 
     fn permit_with_caps(capabilities: Vec<Capability>) -> Permit {
         Permit::new(

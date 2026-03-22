@@ -4,12 +4,14 @@
 //! implementing the peak integration pattern.
 
 use std::sync::Arc;
+
 use tokio::sync::RwLock;
 
-use super::graph_of_thoughts::{ReasoningPath, ThoughtGraph, ThoughtNode};
-use super::snr_engine::{SNREngine, SignalMetrics};
-use crate::pci::gates::GateContext;
-use crate::{Constitution, NodeIdentity, IHSAN_THRESHOLD, SNR_THRESHOLD};
+use super::{
+    graph_of_thoughts::{ReasoningPath, ThoughtGraph, ThoughtNode},
+    snr_engine::{SNREngine, SignalMetrics},
+};
+use crate::{pci::gates::GateContext, Constitution, NodeIdentity, IHSAN_THRESHOLD, SNR_THRESHOLD};
 
 /// Orchestrator configuration
 #[derive(Clone, Debug)]

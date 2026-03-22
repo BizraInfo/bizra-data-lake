@@ -3,13 +3,10 @@
 //! Tests the full installation flow: detect → greet → adapt → alive,
 //! plus URP, profiles, i18n, receipts, health checks, and self-update.
 
-use bizra_installer::device_profile::*;
-use bizra_installer::i18n::*;
-use bizra_installer::install_flow::*;
-use bizra_installer::install_receipt::*;
-use bizra_installer::profiles::*;
-use bizra_installer::self_update::*;
-use bizra_installer::urp::*;
+use bizra_installer::{
+    device_profile::*, i18n::*, install_flow::*, install_receipt::*, profiles::*, self_update::*,
+    urp::*,
+};
 
 // ─────────────────────────────────────────────────────────────
 // End-to-End Flow Tests

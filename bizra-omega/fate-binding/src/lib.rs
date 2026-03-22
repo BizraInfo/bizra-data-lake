@@ -15,18 +15,16 @@ mod dilithium;
 mod gate_chain;
 mod z3_ihsan;
 
-use napi::bindgen_prelude::*;
-use napi_derive::napi;
-use serde::{Deserialize, Serialize};
-
-pub use capability_card::*;
-pub use dilithium::*;
-pub use gate_chain::*;
-pub use z3_ihsan::*;
-
 // Constitutional thresholds — re-exported from bizra-core (single source of truth).
 pub use bizra_core::IHSAN_THRESHOLD;
 pub use bizra_core::SNR_THRESHOLD;
+pub use capability_card::*;
+pub use dilithium::*;
+pub use gate_chain::*;
+use napi::bindgen_prelude::*;
+use napi_derive::napi;
+use serde::{Deserialize, Serialize};
+pub use z3_ihsan::*;
 
 /// Model capability tiers
 #[napi]

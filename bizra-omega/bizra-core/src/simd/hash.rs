@@ -3,8 +3,9 @@
 //! Uses BLAKE3's built-in parallelism for large data and
 //! rayon for batch hashing of multiple messages.
 
-use crate::DOMAIN_PREFIX;
 use blake3::Hasher;
+
+use crate::DOMAIN_PREFIX;
 
 /// Batch hash result
 #[derive(Debug)]

@@ -36,10 +36,9 @@
 //! - Each subscriber includes a canonical topic filter and minimum priority
 //! - `wire_all()` registers all 12 in correct dependency order
 
-use crate::event_bus::EventHandler;
-use crate::saga;
-use crate::types::*;
 use core::sync::atomic::{AtomicU64, Ordering};
+
+use crate::{event_bus::EventHandler, saga, types::*};
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Atomic Feedback Signals — lock-free bridge from subscribers to heartbeat

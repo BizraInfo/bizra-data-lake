@@ -3,8 +3,9 @@
 //! Uses ed25519-dalek's batch verification for 4x+ throughput
 //! when verifying multiple signatures simultaneously.
 
-use crate::identity::domain_separated_digest;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+
+use crate::identity::domain_separated_digest;
 
 /// Batch signature verification result
 #[derive(Debug)]

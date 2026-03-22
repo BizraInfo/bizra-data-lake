@@ -16,11 +16,14 @@ mod policy;
 #[allow(dead_code)]
 mod provider;
 
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
+
 use clap::{Args, Parser, Subcommand};
 use hardware_detect::detect_hardware;
 use model_cache::ModelSpec;
-use std::fs;
-use std::path::{Path, PathBuf};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_DATA_DIR: &str = ".bizra";

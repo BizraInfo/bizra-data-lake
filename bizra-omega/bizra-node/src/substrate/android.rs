@@ -18,8 +18,9 @@
 // - GPU discovery via getprop and Vulkan
 // ============================================================
 
-use super::*;
 use std::process::Command;
+
+use super::*;
 
 fn run_cmd(cmd: &str, args: &[&str]) -> Option<String> {
     Command::new(cmd)

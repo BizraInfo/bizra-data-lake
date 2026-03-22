@@ -9,10 +9,9 @@
 //! - Executor → Agentic model (function calling)
 //! - Guardian → Reasoning + Vision (security analysis)
 
+use std::{collections::HashMap, fmt, str::FromStr};
+
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt;
-use std::str::FromStr;
 
 /// PAT Agent roles
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

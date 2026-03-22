@@ -30,11 +30,11 @@
 //! - Adl (justice): Gini coefficient ≤ 0.35
 //! - No assumptions: لا نفترض
 
+use std::{collections::HashMap, sync::Arc};
+
 use blake3::Hasher;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 use uuid::Uuid;

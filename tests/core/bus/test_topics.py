@@ -17,7 +17,6 @@ import pytest
 from core.bus.topics import (
     TOPIC_REGISTRY,
     Priority,
-    TopicDef,
     TopicRegistry,
     TopicTier,
 )

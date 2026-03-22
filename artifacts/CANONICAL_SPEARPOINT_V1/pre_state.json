@@ -1,0 +1,61 @@
+{
+  "artifact_id": "CANONICAL_SPEARPOINT_V1",
+  "artifact_status": "POPULATED_EXECUTION",
+  "schema_version": "1.0.0",
+  "pre_state": {
+    "capture_required_before_action": true,
+    "replay_isolation_contract": {
+      "policy_version_must_match_between_runs": true,
+      "thresholds_must_match_between_runs": true,
+      "manual_state_edits_forbidden_between_runs": true,
+      "mission_input_must_not_change_between_runs": true
+    },
+    "observation_contract": [
+      "policy_version",
+      "ihsan_threshold",
+      "snr_floor",
+      "available_models",
+      "default_model",
+      "default_got_depth",
+      "amplification_available",
+      "reflex_available",
+      "reflex_cache_state",
+      "routing_weights",
+      "resource_snapshot",
+      "last_receipt_hash"
+    ],
+    "observed_state": {
+      "capture_timestamp": "2026-03-21T17:25:51.518790+00:00",
+      "policy_version": "1.0.0",
+      "ihsan_threshold": 0.95,
+      "snr_floor": 0.85,
+      "latency_budget_ms": 3000,
+      "available_models": [
+        "deterministic/canonical-spearpoint-v1"
+      ],
+      "default_model": "deterministic/canonical-spearpoint-v1",
+      "default_got_depth": 5,
+      "amplification_available": false,
+      "reflex_available": true,
+      "reflex_cache_state": {
+        "hit": false,
+        "pattern_id": "9af19e0723f34201ffd3c02576cbbf7126b87a64c2b19a26b0bfdf33ea5f8361"
+      },
+      "routing_weights": {
+        "canonical_baseline": 1.0,
+        "canonical_amplified": 0.0,
+        "canonical_reflex": 0.0
+      },
+      "resource_snapshot": {
+        "cpu_load_pct": 9.46,
+        "memory_available_mb": 45591.41,
+        "gpu_available": false
+      },
+      "last_receipt_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "persistence_contract": {
+      "runtime_state_key": "canonical_spearpoint_v1.reflex_route_preference.9af19e0723f34201ffd3c02576cbbf7126b87a64c2b19a26b0bfdf33ea5f8361",
+      "artifact_state_file": "artifacts/CANONICAL_SPEARPOINT_V1/state_delta.json"
+    }
+  }
+}

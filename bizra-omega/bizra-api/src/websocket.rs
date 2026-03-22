@@ -1,5 +1,7 @@
 //! WebSocket Handler for Real-Time Updates
 
+use std::sync::Arc;
+
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -7,7 +9,6 @@ use axum::{
     },
     response::IntoResponse,
 };
-use std::sync::Arc;
 
 use crate::state::AppState;
 

@@ -14,14 +14,19 @@
 //! - Lamport (1978): Local self-validation before consensus
 //! - Boyd (1976): OODA — Observe (genesis) → Orient (validate) → Decide (bootstrap) → Act (proof)
 
+use std::{
+    fs,
+    net::TcpListener,
+    path::{Path, PathBuf},
+    time::Instant,
+};
+
 use bizra_core::{Constitution, NodeId, NodeIdentity};
-use bizra_federation::bootstrap::{BootstrapConfig, Bootstrapper};
-use bizra_federation::node::{FederationNode, NodeConfig};
+use bizra_federation::{
+    bootstrap::{BootstrapConfig, Bootstrapper},
+    node::{FederationNode, NodeConfig},
+};
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::net::TcpListener;
-use std::path::{Path, PathBuf};
-use std::time::Instant;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CLI arguments
@@ -354,10 +359,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        fs,
+        path::PathBuf,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
     use super::*;
-    use std::fs;
-    use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     fn make_temp_dir() -> PathBuf {
         let nonce = SystemTime::now()

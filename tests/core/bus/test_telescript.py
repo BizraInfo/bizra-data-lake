@@ -16,7 +16,6 @@ from core.bus.telescript import (
     Capability,
     TeleScriptEngine,
     TeleScriptPolicy,
-    TeleScriptVerdict,
 )
 
 

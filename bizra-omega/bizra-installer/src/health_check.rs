@@ -7,8 +7,9 @@
 //! Spec Reference: BIZRA Universal Sovereign Installer §16
 //! Standing on Giants: Deming (PDCA, 1950), Lamport (consensus, 1978)
 
-use crate::device_profile::DeviceProfile;
 use serde::{Deserialize, Serialize};
+
+use crate::device_profile::DeviceProfile;
 
 // ─────────────────────────────────────────────────────────────
 // Health Check Results

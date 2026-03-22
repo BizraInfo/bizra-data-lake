@@ -1,8 +1,10 @@
 //! Constitution — Ihsan Governance Framework
 
-use crate::{IHSAN_THRESHOLD, SNR_THRESHOLD};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+
+use crate::{IHSAN_THRESHOLD, SNR_THRESHOLD};
 
 /// Excellence threshold configuration for the Ihsan governance framework.
 ///

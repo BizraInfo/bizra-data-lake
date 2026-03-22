@@ -1,12 +1,15 @@
 //! Inference Handlers — Model generation and tier selection
 
-use axum::{extract::State, Json};
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use axum::{extract::State, Json};
+use bizra_inference::{
+    gateway::InferenceRequest,
+    selector::{ModelSelector, ModelTier, TaskComplexity},
+};
+use serde::{Deserialize, Serialize};
+
 use crate::{error::ApiError, state::AppState};
-use bizra_inference::gateway::InferenceRequest;
-use bizra_inference::selector::{ModelSelector, ModelTier, TaskComplexity};
 
 #[derive(Deserialize)]
 pub struct GenerateApiRequest {

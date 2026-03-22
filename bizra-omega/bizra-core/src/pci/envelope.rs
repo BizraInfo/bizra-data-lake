@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::RejectCode;
-use crate::identity::{domain_separated_digest, NodeId, NodeIdentity};
-use crate::MAX_TTL_SECONDS;
+use crate::{
+    identity::{domain_separated_digest, NodeId, NodeIdentity},
+    MAX_TTL_SECONDS,
+};
 
 /// A cryptographically signed PCI envelope carrying an arbitrary payload.
 ///

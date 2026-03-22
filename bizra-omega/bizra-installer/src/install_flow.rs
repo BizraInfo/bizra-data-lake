@@ -8,12 +8,16 @@
 //! Spec Reference: BIZRA Universal Sovereign Installer §3.2, §6-§12
 //! Standing on Giants: Boyd (OODA, 1976), Deming (PDCA, 1950)
 
-use crate::device_profile::{detect_device, DeviceProfile, ModelTier};
-use crate::health_check::{run_health_check, HealthCheckReport};
-use crate::i18n::{resolve_locale, I18nManager, LocaleInfo};
-use crate::install_receipt::{DeviceSummary, InstallAction, InstallReceipt, ModelSelection};
-use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    device_profile::{detect_device, DeviceProfile, ModelTier},
+    health_check::{run_health_check, HealthCheckReport},
+    i18n::{resolve_locale, I18nManager, LocaleInfo},
+    install_receipt::{DeviceSummary, InstallAction, InstallReceipt, ModelSelection},
+};
 
 // ─────────────────────────────────────────────────────────────
 // Install Step (State Machine)

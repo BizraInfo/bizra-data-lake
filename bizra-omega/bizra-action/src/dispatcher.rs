@@ -25,10 +25,12 @@
 //! - **Lamport (1978)**: Monotonic IDs ensure happens-before ordering
 //! - **Dijkstra (1968)**: Structured dispatch eliminates goto-chaos
 
-use crate::channels::ChannelHandler;
-use crate::guardian::Guardian;
-use crate::receipt::{hash_payload, ReceiptChain};
-use crate::types::*;
+use crate::{
+    channels::ChannelHandler,
+    guardian::Guardian,
+    receipt::{hash_payload, ReceiptChain},
+    types::*,
+};
 
 /// The Action Dispatcher — BIZRA's muscle system.
 pub struct Dispatcher {

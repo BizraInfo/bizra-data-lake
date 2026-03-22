@@ -3,9 +3,10 @@
 //! Locates, verifies, and optionally builds the bizra-node binary
 //! for Alpha-100 installation.
 
+use std::path::{Path, PathBuf};
+
 use anyhow::{Context, Result};
 use blake3::Hasher;
-use std::path::{Path, PathBuf};
 
 /// Paths to key binaries managed by the installer.
 #[derive(Debug, Clone)]

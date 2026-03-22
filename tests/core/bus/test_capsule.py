@@ -24,7 +24,6 @@ from core.bus.capsule import (
     CapsulePaths,
     CapsuleProof,
     CapsuleRegistry,
-    CapsuleResult,
     CapsuleRuntime,
     CapsuleStep,
     CapsuleTrigger,

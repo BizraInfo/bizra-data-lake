@@ -1,7 +1,9 @@
 //! BIZRA Hunter CLI — SNR-Maximized Vulnerability Discovery
 
-use bizra_hunter::ingestion::{FileSource, StaticSource};
-use bizra_hunter::{Hunter, HunterConfig};
+use bizra_hunter::{
+    ingestion::{FileSource, StaticSource},
+    Hunter, HunterConfig,
+};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]

@@ -52,8 +52,10 @@
 //! Both signatures required for SEED → accountability
 //! Any node can verify any attestation → transparency
 
-use crate::attestation::{self, Attestation, SatVerdict};
-use crate::boundary::{self, BoundaryError, GuardianVerdict, PermitLink, RequestBuilder};
+use crate::{
+    attestation::{self, Attestation, SatVerdict},
+    boundary::{self, BoundaryError, GuardianVerdict, PermitLink, RequestBuilder},
+};
 // Module-level imports for flow orchestration
 // (derive_agent_key used in tests via crate::mint::derive_agent_key)
 
@@ -197,8 +199,10 @@ pub fn execute_full_flow(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::constitution::{PAT_DERIVATION_PREFIX, SAT_DERIVATION_PREFIX};
-    use crate::mint::{derive_agent_key, mint_node};
+    use crate::{
+        constitution::{PAT_DERIVATION_PREFIX, SAT_DERIVATION_PREFIX},
+        mint::{derive_agent_key, mint_node},
+    };
 
     #[test]
     fn test_complete_flow_approved() {

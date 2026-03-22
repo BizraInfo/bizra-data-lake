@@ -5,12 +5,12 @@
 //! Run: cargo run -p bizra-api --release
 //! Or:  ./target/release/bizra-api
 
-use ed25519_dalek::SigningKey;
-use std::io::Write;
-use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use std::{
+    io::Write,
+    net::SocketAddr,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use bizra_api::{serve, AppState, ServerConfig};
 use bizra_core::{Constitution, NodeIdentity};
@@ -20,6 +20,8 @@ use bizra_inference::{
     selector::ModelTier,
     InferenceGateway,
 };
+use ed25519_dalek::SigningKey;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -243,8 +245,7 @@ fn load_or_create_identity_bytes_at(identity_dir: &Path) -> anyhow::Result<[u8; 
 
     #[cfg(unix)]
     {
-        use std::fs::OpenOptions;
-        use std::os::unix::fs::OpenOptionsExt;
+        use std::{fs::OpenOptions, os::unix::fs::OpenOptionsExt};
 
         let mut file = OpenOptions::new()
             .write(true)
@@ -335,8 +336,9 @@ async fn detect_ollama_model() -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::tempdir;
+
+    use super::*;
 
     #[test]
     fn parse_identity_hex_accepts_32_byte_secret() {

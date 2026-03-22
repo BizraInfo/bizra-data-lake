@@ -13,8 +13,7 @@
 //! - **Kahneman (2011)**: System 1 (fast) vs System 2 (slow, deliberate)
 //! - **Anderson (1982)**: ACT-R — skill compilation, declarative → procedural
 
-use crate::receipt::content_hash;
-use crate::types::*;
+use crate::{receipt::content_hash, types::*};
 
 /// A compiled reflex — cached plan for a known task pattern.
 #[derive(Debug, Clone)]

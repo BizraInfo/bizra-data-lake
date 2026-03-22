@@ -5,16 +5,18 @@
 //!
 //! Standing on Giants: Ostrom (Commons), Weyl & Posner (Harberger)
 
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
-use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyType};
+use std::sync::Arc;
 
 use bizra_resourcepool::{
     NodeClass, NodeResources, ResourceContribution, ResourcePool, ResourceType,
 };
 use chrono::Utc;
+use pyo3::{
+    exceptions::{PyRuntimeError, PyValueError},
+    prelude::*,
+    types::{PyDict, PyType},
+};
 use rust_decimal::prelude::*;
-use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 // =============================================================================

@@ -5,8 +5,10 @@
 
 use std::collections::{HashMap, VecDeque};
 
-use crate::hash_namespace::TriggerHash;
-use crate::reflex_cache::{ActionTemplate, ReflexRule};
+use crate::{
+    hash_namespace::TriggerHash,
+    reflex_cache::{ActionTemplate, ReflexRule},
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CompilerConfig {

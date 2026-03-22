@@ -8,20 +8,13 @@
 """
 
 import time
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from core.federation.consensus import (
-    CommitMessage,
     ConsensusEngine,
     ConsensusPhase,
     ConsensusState,
-    NewViewMessage,
-    PrepareMessage,
-    Proposal,
-    ViewChangeRequest,
-    Vote,
 )
 from core.pci.crypto import generate_keypair
 
@@ -212,7 +205,7 @@ class TestPreparePhase:
             replica._consensus_state[proposal.proposal_id] = ConsensusState()
             prepare = replica.send_prepare(proposal, ihsan_score=0.96)
             assert prepare is not None
-            quorum_reached = self.leader.receive_prepare(prepare, node_count=4)
+            self.leader.receive_prepare(prepare, node_count=4)
 
         # With 4 nodes, quorum=3, should reach quorum
         state = self.leader._consensus_state[proposal.proposal_id]
@@ -286,7 +279,7 @@ class TestViewChange:
         # Node 0 receives requests from others
         leader_node, _, _ = self.nodes[0]
         for i, req in enumerate(requests[1:], 1):
-            result = leader_node.receive_view_change(req, node_count=4)
+            leader_node.receive_view_change(req, node_count=4)
 
         # After quorum, view should change
         assert leader_node._current_view == 1

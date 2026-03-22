@@ -2,8 +2,7 @@
 //!
 //! Phase 13: Test Sprint — Closing coverage gap on autopoiesis
 
-use bizra_autopoiesis::pattern_memory::*;
-use bizra_autopoiesis::{ELEVATION_THRESHOLD, EMBEDDING_DIM};
+use bizra_autopoiesis::{pattern_memory::*, ELEVATION_THRESHOLD, EMBEDDING_DIM};
 use bizra_core::NodeId;
 
 // ---------------------------------------------------------------------------

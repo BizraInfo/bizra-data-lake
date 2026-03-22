@@ -10,8 +10,9 @@
 //! - **Shannon** (1948): Entropy as uncertainty measure
 //! - **Aristotle** (Nicomachean Ethics): Practical wisdom via observation
 
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+
+use serde::{Deserialize, Serialize};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Judgment Verdicts

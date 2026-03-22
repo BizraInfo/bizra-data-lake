@@ -8,8 +8,7 @@
 
 use std::collections::HashSet;
 
-use crate::hyperedge::NodeId;
-use crate::store::HyperGraphStore;
+use crate::{hyperedge::NodeId, store::HyperGraphStore};
 
 /// Collect all nodes reachable from `seeds` within `max_hops` via hyperedge traversal.
 ///

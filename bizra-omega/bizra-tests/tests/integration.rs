@@ -155,8 +155,10 @@ fn test_gate_chain_pass() {
 /// Test gate chain with failing Ihsan
 #[test]
 fn test_gate_chain_ihsan_fail() {
-    use bizra_core::pci::gates::{default_gate_chain, GateChain};
-    use bizra_core::RejectCode;
+    use bizra_core::{
+        pci::gates::{default_gate_chain, GateChain},
+        RejectCode,
+    };
 
     let chain = default_gate_chain();
     let constitution = Constitution::default();

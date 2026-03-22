@@ -43,6 +43,11 @@ pub mod sovereign;
 /// Walking Skeleton — thinnest end-to-end constitutional liveness proof.
 pub mod walking_skeleton;
 
+pub use canonical::{
+    block_hash, chain_hash, constitution_hash, domain_hash, episode_hash, hex, identity_hash,
+    receipt_hash, DOMAIN_BLOCK, DOMAIN_CHAIN, DOMAIN_CONSTITUTION, DOMAIN_EPISODE, DOMAIN_IDENTITY,
+    DOMAIN_POLICY, DOMAIN_RECEIPT,
+};
 pub use constitution::{Constitution, IhsanThreshold};
 pub use genesis::{
     blake3_domain_hash, blake3_hash, CryptoManifest, ExecutionContext, GenesisError,
@@ -197,11 +202,6 @@ pub use sovereign::{
     ThoughtNode,
     ThoughtType,
     VerifiedReward,
-};
-pub use canonical::{
-    block_hash, chain_hash, constitution_hash, domain_hash, episode_hash, hex, identity_hash,
-    receipt_hash, DOMAIN_BLOCK, DOMAIN_CHAIN, DOMAIN_CONSTITUTION, DOMAIN_EPISODE,
-    DOMAIN_IDENTITY, DOMAIN_POLICY, DOMAIN_RECEIPT,
 };
 pub use walking_skeleton::{run_skeleton, SkeletonReceipt};
 

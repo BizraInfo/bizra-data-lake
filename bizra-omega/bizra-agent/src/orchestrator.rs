@@ -15,12 +15,15 @@
 // 6. Results synthesized into final response
 // ============================================================
 
-use crate::context::{ContextAssembler, IntentClassifier, UserIntent};
-use crate::decision_registry::{MissionPhase, RejectedAlternative};
-use crate::roster::AgentRoster;
-use crate::types::*;
 use bizra_hooks::IhsanScore;
 use bizra_memory::{Confidence, FragmentKind, MemoryPipeline};
+
+use crate::{
+    context::{ContextAssembler, IntentClassifier, UserIntent},
+    decision_registry::{MissionPhase, RejectedAlternative},
+    roster::AgentRoster,
+    types::*,
+};
 
 // ============================================================
 // ORCHESTRATOR CONFIG

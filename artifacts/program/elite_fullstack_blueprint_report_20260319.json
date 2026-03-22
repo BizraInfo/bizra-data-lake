@@ -1,0 +1,1302 @@
+{
+  "program_id": "elite_fullstack_masterpiece",
+  "program_version": "3.0.0",
+  "gate_passed": true,
+  "hard_fail": false,
+  "weighted_score": 1.0,
+  "min_score": 0.93,
+  "weights_total": 1.0,
+  "snr": {
+    "signal": 134,
+    "noise": 0,
+    "raw": 134.0,
+    "normalized": 0.9926
+  },
+  "control_planes": [
+    {
+      "id": "files",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 17
+    },
+    {
+      "id": "jobs",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 5
+    },
+    {
+      "id": "readme",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 6
+    },
+    {
+      "id": "thresholds",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 5
+    },
+    {
+      "id": "pmbok",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 11
+    },
+    {
+      "id": "pipeline",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 8
+    },
+    {
+      "id": "docs_truth",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 7
+    },
+    {
+      "id": "architecture",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 15
+    },
+    {
+      "id": "security",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 9
+    },
+    {
+      "id": "terminal",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 14
+    },
+    {
+      "id": "performance",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 9
+    },
+    {
+      "id": "runtime_canon_lock",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 11
+    },
+    {
+      "id": "qa",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 8
+    },
+    {
+      "id": "ethics",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 4
+    },
+    {
+      "id": "config",
+      "score": 1.0,
+      "status": "PASS",
+      "failed_checks": 0,
+      "check_count": 5
+    }
+  ],
+  "graph_of_thought": {
+    "nodes": [
+      {
+        "id": "files",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "jobs",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "readme",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "thresholds",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "pmbok",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "pipeline",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "docs_truth",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "architecture",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "security",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "terminal",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "performance",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "runtime_canon_lock",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "qa",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "ethics",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "config",
+        "score": 1.0,
+        "status": "PASS"
+      },
+      {
+        "id": "release_readiness",
+        "score": 1.0,
+        "status": "PASS"
+      }
+    ],
+    "edges": [
+      {
+        "from": "pmbok",
+        "to": "files"
+      },
+      {
+        "from": "architecture",
+        "to": "terminal"
+      },
+      {
+        "from": "architecture",
+        "to": "runtime_canon_lock"
+      },
+      {
+        "from": "architecture",
+        "to": "security"
+      },
+      {
+        "from": "files",
+        "to": "jobs"
+      },
+      {
+        "from": "files",
+        "to": "pipeline"
+      },
+      {
+        "from": "docs_truth",
+        "to": "readme"
+      },
+      {
+        "from": "docs_truth",
+        "to": "architecture"
+      },
+      {
+        "from": "docs_truth",
+        "to": "pmbok"
+      },
+      {
+        "from": "runtime_canon_lock",
+        "to": "terminal"
+      },
+      {
+        "from": "runtime_canon_lock",
+        "to": "performance"
+      },
+      {
+        "from": "terminal",
+        "to": "docs_truth"
+      },
+      {
+        "from": "security",
+        "to": "ethics"
+      },
+      {
+        "from": "jobs",
+        "to": "thresholds"
+      },
+      {
+        "from": "pipeline",
+        "to": "qa"
+      },
+      {
+        "from": "pipeline",
+        "to": "security"
+      },
+      {
+        "from": "pipeline",
+        "to": "performance"
+      },
+      {
+        "from": "qa",
+        "to": "thresholds"
+      },
+      {
+        "from": "performance",
+        "to": "thresholds"
+      },
+      {
+        "from": "thresholds",
+        "to": "ethics"
+      },
+      {
+        "from": "runtime_canon_lock",
+        "to": "release_readiness"
+      },
+      {
+        "from": "terminal",
+        "to": "release_readiness"
+      },
+      {
+        "from": "security",
+        "to": "release_readiness"
+      },
+      {
+        "from": "ethics",
+        "to": "release_readiness"
+      },
+      {
+        "from": "readme",
+        "to": "release_readiness"
+      }
+    ]
+  },
+  "interdisciplinary_lenses": {
+    "architecture": 1.0,
+    "security": 1.0,
+    "devops": 1.0,
+    "quality": 1.0,
+    "governance": 1.0,
+    "documentation": 1.0,
+    "performance": 1.0,
+    "operator_experience": 1.0,
+    "ethical_integrity": 1.0
+  },
+  "ethical_integrity_posture": {
+    "ihsan": {
+      "score": 1.0,
+      "status": "PASS"
+    },
+    "adl": {
+      "score": 1.0,
+      "status": "PASS"
+    },
+    "amanah": {
+      "score": 1.0,
+      "status": "PASS"
+    },
+    "overall": {
+      "score": 1.0,
+      "status": "PASS"
+    }
+  },
+  "implementation_strategy": {
+    "program": "MASTERPIECE-2026: Provably Constitutional Runtime",
+    "current_phase": "promote_release_evidence",
+    "phase_objective": "Promote the synchronized blueprint into protected release evidence.",
+    "priority_sequence": {
+      "immediate": [],
+      "next": [],
+      "later": []
+    },
+    "sape_execution": {
+      "symbolic": "Repair invariants, thresholds, schemas, and config integrity first.",
+      "abstraction": "Realign architecture, documentation, and terminal truth-state against canonical contracts.",
+      "probe": "Validate with CI/CD gates, fuzz, benchmarks, and security checks before promotion.",
+      "elevation": "Promote only changes that improve SNR, preserve Ihsan, and reduce cascade risk."
+    },
+    "priority_risks": []
+  },
+  "risk_register": [],
+  "standing_on_giants_protocol": [
+    "Shannon:SNR maximization",
+    "Besta:graph-of-thought reasoning topology",
+    "Deming:PDCA quality discipline",
+    "Boyd:OODA bounded execution loops",
+    "Lamport:deterministic evidence ordering",
+    "PMBOK:lifecycle governance",
+    "SAPE:symbolic-abstraction-probe-elevation",
+    "Al-Ghazali:Ihsan as hard floor"
+  ],
+  "autonomous_next_step": {
+    "priority": "P0",
+    "owner": "release-management",
+    "action": "Promote to protected branch, run Phase65 + Phase56 gates, then publish evidence artifacts."
+  },
+  "sections": {
+    "files": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "file:.github/workflows/ci.yml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:.github/workflows/phase65-masterpiece.yml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:.github/workflows/phase56-security-gate.yml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:scripts/ops/phase65_masterpiece_runner.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:scripts/ops/phase65_blueprint_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:scripts/ops/phase65_kpi_pack.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:scripts/ops/phase65_alpha_launch_packet.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:scripts/ops/autonomous_engine_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:scripts/ops/runtime_canon_lock_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:config/autonomous_engine_gate.yaml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:config/runtime_canon_lock_gate.json",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:docs/specs/phase_65_lifecycle_protocol/phase_65_09_masterpiece_blueprint.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:ROADMAP.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:COMMUNITY.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:COMMIT_STYLE_GUIDE.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:DISCORD_CI_SETUP.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:README_BADGES_UPDATE.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        }
+      ]
+    },
+    "jobs": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "job:.github/workflows/ci.yml:phase65-masterpiece-gate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "job:.github/workflows/ci.yml:phase56-security-gate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "job:.github/workflows/ci.yml:security-scan",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "job:.github/workflows/ci.yml:evidence-accumulate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "job:.github/workflows/phase65-masterpiece.yml:phase65-gate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "readme": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "readme:[![CI Status]",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "readme:[![Discord]",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "readme:[![Roadmap]",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "readme:[Public Roadmap](ROADMAP.md)",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "readme:[Community Guide](COMMUNITY.md)",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "readme:## Community",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "thresholds": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "phase65:min_snr_score",
+          "passed": true,
+          "expected": 0.9,
+          "actual": 0.9
+        },
+        {
+          "name": "phase65:min_avg_ihsan",
+          "passed": true,
+          "expected": 0.75,
+          "actual": 0.75
+        },
+        {
+          "name": "phase65:min_speedup_system1_vs_system2",
+          "passed": true,
+          "expected": 8.0,
+          "actual": 8.0
+        },
+        {
+          "name": "phase65:max_avg_latency_ms",
+          "passed": true,
+          "expected": 2200.0,
+          "actual": 2200.0
+        },
+        {
+          "name": "phase65:signed_receipts_required",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ]
+    },
+    "pmbok": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "pmbok:initiating:docs/ELITE_FULLSTACK_BLUEPRINT.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:initiating:docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:initiating:config/elite_fullstack_blueprint.yaml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:planning:config/phase65_masterpiece_roadmap.yaml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:planning:docs/specs/phase_65_lifecycle_protocol/phase_65_09_masterpiece_blueprint.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:executing:scripts/ops/phase65_masterpiece_runner.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:executing:.github/workflows/ci.yml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:monitoring_controlling:scripts/ops/elite_fullstack_blueprint_audit.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:monitoring_controlling:scripts/ci_quality_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:closing:scripts/ops/phase65_alpha_launch_packet.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pmbok:closing:scripts/evidence/release_pack.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        }
+      ]
+    },
+    "pipeline": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "pipeline:workflow:.github/workflows/ci.yml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pipeline:workflow:.github/workflows/phase65-masterpiece.yml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "pipeline:deps_all:.github/workflows/ci.yml:ci-summary",
+          "passed": true,
+          "expected": [
+            "quality-gates",
+            "phase65-masterpiece-gate",
+            "evidence-accumulate"
+          ],
+          "actual": [
+            "lint-python",
+            "lint-rust",
+            "lint-frontend",
+            "test-frontend",
+            "build-frontend",
+            "validate-schemas",
+            "validate-deploy-overlays",
+            "test-python",
+            "test-rust",
+            "quality-gates",
+            "quality-gate-bypass-audit",
+            "mvsa-acceptance-gate",
+            "phase65-masterpiece-gate",
+            "phase56-security-gate",
+            "security-scan",
+            "build-python-image",
+            "build-rust-image",
+            "container-signing",
+            "sbom-generation",
+            "performance-gate",
+            "integration-tests",
+            "evidence-accumulate"
+          ]
+        },
+        {
+          "name": "pipeline:pattern:.github/workflows/ci.yml:evidence-accumulate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "pipeline:pattern:.github/workflows/ci.yml:phase65-masterpiece-gate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "pipeline:pattern:.github/workflows/ci.yml:phase56-security-gate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "pipeline:pattern:.github/workflows/ci.yml:autonomous_engine_report.json",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "pipeline:pattern:.github/workflows/ci.yml:autonomous_gate_passed",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "docs_truth": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "file:scripts/ci_docs_truth_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:tests/scripts/test_ci_docs_truth_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "file:docs/internal/DOCS_INDEX.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "docs_truth:pattern:.github/workflows/ci.yml:python scripts/ci_docs_truth_gate.py",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "docs_truth:pattern:.github/workflows/docs-quality.yml:python scripts/ci_docs_truth_gate.py",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "docs_truth:pattern:docs/internal/DOCS_INDEX.md:UNIFIED_ACTIONABLE_FRAMEWORK.md",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "architecture": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "architecture:file:core/sovereign/api.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "architecture:file:core/sovereign/terminal.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "architecture:file:core/proof_engine/receipt.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "architecture:file:core/reasoning/verified_graph.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "architecture:file:docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "architecture:file:frontend/src/components/terminal/terminal-manifest.ts",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "architecture:pattern:core/sovereign/api.py:/v1/plan",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "architecture:pattern:core/sovereign/api.py:/v1/stream",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "architecture:pattern:core/sovereign/api.py:/v1/settings/model-routing",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "architecture:pattern:core/sovereign/terminal.py:BLOCKED_CONSTITUTIONALLY",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "architecture:pattern:core/sovereign/terminal.py:SYSTEM_1_CACHE_HIT",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "architecture:pattern:core/sovereign/terminal.py:AWAITING_ESCALATION",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "architecture:pattern:docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md:Strategic Workstreams",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "architecture:pattern:docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md:Prioritized Roadmap",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "architecture:pattern:docs/internal/UNIFIED_ACTIONABLE_FRAMEWORK.md:SAPE Execution Method",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "security": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "security:file:docs/security/hardening-checklist.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "security:file:core/auth/middleware.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "security:file:scripts/ci_secret_scan.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "security:file:.github/workflows/ci.yml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "security:file:core/sovereign/api.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "security:pattern:.github/workflows/ci.yml:scripts/ci_secret_scan.py",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "security:pattern:core/sovereign/api.py:auth.boundary.crossed",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "security:pattern:core/sovereign/api.py:receipt.verified",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "security:pattern:core/sovereign/api.py:tick.completed",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "terminal": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "terminal:file:docs/specs/phase_78_terminal_v1/BIZRA-Terminal-v1-Locked-Build-Contract.md",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:file:frontend/src/components/terminal/terminal-manifest.ts",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:file:frontend/src/components/terminal/terminal-shell.tsx",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:file:frontend/src/components/terminal/terminal-mission.tsx",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:file:frontend/src/components/terminal/terminal-timeline.tsx",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:file:frontend/src/components/terminal/terminal-memory.tsx",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:file:frontend/src/components/terminal/terminal-skills.tsx",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:file:frontend/src/components/terminal/terminal-network.tsx",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:file:frontend/src/components/terminal/terminal-settings.tsx",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:file:frontend/tests/terminal-panels.test.tsx",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "terminal:pattern:frontend/src/components/terminal/terminal-shell.tsx:terminal-manifest",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "terminal:pattern:frontend/src/components/terminal/terminal-shell.tsx:One mission, one proof, remembered forever",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "terminal:pattern:frontend/src/components/terminal/terminal-skills.tsx:PAT_AGENT_MANIFEST",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "terminal:pattern:frontend/src/components/terminal/terminal-skills.tsx:SAT_AGENT_MANIFEST",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "performance": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "performance:file:.github/workflows/performance.yml",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "performance:file:scripts/ci_release_readiness.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "performance:file:scripts/ci_quality_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "performance:file:scripts/quality_spine.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "performance:file:tests/scripts/test_quality_spine.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "performance:job:.github/workflows/ci.yml:performance-gate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "performance:job:.github/workflows/performance.yml:performance-gate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "performance:pattern:.github/workflows/ci.yml:needs.performance-gate.result",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "performance:pattern:.github/workflows/ci.yml:Gate 12: Performance Gate",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "runtime_canon_lock": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "runtime_canon_lock:file:scripts/ops/runtime_canon_lock_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "runtime_canon_lock:file:config/runtime_canon_lock_gate.json",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "runtime_canon_lock:file:tests/scripts/test_runtime_canon_lock_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "runtime_canon_lock:file:tests/core/sovereign/test_main_cli.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "runtime_canon_lock:pattern:.github/workflows/ci.yml:scripts/ops/runtime_canon_lock_gate.py",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "runtime_canon_lock:pattern:.github/workflows/ci.yml:config/runtime_canon_lock_gate.json",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "runtime_canon_lock:pattern:.github/workflows/phase65-masterpiece.yml:scripts/ops/runtime_canon_lock_gate.py",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "runtime_canon_lock:pattern:.github/workflows/phase65-masterpiece.yml:config/runtime_canon_lock_gate.json",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "runtime_canon_lock:pattern:core/sovereign/api.py:if not runtime_has_canonical_authority:",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "runtime_canon_lock:pattern:core/sovereign/api.py:runtime_receipt = await runtime_mission(",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "runtime_canon_lock:pattern:core/sovereign/__main__.py:receipt = await runtime.mission(description, source=source, context={})",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "qa": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "qa:test:tests/scripts/test_phase65_blueprint_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "qa:test:tests/scripts/test_phase65_masterpiece_runner.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "qa:test:tests/scripts/test_elite_fullstack_blueprint_audit.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "qa:test:tests/scripts/test_autonomous_engine_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "qa:test:tests/scripts/test_self_rlvr_harness.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "qa:script:scripts/ci_quality_gate.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "qa:script:scripts/ci_docs_quality.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "qa:min_test_files",
+          "passed": true,
+          "expected": 200,
+          "actual": 450
+        }
+      ]
+    },
+    "ethics": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "ethics:source:core/integration/constants.py",
+          "passed": true,
+          "expected": "exists",
+          "actual": "exists"
+        },
+        {
+          "name": "ethics:invariant:RIBA_ZERO",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "ethics:invariant:CLAIM_MUST_BIND",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        },
+        {
+          "name": "ethics:invariant:IHSAN_FLOOR",
+          "passed": true,
+          "expected": "present",
+          "actual": "present"
+        }
+      ]
+    },
+    "config": {
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "config:pmbok_domains_present",
+          "passed": true,
+          "expected": "non-empty",
+          "actual": 5
+        },
+        {
+          "name": "config:min_score_range",
+          "passed": true,
+          "expected": "[0.0, 1.0]",
+          "actual": 0.93
+        },
+        {
+          "name": "config:weights_numeric",
+          "passed": true,
+          "expected": "all numeric",
+          "actual": "all_numeric"
+        },
+        {
+          "name": "config:weights_non_negative",
+          "passed": true,
+          "expected": ">= 0.0",
+          "actual": {
+            "files": 0.12,
+            "jobs": 0.09,
+            "readme": 0.03,
+            "thresholds": 0.15,
+            "pmbok": 0.07,
+            "pipeline": 0.09,
+            "qa": 0.09,
+            "ethics": 0.04,
+            "docs_truth": 0.08,
+            "architecture": 0.04,
+            "security": 0.05,
+            "terminal": 0.05,
+            "performance": 0.05,
+            "runtime_canon_lock": 0.05
+          }
+        },
+        {
+          "name": "config:weights_sum",
+          "passed": true,
+          "expected": 1.0,
+          "actual": 1.0
+        }
+      ]
+    }
+  },
+  "failed_checks": [],
+  "optimization_roadmap": [],
+  "pmbok_domains": [
+    "initiating",
+    "planning",
+    "executing",
+    "monitoring_controlling",
+    "closing"
+  ]
+}

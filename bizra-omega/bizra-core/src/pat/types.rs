@@ -2,14 +2,14 @@
 //!
 //! Core types for agent minting, capability cards, and attestations.
 
+use std::collections::HashMap;
+
 use blake3::Hasher;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::identity::NodeId;
-use crate::IHSAN_THRESHOLD;
+use crate::{identity::NodeId, IHSAN_THRESHOLD};
 
 // =============================================================================
 // AGENT TYPES — The 7 PAT + 5 SAT Archetypes

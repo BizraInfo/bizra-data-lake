@@ -7,16 +7,21 @@
 //!
 //! Zero allocation after initialization.
 
-use crossbeam_queue::ArrayQueue;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    sync::atomic::{AtomicU64, Ordering},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
-use crate::cascade::{CriticalCascade, GateType};
-use crate::entropy::{EntropyCalculator, MultiAxisEntropy};
-use crate::evm::{detect_opcode_sequences, EvmDecoder, SequencePattern};
-use crate::invariant::InvariantCache;
-use crate::rent::HarbergerRent;
-use crate::{LANE1_SNR_THRESHOLD, MIN_CONSISTENT_AXES};
+use crossbeam_queue::ArrayQueue;
+
+use crate::{
+    cascade::{CriticalCascade, GateType},
+    entropy::{EntropyCalculator, MultiAxisEntropy},
+    evm::{detect_opcode_sequences, EvmDecoder, SequencePattern},
+    invariant::InvariantCache,
+    rent::HarbergerRent,
+    LANE1_SNR_THRESHOLD, MIN_CONSISTENT_AXES,
+};
 
 /// Heuristic result from Lane 1 (fast path)
 #[derive(Debug, Clone, Copy)]

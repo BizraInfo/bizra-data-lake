@@ -1,9 +1,14 @@
 //! IPC Router - Message routing between components
 
+use std::{
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+};
+
 use napi::bindgen_prelude::*;
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
 use crate::{

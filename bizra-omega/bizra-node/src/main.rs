@@ -18,15 +18,19 @@
 // The seed file: your knowledge as text. You own it.
 // ============================================================
 
-use bizra_agent::reflex_cache::ReflexMode;
-use bizra_agent::runtime::ActionMode;
+use std::{
+    path::PathBuf,
+    process,
+    sync::{Arc, Mutex},
+};
+
+use bizra_agent::{reflex_cache::ReflexMode, runtime::ActionMode};
 use bizra_hooks::IhsanScore;
-use bizra_node::mcp_transport::{self, McpTransportConfig};
-use bizra_node::node::{Node, NodeConfig};
-use bizra_node::persistence;
-use std::path::PathBuf;
-use std::process;
-use std::sync::{Arc, Mutex};
+use bizra_node::{
+    mcp_transport::{self, McpTransportConfig},
+    node::{Node, NodeConfig},
+    persistence,
+};
 
 struct CliConfig {
     node_config: NodeConfig,

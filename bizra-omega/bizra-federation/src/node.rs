@@ -1,12 +1,12 @@
 //! Federation Node
 
-use crate::consensus::ConsensusEngine;
-use crate::gossip::GossipProtocol;
+use std::{net::SocketAddr, sync::Arc};
+
 use bizra_core::{Constitution, NodeId, NodeIdentity};
 use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
-use std::sync::Arc;
 use tokio::sync::RwLock;
+
+use crate::{consensus::ConsensusEngine, gossip::GossipProtocol};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeConfig {

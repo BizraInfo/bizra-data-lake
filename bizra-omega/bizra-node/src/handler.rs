@@ -11,20 +11,25 @@
 // No I/O. No side effects beyond mutating the node state passed in.
 // ============================================================
 
-use crate::action_executor::parse_policy_hash_hex;
-use crate::protocol::{Command, ErrorCode, Response, NODE_NAME, NODE_VERSION, PROTOCOL_VERSION};
-use bizra_agent::context::IntentClassifier;
-use bizra_agent::runtime::{AgentRuntime, RuntimeState};
-use bizra_agent::types::{AgentRole, Message, MessageId};
+use std::{collections::HashMap, sync::Arc};
+
+use bizra_agent::{
+    context::IntentClassifier,
+    runtime::{AgentRuntime, RuntimeState},
+    types::{AgentRole, Message, MessageId},
+};
 use bizra_core::{Constitution, NodeIdentity};
-use bizra_hooks::saga::SagaRegistry;
-use bizra_hooks::IhsanScore;
-use bizra_inference::{BackendConfig, InferenceGateway, InferenceRequest, OllamaBackend};
-use bizra_inference::{ModelTier, TaskComplexity};
+use bizra_hooks::{saga::SagaRegistry, IhsanScore};
+use bizra_inference::{
+    BackendConfig, InferenceGateway, InferenceRequest, ModelTier, OllamaBackend, TaskComplexity,
+};
 use bizra_memory::types::{AtomKind, Confidence};
 use bizra_mission::state::MissionState;
-use std::collections::HashMap;
-use std::sync::Arc;
+
+use crate::{
+    action_executor::parse_policy_hash_hex,
+    protocol::{Command, ErrorCode, Response, NODE_NAME, NODE_VERSION, PROTOCOL_VERSION},
+};
 
 // ============================================================
 // NODE INTERNALS — the mutable state the handler operates on
@@ -405,7 +410,10 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
     Response::ok(vec![
         ("received", "true".to_string()),
         ("governed", "true".to_string()),
-        ("mission_state", format!("{:?}", mission_result.mission.state)),
+        (
+            "mission_state",
+            format!("{:?}", mission_result.mission.state),
+        ),
         ("agents_consulted", format!("{}", agents_consulted)),
         ("fragments_extracted", format!("{}", fragments_extracted)),
         ("guardian_approved", format!("{}", guardian_approved)),
@@ -416,7 +424,10 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
         ("action_id", action_id.to_string()),
         ("saga_id", saga_id_str),
         ("receipt_id", receipt_id_hex),
-        ("receipt_chained", format!("{}", receipt.previous_receipt_hash.is_some())),
+        (
+            "receipt_chained",
+            format!("{}", receipt.previous_receipt_hash.is_some()),
+        ),
         (
             "inference_executed",
             format!("{}", inference_execution.is_executed()),
@@ -456,7 +467,9 @@ enum InferenceExecution {
         ihsan_score: f64,
         response_text: String,
     },
-    Failed { error: String },
+    Failed {
+        error: String,
+    },
 }
 
 impl InferenceExecution {
@@ -499,14 +512,19 @@ fn maybe_execute_inference(content: &str, timestamp: u64) -> InferenceExecution 
     }
 
     match execute_with_ollama_gateway(content, timestamp) {
-        Ok((model, ihsan_score, response_text)) => {
-            InferenceExecution::Succeeded { model, ihsan_score, response_text }
-        }
+        Ok((model, ihsan_score, response_text)) => InferenceExecution::Succeeded {
+            model,
+            ihsan_score,
+            response_text,
+        },
         Err(error) => InferenceExecution::Failed { error },
     }
 }
 
-fn execute_with_ollama_gateway(content: &str, timestamp: u64) -> Result<(String, f64, String), String> {
+fn execute_with_ollama_gateway(
+    content: &str,
+    timestamp: u64,
+) -> Result<(String, f64, String), String> {
     let endpoint = std::env::var("BIZRA_OLLAMA_ENDPOINT")
         .unwrap_or_else(|_| "http://localhost:11434".to_string());
     let model = std::env::var("BIZRA_OLLAMA_MODEL").unwrap_or_else(|_| "llama3.2".to_string());

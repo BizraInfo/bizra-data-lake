@@ -21,8 +21,10 @@
 //   SAT (Guardian/Auditor)  → validates safety, checks receipts
 // ============================================================
 
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 // ── File classification ───────────────────────────────────
 

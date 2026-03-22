@@ -221,8 +221,10 @@ pub mod mock_receipt {
 /// Mock module replicating the public interface of `bizra-mission::mission`.
 /// [DERIVED] from bizra-mission/src/mission.rs
 pub mod mock_mission {
-    use super::mock_mission_state::MissionState;
-    use super::mock_receipt::{DegradationReason, FailureCode, MissionReceipt};
+    use super::{
+        mock_mission_state::MissionState,
+        mock_receipt::{DegradationReason, FailureCode, MissionReceipt},
+    };
 
     /// A single state-transition record in the mission history.
     #[derive(Debug, Clone)]
@@ -1151,10 +1153,11 @@ fn hex_bytes(bytes: &[u8; 32]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use mock_mission::Mission;
     use mock_mission_state::MissionState;
     use mock_receipt::{FailureCode, MissionReceipt};
+
+    use super::*;
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 

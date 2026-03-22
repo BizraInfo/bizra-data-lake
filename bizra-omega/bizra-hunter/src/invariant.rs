@@ -7,10 +7,11 @@
 //! - First seen timestamp
 //! - Bounty estimate (for prioritization)
 
+use std::num::NonZeroUsize;
+
 use blake3::Hasher;
 use lru::LruCache;
 use parking_lot::RwLock;
-use std::num::NonZeroUsize;
 
 /// Metadata for cached invariants
 #[derive(Debug, Clone, Copy)]

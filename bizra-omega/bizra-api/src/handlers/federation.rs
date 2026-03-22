@@ -1,8 +1,9 @@
 //! Federation Handlers — Gossip and consensus status
 
+use std::sync::Arc;
+
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use crate::{error::ApiError, state::AppState};
 

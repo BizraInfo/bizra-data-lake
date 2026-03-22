@@ -5,7 +5,6 @@
 //! Standing on Giants: Criterion • Iceoryx2 • MessagePack
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
-
 use iceoryx_bridge::{
     BridgeConfig, BridgeStats, Channel, ChannelTopology, InferenceRequest, InferenceResponse,
     MessageEnvelope,

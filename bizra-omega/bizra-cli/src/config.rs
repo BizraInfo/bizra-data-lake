@@ -2,11 +2,11 @@
 //!
 //! Loads and manages all configuration files for the CLI/TUI.
 
+use std::{collections::HashMap, path::PathBuf};
+
 use anyhow::Result;
 use chrono::Timelike;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::PathBuf;
 
 /// Configuration paths
 pub struct ConfigPaths {

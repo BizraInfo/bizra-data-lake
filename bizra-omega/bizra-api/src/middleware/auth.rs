@@ -1,5 +1,7 @@
 //! Authentication middleware for privileged API routes.
 
+use std::sync::Arc;
+
 use axum::{
     body::Body,
     extract::State,
@@ -7,7 +9,6 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use std::sync::Arc;
 
 use crate::{error::ApiError, state::AppState};
 

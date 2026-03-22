@@ -1,11 +1,12 @@
 //! Constitution Handlers — Governance rules and compliance
 
-use axum::{extract::State, Json};
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::state::AppState;
+use axum::{extract::State, Json};
 use bizra_core::{IHSAN_THRESHOLD, SNR_THRESHOLD};
+use serde::{Deserialize, Serialize};
+
+use crate::state::AppState;
 
 #[derive(Serialize)]
 pub struct ConstitutionResponse {

@@ -3,14 +3,18 @@
 // Parallel Executor — bounded concurrent sub-agent execution
 // ============================================================
 
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use bizra_telescript::Capability;
 
-use crate::action_types::ActionPlan;
-use crate::spawn_policy::{SpawnDenied, SpawnPolicy};
-use crate::sub_agent::{SubAgent, SubAgentSpawner, SubAgentStatus};
+use crate::{
+    action_types::ActionPlan,
+    spawn_policy::{SpawnDenied, SpawnPolicy},
+    sub_agent::{SubAgent, SubAgentSpawner, SubAgentStatus},
+};
 
 #[derive(Debug, Clone)]
 pub struct SubAgentResult {

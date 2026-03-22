@@ -1,8 +1,9 @@
 //! System Status Handler
 
+use std::sync::Arc;
+
 use axum::{extract::State, Json};
 use serde::Serialize;
-use std::sync::Arc;
 
 use crate::state::AppState;
 

@@ -31,8 +31,7 @@
 //! ## Complexity
 //! O(N) where N = number of gates (currently 6, constant)
 
-use std::fmt;
-use std::time::Instant;
+use std::{fmt, time::Instant};
 
 use serde::{Deserialize, Serialize};
 

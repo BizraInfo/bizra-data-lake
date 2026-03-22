@@ -22,14 +22,15 @@
 // Zero external dependencies. Pure std::fs + serde_json.
 // ============================================================
 
-use std::io;
-use std::path::{Path, PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
-use crate::hash_namespace::TriggerHash;
-use crate::reflex_cache::ReflexRule;
+use crate::{hash_namespace::TriggerHash, reflex_cache::ReflexRule};
 
 /// Persistence error types.
 #[derive(Debug)]
@@ -286,9 +287,10 @@ impl ReflexStore {
 
 #[cfg(test)]
 mod tests {
+    use tempfile::TempDir;
+
     use super::*;
     use crate::reflex_cache::{ActionTemplate, QuarantineReason, BOOTSTRAP_POLICY_HASH};
-    use tempfile::TempDir;
 
     fn test_rule(trigger_bytes: u8, policy_bytes: u8) -> ReflexRule {
         ReflexRule {

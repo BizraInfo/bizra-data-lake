@@ -15,8 +15,7 @@ pub mod routes;
 pub mod state;
 pub mod websocket;
 
-pub use error::ApiError;
-pub use state::AppState;
+use std::sync::Arc;
 
 use axum::{
     http::{
@@ -27,7 +26,8 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use std::sync::Arc;
+pub use error::ApiError;
+pub use state::AppState;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 
 /// API version

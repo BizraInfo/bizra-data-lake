@@ -11,8 +11,7 @@
 //   - Optional BLAKE3 integrity via <key>.secret.hash sidecar
 // ============================================================
 
-use std::fs;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use crate::key_vault::{SecretString, VaultBackend, VaultError};
 

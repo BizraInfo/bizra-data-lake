@@ -9,8 +9,7 @@
 //   - Receipt chain produces multiple audit entries
 // ============================================================
 
-use std::fs;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use bizra_node::action_executor::{ActionExecutor, ActionExecutorConfig};
 

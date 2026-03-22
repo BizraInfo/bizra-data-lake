@@ -25,8 +25,7 @@
 //   Auditor    — verifies manifest integrity, receipt chains
 // ============================================================
 
-use super::browser_management::UrlValidator;
-use super::file_management::SmartFileManager;
+use super::{browser_management::UrlValidator, file_management::SmartFileManager};
 
 /// The two constitutional default capabilities every node ships with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -1,8 +1,9 @@
 // bizra-node/src/substrate/linux.rs
 // Linux-specific substrate discovery via /proc + nvidia-smi + filesystem
 
-use super::*;
 use std::process::Command;
+
+use super::*;
 
 fn read_proc(path: &str) -> Option<String> {
     std::fs::read_to_string(path).ok()

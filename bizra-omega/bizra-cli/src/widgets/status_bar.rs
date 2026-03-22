@@ -10,8 +10,10 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use crate::app::InputMode;
-use crate::theme::{colors, symbols, Theme};
+use crate::{
+    app::InputMode,
+    theme::{colors, symbols, Theme},
+};
 
 pub struct StatusBar<'a> {
     mode: InputMode,

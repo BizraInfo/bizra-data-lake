@@ -17,9 +17,10 @@
 //!     └──────────── Feedback ────────────────┘
 //! ```
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Timelike, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 // =============================================================================

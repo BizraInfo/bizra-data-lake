@@ -24,13 +24,12 @@
 //! resourcepool-node market list
 //! ```
 
+use std::{env, fs, path::Path};
+
 use bizra_resourcepool::*;
 use ed25519_dalek::{SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
 use serde::Deserialize;
-use std::env;
-use std::fs;
-use std::path::Path;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 

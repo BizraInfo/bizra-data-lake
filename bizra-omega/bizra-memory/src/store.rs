@@ -572,8 +572,9 @@ impl Default for InMemoryStore {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bizra_hooks::ComponentId;
+
+    use super::*;
 
     fn test_provenance() -> Provenance {
         Provenance::new(1, 1, ComponentId::from_name("test", "1.0.0"), 1000)

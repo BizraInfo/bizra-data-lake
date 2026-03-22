@@ -1,0 +1,50 @@
+{
+  "artifact_id": "CANONICAL_SPEARPOINT_V1",
+  "artifact_status": "DRAFT_TEMPLATE",
+  "schema_version": "1.0.0",
+  "mission_input": {
+    "mission_id": "canonical-spearpoint-mission-001",
+    "mission_name": "constitutional_fail_closed_question",
+    "mission_type": "constitutional_question",
+    "prompt": "Under BIZRA constitutional enforcement, what must happen when canonical mode is enabled but runtime-owned organism mission authority is unavailable?",
+    "expected_answer_shape": "A concise answer grounded in the canonical fail-closed rule. The answer must state that the system must not silently fall back to a weaker route.",
+    "verification_contract": {
+      "must_include_all": [
+        "runtime-owned organism mission authority"
+      ],
+      "must_include_any": [
+        "fail closed",
+        "must not silently fall back",
+        "must reject execution"
+      ],
+      "forbidden_substrings": [
+        "silent fallback is acceptable",
+        "legacy fallback is acceptable"
+      ]
+    },
+    "canonical_requirements": {
+      "must_use_runtime_owned_mission_authority": true,
+      "must_emit_receipt": true,
+      "must_preserve_hash_chain": true,
+      "must_not_use_silent_fallback": true,
+      "must_not_require_external_network": true
+    },
+    "replay_constraints": {
+      "same_prompt_required": true,
+      "same_policy_version_required": true,
+      "same_thresholds_required": true,
+      "same_environment_class_required": true
+    },
+    "no_external_mutation_contract": {
+      "manual_policy_edits_between_runs_forbidden": true,
+      "manual_threshold_edits_between_runs_forbidden": true,
+      "manual_state_edits_between_runs_forbidden": true
+    },
+    "governance_source_hints": [
+      "STATUS.md",
+      "core/sovereign/api.py",
+      "core/sovereign/runtime_core.py",
+      "docs/constitutional/BIZRA-Enforceable-Spine-v1.0.md"
+    ]
+  }
+}

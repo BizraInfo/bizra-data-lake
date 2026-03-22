@@ -10,8 +10,10 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use crate::app::ActiveView;
-use crate::theme::{colors, Theme};
+use crate::{
+    app::ActiveView,
+    theme::{colors, Theme},
+};
 
 /// ASCII art logo for BIZRA (compact, single line with style)
 const LOGO_COMPACT: &str = "◈ BIZRA";

@@ -11,9 +11,10 @@
 // Think of this as the team manager's dashboard.
 // ============================================================
 
-use crate::types::*;
 use bizra_hooks::IhsanScore;
 use bizra_memory::Confidence;
+
+use crate::types::*;
 
 // ============================================================
 // AGENT STATE

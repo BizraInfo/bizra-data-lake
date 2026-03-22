@@ -1,0 +1,31 @@
+{
+  "artifact_id": "CANONICAL_SPEARPOINT_V1",
+  "artifact_status": "POPULATED_EXECUTION",
+  "schema_version": "1.0.0",
+  "reward_contract": {
+    "verified_inputs_only": true,
+    "formula_name": "canonical_verified_reward_v1",
+    "formula_text": "reward = clamp(success_bonus + snr_gain + latency_gain - degradation_penalty - policy_violation_penalty, 0.0, 1.0)",
+    "terms": {
+      "success_bonus": "0.40 if run1_receipt.verified_success is true else 0.0",
+      "snr_gain": "min(max(run1_receipt.snr_score - pre_state.observed_state.snr_floor, 0.0), 0.30)",
+      "latency_gain": "min(max((pre_state.observed_state.latency_budget_ms - run1_receipt.latency_ms) / pre_state.observed_state.latency_budget_ms, 0.0), 0.20)",
+      "degradation_penalty": "0.25 if run1_receipt.status == \"degraded\" else 0.0",
+      "policy_violation_penalty": "1.00 if run1_receipt.policy_compliant is false or run1_receipt.silent_fallback_detected is true else 0.0"
+    },
+    "verified_sources": [
+      "/mnt/c/BIZRA-DATA-LAKE/artifacts/CANONICAL_SPEARPOINT_V1/pre_state.json",
+      "/mnt/c/BIZRA-DATA-LAKE/artifacts/CANONICAL_SPEARPOINT_V1/run1_receipt.json"
+    ],
+    "reward_threshold_for_adjustment": 0.75
+  },
+  "reward_result": {
+    "success_bonus": 0.4,
+    "snr_gain": 0.15,
+    "latency_gain": 0.2,
+    "degradation_penalty": 0.0,
+    "policy_violation_penalty": 0.0,
+    "reward": 0.75,
+    "reward_verified": true
+  }
+}

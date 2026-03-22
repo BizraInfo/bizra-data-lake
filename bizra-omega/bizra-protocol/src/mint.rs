@@ -35,8 +35,7 @@ use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 
-use crate::constitution::*;
-use crate::{DOMAIN_PREFIX, PROTOCOL_VERSION};
+use crate::{constitution::*, DOMAIN_PREFIX, PROTOCOL_VERSION};
 
 // =============================================================================
 // TYPES

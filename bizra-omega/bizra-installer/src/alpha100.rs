@@ -6,14 +6,16 @@
 //! CRITICAL: Fail-closed rule — if reflex_mode is "active" but the policy
 //! hash is empty or invalid, the mode is automatically downgraded to "shadow".
 
-use crate::binary_fetch;
-use crate::config::{self, Alpha100Config};
-use crate::policy;
-use crate::provider;
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
-use std::path::PathBuf;
+
+use crate::{
+    binary_fetch,
+    config::{self, Alpha100Config},
+    policy, provider,
+};
 
 #[derive(Subcommand)]
 pub enum Alpha100Commands {

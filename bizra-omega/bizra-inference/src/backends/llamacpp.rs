@@ -5,13 +5,16 @@
 //!
 //! Giants: Gerganov (llama.cpp), NVIDIA (CUDA)
 
-use async_trait::async_trait;
 use std::sync::Arc;
+
+use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 use super::{Backend, BackendConfig, BackendError};
-use crate::gateway::{InferenceRequest, InferenceResponse};
-use crate::selector::ModelTier;
+use crate::{
+    gateway::{InferenceRequest, InferenceResponse},
+    selector::ModelTier,
+};
 
 /// LlamaCpp model configuration
 #[derive(Clone, Debug)]

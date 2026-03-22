@@ -3,15 +3,16 @@
 // Integration tests for the Multi-Provider Key Vault (Phase 4)
 // ============================================================
 
-use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
-use bizra_agent::key_vault::{KeyVault, SecretString, VaultBackend, VaultError};
-use bizra_agent::vault_env::EnvBackend;
-use bizra_agent::vault_file::FileBackend;
-use bizra_agent::vault_toml::TomlBackend;
+use bizra_agent::{
+    key_vault::{KeyVault, SecretString, VaultBackend, VaultError},
+    vault_env::EnvBackend,
+    vault_file::FileBackend,
+    vault_toml::TomlBackend,
+};
 
 // ── SecretString tests ───────────────────────────────────────
 

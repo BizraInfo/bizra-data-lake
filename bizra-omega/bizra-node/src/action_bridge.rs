@@ -308,9 +308,10 @@ fn parse_launch_payload(payload: &str) -> (String, Vec<String>) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bizra_action::{IhsanScore as ActionIhsan, Permit};
     use bizra_agent::action_types::{ActionChannel, ActionKind, PlannedStep};
+
+    use super::*;
 
     #[test]
     fn translate_desktop_click() {

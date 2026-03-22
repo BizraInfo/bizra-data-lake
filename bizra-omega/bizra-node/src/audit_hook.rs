@@ -9,9 +9,11 @@
 // Standing on: Lamport (happened-before, 1978), Shannon (1948)
 // ============================================================
 
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-use std::path::PathBuf;
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+    path::PathBuf,
+};
 
 use bizra_hooks::types::{Event, HookResult};
 
@@ -101,8 +103,9 @@ fn hex_encode(bytes: &[u8]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bizra_hooks::types::*;
+
+    use super::*;
 
     fn make_receipt_event(receipt_hash: [u8; 32], action_id: &str) -> Event {
         let mut payload_bytes = Vec::with_capacity(32 + 1 + action_id.len());

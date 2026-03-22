@@ -48,6 +48,8 @@ pub mod synthesis;
 pub mod types;
 
 // Re-exports for convenience
+// Re-export hooks types used in our API
+pub use bizra_hooks::{ComponentId, IhsanScore};
 pub use bridge::{
     export_atoms_as_turns, BridgeHealth, BridgeStatus, ConversationTurnWire, ExtractionBatch,
     ExtractionContent, ExtractionResult, Extractor, RuleExtractor, SearchBatch, SearchResult,
@@ -59,9 +61,6 @@ pub use pipeline::{
 pub use store::{InMemoryStore, StoreError};
 pub use synthesis::{SynthesisConfig, SynthesisEngine};
 pub use types::*;
-
-// Re-export hooks types used in our API
-pub use bizra_hooks::{ComponentId, IhsanScore};
 
 /// The unified memory system facade.
 ///

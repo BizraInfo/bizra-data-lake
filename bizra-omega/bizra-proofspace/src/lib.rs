@@ -17,12 +17,13 @@
 //! - SMT-LIB2: Barrett et al. (2010)
 //! - Z3: de Moura & Bjørner (2008)
 
+use std::collections::HashSet;
+
 use blake3::Hasher;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use thiserror::Error;
 
 // =============================================================================

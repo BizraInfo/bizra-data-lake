@@ -9,12 +9,18 @@
 //
 // Standing on: Lamport (1978), Cerf & Kahn (1974), Anthropic MCP (2024)
 
-use crate::protocol::{Command, ErrorCode, Response};
+use std::{
+    io::{BufRead, BufReader, BufWriter, Write},
+    net::TcpListener,
+    sync::{
+        atomic::{AtomicU16, Ordering},
+        Arc,
+    },
+};
+
 use serde_json::{json, Value};
-use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::net::TcpListener;
-use std::sync::atomic::{AtomicU16, Ordering};
-use std::sync::Arc;
+
+use crate::protocol::{Command, ErrorCode, Response};
 
 /// Maximum JSON-RPC request line length (64 KB).
 /// Prevents OOM from unbounded read_line (CVE-SEC-1).

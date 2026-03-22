@@ -4,6 +4,14 @@
 //!
 //! Standing on Giants: Shannon (Information Theory), Gerganov (llama.cpp)
 
+use std::{
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
+
 use async_trait::async_trait;
 use bizra_core::{Constitution, NodeIdentity};
 use bizra_inference::{
@@ -11,9 +19,6 @@ use bizra_inference::{
     gateway::{GatewayError, InferenceGateway, InferenceRequest, InferenceResponse},
     selector::{ModelSelector, ModelTier, TaskComplexity},
 };
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
 
 // ============================================================================
 // MOCK BACKENDS

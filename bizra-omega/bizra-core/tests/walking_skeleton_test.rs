@@ -3,8 +3,10 @@
 //! THE constitutional liveness proof. If this test passes, the system is alive.
 //! If it fails, something fundamental is broken.
 
-use bizra_core::walking_skeleton::{run_skeleton, SkeletonReceipt};
-use bizra_core::{IHSAN_THRESHOLD, SNR_THRESHOLD};
+use bizra_core::{
+    walking_skeleton::{run_skeleton, SkeletonReceipt},
+    IHSAN_THRESHOLD, SNR_THRESHOLD,
+};
 
 #[test]
 fn walking_skeleton_proves_constitutional_liveness() {

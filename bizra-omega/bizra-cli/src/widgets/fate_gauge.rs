@@ -9,8 +9,10 @@ use ratatui::{
     widgets::{Block, Borders, Gauge, Paragraph, Widget},
 };
 
-use crate::app::FATEGates;
-use crate::theme::{metric_style, symbols, Theme};
+use crate::{
+    app::FATEGates,
+    theme::{metric_style, symbols, Theme},
+};
 
 pub struct FateGauge<'a> {
     gates: &'a FATEGates,

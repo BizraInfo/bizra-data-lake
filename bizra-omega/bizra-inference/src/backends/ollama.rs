@@ -1,10 +1,13 @@
 //! Ollama Backend
 
-use super::{Backend, BackendConfig, BackendError};
-use crate::gateway::{InferenceRequest, InferenceResponse};
-use crate::selector::ModelTier;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+
+use super::{Backend, BackendConfig, BackendError};
+use crate::{
+    gateway::{InferenceRequest, InferenceResponse},
+    selector::ModelTier,
+};
 
 #[derive(Serialize)]
 struct OllamaRequest {

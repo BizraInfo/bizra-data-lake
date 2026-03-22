@@ -10,11 +10,10 @@
 // Fixed-size buffers for zero-allocation across FFI boundary.
 // ============================================================
 
-use crate::orchestrator::TaskOrchestrator;
-use crate::roster::AgentRoster;
-use crate::types::*;
 use bizra_hooks::IhsanScore;
 use bizra_memory::MemoryPipeline;
+
+use crate::{orchestrator::TaskOrchestrator, roster::AgentRoster, types::*};
 
 // ============================================================
 // FFI TYPES

@@ -20,9 +20,10 @@
 //!
 //! Standing on Giants: Lamport (distributed auth) · Needham-Schroeder (nonce protocols)
 
+use std::collections::HashMap;
+
 use bizra_core::NodeId;
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
-use std::collections::HashMap;
 
 /// Domain prefix for attestation signatures — prevents cross-protocol reuse.
 const ATTESTATION_DOMAIN: &[u8] = b"bizra-attestation-v1:";
@@ -277,8 +278,9 @@ impl Default for Attestor {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use ed25519_dalek::SigningKey;
+
+    use super::*;
 
     fn make_keypair() -> (NodeId, SigningKey) {
         let mut rng = rand::thread_rng();

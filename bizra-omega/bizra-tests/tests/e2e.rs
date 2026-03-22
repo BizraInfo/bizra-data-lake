@@ -7,8 +7,10 @@
 
 use bizra_core::{
     domain_separated_digest,
-    pci::gates::{default_gate_chain, GateChain, GateContext},
-    pci::RejectCode,
+    pci::{
+        gates::{default_gate_chain, GateChain, GateContext},
+        RejectCode,
+    },
     Constitution, NodeId, NodeIdentity, PCIEnvelope, IHSAN_THRESHOLD, SNR_THRESHOLD,
 };
 use bizra_federation::{

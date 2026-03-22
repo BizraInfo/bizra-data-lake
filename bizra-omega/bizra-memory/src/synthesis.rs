@@ -16,8 +16,7 @@
 //!
 //! That's what this engine does.
 
-use crate::store::InMemoryStore;
-use crate::types::*;
+use crate::{store::InMemoryStore, types::*};
 
 /// Configuration for synthesis strategies.
 #[derive(Debug, Clone, Copy)]
@@ -299,8 +298,9 @@ impl Default for SynthesisEngine {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bizra_hooks::ComponentId;
+
+    use super::*;
 
     fn prov(ts: u64) -> Provenance {
         Provenance::new(1, 1, ComponentId::from_name("test", "1.0.0"), ts)

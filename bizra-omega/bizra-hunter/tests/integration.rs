@@ -3,9 +3,9 @@
 //! These tests exercise the complete pipeline:
 //! BytecodeSource → Hunter::scan() → Finding
 
-use bizra_hunter::ingestion::StaticSource;
-use bizra_hunter::pipeline::VulnType;
-use bizra_hunter::{BytecodeSource, Hunter, HunterConfig};
+use bizra_hunter::{
+    ingestion::StaticSource, pipeline::VulnType, BytecodeSource, Hunter, HunterConfig,
+};
 
 /// Build high-entropy bytecode with an embedded SSTORE→CALL pattern.
 ///

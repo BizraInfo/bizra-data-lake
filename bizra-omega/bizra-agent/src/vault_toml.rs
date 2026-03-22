@@ -7,8 +7,7 @@
 // Lowest priority backend in the layered chain.
 // ============================================================
 
-use std::fs;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use crate::key_vault::{SecretString, VaultBackend, VaultError};
 

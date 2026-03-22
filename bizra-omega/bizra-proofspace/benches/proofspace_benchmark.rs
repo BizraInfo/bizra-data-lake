@@ -4,8 +4,6 @@
 //!
 //! Standing on Giants: Criterion • RFC 8785 • Ed25519 • BLAKE3
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
-
 use bizra_proofspace::{
     compute_block_id, jcs_canonicalize, Assumption, Beneficiary, BeneficiaryType, BizraBlock,
     BlockBody, BlockBuilder, BlockCore, BlockCoreUnsigned, BlockStatus, BlockType,
@@ -16,6 +14,7 @@ use bizra_proofspace::{
     Severity, Signatures, TimeHorizon, Uncertainty, UncertaintyType, UnsignedBlock,
     ValidationMethod, ValidationMethodType, VerificationType, VerifierSignature,
 };
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 
 // =============================================================================
 // TEST FIXTURES

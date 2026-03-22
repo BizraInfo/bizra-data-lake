@@ -9,8 +9,7 @@
 //! - **Cryptographic identity**: IDs derived from content, not sequence counters
 //! - **إحسان scoring**: Quality is a first-class type, not an afterthought
 
-use core::cmp::Ordering;
-use core::fmt;
+use core::{cmp::Ordering, fmt};
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Identity Types — Fixed-size, Copy, deterministic

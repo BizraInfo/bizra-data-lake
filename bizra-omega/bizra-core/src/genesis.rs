@@ -20,8 +20,10 @@ use blake3::Hasher;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::identity::{hex_decode, hex_encode};
-use crate::IHSAN_THRESHOLD;
+use crate::{
+    identity::{hex_decode, hex_encode},
+    IHSAN_THRESHOLD,
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Error Types

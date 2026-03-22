@@ -52,12 +52,15 @@
 //! If quality improves, SEED accumulates as verified proof of value.
 //! The system cannot fake improvement — every gain is counter-signed by SAT.
 
-use crate::attestation::{self, SatVerdict};
-use crate::boundary::{self, GuardianVerdict, PermitLink, RequestBuilder};
-use crate::constitution::*;
-use crate::mint::derive_agent_key;
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
+
+use crate::{
+    attestation::{self, SatVerdict},
+    boundary::{self, GuardianVerdict, PermitLink, RequestBuilder},
+    constitution::*,
+    mint::derive_agent_key,
+};
 
 // =============================================================================
 // THE AUTOPOIETIC AGENT STATE

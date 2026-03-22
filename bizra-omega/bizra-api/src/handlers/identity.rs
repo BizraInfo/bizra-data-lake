@@ -1,11 +1,12 @@
 //! Identity Handlers — Ed25519 key management
 
-use axum::{extract::State, Json};
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::{error::ApiError, state::AppState};
+use axum::{extract::State, Json};
 use bizra_core::NodeIdentity;
+use serde::{Deserialize, Serialize};
+
+use crate::{error::ApiError, state::AppState};
 
 #[derive(Serialize)]
 pub struct GenerateResponse {

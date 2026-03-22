@@ -12,15 +12,20 @@
 //   - TCP listener integration (connect, send, receive)
 // ============================================================
 
-use bizra_node::mcp_transport::{
-    current_time_secs, handle_batch, parse_jsonrpc, response_to_jsonrpc, start_tcp_listener,
-    McpTransportConfig,
+use std::{
+    io::{BufRead, BufReader, Write},
+    net::TcpStream,
+    sync::Arc,
 };
-use bizra_node::protocol::{Command, ErrorCode, Response};
+
+use bizra_node::{
+    mcp_transport::{
+        current_time_secs, handle_batch, parse_jsonrpc, response_to_jsonrpc, start_tcp_listener,
+        McpTransportConfig,
+    },
+    protocol::{Command, ErrorCode, Response},
+};
 use serde_json::{json, Value};
-use std::io::{BufRead, BufReader, Write};
-use std::net::TcpStream;
-use std::sync::Arc;
 
 // ============================================================
 // PARSE TESTS — method to Command mapping
@@ -618,8 +623,9 @@ fn tcp_error_for_unknown_method() {
 // SAP v0 INTEGRATION TESTS — full TCP round-trip through Node
 // ============================================================
 
-use bizra_node::node::{Node, NodeConfig};
 use std::sync::Mutex;
+
+use bizra_node::node::{Node, NodeConfig};
 
 fn make_sap_tcp_test_node() -> (u16, Arc<Mutex<Node>>) {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();

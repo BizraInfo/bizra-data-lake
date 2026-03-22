@@ -23,8 +23,9 @@
 //! - Streaming analysis for large texts
 //! - Zero-copy text processing where possible
 
-use super::error::{SovereignError, SovereignResult};
 use std::collections::{HashSet, VecDeque};
+
+use super::error::{SovereignError, SovereignResult};
 
 /// Maximum input size (1MB) to prevent DoS
 pub const MAX_INPUT_SIZE: usize = 1_048_576;
@@ -383,8 +384,10 @@ impl SNREngine {
     /// Returns (word_count, total_chars, unique_count, grounding_hits)
     #[inline]
     fn analyze_words_zero_copy(&self, text: &str) -> (usize, usize, usize, usize) {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
+        use std::{
+            collections::hash_map::DefaultHasher,
+            hash::{Hash, Hasher},
+        };
 
         let mut word_count = 0;
         let mut total_chars = 0;

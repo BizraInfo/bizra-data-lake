@@ -42,8 +42,10 @@ use bizra_ttrl::{
     ttrl_engine::TtrlEngine,
 };
 
-use crate::hash_namespace::TriggerHash;
-use crate::reflex_cache::{ReflexCache, ReflexMode, BOOTSTRAP_POLICY_HASH};
+use crate::{
+    hash_namespace::TriggerHash,
+    reflex_cache::{ReflexCache, ReflexMode, BOOTSTRAP_POLICY_HASH},
+};
 
 // ─── Kernel configuration ────────────────────────────────────────────────────
 
@@ -498,8 +500,9 @@ impl OmniKernel {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bizra_ttrl::decision_pivot::HhmmLevel;
+
+    use super::*;
 
     fn make_kernel() -> OmniKernel {
         OmniKernel::new(OmniKernelConfig::default())

@@ -9,10 +9,13 @@
 // "No contribution becomes value until it becomes a verified receipt."
 // ============================================================
 
-use crate::mission::Mission;
-use crate::state::{DegradationReason, FailureCode, MissionState};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
+
+use crate::{
+    mission::Mission,
+    state::{DegradationReason, FailureCode, MissionState},
+};
 
 /// The constitutional receipt. Append-only. Tamper-evident via BLAKE3 chain.
 /// Signed by the emitting node's Ed25519 key — no claim without signed receipts.

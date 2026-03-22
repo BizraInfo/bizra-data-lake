@@ -6,11 +6,11 @@
 //! TUI scaffolding -- used when direct Rust-to-LMStudio inference replaces
 //! the Python bridge. All types and methods are intentionally retained.
 
+use std::{env, time::Duration};
+
 use anyhow::{anyhow, Result};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
-use std::env;
-use std::time::Duration;
 
 /// LM Studio configuration
 #[derive(Debug, Clone)]

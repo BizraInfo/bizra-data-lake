@@ -1,0 +1,44 @@
+{
+  "artifact_id": "CANONICAL_SPEARPOINT_V1",
+  "artifact_status": "MINIMAL_CANONICAL_PROOF",
+  "schema_version": "1.0.0",
+  "verification_contract": {
+    "required_checks": [
+      "run1_receipt.receipt_hash is present",
+      "run2_receipt.receipt_hash is present",
+      "run2_receipt.prev_receipt_hash equals run1_receipt.receipt_hash",
+      "run1_receipt.authority_path equals runtime->organism->node0",
+      "run2_receipt.authority_path equals runtime->organism->node0",
+      "reward_calc uses only verified fields from pre_state and run1_receipt",
+      "state_delta_result.reward_source_receipt_hash equals run1_receipt.receipt_hash",
+      "state_delta_result.state_store_write_verified is true",
+      "run2_receipt.behavioral_delta.current_value equals state_delta_result.new_value",
+      "run2_receipt.policy_version equals run1_receipt.policy_version",
+      "run2_receipt.policy_compliant is true",
+      "run2_receipt.silent_fallback_detected is false"
+    ],
+    "minimal_canonical_status_rule": {
+      "two_successful_chained_runs": true,
+      "one_verified_reward_calculation": true,
+      "one_persisted_state_delta": true,
+      "measurable_run2_improvement_or_controlled_behavior_change": true,
+      "no_constitutional_violation": true,
+      "no_silent_fallback": true,
+      "all_receipts_hash_valid": true
+    }
+  },
+  "verification_result": {
+    "run1_hash_present": true,
+    "run2_hash_present": true,
+    "hash_link_valid": true,
+    "reward_sources_verified": true,
+    "state_delta_reflected_in_run2": true,
+    "run2_policy_clean": true,
+    "canonical_status_achieved": true,
+    "notes": [
+      "controlled_change:deliberative_s2->reflex_s1",
+      "reward:0.75",
+      "state_store:node0/reflexes.json:9af19e0723f34201ffd3c02576cbbf7126b87a64c2b19a26b0bfdf33ea5f8361"
+    ]
+  }
+}

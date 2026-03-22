@@ -10,12 +10,12 @@ pub mod llamacpp_ffi;
 pub mod lmstudio;
 pub mod ollama;
 
+use async_trait::async_trait;
 pub use lmstudio::{LMStudioBackend, LMStudioConfig, ModelCapability};
 pub use ollama::OllamaBackend;
+use serde::{Deserialize, Serialize};
 
 use crate::gateway::{InferenceRequest, InferenceResponse};
-use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BackendConfig {

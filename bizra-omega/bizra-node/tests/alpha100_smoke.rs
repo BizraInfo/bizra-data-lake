@@ -18,8 +18,10 @@
 // Standing on Giants: Shannon (1948), Lamport (1982), Al-Ghazali (1095)
 // ============================================================
 
-use bizra_node::node::{Node, NodeConfig};
-use bizra_node::protocol::{Command, Response};
+use bizra_node::{
+    node::{Node, NodeConfig},
+    protocol::{Command, Response},
+};
 
 /// Create a fresh Node with banner and auto-session disabled (CI-safe).
 fn make_alpha100_node() -> Node {

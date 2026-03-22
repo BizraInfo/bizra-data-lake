@@ -1,0 +1,48 @@
+{
+  "artifact_id": "CANONICAL_SPEARPOINT_V1",
+  "artifact_status": "POPULATED_EXECUTION",
+  "schema_version": "1.0.0",
+  "run2_receipt": {
+    "receipt_id": "canonical-spearpoint-run2",
+    "mission_id": "canonical-spearpoint-mission-001",
+    "run_index": 2,
+    "timestamp": "2026-03-21T17:25:51.908396+00:00",
+    "policy_version": "1.0.0",
+    "observed_state_ref": "/mnt/c/BIZRA-DATA-LAKE/artifacts/CANONICAL_SPEARPOINT_V1/pre_state.json",
+    "applied_state_delta_ref": "/mnt/c/BIZRA-DATA-LAKE/artifacts/CANONICAL_SPEARPOINT_V1/state_delta.json",
+    "execution_authority": "organism",
+    "authority_path": "runtime->organism->node0",
+    "selected_route": "reflex_s1",
+    "selected_model": "reflex-cache",
+    "selected_got_depth": 0,
+    "amplification_used": false,
+    "reflex_used": true,
+    "latency_ms": 1.21,
+    "snr_score": 1.0,
+    "ihsan_score": 0.8662,
+    "status": "COMPLETE",
+    "policy_compliant": true,
+    "silent_fallback_detected": false,
+    "verified_success": true,
+    "replay_effect_visible": true,
+    "behavioral_delta": {
+      "parameter_name": "reflex_route_preference",
+      "previous_value": "prefer_deliberation",
+      "current_value": "prefer_reflex",
+      "measurable_delta_type": "route_shift",
+      "measurable_delta_value": "prefer_deliberation->prefer_reflex"
+    },
+    "verification_notes": [
+      "matched_required:runtime-owned organism mission authority",
+      "matched_optional:fail closed",
+      "matched_optional:must not silently fall back",
+      "matched_optional:must reject execution",
+      "runtime_receipt:m-000001",
+      "fate_verdict:approved"
+    ],
+    "prev_receipt_hash": "351b7eba580eaf8b3df9734327b7b7ea905ceaa4ed197c825b2cbf64d87e32a8",
+    "prev_receipt_hash_semantics": "CHAINED_ARTIFACT_RECEIPT",
+    "receipt_hash": "9632264c389f4b658e152022506f417859c19d4ae5970533e4811b937317b12b",
+    "reward_eligible": true
+  }
+}

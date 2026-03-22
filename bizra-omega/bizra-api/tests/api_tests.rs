@@ -2,13 +2,17 @@
 //!
 //! Phase 13: Test Sprint
 
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use axum::{body::Body, http::Request};
-use bizra_api::error::ApiError;
-use bizra_api::{state::TokenBucket, AppState, ServerConfig, API_VERSION};
-use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
+
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+    response::IntoResponse,
+};
+use bizra_api::{error::ApiError, state::TokenBucket, AppState, ServerConfig, API_VERSION};
 use tower::ServiceExt;
 
 // ---------------------------------------------------------------------------

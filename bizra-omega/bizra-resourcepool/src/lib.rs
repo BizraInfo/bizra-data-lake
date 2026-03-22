@@ -25,21 +25,19 @@
 //! - **Halal Filter**: All services must pass ethical FATE gates
 //! - **Takaful**: Mutual insurance pool for node failures
 
-use blake3::Hasher;
-use chrono::{DateTime, Utc};
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
-use rust_decimal::prelude::*;
-use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use thiserror::Error;
-use tokio::sync::RwLock;
-use uuid::Uuid;
+use std::{collections::HashMap, sync::Arc};
 
 // Re-export integration types
 pub use bizra_proofspace::{BizraBlock, ValidationResult, Verdict};
 pub use bizra_telescript::{Agent, AgentState, Authority, Capability, Permit, Place};
+use blake3::Hasher;
+use chrono::{DateTime, Utc};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use rust_decimal::{prelude::*, Decimal};
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use tokio::sync::RwLock;
+use uuid::Uuid;
 
 // Genesis module
 pub mod genesis;
@@ -51,10 +49,9 @@ pub use proactive_pat::*;
 
 // PAT-LM Studio inference integration
 pub mod pat_inference;
-pub use pat_inference::*;
-
 // Sippar Protocol — exact economic arithmetic verification
 pub use bizra_sippar;
+pub use pat_inference::*;
 
 // =============================================================================
 // CONSTANTS - Single Source of Truth (locked)
@@ -1578,9 +1575,10 @@ mod hex_verifying_key {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use ed25519_dalek::{Signer, SigningKey};
     use rand::rngs::OsRng;
+
+    use super::*;
 
     fn generate_keypair() -> (SigningKey, VerifyingKey) {
         let signing_key = SigningKey::generate(&mut OsRng);

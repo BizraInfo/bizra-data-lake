@@ -15,9 +15,11 @@
 //! - Emits knowledge events (new insights, profile updates)
 //! - إحسان score tracks knowledge quality
 
-use crate::store::InMemoryStore;
-use crate::synthesis::{SynthesisConfig, SynthesisEngine, SynthesisPassResult};
-use crate::types::*;
+use crate::{
+    store::InMemoryStore,
+    synthesis::{SynthesisConfig, SynthesisEngine, SynthesisPassResult},
+    types::*,
+};
 
 /// Pipeline configuration.
 #[derive(Debug, Clone, Copy)]

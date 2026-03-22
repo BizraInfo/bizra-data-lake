@@ -25,24 +25,27 @@
 // ============================================================
 
 use bizra_hooks::IhsanScore;
-use bizra_memory::pipeline::PipelineConfig;
-use bizra_memory::types::{Confidence, FragmentKind};
-use bizra_memory::AtomKind;
-use bizra_memory::MemoryPipeline;
+use bizra_memory::{
+    pipeline::PipelineConfig,
+    types::{Confidence, FragmentKind},
+    AtomKind, MemoryPipeline,
+};
 
-use crate::context::IntentClassifier;
-use crate::decision_registry::{CognitiveMode, DecisionArtifact, DecisionRegistry};
-use crate::hash_namespace::{
-    compute_action_hash, compute_trigger_hash, parse_hex_32, ActionHash, TriggerHash,
+use crate::{
+    context::IntentClassifier,
+    decision_registry::{CognitiveMode, DecisionArtifact, DecisionRegistry},
+    hash_namespace::{
+        compute_action_hash, compute_trigger_hash, parse_hex_32, ActionHash, TriggerHash,
+    },
+    orchestrator::{OrchestratorConfig, TaskOrchestrator},
+    persistence::ReflexStore,
+    reflex_cache::{QuarantineReason, ReflexCache, ReflexMode, ReflexRule, ReflexStats},
+    reflex_compiler::{
+        snr_score, CompileReasonCode, CompileSample, CompilerConfig, ReflexCompiler,
+    },
+    roster::AgentRoster,
+    types::*,
 };
-use crate::orchestrator::{OrchestratorConfig, TaskOrchestrator};
-use crate::persistence::ReflexStore;
-use crate::reflex_cache::{QuarantineReason, ReflexCache, ReflexMode, ReflexRule, ReflexStats};
-use crate::reflex_compiler::{
-    snr_score, CompileReasonCode, CompileSample, CompilerConfig, ReflexCompiler,
-};
-use crate::roster::AgentRoster;
-use crate::types::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActionMode {
@@ -1144,8 +1147,10 @@ impl RuntimeResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hash_namespace::compute_trigger_hash;
-    use crate::reflex_cache::{ActionTemplate, ReflexRule};
+    use crate::{
+        hash_namespace::compute_trigger_hash,
+        reflex_cache::{ActionTemplate, ReflexRule},
+    };
 
     fn make_user_message(content: &str, timestamp: u64) -> Message {
         Message::inbound(

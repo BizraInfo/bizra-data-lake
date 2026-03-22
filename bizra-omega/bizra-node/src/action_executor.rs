@@ -3,19 +3,23 @@
 // Action Executor — protocol-facing Action Bus adapter
 // ============================================================
 
-use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Write};
-use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
-use std::time::Duration;
-
-use bizra_agent::action_bus::ActionBus;
-use bizra_agent::action_types::{
-    ActionChannel, ActionError, ActionExecutionStatus, ActionKind, ActionPlan, ActionReceipt,
-    ActionResult, PlannedStep,
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader, Write},
+    net::{SocketAddr, TcpStream, ToSocketAddrs},
+    time::Duration,
 };
-use bizra_agent::hash_namespace::parse_hex_32;
-use bizra_agent::key_vault::KeyVault;
-use bizra_agent::permit_guard::PermitUsage;
+
+use bizra_agent::{
+    action_bus::ActionBus,
+    action_types::{
+        ActionChannel, ActionError, ActionExecutionStatus, ActionKind, ActionPlan, ActionReceipt,
+        ActionResult, PlannedStep,
+    },
+    hash_namespace::parse_hex_32,
+    key_vault::KeyVault,
+    permit_guard::PermitUsage,
+};
 use bizra_hooks::{
     ComponentId, Event, EventBus, HookError, HookFn, HookId, HookPhase, HookPipeline, IhsanScore,
     Payload, Priority, Topic,
@@ -668,10 +672,15 @@ pub fn parse_policy_hash_hex(hex: Option<String>) -> [u8; 32] {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        fs,
+        sync::{
+            atomic::{AtomicUsize, Ordering},
+            OnceLock,
+        },
+    };
+
     use super::*;
-    use std::fs;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::OnceLock;
 
     static RECEIPT_HOOK_INVOCATIONS: AtomicUsize = AtomicUsize::new(0);
     static CUSTOM_HOOK_AUDIT_PATH: OnceLock<String> = OnceLock::new();

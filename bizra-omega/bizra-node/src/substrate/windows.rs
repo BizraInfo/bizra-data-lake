@@ -1,8 +1,9 @@
 // bizra-node/src/substrate/windows.rs
 // Windows-specific substrate discovery via PowerShell + WMI + nvidia-smi
 
-use super::*;
 use std::process::Command;
+
+use super::*;
 
 fn run_powershell(script: &str) -> Option<String> {
     Command::new("powershell")

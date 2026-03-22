@@ -25,8 +25,7 @@ use blake3::Hasher;
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
-use crate::constitution::IHSAN_FLOOR;
-use crate::{DOMAIN_PREFIX, PROTOCOL_VERSION};
+use crate::{constitution::IHSAN_FLOOR, DOMAIN_PREFIX, PROTOCOL_VERSION};
 
 // =============================================================================
 // TYPES
@@ -401,8 +400,7 @@ fn hex_decode(s: &str) -> Result<Vec<u8>, ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::constitution::PAT_DERIVATION_PREFIX;
-    use crate::mint::derive_agent_key;
+    use crate::{constitution::PAT_DERIVATION_PREFIX, mint::derive_agent_key};
 
     fn make_test_request(ihsan: f64, all_gates: bool) -> (RequestBuilder, SigningKey) {
         let master_secret = [99u8; 32];

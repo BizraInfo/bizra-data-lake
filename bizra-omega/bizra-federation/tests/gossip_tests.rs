@@ -2,10 +2,11 @@
 //!
 //! Phase 13: Test Sprint — Closing coverage gap on federation gossip layer
 
+use std::net::SocketAddr;
+
 use bizra_core::NodeId;
 use bizra_federation::gossip::*;
 use ed25519_dalek::SigningKey;
-use std::net::SocketAddr;
 
 // ---------------------------------------------------------------------------
 // Member

@@ -184,8 +184,10 @@ fn exec_query(text: &str, agent: &str) -> Result<()> {
 
 /// Execute agent chat via Python bridge
 fn exec_agent_chat(agent: &str, message: Option<&str>) -> Result<()> {
-    use std::io::{self, Write};
-    use std::process::Command;
+    use std::{
+        io::{self, Write},
+        process::Command,
+    };
 
     let agent_lower = agent.to_lowercase();
     let agent_display = match agent_lower.as_str() {
@@ -288,13 +290,14 @@ fn exec_agent_chat(agent: &str, message: Option<&str>) -> Result<()> {
 }
 
 fn run_tui() -> Result<()> {
+    use std::io;
+
     use crossterm::{
         event::{DisableMouseCapture, EnableMouseCapture},
         execute,
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     };
     use ratatui::{backend::CrosstermBackend, Terminal};
-    use std::io;
 
     // Setup terminal
     enable_raw_mode()?;
@@ -352,8 +355,9 @@ fn run_app<B: ratatui::backend::Backend>(
 where
     B::Error: Send + Sync + 'static,
 {
-    use crossterm::event::{self, Event, KeyCode};
     use std::time::Duration;
+
+    use crossterm::event::{self, Event, KeyCode};
 
     loop {
         terminal.draw(|f| ui(f, app))?;
@@ -451,12 +455,15 @@ where
 }
 
 fn ui(f: &mut ratatui::Frame, app: &app::App) {
-    use crate::theme::Theme;
-    use crate::widgets::{Header, StatusBar};
     use ratatui::{
         layout::{Constraint, Direction, Layout, Rect},
         text::Span,
         widgets::{Block, Borders, Clear, Paragraph},
+    };
+
+    use crate::{
+        theme::Theme,
+        widgets::{Header, StatusBar},
     };
 
     let size = f.area();
@@ -528,9 +535,12 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
 }
 
 fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
-    use crate::theme::Theme;
-    use crate::widgets::{AgentCard, FateGauge};
     use ratatui::layout::{Constraint, Direction, Layout};
+
+    use crate::{
+        theme::Theme,
+        widgets::{AgentCard, FateGauge},
+    };
 
     // Split into left (agents) and right (FATE + info)
     let chunks = Layout::default()
@@ -580,8 +590,10 @@ fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layou
     f.render_widget(fate, right_chunks[0]);
 
     // Node info
-    use ratatui::text::{Line, Span};
-    use ratatui::widgets::{Block, Borders, Paragraph};
+    use ratatui::{
+        text::{Line, Span},
+        widgets::{Block, Borders, Paragraph},
+    };
 
     let info_block = Block::default()
         .title(Span::styled(" Node Info ", Theme::title()))
@@ -610,8 +622,9 @@ fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layou
 }
 
 fn render_agents(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
-    use crate::widgets::AgentCard;
     use ratatui::layout::{Constraint, Direction, Layout};
+
+    use crate::widgets::AgentCard;
 
     // Full agent cards in a grid
     let rows = Layout::default()
@@ -686,9 +699,12 @@ fn render_agents(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::
 }
 
 fn render_chat(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
+    use ratatui::{
+        text::{Line, Span},
+        widgets::{Block, Borders, Paragraph, Wrap},
+    };
+
     use crate::theme::Theme;
-    use ratatui::text::{Line, Span};
-    use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
     let agent_name = app.selected_agent.map(|a| a.name()).unwrap_or("Guardian");
     let title = format!(" Chat with {agent_name} ");
@@ -757,9 +773,12 @@ fn render_chat(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Re
 }
 
 fn render_tasks(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
+    use ratatui::{
+        text::Span,
+        widgets::{Block, Borders, Paragraph},
+    };
+
     use crate::theme::Theme;
-    use ratatui::text::Span;
-    use ratatui::widgets::{Block, Borders, Paragraph};
 
     let block = Block::default()
         .title(Span::styled(" Tasks ", Theme::title()))
@@ -778,9 +797,12 @@ fn render_tasks(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::R
 }
 
 fn render_treasury(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layout::Rect) {
+    use ratatui::{
+        text::Span,
+        widgets::{Block, Borders, Paragraph},
+    };
+
     use crate::theme::Theme;
-    use ratatui::text::Span;
-    use ratatui::widgets::{Block, Borders, Paragraph};
 
     let block = Block::default()
         .title(Span::styled(" Treasury ", Theme::title()))
@@ -793,9 +815,12 @@ fn render_treasury(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layou
 }
 
 fn render_settings(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layout::Rect) {
+    use ratatui::{
+        text::{Line, Span},
+        widgets::{Block, Borders, Paragraph},
+    };
+
     use crate::theme::Theme;
-    use ratatui::text::{Line, Span};
-    use ratatui::widgets::{Block, Borders, Paragraph};
 
     let block = Block::default()
         .title(Span::styled(" Settings ", Theme::title()))

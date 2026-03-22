@@ -27,8 +27,9 @@
 //! - DeepSeek MoE architecture (2025): Engram = specialised non-activated expert
 //! - Shannon (1948): O(1) lookup as zero-entropy retrieval
 
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
 
 /// Result of an Engram lookup.
 #[derive(Debug, Clone, Serialize, Deserialize)]

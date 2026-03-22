@@ -225,8 +225,9 @@ fn parse_contract_line(line: &str, line_num: usize, chain_id: u64) -> Result<Con
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::Write;
+
+    use super::*;
 
     #[test]
     fn test_static_source_single() {

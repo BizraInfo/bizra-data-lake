@@ -10,9 +10,9 @@
 //! Constitutional: Arabic is Tier 1. The Mother Test is in Arabic.
 //! RTL is not optional — it is a constitutional requirement.
 
+use std::{collections::HashMap, path::Path};
+
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::Path;
 
 // ─────────────────────────────────────────────────────────────
 // Language Tiers (Spec §4.2)

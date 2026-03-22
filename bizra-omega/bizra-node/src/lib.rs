@@ -31,19 +31,18 @@ pub mod protocol;
 pub mod substrate;
 
 // Legacy alias — code referencing resource_manifest gets the new substrate module
-pub use substrate as resource_manifest;
-
-// Re-export key types for convenience
-pub use heartbeat::{CrossLoopEvent, EventBridge, HeartbeatConfig, HeartbeatReport};
-pub use node::{Node, NodeConfig, NodeState};
-pub use protocol::{parse_command, Command, ErrorCode, Response};
-pub use protocol::{NODE_NAME, NODE_VERSION, PROTOCOL_VERSION};
-
 // Re-export from downstream crates
 pub use bizra_agent::runtime::{AgentRuntime, RuntimeConfig, RuntimeState};
 pub use bizra_agent::types::AgentRole;
 pub use bizra_hooks::IhsanScore;
 pub use bizra_memory::types::FragmentKind;
+// Re-export key types for convenience
+pub use heartbeat::{CrossLoopEvent, EventBridge, HeartbeatConfig, HeartbeatReport};
+pub use node::{Node, NodeConfig, NodeState};
+pub use protocol::{
+    parse_command, Command, ErrorCode, Response, NODE_NAME, NODE_VERSION, PROTOCOL_VERSION,
+};
+pub use substrate as resource_manifest;
 
 // ============================================================
 // INTEGRATION TESTS — proving the full stack
@@ -464,9 +463,10 @@ mod integration_tests {
     // ========================================================
     #[test]
     fn action_executor_constitutional_mode() {
-        use crate::action_executor::{ActionExecutor, ActionExecutorConfig};
         use bizra_agent::action_types::ActionExecutionStatus;
         use bizra_hooks::IhsanScore;
+
+        use crate::action_executor::{ActionExecutor, ActionExecutorConfig};
 
         let config = ActionExecutorConfig {
             use_constitutional_dispatcher: true,
@@ -710,8 +710,7 @@ mod integration_tests {
     // ========================================================
     #[test]
     fn reflex_persistence_survives_restart() {
-        use bizra_agent::reflex_cache::ReflexMode;
-        use bizra_agent::runtime::RuntimeConfig;
+        use bizra_agent::{reflex_cache::ReflexMode, runtime::RuntimeConfig};
 
         let dir = tempfile::TempDir::new().unwrap();
         let store_path = dir.path().join("reflexes");

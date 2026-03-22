@@ -22,9 +22,11 @@
 //! - DeepSeek-R1 (2025): Group Relative Policy Optimisation (GRPO)
 //! - Nakamoto (2008): emission decay as scarcity signal
 
-use crate::sso::{SpectralNorm, SpectralSphereConstraint, SsoCheckResult};
-use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
+
+use serde::{Deserialize, Serialize};
+
+use crate::sso::{SpectralNorm, SpectralSphereConstraint, SsoCheckResult};
 
 /// A single pending GRPO update, queued for lazy application.
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -91,9 +91,10 @@ pub use types::{
 
 #[cfg(test)]
 mod integration_tests {
-    use super::*;
     use bizra_hooks::IhsanScore;
     use bizra_memory::{AtomKind, Confidence, FragmentKind};
+
+    use super::*;
 
     // --------------------------------------------------------
     // Test 1: Full agent lifecycle -- message in, response out

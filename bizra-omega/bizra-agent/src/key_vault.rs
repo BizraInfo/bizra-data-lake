@@ -13,14 +13,14 @@
 // Standing on: Diffie-Hellman (1976), Lamport (1982), Al-Ghazali (1095)
 // ============================================================
 
-use std::collections::HashMap;
-use std::fmt;
-use std::sync::atomic::{compiler_fence, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    collections::HashMap,
+    fmt,
+    sync::atomic::{compiler_fence, Ordering},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
-use crate::vault_env::EnvBackend;
-use crate::vault_file::FileBackend;
-use crate::vault_toml::TomlBackend;
+use crate::{vault_env::EnvBackend, vault_file::FileBackend, vault_toml::TomlBackend};
 
 // ── SecretString ─────────────────────────────────────────────
 

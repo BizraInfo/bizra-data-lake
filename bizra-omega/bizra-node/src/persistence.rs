@@ -13,12 +13,16 @@
 // Your knowledge is a text file. Back it up. Guard it. Own it.
 // ============================================================
 
-use std::io::{self, BufRead, BufWriter, Write};
-use std::path::{Path, PathBuf};
+use std::{
+    io::{self, BufRead, BufWriter, Write},
+    path::{Path, PathBuf},
+};
 
-use bizra_agent::action_types::ActionReceipt;
-use bizra_agent::hash_namespace::{parse_hex_32, TriggerHash};
-use bizra_agent::reflex_cache::{ActionTemplate, QuarantineReason, ReflexRule};
+use bizra_agent::{
+    action_types::ActionReceipt,
+    hash_namespace::{parse_hex_32, TriggerHash},
+    reflex_cache::{ActionTemplate, QuarantineReason, ReflexRule},
+};
 
 use crate::node::Node;
 
@@ -331,10 +335,13 @@ fn sanitize(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use bizra_agent::{
+        action_types::{ActionChannel, ActionKind, ActionReceipt},
+        reflex_cache::{ActionTemplate, ReflexRule},
+    };
+
     use super::*;
     use crate::node::NodeConfig;
-    use bizra_agent::action_types::{ActionChannel, ActionKind, ActionReceipt};
-    use bizra_agent::reflex_cache::{ActionTemplate, ReflexRule};
 
     #[test]
     fn state_dir_format() {

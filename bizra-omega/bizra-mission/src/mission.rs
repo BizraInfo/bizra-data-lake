@@ -3,10 +3,13 @@
 // Mission — the governed lifecycle of a cognitive operation
 // ============================================================
 
-use crate::preflight::PreflightResult;
-use crate::receipt::MissionReceipt;
-use crate::state::{DegradationReason, FailureCode, MissionState, StateTransition};
 use serde::{Deserialize, Serialize};
+
+use crate::{
+    preflight::PreflightResult,
+    receipt::MissionReceipt,
+    state::{DegradationReason, FailureCode, MissionState, StateTransition},
+};
 
 /// A unique mission identifier (BLAKE3 hash, 32 bytes).
 pub type MissionId = [u8; 32];

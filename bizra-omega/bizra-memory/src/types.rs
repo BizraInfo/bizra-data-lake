@@ -20,8 +20,9 @@
 //! - Every type carries temporal metadata (when learned, confidence decay)
 //! - Every type carries provenance (which conversation, which turn)
 
-use bizra_hooks::types::{ComponentId, IhsanScore};
 use core::fmt;
+
+use bizra_hooks::types::{ComponentId, IhsanScore};
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Identity Types

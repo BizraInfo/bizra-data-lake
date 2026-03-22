@@ -1,9 +1,10 @@
 //! Pattern Memory — Persistent storage with vector similarity
 
+use std::collections::HashMap;
+
 use bizra_core::NodeId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Pattern {

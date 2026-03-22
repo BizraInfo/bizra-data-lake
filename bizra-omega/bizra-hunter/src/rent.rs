@@ -9,8 +9,9 @@
 //!
 //! This prevents spam by making memory usage economically expensive.
 
-use parking_lot::RwLock;
 use std::collections::BTreeMap;
+
+use parking_lot::RwLock;
 
 /// Rent slot containing data and payment info
 #[derive(Debug, Clone)]

@@ -2,11 +2,10 @@
 //!
 //! Target: 47.9M ops/sec sustained throughput
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
-
 use bizra_hunter::{
     CriticalCascade, EntropyCalculator, GateType, InvariantCache, MultiAxisEntropy, SNRPipeline,
 };
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 
 /// Benchmark entropy calculation (TRICK 3: Multi-axis SIMD)
 fn bench_entropy_calculation(c: &mut Criterion) {

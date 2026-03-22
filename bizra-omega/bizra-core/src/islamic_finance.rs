@@ -24,15 +24,20 @@
 //! - AdlInvariant: Zakat distribution maintains fairness
 //! - Treasury: Waqf endowments fund infrastructure
 
+use std::{
+    collections::HashMap,
+    fmt,
+    time::{Instant, SystemTime, UNIX_EPOCH},
+};
+
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
-use crate::omega::{AdlInvariant, ADL_GINI_THRESHOLD};
-use crate::pci::{Gate, GateContext, GateResult, GateTier, RejectCode};
-use crate::IHSAN_THRESHOLD;
+use crate::{
+    omega::{AdlInvariant, ADL_GINI_THRESHOLD},
+    pci::{Gate, GateContext, GateResult, GateTier, RejectCode},
+    IHSAN_THRESHOLD,
+};
 
 // =============================================================================
 // CONSTANTS - Shariah Compliance Parameters (Immutable)

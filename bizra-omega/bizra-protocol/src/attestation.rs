@@ -18,8 +18,7 @@ use blake3::Hasher;
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
-use crate::boundary::ProofCarryingRequest;
-use crate::{DOMAIN_PREFIX, PROTOCOL_VERSION};
+use crate::{boundary::ProofCarryingRequest, DOMAIN_PREFIX, PROTOCOL_VERSION};
 
 // =============================================================================
 // TYPES
@@ -231,9 +230,11 @@ fn hex_decode(s: &str) -> Result<Vec<u8>, ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::boundary::{GuardianVerdict, PermitLink, RequestBuilder};
-    use crate::constitution::{PAT_DERIVATION_PREFIX, SAT_DERIVATION_PREFIX};
-    use crate::mint::derive_agent_key;
+    use crate::{
+        boundary::{GuardianVerdict, PermitLink, RequestBuilder},
+        constitution::{PAT_DERIVATION_PREFIX, SAT_DERIVATION_PREFIX},
+        mint::derive_agent_key,
+    };
 
     fn full_round_trip() -> (ProofCarryingRequest, SigningKey) {
         let master = [77u8; 32];

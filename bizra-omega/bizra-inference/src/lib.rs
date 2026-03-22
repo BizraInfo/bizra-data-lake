@@ -15,9 +15,10 @@ pub mod backends;
 pub mod gateway;
 pub mod selector;
 
-pub use backends::OllamaBackend;
-pub use backends::{Backend, BackendConfig, BackendError};
-pub use backends::{LMStudioBackend, LMStudioConfig, ModelCapability};
+pub use backends::{
+    Backend, BackendConfig, BackendError, LMStudioBackend, LMStudioConfig, ModelCapability,
+    OllamaBackend,
+};
 pub use gateway::{GatewayError, InferenceGateway, InferenceRequest, InferenceResponse};
 pub use selector::{ModelSelector, ModelTier, TaskComplexity};
 

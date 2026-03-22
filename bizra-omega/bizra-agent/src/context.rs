@@ -15,9 +15,10 @@
 //   - Current إحسان (system health)
 // ============================================================
 
-use crate::types::*;
 use bizra_hooks::IhsanScore;
 use bizra_memory::{Confidence, MemoryPipeline};
+
+use crate::types::*;
 
 // Shim: the omega MemoryPipeline does not have query_profile, query_insights,
 // knows_me_score, or health methods. The context assembler uses a simplified

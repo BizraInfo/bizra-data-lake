@@ -50,8 +50,9 @@
 //! - **RFC 8785 (JCS)**: The JSON Canonicalization Scheme used in
 //!   `jcs_canonicalize`.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::time::Duration;
+
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Re-exports / inline stubs

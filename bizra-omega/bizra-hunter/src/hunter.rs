@@ -14,13 +14,15 @@
 
 use std::time::{Duration, Instant};
 
-use crate::cascade::GateType;
-use crate::config::HunterConfig;
-use crate::entropy::EntropyCalculator;
-use crate::ingestion::BytecodeSource;
-use crate::pipeline::{Complexity, PipelineStats, SNRPipeline, VulnType};
-use crate::poc::SafePoC;
-use crate::submission::{BondedSubmission, SubmissionResult};
+use crate::{
+    cascade::GateType,
+    config::HunterConfig,
+    entropy::EntropyCalculator,
+    ingestion::BytecodeSource,
+    pipeline::{Complexity, PipelineStats, SNRPipeline, VulnType},
+    poc::SafePoC,
+    submission::{BondedSubmission, SubmissionResult},
+};
 
 /// A complete vulnerability finding produced by the pipeline.
 #[derive(Debug, Clone)]

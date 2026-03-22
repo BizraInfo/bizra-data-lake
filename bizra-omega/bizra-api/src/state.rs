@@ -1,13 +1,12 @@
 //! Application State — Shared across all handlers
 
-use dashmap::DashMap;
-use std::sync::Arc;
-use std::time::Instant;
-use tokio::sync::RwLock;
+use std::{sync::Arc, time::Instant};
 
 use bizra_core::{Constitution, NodeIdentity};
 use bizra_federation::{ConsensusEngine, GossipProtocol};
 use bizra_inference::gateway::InferenceGateway;
+use dashmap::DashMap;
+use tokio::sync::RwLock;
 
 /// Per-client token bucket for request throttling.
 #[derive(Debug, Clone)]

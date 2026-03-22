@@ -17,6 +17,7 @@
 //! - **Lamport**: Errors carry enough context for distributed debugging
 
 use std::fmt;
+
 use thiserror::Error;
 
 /// Sovereign operation result type
