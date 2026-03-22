@@ -1,0 +1,347 @@
+{
+  "program_id": "bizra-unified-delivery-program",
+  "version": "2026-03-22",
+  "status": "active",
+  "north_star": "Protect and extend the canonical receipt-native spine so execution, learning, and proof remain constitutionally governed.",
+  "operating_graph": [
+    "research_corpus",
+    "constitution",
+    "runtime_owned_organism",
+    "node0_receipt_breath_authority",
+    "event_membrane",
+    "verified_learning",
+    "persisted_proof"
+  ],
+  "ethical_invariants": [
+    {
+      "id": "ihsan",
+      "rule": "Engineering excellence must be visible in code, tests, and receipts."
+    },
+    {
+      "id": "adl",
+      "rule": "Optimization must not distort constitutional weighting or fairness."
+    },
+    {
+      "id": "amanah",
+      "rule": "Receipts, secrets, and research assets are entrusted truth."
+    },
+    {
+      "id": "fail_closed_integrity",
+      "rule": "Canonical mode must reject unsupported authority rather than silently degrade."
+    },
+    {
+      "id": "evidence_before_claim",
+      "rule": "No public claim is allowed without replay-verifiable evidence."
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "W1",
+      "name": "Canonical Evidence Plane",
+      "priority": "P0",
+      "objective": "Unify execution, observability, and delivery outcomes on one receipt plane.",
+      "current_truth": "proven_in_core",
+      "dependencies": [],
+      "kpis": [
+        "event_delivery_success_rate",
+        "dead_letter_rate",
+        "node0_canonical_delivery_persistence_success",
+        "spearpoint_policy_clean_pass_rate"
+      ],
+      "deliverables": [
+        "breath_level_delivery_summary",
+        "delivery_query_surface",
+        "event_membrane_dashboard"
+      ],
+      "risks": [
+        "critical_delivery_disappears_without_evidence",
+        "node0_and_cqrs_state_drift"
+      ]
+    },
+    {
+      "id": "W2",
+      "name": "Governed Self-Improvement",
+      "priority": "P0",
+      "objective": "Make recursive improvement bounded, replayable, and receipt-native.",
+      "current_truth": "partially_proven",
+      "dependencies": [
+        "W1"
+      ],
+      "kpis": [
+        "reward_verified_improvement_rate",
+        "rollback_success_rate",
+        "reflex_improvement_latency_delta",
+        "constitutional_violation_count"
+      ],
+      "deliverables": [
+        "receipt_native_candidate_evaluation",
+        "bounded_delta_replay_proofs",
+        "rollback_evidence"
+      ],
+      "risks": [
+        "adaptive_behavior_escapes_receipt_plane",
+        "reward_signals_become_opaque"
+      ]
+    },
+    {
+      "id": "W3",
+      "name": "Security and Release Hardening",
+      "priority": "P0",
+      "objective": "Make release posture reproducible, observable, and worthy of public proof.",
+      "current_truth": "partial",
+      "dependencies": [],
+      "kpis": [
+        "mutable_ref_count",
+        "secret_leak_count",
+        "hardening_exception_count",
+        "release_gate_pass_rate"
+      ],
+      "deliverables": [
+        "pinned_release_surfaces",
+        "typed_release_gate",
+        "hardened_rollout_manifest"
+      ],
+      "risks": [
+        "irreproducible_release_behavior",
+        "security_boundaries_flatten_into_generic_failures"
+      ]
+    },
+    {
+      "id": "W4",
+      "name": "Performance and Capacity",
+      "priority": "P1",
+      "objective": "Benchmark and remove local/runtime bottlenecks that mask architectural quality.",
+      "current_truth": "staged",
+      "dependencies": [],
+      "kpis": [
+        "mission_latency_p50_ms",
+        "mission_latency_p95_ms",
+        "peak_rss_mb",
+        "event_fanout_latency_ms"
+      ],
+      "deliverables": [
+        "canonical_latency_baseline",
+        "memory_budget_baseline",
+        "wsl_vs_native_linux_benchmark_pack",
+        "node0_capacity_profile"
+      ],
+      "risks": [
+        "local_io_drag_masks_true_capability",
+        "ram_heavy_subsystems_scale_poorly"
+      ]
+    },
+    {
+      "id": "W5",
+      "name": "Knowledge Asset Governance",
+      "priority": "P1",
+      "objective": "Convert the three-year research corpus into a searchable governed asset.",
+      "current_truth": "staged",
+      "dependencies": [],
+      "kpis": [
+        "research_asset_coverage",
+        "dedup_ratio",
+        "anchor_doc_summary_coverage",
+        "document_to_code_traceability_coverage"
+      ],
+      "deliverables": [
+        "research_asset_registry",
+        "canonical_bibliography",
+        "anchor_doc_summaries",
+        "traceability_map"
+      ],
+      "risks": [
+        "strategic_ip_remains_fragmented",
+        "duplicate_docs_hide_signal"
+      ]
+    },
+    {
+      "id": "W6",
+      "name": "Documentation and Truth Surfaces",
+      "priority": "P1",
+      "objective": "Ensure each audience gets the correct proof surface.",
+      "current_truth": "partial",
+      "dependencies": [
+        "W1",
+        "W5"
+      ],
+      "kpis": [
+        "stale_doc_count",
+        "contradictory_claim_count",
+        "public_proof_coverage",
+        "operator_onboarding_time"
+      ],
+      "deliverables": [
+        "executive_scorecard",
+        "technical_scorecard",
+        "public_proof_surface",
+        "operator_runbook_alignment"
+      ],
+      "risks": [
+        "truth_density_varies_by_document",
+        "public_rhetoric_outruns_repo_evidence"
+      ]
+    }
+  ],
+  "delivery_gates": [
+    {
+      "id": "G1",
+      "name": "Static Quality",
+      "checks": [
+        "ruff",
+        "targeted_type_checks",
+        "dependency_drift_scan",
+        "mutable_ref_scan"
+      ]
+    },
+    {
+      "id": "G2",
+      "name": "Canonical Runtime",
+      "checks": [
+        "organism_boot",
+        "node0_boot",
+        "event_bus_lifecycle",
+        "canonical_delivery_persistence",
+        "autopoiesis_smoke"
+      ]
+    },
+    {
+      "id": "G3",
+      "name": "Proof and Replay",
+      "checks": [
+        "canonical_spearpoint",
+        "reward_verification",
+        "persisted_delta_verification",
+        "replay_chain_verification"
+      ]
+    },
+    {
+      "id": "G4",
+      "name": "Security and Release",
+      "checks": [
+        "secret_scan",
+        "manifest_hardening",
+        "public_proof_checklist"
+      ]
+    },
+    {
+      "id": "G5",
+      "name": "Performance Guardrails",
+      "checks": [
+        "latency_thresholds",
+        "rss_thresholds",
+        "event_membrane_success_thresholds"
+      ]
+    }
+  ],
+  "roadmap": {
+    "next_7_days": [
+      "remove_remaining_latest_refs",
+      "create_research_asset_registry",
+      "add_executive_scorecard_artifact",
+      "start_latency_and_rss_baseline_collection"
+    ],
+    "next_30_days": [
+      "introduce_typed_exception_taxonomy",
+      "emit_receipt_native_hhmm_and_diffusion_artifacts",
+      "extend_spearpoint_for_cognition_receipts",
+      "pilot_native_linux_hot_paths"
+    ],
+    "next_60_days": [
+      "add_candidate_integration_receipts_to_autopoiesis",
+      "complete_document_to_code_traceability",
+      "raise_type_and_coverage_ratchets",
+      "automate_release_dashboard_from_manifest"
+    ],
+    "next_90_days": [
+      "produce_multi_node_adversarial_evidence_pack",
+      "harden_read_only_root_filesystem_where_viable",
+      "publish_public_technical_note_from_proven_surfaces"
+    ]
+  },
+  "scorecard": [
+    {
+      "dimension": "canonical_execution",
+      "status": "proven",
+      "measure": "runtime_owned_organism_authority"
+    },
+    {
+      "dimension": "delivery_plane",
+      "status": "proven",
+      "measure": "acked_dead_lettered_and_canonically_persisted_subscriber_outcomes"
+    },
+    {
+      "dimension": "governed_self_improvement",
+      "status": "proven_at_spearpoint_scale",
+      "measure": "bounded_replay_verified_improvement"
+    },
+    {
+      "dimension": "receipt_native_cognition",
+      "status": "staged",
+      "measure": "hhmm_and_diffusion_outputs_on_canonical_receipt_plane"
+    },
+    {
+      "dimension": "release_reproducibility",
+      "status": "partial",
+      "measure": "zero_mutable_production_critical_refs"
+    },
+    {
+      "dimension": "knowledge_governance",
+      "status": "staged",
+      "measure": "canonical_research_asset_registry"
+    },
+    {
+      "dimension": "federation_proof",
+      "status": "aspirational",
+      "measure": "adversarial_multi_node_evidence_pack"
+    }
+  ],
+  "risk_register": [
+    {
+      "id": "R1",
+      "risk": "adjacent_cognition_bypasses_receipts",
+      "impact": "unverifiable_behavior",
+      "mitigation": "receipt_native_cognition_contract",
+      "priority": "P0"
+    },
+    {
+      "id": "R2",
+      "risk": "mutable_refs_remain_in_release_surfaces",
+      "impact": "irreproducible_deploys",
+      "mitigation": "pinning_gate_in_ci",
+      "priority": "P0"
+    },
+    {
+      "id": "R3",
+      "risk": "wsl_drag_masks_true_bottlenecks",
+      "impact": "false_performance_diagnosis",
+      "mitigation": "native_linux_benchmark_pack",
+      "priority": "P1"
+    },
+    {
+      "id": "R4",
+      "risk": "corpus_fragmentation_hides_ip",
+      "impact": "loss_of_research_leverage",
+      "mitigation": "research_asset_registry",
+      "priority": "P1"
+    },
+    {
+      "id": "R5",
+      "risk": "boundary_exceptions_flatten_failures",
+      "impact": "degraded_observability",
+      "mitigation": "typed_exception_taxonomy",
+      "priority": "P1"
+    },
+    {
+      "id": "R6",
+      "risk": "federation_claims_outrun_proof",
+      "impact": "credibility_damage",
+      "mitigation": "staged_labeling_and_multi_node_evidence_pack",
+      "priority": "P2"
+    }
+  ],
+  "top_next_step": {
+    "id": "NEXT-EXEC-001",
+    "title": "Promote the blueprint into machine-driven execution artifacts",
+    "reason": "Without machine-readable roadmap, scorecard, and risk structure, the program remains insightful but operator-manual."
+  }
+}
