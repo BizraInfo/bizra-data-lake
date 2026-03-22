@@ -1,7 +1,7 @@
 # Constitutional Membrane Networking: A Governed Topology for Sovereign Decentralized Intelligence
 
 **Mohamed Beshr**
-BIZRA Foundation, Dubai, UAE
+BIZRA-LAB, Dubai, UAE
 m.beshr@bizra.ai
 
 March 2026 — PREPRINT (Not Peer-Reviewed)
