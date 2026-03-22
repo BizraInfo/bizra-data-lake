@@ -635,8 +635,38 @@ class SovereignOrganism:
                 self._ingest_to_node0(receipt)
                 return receipt
 
+            # ─── Seed Chain: wrap raw text into constitutional prompt ───
+            seed_chain_meta: Dict[str, Any] = {}
+            try:
+                from core.prompt.seed_chain import small_seed, EvidenceTag
+
+                chain = small_seed(text, agent="P7_DEMA")
+                # Add any preflight evidence
+                if action_receipt_refs:
+                    for ref in action_receipt_refs:
+                        chain.bayyinah.add(
+                            f"Prior receipt: {ref}",
+                            EvidenceTag.VERIFIED,
+                            source="receipt_chain",
+                        )
+                validation_errors = chain.validate()
+                if validation_errors:
+                    logger.warning(
+                        "Seed Chain validation: %s", validation_errors
+                    )
+                governed_prompt = chain.to_prompt()
+                seed_chain_meta = {
+                    "seed_chain_hash": chain.compute_hash(),
+                    "seed_chain_agent": chain.niyyah.target_agent,
+                    "seed_chain_mode": chain.amanah.reasoning_mode,
+                    "seed_chain_validation": validation_errors or [],
+                }
+            except Exception as exc:
+                logger.debug("Seed Chain construction failed: %s", exc)
+                governed_prompt = text
+
             # Run through NervousSystem → Pipeline → 12 agents
-            ns_receipt = await self._nervous_system.run(text)
+            ns_receipt = await self._nervous_system.run(governed_prompt)
 
             # Get pipeline details (if available)
             pipeline_stats = self._pipeline.stats if self._pipeline else None
@@ -695,7 +725,7 @@ class SovereignOrganism:
                 action_receipt_refs=action_receipt_refs,
                 identity_mode=self._identity_mode,
                 signer_public_key_prefix=self._signer_public_key_prefix,
-                metadata=dict(ns_receipt.metadata or {}),
+                metadata={**dict(ns_receipt.metadata or {}), **seed_chain_meta},
             )
 
             if self._on_receipt:

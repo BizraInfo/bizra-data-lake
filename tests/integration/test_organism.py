@@ -153,6 +153,19 @@ class TestMission:
         assert len(received) == 1
         assert received[0].mission_id != ""
 
+    def test_mission_carries_seed_chain_metadata(self) -> None:
+        """Every mission should carry Seed Chain metadata in its receipt."""
+        echo = EchoInference()
+        org = asyncio.run(SovereignOrganism.boot(inference=echo))
+        receipt = asyncio.run(org.mission("test seed chain integration"))
+        meta = receipt.metadata
+        assert "seed_chain_hash" in meta, "Receipt must carry seed_chain_hash"
+        assert "seed_chain_agent" in meta
+        assert meta["seed_chain_agent"] == "P7_DEMA"
+        assert meta["seed_chain_mode"] == "reflex"
+        assert isinstance(meta["seed_chain_validation"], list)
+        assert len(meta["seed_chain_hash"]) == 32  # blake2b 16-byte hex
+
     def test_preflight_rejection_blocks_execution_but_preserves_evidence(self) -> None:
         echo = EchoInference()
         org = asyncio.run(SovereignOrganism.boot(inference=echo))
@@ -607,6 +620,25 @@ class TestCQRSSubscriberWiring:
                 await asyncio.wait_for(task, timeout=2.0)
 
         asyncio.run(_scenario())
+
+    def test_tick_receipt_carries_cqrs_delivery_metrics(self, tmp_path: Any) -> None:
+        """Node0 breath receipts should summarize CQRS delivery health."""
+        echo = EchoInference()
+        org = asyncio.run(
+            SovereignOrganism.boot(
+                inference=echo,
+                persistence_dir=tmp_path / "sovereign-tick",
+            )
+        )
+
+        asyncio.run(org.mission("tick cqrs delivery"))
+        breath = asyncio.run(org.tick())
+
+        assert breath.cqrs_delivery_receipts >= 1
+        assert breath.cqrs_delivery_acks >= 1
+        assert breath.cqrs_delivery_dead_letters == 0
+        assert org.stats["node0"]["last_breath"]["cqrs_delivery_acks"] >= 1
+        assert org.stats["node0"]["last_breath"]["cqrs_delivery_dead_letters"] == 0
 
     def test_graceful_degradation_without_bus(self) -> None:
         """Organism must boot and run even if CQRS wiring fails."""
