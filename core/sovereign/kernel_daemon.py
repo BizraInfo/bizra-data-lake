@@ -59,6 +59,15 @@ METRICS_LATENCY_WINDOW = 200  # Rolling window for p95 calculation
 # Resolve project root (parent of core/)
 _THIS_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = _THIS_DIR.parent.parent
+
+# CRITICAL: Ensure project root is on sys.path at module load time.
+# Without this, lazy imports of core.sovereign.* fail in WSL daemon context
+# because nohup/subprocess does not inherit the caller's PYTHONPATH.
+import sys as _sys
+_project_str = str(PROJECT_ROOT)
+if _project_str not in _sys.path:
+    _sys.path.insert(0, _project_str)
+
 FRONTEND_DIR = PROJECT_ROOT / "frontend" / "public"
 STATE_DIR = PROJECT_ROOT / "sovereign_state"
 PID_FILE = STATE_DIR / "kernel.pid"
@@ -936,6 +945,15 @@ def _get_or_create_ns() -> Any:
             return _mission_ns
 
         try:
+            # Ensure project root is on sys.path (critical for WSL daemon context)
+            import sys
+            _proj = str(PROJECT_ROOT)
+            if _proj not in sys.path:
+                sys.path.insert(0, _proj)
+                log.info("Added %s to sys.path for NervousSystem import", _proj)
+            else:
+                log.info("sys.path already contains %s", _proj)
+
             from core.sovereign.mission_nervous_system import SovereignNervousSystem
             from core.sovereign.moe_bridge import MOEBridge
 
@@ -944,7 +962,7 @@ def _get_or_create_ns() -> Any:
             log.info("SovereignNervousSystem created with MOEBridge")
             return _mission_ns
         except (ImportError, OSError, ValueError) as e:
-            log.error("Failed to create NervousSystem: %s", e)
+            log.error("Failed to create NervousSystem: %s", e, exc_info=True)
             return None
 
 
