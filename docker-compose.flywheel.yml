@@ -82,7 +82,7 @@ services:
         sleep 5
         
         # Priority models to preload
-        MODELS="llama3.1:8b nomic-embed-text:latest"
+        MODELS="llama3.1:8b nomic-embed-text:v1.5"
         
         for model in $MODELS; do
           echo "[Preloader] Pulling $model..."
