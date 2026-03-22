@@ -1632,7 +1632,7 @@ _heartbeat_history: deque[dict[str, Any]] = deque(maxlen=120)  # 1 hour at 30s
 # Anomaly thresholds — reflex arc triggers
 _ANOMALY_ERROR_RATE = 0.05  # > 5% error rate
 _ANOMALY_P95_LATENCY_MS = 5000.0  # > 5s p95
-_ANOMALY_RSS_GROWTH_MB = 2500.0  # > 2.5 GB growth (GOLD cache ~1.1 GB + embeddings ~0.5 GB + runtime)
+_ANOMALY_RSS_GROWTH_MB = 3000.0  # > 3.0 GB growth (GOLD cache ~1.1 GB + FAISS ~0.5 GB + encoder ~0.4 GB + runtime)
 _ANOMALY_MISSED_BACKENDS = 1  # any backend down
 
 
