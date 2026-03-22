@@ -1276,8 +1276,11 @@ class TestNervousSystemBridge:
         assert "RuntimeError: bus on fire" in health["last_event_delivery_error"]
 
         dead_letters = (
-            data_dir / "audit" / "event_dead_letters.jsonl"
-        ).read_text(encoding="utf-8").strip().splitlines()
+            (data_dir / "audit" / "event_dead_letters.jsonl")
+            .read_text(encoding="utf-8")
+            .strip()
+            .splitlines()
+        )
         assert len(dead_letters) == 1
         entry = json.loads(dead_letters[0])
         assert entry["event_type"] == "action.receipt"

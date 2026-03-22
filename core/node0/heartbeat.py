@@ -1165,7 +1165,9 @@ class Node0Heartbeat:
                 handle.write(json.dumps(dead_letter, ensure_ascii=True) + "\n")
         except (OSError, TypeError, ValueError):
             logger.debug("Failed to persist Node0 dead letter", exc_info=True)
-        logger.debug("EventBus emission failed (non-fatal): %s", self._last_event_delivery_error)
+        logger.debug(
+            "EventBus emission failed (non-fatal): %s", self._last_event_delivery_error
+        )
 
     # ═══════════════════════════════════════════════════════════════
     # INGEST — Feed missions into the heartbeat cycle

@@ -785,15 +785,11 @@ class SovereignRuntime:
         helix_result = getattr(breath, "helix_result", {}) or {}
         payload = {
             "tick_number": int(getattr(breath, "tick_number", 0) or 0),
-            "ihsan_composite": float(
-                getattr(breath, "ihsan_composite", 0.0) or 0.0
-            ),
+            "ihsan_composite": float(getattr(breath, "ihsan_composite", 0.0) or 0.0),
             "snr_score": float(getattr(breath, "ihsan_composite", 0.0) or 0.0),
             "duration_ms": float(getattr(breath, "duration_ms", 0.0) or 0.0),
             "gini_ok": bool(getattr(breath, "gini_ok", False)),
-            "missions_processed": int(
-                getattr(breath, "missions_processed", 0) or 0
-            ),
+            "missions_processed": int(getattr(breath, "missions_processed", 0) or 0),
             "approved_count": int(helix_result.get("approved_count", 0) or 0),
             "rejected_count": int(helix_result.get("rejected_count", 0) or 0),
             "reflexes_precipitated": int(
@@ -1167,7 +1163,9 @@ class SovereignRuntime:
                 if bool(stats().get("running", False)):
                     return
             except (RuntimeError, AttributeError, TypeError, ValueError, OSError):
-                self.logger.debug("Event bus stats unavailable during start", exc_info=True)
+                self.logger.debug(
+                    "Event bus stats unavailable during start", exc_info=True
+                )
         start = getattr(self._event_bus, "start", None)
         if not callable(start):
             return
