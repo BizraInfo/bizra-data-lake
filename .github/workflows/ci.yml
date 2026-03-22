@@ -688,6 +688,51 @@ jobs:
           echo "> This bypass should only be used for emergency hotfixes on feature branches." >> $GITHUB_STEP_SUMMARY
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # CMN Membrane Proof Gate — Z3 formal verification of membrane properties
+  # Standing on Giants: de Moura & Bjorner (Z3, 2008), Necula (PCC, 1997)
+  # ═══════════════════════════════════════════════════════════════════════════
+  membrane-proof-gate:
+    name: CMN Membrane Proofs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [test-python]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+          sudo apt-get install -y libz3-dev || true
+
+      - name: Run Z3 membrane proofs + benchmarks
+        run: |
+          pytest tests/core/proofs/test_membrane_properties.py -v --tb=short \
+            --timeout=60 \
+            -x \
+            2>&1 | tee membrane_proof_results.txt
+
+      - name: Summarize proof results
+        if: always()
+        run: |
+          echo "## CMN Membrane Proof Gate" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Fail-Closed (Z3) | $(grep -c 'PASSED.*FailClosed' membrane_proof_results.txt 2>/dev/null || echo 0)/4 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Constitutional Filtering (Z3) | $(grep -c 'PASSED.*ConstitutionalFiltering' membrane_proof_results.txt 2>/dev/null || echo 0)/6 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cryptographic Auth (Z3) | $(grep -c 'PASSED.*CryptographicAuthentication' membrane_proof_results.txt 2>/dev/null || echo 0)/3 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Provenance Recording (Z3) | $(grep -c 'PASSED.*ProvenanceRecording' membrane_proof_results.txt 2>/dev/null || echo 0)/3 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Membrane Tax (<1ms) | $(grep -c 'PASSED.*MembraneTax' membrane_proof_results.txt 2>/dev/null || echo 0)/1 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Adversarial Resilience (>75%) | $(grep -c 'PASSED.*AdversarialResilience' membrane_proof_results.txt 2>/dev/null || echo 0)/1 |" >> $GITHUB_STEP_SUMMARY
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # MVSA Acceptance Gate — Node0 sovereign lifecycle verification
   # Standing on Giants: Deming (1950) PDCA, Juran (1951) quality ratcheting
   # ═══════════════════════════════════════════════════════════════════════════
