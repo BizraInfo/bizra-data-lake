@@ -146,6 +146,7 @@ pub struct Node {
     /// Federation node — gossip, consensus, peer discovery.
     /// NODE0 is the bootstrap seed. Other nodes connect via gossip_addr.
     /// Standing on: Lamport (distributed agreement), Nakamoto (peer consensus).
+    #[allow(dead_code)] // Used when BIZRA_FEDERATION_ENABLED=1 and Node2 joins
     federation: Option<bizra_federation::FederationNode>,
 }
 
