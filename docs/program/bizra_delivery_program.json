@@ -176,7 +176,8 @@
         "executive_scorecard",
         "technical_scorecard",
         "public_proof_surface",
-        "operator_runbook_alignment"
+        "operator_runbook_alignment",
+        "release_readiness_bundle"
       ],
       "risks": [
         "truth_density_varies_by_document",
@@ -283,6 +284,11 @@
       "measure": "boundary_degradation_lowers_tick_quality_and_reward_minting"
     },
     {
+      "dimension": "release_readiness_surface",
+      "status": "proven",
+      "measure": "program_runtime_and_performance_truth_bundled_in_ci"
+    },
+    {
       "dimension": "receipt_native_cognition",
       "status": "staged",
       "measure": "hhmm_and_diffusion_outputs_on_canonical_receipt_plane"
@@ -348,8 +354,8 @@
     }
   ],
   "top_next_step": {
-    "id": "NEXT-EXEC-001",
-    "title": "Promote the blueprint into machine-driven execution artifacts",
-    "reason": "Without machine-readable roadmap, scorecard, and risk structure, the program remains insightful but operator-manual."
+    "id": "NEXT-EXEC-002",
+    "title": "Eliminate mutable release refs and harden reproducibility surfaces",
+    "reason": "Now that release truth is bundled in CI, the highest remaining credibility drag is mutable deployment and dependency state."
   }
 }

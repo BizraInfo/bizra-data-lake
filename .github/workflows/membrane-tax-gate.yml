@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - "core/**"
+      - "scripts/ci_canonical_e2e_benchmark.py"
+      - "scripts/ci_delivery_program_gate.py"
+      - "scripts/ci_release_readiness_bundle.py"
+      - "scripts/ci_benchmark_summary.py"
       - "scripts/ci_membrane_tax_benchmark.py"
       - "scripts/ci_boundary_quality_report.py"
       - "scripts/ci_delivery_scorecard.py"
@@ -14,6 +18,10 @@ on:
     branches: [main]
     paths:
       - "core/**"
+      - "scripts/ci_canonical_e2e_benchmark.py"
+      - "scripts/ci_delivery_program_gate.py"
+      - "scripts/ci_release_readiness_bundle.py"
+      - "scripts/ci_benchmark_summary.py"
       - "scripts/ci_membrane_tax_benchmark.py"
       - "scripts/ci_boundary_quality_report.py"
       - "scripts/ci_delivery_scorecard.py"
@@ -41,16 +49,36 @@ jobs:
         run: |
           python scripts/ci_membrane_tax_benchmark.py --output /tmp/cmn_membrane_tax_report.json
 
+      - name: Run canonical E2E benchmark
+        run: |
+          python scripts/ci_canonical_e2e_benchmark.py --output /tmp/canonical_e2e_report.json
+
       - name: Run runtime boundary quality probe
         run: |
           python scripts/ci_boundary_quality_report.py --output /tmp/boundary_quality_report.json
+
+      - name: Generate benchmark summary
+        run: |
+          python scripts/ci_benchmark_summary.py \
+            --canonical-report /tmp/canonical_e2e_report.json \
+            --membrane-report /tmp/cmn_membrane_tax_report.json \
+            --output /tmp/benchmark_summary.md
 
       - name: Generate delivery scorecard with live runtime signals
         run: |
           python scripts/ci_delivery_scorecard.py \
             --boundary-report /tmp/boundary_quality_report.json \
             --output /tmp/delivery_scorecard.md
-          cat /tmp/delivery_scorecard.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate unified release-readiness bundle
+        run: |
+          python scripts/ci_release_readiness_bundle.py \
+            --canonical-report /tmp/canonical_e2e_report.json \
+            --membrane-report /tmp/cmn_membrane_tax_report.json \
+            --boundary-report /tmp/boundary_quality_report.json \
+            --output-json /tmp/release_readiness_bundle.json \
+            --output-md /tmp/release_readiness_bundle.md
+          cat /tmp/release_readiness_bundle.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Gate — fail on membrane tax sanity regressions
         run: |
@@ -81,6 +109,28 @@ jobs:
           print('BOUNDARY QUALITY GATE PASSED')
           PY
 
+      - name: Gate — fail on release-readiness regressions
+        run: |
+          python - <<'PY'
+          import json, sys
+          with open('/tmp/release_readiness_bundle.json', encoding='utf-8') as f:
+              bundle = json.load(f)
+          verdict = bundle.get('overall_verdict', {})
+          if not verdict.get('passed', False):
+              print('RELEASE READINESS GATE FAILED')
+              print(json.dumps(verdict, indent=2, sort_keys=True))
+              sys.exit(1)
+          print('RELEASE READINESS GATE PASSED')
+          PY
+
+      - name: Upload canonical E2E results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: canonical-e2e-results
+          path: /tmp/canonical_e2e_report.json
+          retention-days: 30
+
       - name: Upload membrane tax results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -103,4 +153,22 @@ jobs:
         with:
           name: delivery-scorecard
           path: /tmp/delivery_scorecard.md
+          retention-days: 30
+
+      - name: Upload benchmark summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: benchmark-summary
+          path: /tmp/benchmark_summary.md
+          retention-days: 30
+
+      - name: Upload release-readiness bundle
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-readiness-bundle
+          path: |
+            /tmp/release_readiness_bundle.json
+            /tmp/release_readiness_bundle.md
           retention-days: 30
