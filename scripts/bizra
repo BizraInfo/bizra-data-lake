@@ -349,8 +349,31 @@ interactive() {
     banner
     status_bar
 
-    # Maturana: autopoiesis — warm FAISS in background so first mission fires 5/8 stages
+    # PAT opens its eyes — scan home base and report what needs attention
     source "$VENV/bin/activate" 2>/dev/null
+    python3 -c "
+from core.sovereign.home_base import full_scan, save_home_base, load_home_base, detect_changes
+
+prev = load_home_base()
+current = full_scan()
+save_home_base(current)
+
+# Report what the PAT sees
+if current.tasks.stale_deliverables:
+    for d in current.tasks.stale_deliverables:
+        print(f'  \033[38;2;239;68;68m!\033[0m {d[\"name\"]} — {d[\"age_hours\"]:.0f}h old — {d[\"suggestion\"]}')
+
+if current.tasks.pending_actions:
+    for a in current.tasks.pending_actions:
+        print(f'  \033[38;2;201;169;98m?\033[0m {a[\"suggestion\"]}')
+
+if prev:
+    changes = detect_changes(prev, current)
+    for c in changes:
+        print(f'  \033[38;2;125;211;192m+\033[0m {c[\"suggestion\"]}')
+" 2>/dev/null
+
+    # Maturana: autopoiesis — warm FAISS in background so first mission fires 5/8 stages
     python3 -c "
 from core.proof_engine.faiss_search import load_index, _get_encoder
 load_index()
