@@ -137,8 +137,8 @@ def scan_hardware() -> HardwareProfile:
     except Exception:
         pass
 
-    # Disk space
-    for mount in ["/", "/mnt/c", "/mnt/b"]:
+    # Disk space — the PAT knows every drive in its home
+    for mount in ["/", "/mnt/c", "/mnt/b", "/mnt/d"]:
         try:
             usage = shutil.disk_usage(mount)
             hw.disks.append(
@@ -210,6 +210,15 @@ def scan_data(watched_dirs: Optional[List[str]] = None) -> DataProfile:
         str(Path.home() / "Documents"),
         "/mnt/c/BIZRA-DATA-LAKE",
     ]
+
+    # B: drive — BIZRA Sovereign space (the PAT's full home)
+    for sovereign_path in [
+        "/mnt/b/BIZRA-SOVEREIGN",
+        "/mnt/b/all files",
+        "/mnt/b",
+    ]:
+        if os.path.isdir(sovereign_path) and sovereign_path not in dirs_to_watch:
+            dirs_to_watch.append(sovereign_path)
 
     # Also check Windows paths
     for win_path in [
