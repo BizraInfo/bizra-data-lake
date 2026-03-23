@@ -1362,6 +1362,51 @@ class KernelHandler(SimpleHTTPRequestHandler):
                     "total_captured": _memory_handler.total,
                 }
             )
+        elif path == "/api/live-stats":
+            # Unified stats endpoint for the frontend
+            live = {
+                "kernel": {
+                    "alive": True,
+                    "version": KERNEL_VERSION,
+                    "uptime_s": round(_uptime(), 1),
+                },
+                "node": {"agents": 12, "node_id": "node0"},
+                "seed": {"balance": 0, "total_missions": 0},
+                "urp": {"knowledge_entries": 0, "receipts": 0, "treasury": 0},
+                "hardware": {},
+            }
+            # SEED balance
+            try:
+                from core.proof_engine.seed_ledger import balance, history
+                live["seed"]["balance"] = balance()
+                live["seed"]["total_missions"] = len(history(limit=9999))
+            except Exception:
+                pass
+            # URP state
+            try:
+                from core.urp.persistence import load_urp_state
+                urp_state = load_urp_state()
+                if urp_state:
+                    pool = urp_state.get("resource_pool", {})
+                    live["urp"]["knowledge_entries"] = pool.get("knowledge_count", 0)
+                    live["urp"]["receipts"] = len(urp_state.get("receipt_log", []))
+                    live["urp"]["treasury"] = pool.get("seed_treasury", 0)
+            except Exception:
+                pass
+            # Home base hardware
+            try:
+                from core.sovereign.home_base import load_home_base
+                hb = load_home_base()
+                if hb:
+                    live["hardware"] = {
+                        "cpu": hb.hardware.cpu,
+                        "cores": hb.hardware.cpu_cores,
+                        "ram_gb": hb.hardware.ram_gb,
+                        "gpu": hb.hardware.gpu,
+                    }
+            except Exception:
+                pass
+            self._json_response(live)
         elif path == "/api/briefing":
             self._json_response(_generate_briefing(self.sovereign_state))
         elif path == "/api/readiness":
