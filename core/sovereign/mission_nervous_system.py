@@ -52,6 +52,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol
 
 logger = logging.getLogger("bizra.sovereign.nervous_system")
 
+from core.errors import BizraError, BridgeError, InferenceError
 
 # ═══════════════════════════════════════════════════════════════════
 # CONSTITUTIONAL THRESHOLDS (from single source of truth)
@@ -220,6 +221,17 @@ def _compute_evidence_hash(data: Dict[str, Any]) -> str:
     """BLAKE3-style evidence hash (SHA-256 fallback)."""
     canonical = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()[:32]
     return f"ev:{canonical}"
+
+
+def _append_degradation_receipt(
+    metadata: Dict[str, Any],
+    error: BizraError,
+) -> None:
+    """Attach typed degradation evidence to receipt metadata."""
+    receipts = metadata.setdefault("degradation_receipts", [])
+    if isinstance(receipts, list):
+        receipts.append(error.to_receipt())
+    metadata["degraded"] = True
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -449,9 +461,39 @@ class SovereignNervousSystem:
 
         # ── S2 DELIBERATION: Full inference (Kahneman System 2) ──
         if not reflex_hit:
-            output_text = await self._inference.infer(mission_text)
             self._stats.s2_executions += 1
-            logger.info("S2 EXEC | mission=%s len=%d", mission_id, len(output_text))
+            try:
+                output_text = await self._inference.infer(mission_text)
+                logger.info("S2 EXEC | mission=%s len=%d", mission_id, len(output_text))
+            except BizraError as exc:
+                _append_degradation_receipt(metadata, exc)
+                metadata["degradation_reason"] = type(exc).__name__
+                output_text = (
+                    "[DEGRADED] Inference boundary failed. "
+                    f"Mission preserved for recovery: {mission_text[:200]}"
+                )
+                logger.warning("S2 DEGRADE | mission=%s error=%s", mission_id, exc)
+            except Exception as exc:
+                typed_exc = InferenceError(
+                    type(self._inference).__name__,
+                    str(exc) or "untyped inference failure",
+                    context={
+                        "mission_id": mission_id,
+                        "mission_text": mission_text[:200],
+                    },
+                    original=exc,
+                )
+                _append_degradation_receipt(metadata, typed_exc)
+                metadata["degradation_reason"] = type(typed_exc).__name__
+                output_text = (
+                    "[DEGRADED] Inference backend unavailable. "
+                    f"Mission preserved for recovery: {mission_text[:200]}"
+                )
+                logger.warning(
+                    "S2 DEGRADE | mission=%s error=%s",
+                    mission_id,
+                    typed_exc,
+                )
 
         # ── SCORE: Constitutional quality gates (Al-Ghazali) ─────
         ihsan = (
@@ -460,20 +502,48 @@ class SovereignNervousSystem:
             else _score_ihsan(output_text, mission_text)
         )
         snr = snr_override if snr_override is not None else _score_snr(output_text)
+        if metadata.get("degraded"):
+            if ihsan_override is None:
+                ihsan = min(ihsan, 0.2)
+            if snr_override is None:
+                snr = min(snr, 0.2)
 
         self._ihsan_history.append(ihsan)
         self._stats.avg_ihsan = sum(self._ihsan_history) / len(self._ihsan_history)
 
         # ── PUBLISH: EventBus events (Hewitt Actor Model) ────────
         if self._bus is not None:
-            events_published = self._publish_events(
-                mission_id,
-                mission_text,
-                output_text,
-                ihsan,
-                snr,
-                reflex_hit,
-            )
+            try:
+                events_published = self._publish_events(
+                    mission_id,
+                    mission_text,
+                    output_text,
+                    ihsan,
+                    snr,
+                    reflex_hit,
+                )
+            except BizraError as exc:
+                _append_degradation_receipt(metadata, exc)
+                metadata["event_bus_degraded"] = True
+                logger.warning(
+                    "EVENT BUS DEGRADE | mission=%s error=%s",
+                    mission_id,
+                    exc,
+                )
+            except Exception as exc:
+                typed_exc = BridgeError(
+                    "event_bus",
+                    str(exc) or "untyped event bus failure",
+                    context={"mission_id": mission_id},
+                    original=exc,
+                )
+                _append_degradation_receipt(metadata, typed_exc)
+                metadata["event_bus_degraded"] = True
+                logger.warning(
+                    "EVENT BUS DEGRADE | mission=%s error=%s",
+                    mission_id,
+                    typed_exc,
+                )
 
         # ── RECORD: Observation for future S1 (Deming PDCA) ─────
         if not reflex_hit and self._reflex is not None:

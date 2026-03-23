@@ -55,6 +55,19 @@ from typing import Any, Optional
 
 logger = logging.getLogger("sovereign.api")
 
+from core.errors import (
+    AuthorityError,
+    Boundary,
+    BizraError,
+    BridgeError,
+    ConstitutionalViolation,
+    GateRejection,
+    InferenceError,
+    ResourceError,
+    http_status_for_error,
+    wrap_legacy_exception,
+)
+
 # Module-level ReflexCompiler singleton (lazy-initialized in /v1/plan)
 _reflex_compiler: Any = None
 _reflex_compiler_lock = threading.Lock()
@@ -107,6 +120,65 @@ def _ensure_production_auth_prerequisites(
             "Set BIZRA_NODE0_API_KEY, BIZRA_API_KEY, BIZRA_NODE0_API_KEYS, or "
             "BIZRA_API_KEYS, or pass --api-key."
         )
+
+
+def _log_bizra_error(exc: BizraError) -> None:
+    """Log typed boundary failures at a level that matches severity."""
+
+    if isinstance(exc, ConstitutionalViolation):
+        logger.critical("Constitutional halt: %s", exc)
+        return
+    if isinstance(exc, (GateRejection, AuthorityError)):
+        logger.warning("Boundary rejection: %s", exc)
+        return
+    if isinstance(exc, (BridgeError, InferenceError, ResourceError)):
+        logger.error("Boundary degradation: %s", exc)
+        return
+    logger.error("Typed system error: %s", exc)
+
+
+def _wrap_query_error(
+    exc: Exception,
+    *,
+    route: str,
+    query_length: int,
+    user_id: str = "",
+) -> BizraError:
+    """Convert legacy query failures into typed, receiptable errors."""
+
+    return wrap_legacy_exception(
+        exc,
+        Boundary.MEMBRANE,
+        context={
+            "route": route,
+            "query_length": query_length,
+            "user_id": user_id,
+        },
+    )
+
+
+def _record_boundary_error_via_node0(
+    rt: Any,
+    exc: BizraError,
+    *,
+    route: str,
+) -> None:
+    """Mirror typed boundary failures into Node0's canonical audit plane."""
+
+    node0 = getattr(rt, "_node0", None)
+    recorder = getattr(node0, "record_boundary_error_receipt", None)
+    if not callable(recorder):
+        return
+    try:
+        recorder(
+            {
+                **exc.to_receipt(),
+                "source": "api.query.boundary",
+                "route": route,
+            }
+        )
+    except (RuntimeError, AttributeError, TypeError, ValueError, OSError) as node_exc:
+        logger.warning("Node0 boundary error ingest failed: %s", node_exc)
 
 
 # =============================================================================
@@ -988,9 +1060,22 @@ class SovereignAPIServer:
 
         except json.JSONDecodeError:
             return self._json_response({"error": "Invalid JSON"}, 400)
-        except Exception:  # noqa: BLE001 — API boundary
-            logger.exception("Query error")
-            return self._json_response({"error": "Internal server error"}, 500)
+        except BizraError as exc:
+            _log_bizra_error(exc)
+            _record_boundary_error_via_node0(self.runtime, exc, route="/v1/query")
+            return self._json_response(exc.to_receipt(), http_status_for_error(exc))
+        except Exception as exc:  # noqa: BLE001 — API boundary
+            wrapped = _wrap_query_error(
+                exc,
+                route="/v1/query",
+                query_length=len(data.get("query", "")) if "data" in locals() else 0,
+            )
+            logger.exception("Query error (legacy)")
+            _record_boundary_error_via_node0(self.runtime, wrapped, route="/v1/query")
+            return self._json_response(
+                wrapped.to_receipt(),
+                http_status_for_error(wrapped),
+            )
 
     async def _handle_sel_episodes(self) -> str:
         """Handle SEL episodes listing."""
@@ -1282,8 +1367,12 @@ class SovereignAPIServer:
             200: "OK",
             400: "Bad Request",
             401: "Unauthorized",
+            403: "Forbidden",
             404: "Not Found",
+            422: "Unprocessable Entity",
             429: "Too Many Requests",
+            502: "Bad Gateway",
+            503: "Service Unavailable",
             500: "Internal Server Error",
         }
 
@@ -2720,19 +2809,38 @@ def create_fastapi_app(runtime: Any) -> Any:
                 timeout_ms=body.timeout_ms,
                 user_id=user_id,
             )
-        except (RuntimeError, TimeoutError, ValueError) as exc:
-            logger.warning("Query error (specific): %s", exc)
-            # SEC: Never leak raw exception text to client (OWASP A09)
-            error_type = type(exc).__name__
+        except BizraError as exc:
+            _log_bizra_error(exc)
+            _record_boundary_error_via_node0(runtime, exc, route="/v1/query")
             return JSONResponse(
-                status_code=500,
-                content={"error": f"Query failed ({error_type})"},
+                status_code=http_status_for_error(exc),
+                content=exc.to_receipt(),
             )
-        except Exception:  # noqa: BLE001 — API boundary
-            logger.exception("Query execution failed")
+        except (RuntimeError, TimeoutError, ValueError) as exc:
+            wrapped = _wrap_query_error(
+                exc,
+                route="/v1/query",
+                query_length=len(body.query),
+                user_id=user_id,
+            )
+            logger.warning("Query error (specific legacy): %s", exc)
+            _record_boundary_error_via_node0(runtime, wrapped, route="/v1/query")
             return JSONResponse(
-                status_code=500,
-                content={"error": "Internal server error"},
+                status_code=http_status_for_error(wrapped),
+                content=wrapped.to_receipt(),
+            )
+        except Exception as exc:  # noqa: BLE001 — API boundary
+            wrapped = _wrap_query_error(
+                exc,
+                route="/v1/query",
+                query_length=len(body.query),
+                user_id=user_id,
+            )
+            logger.exception("Query execution failed")
+            _record_boundary_error_via_node0(runtime, wrapped, route="/v1/query")
+            return JSONResponse(
+                status_code=http_status_for_error(wrapped),
+                content=wrapped.to_receipt(),
             )
 
         response: dict[str, Any] = {

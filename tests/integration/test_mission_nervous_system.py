@@ -46,6 +46,20 @@ class MockInference:
         return self.response
 
 
+class FailingInference:
+    """Inference provider that fails to test typed degradation."""
+
+    async def infer(self, prompt: str, **kwargs: Any) -> str:
+        raise RuntimeError("backend offline")
+
+
+class FailingBus:
+    """Event bus that fails immediately to test bridge degradation."""
+
+    def publish(self, event_type: Any, payload: dict[str, Any]) -> Any:
+        raise RuntimeError(f"publish failed for {event_type}")
+
+
 class ReceiptCollector:
     """Collects receipts for assertion."""
 
@@ -130,6 +144,32 @@ class TestS2Deliberation:
         assert ns.stats.total_missions == 2
         assert ns.stats.s2_executions == 2
         assert ns.stats.s1_hits == 0
+
+    def test_s2_inference_failure_returns_degraded_receipt(self):
+        ns = _build_ns(inference=FailingInference())
+
+        receipt = asyncio.run(ns.run("Recover from inference outage"))
+
+        assert receipt.system == "S2"
+        assert receipt.output_text.startswith("[DEGRADED]")
+        assert receipt.rewarded is False
+        assert receipt.ihsan_score <= 0.2
+        degradations = receipt.metadata.get("degradation_receipts", [])
+        assert len(degradations) == 1
+        assert degradations[0]["error_type"] == "InferenceError"
+        assert degradations[0]["boundary"] == "INFERENCE"
+
+    def test_event_bus_failure_becomes_degradation_receipt(self):
+        ns = _build_ns(bus=FailingBus())
+
+        receipt = asyncio.run(ns.run("Publish through degraded bus"))
+
+        assert receipt.events_published == []
+        assert receipt.metadata["event_bus_degraded"] is True
+        degradations = receipt.metadata.get("degradation_receipts", [])
+        assert len(degradations) == 1
+        assert degradations[0]["error_type"] == "BridgeError"
+        assert degradations[0]["boundary"] == "BRIDGE"
 
 
 # ═══════════════════════════════════════════════════════════════════
