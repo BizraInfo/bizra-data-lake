@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+import sys
+import types
 from typing import Any
 
 from core.proof_engine.canonical import blake3_digest, canonical_bytes, hex_digest
@@ -254,3 +257,57 @@ async def test_reason_verified_rejects_low_ihsan_terminal_branch():
     valid, error = verifier.verify(result.receipt)
     assert valid is True
     assert error is None
+
+
+async def test_reason_verified_precipitates_vrg_reflex_without_payload_warning(
+    monkeypatch,
+    caplog,
+):
+    signer = SimpleSigner(b"verified-graph-test-signer")
+    bridge = GoTBridge(got_engine=FakeGraphEngine(), receipt_signer=signer)
+    compiled: list[dict[str, Any]] = []
+
+    class FakeReflexLedger:
+        def __init__(self, capacity: int) -> None:
+            self.capacity = capacity
+
+        def compile_vrg_reflex(
+            self,
+            *,
+            task_description: str,
+            ihsan_score: float,
+            timestamp_ns: int,
+            vrg_root: str,
+            branch_certificates: list[str],
+        ) -> None:
+            compiled.append(
+                {
+                    "task_description": task_description,
+                    "ihsan_score": ihsan_score,
+                    "timestamp_ns": timestamp_ns,
+                    "vrg_root": vrg_root,
+                    "branch_certificates": branch_certificates,
+                }
+            )
+
+    monkeypatch.setitem(
+        sys.modules,
+        "bizra",
+        types.SimpleNamespace(ReflexLedger=FakeReflexLedger),
+    )
+
+    with caplog.at_level(logging.WARNING):
+        result = await bridge.reason_verified(
+            "What is BIZRA?",
+            context={"domain": "architecture"},
+        )
+
+    assert result.verified is True
+    assert len(compiled) == 1
+    assert compiled[0]["task_description"] == "What is BIZRA?"
+    assert compiled[0]["ihsan_score"] == result.receipt.ihsan_score
+    assert compiled[0]["vrg_root"] == result.vrg_root
+    assert compiled[0]["branch_certificates"] == [
+        certificate["certificate_hash"] for certificate in result.branch_certificates
+    ]
+    assert "Failed to precipitate VRG reflex" not in caplog.text

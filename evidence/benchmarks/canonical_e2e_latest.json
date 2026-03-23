@@ -1,13 +1,18 @@
 {
-  "got_bridge_init_ms": 11.39,
-  "got_bridge_available": false,
-  "got_bridge_reason_ms": 0,
+  "got_bridge_import_ms": 1208.54,
+  "got_bridge_init_ms": 89.94,
+  "got_bridge_available": true,
+  "got_bridge_reason_ms": 13.71,
   "got_bridge_converged": false,
-  "vrg_receipt_build_ms": 0,
-  "vrg_receipt_available": false,
-  "organism_boot_ms": 0,
-  "node0_available": false,
-  "node0_breathe_ms": 0,
-  "eventbus_emission_ms": 0,
-  "full_spine_ms": 24.31
+  "got_bridge_verified": false,
+  "got_bridge_mode": "async_reason_verified",
+  "vrg_receipt_build_ms": 0.03,
+  "vrg_receipt_available": true,
+  "organism_boot_ms": 91.97,
+  "node0_available": true,
+  "node0_breathe_ms": 5.25,
+  "breath_chain_valid": true,
+  "eventbus_emission_ms": 0.02,
+  "events_emitted": 1,
+  "full_spine_ms": 1445.72
 }
