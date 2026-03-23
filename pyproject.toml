@@ -136,7 +136,7 @@ exclude_lines = [
 # History: 30% → 55% → 60% → 65% → 38% → 62% → 70% → 75% → 65% (xdist variance)
 # Note: pytest-xdist measures coverage non-deterministically across workers.
 # 3.11 reports ~75%, 3.12 reports ~67% for same code. Floor = measured_min - 2%.
-fail_under = 65
+fail_under = 70
 show_missing = true
 precision = 2
 
