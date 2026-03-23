@@ -4,15 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BIZRA — Your AI Runs on YOUR Hardware</title>
-    <meta name="description" content="Sovereign AI operating system. Your AI runs on your hardware. You own every thought. Every action earns proof-backed value.">
+    <meta name="description" content="Sovereign AI operating system. Your AI runs on your hardware. You own every thought.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@200;300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            /* Canonical Brand Tokens (from tokens.ts) */
+            --bg: #0A1628;
+            --bg-raised: #0E1E34;
+            --bg-card: #122640;
+            --bg-hover: #162E4C;
+            --gold: #C9A962;
+            --gold-bright: #E2CFA0;
+            --gold-dim: #8B7340;
+            --gold-glow: rgba(201,169,98,.12);
+            --gold-line: rgba(201,169,98,.15);
+            --emerald: #34D399;
+            --sapphire: #60A5FA;
+            --ruby: #F87171;
+            --amethyst: #A78BFA;
+            --text: #E8E4DB;
+            --muted: rgba(232,228,219,.65);
+            --dim: rgba(232,228,219,.38);
+            --ghost: rgba(232,228,219,.18);
+            --line: rgba(255,255,255,.06);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #0a0e17;
-            color: #e5e7eb;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
         }
+
+        /* Hero */
         .hero {
             display: flex;
             flex-direction: column;
@@ -21,174 +47,328 @@
             min-height: 100vh;
             padding: 2rem;
             text-align: center;
+            background: radial-gradient(ellipse at 50% 0%, rgba(201,169,98,0.08) 0%, transparent 60%);
         }
         .arabic {
-            font-size: 4rem;
-            color: #7dd3c0;
-            margin-bottom: 0.5rem;
+            font-size: 5rem;
+            color: var(--gold);
             font-family: 'Amiri', serif;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .brand-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            letter-spacing: 0.3em;
+            color: var(--gold-dim);
+            text-transform: uppercase;
+            margin-bottom: 2rem;
         }
         h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.75rem;
+            font-weight: 600;
+            color: var(--gold-bright);
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, #7dd3c0, #c9a962);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
         }
         .subtitle {
-            font-size: 1.25rem;
-            color: #9ca3af;
-            max-width: 600px;
+            font-size: 1.125rem;
+            color: var(--muted);
+            max-width: 560px;
             margin-bottom: 2.5rem;
-            line-height: 1.6;
+            line-height: 1.7;
+            font-weight: 300;
         }
         .cta {
             display: inline-block;
             padding: 1rem 3rem;
-            background: #7dd3c0;
-            color: #0a0e17;
-            font-size: 1.125rem;
-            font-weight: 700;
-            border-radius: 0.75rem;
+            background: var(--gold);
+            color: var(--bg);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
             text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s;
+            letter-spacing: 0.05em;
+            transition: all 0.3s;
+            border: 1px solid var(--gold);
         }
         .cta:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(125, 211, 192, 0.3);
+            background: transparent;
+            color: var(--gold);
+            box-shadow: 0 0 40px rgba(201,169,98,0.2);
         }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            max-width: 900px;
-            margin: 3rem auto;
-            padding: 0 2rem;
-        }
-        .feature {
-            background: #111827;
-            border: 1px solid #1f2937;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            text-align: left;
-        }
-        .feature h3 {
-            color: #7dd3c0;
-            margin-bottom: 0.5rem;
+        .cta-secondary {
+            display: inline-block;
+            margin-left: 1rem;
+            padding: 1rem 2rem;
+            background: transparent;
+            color: var(--gold-dim);
             font-size: 1rem;
+            font-weight: 400;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            border: 1px solid var(--gold-line);
+            transition: all 0.3s;
         }
-        .feature p {
-            color: #6b7280;
-            font-size: 0.875rem;
-            line-height: 1.5;
+        .cta-secondary:hover {
+            border-color: var(--gold);
+            color: var(--gold);
         }
+
+        /* Stats */
         .stats {
             display: flex;
-            gap: 2rem;
-            margin: 2rem 0;
+            gap: 3rem;
+            margin: 3rem 0;
             flex-wrap: wrap;
             justify-content: center;
         }
-        .stat {
-            text-align: center;
-        }
         .stat-value {
-            font-size: 2rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.25rem;
             font-weight: 700;
-            color: #c9a962;
+            color: var(--gold);
         }
         .stat-label {
-            font-size: 0.75rem;
-            color: #6b7280;
+            font-size: 0.7rem;
+            color: var(--dim);
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.15em;
+            margin-top: 0.25rem;
         }
+
+        /* Features */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+            max-width: 960px;
+            margin: 0 auto 4rem;
+            padding: 0 2rem;
+        }
+        .feature {
+            background: var(--bg-raised);
+            border: 1px solid var(--gold-line);
+            border-radius: 0.75rem;
+            padding: 1.75rem;
+            transition: border-color 0.3s;
+        }
+        .feature:hover { border-color: var(--gold-dim); }
+        .feature-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+        .feature h3 {
+            font-family: 'Playfair Display', serif;
+            color: var(--gold-bright);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .feature p {
+            color: var(--muted);
+            font-size: 0.875rem;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        /* Divider */
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.75rem;
+            color: var(--gold);
+            text-align: center;
+            margin: 4rem 0 2rem;
+        }
+
+        /* How it works */
+        .how {
+            max-width: 700px;
+            margin: 0 auto 4rem;
+            padding: 0 2rem;
+        }
+        .step {
+            display: flex;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+            align-items: flex-start;
+        }
+        .step-num {
+            min-width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gold-glow);
+            border: 1px solid var(--gold-line);
+            border-radius: 50%;
+            color: var(--gold);
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .step-text h4 {
+            color: var(--text);
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+        .step-text p {
+            color: var(--dim);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* Footer */
         .footer {
             text-align: center;
-            padding: 2rem;
-            color: #374151;
-            font-size: 0.875rem;
+            padding: 3rem 2rem;
+            border-top: 1px solid var(--line);
+            color: var(--dim);
+            font-size: 0.8rem;
         }
-        .footer a { color: #7dd3c0; text-decoration: none; }
+        .footer a { color: var(--gold-dim); text-decoration: none; }
+        .footer a:hover { color: var(--gold); }
+        .footer .arabic-footer {
+            font-family: 'Amiri', serif;
+            font-size: 1.1rem;
+            color: var(--gold-dim);
+            margin-bottom: 0.75rem;
+        }
+
         @media (max-width: 640px) {
-            .arabic { font-size: 3rem; }
+            .arabic { font-size: 3.5rem; }
             h1 { font-size: 1.75rem; }
-            .subtitle { font-size: 1rem; }
+            .stats { gap: 1.5rem; }
+            .cta-secondary { margin-left: 0; margin-top: 0.75rem; }
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <section class="hero">
     <div class="arabic">بِذْرَة</div>
-    <h1>Your AI Runs on YOUR Hardware</h1>
+    <div class="brand-name">BIZRA</div>
+    <h1>Your AI Runs on<br>YOUR Hardware</h1>
     <p class="subtitle">
-        BIZRA is a sovereign AI operating system. Every action earns proof-backed value.
-        Your data never leaves your device. You own every thought.
+        A sovereign AI operating system where intelligence is admitted through
+        constitutional filtration. Every action earns proof-backed value.
+        Your data never leaves your device.
     </p>
 
+    <div>
+        <a href="https://github.com/BizraInfo/bizra-data-lake/blob/main/ALPHA_QUICKSTART.md" class="cta">
+            Plant Your Seed
+        </a>
+        <a href="https://github.com/BizraInfo/bizra-data-lake/blob/main/docs/papers/CMN_v2_PARADIGM.md" class="cta-secondary">
+            Read the Paper
+        </a>
+    </div>
+
     <div class="stats">
-        <div class="stat">
+        <div>
             <div class="stat-value">12</div>
             <div class="stat-label">Sovereign Agents</div>
         </div>
-        <div class="stat">
+        <div>
             <div class="stat-value">12,680+</div>
             <div class="stat-label">Tests Passing</div>
         </div>
-        <div class="stat">
+        <div>
             <div class="stat-value">0.007ms</div>
             <div class="stat-label">Governance Tax</div>
         </div>
-        <div class="stat">
+        <div>
             <div class="stat-value">Z3</div>
             <div class="stat-label">Formally Verified</div>
         </div>
     </div>
-
-    <a href="https://github.com/BizraInfo/bizra-data-lake/blob/main/ALPHA_QUICKSTART.md" class="cta">
-        Plant Your Seed
-    </a>
 </section>
+
+<div class="section-title">The Sovereign Difference</div>
 
 <section class="features">
     <div class="feature">
-        <h3>Sovereign</h3>
-        <p>Your AI runs on your device. Your private key never leaves your machine. 12 agents work for you — soulbound, non-transferable.</p>
+        <div class="feature-icon">🔑</div>
+        <h3>Sovereign Identity</h3>
+        <p>Ed25519 keypair generated on your device. Your private key never leaves your machine. 12 agents minted — soulbound, non-transferable.</p>
     </div>
     <div class="feature">
-        <h3>Constitutional</h3>
-        <p>Every action passes through a fail-closed governance spine. Z3-verified membrane properties. The refusal set IS the capability.</p>
+        <div class="feature-icon">⚖</div>
+        <h3>Constitutional Membrane</h3>
+        <p>Every action passes through a Z3-verified governance spine. Fail-closed semantics. The refusal set IS the capability.</p>
     </div>
     <div class="feature">
-        <h3>Proof-Backed</h3>
-        <p>Every mission earns SEED tokens. Every receipt is BLAKE3 chained + Ed25519 signed. 2.5% Zakat flows to the community pool automatically.</p>
+        <div class="feature-icon">🌱</div>
+        <h3>Proof of Impact</h3>
+        <p>Every mission earns SEED tokens. BLAKE3 receipt chains. Ed25519 signed. 2.5% Zakat flows to the community pool.</p>
     </div>
     <div class="feature">
+        <div class="feature-icon">👁</div>
         <h3>Always Aware</h3>
-        <p>Your PAT daemon watches your sovereign space continuously. It detects changes, suggests actions, and acts with your approval.</p>
+        <p>Your PAT daemon watches your sovereign space continuously. It sees changes, suggests actions, and acts with your approval.</p>
     </div>
     <div class="feature">
+        <div class="feature-icon">🌊</div>
         <h3>The Sea Grows</h3>
-        <p>Every mission feeds the House of Wisdom through the constitutional membrane. Node → URP → Sea. The knowledge pool grows with every node.</p>
+        <p>Node &rarr; URP &rarr; Sea. Never Node &rarr; Node. Every receipt feeds the House of Wisdom through the constitutional membrane.</p>
     </div>
     <div class="feature">
+        <div class="feature-icon">🔓</div>
         <h3>Open Source</h3>
-        <p>648 commits. 24 Rust crates. 58 Python subpackages. MIT licensed. Verify every claim yourself — the code speaks for itself.</p>
+        <p>648 commits. 24 Rust crates. 58 Python subpackages. MIT licensed. Verify every claim — the code speaks for itself.</p>
     </div>
 </section>
 
-<div class="footer">
-    <p>
-        <a href="https://github.com/BizraInfo/bizra-data-lake">GitHub</a> ·
-        <a href="https://github.com/BizraInfo/bizra-data-lake/blob/main/docs/ARCHITECTURE.md">Architecture</a> ·
-        <a href="https://github.com/BizraInfo/bizra-data-lake/blob/main/docs/papers/CMN_v2_PARADIGM.md">Research Paper</a>
+<div class="section-title">Get Started in 5 Minutes</div>
+
+<section class="how">
+    <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+            <h4>Install Ollama</h4>
+            <p>Download from ollama.ai — your local AI runtime. Then: <code>ollama pull qwen2.5:3b</code></p>
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+            <h4>Clone BIZRA</h4>
+            <p><code>git clone https://github.com/BizraInfo/bizra-data-lake.git</code></p>
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+            <h4>Set Up</h4>
+            <p><code>python -m venv .venv && source .venv/bin/activate && pip install -e .</code></p>
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">
+            <h4>Activate</h4>
+            <p><code>./scripts/bizra</code> — Your sovereign AI greets you. Run your first mission.</p>
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-text">
+            <h4>Earn</h4>
+            <p>Every mission earns SEED. Every receipt is proof-backed. The sea grows with every node.</p>
+        </div>
+    </div>
+</section>
+
+<footer class="footer">
+    <div class="arabic-footer">بذرة واحدة تصنع غابة</div>
+    <p>One seed makes a forest.</p>
+    <p style="margin-top: 1rem;">
+        <a href="https://github.com/BizraInfo/bizra-data-lake">GitHub</a> &middot;
+        <a href="https://github.com/BizraInfo/bizra-data-lake/blob/main/docs/ARCHITECTURE.md">Architecture</a> &middot;
+        <a href="https://github.com/BizraInfo/bizra-data-lake/blob/main/docs/papers/CMN_v2_PARADIGM.md">Paper</a> &middot;
+        <a href="https://github.com/BizraInfo/bizra-data-lake/blob/main/docs/ORGANISM_STATE_v0.88.1.md">Organism State</a>
     </p>
-    <p style="margin-top: 0.5rem;">بذرة واحدة تصنع غابة — One seed makes a forest.</p>
-    <p style="margin-top: 0.5rem;">BIZRA Foundation, Dubai, UAE · 2026</p>
-</div>
+    <p style="margin-top: 0.75rem;">BIZRA Foundation &middot; Dubai, UAE &middot; 2026</p>
+</footer>
 
 </body>
 </html>
