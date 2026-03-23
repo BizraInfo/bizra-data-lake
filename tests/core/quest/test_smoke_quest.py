@@ -8,7 +8,6 @@ Test naming: test_XX_descriptive_name
 Coverage: QuestEngine, Quest, QuestReward, QuestAcceptResult
 """
 
-
 from core.quest import (
     Quest,
     QuestDifficulty,

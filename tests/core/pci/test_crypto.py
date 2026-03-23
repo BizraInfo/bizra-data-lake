@@ -9,7 +9,6 @@ import json
 import sys
 from pathlib import Path
 
-
 # Add project root to path (works across platforms)
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))

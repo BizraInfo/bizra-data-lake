@@ -4,7 +4,6 @@ Tests for BIZRA Capability Card
 Tests the CapabilityCard creation, signing, and validation.
 """
 
-
 import pytest
 
 from core.sovereign.capability_card import (

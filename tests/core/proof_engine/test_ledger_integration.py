@@ -13,8 +13,6 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-003: "wire ledger into live pipeline"
 """
 
-
-
 from core.proof_engine.evidence_ledger import (
     EvidenceLedger,
     VerifierResponse,

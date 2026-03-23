@@ -106,18 +106,24 @@ def scan_hardware() -> HardwareProfile:
         try:
             r = subprocess.run(
                 ["powershell.exe", "-Command", cmd],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             return r.stdout.strip().replace("\r", "") if r.returncode == 0 else ""
         except Exception:
             return ""
 
-    hw.cpu = _ps("(Get-WmiObject Win32_Processor).Name") or platform.processor() or "unknown"
+    hw.cpu = (
+        _ps("(Get-WmiObject Win32_Processor).Name") or platform.processor() or "unknown"
+    )
 
     cores = _ps("(Get-WmiObject Win32_Processor).NumberOfLogicalProcessors")
     hw.cpu_cores = int(cores) if cores.isdigit() else (os.cpu_count() or 0)
 
-    ram = _ps("[math]::Round((Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory/1GB)")
+    ram = _ps(
+        "[math]::Round((Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory/1GB)"
+    )
     if ram.isdigit():
         hw.ram_gb = float(ram)
     else:
@@ -134,7 +140,9 @@ def scan_hardware() -> HardwareProfile:
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             hw.gpu = result.stdout.strip()
@@ -246,8 +254,11 @@ def scan_data(watched_dirs: Optional[List[str]] = None) -> DataProfile:
                 name = subdir.name
                 # Skip system/hidden dirs
                 if name.startswith(".") or name in (
-                    "$RECYCLE.BIN", "System Volume Information",
-                    "Windows", "ProgramData", "Recovery",
+                    "$RECYCLE.BIN",
+                    "System Volume Information",
+                    "Windows",
+                    "ProgramData",
+                    "Recovery",
                 ):
                     continue
                 try:

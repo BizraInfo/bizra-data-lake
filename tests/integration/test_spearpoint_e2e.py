@@ -212,9 +212,7 @@ class TestGoTRuntime:
 
         got = GraphOfThoughts()
         q = got.add_thought("What is truth?", ThoughtType.QUESTION)
-        got.add_thought(
-            "Truth is verifiable.", ThoughtType.HYPOTHESIS, parent_id=q.id
-        )
+        got.add_thought("Truth is verifiable.", ThoughtType.HYPOTHESIS, parent_id=q.id)
 
         hash1 = got.compute_graph_hash()
         hash2 = got.compute_graph_hash()

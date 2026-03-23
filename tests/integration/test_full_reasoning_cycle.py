@@ -460,9 +460,7 @@ class TestFederationConsensus:
         new_view = initial_view + 1
         for request in view_change_requests:
             for node in consensus_cluster:
-                node["engine"].receive_view_change(
-                    request, len(consensus_cluster)
-                )
+                node["engine"].receive_view_change(request, len(consensus_cluster))
 
         # 4. Verify view change occurred
         # At least one node should have transitioned to new view

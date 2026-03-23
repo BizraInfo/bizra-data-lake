@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [v0.88.1] — 2026-03-23 "The Organism Release"
 
 ### Added
+
 - 9-stage MissionExecutor (FAISS → Amplify → Inference → Skill → SEED → Memory → EventBus → Notify → Watcher)
 - LLM response text flows end-to-end (was silently dropped)
 - Sovereign identity system prompt — model knows it's BIZRA
@@ -30,6 +31,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Business docs (Product Spec v1, GTM 90-Day Launch Plan)
 
 ### Fixed
+
 - Bus dialect seam — CQRS and sovereign buses now speak one language
 - 4 broad exception handlers replaced with typed exceptions in canonical spine
 - 2 LM Studio API keys purged from git history (filter-repo)
@@ -38,6 +40,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Cross-session desync (parallel session event_publisher sync)
 
 ### Changed
+
 - Coverage threshold ratcheted 65% → 70%
 - CI pinned ubuntu-latest → ubuntu-24.04
 - Deploy tags pinned (chaos-mesh 2.7.0, uv 0.9.21, nomic-embed-text v1.5)
@@ -45,6 +48,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Pipeline expanded 8 → 9 stages (cognitive amplification added)
 
 ### Security
+
 - 8/8 credentials rotated
 - 0 secrets in code or git history
 - All GitHub Actions pinned by SHA
@@ -52,6 +56,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+
 - **MVSA Authority Resolution** (`core/sovereign/node0_authority.py`)
   - 4-level precedence: canonical → legacy_ceremony → legacy_reference → fail-closed
   - Migration of ceremony-compatible legacy sources into `sovereign_state/`
@@ -90,6 +95,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Neutral handling for missing context (0.5 not 0.0 when input_text absent)
 
 ### Fixed
+
 - Threshold canonicalization drift: removed `except ImportError` fallback blocks from
   helix3.py, mission_nervous_system.py, mission_pipeline.py, organism.py, bloom.py —
   all now hard-import from `core/integration/constants.py` SSOT (4/4 canonicalization tests pass)
@@ -99,6 +105,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   ihsan_scorer as single source of truth, replacing duplicate surface heuristics
 
 ### Changed
+
 - SEC-003: `mission.py` — all 20 boundary-guard `except Exception` catches now include
   `exc_info=True` for full traceback diagnosability in production logs (30/30 tests pass)
 - Phase 20.1: SAPE Sovereign Intelligence Report dashboard (`static/sovereign_analysis.html`)
@@ -122,12 +129,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - SAT controller for sovereign runtime
 
 ### Changed
+
 - Documentation A+ quality remediation across 17 files
 - FATE acronym corrected to Fidelity, Accountability, Transparency, Ethics
 - Constitutional thresholds unified to single source of truth (`core/integration/constants.py`)
 - Rust workspace expanded to 14 crates (added `bizra-tests`)
 
 ### Fixed
+
 - Phase 19 Sovereign Consolidation: Green Main Protocol achieved (6,423/6,423 tests passing)
 - 46 ruff lint errors eliminated across `core/` (25 f-string placeholders, 19 unused imports, 2 unused variables)
 - 138 black formatting violations resolved across `core/`
@@ -147,6 +156,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [v2.2.0-sovereign] - 2026-02-12
 
 ### Added
+
 - Phase 18.1: End-to-end integration wiring with orchestrator, complexity router, FastAPI CLI
 - Phase 18: Execution engine + SQLite memory + Node0 Console
 - Phase 18-prep: PyO3 `InferenceGateway` bridge + E2E tests + gateway-integrated benchmarks
@@ -159,11 +169,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Phase 12: Steel Spine Rust Hardening
 
 ### Changed
+
 - Mypy zero-error sprint: 409 errors eliminated across 82 files
 - Gateway god-file split into modular components
 - P2 security sprint + gateway refactoring
 
 ### Fixed
+
 - 3 CRITICAL security vulnerabilities killed, API hardened, deps pinned, constants centralized
 - Mypy errors reduced from 1477 to 0 (multi-phase effort)
 - 55 pre-existing test failures eliminated (52 failures + 3 collection errors)
@@ -174,6 +186,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [v1.0.0-genesis] - 2026-01-15
 
 ### Added
+
 - PAT (Personal AI Terminal) system with user context integration
 - RAG retrieval + Claude.ai ingestion (2,495 memories searchable)
 - Chat history ingestion (584 conversations, 9,265 messages)
@@ -185,10 +198,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Encrypted keypair storage with sovereign vault (S-5 security)
 
 ### Changed
+
 - SPARC methodology adopted: Dockerfiles, Clippy, type safety, security hardening
 - CI pipeline established with soft-gates for pre-existing findings
 
 ### Fixed
+
 - Docker build paths corrected
 - Integration tests soft-gated for Docker dependency
 - Security scan soft-gated for pre-existing findings

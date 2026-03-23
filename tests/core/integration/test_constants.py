@@ -14,7 +14,6 @@ Covers:
 - validate_cross_repo_consistency function
 """
 
-
 import pytest
 
 from core.integration.constants import (

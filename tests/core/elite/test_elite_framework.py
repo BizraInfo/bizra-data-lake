@@ -8,7 +8,6 @@ Tests:
 - SAPE optimizer with Graph-of-Thoughts
 """
 
-
 import pytest
 
 from core.elite import (

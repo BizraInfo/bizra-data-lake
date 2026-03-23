@@ -296,16 +296,20 @@ class TestSensorManagement:
 
     def test_register_sensor(self):
         engine = MuraqabahEngine()
+
         def custom_sensor():
             return {"test_metric": 42.0}
+
         engine.register_sensor(MonitorDomain.ENVIRONMENTAL, "custom", custom_sensor)
         assert "custom" in engine._sensors[MonitorDomain.ENVIRONMENTAL]
         assert engine._sensor_states["environmental:custom"] == SensorState.ACTIVE
 
     def test_register_sensor_overwrites_existing(self):
         engine = MuraqabahEngine()
+
         def new_sensor():
             return {"new_metric": 99.0}
+
         engine.register_sensor(MonitorDomain.ENVIRONMENTAL, "system_health", new_sensor)
         assert (
             engine._sensors[MonitorDomain.ENVIRONMENTAL]["system_health"] is new_sensor
@@ -365,6 +369,7 @@ class TestScanDomain:
     async def test_scan_domain_returns_readings(self, engine):
         def sensor_fn():
             return {"cpu_usage": 0.5, "memory_usage": 0.3}
+
         engine.register_sensor(MonitorDomain.ENVIRONMENTAL, "test", sensor_fn)
 
         readings = await engine._scan_domain(MonitorDomain.ENVIRONMENTAL)
@@ -376,6 +381,7 @@ class TestScanDomain:
     async def test_scan_domain_stores_readings(self, engine):
         def sensor_fn():
             return {"metric_a": 1.0}
+
         engine.register_sensor(MonitorDomain.HEALTH, "test", sensor_fn)
 
         await engine._scan_domain(MonitorDomain.HEALTH)
@@ -385,6 +391,7 @@ class TestScanDomain:
     async def test_scan_domain_reading_values(self, engine):
         def sensor_fn():
             return {"temperature": 72.5}
+
         engine.register_sensor(MonitorDomain.ENVIRONMENTAL, "temp", sensor_fn)
 
         readings = await engine._scan_domain(MonitorDomain.ENVIRONMENTAL)
@@ -398,6 +405,7 @@ class TestScanDomain:
     async def test_scan_domain_ignores_non_numeric(self, engine):
         def sensor_fn():
             return {"status": "ok", "count": 10, "name": "test"}
+
         engine.register_sensor(MonitorDomain.COGNITIVE, "mixed", sensor_fn)
 
         readings = await engine._scan_domain(MonitorDomain.COGNITIVE)
@@ -418,6 +426,7 @@ class TestScanDomain:
     async def test_scan_domain_skips_inactive_sensors(self, engine):
         def sensor_fn():
             return {"value": 1.0}
+
         engine.register_sensor(MonitorDomain.HEALTH, "inactive", sensor_fn)
         engine._sensor_states["health:inactive"] = SensorState.INACTIVE
 
@@ -428,6 +437,7 @@ class TestScanDomain:
     async def test_scan_domain_skips_error_sensors(self, engine):
         def sensor_fn():
             return {"value": 1.0}
+
         engine.register_sensor(MonitorDomain.HEALTH, "errored", sensor_fn)
         engine._sensor_states["health:errored"] = SensorState.ERROR
 

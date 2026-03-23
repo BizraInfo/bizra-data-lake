@@ -7,8 +7,6 @@ Standing on Giants:
 - Deming (1950): Measure, then improve
 """
 
-
-
 # ── Test 1: SNR dual verification is cached ───────────────────────
 
 

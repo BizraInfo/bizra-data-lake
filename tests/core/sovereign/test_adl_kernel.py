@@ -12,7 +12,6 @@ These tests verify:
 6. Edge cases and invariants
 """
 
-
 import pytest
 
 from core.sovereign.adl_kernel import (  # Constants; Codes; Data structures; Functions; Incremental Gini (P0-3 Optimization); Enforcer

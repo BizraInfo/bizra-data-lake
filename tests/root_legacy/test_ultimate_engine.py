@@ -6,7 +6,6 @@
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 """
 
-
 import numpy as np
 import pytest
 from ultimate_engine import (  # Core engine; Constants; Constitution & Ethics; HYPER LOOPBACK; Peak Masterpiece; Economics; Utilities

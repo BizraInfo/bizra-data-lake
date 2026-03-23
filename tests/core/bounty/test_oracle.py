@@ -11,7 +11,6 @@ Covers:
 Blueprint Reference: P3 Coverage Ratchet — bounty module (0.25 → higher)
 """
 
-
 from core.bounty.impact_proof import (
     EntropyMeasurement,
     ImpactProof,

@@ -26,7 +26,6 @@ from __future__ import annotations
 import hashlib
 
 
-
 def _test_policy():
     """Create a minimal CanonPolicy for testing."""
     from core.proof_engine.canonical import CanonPolicy

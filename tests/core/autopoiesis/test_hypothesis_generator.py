@@ -495,9 +495,7 @@ class TestHypothesisGenerator:
         hypotheses = generator.generate(obs)
 
         # Should potentially include compound stress hypothesis
-        [
-            h for h in hypotheses if "compound" in h.trigger_pattern.lower()
-        ]
+        [h for h in hypotheses if "compound" in h.trigger_pattern.lower()]
         # Note: This may or may not trigger depending on exact thresholds
         # The test verifies the mechanism works without hard assertions
 

@@ -10,7 +10,6 @@ Standing on Giants:
 - BIZRA Spearpoint PRD: "6 gates, fail fast, fail closed"
 """
 
-
 import pytest
 
 from core.sovereign.runtime_core import SovereignRuntime

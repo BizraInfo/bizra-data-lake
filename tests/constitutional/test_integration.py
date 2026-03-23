@@ -15,8 +15,6 @@ Standing on Giants: Lamport (single source of truth, 1978)
 from __future__ import annotations
 
 
-
-
 class TestNisabSSoT:
     """NISAB_THRESHOLD must be derived from constants.py, not hardcoded."""
 

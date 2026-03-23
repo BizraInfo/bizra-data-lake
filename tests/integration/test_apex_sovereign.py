@@ -7,7 +7,6 @@ Tests for the unified ApexSovereignEntity and its integration modules.
 Created: 2026-02-04
 """
 
-
 import pytest
 
 from core.sovereign.apex_sovereign import (

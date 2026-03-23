@@ -977,9 +977,7 @@ class TestOptimizeSNR:
         )
         mock_snr_input = MagicMock()
 
-        with patch(
-            "core.sovereign.runtime_core.SovereignRuntime._optimize_snr"
-        ):
+        with patch("core.sovereign.runtime_core.SovereignRuntime._optimize_snr"):
             # Call the actual method
             pass
 

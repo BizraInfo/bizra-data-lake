@@ -12,7 +12,6 @@ Tests cover:
 Standing on Giants: pytest + Ed25519 + BLAKE3
 """
 
-
 import pytest
 
 from core.pat.agent import (

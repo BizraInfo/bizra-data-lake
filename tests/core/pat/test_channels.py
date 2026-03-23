@@ -207,7 +207,6 @@ class TestTelegramAdapter:
     async def test_process_update_text(self):
         from core.pat.adapters.telegram import TelegramAdapter
 
-
         async def mock_query(content, context=None):
             return f"Answer: {content}"
 

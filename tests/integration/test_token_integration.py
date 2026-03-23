@@ -365,9 +365,7 @@ class TestPoITokenBridge:
         bridge = _create_bridge(tmp_path)
         audit = _make_audit_trail(epoch_id="epoch-3")
 
-        bridge.distribute_epoch(
-            audit, epoch_reward=10000, impt_multiplier=100.0
-        )
+        bridge.distribute_epoch(audit, epoch_reward=10000, impt_multiplier=100.0)
 
         ledger = bridge.minter.ledger
         alice_impt = ledger.get_balance("alice", TokenType.IMPT)

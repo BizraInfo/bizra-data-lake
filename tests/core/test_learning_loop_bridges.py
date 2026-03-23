@@ -10,8 +10,6 @@ Covers:
 Blueprint Reference: Section 3.1 — P0 Learning Loop Bridges
 """
 
-
-
 from core.autopoiesis.sdpo_bridge import (
     AutopoiesisSDPOBridge,
     EvolutionTrace,

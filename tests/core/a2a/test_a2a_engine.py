@@ -3,7 +3,6 @@
 Phase 17: Security Test Scaffolding
 """
 
-
 import pytest
 
 from core.a2a.engine import A2AEngine, create_a2a_engine

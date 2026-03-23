@@ -11,7 +11,6 @@ These tests verify:
 5. Edge cases and invariants
 """
 
-
 import pytest
 
 from core.sovereign.adl_invariant import (

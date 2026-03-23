@@ -7,7 +7,6 @@ Standing on: Simon (hierarchy) + Ostrom (commons) + Csikszentmihalyi (flow) + De
 
 from __future__ import annotations
 
-
 # ─── Package Imports via core ────────────────────────────────────────────────
 
 

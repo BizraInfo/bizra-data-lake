@@ -15,7 +15,6 @@ Invariants verified:
 5. SNR facade dispatch determinism
 """
 
-
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st

@@ -8,7 +8,6 @@ Validates:
 - Ecosystem integration
 """
 
-
 import pytest
 
 # Agentic System

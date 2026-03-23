@@ -13,7 +13,6 @@ Standing on Giants: Burns et al. (K8s Health Checking, 2015)
 from __future__ import annotations
 
 
-
 class TestHealthLive:
     """Liveness probe — must always return 200 with status=alive."""
 

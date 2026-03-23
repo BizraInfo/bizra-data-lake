@@ -2,7 +2,6 @@
 Tests for Expert Marketplace — Registry and Query Routing
 """
 
-
 from core.marketplace.expert_registry import (
     CapabilityVector,
     ExpertListing,

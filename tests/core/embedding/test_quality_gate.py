@@ -14,7 +14,6 @@ Artifact: core/embedding/quality_gate.py
 from __future__ import annotations
 
 
-
 from core.embedding import EmbeddingQualityGate, GateResult
 
 

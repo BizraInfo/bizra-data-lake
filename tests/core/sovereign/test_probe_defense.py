@@ -12,7 +12,6 @@ Tests cover:
 Standing on Giants: Turing, LeCun, Pearl, Shannon, OWASP
 """
 
-
 import pytest
 
 from core.sovereign.probe_defense import (  # Enums; Data classes; Base class; Concrete probes; Matrix classes; Factory functions; Constants

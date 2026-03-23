@@ -785,9 +785,11 @@ def run_quick_tests():
     print("\n📋 Testing EventBus...")
     bus = EventBus()
     received = []
+
     # Need to keep handler reference alive (weak ref in bus)
     def handler(e):
         return received.append(e)
+
     bus.subscribe(EventType.QUERY_START, handler)
     bus.publish(Event(type=EventType.QUERY_START, source="test"))
     assert len(received) == 1

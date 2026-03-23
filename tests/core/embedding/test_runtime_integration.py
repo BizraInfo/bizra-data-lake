@@ -18,7 +18,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 
-
 class TestRuntimeEmbeddingInit:
     """SovereignRuntime._init_embedding_service() works."""
 

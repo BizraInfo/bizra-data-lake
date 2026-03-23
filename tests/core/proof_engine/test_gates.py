@@ -15,7 +15,6 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-001: "6 gates, fail fast, fail closed"
 """
 
-
 import pytest
 
 from core.proof_engine.canonical import CanonPolicy, CanonQuery

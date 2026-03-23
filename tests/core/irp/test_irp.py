@@ -6,7 +6,6 @@ variance adjustment, position sizing, MAWDU exclusion, and the
 PAT->SAT boundary assessment pipeline.
 """
 
-
 import pytest
 
 from core.irp import (

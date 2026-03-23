@@ -770,8 +770,10 @@ class TestGuardianCouncil:
 
     def test_set_guardian_evaluator(self, council):
         """set_guardian_evaluator replaces a guardian's evaluate_fn."""
+
         def custom_fn(p):
             return IhsanVector(1.0, 1.0, 1.0, 1.0, 1.0)
+
         council.set_guardian_evaluator(GuardianRole.ARCHITECT, custom_fn)
         assert council.guardians[GuardianRole.ARCHITECT].evaluate_fn is custom_fn
 

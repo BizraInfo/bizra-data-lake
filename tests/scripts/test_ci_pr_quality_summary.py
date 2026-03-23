@@ -5,8 +5,6 @@ Tests for BIZRA PR Quality Summary Generator
 Validates Markdown output, coverage status badges, trend classification.
 """
 
-
-
 from scripts.ci_pr_quality_summary import generate_summary
 
 

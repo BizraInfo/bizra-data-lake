@@ -15,7 +15,6 @@ Covers:
 Blueprint Reference: P3 Coverage Ratchet — hrm module (0.25 → higher)
 """
 
-
 from core.hrm.abstraction_levels import AbstractionLevel
 from core.hrm.cross_level_bridge import (
     CascadeResult,

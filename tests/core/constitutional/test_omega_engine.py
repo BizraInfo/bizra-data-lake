@@ -10,7 +10,6 @@ Tests cover all four gap solutions:
 Standing on Giants: Shannon, Lamport, Landauer, Al-Ghazali
 """
 
-
 import numpy as np
 import pytest
 

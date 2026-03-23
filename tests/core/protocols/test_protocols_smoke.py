@@ -7,7 +7,6 @@ and can be used for structural subtyping.
 Created: 2026-02-07 | BIZRA Mastermind Sprint
 """
 
-
 # ============================================================================
 # InferenceBackend — Backend protocol
 # ============================================================================

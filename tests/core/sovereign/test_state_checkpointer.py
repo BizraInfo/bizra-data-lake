@@ -866,6 +866,7 @@ class TestAutoCheckpointLoop:
     async def test_stop_halts_loop(self, checkpointer: StateCheckpointer):
         def provider():
             return _make_state(1)
+
         task = asyncio.create_task(checkpointer.auto_checkpoint_loop(provider))
         await asyncio.sleep(0.1)
         checkpointer.stop()

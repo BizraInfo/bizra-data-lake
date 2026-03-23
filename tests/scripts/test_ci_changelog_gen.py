@@ -6,7 +6,6 @@ Validates conventional commit parsing, changelog generation,
 markdown rendering, and evidence hashing.
 """
 
-
 import pytest
 
 from scripts.ci_changelog_gen import (

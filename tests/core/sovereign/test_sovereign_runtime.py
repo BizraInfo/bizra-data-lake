@@ -7,7 +7,6 @@ Tests for the unified Sovereign Runtime — the peak masterpiece implementation.
 Created: 2026-02-04
 """
 
-
 import pytest
 
 # Import from runtime package

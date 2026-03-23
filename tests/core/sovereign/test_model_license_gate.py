@@ -4,7 +4,6 @@ Tests for BIZRA Model License Gate
 Tests the gate chain validation and license checks.
 """
 
-
 from core.sovereign.capability_card import (
     IHSAN_THRESHOLD,
     SNR_THRESHOLD,

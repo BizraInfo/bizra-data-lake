@@ -5,7 +5,6 @@ These tests verify the Python scoring logic matches the TypeScript implementatio
 """
 
 
-
 # Simulate the TypeScript scoring logic in Python for testing
 def score_ihsan_response(response: str) -> float:
     """Score an Ihsān (ethical excellence) response."""

@@ -2,7 +2,6 @@
 Tests for Interactive Denoising — Bayesian Belief Updates
 """
 
-
 from core.sovereign.interactive_denoiser import (
     BeliefState,
     CorrectionType,

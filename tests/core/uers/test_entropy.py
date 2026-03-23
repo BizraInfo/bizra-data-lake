@@ -7,7 +7,6 @@ Covers:
 - Delta-E calculation and convergence tracking
 """
 
-
 import pytest
 
 from core.uers.entropy import (

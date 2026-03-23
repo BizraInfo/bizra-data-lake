@@ -373,17 +373,22 @@ class TestSetInferenceFunction:
 
     def test_sets_callable(self, tmp_path):
         rt = _build_runtime(tmp_path)
+
         def fn(model, prompt):
             return "reply"
+
         rt.set_inference_function(fn)
         assert rt._inference_fn is fn
 
     def test_can_reset(self, tmp_path):
         rt = _build_runtime(tmp_path)
+
         def fn1(m, p):
             return "a"
+
         def fn2(m, p):
             return "b"
+
         rt.set_inference_function(fn1)
         rt.set_inference_function(fn2)
         assert rt._inference_fn is fn2
@@ -391,9 +396,11 @@ class TestSetInferenceFunction:
     def test_can_set_to_none_equivalent(self, tmp_path):
         rt = _build_runtime(tmp_path)
         rt.set_inference_function(lambda m, p: "x")
+
         # The API accepts any callable, so setting a different one replaces it
         def new_fn(m, p):
             return "y"
+
         rt.set_inference_function(new_fn)
         assert rt._inference_fn is new_fn
 
