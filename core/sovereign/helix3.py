@@ -177,6 +177,13 @@ class HeartbeatReceipt:
     stats: Dict[str, Any]
     approved_count: int = 0  # FATE-approved missions in this tick
     rejected_count: int = 0  # FATE-rejected missions (excluded from composite)
+    boundary_error_receipts: int = 0
+    boundary_halts: int = 0
+    boundary_rejections: int = 0
+    boundary_degradations: int = 0
+    boundary_retries: int = 0
+    pre_boundary_ihsan_composite: float = 0.0
+    boundary_quality_multiplier: float = 1.0
 
     def as_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -300,6 +307,7 @@ class Helix3Scheduler:
         self._tick_number += 1
         receipts = list(self._pending_receipts)
         self._pending_receipts.clear()
+        boundary_counts = self._summarize_boundary_receipts(receipts)
 
         # ── Step 1: FATE constitutional filter (approved only) ──
         # Standing on Giants: Shannon (1948) — rejected receipts = noise.
@@ -315,15 +323,27 @@ class Helix3Scheduler:
         rejected_count = len(receipts) - len(constitutionally_approved)
 
         # ── Step 2: Aggregate 8D Ihsān tensor from APPROVED receipts ─
-        tensor = self._compute_aggregate_tensor(constitutionally_approved)
+        raw_tensor = self._compute_aggregate_tensor(constitutionally_approved)
+        (
+            tensor,
+            pre_boundary_composite,
+            boundary_quality_multiplier,
+        ) = self._apply_boundary_quality_adjustment(
+            raw_tensor,
+            boundary_counts,
+            len(receipts),
+        )
         composite = tensor.geometric_mean
 
         # ── Step 3: Score and gate ─────────────────────────────────
-        passing = [
-            r for r in constitutionally_approved if r.get("ihsan_score", 0) >= 0.85
-        ]
+        def _effective_ihsan(receipt: Dict[str, Any]) -> float:
+            return float(receipt.get("ihsan_score", 0.0) or 0.0) * (
+                boundary_quality_multiplier
+            )
+
+        passing = [r for r in constitutionally_approved if _effective_ihsan(r) >= 0.85]
         excellent = [
-            r for r in passing if r.get("ihsan_score", 0) >= UNIFIED_IHSAN_THRESHOLD
+            r for r in passing if _effective_ihsan(r) >= UNIFIED_IHSAN_THRESHOLD
         ]
 
         # ── Step 4-5: Constitutional economics ──────────────────
@@ -332,7 +352,7 @@ class Helix3Scheduler:
 
         if self._minter and self._wallet and excellent:
             for r in excellent:
-                ihsan = r.get("ihsan_score", 0.0)
+                ihsan = _effective_ihsan(r)
                 mint_result = self._minter.mint_seed(
                     wallet=self._wallet,
                     amount=r.get("reward_amount", 0.0)
@@ -347,7 +367,7 @@ class Helix3Scheduler:
         if self._wallet and hasattr(self._wallet, "bloom"):
             bloom_before = getattr(self._wallet.bloom, "balance", 0.0)
             for r in passing:
-                ihsan = r.get("ihsan_score", 0.0)
+                ihsan = _effective_ihsan(r)
                 if ihsan >= 0.90 and hasattr(self._wallet.bloom, "accrue"):
                     self._wallet.bloom.accrue(ihsan * 0.1)
             bloom_after = getattr(self._wallet.bloom, "balance", 0.0)
@@ -407,6 +427,10 @@ class Helix3Scheduler:
             "composite": composite,
             "gini": gini,
             "minted": seed_minted,
+            "boundary_errors": boundary_counts["receipts"],
+            "boundary_degradations": boundary_counts["degradations"],
+            "pre_boundary_composite": pre_boundary_composite,
+            "boundary_quality_multiplier": boundary_quality_multiplier,
         }
         evidence_hash = (
             "ev:"
@@ -437,6 +461,13 @@ class Helix3Scheduler:
             stats=self._stats.as_dict(),
             approved_count=len(constitutionally_approved),
             rejected_count=rejected_count,
+            boundary_error_receipts=boundary_counts["receipts"],
+            boundary_halts=boundary_counts["halts"],
+            boundary_rejections=boundary_counts["rejections"],
+            boundary_degradations=boundary_counts["degradations"],
+            boundary_retries=boundary_counts["retries"],
+            pre_boundary_ihsan_composite=pre_boundary_composite,
+            boundary_quality_multiplier=boundary_quality_multiplier,
         )
 
         # ── Step 12: Callback + reset ──────────────────────────
@@ -467,6 +498,7 @@ class Helix3Scheduler:
         self._tick_number += 1
         receipts = list(self._pending_receipts)
         self._pending_receipts.clear()
+        boundary_counts = self._summarize_boundary_receipts(receipts)
 
         # Convert float receipts → constitutional fixed-point
         constitutional_receipts = []
@@ -522,7 +554,16 @@ class Helix3Scheduler:
 
         # Convert back to float — tensor from APPROVED only
         gini = fp_float(tick_result.network_gini) if tick_result.network_gini else 0.0
-        tensor = self._compute_aggregate_tensor(constitutionally_approved)
+        raw_tensor = self._compute_aggregate_tensor(constitutionally_approved)
+        (
+            tensor,
+            pre_boundary_composite,
+            boundary_quality_multiplier,
+        ) = self._apply_boundary_quality_adjustment(
+            raw_tensor,
+            boundary_counts,
+            len(receipts),
+        )
         composite = tensor.geometric_mean
 
         self._stats.total_ticks += 1
@@ -559,6 +600,13 @@ class Helix3Scheduler:
             stats=self._stats.as_dict(),
             approved_count=len(constitutionally_approved),
             rejected_count=rejected_count,
+            boundary_error_receipts=boundary_counts["receipts"],
+            boundary_halts=boundary_counts["halts"],
+            boundary_rejections=boundary_counts["rejections"],
+            boundary_degradations=boundary_counts["degradations"],
+            boundary_retries=boundary_counts["retries"],
+            pre_boundary_ihsan_composite=pre_boundary_composite,
+            boundary_quality_multiplier=boundary_quality_multiplier,
         )
 
         if self._on_heartbeat:
@@ -595,6 +643,101 @@ class Helix3Scheduler:
 
         means = {k: sum(v) / len(v) if v else 0.0 for k, v in agg.items()}
         return IhsanTensor8D.from_scores(means)
+
+    def _summarize_boundary_receipts(
+        self, receipts: List[Dict[str, Any]]
+    ) -> Dict[str, int]:
+        """Summarize typed boundary/degradation receipts carried by missions."""
+        counts = {
+            "receipts": 0,
+            "halts": 0,
+            "rejections": 0,
+            "degradations": 0,
+            "retries": 0,
+        }
+        for receipt in receipts:
+            degradation_receipts = receipt.get("degradation_receipts")
+            if degradation_receipts is None:
+                metadata = receipt.get("metadata")
+                if isinstance(metadata, dict):
+                    degradation_receipts = metadata.get("degradation_receipts")
+            if not isinstance(degradation_receipts, list):
+                continue
+            for degradation in degradation_receipts:
+                if not isinstance(degradation, dict):
+                    continue
+                counts["receipts"] += 1
+                severity = str(degradation.get("severity", "") or "").upper()
+                if severity == "HALT":
+                    counts["halts"] += 1
+                elif severity == "REJECT":
+                    counts["rejections"] += 1
+                elif severity == "DEGRADE":
+                    counts["degradations"] += 1
+                elif severity == "RETRY":
+                    counts["retries"] += 1
+        return counts
+
+    def _apply_boundary_quality_adjustment(
+        self,
+        tensor: IhsanTensor8D,
+        boundary_counts: Dict[str, int],
+        mission_count: int,
+    ) -> tuple[IhsanTensor8D, float, float]:
+        """Lower constitutional quality when boundary degradation is present.
+
+        The adjustment is bounded and explicit:
+        - retries primarily weaken resilience and efficiency
+        - degradations weaken verifiability and structural integrity
+        - rejections/halts apply stronger pressure across the same trust surface
+        """
+        pre_boundary_composite = tensor.geometric_mean
+        multiplier = self._compute_boundary_quality_multiplier(
+            boundary_counts,
+            mission_count,
+        )
+        if multiplier >= 0.999999:
+            return tensor, pre_boundary_composite, 1.0
+
+        adjusted = dict(tensor.dimensions)
+        softened_multiplier = 1.0 - ((1.0 - multiplier) * 0.5)
+        for key in ("structural_integrity", "verifiability", "resilience"):
+            adjusted[key] = round(
+                max(0.0, min(1.0, adjusted[key] * multiplier)),
+                6,
+            )
+        adjusted["efficiency"] = round(
+            max(0.0, min(1.0, adjusted["efficiency"] * softened_multiplier)),
+            6,
+        )
+        return (
+            IhsanTensor8D.from_scores(adjusted),
+            pre_boundary_composite,
+            round(multiplier, 6),
+        )
+
+    def _compute_boundary_quality_multiplier(
+        self,
+        boundary_counts: Dict[str, int],
+        mission_count: int,
+    ) -> float:
+        """Return a bounded quality multiplier from boundary severity mix."""
+        denominator = max(mission_count, 1)
+        pressure = 0.0
+        pressure += 0.15 * min(boundary_counts.get("halts", 0) / denominator, 1.0)
+        pressure += 0.08 * min(
+            boundary_counts.get("rejections", 0) / denominator,
+            1.0,
+        )
+        pressure += 0.04 * min(
+            boundary_counts.get("degradations", 0) / denominator,
+            1.0,
+        )
+        pressure += 0.015 * min(
+            boundary_counts.get("retries", 0) / denominator,
+            1.0,
+        )
+        return max(0.5, 1.0 - pressure)
 
     def _compute_gini(self) -> float:
         """Compute Gini coefficient across all known wallets."""

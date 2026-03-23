@@ -1,28 +1,37 @@
-name: Membrane Tax Benchmark
+name: Performance and Boundary Proof
 
 on:
   push:
     branches: [main]
     paths:
-      - 'core/**'
-      - 'scripts/ci_membrane_tax_benchmark.py'
+      - "core/**"
+      - "scripts/ci_membrane_tax_benchmark.py"
+      - "scripts/ci_boundary_quality_report.py"
+      - "scripts/ci_delivery_scorecard.py"
+      - "docs/program/bizra_delivery_program.json"
+      - ".github/workflows/membrane-tax-gate.yml"
   pull_request:
     branches: [main]
     paths:
-      - 'core/**'
-      - 'scripts/ci_membrane_tax_benchmark.py'
+      - "core/**"
+      - "scripts/ci_membrane_tax_benchmark.py"
+      - "scripts/ci_boundary_quality_report.py"
+      - "scripts/ci_delivery_scorecard.py"
+      - "docs/program/bizra_delivery_program.json"
+      - ".github/workflows/membrane-tax-gate.yml"
 
 jobs:
-  membrane-tax:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  performance-boundary-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.13'
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
@@ -30,29 +39,68 @@ jobs:
 
       - name: Run membrane tax benchmark
         run: |
-          python scripts/ci_membrane_tax_benchmark.py --ci-mode --output benchmark_results.json
+          python scripts/ci_membrane_tax_benchmark.py --output /tmp/cmn_membrane_tax_report.json
 
-      - name: Gate — fail on clamped negative metrics
+      - name: Run runtime boundary quality probe
         run: |
-          python -c "
+          python scripts/ci_boundary_quality_report.py --output /tmp/boundary_quality_report.json
+
+      - name: Generate delivery scorecard with live runtime signals
+        run: |
+          python scripts/ci_delivery_scorecard.py \
+            --boundary-report /tmp/boundary_quality_report.json \
+            --output /tmp/delivery_scorecard.md
+          cat /tmp/delivery_scorecard.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Gate — fail on membrane tax sanity regressions
+        run: |
+          python - <<'PY'
           import json, sys
-          with open('benchmark_results.json') as f:
+          with open('/tmp/cmn_membrane_tax_report.json', encoding='utf-8') as f:
               results = json.load(f)
           sanity = results.get('benchmark_sanity', {})
           clamped = sanity.get('clamped_negative_metrics', [])
           if clamped:
               print('MEMBRANE TAX GATE FAILED')
               print(f'Clamped negative metrics: {clamped}')
-              print('These indicate measurement seams that must be fixed.')
               sys.exit(1)
           print('MEMBRANE TAX GATE PASSED')
-          print(f'All metrics clean. Sanity checks: {sanity}')
-          "
+          PY
 
-      - name: Upload benchmark results
+      - name: Gate — fail on boundary quality probe regressions
+        run: |
+          python - <<'PY'
+          import json, sys
+          with open('/tmp/boundary_quality_report.json', encoding='utf-8') as f:
+              report = json.load(f)
+          verdict = report.get('gate_verdict', {})
+          if not verdict.get('passed', False):
+              print('BOUNDARY QUALITY GATE FAILED')
+              print(json.dumps(verdict, indent=2, sort_keys=True))
+              sys.exit(1)
+          print('BOUNDARY QUALITY GATE PASSED')
+          PY
+
+      - name: Upload membrane tax results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: membrane-tax-results
-          path: benchmark_results.json
+          path: /tmp/cmn_membrane_tax_report.json
+          retention-days: 30
+
+      - name: Upload boundary quality report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: boundary-quality-report
+          path: /tmp/boundary_quality_report.json
+          retention-days: 30
+
+      - name: Upload delivery scorecard
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: delivery-scorecard
+          path: /tmp/delivery_scorecard.md
           retention-days: 30

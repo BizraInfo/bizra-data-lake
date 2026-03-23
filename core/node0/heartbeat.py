@@ -125,6 +125,11 @@ class BreathReceipt:
     cqrs_delivery_receipts: int
     cqrs_delivery_acks: int
     cqrs_delivery_dead_letters: int
+    boundary_error_receipts: int
+    boundary_halts: int
+    boundary_rejections: int
+    boundary_degradations: int
+    boundary_retries: int
 
     # Chain integrity
     evidence_hash: str
@@ -151,11 +156,24 @@ class BreathReceipt:
             "cqrs_delivery_receipts": self.cqrs_delivery_receipts,
             "cqrs_delivery_acks": self.cqrs_delivery_acks,
             "cqrs_delivery_dead_letters": self.cqrs_delivery_dead_letters,
+            "boundary_error_receipts": self.boundary_error_receipts,
+            "boundary_halts": self.boundary_halts,
+            "boundary_rejections": self.boundary_rejections,
+            "boundary_degradations": self.boundary_degradations,
+            "boundary_retries": self.boundary_retries,
             "evidence_hash": self.evidence_hash,
             "chain_hash": self.chain_hash,
             "prev_chain_hash": self.prev_chain_hash,
             "approved_count": self.helix_result.get("approved_count", 0),
             "rejected_count": self.helix_result.get("rejected_count", 0),
+            "pre_boundary_ihsan_composite": self.helix_result.get(
+                "pre_boundary_ihsan_composite",
+                self.ihsan_composite,
+            ),
+            "boundary_quality_multiplier": self.helix_result.get(
+                "boundary_quality_multiplier",
+                1.0,
+            ),
         }
 
 
@@ -236,6 +254,12 @@ class Node0Heartbeat:
         self._total_cqrs_delivery_ack_receipts = 0
         self._total_cqrs_delivery_dead_letters = 0
         self._total_cqrs_delivery_receipt_failures = 0
+        self._total_boundary_error_receipts = 0
+        self._total_boundary_halts = 0
+        self._total_boundary_rejections = 0
+        self._total_boundary_degradations = 0
+        self._total_boundary_retries = 0
+        self._total_boundary_error_receipt_failures = 0
         self._total_rb_experiences = 0
         self._total_learning_cycles = 0
         self._last_event_delivery_error = ""
@@ -243,11 +267,21 @@ class Node0Heartbeat:
         self._dead_letter_path = self._data_dir / "audit" / "event_dead_letters.jsonl"
         self._last_cqrs_delivery_receipt: Optional[Dict[str, Any]] = None
         self._last_cqrs_delivery_receipt_error = ""
+        self._last_boundary_error_receipt: Optional[Dict[str, Any]] = None
+        self._last_boundary_error_receipt_error = ""
         self._last_breath_cqrs_delivery_receipts = 0
         self._last_breath_cqrs_delivery_acks = 0
         self._last_breath_cqrs_delivery_dead_letters = 0
+        self._last_breath_boundary_error_receipts = 0
+        self._last_breath_boundary_halts = 0
+        self._last_breath_boundary_rejections = 0
+        self._last_breath_boundary_degradations = 0
+        self._last_breath_boundary_retries = 0
         self._canonical_delivery_receipt_path = (
             self._data_dir / "audit" / "canonical_delivery_receipts.jsonl"
+        )
+        self._canonical_boundary_error_path = (
+            self._data_dir / "audit" / "canonical_boundary_error_receipts.jsonl"
         )
         self._pending_event_tasks: set[asyncio.Task[Any]] = set()
 
@@ -419,6 +453,7 @@ class Node0Heartbeat:
         self._run_learning_cycle(helix_result)
 
         cqrs_delivery_window = self._capture_cqrs_delivery_window()
+        boundary_window = self._capture_boundary_error_window()
 
         # ── Step 5: Chain Integrity ──────────────────────────────
         duration_ms = (time.monotonic() - start) * 1000
@@ -433,6 +468,11 @@ class Node0Heartbeat:
             "cqrs_delivery_receipts": cqrs_delivery_window["receipts"],
             "cqrs_delivery_acks": cqrs_delivery_window["acks"],
             "cqrs_delivery_dead_letters": cqrs_delivery_window["dead_letters"],
+            "boundary_error_receipts": boundary_window["receipts"],
+            "boundary_halts": boundary_window["halts"],
+            "boundary_rejections": boundary_window["rejections"],
+            "boundary_degradations": boundary_window["degradations"],
+            "boundary_retries": boundary_window["retries"],
         }
         evidence_hash = hashlib.blake2b(
             str(sorted(evidence_data.items())).encode(),
@@ -460,6 +500,11 @@ class Node0Heartbeat:
             cqrs_delivery_receipts=cqrs_delivery_window["receipts"],
             cqrs_delivery_acks=cqrs_delivery_window["acks"],
             cqrs_delivery_dead_letters=cqrs_delivery_window["dead_letters"],
+            boundary_error_receipts=boundary_window["receipts"],
+            boundary_halts=boundary_window["halts"],
+            boundary_rejections=boundary_window["rejections"],
+            boundary_degradations=boundary_window["degradations"],
+            boundary_retries=boundary_window["retries"],
             evidence_hash=evidence_hash,
             chain_hash=chain_hash,
             prev_chain_hash=prev_chain,
@@ -480,7 +525,7 @@ class Node0Heartbeat:
 
         logger.info(
             "Node0 BREATH #%d | ihsan=%.3f | gini=%.4f | mem=%d | ev=%d | "
-            "cqrs_ack=%d | cqrs_dead=%d | %.1fms",
+            "cqrs_ack=%d | cqrs_dead=%d | boundary_deg=%d | boundary_retry=%d | %.1fms",
             self._tick_number,
             receipt.ihsan_composite,
             receipt.gini_coefficient,
@@ -488,6 +533,8 @@ class Node0Heartbeat:
             evidence_count,
             receipt.cqrs_delivery_acks,
             receipt.cqrs_delivery_dead_letters,
+            receipt.boundary_degradations,
+            receipt.boundary_retries,
             duration_ms,
         )
 
@@ -538,16 +585,35 @@ class Node0Heartbeat:
             "total_cqrs_delivery_receipt_failures": (
                 self._total_cqrs_delivery_receipt_failures
             ),
+            "total_boundary_error_receipts": self._total_boundary_error_receipts,
+            "total_boundary_halts": self._total_boundary_halts,
+            "total_boundary_rejections": self._total_boundary_rejections,
+            "total_boundary_degradations": self._total_boundary_degradations,
+            "total_boundary_retries": self._total_boundary_retries,
+            "total_boundary_error_receipt_failures": (
+                self._total_boundary_error_receipt_failures
+            ),
             "last_breath_cqrs_delivery_receipts": self._last_breath_cqrs_delivery_receipts,
             "last_breath_cqrs_delivery_acks": self._last_breath_cqrs_delivery_acks,
             "last_breath_cqrs_delivery_dead_letters": (
                 self._last_breath_cqrs_delivery_dead_letters
             ),
+            "last_breath_boundary_error_receipts": (
+                self._last_breath_boundary_error_receipts
+            ),
+            "last_breath_boundary_halts": self._last_breath_boundary_halts,
+            "last_breath_boundary_rejections": self._last_breath_boundary_rejections,
+            "last_breath_boundary_degradations": (
+                self._last_breath_boundary_degradations
+            ),
+            "last_breath_boundary_retries": self._last_breath_boundary_retries,
             "pending_event_publications": len(self._pending_event_tasks),
             "last_event_delivery_error": self._last_event_delivery_error,
             "last_event_dead_letter": self._last_dead_letter,
             "last_cqrs_delivery_receipt": self._last_cqrs_delivery_receipt,
             "last_cqrs_delivery_receipt_error": self._last_cqrs_delivery_receipt_error,
+            "last_boundary_error_receipt": self._last_boundary_error_receipt,
+            "last_boundary_error_receipt_error": self._last_boundary_error_receipt_error,
             "subsystems": {
                 "asset_registry": self._asset_registry is not None,
                 "helix3": self._helix3 is not None,
@@ -907,6 +973,21 @@ class Node0Heartbeat:
                     ),
                     "approved_count": getattr(result, "approved_count", 0),
                     "rejected_count": getattr(result, "rejected_count", 0),
+                    "boundary_error_receipts": getattr(
+                        result, "boundary_error_receipts", 0
+                    ),
+                    "boundary_halts": getattr(result, "boundary_halts", 0),
+                    "boundary_rejections": getattr(result, "boundary_rejections", 0),
+                    "boundary_degradations": getattr(
+                        result, "boundary_degradations", 0
+                    ),
+                    "boundary_retries": getattr(result, "boundary_retries", 0),
+                    "pre_boundary_ihsan_composite": getattr(
+                        result, "pre_boundary_ihsan_composite", 0.0
+                    ),
+                    "boundary_quality_multiplier": getattr(
+                        result, "boundary_quality_multiplier", 1.0
+                    ),
                 }
             except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
                 logger.warning("Helix3 tick failed: %s", exc)
@@ -921,6 +1002,13 @@ class Node0Heartbeat:
             "reflexes_precipitated": 0,
             "approved_count": 0,
             "rejected_count": 0,
+            "boundary_error_receipts": 0,
+            "boundary_halts": 0,
+            "boundary_rejections": 0,
+            "boundary_degradations": 0,
+            "boundary_retries": 0,
+            "pre_boundary_ihsan_composite": 0.0,
+            "boundary_quality_multiplier": 1.0,
         }
 
     def _record_evidence(self, helix_result: Dict[str, Any]) -> int:
@@ -1121,9 +1209,31 @@ class Node0Heartbeat:
                 "cqrs_delivery_receipts": receipt.cqrs_delivery_receipts,
                 "cqrs_delivery_acks": receipt.cqrs_delivery_acks,
                 "cqrs_delivery_dead_letters": receipt.cqrs_delivery_dead_letters,
+                "boundary_error_receipts": receipt.boundary_error_receipts,
+                "boundary_halts": receipt.boundary_halts,
+                "boundary_rejections": receipt.boundary_rejections,
+                "boundary_degradations": receipt.boundary_degradations,
+                "boundary_retries": receipt.boundary_retries,
                 "chain_hash": receipt.chain_hash,
                 "approved_count": receipt.helix_result.get("approved_count", 0),
                 "rejected_count": receipt.helix_result.get("rejected_count", 0),
+                "helix_boundary_error_receipts": receipt.helix_result.get(
+                    "boundary_error_receipts", 0
+                ),
+                "helix_boundary_degradations": receipt.helix_result.get(
+                    "boundary_degradations", 0
+                ),
+                "helix_boundary_retries": receipt.helix_result.get(
+                    "boundary_retries", 0
+                ),
+                "pre_boundary_ihsan_composite": receipt.helix_result.get(
+                    "pre_boundary_ihsan_composite",
+                    receipt.ihsan_composite,
+                ),
+                "boundary_quality_multiplier": receipt.helix_result.get(
+                    "boundary_quality_multiplier",
+                    1.0,
+                ),
             },
         )
 
@@ -1249,6 +1359,42 @@ class Node0Heartbeat:
             "dead_letters": dead_letters,
         }
 
+    def _capture_boundary_error_window(self) -> Dict[str, int]:
+        """Convert cumulative boundary-error counters into per-breath deltas."""
+        receipts = max(
+            self._total_boundary_error_receipts
+            - self._last_breath_boundary_error_receipts,
+            0,
+        )
+        halts = max(
+            self._total_boundary_halts - self._last_breath_boundary_halts,
+            0,
+        )
+        rejections = max(
+            self._total_boundary_rejections - self._last_breath_boundary_rejections,
+            0,
+        )
+        degradations = max(
+            self._total_boundary_degradations - self._last_breath_boundary_degradations,
+            0,
+        )
+        retries = max(
+            self._total_boundary_retries - self._last_breath_boundary_retries,
+            0,
+        )
+        self._last_breath_boundary_error_receipts = self._total_boundary_error_receipts
+        self._last_breath_boundary_halts = self._total_boundary_halts
+        self._last_breath_boundary_rejections = self._total_boundary_rejections
+        self._last_breath_boundary_degradations = self._total_boundary_degradations
+        self._last_breath_boundary_retries = self._total_boundary_retries
+        return {
+            "receipts": receipts,
+            "halts": halts,
+            "rejections": rejections,
+            "degradations": degradations,
+            "retries": retries,
+        }
+
     def record_cqrs_delivery_receipt(self, delivery_receipt: Dict[str, Any]) -> bool:
         """Persist CQRS subscriber delivery evidence onto Node0's canonical plane."""
         canonical_receipt = {
@@ -1318,6 +1464,83 @@ class Node0Heartbeat:
                 self._total_memories_stored += 1
             except (RuntimeError, AttributeError, TypeError, OSError) as exc:
                 logger.warning("CQRS delivery memory fallback failed: %s", exc)
+
+        return True
+
+    def record_boundary_error_receipt(self, error_receipt: Dict[str, Any]) -> bool:
+        """Persist typed boundary failures onto Node0's canonical audit plane."""
+        canonical_receipt = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "node_id": self._node_id,
+            "source": str(error_receipt.get("source") or "node0:boundary.error"),
+            **error_receipt,
+        }
+        self._last_boundary_error_receipt = canonical_receipt
+
+        try:
+            self._canonical_boundary_error_path.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+            with self._canonical_boundary_error_path.open(
+                "a",
+                encoding="utf-8",
+            ) as handle:
+                handle.write(json.dumps(canonical_receipt, ensure_ascii=True) + "\n")
+        except (OSError, TypeError, ValueError) as exc:
+            self._total_boundary_error_receipt_failures += 1
+            self._last_boundary_error_receipt_error = f"{type(exc).__name__}: {exc}"
+            logger.warning(
+                "Canonical boundary error receipt persistence failed: %s",
+                self._last_boundary_error_receipt_error,
+            )
+            return False
+
+        self._total_boundary_error_receipts += 1
+        severity = str(canonical_receipt.get("severity", "") or "").upper()
+        if severity == "HALT":
+            self._total_boundary_halts += 1
+        elif severity == "REJECT":
+            self._total_boundary_rejections += 1
+        elif severity == "DEGRADE":
+            self._total_boundary_degradations += 1
+        elif severity == "RETRY":
+            self._total_boundary_retries += 1
+        self._last_boundary_error_receipt_error = ""
+
+        evidence_metadata = {
+            "event": "boundary_error_receipt",
+            "error_type": canonical_receipt.get("error_type", ""),
+            "severity": canonical_receipt.get("severity", ""),
+            "boundary": canonical_receipt.get("boundary", ""),
+            "source": canonical_receipt.get("source", ""),
+        }
+        content = (
+            "Boundary error receipt: "
+            f"{canonical_receipt.get('error_type', 'unknown')} "
+            f"[{canonical_receipt.get('severity', 'unknown')}/"
+            f"{canonical_receipt.get('boundary', 'unknown')}]"
+        )
+        if self._evidence is not None:
+            try:
+                self._evidence.store(
+                    content=content,
+                    source="node0:boundary.error",
+                    metadata=evidence_metadata,
+                )
+                self._total_evidence_entries += 1
+            except (RuntimeError, AttributeError, TypeError, OSError) as exc:
+                logger.warning("Boundary error evidence store failed: %s", exc)
+        elif self._memory is not None:
+            try:
+                self._store_in_memory(
+                    content=content,
+                    source="node0:boundary.error",
+                    metadata=evidence_metadata,
+                )
+                self._total_memories_stored += 1
+            except (RuntimeError, AttributeError, TypeError, OSError) as exc:
+                logger.warning("Boundary error memory fallback failed: %s", exc)
 
         return True
 

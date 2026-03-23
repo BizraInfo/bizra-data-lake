@@ -565,6 +565,7 @@ class MissionPipeline:
         self._mission_counter = 0
         self._chain_hash = "0" * 32
         self._stats = PipelineStats()
+        self._last_result: Optional[PipelineResult] = None
 
     # ─── InferenceProvider Protocol ───────────────────────────────
 
@@ -642,6 +643,12 @@ class MissionPipeline:
                     )
                 except (OSError, RuntimeError, ValueError) as exc:
                     output = f"[{agent_id} degraded: {exc}]"
+                    trace.metadata = {
+                        "degraded": True,
+                        "boundary": "INFERENCE",
+                        "error_type": type(exc).__name__,
+                        "error_message": str(exc),
+                    }
                     logger.warning("Agent %s inference failed: %s", agent_id, exc)
 
                 trace.output_summary = output[:200]
@@ -780,6 +787,7 @@ class MissionPipeline:
             total_ms,
         )
 
+        self._last_result = result
         return result
 
     # ─── Observability ────────────────────────────────────────────
@@ -793,6 +801,11 @@ class MissionPipeline:
     def chain_hash(self) -> str:
         """Current evidence chain hash (links all pipeline executions)."""
         return self._chain_hash
+
+    @property
+    def last_result(self) -> Optional[PipelineResult]:
+        """Most recent pipeline result, for downstream evidence extraction."""
+        return self._last_result
 
 
 @dataclass
