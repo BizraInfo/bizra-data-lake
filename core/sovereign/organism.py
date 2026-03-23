@@ -535,6 +535,9 @@ class SovereignOrganism:
             return
 
         try:
+            degradation_receipts = list(
+                (receipt.metadata or {}).get("degradation_receipts", [])
+            )
             self._node0.ingest_mission_receipt(
                 {
                     "mission_id": receipt.mission_id,
@@ -550,8 +553,29 @@ class SovereignOrganism:
                     "action_receipt_refs": list(receipt.action_receipt_refs),
                     "identity_mode": receipt.identity_mode,
                     "signer_public_key_prefix": receipt.signer_public_key_prefix,
+                    "degraded": bool(
+                        (receipt.metadata or {}).get("degraded") or degradation_receipts
+                    ),
+                    "degradation_receipts": degradation_receipts,
                 }
             )
+            boundary_recorder = getattr(
+                self._node0,
+                "record_boundary_error_receipt",
+                None,
+            )
+            if callable(boundary_recorder):
+                for degradation in degradation_receipts:
+                    if not isinstance(degradation, dict):
+                        continue
+                    boundary_recorder(
+                        {
+                            **degradation,
+                            "source": "organism:mission.boundary",
+                            "mission_id": receipt.mission_id,
+                            "system": receipt.system,
+                        }
+                    )
         except (RuntimeError, AttributeError, TypeError, ValueError) as exc:
             logger.warning("Node0 ingest failed: %s", exc)
 
@@ -668,6 +692,11 @@ class SovereignOrganism:
 
             # Get pipeline details (if available)
             pipeline_stats = self._pipeline.stats if self._pipeline else None
+            pipeline_result = (
+                getattr(self._pipeline, "last_result", None)
+                if self._pipeline is not None
+                else None
+            )
             complexity = "unknown"
             agents_activated = 0
             agent_chain: List[str] = []
@@ -684,6 +713,28 @@ class SovereignOrganism:
                 )
                 agents_activated = round(pipeline_stats.avg_agents_per_mission)
 
+            pipeline_degradation_receipts: List[Dict[str, Any]] = []
+            if pipeline_result is not None:
+                from core.errors import InferenceError
+
+                for trace in list(getattr(pipeline_result, "agent_traces", [])):
+                    trace_metadata = getattr(trace, "metadata", None) or {}
+                    if not trace_metadata.get("degraded"):
+                        continue
+                    typed_error = InferenceError(
+                        str(getattr(trace, "agent_id", "unknown") or "unknown"),
+                        str(
+                            trace_metadata.get("error_message")
+                            or "pipeline inference degraded"
+                        ),
+                        context={
+                            "agent_id": getattr(trace, "agent_id", "unknown"),
+                            "phase": getattr(trace, "phase", ""),
+                            "mission_id": ns_receipt.mission_id,
+                        },
+                    )
+                    pipeline_degradation_receipts.append(typed_error.to_receipt())
+
             duration_ms = round((time.monotonic() - t0) * 1000, 2)
 
             # Update chain hash
@@ -697,6 +748,17 @@ class SovereignOrganism:
             self._ihsan_history.append(ns_receipt.ihsan_score)
             if len(self._ihsan_history) > 1000:
                 self._ihsan_history = self._ihsan_history[-500:]
+
+            receipt_metadata = {**dict(ns_receipt.metadata or {}), **seed_chain_meta}
+            if pipeline_degradation_receipts:
+                existing_degradations = list(
+                    receipt_metadata.get("degradation_receipts", [])
+                )
+                receipt_metadata["degradation_receipts"] = [
+                    *existing_degradations,
+                    *pipeline_degradation_receipts,
+                ]
+                receipt_metadata["degraded"] = True
 
             receipt = OrganismReceipt(
                 mission_id=ns_receipt.mission_id,
@@ -723,7 +785,7 @@ class SovereignOrganism:
                 action_receipt_refs=action_receipt_refs,
                 identity_mode=self._identity_mode,
                 signer_public_key_prefix=self._signer_public_key_prefix,
-                metadata={**dict(ns_receipt.metadata or {}), **seed_chain_meta},
+                metadata=receipt_metadata,
             )
 
             if self._on_receipt:

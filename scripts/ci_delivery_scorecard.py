@@ -21,7 +21,15 @@ def load_program(path: Path = DEFAULT_PROGRAM_PATH) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def build_scorecard_markdown(program: dict[str, Any]) -> str:
+def load_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def build_scorecard_markdown(
+    program: dict[str, Any],
+    *,
+    boundary_report: dict[str, Any] | None = None,
+) -> str:
     lines: list[str] = []
     lines.append("# BIZRA Delivery Scorecard")
     lines.append("")
@@ -41,6 +49,38 @@ def build_scorecard_markdown(program: dict[str, Any]) -> str:
     for row in program["scorecard"]:
         lines.append(
             f"| `{row['dimension']}` | `{row['status']}` | `{row['measure']}` |"
+        )
+
+    if boundary_report is not None:
+        signal = boundary_report["boundary_signal"]
+        verdict = boundary_report["gate_verdict"]
+        lines.append("")
+        lines.append("## Live Runtime Signals")
+        lines.append("")
+        lines.append(
+            f"- Boundary Quality Probe: `{'PASS' if verdict['passed'] else 'FAIL'}`"
+        )
+        lines.append("")
+        lines.append("| Metric | Value |")
+        lines.append("| --- | ---: |")
+        lines.append(
+            f"| `boundary_error_receipts` | `{signal['boundary_error_receipts']}` |"
+        )
+        lines.append(
+            f"| `boundary_degradations` | `{signal['boundary_degradations']}` |"
+        )
+        lines.append(f"| `boundary_retries` | `{signal['boundary_retries']}` |")
+        lines.append(
+            "| `pre_boundary_ihsan_composite` | "
+            f"`{float(signal['pre_boundary_ihsan_composite']):.4f}` |"
+        )
+        lines.append(
+            "| `post_boundary_ihsan_composite` | "
+            f"`{float(signal['post_boundary_ihsan_composite']):.4f}` |"
+        )
+        lines.append(
+            "| `boundary_quality_multiplier` | "
+            f"`{float(signal['boundary_quality_multiplier']):.4f}` |"
         )
 
     lines.append("")
@@ -102,10 +142,22 @@ def main() -> int:
         default=None,
         help="Optional output path for Markdown scorecard",
     )
+    parser.add_argument(
+        "--boundary-report",
+        type=Path,
+        default=None,
+        help="Optional runtime boundary quality JSON report",
+    )
     args = parser.parse_args()
 
     program = load_program(args.program)
-    markdown = build_scorecard_markdown(program)
+    boundary_report = (
+        load_json(args.boundary_report) if args.boundary_report is not None else None
+    )
+    markdown = build_scorecard_markdown(
+        program,
+        boundary_report=boundary_report,
+    )
 
     if args.output is None:
         print(markdown)

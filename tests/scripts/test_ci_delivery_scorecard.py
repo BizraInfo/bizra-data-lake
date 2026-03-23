@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.ci_delivery_scorecard import build_scorecard_markdown, load_program
+from scripts.ci_delivery_scorecard import (
+    build_scorecard_markdown,
+    load_program,
+)
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -85,3 +88,25 @@ def test_build_scorecard_markdown_renders_key_sections() -> None:
     assert "## P0/P1 Risks" in markdown
     assert "`R1`" in markdown
     assert "`R2`" not in markdown
+
+
+def test_build_scorecard_markdown_renders_boundary_runtime_signals() -> None:
+    markdown = build_scorecard_markdown(
+        _minimal_program(),
+        boundary_report={
+            "boundary_signal": {
+                "boundary_error_receipts": 2,
+                "boundary_degradations": 1,
+                "boundary_retries": 1,
+                "pre_boundary_ihsan_composite": 0.95,
+                "post_boundary_ihsan_composite": 0.91,
+                "boundary_quality_multiplier": 0.96,
+            },
+            "gate_verdict": {"passed": True},
+        },
+    )
+
+    assert "## Live Runtime Signals" in markdown
+    assert "Boundary Quality Probe" in markdown
+    assert "`boundary_quality_multiplier`" in markdown
+    assert "`0.9600`" in markdown

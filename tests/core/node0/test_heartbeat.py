@@ -1279,6 +1279,54 @@ class TestNervousSystemBridge:
         assert health["last_breath_cqrs_delivery_acks"] == 1
         assert health["last_breath_cqrs_delivery_dead_letters"] == 1
 
+    def test_breath_tracks_boundary_error_window(self, data_dir):
+        """Breath receipts and events should expose boundary-error deltas."""
+        from core.bus.subscribers import EventBus
+        from core.node0.heartbeat import Node0Heartbeat
+
+        bus = EventBus()
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="boundary-breath", event_bus=bus)
+        hb.boot()
+
+        assert hb.record_boundary_error_receipt(
+            {
+                "error_type": "InferenceError",
+                "severity": "RETRY",
+                "boundary": "INFERENCE",
+                "message": "planner timed out",
+                "source": "api.query.boundary",
+            }
+        )
+        assert hb.record_boundary_error_receipt(
+            {
+                "error_type": "BridgeError",
+                "severity": "DEGRADE",
+                "boundary": "BRIDGE",
+                "message": "event bus publish failed",
+                "source": "mission.nervous.system",
+            }
+        )
+
+        receipt = hb.breathe()
+        assert receipt.boundary_error_receipts == 2
+        assert receipt.boundary_retries == 1
+        assert receipt.boundary_degradations == 1
+        assert receipt.boundary_halts == 0
+        assert receipt.boundary_rejections == 0
+
+        event = bus._chain[0]
+        assert event.payload["boundary_error_receipts"] == 2
+        assert event.payload["boundary_retries"] == 1
+        assert event.payload["boundary_degradations"] == 1
+
+        health = hb.health()
+        assert health["total_boundary_error_receipts"] == 2
+        assert health["total_boundary_retries"] == 1
+        assert health["total_boundary_degradations"] == 1
+        assert health["last_breath_boundary_error_receipts"] == 2
+        assert health["last_breath_boundary_retries"] == 1
+        assert health["last_breath_boundary_degradations"] == 1
+
     def test_health_reports_event_bus_status(self, data_dir):
         """health() includes event_bus in subsystems and total_events_emitted."""
         from core.bus.subscribers import EventBus
@@ -1444,6 +1492,43 @@ class TestNervousSystemBridge:
         assert len(persisted) == 1
         assert persisted[0]["source"] == "node0:cqrs.delivery"
         assert persisted[0]["status"] == "ack"
+
+    def test_record_boundary_error_receipt_persists_canonical_evidence(self, data_dir):
+        """Node0 should persist typed boundary failures onto its canonical audit path."""
+        from core.node0.heartbeat import Node0Heartbeat
+
+        hb = Node0Heartbeat(data_dir=data_dir, node_id="boundary-node0")
+        hb.boot()
+
+        ok = hb.record_boundary_error_receipt(
+            {
+                "error_type": "InferenceError",
+                "severity": "RETRY",
+                "boundary": "INFERENCE",
+                "message": "planner timed out",
+                "source": "api.query.boundary",
+                "route": "/v1/query",
+            }
+        )
+
+        assert ok is True
+        health = hb.health()
+        assert health["total_boundary_error_receipts"] == 1
+        assert health["total_boundary_retries"] == 1
+        assert health["total_boundary_degradations"] == 0
+        assert health["total_boundary_error_receipt_failures"] == 0
+        assert health["last_boundary_error_receipt"]["error_type"] == "InferenceError"
+
+        path = data_dir / "audit" / "canonical_boundary_error_receipts.jsonl"
+        assert path.exists()
+        persisted = [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        assert len(persisted) == 1
+        assert persisted[0]["source"] == "api.query.boundary"
+        assert persisted[0]["boundary"] == "INFERENCE"
 
 
 # ═══════════════════════════════════════════════════════════════

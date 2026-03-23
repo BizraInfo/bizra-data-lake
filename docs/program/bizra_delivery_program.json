@@ -71,12 +71,14 @@
         "reward_verified_improvement_rate",
         "rollback_success_rate",
         "reflex_improvement_latency_delta",
-        "constitutional_violation_count"
+        "constitutional_violation_count",
+        "boundary_quality_multiplier"
       ],
       "deliverables": [
         "receipt_native_candidate_evaluation",
         "bounded_delta_replay_proofs",
-        "rollback_evidence"
+        "rollback_evidence",
+        "boundary_pressure_scorecard"
       ],
       "risks": [
         "adaptive_behavior_escapes_receipt_plane",
@@ -211,7 +213,8 @@
         "canonical_spearpoint",
         "reward_verification",
         "persisted_delta_verification",
-        "replay_chain_verification"
+        "replay_chain_verification",
+        "boundary_quality_probe"
       ]
     },
     {
@@ -273,6 +276,11 @@
       "dimension": "governed_self_improvement",
       "status": "proven_at_spearpoint_scale",
       "measure": "bounded_replay_verified_improvement"
+    },
+    {
+      "dimension": "boundary_quality_feedback",
+      "status": "proven",
+      "measure": "boundary_degradation_lowers_tick_quality_and_reward_minting"
     },
     {
       "dimension": "receipt_native_cognition",

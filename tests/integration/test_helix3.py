@@ -135,6 +135,14 @@ class TestEmptyTick:
 class TestTickWithReceipts:
     """Process tick with mission receipts — organism evolving."""
 
+    class _TrackingMinter:
+        def __init__(self) -> None:
+            self.calls: List[Dict[str, Any]] = []
+
+        def mint_seed(self, **kwargs: Any) -> Dict[str, Any]:
+            self.calls.append(kwargs)
+            return {"minted": True, "total_amount": kwargs.get("amount", 0.0)}
+
     def _make_receipt(
         self, ihsan: float = 0.96, mission_id: str = "m-1"
     ) -> Dict[str, Any]:
@@ -170,6 +178,55 @@ class TestTickWithReceipts:
         receipt = h3.process_tick()
         # Average ihsan: (0.96 + 0.94) / 2 = 0.95
         assert receipt.ihsan_composite == pytest.approx(0.95, abs=0.001)
+
+    def test_boundary_degradation_receipts_are_counted(self):
+        h3 = Helix3Scheduler()
+        h3.ingest_receipt(
+            {
+                **self._make_receipt(),
+                "degradation_receipts": [
+                    {
+                        "error_type": "InferenceError",
+                        "severity": "RETRY",
+                        "boundary": "INFERENCE",
+                    },
+                    {
+                        "error_type": "BridgeError",
+                        "severity": "DEGRADE",
+                        "boundary": "BRIDGE",
+                    },
+                ],
+            }
+        )
+
+        receipt = h3.process_tick()
+        assert receipt.boundary_error_receipts == 2
+        assert receipt.boundary_retries == 1
+        assert receipt.boundary_degradations == 1
+        assert receipt.boundary_halts == 0
+        assert receipt.boundary_quality_multiplier < 1.0
+        assert receipt.pre_boundary_ihsan_composite > receipt.ihsan_composite
+
+    def test_boundary_penalty_blocks_excellent_minting(self):
+        minter = self._TrackingMinter()
+        h3 = Helix3Scheduler(token_minter=minter, wallet=object())
+        h3.ingest_receipt(
+            {
+                **self._make_receipt(),
+                "degradation_receipts": [
+                    {
+                        "error_type": "InferenceError",
+                        "severity": "RETRY",
+                        "boundary": "INFERENCE",
+                    }
+                ],
+            }
+        )
+
+        receipt = h3.process_tick()
+        assert receipt.boundary_quality_multiplier < 1.0
+        assert minter.calls == []
+        assert receipt.seed_minted == 0.0
 
 
 # ═══════════════════════════════════════════════════════════════════

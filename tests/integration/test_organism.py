@@ -578,7 +578,9 @@ class TestCQRSSubscriberWiring:
         assert canonical_path.exists()
         assert org.stats["node0"]["total_cqrs_delivery_receipts"] >= 1
 
-    def test_cqrs_delivery_receipts_mirror_to_sovereign_bus(self, tmp_path: Any) -> None:
+    def test_cqrs_delivery_receipts_mirror_to_sovereign_bus(
+        self, tmp_path: Any
+    ) -> None:
         """CQRS delivery receipts should mirror into the sovereign async bus."""
         from core.sovereign.event_bus import EventBus as SovereignEventBus
 
@@ -621,6 +623,32 @@ class TestCQRSSubscriberWiring:
 
         asyncio.run(_scenario())
 
+    def test_mission_boundary_degradation_persists_to_node0(
+        self, tmp_path: Any
+    ) -> None:
+        """Mission degradation receipts should join Node0's canonical audit plane."""
+        org = asyncio.run(
+            SovereignOrganism.boot(
+                inference=FailingInference(),
+                persistence_dir=tmp_path / "sovereign-boundary",
+            )
+        )
+
+        receipt = asyncio.run(org.mission("persist degraded mission boundary"))
+
+        assert receipt.metadata.get("degradation_receipts")
+        path = (
+            tmp_path
+            / "sovereign-boundary"
+            / "audit"
+            / "canonical_boundary_error_receipts.jsonl"
+        )
+        assert path.exists()
+        assert org.stats["node0"]["total_boundary_error_receipts"] >= 1
+        assert org.stats["node0"]["last_boundary_error_receipt"]["mission_id"] == (
+            receipt.mission_id
+        )
+
     def test_tick_receipt_carries_cqrs_delivery_metrics(self, tmp_path: Any) -> None:
         """Node0 breath receipts should summarize CQRS delivery health."""
         echo = EchoInference()
@@ -639,6 +667,34 @@ class TestCQRSSubscriberWiring:
         assert breath.cqrs_delivery_dead_letters == 0
         assert org.stats["node0"]["last_breath"]["cqrs_delivery_acks"] >= 1
         assert org.stats["node0"]["last_breath"]["cqrs_delivery_dead_letters"] == 0
+
+    def test_tick_receipt_carries_boundary_metrics(self, tmp_path: Any) -> None:
+        """Node0 breath receipts should summarize boundary degradation health."""
+        org = asyncio.run(
+            SovereignOrganism.boot(
+                inference=FailingInference(),
+                persistence_dir=tmp_path / "sovereign-boundary-tick",
+            )
+        )
+
+        asyncio.run(org.mission("tick boundary degradation"))
+        breath = asyncio.run(org.tick())
+
+        assert breath.boundary_error_receipts >= 1
+        assert breath.boundary_retries >= 1
+        assert breath.helix_result.get("boundary_error_receipts", 0) >= 1
+        assert breath.helix_result.get("boundary_retries", 0) >= 1
+        assert breath.helix_result.get("boundary_quality_multiplier", 1.0) < 1.0
+        assert (
+            breath.helix_result.get(
+                "pre_boundary_ihsan_composite",
+                breath.ihsan_composite,
+            )
+            >= breath.ihsan_composite
+        )
+        assert org.stats["node0"]["last_breath"]["boundary_error_receipts"] >= 1
+        assert org.stats["node0"]["last_breath"]["boundary_retries"] >= 1
+        assert org.stats["node0"]["last_breath"]["boundary_quality_multiplier"] < 1.0
 
     def test_graceful_degradation_without_bus(self) -> None:
         """Organism must boot and run even if CQRS wiring fails."""
