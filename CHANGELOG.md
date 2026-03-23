@@ -6,6 +6,49 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.88.1] — 2026-03-23 "The Organism Release"
+
+### Added
+- 9-stage MissionExecutor (FAISS → Amplify → Inference → Skill → SEED → Memory → EventBus → Notify → Watcher)
+- LLM response text flows end-to-end (was silently dropped)
+- Sovereign identity system prompt — model knows it's BIZRA
+- Receipt chain threading across sessions (chain_head persisted)
+- Live stage streaming — user watches the nervous system fire
+- DiffusionAmplifier on canonical path (fail-closed HMM→GoT hints)
+- FanoutEventBus — unified CQRS + sovereign bus dialects
+- Node0 dead-letter evidence — delivery failures persisted as audit artifacts
+- Governed RSI wired as opt-in (`BIZRA_AUTOPOIESIS_ENABLED=true`)
+- CMN v2 paper — "Intelligence Through Governed Refusal"
+- Z3 formal proofs of all 4 membrane properties (zero counterexamples)
+- 18 executable proof tests in CI gate
+- Membrane tax benchmark (0.007ms = 0.00003% overhead)
+- Adversarial simulation (82.3% attacks blocked)
+- Security Scanning CI pipeline (cargo-audit, bandit, pip-audit, detect-secrets)
+- Membrane Proof Gate — Z3 verification on every push
+- "Verify It Yourself" README section — 8 commands to prove every claim
+- 6 frontend prototypes (FrontDoor, JARVIS, SovereignCockpit, SovereignWorld)
+- Business docs (Product Spec v1, GTM 90-Day Launch Plan)
+
+### Fixed
+- Bus dialect seam — CQRS and sovereign buses now speak one language
+- 4 broad exception handlers replaced with typed exceptions in canonical spine
+- 2 LM Studio API keys purged from git history (filter-repo)
+- CI lint gates (cargo fmt nightly, isort, clippy, Black)
+- Dependabot lru 0.12→0.16 (RUSTSEC Stacked Borrows)
+- Cross-session desync (parallel session event_publisher sync)
+
+### Changed
+- Coverage threshold ratcheted 65% → 70%
+- CI pinned ubuntu-latest → ubuntu-24.04
+- Deploy tags pinned (chaos-mesh 2.7.0, uv 0.9.21, nomic-embed-text v1.5)
+- FAISS: Linux-side cache (0.5s vs 60s), offline encoder, 15s timeout
+- Pipeline expanded 8 → 9 stages (cognitive amplification added)
+
+### Security
+- 8/8 credentials rotated
+- 0 secrets in code or git history
+- All GitHub Actions pinned by SHA
+
 ## [Unreleased]
 
 ### Added
