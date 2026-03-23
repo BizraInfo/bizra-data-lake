@@ -349,28 +349,40 @@ interactive() {
     banner
     status_bar
 
-    # PAT opens its eyes — scan home base and report what needs attention
+    # PAT opens its eyes — check daemon queue first, then live scan
     source "$VENV/bin/activate" 2>/dev/null
     python3 -c "
+from core.sovereign.pat_daemon import read_queue
 from core.sovereign.home_base import full_scan, save_home_base, load_home_base, detect_changes
 
-prev = load_home_base()
-current = full_scan()
-save_home_base(current)
+# Read queued notifications from PAT daemon (if running)
+queue = read_queue()
+for item in queue[-5:]:  # Show last 5
+    t = item.get('type', '')
+    if t == 'change':
+        detail = item.get('detail', {})
+        print(f'  \033[38;2;125;211;192m+\033[0m {detail.get(\"suggestion\", \"change detected\")}')
+    elif t == 'suggestion':
+        print(f'  \033[38;2;201;169;98m?\033[0m {item.get(\"description\", \"\")}')
+    elif t == 'auto_action':
+        print(f'  \033[38;2;125;211;192m>\033[0m {item.get(\"description\", \"\")} [auto]')
 
-# Report what the PAT sees
-if current.tasks.stale_deliverables:
-    for d in current.tasks.stale_deliverables:
-        print(f'  \033[38;2;239;68;68m!\033[0m {d[\"name\"]} — {d[\"age_hours\"]:.0f}h old — {d[\"suggestion\"]}')
+# Live scan if no daemon queue
+if not queue:
+    prev = load_home_base()
+    current = full_scan()
+    save_home_base(current)
 
-if current.tasks.pending_actions:
-    for a in current.tasks.pending_actions:
-        print(f'  \033[38;2;201;169;98m?\033[0m {a[\"suggestion\"]}')
-
-if prev:
-    changes = detect_changes(prev, current)
-    for c in changes:
-        print(f'  \033[38;2;125;211;192m+\033[0m {c[\"suggestion\"]}')
+    if current.tasks.stale_deliverables:
+        for d in current.tasks.stale_deliverables:
+            print(f'  \033[38;2;239;68;68m!\033[0m {d[\"name\"]} — {d[\"age_hours\"]:.0f}h old — {d[\"suggestion\"]}')
+    if current.tasks.pending_actions:
+        for a in current.tasks.pending_actions:
+            print(f'  \033[38;2;201;169;98m?\033[0m {a[\"suggestion\"]}')
+    if prev:
+        changes = detect_changes(prev, current)
+        for c in changes:
+            print(f'  \033[38;2;125;211;192m+\033[0m {c[\"suggestion\"]}')
 " 2>/dev/null
 
     # Maturana: autopoiesis — warm FAISS in background so first mission fires 5/8 stages
@@ -798,6 +810,42 @@ else:
                 echo -e "  ${RD}✗${R} Not found: $SKILL_SRC"
             fi
         fi
+        ;;
+    pat-daemon)
+        shift
+        SUBCMD="${1:-status}"
+        source "$VENV/bin/activate" 2>/dev/null
+        case "$SUBCMD" in
+            start)
+                if [ -f "$HOME/.bizra/pat_daemon.pid" ] && kill -0 $(cat "$HOME/.bizra/pat_daemon.pid") 2>/dev/null; then
+                    echo -e "  ${G}●${R} PAT daemon already running (PID $(cat $HOME/.bizra/pat_daemon.pid))"
+                else
+                    nohup python3 core/sovereign/pat_daemon.py > logs/proactive/pat_daemon.log 2>&1 &
+                    echo -e "  ${G}●${R} PAT daemon started (PID $!)"
+                    echo -e "  ${DIM}  Cycle: ${BIZRA_PAT_CYCLE_SECONDS:-300}s | Log: logs/proactive/pat_daemon.log${R}"
+                fi
+                ;;
+            stop)
+                if [ -f "$HOME/.bizra/pat_daemon.pid" ]; then
+                    kill $(cat "$HOME/.bizra/pat_daemon.pid") 2>/dev/null && echo -e "  ${DIM}PAT daemon stopped${R}" || echo -e "  ${DIM}Not running${R}"
+                else
+                    echo -e "  ${DIM}No PID file found${R}"
+                fi
+                ;;
+            status)
+                if [ -f "$HOME/.bizra/pat_daemon.pid" ] && kill -0 $(cat "$HOME/.bizra/pat_daemon.pid") 2>/dev/null; then
+                    echo -e "  ${G}●${R} PAT daemon RUNNING (PID $(cat $HOME/.bizra/pat_daemon.pid))"
+                    echo -e "  ${DIM}  Queue: $(wc -l < $HOME/.bizra/proactive_queue.jsonl 2>/dev/null || echo 0) pending items${R}"
+                else
+                    echo -e "  ${DIM}○ PAT daemon NOT RUNNING — start with: bizra pat-daemon start${R}"
+                fi
+                ;;
+            *)
+                echo -e "  ${D}pat-daemon start${R}   Start the always-on awareness loop"
+                echo -e "  ${D}pat-daemon stop${R}    Stop the daemon"
+                echo -e "  ${D}pat-daemon status${R}  Check if running"
+                ;;
+        esac
         ;;
     invite)
         shift
