@@ -120,6 +120,12 @@ class MissionExecutor:
         self.seed_earned = seed_result.get("net", 0)
         self._emit("SEED", seed_result.get("fired", False), f"+{self.seed_earned}")
 
+        # Stage 4.5: URP — receipt + knowledge flow to the sea
+        urp_result = self._stage_urp(task, node_result)
+        report["stages"]["urp"] = urp_result
+        if urp_result.get("fired"):
+            self._emit("URP", True, f"sea +{urp_result.get('knowledge_added', 0)}")
+
         # Stage 5: Living Memory Update
         memory_result = self._stage_memory(task, skill)
         report["stages"]["memory"] = {"fired": memory_result}
@@ -148,6 +154,84 @@ class MissionExecutor:
         report["stages_total"] = len(report["stages"])
 
         return report
+
+    # ── Stage 4.5: URP — receipt + knowledge to the sea ──────
+
+    def _stage_urp(self, task: str, node_result: Dict) -> Dict:
+        """Submit receipt + contribute knowledge to the URP resource pool.
+
+        The flywheel: Mission → Receipt → Membrane → Sea → Knowledge grows.
+        Standing on: CMN paper (membrane thesis), Maturana (autopoiesis).
+        """
+        try:
+            from core.urp.genesis import get_urp
+            from core.urp.persistence import (
+                load_urp_state,
+                restore_urp_from_state,
+                save_urp_state,
+            )
+            import core.urp.genesis as _urp_mod
+
+            urp = get_urp()
+            # Auto-restore from disk if singleton not loaded
+            if urp is None:
+                state = load_urp_state()
+                if state:
+                    urp = restore_urp_from_state(state)
+                    _urp_mod._urp_instance = urp
+
+            if urp is None or not urp.genesis_complete:
+                return {"fired": False, "reason": "urp_not_minted"}
+
+            # Find the founder node ID
+            founder = next(iter(urp.connected_nodes), "node0")
+
+            # Submit mission receipt through membrane
+            receipt_ok, receipt_reason = urp.submit_receipt(
+                founder,
+                {
+                    "id": self.receipt_id or "unreceipted",
+                    "ihsan_score": float(
+                        node_result.get("inference_ihsan", "0.0") or "0.0"
+                    ),
+                    "signed": bool(self.receipt_id),
+                    "task": task[:200],
+                },
+            )
+
+            # Contribute response as knowledge (if quality passes)
+            knowledge_added = 0
+            if self.response_text and len(self.response_text) > 20:
+                ihsan = float(node_result.get("inference_ihsan", "0.0") or "0.0")
+                ok = urp.contribute_knowledge(
+                    node_id=founder,
+                    content=f"{task[:100]}: {self.response_text[:500]}",
+                    ihsan_score=ihsan,
+                    receipt_id=self.receipt_id or "",
+                )
+                if ok:
+                    knowledge_added = 1
+
+            # Persist URP state after every mission
+            save_urp_state(urp)
+
+            return {
+                "fired": True,
+                "receipt_admitted": receipt_ok,
+                "receipt_reason": receipt_reason,
+                "knowledge_added": knowledge_added,
+            }
+
+        except (
+            ImportError,
+            AttributeError,
+            TypeError,
+            ValueError,
+            RuntimeError,
+            OSError,
+        ) as e:
+            logger.debug("URP stage skip: %s", e)
+            return {"fired": False, "reason": str(e)}
 
     # ── Stage 1.5: Cognitive Amplification ───────────────────
 
