@@ -10,13 +10,24 @@ Normalizes event publication across the CQRS subscriber bus
 from __future__ import annotations
 
 import inspect
+from functools import lru_cache
 from typing import Any
 
 
-def _publish_expects_single_event(publish: Any) -> bool:
-    """Return True when a bound publish() likely expects one Event object."""
+def _publish_callable_key(publish: Any) -> Any:
+    """Return a stable cache key for a publish callable."""
+    return (
+        getattr(publish, "__func__", publish),
+        inspect.ismethod(publish) and getattr(publish, "__self__", None) is not None,
+    )
+
+
+@lru_cache(maxsize=128)
+def _cached_publish_expects_single_event(publish_key: Any) -> bool:
+    """Cached signature inspection for bound/unbound publish callables."""
+    publish_callable, bound_method = publish_key
     try:
-        signature = inspect.signature(publish)
+        signature = inspect.signature(publish_callable)
     except (TypeError, ValueError):
         return False
 
@@ -34,7 +45,62 @@ def _publish_expects_single_event(publish: Any) -> bool:
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
         )
     ]
-    return len(positional) == 1
+    effective_positional = len(positional) - (1 if bound_method else 0)
+    return effective_positional == 1
+
+
+def _publish_expects_single_event(publish: Any) -> bool:
+    """Return True when a bound publish() likely expects one Event object."""
+    return _cached_publish_expects_single_event(_publish_callable_key(publish))
+
+
+def _resolve_topic_event_dispatch(
+    event_bus: Any,
+    topic: str,
+    payload: dict[str, Any],
+) -> tuple[Any, tuple[Any, ...]]:
+    """Return the callable and arguments needed to dispatch a topic event."""
+    publish = getattr(event_bus, "publish", None)
+    if callable(publish):
+        if _publish_expects_single_event(publish):
+            from core.sovereign.event_bus import Event
+
+            return publish, (Event(topic=topic, payload=payload),)
+
+        publish_topic: Any = topic
+        try:
+            from core.bus.subscribers import EventType
+
+            if isinstance(topic, str):
+                publish_topic = EventType(topic)
+        except (ImportError, ValueError):
+            publish_topic = topic
+        return publish, (publish_topic, payload)
+
+    emit = getattr(event_bus, "emit", None)
+    if callable(emit):
+        return emit, (topic, payload)
+
+    raise TypeError("Event bus must expose publish() or emit()")
+
+
+def try_publish_topic_event_sync(
+    event_bus: Any,
+    topic: str,
+    payload: dict[str, Any],
+) -> bool:
+    """Try to publish synchronously, returning False if async dispatch is required."""
+    if event_bus is None:
+        return True
+
+    dispatch, args = _resolve_topic_event_dispatch(event_bus, topic, payload)
+    if inspect.iscoroutinefunction(dispatch):
+        return False
+
+    result = dispatch(*args)
+    if inspect.isawaitable(result):
+        return False
+    return True
 
 
 async def publish_topic_event(
@@ -46,35 +112,10 @@ async def publish_topic_event(
     if event_bus is None:
         return
 
-    publish = getattr(event_bus, "publish", None)
-    if callable(publish):
-        if _publish_expects_single_event(publish):
-            from core.sovereign.event_bus import Event
-
-            result = publish(Event(topic=topic, payload=payload))
-        else:
-            publish_topic: Any = topic
-            try:
-                from core.bus.subscribers import EventType
-
-                if isinstance(topic, str):
-                    publish_topic = EventType(topic)
-            except (ImportError, ValueError):
-                publish_topic = topic
-            result = publish(publish_topic, payload)
-
-        if inspect.isawaitable(result):
-            await result
-        return
-
-    emit = getattr(event_bus, "emit", None)
-    if callable(emit):
-        result = emit(topic, payload)
-        if inspect.isawaitable(result):
-            await result
-        return
-
-    raise TypeError("Event bus must expose publish() or emit()")
+    dispatch, args = _resolve_topic_event_dispatch(event_bus, topic, payload)
+    result = dispatch(*args)
+    if inspect.isawaitable(result):
+        await result
 
 
 class FanoutEventBus:
