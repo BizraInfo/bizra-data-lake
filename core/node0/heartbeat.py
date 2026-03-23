@@ -1136,7 +1136,10 @@ class Node0Heartbeat:
         if self._event_bus is None:
             return
 
-        from core.bus.event_publisher import publish_topic_event
+        from core.bus.event_publisher import (
+            publish_topic_event,
+            try_publish_topic_event_sync,
+        )
 
         try:
             try:
@@ -1145,9 +1148,13 @@ class Node0Heartbeat:
                 running_loop = None
 
             if running_loop is None:
-                asyncio.run(
-                    publish_topic_event(self._event_bus, event_type_name, payload)
+                dispatched_sync = try_publish_topic_event_sync(
+                    self._event_bus, event_type_name, payload
                 )
+                if not dispatched_sync:
+                    asyncio.run(
+                        publish_topic_event(self._event_bus, event_type_name, payload)
+                    )
                 self._total_events_emitted += 1
                 return
 
@@ -1217,11 +1224,13 @@ class Node0Heartbeat:
     def _capture_cqrs_delivery_window(self) -> Dict[str, int]:
         """Convert cumulative CQRS delivery counters into per-breath deltas."""
         receipts = max(
-            self._total_cqrs_delivery_receipts - self._last_breath_cqrs_delivery_receipts,
+            self._total_cqrs_delivery_receipts
+            - self._last_breath_cqrs_delivery_receipts,
             0,
         )
         acks = max(
-            self._total_cqrs_delivery_ack_receipts - self._last_breath_cqrs_delivery_acks,
+            self._total_cqrs_delivery_ack_receipts
+            - self._last_breath_cqrs_delivery_acks,
             0,
         )
         dead_letters = max(
@@ -1251,8 +1260,12 @@ class Node0Heartbeat:
         self._last_cqrs_delivery_receipt = canonical_receipt
 
         try:
-            self._canonical_delivery_receipt_path.parent.mkdir(parents=True, exist_ok=True)
-            with self._canonical_delivery_receipt_path.open("a", encoding="utf-8") as handle:
+            self._canonical_delivery_receipt_path.parent.mkdir(
+                parents=True, exist_ok=True
+            )
+            with self._canonical_delivery_receipt_path.open(
+                "a", encoding="utf-8"
+            ) as handle:
                 handle.write(json.dumps(canonical_receipt, ensure_ascii=True) + "\n")
         except (OSError, TypeError, ValueError) as exc:
             self._total_cqrs_delivery_receipt_failures += 1

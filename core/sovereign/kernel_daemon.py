@@ -64,6 +64,7 @@ PROJECT_ROOT = _THIS_DIR.parent.parent
 # Without this, lazy imports of core.sovereign.* fail in WSL daemon context
 # because nohup/subprocess does not inherit the caller's PYTHONPATH.
 import sys as _sys
+
 _project_str = str(PROJECT_ROOT)
 if _project_str not in _sys.path:
     _sys.path.insert(0, _project_str)
@@ -947,6 +948,7 @@ def _get_or_create_ns() -> Any:
         try:
             # Ensure project root is on sys.path (critical for WSL daemon context)
             import sys
+
             _proj = str(PROJECT_ROOT)
             if _proj not in sys.path:
                 sys.path.insert(0, _proj)

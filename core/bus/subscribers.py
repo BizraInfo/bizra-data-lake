@@ -236,9 +236,7 @@ class EventBus:
 
     def delivery_summary(self) -> Dict[str, Any]:
         total = len(self._delivery_receipts)
-        dead_letter_rate = (
-            round(self._dead_letter_count / total, 4) if total else 0.0
-        )
+        dead_letter_rate = round(self._dead_letter_count / total, 4) if total else 0.0
         return {
             "delivery_receipts": total,
             "delivery_acks": self._delivery_ack_count,

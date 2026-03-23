@@ -651,9 +651,7 @@ class SovereignOrganism:
                         )
                 validation_errors = chain.validate()
                 if validation_errors:
-                    logger.warning(
-                        "Seed Chain validation: %s", validation_errors
-                    )
+                    logger.warning("Seed Chain validation: %s", validation_errors)
                 governed_prompt = chain.to_prompt()
                 seed_chain_meta = {
                     "seed_chain_hash": chain.compute_hash(),
@@ -839,7 +837,13 @@ class SovereignOrganism:
             if callable(recorder):
                 try:
                     recorder(payload)
-                except (RuntimeError, AttributeError, TypeError, ValueError, OSError) as exc:
+                except (
+                    RuntimeError,
+                    AttributeError,
+                    TypeError,
+                    ValueError,
+                    OSError,
+                ) as exc:
                     logger.debug(
                         "Node0 CQRS delivery persistence failed (non-fatal): %s",
                         exc,

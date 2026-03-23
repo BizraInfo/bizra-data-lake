@@ -18,6 +18,7 @@ Linear chains die at the output. The Seed Chain grows.
 
 Created: 2026-03-22 | BIZRA-LAB
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -34,8 +35,10 @@ logger = logging.getLogger("bizra.seed_chain")
 # Evidence Classification (CLAIM_MUST_BIND at prompt level)
 # ═══════════════════════════════════════════════════════════════
 
+
 class EvidenceTag(str, Enum):
     """Every fact in a Seed Chain must carry one of these tags."""
+
     VERIFIED = "VERIFIED"
     PLANNED = "PLANNED"
     DERIVED = "DERIVED"
@@ -46,9 +49,11 @@ class EvidenceTag(str, Enum):
 # Link 1: نِيَّة (Niyyah) — Intent
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class Niyyah:
     """Intent declaration. Not a role — a purpose."""
+
     purpose: str
     requester: str = "user"
     target_agent: str = "P7_DEMA"
@@ -60,9 +65,11 @@ class Niyyah:
 # Link 2: بَيِّنَة (Bayyinah) — Evidence
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class BayyinahItem:
     """A single evidence-tagged fact."""
+
     claim: str
     tag: EvidenceTag
     source: str = ""
@@ -72,17 +79,24 @@ class BayyinahItem:
 @dataclass
 class Bayyinah:
     """Evidence bundle. No untagged claims allowed."""
+
     items: List[BayyinahItem] = field(default_factory=list)
 
-    def add(self, claim: str, tag: EvidenceTag, source: str = "",
-            confidence: float = 1.0) -> None:
+    def add(
+        self, claim: str, tag: EvidenceTag, source: str = "", confidence: float = 1.0
+    ) -> None:
         if tag == EvidenceTag.UNKNOWN:
             confidence = min(confidence, 0.5)
         if tag == EvidenceTag.DERIVED:
             confidence = min(confidence, 0.9)
-        self.items.append(BayyinahItem(
-            claim=claim, tag=tag, source=source, confidence=confidence,
-        ))
+        self.items.append(
+            BayyinahItem(
+                claim=claim,
+                tag=tag,
+                source=source,
+                confidence=confidence,
+            )
+        )
 
     @property
     def verified_count(self) -> int:
@@ -97,9 +111,11 @@ class Bayyinah:
 # Link 3: حَدّ (Hadd) — Boundary
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class Hadd:
     """Constitutional negation — what the agent CANNOT do."""
+
     prohibitions: List[str] = field(default_factory=list)
     zann_zero: bool = True
     riba_zero: bool = True
@@ -108,22 +124,26 @@ class Hadd:
 
     @classmethod
     def constitutional_default(cls) -> "Hadd":
-        return cls(prohibitions=[
-            "Do not fabricate evidence or citations",
-            "Do not escalate DERIVED confidence to VERIFIED",
-            "Do not bypass constitutional gates",
-            "Do not expose sovereign identity",
-            "Do not produce output below Ihsan threshold",
-        ])
+        return cls(
+            prohibitions=[
+                "Do not fabricate evidence or citations",
+                "Do not escalate DERIVED confidence to VERIFIED",
+                "Do not bypass constitutional gates",
+                "Do not expose sovereign identity",
+                "Do not produce output below Ihsan threshold",
+            ]
+        )
 
 
 # ═══════════════════════════════════════════════════════════════
 # Link 4: أَمَانَة (Amanah) — Trust Contract
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class Amanah:
     """Reasoning under oath. Not 'think step by step' — think CONSTITUTIONALLY."""
+
     reasoning_mode: str = "deliberative"
     max_depth: int = 5
     quality_threshold: float = 0.95
@@ -136,9 +156,11 @@ class Amanah:
 # Link 5: ثَمَرَة (Thamara) — Fruit (Output)
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class Thamara:
     """Output with evidence inheritance."""
+
     content: str = ""
     format: str = "text"
     evidence_inherited: List[EvidenceTag] = field(default_factory=list)
@@ -149,14 +171,19 @@ class Thamara:
     def max_confidence(self) -> float:
         if not self.evidence_inherited:
             return 0.0
-        caps = {EvidenceTag.VERIFIED: 1.0, EvidenceTag.PLANNED: 0.7,
-                EvidenceTag.DERIVED: 0.9, EvidenceTag.UNKNOWN: 0.5}
+        caps = {
+            EvidenceTag.VERIFIED: 1.0,
+            EvidenceTag.PLANNED: 0.7,
+            EvidenceTag.DERIVED: 0.9,
+            EvidenceTag.UNKNOWN: 0.5,
+        }
         return min(caps.get(t, 0.5) for t in self.evidence_inherited)
 
 
 # ═══════════════════════════════════════════════════════════════
 # Link 6: إِيصَال (Iisal) — Receipt
 # ═══════════════════════════════════════════════════════════════
+
 
 class IisalVerdict(str, Enum):
     PASS = "pass"
@@ -168,6 +195,7 @@ class IisalVerdict(str, Enum):
 @dataclass
 class Iisal:
     """Verification receipt. On failure, loops to the broken link."""
+
     verdict: IisalVerdict = IisalVerdict.PASS
     failed_link: Optional[str] = None
     ihsan_score: float = 0.0
@@ -185,12 +213,14 @@ class Iisal:
 # The Complete Seed Chain
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class SeedChain:
     """
     سلسلة البذرة — The complete 6-link prompt chain.
     The autopoietic innovation: Iisal feeds back into Niyyah.
     """
+
     niyyah: Niyyah
     bayyinah: Bayyinah = field(default_factory=Bayyinah)
     hadd: Hadd = field(default_factory=Hadd.constitutional_default)
@@ -217,7 +247,9 @@ class SeedChain:
         constraints.append(f"IHSAN_FLOOR: >= {self.hadd.ihsan_floor}")
         for p in self.hadd.prohibitions:
             constraints.append(f"PROHIBITED: {p}")
-        sections.append("## Hadd (Boundaries)\n" + "\n".join(f"- {c}" for c in constraints))
+        sections.append(
+            "## Hadd (Boundaries)\n" + "\n".join(f"- {c}" for c in constraints)
+        )
         sections.append(
             f"## Amanah (Trust Contract)\n"
             f"Reasoning: {self.amanah.reasoning_mode} | "
@@ -256,6 +288,7 @@ class SeedChain:
 # ═══════════════════════════════════════════════════════════════
 # Factory Functions
 # ═══════════════════════════════════════════════════════════════
+
 
 def small_seed(purpose: str, *, agent: str = "P7_DEMA") -> SeedChain:
     """Two-link chain for simple tasks: just Niyyah + Thamara.

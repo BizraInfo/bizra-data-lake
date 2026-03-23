@@ -25,7 +25,7 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.integration.constants import (
     GOT_CONVERGENCE_SNR,
@@ -33,7 +33,9 @@ from core.integration.constants import (
     GOT_MAX_HYPOTHESES,
 )
 from core.memory.types import SearchResult
-from core.reasoning.verified_graph import VerifiedGoTBridgeResult
+
+if TYPE_CHECKING:
+    from core.reasoning.verified_graph import VerifiedGoTBridgeResult
 
 logger = logging.getLogger(__name__)
 
@@ -134,18 +136,21 @@ class GoTBridge:
         if receipt_signer is not None:
             return receipt_signer
 
-        from core.proof_engine.receipt import Ed25519Signer, SimpleSigner
+        if not canonical_mode:
+            from core.proof_engine.receipt import SimpleSigner
+
+            return SimpleSigner(b"got_bridge_vrg_default_signer")
+
+        from core.proof_engine.receipt import Ed25519Signer
 
         try:
             return Ed25519Signer.generate()
         except (ImportError, AttributeError, OSError):
-            if canonical_mode:
-                raise RuntimeError(
-                    "GoT bridge: Ed25519Signer unavailable in canonical mode. "
-                    "SimpleSigner fallback is forbidden when canonical_mode=True. "
-                    "Ensure ed25519 dependencies are installed."
-                )
-            return SimpleSigner(b"got_bridge_vrg_default_signer")
+            raise RuntimeError(
+                "GoT bridge: Ed25519Signer unavailable in canonical mode. "
+                "SimpleSigner fallback is forbidden when canonical_mode=True. "
+                "Ensure ed25519 dependencies are installed."
+            )
 
     # ------------------------------------------------------------------
     # Lazy GoT engine import (avoids circular imports at module load)
@@ -399,7 +404,15 @@ class GoTBridge:
         try:
             # We only distill reflexes from high-Ihsan, fully converged thought chains
             # that were actually verified to match roots (result.verified)
-            ihsan = float(result.receipt.payload.ihsan_score)
+            ihsan = float(
+                getattr(
+                    result.receipt,
+                    "ihsan_score",
+                    getattr(
+                        getattr(result.receipt, "payload", None), "ihsan_score", 0.0
+                    ),
+                )
+            )
             if result.verified and ihsan >= 0.90 and base_result.converged:
                 import time
 
@@ -423,7 +436,7 @@ class GoTBridge:
                         query,
                         ihsan,
                     )
-                except ImportError:
+                except (ImportError, AttributeError):
                     logger.debug(
                         "bizra native module unavailable; skipping reflex compilation"
                     )

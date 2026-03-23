@@ -220,9 +220,7 @@ class AutopoieticLoop:
             "approved_count": int(receipt.get("approved_count", 0) or 0),
             "rejected_count": int(receipt.get("rejected_count", 0) or 0),
             "missions_processed": int(receipt.get("missions_processed", 0) or 0),
-            "reflexes_precipitated": int(
-                receipt.get("reflexes_precipitated", 0) or 0
-            ),
+            "reflexes_precipitated": int(receipt.get("reflexes_precipitated", 0) or 0),
         }
         self._receipt_history.append(normalized)
 
