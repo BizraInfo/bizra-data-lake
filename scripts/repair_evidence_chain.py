@@ -253,7 +253,7 @@ def main() -> int:
     print(f"  Archive: {ARCHIVE_PATH}")
     print(f"  Repaired: {EVIDENCE_PATH}")
     print(f"  Entries: {len(repaired)}")
-    print(f"  Chain: VALID")
+    print("  Chain: VALID")
     print("=" * 60)
     return 0
 

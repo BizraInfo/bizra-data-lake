@@ -4,6 +4,7 @@ B3: Label AI-Assisted Documents
 Adds a standard disclaimer header to documents identified as AI-generated
 architectural explorations (not engineering test output).
 """
+
 import os
 
 DISCLAIMER = """---

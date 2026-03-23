@@ -12,29 +12,23 @@ import asyncio
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from core.autopoiesis.loop_engine import (
     ActivationGuardrails,
-    ApprovalRequest,
-    AuditLogEntry,
     AutopoieticLoop,
-    AutopoieticResult,
     AutopoieticState,
     HumanApprovalQueue,
     Hypothesis,
     HypothesisCategory,
     ImplementationResult,
-    IntegrationResult,
     MockFATEGate,
     MockSensorHub,
     RateLimiter,
     RiskLevel,
     RollbackManager,
     SystemObservation,
-    ValidationResult,
     create_autopoietic_loop,
 )
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD

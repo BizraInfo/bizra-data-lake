@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CONSTITUTION = ROOT / "bizra-constitution"
 sys.path.insert(0, str(CONSTITUTION))
 
-from node0_wire import GenesisWire, WireResult, wire_genesis_engine
+from node0_wire import WireResult, wire_genesis_engine
 
 
 def main():

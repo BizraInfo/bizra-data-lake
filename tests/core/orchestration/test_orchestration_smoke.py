@@ -18,7 +18,7 @@ class TestEventBus:
     """EventBus must support publish/subscribe with priority."""
 
     def test_import_and_create(self):
-        from core.orchestration import Event, EventBus, EventPriority
+        from core.orchestration import EventBus, EventPriority
 
         bus = EventBus()
         assert bus is not None

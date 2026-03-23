@@ -12,12 +12,9 @@
 import hashlib
 import json
 import logging
-import mimetypes
-import os
 import re
 import sys
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -327,7 +324,7 @@ class UniversalIngestionPipeline:
             except Exception:
                 continue
 
-        raise ValueError(f"Could not decode file with any encoding")
+        raise ValueError("Could not decode file with any encoding")
 
     def process_code_file(self, file_path: Path) -> Tuple[str, int]:
         """Extract content from code files with metadata."""
@@ -607,7 +604,7 @@ processed: {datetime.now().isoformat()}
         """Run all ingestion stages."""
         print("╔" + "═" * 78 + "╗")
         print("║" + "  BIZRA UNIVERSAL INGESTION PIPELINE".center(78) + "║")
-        print("║" + f"  Processing 1.1M+ BIZRA Assets".center(78) + "║")
+        print("║" + "  Processing 1.1M+ BIZRA Assets".center(78) + "║")
         print("╚" + "═" * 78 + "╝")
         print(f"\nStarted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Sources: {len(SOURCE_LOCATIONS)}")
@@ -648,7 +645,7 @@ processed: {datetime.now().isoformat()}
      Total Skipped:     {self.stats.total_skipped:,}
      Total Errors:      {self.stats.total_errors:,}
      Bytes Processed:   {self.stats.bytes_processed / (1024**3):.2f} GB
-  
+
   📁 By Category:""")
         for cat, count in sorted(self.stats.by_category.items(), key=lambda x: -x[1]):
             print(f"     {cat:15} {count:,}")

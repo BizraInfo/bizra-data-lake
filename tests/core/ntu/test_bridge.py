@@ -9,13 +9,10 @@ Tests cover:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
-from unittest.mock import MagicMock, patch
+from typing import Optional
 
-import numpy as np
-import pytest
 
-from core.ntu import NTU, NTUConfig, NTUState
+from core.ntu import NTUConfig, NTUState
 from core.ntu.bridge import (
     NTUBridge,
     NTUBridgeConfig,
@@ -166,7 +163,7 @@ class TestNTUSNRAdapter:
 
         # Initial threshold
         base_threshold = 0.95
-        initial_modulated = adapter.modulate_ihsan_threshold(base_threshold)
+        adapter.modulate_ihsan_threshold(base_threshold)
 
         # Process some observations
         for _ in range(10):
@@ -295,10 +292,10 @@ class TestNTUMemoryAdapter:
         adapter.observe_memory_entries(entries, [0.5] * 5)
 
         # Very low threshold should almost always retain
-        should_retain_low = adapter.should_retain_memory(threshold=0.01)
+        adapter.should_retain_memory(threshold=0.01)
 
         # Very high threshold should almost always discard
-        should_retain_high = adapter.should_retain_memory(threshold=0.99)
+        adapter.should_retain_memory(threshold=0.99)
 
         # Different thresholds should give different results (usually)
         # or at least not error
@@ -389,10 +386,10 @@ class TestNTUBridge:
         bridge = NTUBridge()
 
         # Very low threshold
-        is_stable_low = bridge.is_quality_stable(threshold=0.01)
+        bridge.is_quality_stable(threshold=0.01)
 
         # Very high threshold
-        is_stable_high = bridge.is_quality_stable(threshold=0.99)
+        bridge.is_quality_stable(threshold=0.99)
 
         # Low threshold should be easier to pass
 
@@ -492,7 +489,7 @@ class TestBridgeIntegration:
         high_quality = [MockMemoryEntry(memory_type="semantic") for _ in range(5)]
         bridge.process_memory(high_quality, [0.95] * 5)
 
-        high_metrics = bridge.get_quality_metrics()
+        bridge.get_quality_metrics()
 
         bridge.reset()
 
@@ -500,7 +497,7 @@ class TestBridgeIntegration:
         low_quality = [MockMemoryEntry(memory_type="working") for _ in range(5)]
         bridge.process_memory(low_quality, [0.2] * 5)
 
-        low_metrics = bridge.get_quality_metrics()
+        bridge.get_quality_metrics()
 
         # High quality should have better metrics
         # (exact comparison depends on NTU dynamics)

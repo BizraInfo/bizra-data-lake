@@ -34,7 +34,6 @@ from fastapi.responses import JSONResponse
 
 # Import the flywheel core
 from flywheel import (
-    AUTH_TOKEN_ENV,
     AuthResult,
     Flywheel,
     FlywheelState,
@@ -350,7 +349,6 @@ async def transcribe_audio(
     Returns:
         Transcribed text
     """
-    from fastapi import Request
 
     if not flywheel_instance.audio.stt_available:
         raise HTTPException(status_code=503, detail="STT not available")
@@ -388,7 +386,7 @@ async def synthesize_speech(
         return Response(
             content=audio_bytes,
             media_type="audio/mpeg",
-            headers={"Content-Disposition": f"attachment; filename=speech.mp3"},
+            headers={"Content-Disposition": "attachment; filename=speech.mp3"},
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Synthesis failed: {e}")

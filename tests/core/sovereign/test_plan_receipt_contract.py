@@ -8,11 +8,8 @@ P3: user_store master secret creation doesn't double-close fd
 
 from __future__ import annotations
 
-import os
-import tempfile
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -33,7 +30,6 @@ class TestUserStoreMasterSecretDoubleClose:
         db_path = tmp_path / "test.db"
 
         # Patch os.replace to fail *after* fd has been closed
-        original_replace = os.replace
 
         def failing_replace(src, dst):
             raise OSError("Simulated os.replace failure")
@@ -52,7 +48,7 @@ class TestUserStoreMasterSecretDoubleClose:
         from core.auth.user_store import UserStore
 
         db_path = tmp_path / "test.db"
-        store = UserStore(db_path=db_path)
+        UserStore(db_path=db_path)
 
         secret_file = db_path.parent / ".user_store_master_secret"
         assert secret_file.exists(), "Master secret file should be created"

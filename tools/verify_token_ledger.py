@@ -121,7 +121,7 @@ def verify_ledger(
         all_positive = True
         negative_accounts = []
         for tt in TokenType:
-            balances = (
+            (
                 ledger.get_all_balances_by_type(tt)
                 if hasattr(ledger, "get_all_balances_by_type")
                 else {}
@@ -175,7 +175,8 @@ def _output(result: dict, json_output: bool) -> None:
         print(json.dumps(result, indent=2))
         return
 
-    passed_symbol = lambda p: "PASS" if p else "FAIL"
+    def passed_symbol(p):
+        return "PASS" if p else "FAIL"
     print("=" * 60)
     print("  BIZRA TOKEN LEDGER VERIFICATION")
     print("=" * 60)

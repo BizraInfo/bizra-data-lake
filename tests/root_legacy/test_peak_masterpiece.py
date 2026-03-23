@@ -7,7 +7,6 @@
 """
 
 import logging
-import sys
 import time
 
 logging.basicConfig(
@@ -104,7 +103,7 @@ for i, test in enumerate(test_queries, 1):
         else:
             source_found = "❌ Missing"
 
-    print(f"\n📊 RESULTS:")
+    print("\n📊 RESULTS:")
     print(f"   SNR Score: {result.snr_score:.4f} — {grade}")
     print(f"   Discipline Coverage: {result.discipline_coverage:.1%}")
     print(f"   Synergies: {len(result.synergies)}")
@@ -118,7 +117,7 @@ for i, test in enumerate(test_queries, 1):
 
     # Show full synthesis for first test
     if i == 1:
-        print(f"\n📜 FULL SYNTHESIS:")
+        print("\n📜 FULL SYNTHESIS:")
         print("-" * 60)
         print(result.synthesis[:1200] if result.synthesis else "No synthesis")
         print("-" * 60)
@@ -161,7 +160,7 @@ print(
 avg_snr = sum(r["snr"] for r in results_summary) / len(results_summary)
 avg_time = total_time / len(results_summary)
 
-print(f"\n📊 AGGREGATE METRICS:")
+print("\n📊 AGGREGATE METRICS:")
 print(f"   Total Tests: {len(test_queries)}")
 print(f"   Average SNR: {avg_snr:.4f}")
 print(f"   Average Time: {avg_time:.2f}s")
@@ -184,10 +183,10 @@ else:
     kb_size = "Legacy"
     backend = "KnowledgeRetriever"
 
-print(f"\n🔧 SYSTEM INFO:")
+print("\n🔧 SYSTEM INFO:")
 print(f"   Retriever Backend: {backend}")
 print(f"   Knowledge Base: {kb_size} documents")
-print(f"   LLM Endpoint: http://192.168.56.1:1234")
+print("   LLM Endpoint: http://192.168.56.1:1234")
 
 print("\n" + "=" * 80)
 print("✅ COMPREHENSIVE TEST SUITE COMPLETE")

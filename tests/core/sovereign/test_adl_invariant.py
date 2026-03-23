@@ -11,19 +11,16 @@ These tests verify:
 5. Edge cases and invariants
 """
 
-from typing import Dict
 
 import pytest
 
 from core.sovereign.adl_invariant import (
     ADL_GINI_THRESHOLD,
-    HARBERGER_TAX_RATE,
     MINIMUM_HOLDING,
     UBC_POOL_ID,
     AdlGate,
     AdlInvariant,
     AdlRejectCode,
-    AdlValidationResult,
     RedistributionResult,
     Transaction,
     assert_adl_invariant,
@@ -207,7 +204,7 @@ class TestAdlInvariantValidation:
     def test_plutocratic_transaction_rejected(self, invariant, moderate_holdings):
         """Transaction that pushes Gini above threshold should be rejected."""
         # Try to concentrate most wealth in one node
-        tx = Transaction(
+        Transaction(
             tx_id="tx_plutocrat",
             sender="node_7",
             recipient="node_0",
@@ -215,7 +212,7 @@ class TestAdlInvariantValidation:
         )
 
         # First check current Gini
-        pre_gini = calculate_gini(moderate_holdings)
+        calculate_gini(moderate_holdings)
 
         # Create a scenario that would exceed threshold
         # We need to create a more extreme case
@@ -275,7 +272,7 @@ class TestAdlInvariantValidation:
             recipient="node_1",
             amount=50.0,
         )
-        result = invariant.validate_transaction(tx, equal_holdings)
+        invariant.validate_transaction(tx, equal_holdings)
 
         # Build post-state to verify conservation
         post_state = equal_holdings.copy()

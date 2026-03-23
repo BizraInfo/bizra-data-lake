@@ -358,7 +358,7 @@ def run_scan(args: argparse.Namespace) -> None:
     duplicates_path = output_dir / "duplicates.jsonl"
     summary_path = output_dir / "scan_summary.json"
 
-    print(f"BIZRA Dedup Scanner")
+    print("BIZRA Dedup Scanner")
     print(f"{'=' * 60}")
     print(f"Scan directories:  {len(scan_dirs)}")
     print(f"Workers:           {workers}")
@@ -538,10 +538,10 @@ def run_scan(args: argparse.Namespace) -> None:
 
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
-    print(f"      scan_summary.json: written")
+    print("      scan_summary.json: written")
 
     # Phase 5: Print summary
-    print(f"\n[4/4] Scan Summary")
+    print("\n[4/4] Scan Summary")
     print(f"{'=' * 60}")
     print(f"Total files scanned:     {total_files:>12,}")
     print(f"Total size:              {_human_size(total_size):>12}")
@@ -567,7 +567,7 @@ def run_scan(args: argparse.Namespace) -> None:
         print()
 
     # Per-directory breakdown
-    print(f"Per-Directory Breakdown:")
+    print("Per-Directory Breakdown:")
     print(f"{'─' * 60}")
     for d in sorted(dir_breakdown.keys()):
         s = dir_breakdown[d]

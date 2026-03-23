@@ -21,10 +21,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-import numpy as np
 import pandas as pd
 
-from bizra_config import DATA_LAKE_ROOT, GOLD_PATH, INDEXED_PATH
+from bizra_config import DATA_LAKE_ROOT, GOLD_PATH
 
 CATALOG_PATH = GOLD_PATH / "sovereign_catalog.parquet"
 CLAUDE_FLOW_DB = DATA_LAKE_ROOT / ".swarm/memory.db"
@@ -273,7 +272,7 @@ class SovereignMemory:
                     modified=row["modified"],
                     snr_score=row["snr_score"],
                     relevance=row["_rel"],
-                    context=f"Related via: name similarity",
+                    context="Related via: name similarity",
                 )
             )
 

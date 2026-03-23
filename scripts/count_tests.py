@@ -1,4 +1,4 @@
-import os, subprocess, sys
+import os
 
 root = r"C:\BIZRA-DATA-LAKE\tests"
 dirs = sorted([d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
@@ -15,7 +15,9 @@ for d in dirs:
                 fp = os.path.join(r, f)
                 try:
                     with open(fp, "r", encoding="utf-8", errors="replace") as fh:
-                        count += sum(1 for line in fh if line.strip().startswith("def test_"))
+                        count += sum(
+                            1 for line in fh if line.strip().startswith("def test_")
+                        )
                 except:
                     pass
     if count > 0:
@@ -28,7 +30,9 @@ for f in os.listdir(root):
         fp = os.path.join(root, f)
         try:
             with open(fp, "r", encoding="utf-8", errors="replace") as fh:
-                root_count += sum(1 for line in fh if line.strip().startswith("def test_"))
+                root_count += sum(
+                    1 for line in fh if line.strip().startswith("def test_")
+                )
         except:
             pass
 if root_count > 0:

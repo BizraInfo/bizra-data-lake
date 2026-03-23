@@ -12,13 +12,12 @@ Standing on Giants:
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import pytest
 
 from core.config.loader import ConfigLoader, ConfigViolation
-from core.config.schema import BizraConfig, PolicyConfig
-from core.integration.constants import ADL_GINI_THRESHOLD, UNIFIED_IHSAN_THRESHOLD
+from core.config.schema import BizraConfig
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 # ═══════════════════════════════════════════════════════════
 # Config loading

@@ -53,16 +53,16 @@ from typing import Any, Callable, Dict, List, Optional, Protocol
 logger = logging.getLogger("bizra.sovereign.nervous_system")
 
 from core.errors import BizraError, BridgeError, InferenceError
-
-# ═══════════════════════════════════════════════════════════════════
-# CONSTITUTIONAL THRESHOLDS (from single source of truth)
-# ═══════════════════════════════════════════════════════════════════
-
 from core.integration.constants import (
     ADL_GINI_THRESHOLD,
     REFLEX_PRECIPITATION_HITS,
     UNIFIED_IHSAN_THRESHOLD,
 )
+
+# ═══════════════════════════════════════════════════════════════════
+# CONSTITUTIONAL THRESHOLDS (from single source of truth)
+# ═══════════════════════════════════════════════════════════════════
+
 
 SEED_MINT_FLOOR = 0.95  # From core/token/bloom.py
 

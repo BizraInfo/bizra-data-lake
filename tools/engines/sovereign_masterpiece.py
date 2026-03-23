@@ -47,43 +47,27 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import heapq
-import json
 import logging
 import math
-import os
-import sys
 import threading
 import time
 import uuid
-import weakref
-from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import asynccontextmanager
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
 from enum import Enum, auto
-from functools import lru_cache, reduce, wraps
-from pathlib import Path
 from typing import (
     Any,
-    AsyncIterator,
-    Awaitable,
-    Callable,
     Dict,
     Final,
     Generic,
     Hashable,
-    Iterator,
     List,
-    Literal,
-    NamedTuple,
     Optional,
     Protocol,
     Set,
     Tuple,
     TypeVar,
-    Union,
     runtime_checkable,
 )
 
@@ -1238,7 +1222,7 @@ class SNREngine:
 
         if current_snr.information_density < ihsan * 0.9:
             suggestions.append(
-                f"↑ Density: Increase retrieval depth for richer coverage"
+                "↑ Density: Increase retrieval depth for richer coverage"
             )
             target.information_density = min(
                 current_snr.information_density * 1.2, 0.99
@@ -1252,12 +1236,12 @@ class SNREngine:
 
         if current_snr.symbolic_grounding < ihsan * 0.8:
             suggestions.append(
-                f"↑ Grounding: Extract more symbolic facts from retrieved content"
+                "↑ Grounding: Extract more symbolic facts from retrieved content"
             )
             target.symbolic_grounding = min(current_snr.symbolic_grounding * 1.3, 0.99)
 
         if current_snr.coverage_balance < ihsan * 0.85:
-            suggestions.append(f"↑ Coverage: Expand to additional sources/domains")
+            suggestions.append("↑ Coverage: Expand to additional sources/domains")
             target.coverage_balance = min(current_snr.coverage_balance * 1.2, 0.99)
 
         if not suggestions:
@@ -1739,7 +1723,7 @@ class SovereignMasterpiece:
         # Add domain-specific seed thoughts
         if synthesis:
             for perspective in synthesis.perspectives[:5]:
-                seed = self.thought_graph.add_thought(
+                self.thought_graph.add_thought(
                     content=f"[{perspective.domain.code}] {perspective.insights[0]}",
                     thought_type=ThoughtType.OBSERVATION,
                     parent_ids=[root_thought.id],
@@ -1765,7 +1749,7 @@ class SovereignMasterpiece:
             if self.thought_graph.validate_thought(thought.id, expanded_snr, grounding):
                 # Add child thoughts
                 if thought.depth < query.max_depth - 1:
-                    child = self.thought_graph.add_thought(
+                    self.thought_graph.add_thought(
                         content=f"[Inference from {thought.id[:6]}]",
                         thought_type=ThoughtType.INFERENCE,
                         parent_ids=[thought.id],
@@ -1941,7 +1925,7 @@ async def demonstrate():
         print(f"  ⏱️  Execution Time: {result.execution_time_ms:.1f}ms")
 
         if result.conclusions:
-            print(f"\n  📌 Conclusions:")
+            print("\n  📌 Conclusions:")
             for j, c in enumerate(result.conclusions[:3], 1):
                 print(f"     {j}. {c[:80]}...")
 
@@ -1949,7 +1933,7 @@ async def demonstrate():
             result.interdisciplinary_synthesis
             and result.interdisciplinary_synthesis.emergent_insights
         ):
-            print(f"\n  🔗 Emergent Insights:")
+            print("\n  🔗 Emergent Insights:")
             for insight in result.interdisciplinary_synthesis.emergent_insights[:3]:
                 print(f"     • {insight}")
 

@@ -5,7 +5,6 @@ Uses real psutil introspection on the host. No bare MagicMock.
 
 from __future__ import annotations
 
-import time
 
 from core.elite.asset_registry import AssetRegistry, HardwareAsset, NodeBody
 

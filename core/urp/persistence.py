@@ -146,6 +146,8 @@ def load_urp_state(state_dir: Optional[Path] = None) -> Optional[Dict[str, Any]]
 
 def restore_urp_from_state(state: Dict[str, Any]) -> Any:
     """Restore a URPService from persisted state."""
+    from core.urp.constitution import Constitution
+    from core.urp.membrane import ConstitutionalMembrane
     from core.urp.resource_pool import KnowledgeEntry, ResourcePool
     from core.urp.service import (
         NodeRegistration,
@@ -153,8 +155,6 @@ def restore_urp_from_state(state: Dict[str, Any]) -> Any:
         URPGenesisReceipt,
         URPService,
     )
-    from core.urp.constitution import Constitution
-    from core.urp.membrane import ConstitutionalMembrane
 
     urp = URPService()
     urp._urp_id = state.get("urp_id", "")

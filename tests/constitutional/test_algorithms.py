@@ -13,7 +13,6 @@ Standing on Giants:
 
 from __future__ import annotations
 
-import pytest
 
 from core.constitutional.algorithms import (
     ASAB_CEIL,
@@ -21,9 +20,7 @@ from core.constitutional.algorithms import (
     ASAB_NEUTRAL,
     BLOOM_ACCRUAL,
     IHSAN_FLOOR,
-    INTENT_FLOOR,
     MIN_CONNECTIONS,
-    NISAB_THRESHOLD,
     TICK_INTERVAL,
     accrue_bloom,
     append_event,

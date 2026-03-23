@@ -48,11 +48,9 @@ import logging
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
-import numpy as np
 
 # PCI Protocol (Proof-Carrying Inference)
 try:

@@ -97,7 +97,7 @@ class KnowledgeBaseValidator:
                 else:
                     categories["Other"] += 1
 
-            except Exception as e:
+            except Exception:
                 categories["Parse Errors"] += 1
 
         self.stats["categories"] = dict(categories)
@@ -294,7 +294,7 @@ class KnowledgeBaseValidator:
         print("\n🔍 SEMANTIC SEARCH VALIDATION")
         search_result = self.test_semantic_search()
         if search_result.get("search_functional"):
-            print(f"   ✅ Search Functional")
+            print("   ✅ Search Functional")
             print(f"   Corpus Size: {search_result.get('corpus_size', 0):,}")
             print("\n   Sample Query Results:")
             for query, results in search_result.get("sample_results", {}).items():
@@ -320,7 +320,7 @@ class KnowledgeBaseValidator:
       ├── Estimated Words: ~{total_words:,}
       ├── Estimated Pages: ~{total_pages:,}
       └── Coverage Score: {pct:.1f}%
-   
+
    🎯 SINGULARITY Status:
       ├── Embeddings: {'✅ COMPLETE' if count > 1800 else '⚠️ PARTIAL'}
       ├── Search: {'✅ OPERATIONAL' if search_result.get('search_functional') else '❌ FAILED'}

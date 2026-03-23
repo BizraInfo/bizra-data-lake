@@ -20,41 +20,26 @@ Created: 2026-02-15 | BIZRA Node0 NorthStar | Peak Masterpiece Protocol
 
 import math
 
-import pytest
 
 from core.integration.constants import (
-    SNR_THRESHOLD_T0_ELITE,
     UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
 )
 from core.northstar import (  # Version; Golden Gems; Thought Flows; Bridge Nodes; NorthStar Engine
-    AUTOPOIESIS_RDVE_ROLES,
     BRIDGE_ORIGIN_SNR,
     GEM_NORMALIZED_SNR,
     GEM_ORIGIN_SNR,
-    GOT_TOPOLOGY_CONSTANTS,
-    HRM_PILLAR_MAP,
     PHASE_PATTERN_SNR,
     PHI,
-    SHANNON_NOISE_MAP,
-    BridgeActivation,
     BridgeNodeDetector,
-    BridgeReport,
     BridgeType,
-    FlowActivation,
-    FlowReport,
-    GemActivation,
-    GemReport,
     GoldenGemDetector,
     GoldenGemType,
     NorthStarEngine,
     NorthStarReport,
     NorthStarStatus,
-    PhaseActivation,
     PhasePatternType,
     ThoughtFlowDetector,
     ThoughtFlowType,
-    __version__,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════

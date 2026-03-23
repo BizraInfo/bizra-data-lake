@@ -19,19 +19,19 @@ Usage:
 """
 
 import json
-import pickle
-import sys
 import math
+import pickle
 import re
+import sys
+from collections import Counter
 from pathlib import Path
-from collections import Counter, defaultdict
-from datetime import datetime
 
 SOVEREIGN_ROOT = Path(r"B:\BIZRA-SOVEREIGN\05_DATA_LAKE")
 EMBED_PATH = SOVEREIGN_ROOT / "03_INDEXED" / "embeddings" / "embeddings.pkl"
 MANIFEST_DIR = SOVEREIGN_ROOT / "02_PROCESSED" / "manifests"
 GRAPH_STATS = SOVEREIGN_ROOT / "03_INDEXED" / "graph" / "graph_stats.json"
 TIMELINE_PATH = SOVEREIGN_ROOT / "03_INDEXED" / "timeline" / "thought_timeline.json"
+
 
 def load_embeddings():
     """Load pre-computed embeddings from thought graph builder."""
@@ -66,17 +66,21 @@ def cosine_sim(a, b) -> float:
     return dot / (na * nb)
 
 
-def semantic_search(query: str, embeddings: dict, texts: dict,
-                    manifests: dict, top_k: int = 5):
+def semantic_search(
+    query: str, embeddings: dict, texts: dict, manifests: dict, top_k: int = 5
+):
     """Search embeddings by cosine similarity to query."""
     # Try sentence-transformers first
     try:
         from sentence_transformers import SentenceTransformer
+
         model = SentenceTransformer("all-MiniLM-L6-v2")
         q_vec = model.encode(query, show_progress_bar=False)
     except ImportError:
         # TF-IDF fallback: match query words against stored texts
-        print("  (using keyword fallback - install sentence-transformers for semantic search)")
+        print(
+            "  (using keyword fallback - install sentence-transformers for semantic search)"
+        )
         return keyword_search(query, texts, manifests, top_k)
 
     results = []
@@ -90,7 +94,7 @@ def semantic_search(query: str, embeddings: dict, texts: dict,
 
 def keyword_search(query: str, texts: dict, manifests: dict, top_k: int = 5):
     """Keyword-based fallback search."""
-    query_terms = set(re.findall(r'\b[a-z]{3,}\b', query.lower()))
+    query_terms = set(re.findall(r"\b[a-z]{3,}\b", query.lower()))
     results = []
     for mid, text in texts.items():
         text_lower = text.lower()
@@ -133,7 +137,7 @@ def show_timeline(month_filter: str = None):
     with open(TIMELINE_PATH, "r") as f:
         timeline = json.load(f)
 
-    print(f"\n  THOUGHT TIMELINE")
+    print("\n  THOUGHT TIMELINE")
     print(f"  {'='*60}")
 
     for entry in timeline:
@@ -161,35 +165,46 @@ def show_stats():
     with open(GRAPH_STATS, "r") as f:
         stats = json.load(f)
 
-    print(f"\n  HOUSE OF WISDOM -- Knowledge Base Statistics")
+    print("\n  HOUSE OF WISDOM -- Knowledge Base Statistics")
     print(f"  {'='*60}")
     print(f"  Nodes (files):     {stats['nodes']}")
     print(f"  Edges (connections): {stats['edges']}")
-    print(f"  Date range:        {stats['date_range']['earliest']} to {stats['date_range']['latest']}")
-    print(f"\n  Edge Types:")
+    print(
+        f"  Date range:        {stats['date_range']['earliest']} to {stats['date_range']['latest']}"
+    )
+    print("\n  Edge Types:")
     for etype, count in stats["edge_types"].items():
         pct = count / stats["edges"] * 100 if stats["edges"] > 0 else 0
         print(f"    {etype:20s}: {count:6d} ({pct:.1f}%)")
-    print(f"\n  Eras:")
+    print("\n  Eras:")
     for era, count in stats["eras"].items():
         print(f"    {era:30s}: {count:4d} files")
-    print(f"\n  File Types:")
+    print("\n  File Types:")
     for ftype, count in stats["file_types"].items():
         print(f"    {ftype:20s}: {count:4d} files")
 
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(
-        description="BIZRA House of Wisdom -- Semantic Search")
-    parser.add_argument("query", nargs="?", default=None,
-                        help="Natural language search query")
-    parser.add_argument("--top", type=int, default=5,
-                        help="Number of results (default: 5)")
-    parser.add_argument("--timeline", type=str, default=None,
-                        help="Show timeline (optional: YYYY-MM filter)")
-    parser.add_argument("--stats", action="store_true",
-                        help="Show knowledge base statistics")
+        description="BIZRA House of Wisdom -- Semantic Search"
+    )
+    parser.add_argument(
+        "query", nargs="?", default=None, help="Natural language search query"
+    )
+    parser.add_argument(
+        "--top", type=int, default=5, help="Number of results (default: 5)"
+    )
+    parser.add_argument(
+        "--timeline",
+        type=str,
+        default=None,
+        help="Show timeline (optional: YYYY-MM filter)",
+    )
+    parser.add_argument(
+        "--stats", action="store_true", help="Show knowledge base statistics"
+    )
     args = parser.parse_args()
 
     if args.stats:
@@ -206,15 +221,14 @@ def main():
         print("\nExamples:")
         print('  python wisdom_search.py "blockchain consensus"')
         print('  python wisdom_search.py "DeFi liquidity" --top 10')
-        print('  python wisdom_search.py --timeline 2023-12')
-        print('  python wisdom_search.py --stats')
+        print("  python wisdom_search.py --timeline 2023-12")
+        print("  python wisdom_search.py --stats")
         return
 
-    print(f"  Searching: \"{args.query}\"")
+    print(f'  Searching: "{args.query}"')
     embeddings, texts = load_embeddings()
     manifests = load_manifests()
-    results = semantic_search(args.query, embeddings, texts,
-                              manifests, top_k=args.top)
+    results = semantic_search(args.query, embeddings, texts, manifests, top_k=args.top)
     display_results(results, manifests, texts)
 
 

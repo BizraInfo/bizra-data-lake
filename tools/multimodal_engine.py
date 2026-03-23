@@ -1,7 +1,6 @@
 # BIZRA Multi-Modal Engine v1.0
 # Integrates CLIP (vision), Whisper (audio), and LLaVA (vision-language) for multi-modal RAG
 
-import asyncio
 import hashlib
 import json
 import os
@@ -9,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -56,15 +55,11 @@ except ImportError:
     OCR_AVAILABLE = False
 
 from bizra_config import (
-    AUDIO_CHUNK_DURATION,
     AUDIO_ENABLED,
     AUDIO_EXTENSIONS,
-    AUDIO_TRANSCRIPTS_PATH,
-    CLIP_EMBEDDING_DIM,
     CLIP_MODEL,
     GPU_ENABLED,
     IMAGE_BATCH_SIZE,
-    IMAGE_EMBEDDINGS_PATH,
     IMAGE_EXTENSIONS,
     MULTIMODAL_CACHE,
     VIDEO_EXTENSIONS,
@@ -163,7 +158,7 @@ class ImageProcessor:
             self.clip_model = CLIPModel.from_pretrained(CLIP_MODEL).to(self.device)
             self.clip_processor = CLIPProcessor.from_pretrained(CLIP_MODEL)
             self._initialized = True
-            print(f"[MULTIMODAL] CLIP model loaded successfully")
+            print("[MULTIMODAL] CLIP model loaded successfully")
         except Exception as e:
             print(f"[MULTIMODAL] Failed to load CLIP: {e}")
 
@@ -546,7 +541,7 @@ class AudioProcessor:
         try:
             self.whisper_model = whisper.load_model(self.model_size, device=self.device)
             self._initialized = True
-            print(f"[MULTIMODAL] Whisper model loaded successfully")
+            print("[MULTIMODAL] Whisper model loaded successfully")
         except Exception as e:
             print(f"[MULTIMODAL] Failed to load Whisper: {e}")
 

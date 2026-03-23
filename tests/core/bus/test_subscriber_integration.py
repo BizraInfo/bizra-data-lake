@@ -819,4 +819,7 @@ class TestNonSafetyFailOpen:
         summary = bus.delivery_summary()
         assert summary["delivery_acks"] == 1
         assert summary["delivery_sink_failures"] == 1
-        assert "RuntimeError: mirror sink unavailable" in summary["last_delivery_sink_error"]
+        assert (
+            "RuntimeError: mirror sink unavailable"
+            in summary["last_delivery_sink_error"]
+        )

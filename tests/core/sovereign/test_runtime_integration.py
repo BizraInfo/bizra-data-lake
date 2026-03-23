@@ -21,7 +21,6 @@ Categories:
 
 from __future__ import annotations
 
-import hashlib
 import json
 import uuid
 from datetime import datetime, timezone
@@ -423,7 +422,7 @@ class TestGraphArtifact:
             ThoughtType.HYPOTHESIS,
             parent_id=root.id,
         )
-        h2 = got.add_thought(
+        got.add_thought(
             "Decentralized identity",
             ThoughtType.HYPOTHESIS,
             parent_id=root.id,

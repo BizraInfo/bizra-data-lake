@@ -8,15 +8,13 @@ the PyO3 module is compiled.
 Phase 87: PyO3 EventBridge Synapse Tests
 """
 
-import json
 import sys
-import os
 
 # Ensure project root is on path
 sys.path.insert(0, r"C:\BIZRA-DATA-LAKE")
 
-from core.bus.subscribers import EventBus, EventType, Event
 from core.bus.rust_bridge import RustBridgeSubscriber, diagnose_bridge
+from core.bus.subscribers import EventBus, EventType
 
 
 class MockRustBridge:
@@ -31,14 +29,22 @@ class MockRustBridge:
         return 1
 
     def emit_with_receipt(
-        self, topic: str, payload: str, receipt_id: str,
-        ihsan_score: float, priority: int
+        self,
+        topic: str,
+        payload: str,
+        receipt_id: str,
+        ihsan_score: float,
+        priority: int,
     ) -> int:
-        self.emitted_with_receipt.append({
-            "topic": topic, "payload": payload,
-            "receipt_id": receipt_id, "ihsan": ihsan_score,
-            "priority": priority,
-        })
+        self.emitted_with_receipt.append(
+            {
+                "topic": topic,
+                "payload": payload,
+                "receipt_id": receipt_id,
+                "ihsan": ihsan_score,
+                "priority": priority,
+            }
+        )
         return 1
 
     def wire_subscribers(self) -> int:
@@ -72,12 +78,15 @@ def test_bridge_forwards_receipt_event():
 
     bus = EventBus()
     bus.subscribe(adapter)
-    bus.publish(EventType.ACTION_RECEIPT, {
-        "action_type": "search",
-        "ihsan_composite": 0.97,
-        "receipt_hash": "abc123def456",
-        "result_summary": "Found 42 results",
-    })
+    bus.publish(
+        EventType.ACTION_RECEIPT,
+        {
+            "action_type": "search",
+            "ihsan_composite": 0.97,
+            "receipt_hash": "abc123def456",
+            "result_summary": "Found 42 results",
+        },
+    )
 
     assert adapter._forwarded == 1
     assert len(mock.emitted_with_receipt) == 1
@@ -109,6 +118,7 @@ def test_bridge_degradation_on_error():
     class BrokenBridge:
         def emit(self, *args):
             raise RuntimeError("Rust segfault simulation")
+
         def emit_with_receipt(self, *args):
             raise RuntimeError("Rust segfault simulation")
 
@@ -119,7 +129,7 @@ def test_bridge_degradation_on_error():
     bus.subscribe(adapter)
 
     # This should NOT raise — bridge degrades gracefully
-    event = bus.publish(EventType.AGENT_REGISTERED, {"agent_id": "test"})
+    bus.publish(EventType.AGENT_REGISTERED, {"agent_id": "test"})
 
     assert adapter._forwarded == 0
     assert adapter._failed == 1
@@ -169,11 +179,14 @@ def test_chain_integrity_preserved():
 
     # Emit a variety of events
     bus.publish(EventType.ACTION_INTENT, {"query": "organize invoices"})
-    bus.publish(EventType.ACTION_RECEIPT, {
-        "action_type": "organize",
-        "ihsan_composite": 0.96,
-        "receipt_hash": "hash_abc",
-    })
+    bus.publish(
+        EventType.ACTION_RECEIPT,
+        {
+            "action_type": "organize",
+            "ihsan_composite": 0.96,
+            "receipt_hash": "hash_abc",
+        },
+    )
     bus.publish(EventType.SESSION_END, {"duration_s": 42})
 
     # Python chain must be intact

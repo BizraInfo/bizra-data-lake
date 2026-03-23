@@ -16,7 +16,6 @@ Requires: maturin develop --release in bizra-omega/bizra-python/
 """
 
 import json
-import os
 
 import pytest
 

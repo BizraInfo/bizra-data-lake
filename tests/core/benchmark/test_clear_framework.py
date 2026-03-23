@@ -22,7 +22,6 @@ from core.benchmark.clear_framework import (
     CLEARMetrics,
     CostMetrics,
     EfficacyMetrics,
-    EvaluationContext,
     LatencyMetrics,
     MetricWeight,
     ReliabilityMetrics,

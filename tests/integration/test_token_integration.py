@@ -39,7 +39,6 @@ from core.token.types import (
     SEED_SUPPLY_CAP_PER_YEAR,
     SYSTEM_TREASURY_ALLOCATION,
     ZAKAT_RATE,
-    TokenOp,
     TokenType,
 )
 
@@ -354,7 +353,7 @@ class TestPoITokenBridge:
             contributors={"alice": 0.5, "bob": 0.5},
         )
 
-        result = bridge.distribute_epoch(audit, epoch_reward=10000)
+        bridge.distribute_epoch(audit, epoch_reward=10000)
 
         ledger = bridge.minter.ledger
         alice_bal = ledger.get_balance("alice", TokenType.SEED)
@@ -366,7 +365,7 @@ class TestPoITokenBridge:
         bridge = _create_bridge(tmp_path)
         audit = _make_audit_trail(epoch_id="epoch-3")
 
-        result = bridge.distribute_epoch(
+        bridge.distribute_epoch(
             audit, epoch_reward=10000, impt_multiplier=100.0
         )
 
@@ -636,13 +635,8 @@ class TestCrossModuleWiring:
     def test_token_module_imports(self):
         """All public token types are importable from core.token."""
         from core.token import (
-            TokenBalance,
-            TokenLedger,
-            TokenMinter,
             TokenOp,
-            TokenReceipt,
             TokenType,
-            TransactionEntry,
         )
 
         assert TokenType.SEED.value == "SEED"

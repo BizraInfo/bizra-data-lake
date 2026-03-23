@@ -17,8 +17,6 @@ Constitutional Alignment:
 Created: 2026-02-15 | BIZRA Node0 Proactive Pilot | Peak Masterpiece Protocol
 """
 
-import time
-from typing import Any, Dict
 
 import pytest
 
@@ -33,13 +31,9 @@ class TestPillarA_PackageImports:
     def test_a1_abstraction_level_imports(self):
         """Import all abstraction level types from core.hrm."""
         from core.hrm import (
-            HRM_SNR_GRADIENT,
-            HRM_TEMPORAL_SCALE,
             AbstractionLevel,
             BridgeNodeType,
-            LevelBoundary,
             LevelConfig,
-            TemporalScale,
             default_boundaries,
             default_level_configs,
         )
@@ -53,12 +47,9 @@ class TestPillarA_PackageImports:
     def test_a2_cross_level_bridge_imports(self):
         """Import all cross-level bridge types from core.hrm."""
         from core.hrm import (
-            CascadeResult,
             CrossLevelBridge,
-            CrossLevelMessage,
             MessageType,
             PropagationDirection,
-            SyncResult,
         )
 
         assert CrossLevelBridge is not None
@@ -70,9 +61,7 @@ class TestPillarA_PackageImports:
         """Import all meta-level types from core.hrm."""
         from core.hrm import (
             MetaAutopoieticLevel,
-            MetaObservation,
             MetaOperation,
-            MetaProposal,
             TriggerCondition,
         )
 
@@ -84,10 +73,7 @@ class TestPillarA_PackageImports:
         """Import all engine types from core.hrm."""
         from core.hrm import (
             HierarchicalReasoningModel,
-            HRMConfig,
-            HRMCycleResult,
             HRMStatus,
-            LevelCycleResult,
         )
 
         assert HierarchicalReasoningModel is not None
@@ -125,9 +111,6 @@ class TestPillarB_AbstractionLevels:
         from core.hrm import HRM_SNR_GRADIENT, AbstractionLevel
         from core.integration.constants import (
             SNR_THRESHOLD_T0_ELITE,
-            SNR_THRESHOLD_T1_HIGH,
-            SNR_THRESHOLD_T2_STANDARD,
-            SNR_THRESHOLD_T3_ACCEPTABLE,
             UNIFIED_SNR_THRESHOLD,
         )
 
@@ -166,7 +149,7 @@ class TestPillarB_AbstractionLevels:
 
     def test_b4_default_boundaries(self):
         """Default boundaries create bidirectional links between adjacent levels."""
-        from core.hrm import AbstractionLevel, default_boundaries
+        from core.hrm import default_boundaries
 
         boundaries = default_boundaries()
         # 4 pairs × 2 directions = 8 boundaries
@@ -510,9 +493,7 @@ class TestPillarE_HierarchicalEngine:
     def test_e2_single_cycle_produces_results(self):
         """A single cycle runs all 5 levels and produces compound SNR."""
         from core.hrm import (
-            AbstractionLevel,
             HierarchicalReasoningModel,
-            HRMConfig,
             HRMStatus,
         )
 
@@ -607,7 +588,7 @@ class TestPillarE_HierarchicalEngine:
 
     def test_e5_level_cycle_success_property(self):
         """LevelCycleResult.success checks against level-specific SNR threshold."""
-        from core.hrm import HRM_SNR_GRADIENT, AbstractionLevel, LevelCycleResult
+        from core.hrm import AbstractionLevel, LevelCycleResult
 
         # L0 threshold = 0.85
         passing = LevelCycleResult(
@@ -663,7 +644,7 @@ class TestPillarF_CampaignAndTelemetry:
 
     def test_f3_hierarchy_status_comprehensive(self):
         """get_hierarchy_status returns all expected fields."""
-        from core.hrm import AbstractionLevel, HierarchicalReasoningModel
+        from core.hrm import HierarchicalReasoningModel
 
         hrm = HierarchicalReasoningModel()
         hrm.run_cycle()

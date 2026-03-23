@@ -25,17 +25,13 @@ Standing on Giants: Shannon (SNR) + Besta (GoT) + Anthropic (Constitutional AI)
 from __future__ import annotations
 
 import asyncio
-import signal
 import time
-from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional
+from typing import Any, List
 from unittest.mock import (
     AsyncMock,
     MagicMock,
-    PropertyMock,
-    call,
     patch,
 )
 
@@ -43,10 +39,7 @@ import pytest
 
 from core.sovereign.runtime_core import SovereignRuntime
 from core.sovereign.runtime_types import (
-    HealthStatus,
     RuntimeConfig,
-    RuntimeMetrics,
-    RuntimeMode,
     SovereignQuery,
     SovereignResult,
 )
@@ -986,7 +979,7 @@ class TestOptimizeSNR:
 
         with patch(
             "core.sovereign.runtime_core.SovereignRuntime._optimize_snr"
-        ) as orig:
+        ):
             # Call the actual method
             pass
 
@@ -2768,7 +2761,7 @@ class TestCreateContextManager:
             ) as mock_shutdown,
         ):
             with pytest.raises(ValueError, match="intentional"):
-                async with SovereignRuntime.create(cfg) as rt:
+                async with SovereignRuntime.create(cfg):
                     raise ValueError("intentional")
 
             mock_shutdown.assert_awaited_once()

@@ -15,10 +15,9 @@ Invariants verified:
 5. SNR facade dispatch determinism
 """
 
-from pathlib import Path
 
 import pytest
-from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from core.vault.vault import SovereignVault

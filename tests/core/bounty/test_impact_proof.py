@@ -14,7 +14,6 @@ Blueprint Reference: P3 Coverage Ratchet — bounty module (0.25 → higher)
 
 from datetime import datetime, timezone
 
-import pytest
 
 from core.bounty.impact_proof import (
     DomainEvent,

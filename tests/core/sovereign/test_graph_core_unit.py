@@ -19,8 +19,6 @@ from core.sovereign.graph_core import GraphOfThoughts
 from core.sovereign.graph_types import (
     EdgeType,
     ReasoningStrategy,
-    ThoughtEdge,
-    ThoughtNode,
     ThoughtType,
 )
 

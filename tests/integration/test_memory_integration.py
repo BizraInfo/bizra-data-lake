@@ -21,7 +21,7 @@ from core.memory.config import HNSWConfig, MemoryConfig
 from core.memory.coordinator_bridge import AgentDBBridge
 from core.memory.health import AgentDBHealthChecker, HealthStatus
 from core.memory.orchestrator import MigrationOrchestrator
-from core.memory.sync import MemorySyncPublisher, MemorySyncSubscriber
+from core.memory.sync import MemorySyncSubscriber
 from core.memory.types import MemoryKind, MemoryRecord, RecordState
 
 # ── Fixtures ──────────────────────────────────────────────────────────

@@ -10,11 +10,11 @@ Standing on the Shoulders of Giants:
 إحسان — Excellence in all things.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from core.benchmark.clear_framework import CLEARMetrics, MetricWeight
+from core.benchmark.clear_framework import MetricWeight
 from core.benchmark.dominance_loop import (
     BenchmarkDominanceLoop,
     CycleOutcome,
@@ -23,7 +23,7 @@ from core.benchmark.dominance_loop import (
     LoopPhase,
     LoopState,
 )
-from core.benchmark.leaderboard import Benchmark, SubmissionResult, SubmissionStatus
+from core.benchmark.leaderboard import Benchmark
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Enums & Dataclasses

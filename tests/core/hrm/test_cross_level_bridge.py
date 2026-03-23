@@ -15,7 +15,6 @@ Covers:
 Blueprint Reference: P3 Coverage Ratchet — hrm module (0.25 → higher)
 """
 
-import pytest
 
 from core.hrm.abstraction_levels import AbstractionLevel
 from core.hrm.cross_level_bridge import (
@@ -141,7 +140,7 @@ class TestHypothesisPropagation:
 
     def test_low_confidence_blocked(self):
         bridge = CrossLevelBridge()
-        messages = bridge.propagate_hypothesis(
+        bridge.propagate_hypothesis(
             {"claim": "test"},
             AbstractionLevel.OPERATIONAL,
             PropagationDirection.UPWARD,

@@ -14,7 +14,6 @@ Blueprint Reference: Elite Implementation Blueprint v1.0 — P4 FRONTIER Tier
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from core.cognitive_fusion.fusion_engine import (
     CognitiveFusionEngine,

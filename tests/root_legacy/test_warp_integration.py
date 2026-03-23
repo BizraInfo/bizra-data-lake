@@ -60,7 +60,7 @@ def test_warp_bridge_init():
     print("TEST 3: WARP Bridge Initialization")
     print("=" * 60)
 
-    from warp_bridge import WARPBridge, WARPStatus
+    from warp_bridge import WARPBridge
 
     bridge = WARPBridge(lazy_init=True)
 

@@ -196,6 +196,5 @@ if __name__ == "__main__":
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "httpx"]
         )  # noqa: S603
-        import httpx
 
     sys.exit(asyncio.run(main()))

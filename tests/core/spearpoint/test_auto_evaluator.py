@@ -13,16 +13,12 @@ Verifies:
 """
 
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
-from core.proof_engine.evidence_ledger import EvidenceLedger
 from core.proof_engine.ihsan_gate import IhsanComponents
 from core.spearpoint.auto_evaluator import (
     AutoEvaluator,
-    EvaluationResult,
-    ExperimentDesign,
     Verdict,
 )
 from core.spearpoint.config import (

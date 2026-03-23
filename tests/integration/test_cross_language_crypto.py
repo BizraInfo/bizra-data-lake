@@ -21,7 +21,6 @@ SHA-256 → BLAKE3 migration in all proof/PCI paths.
 """
 
 import json
-import struct
 
 import pytest
 
@@ -331,7 +330,7 @@ class TestEd25519BLAKE3Interop:
         """Ed25519Signer.sign() output verifiable by crypto.verify_signature()."""
         priv_bytes, pub_bytes, _, _ = ed25519_keypair
 
-        from core.pci.crypto import domain_separated_digest, verify_signature
+        from core.pci.crypto import verify_signature
         from core.proof_engine.canonical import hex_digest
         from core.proof_engine.receipt import Ed25519Signer
 
@@ -564,7 +563,6 @@ class TestSEC001RegressionGuard:
 
     def test_receipt_builder_produces_blake3_digests(self, blake3_mod):
         """ReceiptBuilder receipts use BLAKE3 for all digests."""
-        import hashlib
 
         from core.proof_engine.canonical import CanonPolicy, CanonQuery
         from core.proof_engine.receipt import ReceiptBuilder, SimpleSigner

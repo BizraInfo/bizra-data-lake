@@ -12,7 +12,6 @@ Covers:
 
 import json
 import os
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -118,7 +117,7 @@ class TestOnboardingWizard:
             assert mode == 0o600, f"Expected 0o600, got {oct(mode)}"
 
     def test_onboard_with_name(self, wizard):
-        credentials = wizard.onboard(name="TestUser")
+        wizard.onboard(name="TestUser")
 
         identity_data = json.loads(wizard.identity_file.read_text())
         assert identity_data.get("metadata", {}).get("display_name") == "TestUser"

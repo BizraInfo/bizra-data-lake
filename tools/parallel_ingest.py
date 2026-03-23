@@ -8,17 +8,13 @@ Designed for 500k+ file ingestion with SHA-256 hashing.
 
 import hashlib
 import json
-import os
 import random
 import re
-import sys
 import time
-import traceback
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 # Configuration
 PROJECT_ROOT = Path(__file__).parent
@@ -349,7 +345,7 @@ def main():
                     "bytes_processed": bytes_processed,
                 },
             )
-            print(f"  [Checkpoint saved]")
+            print("  [Checkpoint saved]")
 
     # Final save
     save_checkpoint(

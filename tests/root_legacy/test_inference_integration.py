@@ -20,17 +20,14 @@ import asyncio
 import os
 import sys
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from core.inference.gateway import (
-    ComputeTier,
     InferenceConfig,
     InferenceGateway,
-    InferenceStatus,
 )
 
 # Configuration
@@ -94,7 +91,7 @@ async def test_inference_pipeline():
     init_time = time.time() - start
 
     if not success:
-        print(f"❌ Gateway failed to initialize")
+        print("❌ Gateway failed to initialize")
         print(f"   Status: {gateway.status.value}")
         return False
 
@@ -118,7 +115,7 @@ async def test_inference_pipeline():
     # Test 2: BIZRA-specific knowledge
     print("[3/4] BIZRA context test...")
     prompt = """You are Maestro, an AI assistant for BIZRA - a sovereignty infrastructure project.
-    
+
 User: What does BIZRA stand for?
 
 Maestro: Based on my knowledge, BIZRA"""

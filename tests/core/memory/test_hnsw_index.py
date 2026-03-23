@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pytest
 
-from core.memory.config import HNSWConfig
 from core.memory.hnsw_index import HNSWIndex
 
 from .conftest import random_embedding

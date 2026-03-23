@@ -20,9 +20,8 @@ Usage:
 
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, List
 
 # Import BLAKE3 from proof engine (deterministic, cross-language compatible)
 from core.proof_engine.canonical import blake3_digest, canonical_bytes

@@ -30,32 +30,24 @@ Principle: لا نفترض — We do not assume. We verify, synthesize, execute.
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-import asyncio
-import hashlib
-import json
 import os
 import sys
-import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 # Add golden_gems to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from golden_gems.algebraic_effects import (
-    AuthEffect,
-    Effect,
     EffectRuntime,
-    IhsanEffect,
-    LogEffect,
 )
-from golden_gems.colimit_interface import ColimitDispatcher, UniversalOp
+from golden_gems.colimit_interface import ColimitDispatcher
 from golden_gems.context_router import CognitiveDepth, ContextRouter, QueryAnalyzer
-from golden_gems.ihsan_circuit import IhsanCircuit, IhsanVector, IhsanViolation
-from golden_gems.temporal_memory import MemoryItem, TemporalMemoryHierarchy
+from golden_gems.ihsan_circuit import IhsanCircuit, IhsanVector
+from golden_gems.temporal_memory import TemporalMemoryHierarchy
 from golden_gems.unified_stalk import UnifiedStalk
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -987,7 +979,7 @@ def main():
     print("   SYNTHESIS COMPLETE")
     print("=" * 70)
 
-    print(f"\n📊 Status:")
+    print("\n📊 Status:")
     status = engine.get_status()
     for key, value in status.items():
         if isinstance(value, dict):
@@ -997,7 +989,7 @@ def main():
         else:
             print(f"   {key}: {value}")
 
-    print(f"\n📈 Trajectories:")
+    print("\n📈 Trajectories:")
     print("   Phase      | Ihsān | SNR")
     print("   -----------|-------|------")
     for phase in Phase:
@@ -1005,7 +997,7 @@ def main():
         snr = roadmap.snr_trajectory.get(phase, 0)
         print(f"   {phase.value:10} | {ihsan:.2f}  | {snr:.2f}")
 
-    print(f"\n🎯 Critical Path:")
+    print("\n🎯 Critical Path:")
     for i, item in enumerate(engine.get_critical_path(), 1):
         print(
             f"   {i}. {item['id']} ({item['phase']}) — {item['pattern']} — {item['effort_hours']}h"

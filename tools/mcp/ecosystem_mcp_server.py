@@ -22,7 +22,6 @@ Migrated to MCP SDK: 2026-02-18
 
 import argparse
 import asyncio
-import contextlib
 import hashlib
 import json
 import logging
@@ -31,7 +30,6 @@ import sys
 import time
 from collections import OrderedDict
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from io import StringIO
 from typing import Any, Dict, Optional
 
 # Set up path to ensure imports work
@@ -248,7 +246,7 @@ async def _do_compliance(text: str) -> Dict[str, Any]:
 
 
 async def _do_daughter_test(text: str) -> Dict[str, Any]:
-    bridge = await _get_bridge()
+    await _get_bridge()
     _lazy_import()
     if _DaughterTest is None:
         return {"error": "DaughterTest module not available"}
@@ -550,7 +548,7 @@ class MCPHTTPHandler(BaseHTTPRequestHandler):
 
         try:
             health_data = _do_mcp_health()
-            status_color = "#0f0" if health_data.get("error_count", 0) == 0 else "#fa0"
+            "#0f0" if health_data.get("error_count", 0) == 0 else "#fa0"
 
             html = f"""<!DOCTYPE html>
             <html>

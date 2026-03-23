@@ -4,8 +4,7 @@ Tests for Knowledge Integration — BIZRA Data Lake + MoMo R&D
 Validates the knowledge integrator and swarm knowledge bridge.
 """
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -21,7 +20,6 @@ from core.sovereign.swarm_knowledge_bridge import (
     AgentKnowledgeContext,
     KnowledgeInjection,
     SwarmKnowledgeBridge,
-    create_swarm_knowledge_bridge,
 )
 from core.sovereign.team_planner import AgentRole
 

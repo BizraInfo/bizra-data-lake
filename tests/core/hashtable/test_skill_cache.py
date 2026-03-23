@@ -6,7 +6,6 @@ Standing on Giants: Kahneman (2011), Anderson (1982)
 
 import threading
 import time
-from unittest.mock import patch
 
 import pytest
 

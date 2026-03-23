@@ -8,13 +8,12 @@ node0 pipeline without breaking the result format or feature flag behavior.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from core.swarm.engine import (
-    HierarchicalMeshStrategy,
     ParallelStrategy,
     SequentialStrategy,
     SwarmEngine,

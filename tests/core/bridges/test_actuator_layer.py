@@ -14,13 +14,11 @@ import json
 import time
 import uuid
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 
 from core.bridges.desktop_bridge import (
     ACTUATOR_ENTROPY_THRESHOLD,
-    BRIDGE_HOST,
     DesktopBridge,
 )
 from core.spearpoint.actuator_skills import (

@@ -10,7 +10,6 @@ Genesis Strict Synthesis v2.2.2
 
 import shutil
 import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -496,7 +495,7 @@ class TestHypothesisGenerator:
         hypotheses = generator.generate(obs)
 
         # Should potentially include compound stress hypothesis
-        compound_hypos = [
+        [
             h for h in hypotheses if "compound" in h.trigger_pattern.lower()
         ]
         # Note: This may or may not trigger depending on exact thresholds

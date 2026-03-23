@@ -13,12 +13,10 @@ These tests are marked @pytest.mark.slow and excluded from default CI runs.
 from __future__ import annotations
 
 import gc
-import os
-import sys
 import time
 import tracemalloc
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
 import pytest

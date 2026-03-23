@@ -1,8 +1,6 @@
 """Tests for RecursiveGainTracker — verifies improvement detection is honest."""
 
 from core.benchmark.recursive_gain_tracker import (
-    GainObservation,
-    GainReport,
     RecursiveGainTracker,
 )
 

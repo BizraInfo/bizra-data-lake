@@ -7,9 +7,9 @@ Returns actionable suggestions for the Ghost Panel.
 Standing on: Boyd (OODA observe), OpenClaw (24/7 awareness).
 """
 
+import json
 import os
 import time
-import json
 from pathlib import Path
 from typing import Dict, List
 

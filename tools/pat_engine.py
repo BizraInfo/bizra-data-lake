@@ -7,15 +7,12 @@
 
 import asyncio
 import base64
-import hashlib
-import json
 import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 
@@ -1219,7 +1216,7 @@ class PATOrchestrator:
     def _select_agents(self, task: str, strategy: str) -> List[str]:
         """Auto-select appropriate agents based on task type."""
         task_lower = task.lower()
-        strategy_lower = strategy.lower()
+        strategy.lower()
 
         agents = []
 
@@ -1340,7 +1337,7 @@ async def main():
     while maintaining quality.
     """
 
-    print(f"\n--- Processing Task ---")
+    print("\n--- Processing Task ---")
     print(f"Task: {test_task.strip()}")
     print("-" * 50)
 
@@ -1348,19 +1345,19 @@ async def main():
         task=test_task, agents_to_use=["researcher", "analyst", "creator"]
     )
 
-    print(f"\n--- Results ---")
+    print("\n--- Results ---")
     print(f"SNR Score: {result['snr_score']:.3f}")
     print(f"Ihsan Achieved: {result['ihsan_achieved']}")
     print(f"Execution Time: {result['execution_time']}s")
     print(f"Total Tokens: {result['total_tokens']}")
 
-    print(f"\n--- Agent Contributions ---")
+    print("\n--- Agent Contributions ---")
     for contrib in result["agent_contributions"]:
         print(
             f"  {contrib['agent']}: confidence={contrib['confidence']:.2f}, tokens={contrib['tokens']}"
         )
 
-    print(f"\n--- Synthesis ---")
+    print("\n--- Synthesis ---")
     print(
         result["synthesis"][:500] + "..."
         if len(result["synthesis"]) > 500
@@ -1368,7 +1365,7 @@ async def main():
     )
 
     if result["quality_assessment"]:
-        print(f"\n--- Quality Assessment ---")
+        print("\n--- Quality Assessment ---")
         print(result["quality_assessment"][:300] + "...")
 
 

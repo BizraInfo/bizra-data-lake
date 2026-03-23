@@ -25,7 +25,6 @@ from core.proof_engine.schema_validator import (
     _load_schema,
     _validate_structural,
     list_schemas,
-    validate,
     validate_attestation,
     validate_reasoning_graph,
     validate_receipt,

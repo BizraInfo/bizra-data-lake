@@ -15,7 +15,6 @@ Standing on Giants: Shannon + Besta + Anthropic + SAPE Framework
 """
 
 import asyncio
-import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -24,9 +23,7 @@ import pytest
 from core.sovereign.runtime_types import (
     RuntimeConfig,
     RuntimeMetrics,
-    RuntimeMode,
     SNRResult,
-    SovereignQuery,
 )
 
 # =============================================================================
@@ -184,7 +181,6 @@ class TestMuraqabahBridge:
     @pytest.mark.asyncio
     async def test_bridge_matches_event_api(self):
         """The bridge function should reference .topic and .payload."""
-        from core.sovereign.event_bus import Event
         from core.sovereign.opportunity_pipeline import (
             OpportunityPipeline,
             connect_muraqabah_to_pipeline,

@@ -10,22 +10,15 @@ Covers:
 Blueprint Reference: Section 3.1 — P0 Learning Loop Bridges
 """
 
-from datetime import datetime, timedelta, timezone
 
-import pytest
 
 from core.autopoiesis.sdpo_bridge import (
     AutopoiesisSDPOBridge,
-    BridgeResult,
     EvolutionTrace,
 )
 from core.sdpo.reflex_bridge import (
-    REFLEX_IHSAN_THRESHOLD,
-    REFLEX_MIN_OBSERVATIONS,
-    REFLEX_REPRODUCIBILITY_THRESHOLD,
     ReflexCandidate,
     SDPOReflexBridge,
-    TrainingObservation,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════

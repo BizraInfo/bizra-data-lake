@@ -6,14 +6,11 @@ Validates conventional commit parsing, changelog generation,
 markdown rendering, and evidence hashing.
 """
 
-import json
-from pathlib import Path
 
 import pytest
 
 from scripts.ci_changelog_gen import (
     ChangelogRelease,
-    ParsedCommit,
     generate_changelog,
     parse_commit,
     render_markdown,

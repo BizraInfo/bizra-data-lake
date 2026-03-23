@@ -14,25 +14,12 @@
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 """
 
-import asyncio
-import hashlib
-import json
-import os
-import sys
-import time
-from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pytest
 
 # Ecosystem Bridge
 from ecosystem_bridge import (
-    APEX_AVAILABLE,
-    BRIDGE_AVAILABLE,
-    HYPERLOOPBACK_AVAILABLE,
-    ORCHESTRATOR_AVAILABLE,
-    PEAK_AVAILABLE,
     ULTIMATE_ENGINE_AVAILABLE,
     ComponentStatus,
     EcosystemBridge,
@@ -41,38 +28,23 @@ from ecosystem_bridge import (
     UnifiedResponse,
 )
 from ecosystem_bridge import __version__ as BRIDGE_VERSION
-from ecosystem_bridge import (
-    get_ecosystem,
-    initialize_ecosystem,
-)
 
 # Ultimate Engine (Core)
 from ultimate_engine import (
     DISCIPLINE_COUNT,
     EMBEDDING_DIM,
-    FATE_GATE_THRESHOLD,
     IHSAN_FLOOR,
     RIBA_ZERO,
     SNR_ACCEPTABLE,
     SNR_IHSAN,
     SNR_MINIMUM,
     ZANN_ZERO,
-    CompactionEngine,
-    Constitution,
-    DaughterTest,
-    EvidencePointer,
     FATEGate,
     GraphOfThoughts,
     HookEvent,
     HookRegistry,
     IhsanCalculator,
-    LocalEconomicSystem,
-    LocalMerkleDAG,
-    LocalReasoningEngine,
-    Receipt,
     SNROptimizer,
-    ThoughtNode,
-    ThoughtType,
     UltimateEngine,
     WinterProofEmbedder,
 )
@@ -139,7 +111,6 @@ class TestKernelInvariantsAcrossModules:
 
     def test_riba_zero_ultimate_engine(self):
         """RIBA_ZERO must be True in Ultimate Engine."""
-        from ultimate_engine import RIBA_ZERO
 
         assert RIBA_ZERO is True
 

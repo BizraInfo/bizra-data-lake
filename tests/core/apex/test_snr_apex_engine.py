@@ -13,14 +13,11 @@ through interdisciplinary synthesis and autonomous optimization.
 
 from __future__ import annotations
 
-import asyncio
 
 # Import the module directly (avoids numpy dependency chain)
 import importlib.util
-import math
 import sys
 from dataclasses import FrozenInstanceError
-from typing import TYPE_CHECKING
 
 import pytest
 
@@ -259,7 +256,7 @@ class TestGraphOfThoughts:
     def test_get_best_path(self, graph_of_thoughts):
         """Test best path extraction."""
         root = graph_of_thoughts.add_thought("Root", ThoughtType.HYPOTHESIS, 0.9, 0.9)
-        child = graph_of_thoughts.add_thought(
+        graph_of_thoughts.add_thought(
             "Child", ThoughtType.EVIDENCE, 0.95, 0.95, parent_id=root.id
         )
 
@@ -514,7 +511,7 @@ class TestPerformance:
         engine = ApexReasoningEngine()
 
         start = time.perf_counter()
-        result = await engine.reason("Quick test")
+        await engine.reason("Quick test")
         elapsed = time.perf_counter() - start
 
         # Should complete in under 5 seconds

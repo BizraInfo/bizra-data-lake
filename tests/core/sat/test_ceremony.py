@@ -10,7 +10,6 @@ import json
 import pytest
 
 from core.sat.ceremony import GenesisReceipt, genesis_100_ceremony
-from core.sat.gate_result import CheckResult, CheckStatus, GateResult
 
 
 class TestGenesisReceipt:

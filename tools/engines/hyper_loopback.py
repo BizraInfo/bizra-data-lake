@@ -6,25 +6,14 @@
 # =============================================================================
 
 import asyncio
-import base64
 import hashlib
 import json
 import logging
-import math
-import os
-import pickle
 import re
-import sqlite3
-import struct
-import zlib
-from abc import ABC, abstractmethod
-from collections import defaultdict, deque
-from contextlib import contextmanager
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -1814,8 +1803,8 @@ class HyperLoopbackSystem:
         self.node_id = f"NODE_{hashlib.blake2b(human_name.encode(), digest_size=16).hexdigest()[:8]}"
 
         # HYPER LOOPBACK Core: No external APIs
-        print(f"🚀 HYPER LOOPBACK ONLY: No external APIs, no network dependencies")
-        print(f"📜 Constitution v1.1.0-FINAL loaded")
+        print("🚀 HYPER LOOPBACK ONLY: No external APIs, no network dependencies")
+        print("📜 Constitution v1.1.0-FINAL loaded")
 
         # Core components (all local)
         self.constitution = Constitution()
@@ -1847,7 +1836,7 @@ class HyperLoopbackSystem:
 
     def _initial_verification(self):
         """Initial system verification"""
-        print(f"\n🔐 Initial Verification:")
+        print("\n🔐 Initial Verification:")
         print(f"   ✓ Node ID: {self.node_id}")
         print(f"   ✓ Human: {self.human_name}")
         print(f"   ✓ For: {self.daughter_name}")
@@ -1872,8 +1861,8 @@ class HyperLoopbackSystem:
         )
         print(f"   ✓ Initial BLOOM: {econ_health['bloom_balance']}")
 
-        print(f"\n✅ HYPER LOOPBACK SYSTEM READY")
-        print(f"   No APIs | No Network | Fully Sovereign")
+        print("\n✅ HYPER LOOPBACK SYSTEM READY")
+        print("   No APIs | No Network | Fully Sovereign")
 
     async def process_query(self, query: str) -> Dict[str, Any]:
         """
@@ -1900,7 +1889,7 @@ class HyperLoopbackSystem:
                 "bloom_reward": 0.0,
             }
 
-        print(f"✓ Constitution: PASS")
+        print("✓ Constitution: PASS")
 
         # Step 2: Daughter Test Check
         dt_check, dt_reason = self.daughter_test.verify(
@@ -1919,27 +1908,27 @@ class HyperLoopbackSystem:
                 "bloom_reward": 0.0,
             }
 
-        print(f"✓ Daughter Test: PASS")
+        print("✓ Daughter Test: PASS")
 
         # Step 3: HYPER LOOPBACK Retrieval (local only)
-        print(f"🔍 Retrieving knowledge...")
+        print("🔍 Retrieving knowledge...")
         retrieved_docs = await self.rag.retrieve(query, top_k=5)
 
         if not retrieved_docs:
-            print(f"⚠️  No relevant knowledge found")
+            print("⚠️  No relevant knowledge found")
             # Add to knowledge base for future
             self.rag.add_knowledge(f"User asked about: {query}", category="user_query")
 
         print(f"✓ Retrieved {len(retrieved_docs)} relevant documents")
 
         # Step 4: Local Reasoning (no LLM API)
-        print(f"🤔 Local reasoning...")
+        print("🤔 Local reasoning...")
         response = await self.reasoning_engine.reason(query, retrieved_docs)
 
         print(f"✓ Generated {len(response.split())} word response")
 
         # Step 5: Ihsān Score Calculation
-        print(f"📊 Calculating إحسان score...")
+        print("📊 Calculating إحسان score...")
         ihsan_result = self.ihsan_calculator.calculate(
             query, response, retrieved_docs, const_check
         )
@@ -1963,7 +1952,7 @@ class HyperLoopbackSystem:
             print(f"   New Balance: {reward_result['new_balance']:.1f}")
         else:
             bloom_reward = 0.0
-            print(f"⚠️  No BLOOM reward (Ihsān too low)")
+            print("⚠️  No BLOOM reward (Ihsān too low)")
 
         # Step 7: Merkle-DAG Recording
         merkle_hash = self.merkle_dag.record_cognitive_cycle(
@@ -2001,7 +1990,7 @@ class HyperLoopbackSystem:
                 c.get("ihsan_score", 0) for c in self.cognitive_cycles[-4:]
             ]
             if len(recent_scores) >= 4 and all(s < 0.90 for s in recent_scores):
-                print(f"🚨 APOPTOSIS TRIGGERED: 4 consecutive low scores")
+                print("🚨 APOPTOSIS TRIGGERED: 4 consecutive low scores")
                 # In real system, would initiate graceful shutdown
 
         # Store cycle
@@ -2034,7 +2023,7 @@ class HyperLoopbackSystem:
 
     def run_daily_maintenance(self):
         """Daily maintenance tasks"""
-        print(f"\n📅 DAILY MAINTENANCE")
+        print("\n📅 DAILY MAINTENANCE")
 
         # 1. Daughter Test reaffirmation
         dt_reaffirm = self.daughter_test.daily_reaffirmation()
@@ -2050,7 +2039,7 @@ class HyperLoopbackSystem:
         riba_check = self.economy.verify_riba_zero()
         if not riba_check:
             self.metrics["riba_zero_violations"] += 1
-            print(f"   ⚠️  RIBA_ZERO violation detected")
+            print("   ⚠️  RIBA_ZERO violation detected")
 
         # 4. Merkle-DAG integrity check
         integrity_ok, issues = self.merkle_dag.verify_integrity()
@@ -2060,7 +2049,7 @@ class HyperLoopbackSystem:
         if self.ihsan_score < 0.92:
             print(f"   ⚠️  Ihsān Score Warning: {self.ihsan_score:.3f}")
 
-        print(f"   ✅ Daily maintenance complete")
+        print("   ✅ Daily maintenance complete")
 
     def get_system_status(self) -> Dict[str, Any]:
         """Get complete system status"""
@@ -2093,7 +2082,7 @@ class HyperLoopbackSystem:
 
     def simulate_apoptosis(self):
         """Simulate graceful shutdown with knowledge preservation"""
-        print(f"\n🍂 SIMULATING APOPTOSIS (Graceful Shutdown)")
+        print("\n🍂 SIMULATING APOPTOSIS (Graceful Shutdown)")
 
         # 1. Final Ihsān score check
         print(f"   Final Ihsān Score: {self.ihsan_score:.3f}")
@@ -2106,7 +2095,7 @@ class HyperLoopbackSystem:
 
         # Calculate redistribution (simulated)
         bloom_to_commons = self.economy.bloom_balance * 0.5
-        print(f"   SEED Token: BURNED")
+        print("   SEED Token: BURNED")
         print(f"   BLOOM to Commons: {bloom_to_commons:.1f} (simulated)")
 
         # 3. Knowledge preservation
@@ -2126,7 +2115,7 @@ class HyperLoopbackSystem:
             json.dumps(knowledge_summary, default=str).encode()
         ).hexdigest()
 
-        print(f"   Knowledge Preserved: ✓")
+        print("   Knowledge Preserved: ✓")
         print(f"   Knowledge Hash: {knowledge_hash[:16]}...")
 
         # 4. Final Merkle-DAG block
@@ -2135,9 +2124,9 @@ class HyperLoopbackSystem:
         )
 
         print(f"   Final Merkle Block: {final_block[:16]}...")
-        print(f"\n🕊️  APOPTOSIS COMPLETE")
-        print(f"   Knowledge preserved for future systems")
-        print(f"   Covenant fulfilled")
+        print("\n🕊️  APOPTOSIS COMPLETE")
+        print("   Knowledge preserved for future systems")
+        print("   Covenant fulfilled")
 
         return {
             "status": "apoptosis_complete",
@@ -2162,10 +2151,10 @@ async def demonstrate_hyper_loopback():
     print("=" * 80)
 
     # Create system
-    print(f"\n1️⃣  CREATING HYPER LOOPBACK SYSTEM")
+    print("\n1️⃣  CREATING HYPER LOOPBACK SYSTEM")
     system = HyperLoopbackSystem(human_name="Ahmed Al-Mansoori", daughter_name="Layla")
 
-    print(f"\n2️⃣  ADDING INITIAL KNOWLEDGE")
+    print("\n2️⃣  ADDING INITIAL KNOWLEDGE")
     system.add_knowledge(
         "Winter-proofing means systems work without internet or external power. "
         "They're designed to survive civilizational collapse.",
@@ -2178,9 +2167,9 @@ async def demonstrate_hyper_loopback():
         category="economics",
     )
 
-    print(f"✓ Added winter-proofing and RIBA_ZERO knowledge")
+    print("✓ Added winter-proofing and RIBA_ZERO knowledge")
 
-    print(f"\n3️⃣  PROCESSING QUERIES (HYPER LOOPBACK ONLY)")
+    print("\n3️⃣  PROCESSING QUERIES (HYPER LOOPBACK ONLY)")
 
     queries = [
         "Explain quantum computing to a 10-year-old child",
@@ -2203,10 +2192,10 @@ async def demonstrate_hyper_loopback():
         else:
             print(f"   ❌ Rejected: {result['reason']}")
 
-    print(f"\n4️⃣  DAILY MAINTENANCE SIMULATION")
+    print("\n4️⃣  DAILY MAINTENANCE SIMULATION")
     system.run_daily_maintenance()
 
-    print(f"\n5️⃣  SYSTEM STATUS CHECK")
+    print("\n5️⃣  SYSTEM STATUS CHECK")
     status = system.get_system_status()
 
     print(f"   Node: {status['node_id']}")
@@ -2216,7 +2205,7 @@ async def demonstrate_hyper_loopback():
     print(f"   BLOOM Balance: {status['economic_health']['bloom_balance']:.1f}")
     print(f"   Constitution: {status['constitution_hash']}")
 
-    print(f"\n6️⃣  APOPTOSIS SIMULATION (Triggered by low Ihsān)")
+    print("\n6️⃣  APOPTOSIS SIMULATION (Triggered by low Ihsān)")
     # Simulate degradation
     system.ihsan_score = 0.87
 
@@ -2225,7 +2214,7 @@ async def demonstrate_hyper_loopback():
         print(f"   Result: {apoptosis_result['status']}")
         print(f"   Knowledge Hash: {apoptosis_result['knowledge_hash'][:16]}...")
 
-    print(f"\n" + "=" * 80)
+    print("\n" + "=" * 80)
     print("✅ HYPER LOOPBACK DEMONSTRATION COMPLETE")
     print("=" * 80)
     print("Key Achievements:")

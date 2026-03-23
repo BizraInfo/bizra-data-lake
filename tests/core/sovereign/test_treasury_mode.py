@@ -9,8 +9,7 @@ Validates the state machine behavior for transitioning between:
 GAP-C4: Ensures the Wealth Engine can survive unethical market conditions.
 """
 
-from datetime import datetime, timedelta
-from pathlib import Path
+from datetime import datetime
 
 import pytest
 
@@ -19,11 +18,8 @@ from core.sovereign.treasury_mode import (
     DEFAULT_BURN_RATE,
     EMERGENCY_TREASURY_UNLOCK_PERCENT,
     ETHICS_THRESHOLD_HIBERNATION,
-    ETHICS_THRESHOLD_RECOVERY,
     RESERVES_THRESHOLD_EMERGENCY,
-    RESERVES_THRESHOLD_HIBERNATION,
     EthicsAssessment,
-    TransitionEvent,
     TransitionTrigger,
     TreasuryController,
     TreasuryEvent,

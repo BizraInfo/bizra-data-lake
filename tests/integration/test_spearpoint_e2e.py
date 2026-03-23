@@ -212,7 +212,7 @@ class TestGoTRuntime:
 
         got = GraphOfThoughts()
         q = got.add_thought("What is truth?", ThoughtType.QUESTION)
-        h = got.add_thought(
+        got.add_thought(
             "Truth is verifiable.", ThoughtType.HYPOTHESIS, parent_id=q.id
         )
 
@@ -606,7 +606,7 @@ class TestTokenPoIIntegration:
             rebalance_triggered=False,
             config_digest="test-hash",
         )
-        summary = bridge.distribute_epoch(audit=audit, epoch_reward=1000.0)
+        bridge.distribute_epoch(audit=audit, epoch_reward=1000.0)
 
         community_bal = ledger.get_balance("BIZRA-COMMUNITY-FUND", TokenType.SEED)
         assert community_bal.balance > 0
@@ -774,7 +774,7 @@ class TestFullE2E:
             rebalance_triggered=False,
             config_digest="test-hash",
         )
-        summary = bridge.distribute_epoch(audit=audit, epoch_reward=500.0)
+        bridge.distribute_epoch(audit=audit, epoch_reward=500.0)
 
         # Verify tokens distributed
         node_balance = token_ledger.get_balance(config.node_id, TokenType.SEED)

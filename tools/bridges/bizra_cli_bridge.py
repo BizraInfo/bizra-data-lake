@@ -170,7 +170,7 @@ class LMStudioBridge:
                 )
 
             return models
-        except Exception as e:
+        except Exception:
             return []
 
     async def get_loaded_model(self) -> Optional[str]:

@@ -12,17 +12,11 @@ import asyncio
 
 import pytest
 
-from core.autopoiesis import (
-    MUTATION_RATE,
-    POPULATION_SIZE,
-    UNIFIED_IHSAN_THRESHOLD,
-)
 from core.autopoiesis.emergence import (
     BehaviorSignature,
     EmergenceDetector,
     EmergenceReport,
     EmergenceType,
-    NoveltyLevel,
 )
 from core.autopoiesis.evolution import (
     EvolutionConfig,
@@ -39,15 +33,12 @@ from core.autopoiesis.fitness import (
 )
 from core.autopoiesis.genome import (
     AgentGenome,
-    Gene,
-    GeneType,
     GenomeFactory,
 )
 from core.autopoiesis.loop import (
     AutopoiesisConfig,
     AutopoiesisPhase,
     AutopoieticLoop,
-    create_autopoietic_loop,
 )
 
 

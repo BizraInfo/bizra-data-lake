@@ -57,8 +57,8 @@ logger = logging.getLogger("sovereign.api")
 
 from core.errors import (
     AuthorityError,
-    Boundary,
     BizraError,
+    Boundary,
     BridgeError,
     ConstitutionalViolation,
     GateRejection,

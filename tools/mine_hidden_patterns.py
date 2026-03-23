@@ -12,12 +12,8 @@ Embodies:
 - High SNR: Filtering for pure knowledge (Markdown/Text/JSON-Conversations).
 """
 
-import re
-from datetime import datetime
 from pathlib import Path
 
-import matplotlib.pyplot as plt  # Optional, but we'll do ASCII viz
-import numpy as np
 import pandas as pd
 
 # Configuration

@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from core.urp.service import URPService, URPGenesisReceipt
+from core.urp.service import URPGenesisReceipt, URPService
 
 logger = logging.getLogger("bizra.urp.genesis")
 

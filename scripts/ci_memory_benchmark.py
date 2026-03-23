@@ -41,7 +41,6 @@ from core.memory.memory_patterns import (
     MemoryTier,
     SessionMemory,
 )
-from core.memory.types import MemoryKind
 
 # ── Ratcheted Thresholds (ms) ─────────────────────────────────────────
 # These are the max allowed latencies. Tighten over time (never loosen).
@@ -147,7 +146,7 @@ def run_benchmarks(tmp_dir: Path) -> List[BenchmarkResult]:
             importance=0.3 + (i % 7) * 0.1,
             embedding=_fake_embedding(64, i + 1),
             source=f"bench_src_{i % 5}",
-            tags=[f"batch", f"group:{i % 3}"],
+            tags=["batch", f"group:{i % 3}"],
         )
     ms = (time.perf_counter() - start) * 1000
     results.append(

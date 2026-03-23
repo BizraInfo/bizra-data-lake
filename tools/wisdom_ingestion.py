@@ -153,7 +153,7 @@ class WisdomIngestionEngine:
         # Create parent entry for the repo
         repo_entry = self.ingest_concept(
             name=repo_name,
-            description=f"External repository analyzed for patterns and wisdom.",
+            description="External repository analyzed for patterns and wisdom.",
             source=repo_url,
             entry_type="repository",
             tags=["external", "reference", "analyzed"],

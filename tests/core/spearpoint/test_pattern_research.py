@@ -19,7 +19,6 @@ import pytest
 from core.spearpoint.auto_evaluator import (
     AutoEvaluator,
     EvaluationResult,
-    ExperimentDesign,
     TierDecision,
     Verdict,
 )
@@ -28,7 +27,6 @@ from core.spearpoint.auto_researcher import (
     ResearchOutcome,
     ResearchResult,
 )
-from core.spearpoint.config import SpearpointConfig
 
 # ---------------------------------------------------------------------------
 # Fixtures

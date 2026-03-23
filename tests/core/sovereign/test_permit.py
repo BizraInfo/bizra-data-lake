@@ -16,7 +16,6 @@ Standing on Giants: General Magic (1994) · Lamport (1978) · Shannon (1948)
 from __future__ import annotations
 
 import time
-from unittest.mock import patch
 
 import pytest
 
@@ -26,7 +25,6 @@ from core.sovereign.permit import (
     Authority,
     Capability,
     Permit,
-    PermitVerification,
     ResourceBudget,
     create_hda_permit,
 )

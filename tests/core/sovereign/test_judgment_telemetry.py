@@ -5,9 +5,7 @@ Covers: verdict observation, entropy computation, stability check,
 dominant verdict detection, and epoch distribution simulation.
 """
 
-import math
 
-import pytest
 
 from core.sovereign.judgment_telemetry import (
     JudgmentTelemetry,

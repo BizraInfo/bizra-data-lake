@@ -4,7 +4,7 @@ BIZRA Heartbeat 24-Hour Gate Monitor (Phase 86-C)
 ═════════════════════════════════════════════════
 
 Starts the kernel daemon and monitors heartbeat health for 24 hours.
-Saves evidence to B:\BIZRA-SOVEREIGN\03_EVIDENCE\heartbeat_24h\
+Saves evidence to B:\\BIZRA-SOVEREIGN\03_EVIDENCE\\heartbeat_24h\
 
 Usage:
     python heartbeat_24h_gate.py
@@ -26,12 +26,10 @@ Pass/Fail criteria:
 """
 
 import json
-import time
-import os
 import sys
-import subprocess
-import urllib.request
+import time
 import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -74,10 +72,10 @@ def poll_health():
 
 def main():
     log_path, report_path = setup()
-    print(f"=== BIZRA 24-Hour Heartbeat Gate (Phase 86-C) ===")
+    print("=== BIZRA 24-Hour Heartbeat Gate (Phase 86-C) ===")
     print(f"Evidence log: {log_path}")
     print(f"Gate report:  {report_path}")
-    print(f"Duration:     24 hours")
+    print("Duration:     24 hours")
     print(f"Poll interval: {POLL_INTERVAL_S}s")
     print()
 
@@ -92,12 +90,14 @@ def main():
     health = poll_health()
     if health is None:
         print("Kernel daemon not detected on port 9740.")
-        print("Start it with: cd C:\\BIZRA-DATA-LAKE && python core\\sovereign\\kernel_daemon.py")
+        print(
+            "Start it with: cd C:\\BIZRA-DATA-LAKE && python core\\sovereign\\kernel_daemon.py"
+        )
         print("Then re-run this script.")
         sys.exit(1)
 
-    print(f"Kernel daemon detected. Starting 24-hour gate monitor.")
-    print(f"Press Ctrl+C to stop early (partial results will be saved).\n")
+    print("Kernel daemon detected. Starting 24-hour gate monitor.")
+    print("Press Ctrl+C to stop early (partial results will be saved).\n")
 
     try:
         while (time.time() - start_time) < GATE_DURATION_S:
@@ -128,11 +128,13 @@ def main():
                 else:
                     anomaly_polls += 1
                     status = "ANOMALY"
-                    anomalies.append({
-                        "time": datetime.now(timezone.utc).isoformat(),
-                        "elapsed_s": round(elapsed),
-                        "anomalies": anomaly_list,
-                    })
+                    anomalies.append(
+                        {
+                            "time": datetime.now(timezone.utc).isoformat(),
+                            "elapsed_s": round(elapsed),
+                            "anomalies": anomaly_list,
+                        }
+                    )
 
                 uptime = latest.get("uptime_s", 0)
                 rss = latest.get("rss_mb", 0)
@@ -152,7 +154,9 @@ def main():
                 }
 
                 sym = "+" if is_healthy else "!"
-                print(f"[{hours:02d}:{mins:02d}] {sym} beat={beat_count} up={int(uptime)}s rss={rss:.0f}MB reqs={reqs} {status}")
+                print(
+                    f"[{hours:02d}:{mins:02d}] {sym} beat={beat_count} up={int(uptime)}s rss={rss:.0f}MB reqs={reqs} {status}"
+                )
 
             with open(log_path, "a") as f:
                 f.write(json.dumps(entry) + "\n")
@@ -165,11 +169,7 @@ def main():
     elapsed_total = time.time() - start_time
     hours_total = elapsed_total / 3600
 
-    gate_passed = (
-        hours_total >= 24.0
-        and failed_polls == 0
-        and anomaly_polls == 0
-    )
+    gate_passed = hours_total >= 24.0 and failed_polls == 0 and anomaly_polls == 0
 
     report = {
         "gate": "BIZRA Phase 86-C: 24-Hour Heartbeat Gate",
@@ -196,7 +196,9 @@ def main():
     print(f"\n{'='*50}")
     print(f"GATE RESULT: {'PASSED' if gate_passed else 'NOT PASSED'}")
     print(f"Duration: {hours_total:.1f} hours")
-    print(f"Polls: {total_polls} total, {healthy_polls} healthy, {anomaly_polls} anomaly, {failed_polls} failed")
+    print(
+        f"Polls: {total_polls} total, {healthy_polls} healthy, {anomaly_polls} anomaly, {failed_polls} failed"
+    )
     print(f"Report: {report_path}")
     print(f"{'='*50}")
 

@@ -12,12 +12,7 @@ Target: SNR >= 0.95 (Ihsan threshold)
 Standing on Giants: pytest + asyncio + property-based testing
 """
 
-import asyncio
-import hashlib
-import math
-import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
 
 import pytest
 
@@ -29,19 +24,13 @@ from core.elite.cognitive_budget import (
     BudgetAllocation,
     BudgetTier,
     BudgetTracker,
-    BudgetUsage,
     CognitiveBudgetAllocator,
     ComplexitySignal,
     TaskType,
-    allocate_budget,
 )
 from core.elite.compute_market import (
-    DEFAULT_TAX_RATE,
-    GINI_THRESHOLD,
     ComputeLicense,
-    ComputeMarket,
     LicenseStatus,
-    MarketTransaction,
     ResourceType,
     ResourceUnit,
     create_inference_license,
@@ -52,30 +41,23 @@ from core.elite.compute_market import (
 from core.elite.hooks import (
     FATEDimension,
     FATEGate,
-    FATEGateError,
     FATEScore,
     HookContext,
     HookExecutor,
     HookPhase,
     HookPriority,
     HookRegistry,
-    HookResult,
-    fate_guarded,
-    register_hook,
 )
 from core.elite.session_dag import (
-    DAGError,
     InvalidTransitionError,
     MerkleDAG,
     MerkleNode,
     SessionState,
-    SessionStateMachine,
     TransitionType,
     create_session,
 )
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
 )
 
 # ============================================================================

@@ -321,7 +321,6 @@ class TestResilienceIntegration:
         from bizra_resilience import (
             CircuitBreaker,
             CircuitBreakerConfig,
-            CircuitOpenError,
             retry,
         )
 

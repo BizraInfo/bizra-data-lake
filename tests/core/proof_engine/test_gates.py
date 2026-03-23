@@ -15,7 +15,6 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-001: "6 gates, fail fast, fail closed"
 """
 
-from datetime import datetime, timezone
 
 import pytest
 
@@ -34,7 +33,7 @@ from core.proof_engine.gates import (
     SNRGate,
 )
 from core.proof_engine.receipt import ReceiptStatus, SimpleSigner
-from core.proof_engine.snr import SNREngine, SNRInput, SNRPolicy
+from core.proof_engine.snr import SNRPolicy
 
 # =============================================================================
 # FIXTURES

@@ -16,7 +16,6 @@ from __future__ import annotations
 import json
 import secrets
 import shutil
-from pathlib import Path
 
 import pytest
 
@@ -28,7 +27,6 @@ from core.genesis.state_persistence import (
     entropy_to_phrase,
     load_sovereign_state,
     phrase_to_entropy,
-    phrase_to_private_key,
     private_key_to_phrase,
     save_sovereign_state,
     state_exists,

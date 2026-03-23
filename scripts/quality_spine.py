@@ -892,7 +892,7 @@ def enforce(
                 write_coverage_floor(pyp, rr.new_floor)
                 rr.applied = True
                 verdict.ratchet = asdict(rr)
-                print(f"  APPLIED: pyproject.toml updated")
+                print("  APPLIED: pyproject.toml updated")
         else:
             print(
                 f"  OK: {actual:.1f}% (floor {floor:.0f}%, headroom {rr.headroom:+.1f}%)"

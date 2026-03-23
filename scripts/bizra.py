@@ -8,7 +8,6 @@ import random
 import shutil
 import sys
 import time
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -682,7 +681,7 @@ def cmd_mission(args):
     if not task:
         print(f"  {RD}Task needed.{R}\n")
         return
-    ts = _now()
+    _now()
     aid = route(task)
     ag = next(a for a in PAT7 if a["id"] == aid)
     steps = decompose(task, aid)

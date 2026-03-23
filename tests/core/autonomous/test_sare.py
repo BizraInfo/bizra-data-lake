@@ -12,8 +12,6 @@ Testing the pinnacle synthesis of:
 """
 
 import asyncio
-from datetime import datetime, timezone
-from typing import Any, Dict, List
 
 import pytest
 
@@ -656,12 +654,12 @@ class TestReasoningGraph:
             "Detailed observation with comprehensive content for high SNR score",
             NodeType.OBSERVATION,
         )
-        n2a = graph.add_node(
+        graph.add_node(
             "Brief analysis",  # Short content = lower SNR
             NodeType.ANALYSIS,
             parent_ids={n1.id},
         )
-        n2b = graph.add_node(
+        graph.add_node(
             "Comprehensive analysis with detailed findings and thorough examination of the evidence",
             NodeType.ANALYSIS,
             parent_ids={n1.id},
@@ -720,7 +718,7 @@ class TestReasoningGraph:
     def test_graph_to_dict(self, graph):
         """Graph serializes to dictionary."""
         n1 = graph.add_node("Parent observation", NodeType.OBSERVATION)
-        n2 = graph.add_node("Child analysis", NodeType.ANALYSIS, parent_ids={n1.id})
+        graph.add_node("Child analysis", NodeType.ANALYSIS, parent_ids={n1.id})
 
         result = graph.to_dict()
         assert "nodes" in result
@@ -731,8 +729,8 @@ class TestReasoningGraph:
     def test_find_all_paths(self, graph):
         """Can find all paths through graph."""
         n1 = graph.add_node("Root observation", NodeType.OBSERVATION)
-        n2a = graph.add_node("Path A analysis", NodeType.ANALYSIS, parent_ids={n1.id})
-        n2b = graph.add_node("Path B analysis", NodeType.ANALYSIS, parent_ids={n1.id})
+        graph.add_node("Path A analysis", NodeType.ANALYSIS, parent_ids={n1.id})
+        graph.add_node("Path B analysis", NodeType.ANALYSIS, parent_ids={n1.id})
 
         paths = graph.find_all_paths(max_paths=10)
         # Should find at least 2 paths (through n2a and n2b)
@@ -1395,7 +1393,7 @@ class TestPerformance:
 
         # Find best path
         start = time.time()
-        best_path = graph.find_best_path()
+        graph.find_best_path()
         path_duration = time.time() - start
         assert path_duration < 1.0  # Path finding under 1 second
 

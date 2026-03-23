@@ -17,9 +17,7 @@ References:
 """
 
 import json
-import time
 import urllib.request
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -64,7 +62,7 @@ def process_data(arabic_quran, english_quran):
     ):
         en_surah = english_quran["surahs"][surah_idx]
 
-        surah_meta = {
+        {
             "surah_number": surah["number"],
             "surah_name_en": surah["englishName"],
             "surah_name_ar": surah["name"],

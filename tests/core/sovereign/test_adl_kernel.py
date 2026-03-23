@@ -12,28 +12,19 @@ These tests verify:
 6. Edge cases and invariants
 """
 
-import math
-from typing import Dict, List
 
 import pytest
 
 from core.sovereign.adl_kernel import (  # Constants; Codes; Data structures; Functions; Incremental Gini (P0-3 Optimization); Enforcer
-    ADL_GINI_ALERT_THRESHOLD,
     ADL_GINI_THRESHOLD,
     BIAS_EPSILON,
-    HARBERGER_TAX_RATE,
-    MINIMUM_HOLDING,
     OMEGA_DEFAULT,
     OMEGA_MAX,
     UBC_POOL_ID,
     AdlEnforcer,
     AdlInvariant,
     AdlRejectCode,
-    AdlValidationResult,
-    BiasParityResult,
-    CausalDragResult,
     GiniResult,
-    HarbergerTaxResult,
     IncrementalGini,
     NetworkGiniTracker,
     apply_harberger_redistribution,

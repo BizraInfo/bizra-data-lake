@@ -15,9 +15,8 @@ Artifact: core/sovereign/runtime_core.py :: _run_cognitive_fusion
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 
 class TestRuntimeEmbeddingInit:
@@ -96,7 +95,7 @@ class TestRuntimeCognitiveFusion:
         query.text = "What is entropy?"
         query.context = {}
 
-        result = rt._run_cognitive_fusion(query, "thought prompt")
+        rt._run_cognitive_fusion(query, "thought prompt")
 
         # Embedding service was called
         mock_svc.embed.assert_called_once_with("What is entropy?")

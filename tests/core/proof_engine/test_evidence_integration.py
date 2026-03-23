@@ -12,7 +12,6 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-002: "every verification call emits a receipt"
 """
 
-import copy
 import json
 import threading
 import time

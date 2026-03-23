@@ -42,7 +42,7 @@ def extract_text_from_message(message: Dict[str, Any]) -> Optional[str]:
     role = author.get("role", "unknown")
 
     content = msg.get("content", {})
-    content_type = content.get("content_type", "")
+    content.get("content_type", "")
 
     # Extract text parts
     parts = content.get("parts", [])
@@ -273,7 +273,7 @@ def process_all_intake() -> Dict[str, Any]:
         for entry in manifest_entries:
             f.write(json.dumps(entry) + "\n")
 
-    logger.info(f"\n=== Processing Complete ===")
+    logger.info("\n=== Processing Complete ===")
     logger.info(f"Total files: {stats['total_files']}")
     logger.info(f"Processed: {stats['processed']}")
     logger.info(f"Skipped: {stats['skipped']}")

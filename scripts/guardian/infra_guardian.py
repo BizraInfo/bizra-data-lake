@@ -607,7 +607,7 @@ def probe_port_collisions(state: GuardianState, correct: bool) -> list[ProbeResu
     results = []
     for port, expected_owner in KNOWN_PORT_CONFLICTS.items():
         try:
-            with socket.create_connection(("127.0.0.1", port), timeout=2) as s:
+            with socket.create_connection(("127.0.0.1", port), timeout=2):
                 # Port is in use — that's expected
                 pass
             results.append(

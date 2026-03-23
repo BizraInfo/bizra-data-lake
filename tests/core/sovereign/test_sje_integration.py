@@ -6,14 +6,13 @@ and epoch distribution simulation via API.
 """
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from core.sovereign.judgment_telemetry import (
     JudgmentTelemetry,
     JudgmentVerdict,
-    simulate_epoch_distribution,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════

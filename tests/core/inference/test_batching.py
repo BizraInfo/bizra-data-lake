@@ -15,14 +15,12 @@ Created: 2026-02-04 | BIZRA Sovereignty
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from core.inference.gateway import (
     BatchingInferenceQueue,
     InferenceConfig,
-    InferenceGateway,
     LlamaCppBackend,
 )
 
@@ -366,14 +364,14 @@ async def test_batching_throughput_improvement():
     improvement = throughput_batched / throughput_serial
 
     print(f"\n{'='*60}")
-    print(f"BATCHING THROUGHPUT BENCHMARK")
+    print("BATCHING THROUGHPUT BENCHMARK")
     print(f"{'='*60}")
     print(f"Requests: {NUM_REQUESTS}")
     print(f"Backend delay: {BACKEND_DELAY_MS}ms per request")
-    print(f"\nSerial mode:")
+    print("\nSerial mode:")
     print(f"  Duration: {serial_duration:.2f}s")
     print(f"  Throughput: {throughput_serial:.2f} req/s")
-    print(f"\nBatched mode (batch_size=8):")
+    print("\nBatched mode (batch_size=8):")
     print(f"  Duration: {batched_duration:.2f}s")
     print(f"  Throughput: {throughput_batched:.2f} req/s")
     print(f"\nImprovement: {improvement:.2f}x")

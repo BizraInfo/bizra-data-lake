@@ -22,7 +22,6 @@ import random
 import sys
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from rich import box
 
@@ -30,15 +29,12 @@ from rich import box
 from rich.console import Console
 from rich.layout import Layout
 from rich.live import Live
-from rich.markdown import Markdown
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
-from rich.syntax import Syntax
 from rich.table import Table
 from rich.tree import Tree
 from snr_optimizer import SNROptimizer
 
-from bizra_config import IHSAN_CONSTRAINT, SNR_THRESHOLD
+from bizra_config import IHSAN_CONSTRAINT
 
 # BIZRA Core Systems
 from bizra_orchestrator import BIZRAOrchestrator, BIZRAQuery, QueryComplexity
@@ -95,7 +91,7 @@ class SovereignNexus:
         layout = self.make_layout()
 
         # Live Update Context
-        with Live(layout, refresh_per_second=4, screen=True) as live:
+        with Live(layout, refresh_per_second=4, screen=True):
             # 1. Initialize Systems
             self.last_action = "Booting Neural Systems..."
             layout["footer"].update(Panel(f"⚡ ACTION: {self.last_action}"))

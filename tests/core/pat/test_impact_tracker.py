@@ -13,27 +13,19 @@ Covers:
 """
 
 import json
-import os
-import time
-from pathlib import Path
-from typing import Dict, Optional
-from unittest.mock import patch
 
 import pytest
 
 from core.pat.identity_card import (
     IdentityCard,
-    IdentityStatus,
     SovereigntyTier,
     generate_identity_keypair,
 )
 from core.pat.impact_tracker import (
     BLOOM_SCORE_CEILING,
     Achievement,
-    ImpactEvent,
     ImpactTracker,
     ProgressSnapshot,
-    UERSDimension,
     UERSScore,
 )
 
@@ -606,7 +598,6 @@ class TestEdgeCases:
         """Negative bloom should not cause negative sovereignty."""
         tracker = ImpactTracker(node_id="BIZRA-EDGE0002", state_dir=tmp_path)
         tracker.record_event("computation", "positive", bloom=100.0)
-        score_before = tracker.sovereignty_score
         tracker.record_event("computation", "negative", bloom=-50.0)
         # Sovereignty formula uses min(1.0, max(0.0, ...)) so can't go negative
         assert tracker.sovereignty_score >= 0.0

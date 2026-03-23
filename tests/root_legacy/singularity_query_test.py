@@ -13,7 +13,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -56,7 +56,7 @@ class SingularityQueryEngine:
                         data.get("metadata", {}).get("source", str(emb_file))
                     )
                     self.metadata.append(data.get("metadata", {}))
-            except Exception as e:
+            except Exception:
                 continue
 
         if self.embeddings:

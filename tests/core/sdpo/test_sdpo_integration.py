@@ -7,29 +7,18 @@ Genesis Strict Synthesis v2.2.2
 """
 
 import asyncio
-from typing import Any, Dict
 
 import pytest
 
-from core.sdpo import (
-    SAPE_WISDOM_SNR,
-    SDPO_ADVANTAGE_THRESHOLD,
-    SDPO_LEARNING_RATE,
-)
 from core.sdpo.agents import (
-    ContextCompressionEngine,
-    PAT_SDPO_Config,
     PAT_SDPO_Learner,
 )
 from core.sdpo.cosmos import (
-    DefaultSAPEProcessor,
     ImplicitPRM,
     SAPE_SDPO_Fusion,
-    SAPELayerOutput,
     SDPO_SAPE_Result,
 )
 from core.sdpo.discovery import (
-    DiscoveryConfig,
     NoveltyScorer,
     SDPOTestTimeDiscovery,
 )
@@ -45,7 +34,6 @@ from core.sdpo.training import (
     TrainingConfig,
 )
 from core.sdpo.validation import (
-    ABTestConfig,
     QualityValidator,
     SDPOABTestFramework,
 )

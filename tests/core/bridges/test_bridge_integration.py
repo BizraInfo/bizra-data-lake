@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from core.bridges.desktop_bridge import BRIDGE_HOST, DesktopBridge
+from core.bridges.desktop_bridge import DesktopBridge
 
 # ---------------------------------------------------------------------------
 # Helpers

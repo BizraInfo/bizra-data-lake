@@ -29,10 +29,9 @@ class TestResponseCache:
 
         # Import only the cache class (avoid importing MCP SDK at module level)
         import importlib.util
-        from importlib import import_module
 
         # Direct import of the ResponseCache class from the module source
-        spec = importlib.util.spec_from_file_location(
+        importlib.util.spec_from_file_location(
             "ecosystem_cache",
             os.path.join(tools_mcp, "ecosystem_mcp_server.py"),
             submodule_search_locations=[],

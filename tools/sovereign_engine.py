@@ -19,37 +19,25 @@ from __future__ import annotations
 
 import asyncio
 import bisect
-import hashlib
 import heapq
-import json
 import logging
 import math
-import mmap
 import os
 import pickle
-import struct
-import sys
 import threading
 import time
 import uuid
-import weakref
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 from enum import Enum, auto
-from functools import cached_property, lru_cache, wraps
-from io import BytesIO
-from pathlib import Path
+from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncIterator,
     Awaitable,
     Callable,
-    ClassVar,
     Coroutine,
     Dict,
     Final,
@@ -58,16 +46,11 @@ from typing import (
     Iterable,
     Iterator,
     List,
-    Literal,
-    Mapping,
     Optional,
     Protocol,
-    Sequence,
-    Set,
     Tuple,
     TypeVar,
     Union,
-    overload,
 )
 
 if TYPE_CHECKING:
@@ -1289,7 +1272,8 @@ class CommandBus:
 
         chain = execute
         for mw in reversed(self._middleware):
-            chain = lambda c=chain, m=mw: m(command, c)
+            def chain(c=chain, m=mw):
+                return m(command, c)
 
         return chain()
 
@@ -1994,7 +1978,7 @@ class SovereignEngine:
             # Test B+ Tree
             test_key = f"__health_check_{time.time()}"
             self._btree.insert(test_key, True)
-            assert self._btree.get(test_key) == True
+            assert self._btree.get(test_key)
         except Exception as e:
             checks["btree_accessible"] = False
             checks["btree_error"] = str(e)
@@ -2101,7 +2085,7 @@ def run_benchmarks(n: int) -> None:
 
     keys = [f"key_{random.randint(0, n-1):08d}" for _ in range(10000)]
 
-    print(f"\n📊 Random lookups (10,000 queries)...")
+    print("\n📊 Random lookups (10,000 queries)...")
     start = time.perf_counter()
 
     for key in keys:
@@ -2112,7 +2096,7 @@ def run_benchmarks(n: int) -> None:
     print(f"   ✓ Completed in {lookup_time:.4f}s ({lookup_rate:,.0f} ops/sec)")
 
     # Benchmark: Range Query
-    print(f"\n📊 Range query (1,000 items)...")
+    print("\n📊 Range query (1,000 items)...")
     start = time.perf_counter()
 
     results = engine.range_query("key_00000000", "key_00001000")

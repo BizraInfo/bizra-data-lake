@@ -2,7 +2,6 @@
 
 import json
 import os
-import sys
 from collections import defaultdict
 from datetime import datetime
 
@@ -243,7 +242,7 @@ for a in sorted(ip, key=lambda x: (x["primary"], x["filename"])):
 poll = [a for a in all_a if "pollution" in a.get("categories", [])]
 if poll:
     print(f"\nPOLLUTION ({len(poll)} files to quarantine):")
-    print(f"  Pattern: MagicMock test artifacts in BIZRA-DATA-LAKE root")
+    print("  Pattern: MagicMock test artifacts in BIZRA-DATA-LAKE root")
 
 # Filename duplicates
 nm = defaultdict(list)

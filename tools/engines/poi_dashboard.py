@@ -8,10 +8,7 @@ Aligned with Unified System Contract §5 & §6.
 
 import json
 from collections import defaultdict
-from datetime import datetime
-from pathlib import Path
 
-import pandas as pd
 
 from bizra_config import GOLD_PATH
 
@@ -67,13 +64,13 @@ def render_dashboard():
     bloom_balance = sum(a.get("benchmarks", {}).get("snr", 0) for a in ledger)
 
     print(
-        f"\n┌─────────────────────────────────────────────────────────────────────────┐"
+        "\n┌─────────────────────────────────────────────────────────────────────────┐"
     )
     print(
-        f"│  📊 SUMMARY                                                             │"
+        "│  📊 SUMMARY                                                             │"
     )
     print(
-        f"├─────────────────────────────────────────────────────────────────────────┤"
+        "├─────────────────────────────────────────────────────────────────────────┤"
     )
     print(
         f"│  Total Attestations:  {total_attestations:<10}                                     │"
@@ -81,7 +78,7 @@ def render_dashboard():
     print(
         f"│  Total Impact Score:  {total_impact:<10.2f}                                     │"
     )
-    print(f"│  ───────────────────────────────────────────────────────────────────── │")
+    print("│  ───────────────────────────────────────────────────────────────────── │")
     print(
         f"│  🌱 SEED Balance:     {seed_balance:<10} (Utility Tokens)                    │"
     )
@@ -89,7 +86,7 @@ def render_dashboard():
         f"│  🌸 BLOOM Balance:    {bloom_balance:<10.2f} (Impact Tokens)                    │"
     )
     print(
-        f"└─────────────────────────────────────────────────────────────────────────┘"
+        "└─────────────────────────────────────────────────────────────────────────┘"
     )
 
     # 2. Agent Activity Breakdown
@@ -103,30 +100,30 @@ def render_dashboard():
             agent_activity["reasoning_loop"] += 1
 
     print(
-        f"\n┌─────────────────────────────────────────────────────────────────────────┐"
+        "\n┌─────────────────────────────────────────────────────────────────────────┐"
     )
     print(
-        f"│  🤖 AGENT ACTIVITY                                                      │"
+        "│  🤖 AGENT ACTIVITY                                                      │"
     )
     print(
-        f"├─────────────────────────────────────────────────────────────────────────┤"
+        "├─────────────────────────────────────────────────────────────────────────┤"
     )
     for agent, count in sorted(agent_activity.items(), key=lambda x: -x[1]):
         bar = "█" * min(count * 2, 30)
         print(f"│  {agent:<15} {bar:<30} ({count})          │")
     print(
-        f"└─────────────────────────────────────────────────────────────────────────┘"
+        "└─────────────────────────────────────────────────────────────────────────┘"
     )
 
     # 3. Recent Attestations
     print(
-        f"\n┌─────────────────────────────────────────────────────────────────────────┐"
+        "\n┌─────────────────────────────────────────────────────────────────────────┐"
     )
     print(
-        f"│  📜 RECENT ATTESTATIONS (Last 5)                                        │"
+        "│  📜 RECENT ATTESTATIONS (Last 5)                                        │"
     )
     print(
-        f"├─────────────────────────────────────────────────────────────────────────┤"
+        "├─────────────────────────────────────────────────────────────────────────┤"
     )
     for a in ledger[-5:]:
         ts = a.get("timestamp", "N/A")[:19]
@@ -134,14 +131,14 @@ def render_dashboard():
         hash_id = a.get("attestation_hash", "N/A")[:12]
         print(f"│  {ts}  │ {action:<35} │ {hash_id}...  │")
     print(
-        f"└─────────────────────────────────────────────────────────────────────────┘"
+        "└─────────────────────────────────────────────────────────────────────────┘"
     )
 
     # 4. Genesis Anchor
     if ledger:
         genesis_root = ledger[0].get("genesis_merkle_root", "N/A")[:32]
         print(f"\n   🔗 Genesis Anchor: {genesis_root}...")
-        print(f"   ✅ All attestations cryptographically linked to Genesis Block 0.")
+        print("   ✅ All attestations cryptographically linked to Genesis Block 0.")
 
 
 if __name__ == "__main__":

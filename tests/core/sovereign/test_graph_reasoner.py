@@ -23,11 +23,9 @@ Quality Standards:
 - Comprehensive docstrings
 """
 
-import math
 import sys
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -134,7 +132,7 @@ def populated_graph(graph):
         confidence=0.75,
         parent_id=root.id,
     )
-    h2 = graph.add_thought(
+    graph.add_thought(
         content="Hypothesis B: Use algorithm Y",
         thought_type=ThoughtType.HYPOTHESIS,
         confidence=0.80,
@@ -151,7 +149,7 @@ def populated_graph(graph):
     )
 
     # Conclusion from H1
-    c1 = graph.add_thought(
+    graph.add_thought(
         content="Conclusion: Algorithm X is optimal for this case",
         thought_type=ThoughtType.CONCLUSION,
         confidence=0.88,
@@ -1292,7 +1290,7 @@ class TestPerformance:
         import time
 
         start = time.time()
-        path = graph.find_best_path()
+        graph.find_best_path()
         duration = time.time() - start
 
         assert duration < 1.0  # Should complete in under 1 second

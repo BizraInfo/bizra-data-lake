@@ -10,26 +10,20 @@ Tests cover all four gap solutions:
 Standing on Giants: Shannon, Lamport, Landauer, Al-Ghazali
 """
 
-from datetime import datetime, timezone
 
 import numpy as np
 import pytest
 
 from core.constitutional import (  # Core Types; GAP-C1; GAP-C2; GAP-C3; GAP-C4; Unified; Constants
     ADL_GINI_THRESHOLD,
-    BFT_QUORUM_FRACTION,
-    TREASURY_MODES,
     AdlInvariant,
-    AdlInvariantResult,
     AdlViolationError,
     AdlViolationType,
     ByzantineConsensus,
     ByzantineVoteType,
     ConsensusState,
-    ConstitutionalEngine,
     IhsanProjector,
     IhsanVector,
-    NTUState,
     TreasuryController,
     TreasuryMode,
     create_constitutional_engine,

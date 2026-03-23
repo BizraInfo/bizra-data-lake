@@ -8,9 +8,9 @@ Standing on: Unix philosophy (do one thing well), Guardian veto (safe-by-default
 """
 
 import shutil
+from collections import Counter
 from pathlib import Path
 from typing import Dict, List
-from collections import Counter
 
 # Classification rules (extension → category)
 CATEGORIES = {

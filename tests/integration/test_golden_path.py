@@ -15,7 +15,6 @@ ADR-012: This is the golden path that must pass before any canary promotion.
 from __future__ import annotations
 
 import asyncio
-import tempfile
 import time
 import uuid
 from pathlib import Path

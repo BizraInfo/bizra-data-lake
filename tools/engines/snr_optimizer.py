@@ -20,7 +20,7 @@ Optimization techniques:
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -140,7 +140,7 @@ class SNROptimizer:
         expansions = []
 
         # Technique 1: Synonym expansion via embedding interpolation
-        base_embedding = embedding_model.encode(query)
+        embedding_model.encode(query)
 
         # Add explicit reformulations
         reformulations = [
@@ -383,7 +383,7 @@ class SNROptimizer:
                     else:
                         weights = (0.6, 0.4)  # Favor neural
 
-                    fused = self.apply_ensemble_fusion(
+                    self.apply_ensemble_fusion(
                         neural_results, symbolic_results, weights
                     )
 
@@ -570,7 +570,7 @@ def run_optimization_demo():
         "coverage_balance": 0.60,
     }
 
-    print(f"\n📊 Starting State:")
+    print("\n📊 Starting State:")
     print(f"   SNR: {starting_snr}")
     for k, v in starting_metrics.items():
         print(f"   {k}: {v}")
@@ -582,7 +582,7 @@ def run_optimization_demo():
     # Run optimization
     result = optimizer.simulate_optimization(starting_snr, starting_metrics)
 
-    print(f"\n🚀 Optimization Complete:")
+    print("\n🚀 Optimization Complete:")
     print(f"   Original SNR:  {result.original_snr:.4f}")
     print(f"   Optimized SNR: {result.optimized_snr:.4f}")
     print(
@@ -592,7 +592,7 @@ def run_optimization_demo():
     print(f"   Strategies:    {', '.join(result.strategies_applied)}")
 
     # Show optimization trajectory
-    print(f"\n📈 Optimization Trajectory:")
+    print("\n📈 Optimization Trajectory:")
     for step in optimizer.optimization_history:
         snr = step["snr"]
         bar = "█" * int(snr * 50)
@@ -600,14 +600,14 @@ def run_optimization_demo():
         print(f"   Iter {step['iteration']}: {snr:.4f} {ihsan} |{bar}|")
 
     # Final metrics
-    print(f"\n📊 Final Metrics:")
+    print("\n📊 Final Metrics:")
     for k, v in result.metrics.items():
         delta = v - starting_metrics.get(k, 0)
         print(f"   {k}: {v:.4f} (+{delta:.4f})")
 
     # Ihsān status
     if result.optimized_snr >= 0.99:
-        print(f"\n🎯 IHSĀN ACHIEVED! Excellence threshold (0.99) reached.")
+        print("\n🎯 IHSĀN ACHIEVED! Excellence threshold (0.99) reached.")
     else:
         gap = 0.99 - result.optimized_snr
         print(f"\n⚠️ Ihsān gap: {gap:.4f} - Running AGGRESSIVE optimization...")
@@ -619,7 +619,7 @@ def run_optimization_demo():
             target_snr=0.99,
         )
 
-        print(f"\n🚀 AGGRESSIVE Optimization Complete:")
+        print("\n🚀 AGGRESSIVE Optimization Complete:")
         print(f"   Original SNR:  {aggressive_result.original_snr:.4f}")
         print(f"   Optimized SNR: {aggressive_result.optimized_snr:.4f}")
         print(
@@ -628,7 +628,7 @@ def run_optimization_demo():
         print(f"   Iterations:    {aggressive_result.iterations}")
         print(f"   Strategies:    {', '.join(aggressive_result.strategies_applied)}")
 
-        print(f"\n📊 Final Aggressive Metrics:")
+        print("\n📊 Final Aggressive Metrics:")
         for k, v in aggressive_result.metrics.items():
             delta = v - starting_metrics.get(k, 0)
             bar = "█" * int(v * 30)
@@ -636,7 +636,7 @@ def run_optimization_demo():
 
         if aggressive_result.optimized_snr >= 0.99:
             print(
-                f"\n🎯 IHSĀN ACHIEVED! Excellence threshold (0.99) reached via aggressive optimization."
+                "\n🎯 IHSĀN ACHIEVED! Excellence threshold (0.99) reached via aggressive optimization."
             )
         else:
             print(

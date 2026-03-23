@@ -9,7 +9,6 @@ import pytest
 
 from core.sovereign.runtime_engines.giants_registry import (
     Giant,
-    GiantApplication,
     GiantCategory,
     GiantsRegistry,
     attribute,

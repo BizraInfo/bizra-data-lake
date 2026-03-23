@@ -12,17 +12,12 @@
 ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 """
 
-import asyncio
-import os
-import statistics
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -33,21 +28,16 @@ from bizra_nexus import (
     BizraNexus,
     CircuitBreaker,
     CircuitState,
-    EngineAdapter,
     Event,
     EventBus,
     EventType,
-    HealthCheck,
-    HealthStatus,
     NexusConfig,
     QueryResult,
     QueryRouter,
     ResourcePool,
     ResultAggregator,
-    StructuredLogger,
     TTLCache,
     with_retry,
-    with_timeout,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -644,7 +634,7 @@ class TestPerformance:
             cache.get(f"key_{i}")
         read_time = time.perf_counter() - start
 
-        print(f"\n📊 Cache Performance:")
+        print("\n📊 Cache Performance:")
         print(
             f"   10K writes: {write_time*1000:.2f}ms ({10000/write_time:.0f} ops/sec)"
         )
@@ -670,7 +660,7 @@ class TestPerformance:
                 f.result()
         elapsed = time.perf_counter() - start
 
-        print(f"\n📊 Concurrent Cache (8 workers × 2K ops):")
+        print("\n📊 Concurrent Cache (8 workers × 2K ops):")
         print(f"   Total time: {elapsed*1000:.2f}ms")
         print(f"   Throughput: {16000/elapsed:.0f} ops/sec")
 
@@ -706,7 +696,7 @@ class TestStress:
                 circuit.record_success()
                 success_count += 1
 
-        print(f"\n📊 Circuit Breaker Stress Test:")
+        print("\n📊 Circuit Breaker Stress Test:")
         print(f"   Successes: {success_count}")
         print(f"   Failures:  {failure_count}")
         print(f"   Rejected:  {rejected_count}")
@@ -729,7 +719,7 @@ class TestStress:
             bus.publish(Event(type=EventType.QUERY_START, source=f"test_{i}"))
         elapsed = time.perf_counter() - start
 
-        print(f"\n📊 Event Bus Throughput:")
+        print("\n📊 Event Bus Throughput:")
         print(f"   10K events: {elapsed*1000:.2f}ms")
         print(f"   Throughput: {10000/elapsed:.0f} events/sec")
 
@@ -796,7 +786,8 @@ def run_quick_tests():
     bus = EventBus()
     received = []
     # Need to keep handler reference alive (weak ref in bus)
-    handler = lambda e: received.append(e)
+    def handler(e):
+        return received.append(e)
     bus.subscribe(EventType.QUERY_START, handler)
     bus.publish(Event(type=EventType.QUERY_START, source="test"))
     assert len(received) == 1

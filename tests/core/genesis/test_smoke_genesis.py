@@ -13,7 +13,6 @@ Coverage: GenesisOrchestrator, GenesisConfig, GenesisResult,
 
 import argparse
 
-import pytest
 
 from core.genesis import (
     CHECKMARK,
@@ -26,14 +25,12 @@ from core.genesis import (
     GenesisStepStatus,
     HardwareInfo,
     HardwareScanner,
-    MobilePairResult,
-    URPPledge,
     pair_mobile,
     pledge_resources,
     verify_pledge_signature,
 )
 from core.genesis.cli import build_genesis_parser
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.pci.crypto import generate_keypair
 
 

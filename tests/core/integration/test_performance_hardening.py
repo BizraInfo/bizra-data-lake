@@ -7,9 +7,7 @@ Standing on Giants:
 - Deming (1950): Measure, then improve
 """
 
-import time
 
-import pytest
 
 # ── Test 1: SNR dual verification is cached ───────────────────────
 

@@ -26,57 +26,35 @@
 from __future__ import annotations
 
 import asyncio
-import bisect
-import functools
 import hashlib
 import heapq
 import json
 import logging
 import math
-import operator
-import os
 import sys
 import threading
 import time
 import uuid
-import weakref
-from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import asynccontextmanager, contextmanager
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 from enum import Enum, auto
-from functools import cached_property, lru_cache, reduce, wraps
-from io import StringIO
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncIterator,
-    Awaitable,
     Callable,
     ClassVar,
-    Coroutine,
     Dict,
     Final,
     Generic,
     Hashable,
-    Iterable,
     Iterator,
     List,
-    Literal,
-    Mapping,
-    NamedTuple,
     Optional,
     Protocol,
-    Sequence,
     Set,
     Tuple,
-    Type,
     TypeVar,
-    Union,
-    overload,
     runtime_checkable,
 )
 
@@ -2301,7 +2279,7 @@ class ApexCognitiveEngine:
         """Generate the final synthesis text."""
         synthesis_parts = []
 
-        synthesis_parts.append(f"═══ APEX COGNITIVE SYNTHESIS ═══")
+        synthesis_parts.append("═══ APEX COGNITIVE SYNTHESIS ═══")
         synthesis_parts.append(f"Query: {context.query}")
         synthesis_parts.append(f"Goal: {context.goal or 'General analysis'}")
         synthesis_parts.append("")
@@ -2316,7 +2294,7 @@ class ApexCognitiveEngine:
             )
 
         synthesis_parts.append("")
-        synthesis_parts.append(f"QUALITY METRICS:")
+        synthesis_parts.append("QUALITY METRICS:")
         synthesis_parts.append(f"  Overall SNR: {snr_metrics.overall_snr:.4f}")
         synthesis_parts.append(f"  Signal Strength: {snr_metrics.signal_strength:.4f}")
         synthesis_parts.append(f"  Diversity Bonus: {snr_metrics.diversity_bonus:.4f}")
@@ -2480,7 +2458,7 @@ async def run_apex_demonstration() -> Dict[str, Any]:
         print(f"  ✓ Causal path weight A→C: {path_weight:.3f}")
         results["tests_passed"] += 1
     else:
-        print(f"  ✗ Some tests failed")
+        print("  ✗ Some tests failed")
 
     results["components"]["CausalGraph"] = all_passed
     print()
@@ -2507,11 +2485,11 @@ async def run_apex_demonstration() -> Dict[str, Any]:
     high_retained = cache.get("high_snr") is not None
 
     if low_evicted and high_retained:
-        print(f"  ✓ Low-SNR item correctly evicted")
-        print(f"  ✓ High-SNR item with high access retained")
+        print("  ✓ Low-SNR item correctly evicted")
+        print("  ✓ High-SNR item with high access retained")
         results["tests_passed"] += 1
     else:
-        print(f"  ✗ Eviction policy not working correctly")
+        print("  ✗ Eviction policy not working correctly")
 
     results["components"]["SNROptimizedCache"] = low_evicted and high_retained
     print()
@@ -2662,7 +2640,7 @@ async def run_apex_demonstration() -> Dict[str, Any]:
         print(f"  ✓ Diversity Bonus: {metrics.diversity_bonus:.4f}")
         results["tests_passed"] += 1
     else:
-        print(f"  ✗ Optimization did not improve SNR")
+        print("  ✗ Optimization did not improve SNR")
 
     results["components"]["SNROptimizer"] = success
     print()
@@ -2734,7 +2712,7 @@ async def run_apex_demonstration() -> Dict[str, Any]:
         print(f"  ✓ Execution time: {result.execution_time:.3f}s")
         results["tests_passed"] += 1
     else:
-        print(f"  ✗ Integration test failed")
+        print("  ✗ Integration test failed")
         print(f"    Thoughts: {result.thoughts_generated}")
         print(f"    SNR: {result.snr_metrics.overall_snr}")
         print(f"    Conclusions: {len(result.conclusions)}")

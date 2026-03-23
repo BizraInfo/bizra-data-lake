@@ -9,10 +9,10 @@ The goal of this module is narrow and operational:
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
-from enum import Enum
 import time
 import traceback
+from dataclasses import asdict, dataclass, field
+from enum import Enum
 from typing import Any
 
 

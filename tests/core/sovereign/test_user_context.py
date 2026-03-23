@@ -13,11 +13,9 @@ and the human it serves:
 Standing on Giants: Tulving (memory types) + Shannon (information) + Anthropic (alignment)
 """
 
-import json
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from core.sovereign.user_context import (
     ConversationMemory,

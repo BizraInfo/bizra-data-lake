@@ -21,7 +21,6 @@ from core.nexus.sovereign_nexus import (
     NexusTask,
     SNRGate,
     SNRScore,
-    ThoughtEdge,
     ThoughtGraph,
     ThoughtNode,
     ThoughtType,
@@ -121,8 +120,8 @@ class TestThoughtGraph:
 
     def test_add_multiple_children(self, graph):
         root = graph.add_thought("Root", confidence=0.9)
-        c1 = graph.add_thought("Child 1", parent_id=root.id, confidence=0.8)
-        c2 = graph.add_thought("Child 2", parent_id=root.id, confidence=0.7)
+        graph.add_thought("Child 1", parent_id=root.id, confidence=0.8)
+        graph.add_thought("Child 2", parent_id=root.id, confidence=0.7)
         assert graph.total_thoughts == 3
         assert len(root.child_ids) == 2
 
@@ -136,15 +135,15 @@ class TestThoughtGraph:
 
     def test_get_children(self, graph):
         root = graph.add_thought("Root")
-        c1 = graph.add_thought("C1", parent_id=root.id)
-        c2 = graph.add_thought("C2", parent_id=root.id)
+        graph.add_thought("C1", parent_id=root.id)
+        graph.add_thought("C2", parent_id=root.id)
         children = graph.get_children(root.id)
         assert len(children) == 2
 
     def test_get_leaves(self, graph):
         root = graph.add_thought("Root")
-        c1 = graph.add_thought("Leaf1", parent_id=root.id)
-        c2 = graph.add_thought("Leaf2", parent_id=root.id)
+        graph.add_thought("Leaf1", parent_id=root.id)
+        graph.add_thought("Leaf2", parent_id=root.id)
         leaves = graph.get_leaves()
         assert len(leaves) == 2
         assert root not in leaves
@@ -163,7 +162,7 @@ class TestThoughtGraph:
     def test_get_best_path_selects_highest_confidence(self, graph):
         root = graph.add_thought("Root", confidence=1.0)
         high = graph.add_thought("High conf", parent_id=root.id, confidence=0.95)
-        low = graph.add_thought("Low conf", parent_id=root.id, confidence=0.3)
+        graph.add_thought("Low conf", parent_id=root.id, confidence=0.3)
         path = graph.get_best_path()
         # Best path should go through high confidence child
         assert high in path
@@ -201,7 +200,7 @@ class TestThoughtGraph:
 
     def test_compute_graph_confidence_chain(self, graph):
         root = graph.add_thought("Root", confidence=0.8)
-        child = graph.add_thought("Child", parent_id=root.id, confidence=0.8)
+        graph.add_thought("Child", parent_id=root.id, confidence=0.8)
         conf = graph.compute_graph_confidence()
         # Geometric mean of [0.8, 0.8]
         expected = math.pow(0.8 * 0.8, 0.5)

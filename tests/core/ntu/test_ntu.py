@@ -148,9 +148,8 @@ class TestNTU:
     def test_observe_single(self):
         """Single observation should update state."""
         ntu = NTU()
-        initial_belief = ntu.state.belief
 
-        state = ntu.observe(0.9)
+        ntu.observe(0.9)
 
         assert len(ntu.memory) == 1
         assert ntu.state.iteration == 1
@@ -238,7 +237,6 @@ class TestTemporalConsistency:
         ntu = NTU()
 
         # Monotonic increasing sequence
-        consistency_scores = []
         for i in range(10):
             ntu.observe(0.5 + i * 0.05)  # 0.5, 0.55, 0.6, ...
 

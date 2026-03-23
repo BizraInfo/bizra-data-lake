@@ -12,13 +12,10 @@ Tests cover:
 Standing on Giants: Turing, LeCun, Pearl, Shannon, OWASP
 """
 
-from typing import Any, Dict, List
 
 import pytest
 
 from core.sovereign.probe_defense import (  # Enums; Data classes; Base class; Concrete probes; Matrix classes; Factory functions; Constants
-    DEFAULT_FAIL_THRESHOLD,
-    PII_PATTERNS,
     AdversarialProbe,
     CandidateContext,
     CausalityProbe,
@@ -29,7 +26,6 @@ from core.sovereign.probe_defense import (  # Enums; Data classes; Base class; C
     InvariantProbe,
     LivenessProbe,
     PrivacyProbe,
-    Probe,
     ProbeMatrix,
     ProbeReport,
     ProbeResult,

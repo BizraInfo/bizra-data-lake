@@ -8,7 +8,6 @@ Standing on Giants:
 Phase 42 Spec 02: Tests for SNRv2Adapter and SNRFacade v2 routing.
 """
 
-import pytest
 
 from core.iaas.snr_v2 import SNRCalculatorV2
 from core.iaas.snr_v2_adapter import SNRv2Adapter

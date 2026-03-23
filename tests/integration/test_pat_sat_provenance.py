@@ -21,7 +21,6 @@ from core.irp import (
     Source,
     pat_assess,
 )
-from core.sat.gate_result import CheckStatus
 from core.sat.provenance_gate import provenance_verify
 
 # ============================================================================

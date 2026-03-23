@@ -14,7 +14,6 @@ Covers:
 Blueprint Reference: Elite Implementation Blueprint v1.0 — P0 Learning Loop
 """
 
-import asyncio
 import json
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -253,7 +252,7 @@ class TestCheckpointManager:
 
     def test_checkpoint_dir_created_automatically(self, tmp_path):
         deep_path = tmp_path / "a" / "b" / "c"
-        mgr = CheckpointManager(str(deep_path))
+        CheckpointManager(str(deep_path))
         assert deep_path.exists()
 
 
@@ -457,7 +456,7 @@ class TestBIZRASDPOTrainer:
             )
         )
         batch = self._make_batch(2)
-        result1 = await trainer1.train([batch])
+        await trainer1.train([batch])
 
         # Create second trainer — should resume
         trainer2 = BIZRASDPOTrainer(

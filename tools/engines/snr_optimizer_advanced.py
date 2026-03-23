@@ -3,13 +3,11 @@
 # Implements: Query expansion, ensemble fusion, iterative refinement
 
 import asyncio
-import json
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -578,7 +576,7 @@ class AdvancedSNROptimizer:
 
         strategy_stats = {}
         for strategy_type in OptimizationStrategy:
-            optimizer = self.strategies[strategy_type]
+            self.strategies[strategy_type]
             strategy_results = [
                 r
                 for r in self.optimization_history
@@ -646,26 +644,26 @@ if __name__ == "__main__":
         print("\n--- Running Optimization ---")
         final_snr, results = await optimizer.optimize_to_ihsan(query, contexts, facts)
 
-        print(f"\n--- Final Results ---")
+        print("\n--- Final Results ---")
         print(f"Final SNR: {final_snr.overall:.4f}")
         print(
             f"Ihsān Achieved: {'✅ YES' if final_snr.overall >= IHSAN_THRESHOLD else '❌ NO'}"
         )
 
-        print(f"\n--- Component Breakdown ---")
+        print("\n--- Component Breakdown ---")
         print(f"Signal Strength:      {final_snr.signal_strength:.4f}")
         print(f"Information Density:  {final_snr.information_density:.4f}")
         print(f"Symbolic Grounding:   {final_snr.symbolic_grounding:.4f}")
         print(f"Coverage Balance:     {final_snr.coverage_balance:.4f}")
 
-        print(f"\n--- Optimization History ---")
+        print("\n--- Optimization History ---")
         for r in results:
             symbol = "✅" if r.ihsan_achieved else "▸"
             print(
                 f"{symbol} {r.strategy}: {r.initial_snr:.4f} → {r.final_snr:.4f} (+{r.improvement:.4f})"
             )
 
-        print(f"\n--- Statistics ---")
+        print("\n--- Statistics ---")
         stats = optimizer.get_statistics()
         print(f"Total optimizations: {stats['total_optimizations']}")
         print(f"Ihsān achievement rate: {stats['ihsan_rate']*100:.1f}%")

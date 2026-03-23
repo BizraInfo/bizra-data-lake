@@ -10,7 +10,6 @@ Eliminates hand-maintained frontend types — single source of truth.
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 

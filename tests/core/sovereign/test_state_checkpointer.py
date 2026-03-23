@@ -12,12 +12,9 @@ Created: 2026-02-11
 
 import asyncio
 import json
-import sqlite3
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -867,7 +864,8 @@ class TestAutoCheckpointLoop:
         assert checkpointer._current_version >= 1
 
     async def test_stop_halts_loop(self, checkpointer: StateCheckpointer):
-        provider = lambda: _make_state(1)
+        def provider():
+            return _make_state(1)
         task = asyncio.create_task(checkpointer.auto_checkpoint_loop(provider))
         await asyncio.sleep(0.1)
         checkpointer.stop()
@@ -1095,7 +1093,7 @@ class TestEdgeCases:
             checkpoint_dir=tmp_path / "large_state", backend=StorageBackend.FILE
         )
         state = {f"key_{i}": i * 3.14 for i in range(1000)}
-        cp = await sc.checkpoint(state)
+        await sc.checkpoint(state)
         restored = await sc.restore()
         assert restored is not None
         assert restored.state == state

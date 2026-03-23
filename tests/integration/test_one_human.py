@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import asyncio
 import sys
-import time
 from pathlib import Path
 from typing import Optional
 
@@ -48,7 +47,7 @@ for _subdir in ("tools/engines", "tools/bridges", "tools"):
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from bizra_config import CHUNKS_TABLE_PATH, CORPUS_TABLE_PATH, GOLD_PATH, INDEXED_PATH
+from bizra_config import CHUNKS_TABLE_PATH, INDEXED_PATH
 from bizra_orchestrator import (
     BIZRAOrchestrator,
     BIZRAQuery,

@@ -4,7 +4,6 @@ Tests for BIZRA Capability Card
 Tests the CapabilityCard creation, signing, and validation.
 """
 
-from datetime import datetime, timedelta
 
 import pytest
 
@@ -14,7 +13,6 @@ from core.sovereign.capability_card import (
     SNR_THRESHOLD,
     CapabilityCard,
     CardIssuer,
-    ModelCapabilities,
     ModelTier,
     TaskType,
     create_capability_card,

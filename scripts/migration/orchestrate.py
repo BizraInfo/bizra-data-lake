@@ -368,7 +368,7 @@ def _run_phase_1(
         cmd.append("--resume")
 
     logger.info("  Command: %s", " ".join(cmd))
-    result = subprocess.run(cmd, check=True, cwd=str(REPO_ROOT))
+    subprocess.run(cmd, check=True, cwd=str(REPO_ROOT))
 
     # Read summary if available
     summary_path = Path(output_dir) / "scan_summary.json"
@@ -404,7 +404,7 @@ def _run_phase_2(sovereign_root: str, dry_run: bool, logger: logging.Logger) -> 
         cmd.extend(["--execute", "--confirm", "I understand this deletes files"])
 
     logger.info("  Command: %s", " ".join(cmd))
-    result = subprocess.run(cmd, check=True, cwd=str(REPO_ROOT))
+    subprocess.run(cmd, check=True, cwd=str(REPO_ROOT))
 
     return {"mode": "execute" if not dry_run else "dry-run"}
 
@@ -430,7 +430,7 @@ def _run_phase_3(sovereign_root: str, dry_run: bool, logger: logging.Logger) -> 
     env["BIZRA_SOVEREIGN_ROOT"] = sovereign_root
 
     logger.info("  Command: %s", " ".join(cmd))
-    result = subprocess.run(cmd, check=True, cwd=str(REPO_ROOT), env=env)
+    subprocess.run(cmd, check=True, cwd=str(REPO_ROOT), env=env)
 
     # Aggregate receipts from repo_migrator
     receipt: dict[str, Any] = {"mode": "execute" if not dry_run else "dry-run"}
@@ -493,7 +493,7 @@ def _run_rsync(
     logger.debug("  Command: %s", " ".join(cmd))
 
     t0 = time.monotonic()
-    result = subprocess.run(
+    subprocess.run(
         cmd,
         capture_output=False,
         check=True,

@@ -16,7 +16,6 @@ Standing on Giants:
 """
 
 import json
-import math
 from copy import deepcopy
 
 import pytest
@@ -30,9 +29,7 @@ from core.governance.adaptive_ihsan import (
     WEIGHT_FLOOR,
     AdaptiveIhsan,
     DirichletObservation,
-    DirichletState,
     UpdateOutcome,
-    UpdateReceipt,
     create_adaptive_ihsan,
 )
 from core.integration.constants import IHSAN_WEIGHTS
@@ -251,23 +248,20 @@ class TestConstitutionalInvariants:
         engine = low_concentration_engine
         for _ in range(200):
             obs = DirichletObservation("safety", UpdateOutcome.SUCCESS, 1.0)
-            receipt = engine.update(obs)
+            engine.update(obs)
             # Whether accepted or rejected, the engine's state should be valid
             report = engine.convergence_report()
             assert report["kl_divergence_from_canonical"] <= MAX_KL_DRIFT + 1e-8
 
     def test_rejected_updates_dont_change_state(self, engine):
         """Rejected updates must NOT modify the engine state."""
-        before = deepcopy(engine.current_weights)
-        before_count = engine.observation_count
+        deepcopy(engine.current_weights)
 
         # Force many updates until one is rejected
-        rejected = False
         for _ in range(1000):
             obs = DirichletObservation("safety", UpdateOutcome.SUCCESS, 1.0)
             receipt = engine.update(obs)
             if not receipt.accepted:
-                rejected = True
                 # State should not have changed from last accepted state
                 break
 

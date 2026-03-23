@@ -27,7 +27,6 @@ import hashlib
 import json
 import os
 import shutil
-import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,31 +45,60 @@ QUARANTINE_DIR = SOVEREIGN_ROOT / "99_QUARANTINE" / "duplicates"
 # File type → RAW subdirectory mapping
 TYPE_MAP = {
     # Documents
-    ".pdf": "documents", ".docx": "documents", ".doc": "documents",
-    ".txt": "documents", ".md": "documents", ".rtf": "documents",
-    ".odt": "documents", ".tex": "documents",
+    ".pdf": "documents",
+    ".docx": "documents",
+    ".doc": "documents",
+    ".txt": "documents",
+    ".md": "documents",
+    ".rtf": "documents",
+    ".odt": "documents",
+    ".tex": "documents",
     # Notebooks
     ".ipynb": "notebooks",
     # Conversations (AI chat exports)
     ".json": "data",  # default, reclassified if conversation-shaped
     # Media
-    ".png": "media", ".jpg": "media", ".jpeg": "media",
-    ".gif": "media", ".svg": "media", ".webp": "media",
-    ".mp4": "media", ".mov": "media", ".avi": "media",
-    ".mkv": "media", ".mp3": "media", ".wav": "media",
+    ".png": "media",
+    ".jpg": "media",
+    ".jpeg": "media",
+    ".gif": "media",
+    ".svg": "media",
+    ".webp": "media",
+    ".mp4": "media",
+    ".mov": "media",
+    ".avi": "media",
+    ".mkv": "media",
+    ".mp3": "media",
+    ".wav": "media",
     # Code
-    ".py": "code", ".rs": "code", ".ts": "code", ".js": "code",
-    ".tsx": "code", ".jsx": "code", ".sh": "code", ".bat": "code",
-    ".ps1": "code", ".toml": "code", ".yaml": "code", ".yml": "code",
+    ".py": "code",
+    ".rs": "code",
+    ".ts": "code",
+    ".js": "code",
+    ".tsx": "code",
+    ".jsx": "code",
+    ".sh": "code",
+    ".bat": "code",
+    ".ps1": "code",
+    ".toml": "code",
+    ".yaml": "code",
+    ".yml": "code",
     # Data
-    ".csv": "data", ".tsv": "data", ".xml": "data",
-    ".db": "data", ".sqlite": "data",
+    ".csv": "data",
+    ".tsv": "data",
+    ".xml": "data",
+    ".db": "data",
+    ".sqlite": "data",
     # Presentations
-    ".pptx": "presentations", ".ppt": "presentations",
+    ".pptx": "presentations",
+    ".ppt": "presentations",
     ".key": "presentations",
     # Archives (skip contents, log existence)
-    ".zip": "data", ".tar": "data", ".gz": "data",
-    ".7z": "data", ".rar": "data",
+    ".zip": "data",
+    ".tar": "data",
+    ".gz": "data",
+    ".7z": "data",
+    ".rar": "data",
 }
 
 # Mindset era detection by source account
@@ -87,6 +115,7 @@ ERA_MAP = {
 # CORE: SHA-256 DEDUP ENGINE
 # ═══════════════════════════════════════════════════════════════
 
+
 def sha256_file(filepath: Path) -> str:
     """Compute SHA-256 hash of file contents. O(n) in file size."""
     h = hashlib.sha256()
@@ -100,6 +129,7 @@ def blake3_content(filepath: Path) -> str:
     """BLAKE3 content hash. Falls back to SHA-256 if blake3 not installed."""
     try:
         import blake3
+
         h = blake3.blake3()
         with open(filepath, "rb") as f:
             while chunk := f.read(8192):
@@ -118,9 +148,26 @@ def classify_file(filepath: Path) -> str:
 def extract_text_preview(filepath: Path, max_chars: int = 500) -> str:
     """Extract first N chars of text content. Safe for all file types."""
     ext = filepath.suffix.lower()
-    if ext in (".png", ".jpg", ".jpeg", ".gif", ".mp4", ".mov",
-               ".avi", ".mp3", ".wav", ".zip", ".tar", ".gz",
-               ".7z", ".rar", ".db", ".sqlite", ".pyd", ".exe"):
+    if ext in (
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".mp4",
+        ".mov",
+        ".avi",
+        ".mp3",
+        ".wav",
+        ".zip",
+        ".tar",
+        ".gz",
+        ".7z",
+        ".rar",
+        ".db",
+        ".sqlite",
+        ".pyd",
+        ".exe",
+    ):
         return f"[binary:{ext}]"
     try:
         with open(filepath, "r", encoding="utf-8", errors="replace") as f:
@@ -129,8 +176,7 @@ def extract_text_preview(filepath: Path, max_chars: int = 500) -> str:
         return "[unreadable]"
 
 
-def generate_manifest(filepath: Path, source_account: str,
-                      content_hash: str) -> dict:
+def generate_manifest(filepath: Path, source_account: str, content_hash: str) -> dict:
     """Generate JSON manifest for a single file. ZANN_ZERO compliant."""
     stat = filepath.stat()
     return {
@@ -138,10 +184,8 @@ def generate_manifest(filepath: Path, source_account: str,
         "source_account": source_account,
         "original_path": str(filepath),
         "original_filename": filepath.name,
-        "created": datetime.fromtimestamp(
-            stat.st_ctime, timezone.utc).isoformat(),
-        "modified": datetime.fromtimestamp(
-            stat.st_mtime, timezone.utc).isoformat(),
+        "created": datetime.fromtimestamp(stat.st_ctime, timezone.utc).isoformat(),
+        "modified": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
         "file_type": classify_file(filepath),
         "extension": filepath.suffix.lower(),
         "size_bytes": stat.st_size,
@@ -158,6 +202,7 @@ def generate_manifest(filepath: Path, source_account: str,
 # PIPELINE: INTAKE → RAW → PROCESSED
 # ═══════════════════════════════════════════════════════════════
 
+
 class DataLakePipeline:
     """5-stage data lake processor with SHA-256 dedup and BLAKE3 manifests."""
 
@@ -165,8 +210,12 @@ class DataLakePipeline:
         self.dry_run = dry_run
         self.seen_hashes: dict[str, str] = {}  # hash → first_seen_path
         self.stats = {
-            "scanned": 0, "unique": 0, "duplicate": 0,
-            "manifested": 0, "errors": 0, "skipped": 0,
+            "scanned": 0,
+            "unique": 0,
+            "duplicate": 0,
+            "manifested": 0,
+            "errors": 0,
+            "skipped": 0,
         }
         self._load_existing_hashes()
 
@@ -203,9 +252,9 @@ class DataLakePipeline:
         count = 0
         for root, dirs, files in os.walk(slot_path):
             # Skip hidden directories
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
             for fname in files:
-                if fname.startswith('.') or fname == "desktop.ini":
+                if fname.startswith(".") or fname == "desktop.ini":
                     self.stats["skipped"] += 1
                     continue
                 filepath = Path(root) / fname
@@ -233,12 +282,17 @@ class DataLakePipeline:
                 log_path = QUARANTINE_DIR / "dedup_log.jsonl"
                 log_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(log_path, "a") as f:
-                    f.write(json.dumps({
-                        "duplicate": str(filepath),
-                        "original": first_seen,
-                        "hash": file_hash,
-                        "time": datetime.now(timezone.utc).isoformat(),
-                    }) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "duplicate": str(filepath),
+                                "original": first_seen,
+                                "hash": file_hash,
+                                "time": datetime.now(timezone.utc).isoformat(),
+                            }
+                        )
+                        + "\n"
+                    )
             if self.stats["scanned"] % 50 == 0:
                 print(f"  [{self.stats['scanned']}] DUP: {filepath.name}")
             return
@@ -275,8 +329,7 @@ class DataLakePipeline:
         if self.stats["scanned"] % 25 == 0:
             print(f"  [{self.stats['scanned']}] NEW: {filepath.name} -> {file_type}/")
 
-    def run_all(self, intake_only: Optional[str] = None,
-                batch_limit: int = 0):
+    def run_all(self, intake_only: Optional[str] = None, batch_limit: int = 0):
         """Run pipeline across all intake slots (or one specific slot)."""
         start = time.time()
         print(f"BIZRA Data Lake Pipeline -- {datetime.now(timezone.utc).isoformat()}")
@@ -297,7 +350,7 @@ class DataLakePipeline:
         """Print pipeline summary."""
         s = self.stats
         print(f"\n{'='*60}")
-        print(f"  PIPELINE COMPLETE")
+        print("  PIPELINE COMPLETE")
         print(f"{'='*60}")
         print(f"  Scanned:    {s['scanned']}")
         print(f"  Unique:     {s['unique']}")
@@ -306,8 +359,8 @@ class DataLakePipeline:
         print(f"  Errors:     {s['errors']}")
         print(f"  Skipped:    {s['skipped']}")
         print(f"  Duration:   {elapsed:.1f}s")
-        if s['scanned'] > 0:
-            dedup_rate = s['duplicate'] / s['scanned'] * 100
+        if s["scanned"] > 0:
+            dedup_rate = s["duplicate"] / s["scanned"] * 100
             print(f"  Dedup rate: {dedup_rate:.1f}%")
 
     def _save_report(self, elapsed: float):
@@ -328,16 +381,22 @@ class DataLakePipeline:
 # MAIN
 # ═══════════════════════════════════════════════════════════════
 
+
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(
-        description="BIZRA Data Lake Pipeline — Stage 1→2 Processor")
-    parser.add_argument("--intake-only", type=str, default=None,
-                        help="Process only this intake slot")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Scan and report without copying/writing")
-    parser.add_argument("--batch", type=int, default=0,
-                        help="Limit files per slot (0=unlimited)")
+        description="BIZRA Data Lake Pipeline — Stage 1→2 Processor"
+    )
+    parser.add_argument(
+        "--intake-only", type=str, default=None, help="Process only this intake slot"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Scan and report without copying/writing"
+    )
+    parser.add_argument(
+        "--batch", type=int, default=0, help="Limit files per slot (0=unlimited)"
+    )
     args = parser.parse_args()
 
     pipeline = DataLakePipeline(dry_run=args.dry_run)

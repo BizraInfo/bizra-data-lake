@@ -56,9 +56,7 @@ def test_run_canonical_spearpoint_v1_proves_s2_to_s1_replay(tmp_path: Path) -> N
         run1["run1_receipt"]["subscriber_delivery_delta"]["delivery_dead_letters"] == 0
     )
     assert (
-        run1["run1_receipt"]["subscriber_delivery_delta"][
-            "delivery_mirror_successes"
-        ]
+        run1["run1_receipt"]["subscriber_delivery_delta"]["delivery_mirror_successes"]
         >= 1
     )
     assert (
@@ -123,4 +121,6 @@ def test_run_canonical_spearpoint_v1_proves_s2_to_s1_replay(tmp_path: Path) -> N
         if line.strip()
     ]
     assert len(canonical_persisted) >= 1
-    assert all(entry["source"] == "node0:cqrs.delivery" for entry in canonical_persisted)
+    assert all(
+        entry["source"] == "node0:cqrs.delivery" for entry in canonical_persisted
+    )

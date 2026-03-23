@@ -8,8 +8,6 @@ Tests:
 - SAPE optimizer with Graph-of-Thoughts
 """
 
-import asyncio
-from typing import Any, Dict
 
 import pytest
 
@@ -24,12 +22,10 @@ from core.elite.pipeline import (
     BuildStageHandler,
     ElitePipeline,
     PipelineRun,
-    PipelineStage,
     PipelineStatus,
     QualityStageHandler,
     SecurityStageHandler,
     SourceStageHandler,
-    StageResult,
     TestStageHandler,
 )
 from core.elite.quality_gates import (
@@ -47,7 +43,6 @@ from core.elite.risk import (
     RiskCategory,
     RiskManager,
     RiskSeverity,
-    RiskStatus,
 )
 from core.elite.sape import (
     GraphOfThoughts,

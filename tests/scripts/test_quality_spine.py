@@ -17,13 +17,10 @@ from pathlib import Path
 import pytest
 
 from scripts.quality_spine import (
-    ALL_GATES,
-    Commit,
     GateResult,
     QualitySnapshot,
     RatchetResult,
     SpineVerdict,
-    TrendAnalysis,
     TrendStore,
     _linear_slope,
     aggregate_coverage,

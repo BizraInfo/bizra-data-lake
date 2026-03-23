@@ -220,7 +220,6 @@ class TestBufferTrimming:
     def test_buffer_keeps_most_recent(self, metrics: Phase46Metrics) -> None:
         """After trim, the buffer contains the most recent values."""
         max_obs = Phase46Metrics._MAX_OBSERVATIONS
-        trim_to = Phase46Metrics._TRIM_TO
         for i in range(max_obs + 1):
             metrics.record_snr(float(i))
         # Last value should be max_obs (0-indexed: 0..max_obs)

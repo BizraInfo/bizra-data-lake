@@ -10,26 +10,18 @@
 Created: 2026-02-04 | BIZRA Sovereignty
 """
 
-import asyncio
 import hashlib
 import secrets
 import time
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from typing import List
+from unittest.mock import AsyncMock
 
 import pytest
 
-from core.autonomous.nodes import NodeType, ReasoningGraph, ReasoningNode
+from core.autonomous.nodes import NodeType, ReasoningGraph
 from core.federation.consensus import (
-    CommitMessage,
     ConsensusEngine,
     ConsensusPhase,
-    PrepareMessage,
-    Proposal,
-    ViewChangeRequest,
-    Vote,
 )
 from core.inference.gateway import (
     ComputeTier,
@@ -40,16 +32,11 @@ from core.inference.gateway import (
     InferenceStatus,
 )
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
-from core.pci.crypto import generate_keypair, sign_message, verify_signature
+from core.pci.crypto import generate_keypair, verify_signature
 
 # Core modules
 from core.pci.envelope import (
-    AgentType,
     EnvelopeBuilder,
-    EnvelopeMetadata,
-    EnvelopePayload,
-    EnvelopeSender,
-    PCIEnvelope,
 )
 
 # Test constants
@@ -141,7 +128,7 @@ def reasoning_graph():
         giant="Mathematics",
     )
 
-    answer = graph.add_node(
+    graph.add_node(
         content="The answer is 4. This is the sum of 2 plus 2, derived from basic arithmetic.",
         node_type=NodeType.CONCLUSION,
         parent_ids={think1.id},
@@ -444,7 +431,7 @@ class TestFederationConsensus:
 
         # 4. Check that honest nodes can still reach quorum
         state = leader["engine"].get_consensus_state(proposal.proposal_id)
-        quorum = leader["engine"].get_quorum_size(len(consensus_cluster))
+        leader["engine"].get_quorum_size(len(consensus_cluster))
 
         # With 5 honest nodes, we get 4 prepares (replicas, not including leader's own)
         # Quorum = 2*2+1 = 5, so we need 5 total
@@ -473,7 +460,7 @@ class TestFederationConsensus:
         new_view = initial_view + 1
         for request in view_change_requests:
             for node in consensus_cluster:
-                reached_quorum = node["engine"].receive_view_change(
+                node["engine"].receive_view_change(
                     request, len(consensus_cluster)
                 )
 
@@ -505,7 +492,6 @@ class TestOmegaPointIntegration:
         """Treasury mode should determine compute tier."""
         # 1. ABUNDANCE mode → Use LOCAL tier (high compute)
         abundance_query = "Complex reasoning requiring 7B model"
-        treasury_mode = "ABUNDANCE"
 
         result = await mock_inference_gateway.infer(
             abundance_query, tier=ComputeTier.LOCAL
@@ -514,10 +500,9 @@ class TestOmegaPointIntegration:
 
         # 2. SCARCITY mode → Use EDGE tier (low compute)
         scarcity_query = "Simple query"
-        treasury_mode = "SCARCITY"
 
         # Manually route to EDGE based on scarcity
-        complexity = mock_inference_gateway.estimate_complexity(scarcity_query)
+        mock_inference_gateway.estimate_complexity(scarcity_query)
         # Force EDGE tier in scarcity mode
         result = await mock_inference_gateway.infer(
             scarcity_query, tier=ComputeTier.EDGE
@@ -604,7 +589,7 @@ class TestPerformanceBudgets:
         for i in range(num_queries):
             query = f"Test query {i}"
             start = time.time()
-            result = await mock_inference_gateway.infer(query, max_tokens=50)
+            await mock_inference_gateway.infer(query, max_tokens=50)
             latency_ms = (time.time() - start) * 1000
             latencies.append(latency_ms)
 

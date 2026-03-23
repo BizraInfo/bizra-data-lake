@@ -8,13 +8,11 @@ Standing on Giants: Al-Ghazali (1095), Lamport (1982), Nakamoto (2008)
 
 import json
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from core.sovereign.genesis_identity import (
     AgentIdentity,
-    GenesisState,
     NodeIdentity,
     load_and_validate_genesis,
     load_genesis,

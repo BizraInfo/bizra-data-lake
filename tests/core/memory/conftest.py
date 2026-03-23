@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from core.memory.config import HNSWConfig, MemoryConfig
-from core.memory.types import MemoryKind, MemoryRecord, RecordState
+from core.memory.types import MemoryKind, MemoryRecord
 
 
 @pytest.fixture

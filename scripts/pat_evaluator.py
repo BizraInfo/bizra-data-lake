@@ -776,7 +776,7 @@ Examples:
         result = await evaluator.run_full_eval(cycles=args.cycles)
 
     # Save report
-    report_path = evaluator.save_report(result, args.output)
+    evaluator.save_report(result, args.output)
 
     # Print final status
     if result.ihsan_compliant:

@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """BIZRA Lifecycle v4 — END-TO-END: Identity → Bus(12 subs) → Heartbeat → Breath → Proof"""
 
-import hashlib
-import os
 import sys
 import tempfile
 import time
@@ -273,7 +271,7 @@ ck("Tamper detection", lambda: blake3.blake3(tampered).hexdigest() != chain_hash
 
 # ═══ STAGE 4: ENTROPY ROUTER (calibrated) ═══
 stage("STAGE 4: ENTROPY ROUTER (calibrated)")
-from core.reasoning.entropy_router import EntropyRouter, QueryComplexity
+from core.reasoning.entropy_router import EntropyRouter
 
 router = EntropyRouter()
 s = router.route("What time is it in Tokyo?")
@@ -333,7 +331,7 @@ from core.sovereign.reflex_compiler import ReflexCompiler
 
 rc = ReflexCompiler()
 ck("ReflexCompiler", lambda: type(rc).__name__)
-from core.living_memory.core import LivingMemoryCore, MemoryType
+from core.living_memory.core import MemoryType
 
 ck("Memory types", lambda: [t.name for t in MemoryType])
 from core.sovereign.runtime_types import GoTNodeSnapshot, HealthStatus
@@ -378,7 +376,7 @@ hb_ok = breath is not None
 nervous = bus_wired and hb_ok and hb._total_events_emitted > 0
 status = "SOVEREIGN" if pct >= 85 and nervous else "DEGRADED"
 lifecycle = "COMPLETE" if pct >= 90 and nervous else "PARTIAL"
-print(f"  === VERDICT ===")
+print("  === VERDICT ===")
 print(f"  Bus wired:      {bus_wired}")
 print(f"  Heartbeat OK:   {hb_ok}")
 print(f"  Nervous system: {nervous}")

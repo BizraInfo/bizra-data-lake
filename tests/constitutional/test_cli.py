@@ -11,19 +11,12 @@ Standing on Giants:
 
 from __future__ import annotations
 
-import hashlib
 import json
-import os
-import time
 
 import pytest
 
 from core.constitutional.cli import (
-    AttestResult,
-    InitResult,
     NodeState,
-    StatusResult,
-    WorkResult,
     attest_peer,
     get_status,
     init_node,
@@ -31,7 +24,7 @@ from core.constitutional.cli import (
     process_work,
     save_node_state,
 )
-from core.constitutional.fixed_point import fp, fp_float
+from core.constitutional.fixed_point import fp
 
 # ═══════════════════════════════════════════════════════════════════
 # Fixtures
@@ -120,7 +113,7 @@ class TestInitCommand:
     def test_init_node_id_deterministic_for_name_and_time(self, state_dir):
         """Same name at same timestamp should produce same node_id."""
         # Not strictly testable with real time, but verify determinism property:
-        result = init_node("determ-node", state_dir)
+        init_node("determ-node", state_dir)
         state = load_node_state(state_dir)
         # node_id must be a valid 64-char hex string
         int(state.node_id, 16)

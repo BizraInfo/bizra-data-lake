@@ -14,7 +14,7 @@ Standing on Giants: Shannon + Tulving + Al-Ghazali + Anthropic
 import asyncio
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -117,7 +117,7 @@ class TestPATEndToEnd:
             # CRITICAL-1: Initialize gate chain so queries pass (fail-closed)
             runtime._init_gate_chain()
 
-            result = await runtime.query("What is sovereignty?")
+            await runtime.query("What is sovereignty?")
 
             # Should have recorded human turn + PAT response
             assert runtime._user_context.conversation.get_turn_count() == 2

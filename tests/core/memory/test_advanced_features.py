@@ -1,23 +1,17 @@
 """Tests for AgentDB advanced features: MMR, distance metrics, metadata filters."""
 
-import numpy as np
-import pytest
 
-from core.memory.config import HNSWConfig, MemoryConfig
+from core.memory.config import HNSWConfig
 from core.memory.hnsw_index import HNSWIndex
 from core.memory.hybrid_query import (
-    HybridQueryEngine,
     _match_metadata_filters,
     _mmr_rerank,
 )
 from core.memory.types import (
-    MemoryKind,
     MemoryRecord,
     QueryOptions,
-    RecordState,
     SearchResult,
 )
-from core.memory.unified_store import UnifiedStore
 
 # ── Metadata Filter Tests ──────────────────────────────────────────────
 

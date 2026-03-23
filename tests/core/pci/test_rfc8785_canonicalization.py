@@ -25,11 +25,7 @@ _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
 from core.pci.crypto import (
-    CanonicalizationError,
-    NonAsciiError,
-    NonCanonicalInputError,
     canonical_json,
-    canonicalize_and_validate,
     canonicalize_json,
     domain_separated_digest,
     generate_keypair,
@@ -360,7 +356,6 @@ class TestErrorHandling:
 
     def test_nan_not_allowed(self):
         """NaN is not valid JSON per RFC8785."""
-        import math
 
         data = {"value": float("nan")}
 

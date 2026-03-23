@@ -50,7 +50,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 # ─────────────────────────────────────────────────────────────
 # Constants
@@ -334,20 +334,20 @@ def main() -> int:
         print(f"  Headroom:         {result.headroom:+.1f}%")
 
         if multi_lang:
-            print(f"\n  Cross-Language Coverage:")
+            print("\n  Cross-Language Coverage:")
             for lang, cov in multi_lang.items():
                 print(f"    {lang:12s}: {cov:.1f}%")
 
         if result.regression:
-            print(f"\n  [REGRESSION] Coverage dropped below floor!")
+            print("\n  [REGRESSION] Coverage dropped below floor!")
         elif result.ratcheted:
             print(f"\n  [RATCHET] Eligible: floor can raise to {result.new_floor}%")
             if result.applied:
-                print(f"  [APPLIED] pyproject.toml updated")
+                print("  [APPLIED] pyproject.toml updated")
             else:
-                print(f"  [DRY-RUN] Use --apply to lock in the gain")
+                print("  [DRY-RUN] Use --apply to lock in the gain")
         else:
-            print(f"\n  [OK] Coverage within range, no ratchet needed")
+            print("\n  [OK] Coverage within range, no ratchet needed")
 
         print(f"\n  Evidence: {args.evidence}")
         print(f"  Hash:     {result.evidence_hash}")

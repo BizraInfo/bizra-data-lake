@@ -26,15 +26,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import sys
 import time
-import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any, Dict, List
+from unittest.mock import patch
 
 import pytest
 
@@ -44,9 +42,6 @@ sys.path.insert(0, str(_project_root))
 
 # Import core modules
 from core.integration.constants import (
-    SNR_THRESHOLD_T0_ELITE,
-    SNR_THRESHOLD_T1_HIGH,
-    STRICT_IHSAN_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
@@ -382,7 +377,7 @@ class TestLocalFirstModel:
             require_local=True,
             fallbacks=["ollama"],  # No external APIs in fallback
         )
-        gateway = InferenceGateway(config)
+        InferenceGateway(config)
 
         # With require_local=True, should not call external APIs
         assert "openai" not in config.fallbacks
@@ -393,7 +388,7 @@ class TestLocalFirstModel:
     async def test_no_external_calls_by_default(self):
         """Test that no external API calls are made by default."""
         config = InferenceConfig(require_local=True)
-        gateway = InferenceGateway(config)
+        InferenceGateway(config)
 
         # Default should not include external API backends
         assert InferenceBackend.POOL.value not in [
@@ -434,7 +429,7 @@ class TestGoTIntegration:
     @pytest.mark.asyncio
     async def test_got_aggregates_similar_hypotheses(self, thought_graph):
         """Test that GoT aggregates similar hypotheses."""
-        root = thought_graph.create_root("Test goal")
+        thought_graph.create_root("Test goal")
 
         # Create multiple nodes to aggregate
         nodes = [
@@ -453,7 +448,7 @@ class TestGoTIntegration:
     @pytest.mark.asyncio
     async def test_got_prunes_low_value_paths(self, thought_graph):
         """Test that GoT prunes low-quality paths."""
-        root = thought_graph.create_root("Test goal")
+        thought_graph.create_root("Test goal")
 
         # Add low-quality nodes
         for i in range(5):
@@ -941,12 +936,6 @@ class TestApexEndToEnd:
 
     def test_giants_attribution_complete(self):
         """Test that all standing-on-giants attributions are present."""
-        attributions = [
-            "Besta",  # Graph of Thoughts
-            "Shannon",  # SNR
-            "Lamport",  # Distributed systems
-            "Anthropic",  # Constitutional AI
-        ]
 
         # Check module docstrings for attributions
         modules_checked = 0

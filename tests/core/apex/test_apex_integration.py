@@ -10,7 +10,6 @@ Validates the three Apex pillars work together:
 Created: 2026-02-04
 """
 
-import asyncio
 from datetime import datetime, timezone
 
 import pytest
@@ -18,16 +17,11 @@ import pytest
 # Import the Apex system
 from core.apex import (  # Main unified interface; Social Graph; Opportunity Engine; Swarm Orchestrator
     AgentConfig,
-    AgentInstance,
-    AgentStatus,
     ApexSystem,
     ArbitrageDetector,
-    CollaborationStatus,
     HealthMonitor,
-    HealthStatus,
     InteractionType,
     MarketAnalyzer,
-    MarketCondition,
     MarketData,
     OpportunityEngine,
     Relationship,
@@ -55,13 +49,6 @@ class TestApexImports:
 
     def test_social_graph_imports(self):
         from core.apex import (
-            CollaborationOpportunity,
-            CollaborationStatus,
-            Interaction,
-            InteractionType,
-            NegotiationOffer,
-            Relationship,
-            RelationshipType,
             SocialGraph,
         )
 
@@ -69,38 +56,14 @@ class TestApexImports:
 
     def test_opportunity_engine_imports(self):
         from core.apex import (
-            ArbitrageDetector,
-            ArbitrageOpportunity,
-            MarketAnalysis,
-            MarketAnalyzer,
-            MarketCondition,
-            MarketData,
             OpportunityEngine,
-            Position,
-            PositionStatus,
-            SignalGenerator,
-            SignalStrength,
-            SignalType,
-            TradingSignal,
         )
 
         assert OpportunityEngine is not None
 
     def test_swarm_orchestrator_imports(self):
         from core.apex import (
-            AgentConfig,
-            AgentInstance,
-            AgentStatus,
-            HealthMonitor,
-            HealthReport,
-            HealthStatus,
-            ScalingAction,
-            ScalingDecision,
-            ScalingManager,
-            Swarm,
-            SwarmConfig,
             SwarmOrchestrator,
-            SwarmTopology,
         )
 
         assert SwarmOrchestrator is not None
@@ -328,7 +291,7 @@ class TestApexSystemUnified:
         """Test status reporting."""
         status = apex.status()
         assert status["node_id"] == "test-node"
-        assert status["running"] == False
+        assert not status["running"]
         assert "subsystems" in status
 
     @pytest.mark.asyncio

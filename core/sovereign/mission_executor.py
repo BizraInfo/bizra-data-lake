@@ -164,13 +164,13 @@ class MissionExecutor:
         Standing on: CMN paper (membrane thesis), Maturana (autopoiesis).
         """
         try:
+            import core.urp.genesis as _urp_mod
             from core.urp.genesis import get_urp
             from core.urp.persistence import (
                 load_urp_state,
                 restore_urp_from_state,
                 save_urp_state,
             )
-            import core.urp.genesis as _urp_mod
 
             urp = get_urp()
             # Auto-restore from disk if singleton not loaded

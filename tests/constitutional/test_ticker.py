@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from core.constitutional.fixed_point import fp, fp_add, fp_float
+from core.constitutional.fixed_point import fp
 from core.constitutional.ticker import TickResult, process_tick
 from core.constitutional.types import (
     ActionReceipt,

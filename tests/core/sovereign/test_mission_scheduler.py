@@ -20,7 +20,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from core.sovereign.mission_scheduler import (
-    MissionDefinition,
     MissionPersistence,
     MissionRecord,
     MissionScheduler,

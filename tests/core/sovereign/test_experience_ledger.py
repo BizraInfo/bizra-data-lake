@@ -5,20 +5,16 @@ Covers: episode hashing, chain integrity, RIR retrieval,
 distillation, and the SovereignExperienceLedger class.
 """
 
-import math
 import os
 import tempfile
-import time
 
 import pytest
 
 from core.sovereign.experience_ledger import (
-    Episode,
     EpisodeAction,
     EpisodeImpact,
     SELIntegrityError,
     SovereignExperienceLedger,
-    _compute_chain_hash,
     _compute_efficiency_score,
     _compute_episode_hash,
     _cosine_similarity,

@@ -8,18 +8,15 @@
 
 import hashlib
 import sys
-import time
-from typing import Dict, List
 
 # Add parent to path
 sys.path.insert(0, "c:\\BIZRA-DATA-LAKE")
 
 from core.federation.consensus import ConsensusEngine, VoteType
-from core.federation.gossip import GossipEngine, MessageType, NodeInfo, NodeState
+from core.federation.gossip import GossipEngine, NodeState
 from core.federation.node import FederationNode
 from core.federation.propagation import (
     ElevatedPattern,
-    PatternStatus,
     PatternStore,
     PropagationEngine,
 )

@@ -13,8 +13,6 @@ Usage:
 """
 
 import os
-import subprocess
-import time
 
 import httpx
 import pytest

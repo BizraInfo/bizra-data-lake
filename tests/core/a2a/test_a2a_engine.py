@@ -3,8 +3,6 @@
 Phase 17: Security Test Scaffolding
 """
 
-import json
-from typing import Any, Dict, List
 
 import pytest
 

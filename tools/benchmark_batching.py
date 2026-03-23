@@ -21,7 +21,6 @@ Created: 2026-02-04 | BIZRA Sovereignty
 import argparse
 import asyncio
 import time
-from typing import List
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MOCK BACKEND (FOR TESTING WITHOUT REAL LLM)
@@ -73,7 +72,7 @@ async def run_serial_benchmark(num_requests: int, backend_delay_ms: int = 50) ->
     ]
 
     # Wait for completion
-    results = await asyncio.gather(*tasks)
+    await asyncio.gather(*tasks)
 
     duration = time.time() - start_time
     throughput = num_requests / duration
@@ -129,7 +128,7 @@ async def run_batching_benchmark(
         ]
 
         # Wait for completion
-        results = await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks)
 
         duration = time.time() - start_time
         throughput = num_requests / duration
@@ -141,7 +140,7 @@ async def run_batching_benchmark(
 
         # Print batching metrics
         metrics = queue.get_metrics()
-        print(f"\nBatching Metrics:")
+        print("\nBatching Metrics:")
         print(f"  Total batches: {metrics['total_batches']}")
         print(f"  Avg batch size: {metrics['avg_batch_size']:.2f}")
         print(f"  Avg batch duration: {metrics['avg_batch_duration_ms']:.2f}ms")
@@ -169,7 +168,7 @@ async def compare_throughput(
     print(f"\n{'═'*60}")
     print("BIZRA INFERENCE BATCHING BENCHMARK")
     print(f"{'═'*60}")
-    print(f"Configuration:")
+    print("Configuration:")
     print(f"  Total requests: {num_requests}")
     print(f"  Backend delay: {backend_delay_ms}ms per request")
     print(f"  Max batch size: {max_batch_size}")

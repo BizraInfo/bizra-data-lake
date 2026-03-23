@@ -14,7 +14,6 @@ import pytest
 from core.devops.quality_trend import (
     QualitySnapshot,
     QualityTrendStore,
-    TrendAnalysis,
     analyze_trend,
     compute_linear_trend,
 )

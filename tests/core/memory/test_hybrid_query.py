@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from core.memory.config import MemoryConfig
 from core.memory.hnsw_index import HNSWIndex
 from core.memory.hybrid_query import HybridQueryEngine
 from core.memory.types import MemoryKind, QueryOptions

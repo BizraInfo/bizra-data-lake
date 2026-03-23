@@ -7,42 +7,30 @@ Tests for the unified ApexSovereignEntity and its integration modules.
 Created: 2026-02-04
 """
 
-import asyncio
-from datetime import datetime, timezone
 
 import pytest
 
-from core.apex import Relationship, RelationshipType
 from core.sovereign.apex_sovereign import (
     ApexOODAState,
-    ApexSovereignEntity,
-    Decision,
     Observation,
-    Outcome,
     Prediction,
     TeamPlan,
     create_apex_entity,
 )
 from core.sovereign.autonomy_matrix import AutonomyLevel
 from core.sovereign.market_integration import (
-    SNR_FLOOR,
     MarketAwareMuraqabah,
     MarketGoal,
-    MarketSensorAdapter,
     MarketSensorReading,
     MarketSensorType,
 )
 from core.sovereign.social_integration import (
-    CollaborationMatch,
-    NoCapableAgentError,
-    ScoredAgent,
     SociallyAwareBridge,
 )
 from core.sovereign.swarm_integration import (
     HealthStatus,
     HybridSwarmOrchestrator,
     RustServiceAdapter,
-    ServiceStatus,
 )
 
 
@@ -254,7 +242,7 @@ class TestApexSovereignEntity:
         """Should provide status."""
         status = entity.status()
         assert status["node_id"] == "test-node"
-        assert status["running"] == False
+        assert not status["running"]
         assert "metrics" in status
         assert "subsystems" in status
 

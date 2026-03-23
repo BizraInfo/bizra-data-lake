@@ -12,7 +12,6 @@ Standing on Giants:
 """
 
 import json
-from datetime import datetime, timezone
 
 import pytest
 
@@ -25,7 +24,7 @@ from core.proof_engine.receipt import (
     ReceiptVerifier,
     SimpleSigner,
 )
-from core.proof_engine.snr import SNREngine, SNRInput, SNRTrace
+from core.proof_engine.snr import SNREngine, SNRInput
 
 # =============================================================================
 # FIXTURES

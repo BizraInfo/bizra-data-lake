@@ -9,9 +9,8 @@ Standing on Giants: Observer Pattern + Async Python + Domain Events
 
 import asyncio
 import logging
-import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 

@@ -135,9 +135,7 @@ def _benchmark_got_bridge_compatible() -> dict[str, Any]:
         results["got_bridge_converged"] = bool(
             getattr(reason_result, "converged", False)
         )
-        results["got_bridge_verified"] = bool(
-            getattr(reason_result, "verified", False)
-        )
+        results["got_bridge_verified"] = bool(getattr(reason_result, "verified", False))
     except (
         asyncio.CancelledError,
         AttributeError,

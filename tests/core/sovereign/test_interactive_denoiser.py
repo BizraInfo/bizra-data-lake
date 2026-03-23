@@ -2,12 +2,10 @@
 Tests for Interactive Denoising — Bayesian Belief Updates
 """
 
-import pytest
 
 from core.sovereign.interactive_denoiser import (
     BeliefState,
     CorrectionType,
-    DenoisingResult,
     InteractiveDenoiser,
 )
 
@@ -106,7 +104,7 @@ class TestInteractiveDenoiser:
         denoiser.initialize_beliefs({"work": 0.5, "meeting": 0.3, "lunch": 0.2})
 
         old_meeting = denoiser.belief_state.get_belief("meeting")
-        old_work = denoiser.belief_state.get_belief("work")
+        denoiser.belief_state.get_belief("work")
 
         denoiser.apply_correction(
             CorrectionType.REDIRECT,
@@ -148,14 +146,14 @@ class TestInteractiveDenoiser:
         )
 
         # User says "meeting moved"
-        result = denoiser.apply_correction(
+        denoiser.apply_correction(
             CorrectionType.RESCHEDULE,
             target_priority="team_meeting",
             context="meeting moved to tomorrow",
         )
 
         # Apply a second correction to reinforce
-        result2 = denoiser.apply_correction(
+        denoiser.apply_correction(
             CorrectionType.DISMISS,
             target_priority="team_meeting",
             context="not relevant today",

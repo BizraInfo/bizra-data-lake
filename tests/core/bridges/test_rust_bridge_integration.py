@@ -25,9 +25,7 @@ import pytest
 
 from core.bridges.desktop_bridge import (
     _RUST_AVAILABLE,
-    BRIDGE_HOST,
     DesktopBridge,
-    _ok,
 )
 
 # ---------------------------------------------------------------------------

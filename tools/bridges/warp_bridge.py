@@ -29,16 +29,14 @@ WARP Bridge Architecture:
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
-import os
 import sys
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -53,21 +51,11 @@ from faiss_env import FAISS_AVAILABLE, faiss_summary
 # Import BIZRA config
 from bizra_config import (
     CHUNKS_TABLE_PATH,
-    GOLD_PATH,
-    IHSAN_CONSTRAINT,
     INDEXED_PATH,
-    SNR_THRESHOLD,
-    WARP_BOUND,
     WARP_CHECKPOINT,
-    WARP_ENABLED,
-    WARP_EXPERIMENT_ROOT,
-    WARP_FUSED_EXT,
     WARP_INDEX_ROOT,
     WARP_NBITS,
     WARP_NPROBE,
-    WARP_RUNTIME,
-    WARP_T_PRIME,
-    WARP_USE_GPU,
 )
 
 # Configure logging

@@ -7,7 +7,6 @@ and their core interfaces respond correctly.
 Created: 2026-02-07 | BIZRA Mastermind Sprint
 """
 
-import pytest
 
 # ============================================================================
 # ConstitutionalGate — Z3-proven synthesis admission

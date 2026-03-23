@@ -236,7 +236,7 @@ def run_lifecycle_emulation(
 
     # Phase 2: learning (repeat pattern 4 more times)
     rewards: list[float] = [first["reward"]]
-    prev_energy = float(first["thermal_energy"])
+    float(first["thermal_energy"])
     learning_latencies = [2650.0, 2310.0, 1900.0, 1650.0]
     for idx, latency in enumerate(learning_latencies, start=2):
         r = execute_action(
@@ -252,7 +252,7 @@ def run_lifecycle_emulation(
             previous_total_energy=None,
             mode="system2",
         )
-        prev_energy = float(r["thermal_energy"])
+        float(r["thermal_energy"])
         rewards.append(float(r["reward"]))
 
     successful_learning_actions = sum(
@@ -290,7 +290,7 @@ def run_lifecycle_emulation(
         previous_total_energy=None,
         mode="system1" if myelinated else "system2",
     )
-    prev_energy = float(fast["thermal_energy"])
+    float(fast["thermal_energy"])
 
     # Phase 5: autopoiesis with consent
     consent = impt >= cfg.compile_cost_phase5

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -17,8 +17,6 @@ from core.swarm.event_bridge import SwarmEventBridge, wire_swarm_to_bus
 from core.swarm.types import (
     AgentRole,
     AgentSpec,
-    SwarmConfig,
-    SwarmEventKind,
 )
 
 
@@ -143,7 +141,6 @@ async def test_bridge_does_not_break_engine():
     """If bus.emit raises, engine continues normally."""
     bus = EventBus()
     # Make emit always fail
-    original_emit = bus.emit
     bus.emit = AsyncMock(side_effect=RuntimeError("bus down"))
 
     engine = SwarmEngine()

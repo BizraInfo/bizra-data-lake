@@ -48,19 +48,15 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
-import os
-import re
-import sys
 import time
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 import pandas as pd
@@ -1720,7 +1716,7 @@ class SacredWisdomEngine:
         self._save_state()
 
         log.info("═" * 80)
-        log.info(f"   ✅ SACRED WISDOM ENGINE BUILT")
+        log.info("   ✅ SACRED WISDOM ENGINE BUILT")
         log.info(f"      Nodes: {self.stats['nodes']:,}")
         log.info(f"      Edges: {self.stats['edges']:,}")
         log.info(f"      Patterns: {self.stats['patterns']}")
@@ -2002,7 +1998,7 @@ def main():
                     print(f"     │  📚 Domain: {disc['sub_domain']}")
                     if disc.get("text_arabic"):
                         print(f"     │  📖 {disc['text_arabic'][:60]}...")
-                    print(f"     └─")
+                    print("     └─")
 
     elif args.command == "hidden":
         if not engine.load():
@@ -2050,7 +2046,7 @@ def main():
                     f"     • {echo['concept']}: {echo['quran_count']} Quran verses echo in Hadith"
                 )
 
-        print(f"\n  ═══════════════════════════════════════")
+        print("\n  ═══════════════════════════════════════")
         print(f"  Total hidden patterns discovered: {summary.get('total_patterns', 0)}")
 
 

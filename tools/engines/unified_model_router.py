@@ -4,14 +4,12 @@
 
 import asyncio
 import base64
-import json
 import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import httpx
 
@@ -592,7 +590,7 @@ class OllamaBackend(ModelBackend):
                 )
 
             return ModelResponse(
-                content=f"[Error: Vision request failed]",
+                content="[Error: Vision request failed]",
                 model=model,
                 backend=BackendType.OLLAMA,
                 latency_ms=latency,

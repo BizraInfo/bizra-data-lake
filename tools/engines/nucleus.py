@@ -59,7 +59,6 @@ import argparse
 import asyncio
 import json
 import os
-import signal
 import socket
 import subprocess
 import sys
@@ -69,7 +68,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -185,7 +184,7 @@ def check_url(url: str, timeout: float = 5.0) -> tuple[bool, float, Optional[str
     start = time.time()
     try:
         req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req, timeout=timeout) as response:
+        with urllib.request.urlopen(req, timeout=timeout):
             latency = (time.time() - start) * 1000
             return True, latency, None
     except urllib.error.URLError as e:

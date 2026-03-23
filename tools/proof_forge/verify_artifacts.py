@@ -14,7 +14,6 @@ Usage:
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 import time
@@ -316,7 +315,7 @@ def run_verification(project_dir: Path, manual_attestation: str = None) -> dict:
             result = run_check(cmd_info["cmd"], project_dir, cmd_info["type"])
             checks.append(result)
     else:
-        print(f"\n   No automated checks available.")
+        print("\n   No automated checks available.")
 
     # Build report
     checks_run = len(checks)
@@ -345,7 +344,7 @@ def run_verification(project_dir: Path, manual_attestation: str = None) -> dict:
     if checks_failed > 0:
         print(f", {checks_failed} failed", end="")
     if manual_attestation:
-        print(f" + manual attestation", end="")
+        print(" + manual attestation", end="")
     print()
 
     return report

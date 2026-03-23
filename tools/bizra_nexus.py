@@ -43,36 +43,28 @@ import json
 import logging
 import os
 import statistics
-import sys
 import threading
 import time
-import weakref
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import asynccontextmanager, contextmanager
-from dataclasses import asdict, dataclass, field
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from functools import lru_cache, partial, wraps
+from functools import wraps
 from pathlib import Path
 from queue import Empty, Queue
 from typing import (
     Any,
-    AsyncIterator,
-    Awaitable,
     Callable,
     ClassVar,
     Dict,
-    Final,
     Generic,
     Iterator,
     List,
-    Literal,
-    NamedTuple,
     Optional,
     Protocol,
-    Set,
     Tuple,
     TypeVar,
     Union,
@@ -409,7 +401,7 @@ def with_circuit_breaker(circuit: CircuitBreaker):
                 result = func(*args, **kwargs)
                 circuit.record_success()
                 return result
-            except Exception as e:
+            except Exception:
                 circuit.record_failure()
                 raise
 
@@ -805,7 +797,7 @@ class EngineAdapter(ABC):
 
             return result
 
-        except Exception as e:
+        except Exception:
             self._circuit.record_failure()
             raise
 

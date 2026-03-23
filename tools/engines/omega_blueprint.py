@@ -26,7 +26,6 @@ Giants Protocol:
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
-import hashlib
 import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -1022,22 +1021,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install linters
         run: |
           pip install ruff black mypy
-      
+
       - name: Run Ruff (Python lint)
         run: ruff check .
-      
+
       - name: Run Black (Python format)
         run: black --check .
-      
+
       - name: Run MyPy (Type check)
         run: mypy --ignore-missing-imports .
         continue-on-error: true  # Warn but don't fail during alpha
@@ -1050,7 +1049,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -1058,12 +1057,12 @@ jobs:
           scan-ref: '.'
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
-      
+
       - name: Run Gitleaks (secrets detection)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Run Bandit (Python security)
         run: |
           pip install bandit
@@ -1089,24 +1088,24 @@ jobs:
           - 5432:5432
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
+
       - name: Install dependencies
         run: |
           pip install pytest pytest-cov pytest-asyncio
           pip install -r requirements.txt || true
-      
+
       - name: Run tests with coverage
         run: |
           pytest --cov=. --cov-report=xml --cov-report=html
         env:
           REDIS_URL: redis://localhost:6379
           DATABASE_URL: postgresql://postgres:test@localhost:5432/test
-      
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
@@ -1121,10 +1120,10 @@ jobs:
     needs: [test]
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Build nucleus image
         uses: docker/build-push-action@v5
         with:
@@ -1144,13 +1143,13 @@ jobs:
     needs: [build]
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Check ethical constraints
         run: |
           python -c "
           # Verify Ihsān constraints
           import sys
-          
+
           checks = {
               'no_hardcoded_secrets': True,
               'transparent_logging': True,
@@ -1158,17 +1157,17 @@ jobs:
               'data_sovereignty': True,
               'zakat_integration': True,
           }
-          
+
           failed = [k for k, v in checks.items() if not v]
           if failed:
               print(f'Ihsān violations: {failed}')
               sys.exit(1)
           print('✅ Ihsān compliance verified')
           "
-      
+
       - name: Generate Ihsān report
         run: echo "Ihsān Score: 0.92" > ihsan-report.txt
-      
+
       - name: Upload Ihsān report
         uses: actions/upload-artifact@v4
         with:
@@ -1186,7 +1185,7 @@ jobs:
     environment: staging
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Deploy to Kind cluster
         run: |
           echo "Deploying to staging..."
@@ -1209,22 +1208,22 @@ def main():
     roadmap = OmegaRoadmap()
 
     # Display summary
-    print(f"\n📊 Roadmap Summary:")
+    print("\n📊 Roadmap Summary:")
     print(f"   Total Work Packages: {len(roadmap.work_packages)}")
     print(f"   Total Effort: {roadmap.total_effort()} hours")
     print(f"   Current Phase: {roadmap.current_phase.value}")
 
-    print(f"\n📈 Effort by Phase:")
+    print("\n📈 Effort by Phase:")
     for phase, hours in roadmap.effort_by_phase().items():
         print(f"   {phase}: {hours}h")
 
-    print(f"\n🏷️ Effort by Category:")
+    print("\n🏷️ Effort by Category:")
     for cat, hours in roadmap.effort_by_category().items():
         print(f"   {cat}: {hours}h")
 
     # Next actionable items
     next_items = roadmap.get_next_actionable()
-    print(f"\n🎯 Next Actionable Items (dependencies met):")
+    print("\n🎯 Next Actionable Items (dependencies met):")
     for wp in next_items[:5]:
         print(f"   [{wp.id}] {wp.name} (P{wp.priority}, {wp.effort_hours}h)")
 

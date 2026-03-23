@@ -13,19 +13,11 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-003: "wire ledger into live pipeline"
 """
 
-import asyncio
-import hashlib
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
 
 from core.proof_engine.evidence_ledger import (
-    GENESIS_HASH,
     EvidenceLedger,
     VerifierResponse,
-    emit_receipt,
 )
 from core.proof_engine.reason_codes import ReasonCode
 

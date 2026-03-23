@@ -45,10 +45,8 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
-import os
 import sys
 import threading
 import time
@@ -58,7 +56,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -765,13 +763,13 @@ def main():
         brain.awaken()
         status = brain.get_status()
 
-        print(f"\n🧠 SOVEREIGN BRAIN STATUS")
+        print("\n🧠 SOVEREIGN BRAIN STATUS")
         print("═" * 50)
         print(f"  Health:    {'✓ ONLINE' if status['is_healthy'] else '✗ DEGRADED'}")
         print(f"  Nodes:     {status['total_nodes']}")
         print(f"  Edges:     {status['total_edges']}")
         print(f"  Uptime:    {status['uptime']}")
-        print(f"\n  ENGINES:")
+        print("\n  ENGINES:")
         for name, info in status["engines"].items():
             emoji = "✓" if info["status"] == "ONLINE" else "✗"
             print(f"    {emoji} {name}: {info['status']} ({info['nodes']} nodes)")
@@ -780,21 +778,21 @@ def main():
     elif cmd == "health":
         brain.awaken()
         state = brain.health_check()
-        print(f"\n🏥 HEALTH CHECK COMPLETE")
+        print("\n🏥 HEALTH CHECK COMPLETE")
         print(f"   Overall: {'HEALTHY' if state.is_healthy else 'DEGRADED'}")
         print(f"   Last Check: {state.last_health_check}")
 
     elif cmd == "rebuild":
         brain.awaken()
         results = brain.rebuild_all()
-        print(f"\n🏗️ REBUILD RESULTS")
+        print("\n🏗️ REBUILD RESULTS")
         for name, success in results.items():
             print(f"   {'✓' if success else '✗'} {name}")
 
     elif cmd == "heal":
         brain.awaken()
         results = brain.self_heal()
-        print(f"\n🔧 SELF-HEALING RESULTS")
+        print("\n🔧 SELF-HEALING RESULTS")
         for name, success in results.items():
             print(f"   {'✓' if success else '✗'} {name}")
 

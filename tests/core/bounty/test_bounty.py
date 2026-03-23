@@ -8,14 +8,12 @@ Tests all four layers:
 4. Integration (Bounty Bridge)
 """
 
-import asyncio
 from datetime import datetime, timezone
 
 import pytest
 
 from core.bounty import (
     BASE_PAYOUT_PER_DELTA_E,
-    BOUNTY_IHSAN_THRESHOLD,
     BOUNTY_SNR_THRESHOLD,
     BOUNTY_VERSION,
     SECURITY_VECTORS,
@@ -24,7 +22,6 @@ from core.bounty import (
 )
 from core.bounty.bridge import (
     BountyBridge,
-    BountySubmission,
     Platform,
     PlatformCredentials,
     SubmissionStatus,
@@ -32,23 +29,19 @@ from core.bounty.bridge import (
 from core.bounty.hunter import (
     HunterAgent,
     HunterSwarm,
-    ScanResult,
     ScanStatus,
     ScanTarget,
 )
 from core.bounty.impact_proof import (
     DomainEvent,
     EntropyMeasurement,
-    ImpactProof,
     ImpactProofBuilder,
     ImpactProofVerifier,
     Severity,
     VulnCategory,
 )
 from core.bounty.oracle import (
-    BountyCalculation,
     BountyOracle,
-    BountyPayout,
 )
 from core.proof_engine.receipt import SimpleSigner
 

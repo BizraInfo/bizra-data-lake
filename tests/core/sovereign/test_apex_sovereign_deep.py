@@ -19,12 +19,9 @@ Created: 2026-02-11
 
 from __future__ import annotations
 
-import asyncio
 import logging
-import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -45,7 +42,6 @@ from core.sovereign.market_integration import (
     MarketSensorType,
 )
 from core.sovereign.social_integration import ScoredAgent
-from core.sovereign.swarm_integration import HealthStatus
 
 
 # ---------------------------------------------------------------------------
@@ -1271,7 +1267,7 @@ class TestAnalyzePhase:
         obs = Observation(market_readings=[reading])
         # Multiple readings to test cap
         obs.market_readings = [reading] * 5
-        goals = await entity._analyze(obs, Prediction(), TeamPlan())
+        await entity._analyze(obs, Prediction(), TeamPlan())
         assert len(entity._snr_history) <= 100
 
 

@@ -506,7 +506,6 @@ def _conversation_rows(payload: Any) -> list[dict[str, Any]]:
         # Unwrap {data: {...}} / {result: {...}} envelopes common in Chinese AI exports.
         inner = _unwrap_data_envelope(payload)
         # If unwrapping found a list (e.g. {data: [conversations...]}), recurse.
-        unwrapped_list = inner if inner is not payload else None
         data_list = payload.get("data") or payload.get("result")
         if isinstance(data_list, list):
             return _conversation_rows(data_list)

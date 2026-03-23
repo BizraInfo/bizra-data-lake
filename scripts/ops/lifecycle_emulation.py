@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 """BIZRA Complete System Lifecycle Emulation — Real Data"""
 
-import hashlib
-import json
-import os
 import sys
 import time
-import traceback
 
 sys.path.insert(0, ".")
 results = {}
@@ -96,7 +92,7 @@ check("KERNEL_INVARIANTS", lambda: KERNEL_INVARIANTS)
 
 stage("STAGE 2: EVENT BUS - IMMUTABLE TRUTH LOG")
 
-from core.sovereign.event_bus import Event, EventBus, EventPriority
+from core.sovereign.event_bus import Event, EventBus
 
 bus = EventBus()
 captured = []
@@ -148,7 +144,7 @@ try:
     check("Hash chain link #2->#3", lambda: f"#{2}={h2[:12]}->#{3}={h3[:12]}")
     # Verify chain integrity
     check("Chain tamper test", lambda: blake3.blake3(c2).hexdigest() == h2)
-except Exception as e:
+except Exception:
     check("Proof engine", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 stage("STAGE 4: SOVEREIGN RUNTIME CORE")
@@ -196,7 +192,7 @@ try:
         "Reflex compilation (3/3)",
         lambda: f"compiled={compiled is not None} conf={compiled.confidence if compiled else 0}",
     )
-except Exception as e:
+except Exception:
     check("Reflex cache", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 stage("STAGE 7: PCI GATES - CONSTITUTIONAL VERIFICATION")
@@ -213,7 +209,7 @@ try:
         "Gate FAIL (ihsan=0.80 snr=0.60)",
         lambda: gk.check(ihsan_score=0.80, snr_score=0.60),
     )
-except Exception as e:
+except Exception:
     check("PCI gates", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 stage("STAGE 8: TOKEN ECONOMY")
@@ -223,13 +219,13 @@ try:
 
     bloom = BloomToken()
     check("BLOOM token init", lambda: type(bloom).__name__)
-except Exception as e:
+except Exception:
     check("BLOOM token", lambda: (_ for _ in ()).throw(Exception(str(e))))
 try:
     from core.token.token_economy import TokenEconomy
 
     check("TokenEconomy available", lambda: type(TokenEconomy).__name__)
-except Exception as e:
+except Exception:
     check("TokenEconomy", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 stage("STAGE 9: ENTROPY ROUTER - SHANNON H CLASSIFICATION")
@@ -242,7 +238,7 @@ try:
     check("Simple query classification", lambda: s)
     c = router.classify("Redesign ReflexCache for concurrent UAB with lock-free reads")
     check("Complex query classification", lambda: c)
-except Exception as e:
+except Exception:
     check("Entropy router", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 stage("STAGE 10: LIVING MEMORY")
@@ -252,7 +248,7 @@ try:
 
     frag = MemoryFragment(content="Genesis boot", importance=0.95, tags=["genesis"])
     check("MemoryFragment", lambda: f"imp={frag.importance} tags={frag.tags}")
-except Exception as e:
+except Exception:
     check("Living memory", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 stage("STAGE 11: CONSTITUTIONAL SIMULATION DATA")
@@ -264,7 +260,7 @@ try:
         "Constitutional simulation available",
         lambda: type(ConstitutionalSimulation).__name__,
     )
-except Exception as e:
+except Exception:
     check("Constitutional simulation", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 stage("STAGE 12: GRAPH-OF-THOUGHTS")
@@ -274,7 +270,7 @@ try:
 
     got = GoTNodeSnapshot(node_id="root", content="test", score=0.95)
     check("GoT node snapshot", lambda: f"id={got.node_id} score={got.score}")
-except Exception as e:
+except Exception:
     check("GoT", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 stage("FINAL EVALUATION - REAL DATA SUMMARY")

@@ -148,7 +148,7 @@ class E2EPipeline:
             await self._run_init_phase()
 
             # Phase 2: Skills Registry
-            skills_result = await self._run_skills_phase()
+            await self._run_skills_phase()
 
             # Phase 3: Graph-of-Thoughts
             got_result = await self._run_got_phase(query)
@@ -317,7 +317,7 @@ class E2EPipeline:
                 parent_id=root.id,
             )
 
-            branch2 = graph.add_thought(
+            graph.add_thought(
                 content="Strategic analysis perspective",
                 thought_type=ThoughtType.OBSERVATION,
                 confidence=0.88,

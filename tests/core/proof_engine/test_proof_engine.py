@@ -11,22 +11,15 @@ Plus the 6-Gate Chain implementation.
 """
 
 import time
-from datetime import datetime, timezone
 
 import pytest
 
 from core.proof_engine import (
     DEFAULT_SNR_POLICY,
     GATE_CHAIN,
-    PROOF_ENGINE_VERSION,
-    PROOF_KPIS,
 )
 from core.proof_engine.bench import (
     BenchHarness,
-    BenchReceipt,
-    BenchResult,
-    BenchSample,
-    bench_to_receipt,
 )
 from core.proof_engine.canonical import (
     CanonEnvironment,
@@ -41,8 +34,6 @@ from core.proof_engine.gates import (
     CommitGate,
     ConstraintGate,
     GateChain,
-    GateChainResult,
-    GateResult,
     GateStatus,
     ProvenanceGate,
     SafetyGate,
@@ -50,8 +41,6 @@ from core.proof_engine.gates import (
     SNRGate,
 )
 from core.proof_engine.receipt import (
-    Metrics,
-    Receipt,
     ReceiptBuilder,
     ReceiptStatus,
     ReceiptVerifier,

@@ -11,13 +11,10 @@ These tests use mocks to avoid requiring live LLM backends.
 """
 
 import json
-from pathlib import Path
-from typing import Any, Dict, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from core.pat.identity_card import SovereigntyTier
 
 # ─── Onboarding → Impact Tracker Init ────────────────────────────────
 
@@ -317,7 +314,6 @@ class TestGatewayContext:
     @pytest.mark.asyncio
     async def test_gateway_query_fn_adds_source(self):
         """The gateway query function should tag context with source=gateway."""
-        from unittest.mock import AsyncMock
 
         # Mock runtime
         mock_runtime = AsyncMock()

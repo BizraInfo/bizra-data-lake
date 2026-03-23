@@ -18,7 +18,6 @@ import pytest
 from core.constitutional.declaration import (
     DECLARATION_BLAKE2B_256,
     INVARIANTS,
-    ConstitutionalInvariant,
     ConstitutionalViolation,
     compute_declaration_hash,
     create_genesis_event,

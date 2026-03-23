@@ -7,7 +7,6 @@ Standing on: Berge (hypergraph) + Simon (hierarchy) + Shannon (SNR) + Deming (PD
 
 from __future__ import annotations
 
-import pytest
 
 from core.integration.constants import (
     SNR_THRESHOLD_T0_ELITE,
@@ -173,7 +172,6 @@ class TestCrossPackageIntegration:
 
     def test_runtime_state_includes_phase31_components(self):
         """Verify _get_runtime_state includes Phase 31 component status."""
-        from unittest.mock import AsyncMock, patch
 
         from core.sovereign.runtime_core import SovereignRuntime
         from core.sovereign.runtime_types import RuntimeConfig

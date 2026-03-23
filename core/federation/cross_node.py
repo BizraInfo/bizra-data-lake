@@ -169,8 +169,8 @@ if __name__ == "__main__":
     print(f"Telescript: {mission['hash'][:16]}... status={mission['status']}")
 
     # 5.3: SEED transfer
-    import tempfile
     import os
+    import tempfile
 
     td = tempfile.mkdtemp()
     a_ledger = os.path.join(td, "a.jsonl")

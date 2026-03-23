@@ -6,14 +6,11 @@ and integration with the SEL backend.
 """
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from core.sovereign.experience_ledger import (
-    Episode,
-    EpisodeAction,
-    EpisodeImpact,
     SovereignExperienceLedger,
 )
 

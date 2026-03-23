@@ -96,7 +96,7 @@ def unify_domain():
         return
 
     records = []
-    start_time = datetime.now()
+    datetime.now()
 
     # 1. Autonomous Crawl (The Engine)
     # Using os.walk for maximum speed over pathlib.rglob

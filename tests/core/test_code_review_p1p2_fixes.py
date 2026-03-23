@@ -13,12 +13,9 @@ Standing on Giants: Shannon (1948), Rawls (1971), Boyd (OODA)
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
-import tempfile
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -28,8 +25,6 @@ import pytest
 from core.genesis.orchestrator import GenesisOrchestrator
 from core.genesis.types import (
     GenesisConfig,
-    GenesisResult,
-    GenesisStep,
     GenesisStepStatus,
 )
 
@@ -46,7 +41,6 @@ class TestStrictGatePassedRequiresNoFailures:
         orchestrator = GenesisOrchestrator(config)
 
         # Inject a step that always hard-fails
-        original_run = orchestrator._step_token_allocation
 
         def _failing_step() -> dict:
             return {
@@ -86,7 +80,7 @@ class TestStrictGatePassedRequiresNoFailures:
 # ---------------------------------------------------------------------------
 # P2 — SAT count respects explicit --sat-count
 # ---------------------------------------------------------------------------
-from core.genesis.cli import build_genesis_parser, handle_genesis
+from core.genesis.cli import build_genesis_parser
 
 
 class TestSATCountOverride:
@@ -106,7 +100,7 @@ class TestSATCountOverride:
         args = self._parse_args("--sat-count", "12")
 
         # Simulate the same resolution logic as handle_genesis
-        pat_count = 7 if getattr(args, "pat_7", False) else (args.pat_count or 7)
+        7 if getattr(args, "pat_7", False) else (args.pat_count or 7)
         sat_mode = args.sat_mode
         if getattr(args, "sat_49", False):
             sat_mode = "full49"

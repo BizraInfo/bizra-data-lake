@@ -4,13 +4,8 @@
 #
 # Standing on Giants: FastAPI patterns, OpenAPI spec, async excellence
 
-import asyncio
-import json
 import logging
-import time
 from contextlib import asynccontextmanager
-from dataclasses import asdict
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -30,15 +25,11 @@ except ImportError:
     print("FastAPI not available. Install with: pip install fastapi uvicorn")
 
 from bizra_runtime import (
-    BackendStatus,
     BIZRARuntime,
     LoadBalanceStrategy,
-    QueryResult,
-    RuntimeMetrics,
 )
 
 # BIZRA imports
-from bizra_config import IHSAN_CONSTRAINT, SNR_THRESHOLD
 
 # Configure logging
 logging.basicConfig(

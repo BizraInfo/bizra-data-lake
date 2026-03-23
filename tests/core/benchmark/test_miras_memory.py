@@ -6,11 +6,9 @@ CI-safe: no GPU, no network, no external services required.
 
 from __future__ import annotations
 
-import time
 
-import pytest
 
-from core.benchmark.miras_memory import MIRASMemory, MIRASMemoryEntry, RetrievalResult
+from core.benchmark.miras_memory import MIRASMemory, RetrievalResult
 from core.integration.constants import UNIFIED_SNR_THRESHOLD
 
 

@@ -4,8 +4,6 @@ Tests for Proactive Sovereign Entity
 Comprehensive tests for the complete proactive sovereign architecture.
 """
 
-import asyncio
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -15,7 +13,6 @@ from core.proof_engine.evidence_ledger import EvidenceLedger
 # Autonomy Matrix
 from core.sovereign.autonomy_matrix import (
     ActionContext,
-    AutonomyConstraints,
     AutonomyLevel,
     AutonomyMatrix,
 )
@@ -23,7 +20,6 @@ from core.sovereign.autonomy_matrix import (
 # Collective Intelligence
 from core.sovereign.collective_intelligence import (
     AgentContribution,
-    AggregationMethod,
     CollectiveIntelligence,
 )
 
@@ -32,58 +28,43 @@ from core.sovereign.dual_agentic_bridge import (
     ActionProposal,
     ConsensusResult,
     DualAgenticBridge,
-    VetoReason,
 )
 
 # Enhanced Team Planner
 from core.sovereign.enhanced_team_planner import (
     EnhancedTeamPlanner,
-    ExecutionPlan,
-    ProactiveGoal,
 )
 
 # Event Bus
-from core.sovereign.event_bus import Event, EventBus, EventPriority, get_event_bus
+from core.sovereign.event_bus import Event, EventBus
 
 # Muraqabah Engine
 from core.sovereign.muraqabah_engine import (
     MonitorDomain,
     MuraqabahEngine,
     Opportunity,
-    SensorReading,
 )
 
 # Predictive Monitor
 from core.sovereign.predictive_monitor import (
-    AlertSeverity,
     PredictiveMonitor,
     TrendDirection,
 )
 
 # Proactive Integration
 from core.sovereign.proactive_integration import (
-    EntityConfig,
     EntityMode,
-    ProactiveSovereignEntity,
     create_proactive_entity,
 )
 
 # Proactive Scheduler
-from core.sovereign.proactive_scheduler import (
-    JobPriority,
-    ProactiveScheduler,
-    ScheduledJob,
-    ScheduleType,
-)
 
 # State Checkpointer
-from core.sovereign.state_checkpointer import Checkpoint, StateCheckpointer
 
 # Team Planner
 from core.sovereign.team_planner import (
     AgentRole,
     Goal,
-    TaskAllocation,
     TaskComplexity,
     TeamPlanner,
     TeamTask,

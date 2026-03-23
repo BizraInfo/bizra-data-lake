@@ -14,9 +14,7 @@ Standing on Giants: Lamport (single source of truth, 1978)
 
 from __future__ import annotations
 
-from unittest.mock import patch
 
-import pytest
 
 
 class TestNisabSSoT:
@@ -51,7 +49,6 @@ class TestCLIWiring:
 
     def test_sovereignty_subcommand_exists(self) -> None:
         """Sovereign __main__ has sovereignty/sov subcommand."""
-        import argparse
         import importlib
 
         mod = importlib.import_module("core.sovereign.__main__")
@@ -82,9 +79,7 @@ class TestCLIWiring:
             attest_peer,
             get_status,
             init_node,
-            load_node_state,
             process_work,
-            save_node_state,
         )
 
         assert callable(init_node)
@@ -98,7 +93,7 @@ class TestTickerWiring:
 
     def test_process_tick_importable(self) -> None:
         """process_tick is accessible from core.constitutional."""
-        from core.constitutional import TickResult, process_tick
+        from core.constitutional import process_tick
 
         assert callable(process_tick)
 

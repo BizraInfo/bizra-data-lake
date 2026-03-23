@@ -7,21 +7,16 @@ Gini ceiling enforcement, and EventBus integration.
 Standing on Giants: Deming (PDCA, 1950) — test the improvement loop.
 """
 
-from typing import Any, Dict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from core.reasoning.reasoning_bank import (
     EXPERIENCE_MIN_IHSAN,
-    META_LEARNING_WINDOW,
-    MIN_EXPERIENCES_FOR_RECOMMENDATION,
     PATTERN_ELEVATION_IHSAN,
     RECOMMENDATION_MIN_IHSAN,
     STRATEGY_GINI_CEILING,
     Experience,
-    MetaLearningInsight,
-    PatternMatch,
     ReasoningBankEngine,
     StrategyRecommendation,
     _StrategyStats,
@@ -404,7 +399,7 @@ class TestTransferLearning:
         )
         assert count >= 1
         # security_review should now have data
-        rec = seeded_engine.recommend_strategy("security_review")
+        seeded_engine.recommend_strategy("security_review")
         # May or may not recommend depending on discounted counts
         assert "security_review" in seeded_engine._strategies
 

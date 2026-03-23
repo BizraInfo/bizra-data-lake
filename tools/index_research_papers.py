@@ -18,7 +18,6 @@ import hashlib
 import json
 import logging
 import math
-import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -445,7 +444,7 @@ def report(papers: list[dict[str, Any]], faiss_total: int) -> None:
     print(f"  Synthesis narrative:  {text_sources['synthesis']}")
     print(f"\nChunks created:        {len(papers)} (1 chunk per paper)")
     print(f"Output parquet:        {OUTPUT_PARQUET}")
-    print(f"\nVenue breakdown:")
+    print("\nVenue breakdown:")
     for vk in sorted(venues.keys()):
         print(f"  {vk:20s}: {venues[vk]:>5d}")
     print(f"\nFAISS index total:     {faiss_total} vectors")

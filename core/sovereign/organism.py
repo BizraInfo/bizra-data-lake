@@ -662,7 +662,7 @@ class SovereignOrganism:
             # ─── Seed Chain: wrap raw text into constitutional prompt ───
             seed_chain_meta: Dict[str, Any] = {}
             try:
-                from core.prompt.seed_chain import small_seed, EvidenceTag
+                from core.prompt.seed_chain import EvidenceTag, small_seed
 
                 chain = small_seed(text, agent="P7_DEMA")
                 # Add any preflight evidence

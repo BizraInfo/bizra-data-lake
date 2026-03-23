@@ -17,7 +17,6 @@ Created: 2026-02-11
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -30,16 +29,13 @@ import pytest
 from core.pci.crypto import (
     PrivateKeyWrapper,
     canonical_json,
-    generate_keypair,
 )
 from core.sovereign.constitutional_gate import (
     Z3_CERT_DOMAIN_PREFIX,
     ConstitutionalGate,
 )
 from core.sovereign.integration_types import (
-    AdmissionResult,
     AdmissionStatus,
-    Z3Certificate,
 )
 
 # =============================================================================

@@ -14,8 +14,7 @@ Standing on Giants:
 
 from __future__ import annotations
 
-import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -24,8 +23,6 @@ from core.spearpoint.auto_researcher import ResearchOutcome, ResearchResult
 from core.spearpoint.config import SpearpointConfig
 from core.spearpoint.metrics_provider import MetricsProvider, SystemMetricsSnapshot
 from core.spearpoint.pattern_selector import (
-    PatternOutcome,
-    PatternSelectionResult,
     PatternStrategySelector,
 )
 from core.spearpoint.recursive_loop import LoopMetrics, RecursiveLoop

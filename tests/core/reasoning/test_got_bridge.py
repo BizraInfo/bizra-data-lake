@@ -203,7 +203,7 @@ class TestReason:
         search.search.return_value = [_make_search_result("new evidence")]
 
         bridge = GoTBridge(search_engine=search, got_engine=got)
-        result = await bridge.reason("query", context={"facts": ["existing fact"]})
+        await bridge.reason("query", context={"facts": ["existing fact"]})
 
         # Verify the context passed to GoT contains both old and new facts
         call_args = got.reason.call_args
@@ -217,7 +217,7 @@ class TestReason:
         got.reason.return_value = _make_got_raw()
 
         bridge = GoTBridge(got_engine=got)
-        result = await bridge.reason("query")
+        await bridge.reason("query")
 
         call_args = got.reason.call_args
         ctx = call_args[0][1]
@@ -276,7 +276,7 @@ class TestReasonWithEvidence:
 
         bridge = GoTBridge(got_engine=got)
         ctx = {"domain": "security", "constraints": ["no-PII"]}
-        result = await bridge.reason_with_evidence("query", evidence=[], context=ctx)
+        await bridge.reason_with_evidence("query", evidence=[], context=ctx)
 
         call_args = got.reason.call_args
         passed_ctx = call_args[0][1]

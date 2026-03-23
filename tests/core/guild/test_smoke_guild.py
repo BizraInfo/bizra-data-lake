@@ -11,12 +11,7 @@ Coverage: GuildRegistry, Guild, GuildMember, GuildJoinResult
 import pytest
 
 from core.guild import (
-    DEFAULT_GUILDS,
-    Guild,
-    GuildJoinResult,
-    GuildMember,
     GuildRegistry,
-    GuildRole,
     GuildStatus,
 )
 

@@ -22,12 +22,7 @@ Test Categories:
 
 from __future__ import annotations
 
-import math
-import os
 import time
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
-from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -41,8 +36,6 @@ from core.integration.constants import (
     IHSAN_THRESHOLD_STAGING,
     IHSAN_WEIGHTS,
     PILLAR_1_RUNTIME_IHSAN,
-    PILLAR_2_MUSEUM_SNR_FLOOR,
-    PILLAR_3_SANDBOX_SNR_FLOOR,
     RUNTIME_IHSAN_THRESHOLD,
     SNR_THRESHOLD,
     STRICT_IHSAN_THRESHOLD,
@@ -53,23 +46,17 @@ from core.integration.constants import (
 # Import from Adl invariant
 from core.sovereign.adl_invariant import ADL_GINI_THRESHOLD as ADL_MODULE_GINI_THRESHOLD
 from core.sovereign.adl_invariant import (
-    HARBERGER_TAX_RATE,
     MINIMUM_HOLDING,
     UBC_POOL_ID,
-    AdlGate,
     AdlInvariant,
     AdlRejectCode,
-    AdlValidationResult,
     Transaction,
-    assert_adl_invariant,
     calculate_gini,
-    calculate_gini_components,
 )
 
 # Import from Z3 FATE gate
 from core.sovereign.z3_fate_gate import (
     Z3_AVAILABLE,
-    Z3Constraint,
     Z3FATEGate,
     Z3Proof,
 )
@@ -378,7 +365,7 @@ class TestAdlInvariant:
         Transactions that would centralize wealth must be blocked.
         """
         # Get current Gini
-        pre_gini = calculate_gini(high_inequality_holdings)
+        calculate_gini(high_inequality_holdings)
 
         # Try to transfer from small to whale (increases centralization)
         tx = Transaction(
@@ -437,7 +424,7 @@ class TestAdlInvariant:
         )
 
         pre_total = sum(v for k, v in equal_holdings.items() if k != UBC_POOL_ID)
-        result = adl_invariant.validate_transaction(tx, equal_holdings)
+        adl_invariant.validate_transaction(tx, equal_holdings)
 
         # Build post-state
         post_state = equal_holdings.copy()

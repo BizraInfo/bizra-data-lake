@@ -37,18 +37,14 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
 # Import Data Lake engines
 from bizra_config import (
-    GOLD_PATH,
-    GRAPH_PATH,
     IHSAN_CONSTRAINT,
     INDEXED_PATH,
-    SNR_THRESHOLD,
 )
 
 # Import Discipline Synthesis Engine (47-discipline cognitive topology)
@@ -1328,7 +1324,7 @@ async def integrate_with_orchestrator():
     )
 
     # Display results
-    print(f"\n📊 KEP PROCESSING RESULTS")
+    print("\n📊 KEP PROCESSING RESULTS")
     print(f"Execution time: {result.execution_time}s")
     print(f"Learning boost: {result.learning_boost:.2f}x")
     print(f"Feedback applied: {result.feedback_applied}")
@@ -1346,15 +1342,15 @@ async def integrate_with_orchestrator():
         print(f"     Confidence: {comp.confidence:.3f}")
         print(f"     Hypothesis: {comp.hypothesis[:100]}...")
 
-    print(f"\n✨ IHSAN VALIDATION")
+    print("\n✨ IHSAN VALIDATION")
     print(f"  Passed: {result.ihsan_check.passed}")
     print(f"  Score: {result.ihsan_check.score:.4f}")
-    print(f"  Components:")
+    print("  Components:")
     print(f"    SNR: {result.ihsan_check.snr_component:.4f}")
     print(f"    Coherence: {result.ihsan_check.coherence_component:.4f}")
     print(f"    Ethics: {result.ihsan_check.ethics_component:.4f}")
 
-    print(f"\n  Reasoning trace:")
+    print("\n  Reasoning trace:")
     for step in result.ihsan_check.reasoning_trace:
         print(f"    • {step}")
 

@@ -2,12 +2,8 @@
 """BIZRA Complete System Lifecycle — Real Data, Real Codebase"""
 
 import asyncio
-import hashlib
-import json
-import os
 import sys
 import time
-import traceback
 
 sys.path.insert(0, ".")
 R = {}
@@ -174,7 +170,7 @@ try:
     ck("HealthStatus enum", lambda: [s.name for s in HealthStatus])
     got = GoTNodeSnapshot(node_id="root", content="test", score=0.95)
     ck("GoT node snapshot", lambda: f"id={got.node_id} score={got.score}")
-except Exception as e:
+except Exception:
     ck("Runtime core", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # === STAGE 5: NODE0 HEARTBEAT ===
@@ -204,7 +200,7 @@ try:
         "Reflex compilation 3/3",
         lambda: f"compiled={comp is not None} conf={comp.confidence if comp else 0}",
     )
-except Exception as e:
+except Exception:
     ck("Reflex cache", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # === STAGE 7: PCI GATES ===
@@ -221,7 +217,7 @@ try:
         "Gate FAIL (ihsan=0.80 snr=0.60)",
         lambda: gk.check(ihsan_score=0.80, snr_score=0.60),
     )
-except Exception as e:
+except Exception:
     ck("PCI gates", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # === STAGE 8: TOKEN ECONOMY ===
@@ -230,7 +226,7 @@ try:
     from core.token.bloom import BloomToken
 
     ck("BLOOM token", lambda: type(BloomToken()).__name__)
-except Exception as e:
+except Exception:
     ck("BLOOM token", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # === STAGE 9: ENTROPY ROUTER ===
@@ -244,7 +240,7 @@ try:
         "Complex query",
         lambda: router.classify("Redesign ReflexCache for concurrent UAB"),
     )
-except Exception as e:
+except Exception:
     ck("Entropy router", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # === STAGE 10: LIVING MEMORY ===
@@ -254,7 +250,7 @@ try:
 
     frag = MemoryFragment(content="Genesis boot", importance=0.95, tags=["genesis"])
     ck("MemoryFragment", lambda: f"imp={frag.importance}")
-except Exception as e:
+except Exception:
     ck("Living memory", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # === STAGE 11: CONSTITUTIONAL SIMULATION ===
@@ -263,7 +259,7 @@ try:
     from core.constitutional.simulation import ConstitutionalSimulation
 
     ck("Simulation module", lambda: type(ConstitutionalSimulation).__name__)
-except Exception as e:
+except Exception:
     ck("Simulation", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # === STAGE 12: TEST SUITE (REAL COUNT) ===
@@ -300,7 +296,7 @@ try:
     else:
         last = lines[-1] if lines else "empty"
         ck("Test collection", lambda: f"output={last}")
-except Exception as e:
+except Exception:
     ck("Test collection", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # === FINAL EVALUATION ===
@@ -322,7 +318,7 @@ for k, v in R.items():
     detail = v[1][:70]
     print(f"    [{sym}] {k}: {detail}")
 print()
-print(f"  === CONSTITUTIONAL STATE ===")
+print("  === CONSTITUTIONAL STATE ===")
 print(f"  IHSAN_THRESHOLD:     {IHSAN_THRESHOLD}")
 print(f"  ADL_GINI_THRESHOLD:  {ADL_GINI_THRESHOLD}")
 print(f"  SNR_THRESHOLD:       {SNR_THRESHOLD}")
@@ -330,7 +326,7 @@ print(f"  KERNEL_INVARIANTS:   {KERNEL_INVARIANTS}")
 print(f"  Identity:            {iid[:16]}...")
 print(f"  Agent keys:          {len(aks)} (7 PAT + 5 SAT)")
 print(f"  Events captured:     {len(cap)}")
-print(f"  Hash chain:          3 receipts linked")
+print("  Hash chain:          3 receipts linked")
 print()
 status = "SOVEREIGN" if pct >= 80 else "DEGRADED"
 lifecycle = "COMPLETE" if pct >= 85 else "PARTIAL"

@@ -9,7 +9,6 @@ If this test passes, the Python path is alive.
 import json
 import time
 
-import pytest
 
 from core.walking_skeleton import (
     IHSAN_THRESHOLD,

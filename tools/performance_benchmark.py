@@ -113,7 +113,7 @@ class PerformanceBenchmark:
 
                     # Measure resources before
                     cpu_before = self.process.cpu_percent(interval=None)
-                    mem_before = self.process.memory_info().rss / 1024 / 1024
+                    self.process.memory_info().rss / 1024 / 1024
 
                     start = time.perf_counter()
                     result = await runtime.query(query)
@@ -177,10 +177,10 @@ class PerformanceBenchmark:
                 prompt = f"Explain concept {i} in one sentence."
 
                 cpu_before = self.process.cpu_percent(interval=None)
-                mem_before = self.process.memory_info().rss / 1024 / 1024
+                self.process.memory_info().rss / 1024 / 1024
 
                 start = time.perf_counter()
-                result = await gateway.infer(prompt, max_tokens=50)
+                await gateway.infer(prompt, max_tokens=50)
                 latency_ms = (time.perf_counter() - start) * 1000
 
                 cpu_after = self.process.cpu_percent(interval=None)
@@ -254,7 +254,7 @@ class PerformanceBenchmark:
             # Actual benchmark
             for i in range(iterations):
                 cpu_before = self.process.cpu_percent(interval=None)
-                mem_before = self.process.memory_info().rss / 1024 / 1024
+                self.process.memory_info().rss / 1024 / 1024
 
                 start = time.perf_counter()
 
@@ -330,11 +330,11 @@ class PerformanceBenchmark:
             # Actual benchmark
             for i in range(iterations):
                 cpu_before = self.process.cpu_percent(interval=None)
-                mem_before = self.process.memory_info().rss / 1024 / 1024
+                self.process.memory_info().rss / 1024 / 1024
 
                 start = time.perf_counter()
                 key = runtime._cache_key(query)
-                cached = runtime._cache.get(key)
+                runtime._cache.get(key)
                 latency_ms = (time.perf_counter() - start) * 1000
 
                 cpu_after = self.process.cpu_percent(interval=None)
@@ -427,7 +427,7 @@ class PerformanceBenchmark:
                 )
 
                 cpu_before = self.process.cpu_percent(interval=None)
-                mem_before = self.process.memory_info().rss / 1024 / 1024
+                self.process.memory_info().rss / 1024 / 1024
 
                 start = time.perf_counter()
                 result = gatekeeper.verify(envelope)

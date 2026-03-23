@@ -18,9 +18,8 @@ Standing on Giants:
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
 
-from core.proof_engine.canonical import blake3_digest, canonical_bytes
+from core.proof_engine.canonical import canonical_bytes
 from core.proof_engine.poi_engine import (
     AuditTrail,
     CitationGraph,
@@ -34,7 +33,6 @@ from core.proof_engine.poi_engine import (
     ProofOfImpact,
     SATRebalancer,
     TemporalScorer,
-    compute_gini,
     compute_token_distribution,
 )
 from core.proof_engine.receipt import SimpleSigner

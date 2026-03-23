@@ -5,16 +5,13 @@
 
 import asyncio
 import json
-import platform
-import signal
 import sys
-import threading
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 # BIZRA Root
 BIZRA_ROOT = Path("C:/BIZRA-DATA-LAKE")
@@ -158,7 +155,6 @@ class BIZRACommandCenter:
     def _check_config(self) -> Tuple[bool, str]:
         """Check configuration"""
         try:
-            import bizra_config
 
             return True, f"IHSAN={IHSAN_CONSTRAINT}, SNR={SNR_THRESHOLD}"
         except Exception:
@@ -464,7 +460,7 @@ class BIZRACommandCenter:
 
                     model = SentenceTransformer("all-MiniLM-L6-v2")
                     text = "This is a sample text for embedding generation benchmark."
-                    embedding = model.encode([text])
+                    model.encode([text])
                     snr_values.append(0.95)
                 except Exception:
                     snr_values.append(0)

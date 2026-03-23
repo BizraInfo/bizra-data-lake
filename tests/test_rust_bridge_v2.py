@@ -12,19 +12,22 @@ Phase 87b: Topic Parity Fix
 """
 
 import sys
+
 sys.path.insert(0, r"C:\BIZRA-DATA-LAKE")
 
-from core.bus.subscribers import EventBus, EventType
 from core.bus.rust_bridge import RustBridgeSubscriber
+from core.bus.subscribers import EventBus, EventType
 
 
 class MockRustBridge:
     def __init__(self):
         self.emitted = []
         self.emitted_with_receipt = []
+
     def emit(self, topic, payload, priority):
         self.emitted.append({"topic": topic, "payload": payload, "priority": priority})
         return 1
+
     def emit_with_receipt(self, topic, payload, receipt_id, ihsan_score, priority):
         self.emitted_with_receipt.append({"topic": topic, "receipt_id": receipt_id})
         return 1
@@ -47,8 +50,12 @@ def test_topic_translation():
 
     all_topics = [e["topic"] for e in mock.emitted]
     assert "ihsan.breach" in all_topics, f"Expected ihsan.breach, got {all_topics}"
-    assert "telescript.rolledback" in all_topics, f"Expected telescript.rolledback, got {all_topics}"
-    assert "telescript.step.completed" in all_topics, f"Expected telescript.step.completed, got {all_topics}"
+    assert (
+        "telescript.rolledback" in all_topics
+    ), f"Expected telescript.rolledback, got {all_topics}"
+    assert (
+        "telescript.step.completed" in all_topics
+    ), f"Expected telescript.step.completed, got {all_topics}"
 
     # Python-native names must NOT appear (they'd miss Rust subscribers)
     assert "ihsan.gate.breached" not in all_topics
@@ -102,12 +109,21 @@ def test_full_event_taxonomy_parity():
     assert adapter._forwarded == len(list(EventType))
     rust_topics = {e["topic"] for e in mock.emitted}
     expected = {
-        "action.intent", "action.receipt", "action.receipt.failed",
-        "agent.registered", "ihsan.breach", "memory.promoted",
-        "memory.retrieved", "session.end", "telescript.completed",
-        "telescript.rolledback", "telescript.step.completed",
+        "action.intent",
+        "action.receipt",
+        "action.receipt.failed",
+        "agent.registered",
+        "ihsan.breach",
+        "memory.promoted",
+        "memory.retrieved",
+        "session.end",
+        "telescript.completed",
+        "telescript.rolledback",
+        "telescript.step.completed",
     }
-    assert rust_topics == expected, f"Mismatch: {rust_topics.symmetric_difference(expected)}"
+    assert (
+        rust_topics == expected
+    ), f"Mismatch: {rust_topics.symmetric_difference(expected)}"
     print("PASS: test_full_event_taxonomy_parity")
 
 

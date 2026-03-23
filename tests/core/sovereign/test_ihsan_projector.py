@@ -12,7 +12,6 @@ Tests cover:
 Standing on Giants: Shannon, Anthropic, Friston
 """
 
-import math
 from typing import List, Tuple
 
 import numpy as np
@@ -387,8 +386,6 @@ class TestIhsanProjector:
         recovered = projector.inverse_project(ntu, prior=IhsanVector.neutral())
 
         # Should not be exact (underdetermined), but should be reasonable
-        original_arr = original.as_array
-        recovered_arr = recovered.as_array
 
         # At least the aggregate should be in similar range
         assert abs(original.aggregate_score - recovered.aggregate_score) < 0.3

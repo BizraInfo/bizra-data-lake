@@ -20,10 +20,8 @@ Covers:
 """
 
 import asyncio
-from collections import deque
 from datetime import datetime
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any, Dict
 
 import pytest
 
@@ -1803,7 +1801,7 @@ class TestFullCycleIntegration:
         original_observe = loop.observe
 
         async def low_snr_observe():
-            m = await original_observe()
+            await original_observe()
             # Override the default metrics with low SNR
             low_snr_metrics = SystemMetrics(
                 snr_score=0.80,  # Below threshold - 0.1 = 0.85

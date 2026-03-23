@@ -21,48 +21,19 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from core.autopoiesis import MUTATION_RATE, POPULATION_SIZE
-from core.autopoiesis.emergence import (
-    BehaviorSignature,
-    EmergenceDetector,
-    EmergenceReport,
-    EmergenceType,
-    EmergentProperty,
-    NoveltyLevel,
-)
-from core.autopoiesis.evolution import (
-    EvolutionConfig,
-    EvolutionEngine,
-    EvolutionResult,
-    EvolutionStatus,
-)
-from core.autopoiesis.fitness import (
-    EvaluationContext,
-    FitnessComponent,
-    FitnessEvaluator,
-    FitnessResult,
-    SelectionPressure,
-)
 from core.autopoiesis.genome import (
     AgentGenome,
-    Gene,
-    GeneType,
     GenomeFactory,
 )
 from core.autopoiesis.loop import (
     AutopoiesisConfig,
     AutopoiesisPhase,
-    AutopoiesisState,
     AutopoieticLoop,
-    IntegrationCandidate,
-    create_autopoietic_loop,
 )
 from core.integration.constants import (
-    ADL_GINI_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
@@ -835,7 +806,6 @@ class TestShadowDeployment:
         # Store state for rollback
         checkpoint_population = copy.deepcopy(prod.evolution_engine.population)
         checkpoint_fitness = prod.state.best_fitness
-        checkpoint_cycle = prod.state.evolution_cycle
 
         # Run more cycles
         await prod._run_cycle()
@@ -864,7 +834,6 @@ class TestIntegration:
         loop = initialized_loop
 
         # Store initial metrics
-        initial_fitness = loop.state.best_fitness
 
         # Run full cycle
         await loop._run_cycle()
@@ -1159,7 +1128,7 @@ class TestReceiptObservationBridge:
         ]
 
         # Store initial population IDs
-        initial_ids = {g.id for g in loop.evolution_engine.population}
+        {g.id for g in loop.evolution_engine.population}
 
         # Run cycle - should detect low diversity
         await loop._run_cycle()

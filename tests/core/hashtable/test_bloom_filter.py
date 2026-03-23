@@ -5,7 +5,6 @@ Standing on Giants: Bloom (1970), Kirsch & Mitzenmacher (2006)
 """
 
 import math
-import struct
 
 import pytest
 

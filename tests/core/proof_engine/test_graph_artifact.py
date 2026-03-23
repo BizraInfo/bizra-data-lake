@@ -10,17 +10,12 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-008
 """
 
-import hashlib
 import json
-from typing import Any, Dict
 
-import pytest
 
 from core.sovereign.graph_core import GraphOfThoughts
 from core.sovereign.graph_types import (
-    EdgeType,
     ReasoningStrategy,
-    ThoughtNode,
     ThoughtType,
 )
 
@@ -39,7 +34,7 @@ def _build_simple_graph() -> GraphOfThoughts:
     )
     root = graph.add_thought("What is the answer?", ThoughtType.QUESTION)
     h1 = graph.generate("Hypothesis A", ThoughtType.HYPOTHESIS, parent=root)
-    e1 = graph.generate("Evidence for A", ThoughtType.EVIDENCE, parent=h1)
+    graph.generate("Evidence for A", ThoughtType.EVIDENCE, parent=h1)
     return graph
 
 
@@ -54,9 +49,9 @@ def _build_complex_graph() -> GraphOfThoughts:
     h1 = graph.generate("Hypothesis A", ThoughtType.HYPOTHESIS, parent=root)
     h2 = graph.generate("Hypothesis B", ThoughtType.HYPOTHESIS, parent=root)
     e1 = graph.generate("Evidence for A", ThoughtType.EVIDENCE, parent=h1)
-    e2 = graph.generate("Evidence against B", ThoughtType.EVIDENCE, parent=h2)
+    graph.generate("Evidence against B", ThoughtType.EVIDENCE, parent=h2)
     synth = graph.aggregate([h1, e1], "Synthesis of A + evidence")
-    conclusion = graph.generate(
+    graph.generate(
         "Final answer based on synthesis", ThoughtType.CONCLUSION, parent=synth
     )
     return graph

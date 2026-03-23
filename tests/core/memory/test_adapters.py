@@ -8,12 +8,11 @@ from enum import Enum
 from typing import Optional, Set
 
 import numpy as np
-import pytest
 
 from core.memory.adapters.experience_ledger import ExperienceLedgerAdapter
 from core.memory.adapters.living_memory import LivingMemoryAdapter
 from core.memory.adapters.pattern_memory import PatternMemoryAdapter
-from core.memory.types import MemoryKind, RecordState
+from core.memory.types import MemoryKind
 
 # ── Mock LivingMemory ────────────────────────────────────────────────────
 

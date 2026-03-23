@@ -10,17 +10,11 @@ Integrates with:
 - Zakat Distribution (charitable outflow)
 """
 
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from accumulator import (
-    ACCUMULATOR_VERSION,
     BizraAccumulator,
-    Bloom,
-    Fruit,
     ImpactCategory,
-    ProofOfImpact,
-    Seed,
     get_accumulator,
 )
 from fastapi import APIRouter, Depends, HTTPException

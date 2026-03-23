@@ -13,15 +13,12 @@ Blueprint Reference: Elite Implementation Blueprint v1.0 — P0 Close Learning L
 """
 
 import asyncio
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 
 from core.autopoiesis.loop import IntegrationCandidate
-from core.autopoiesis.sdpo_bridge import AutopoiesisSDPOBridge, EvolutionTrace
 from core.constitutional.types import Reflex
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+from core.integration.constants import UNIFIED_SNR_THRESHOLD
 from core.orchestration.learning_loop import (
     LearningLoopOrchestrator,
     LoopEvent,

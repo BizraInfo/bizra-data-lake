@@ -8,14 +8,10 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock
 
 import pytest
 
 from core.swarm.engine import (
-    HierarchicalMeshStrategy,
-    ParallelStrategy,
-    SequentialStrategy,
     SwarmEngine,
 )
 from core.swarm.types import (

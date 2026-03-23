@@ -10,11 +10,8 @@ This integration test validates the complete sovereign LLM ecosystem:
 "We do not assume. We verify with formal proofs."
 """
 
-import hashlib
-import random
-import time
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import List
 
 import pytest
 
@@ -117,7 +114,7 @@ class TestByzantineConsensus:
         for n in [3, 4, 5, 6, 7, 9, 12]:
             # Byzantine tolerance: f <= floor((n-1)/3)
             max_byzantine = (n - 1) // 3
-            quorum = n - max_byzantine
+            n - max_byzantine
 
             # Byzantine tolerance: f < n/3
             assert max_byzantine < n / 3 or n < 4
@@ -239,7 +236,7 @@ class TestMaliciousModelRejection:
 
     def test_rejection_rate(self, adversarial_models):
         """Test that rejection rate matches expectations."""
-        total = len(adversarial_models)
+        len(adversarial_models)
         expected_rejections = sum(1 for m in adversarial_models if m.should_be_rejected)
 
         actual_rejections = sum(

@@ -70,7 +70,7 @@ class TestGenesisActivationE2E:
             skip_orchestrator=True,
             skip_breath=True,
         )
-        result = activation.activate()
+        activation.activate()
 
         genesis_path = tmp_path / "genesis" / "node0_genesis.json"
         assert genesis_path.exists()

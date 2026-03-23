@@ -9,7 +9,6 @@ import pytest
 from core.pat.social_recovery import (
     DEFAULT_THRESHOLD,
     DEFAULT_TOTAL_SHARES,
-    SHAMIR_PRIME,
     GuardianRegistry,
     RecoveryCeremony,
     ShamirReconstructor,

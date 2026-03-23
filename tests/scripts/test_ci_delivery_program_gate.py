@@ -48,7 +48,11 @@ def _minimal_program() -> dict:
         ],
         "delivery_gates": [
             {"id": "G1", "name": "Static Quality", "checks": ["ruff"]},
-            {"id": "G2", "name": "Proof and Replay", "checks": ["canonical_spearpoint"]},
+            {
+                "id": "G2",
+                "name": "Proof and Replay",
+                "checks": ["canonical_spearpoint"],
+            },
         ],
         "roadmap": {
             "next_7_days": ["remove_mutable_refs"],

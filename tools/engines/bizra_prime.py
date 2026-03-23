@@ -35,12 +35,10 @@ Giants Referenced:
 
 import hashlib
 import json
-import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -50,7 +48,7 @@ from arte_engine import ARTEEngine
 # ════════════════════════════════════════════════════════════════════════════
 # IMPORT EXISTING GIANTS
 # ════════════════════════════════════════════════════════════════════════════
-from bizra_config import DATA_LAKE_ROOT, GOLD_PATH, IHSAN_CONSTRAINT, INDEXED_PATH
+from bizra_config import GOLD_PATH, IHSAN_CONSTRAINT, INDEXED_PATH
 from vector_engine import VectorEngine
 
 try:
@@ -61,7 +59,7 @@ except ImportError:
     from sovereign_memory import SovereignMemory
 
     MEMORY_CLASS = SovereignMemory
-from local_llm_gateway import LLMResponse, LocalLLMGateway
+from local_llm_gateway import LocalLLMGateway
 
 # Import Sovereign Bridge for high-performance caching
 try:
@@ -482,7 +480,7 @@ class BizraPrime:
         )
 
         print(f"\n{'═' * 70}")
-        print(f"   ✅ REASONING COMPLETE")
+        print("   ✅ REASONING COMPLETE")
         print(f"{'═' * 70}")
 
         return thought_graph

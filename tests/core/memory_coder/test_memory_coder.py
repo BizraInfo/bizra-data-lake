@@ -6,17 +6,14 @@ clustering, centroid extraction, and linear-scan fallback.
 
 from __future__ import annotations
 
-import math
-from typing import Any, List, Optional
+from typing import List, Optional
 
-import pytest
 
 from core.integration.constants import SNR_THRESHOLD_T1_HIGH, UNIFIED_SNR_THRESHOLD
 from core.memory_coder.memory_synthesizer import MemoryRecord, MemorySynthesizer
 from core.memory_coder.pattern_codebook import (
     PatternCodebook,
     SynthesizedPattern,
-    cosine_similarity,
 )
 
 # ---------------------------------------------------------------------------

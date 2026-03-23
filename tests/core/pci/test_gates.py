@@ -9,7 +9,6 @@ import sys
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -27,7 +26,6 @@ from core.pci import (
     generate_keypair,
 )
 from core.pci.gates import (
-    MAX_CLOCK_SKEW_SECONDS,
     MAX_NONCE_CACHE_SIZE,
     NONCE_TTL_SECONDS,
 )

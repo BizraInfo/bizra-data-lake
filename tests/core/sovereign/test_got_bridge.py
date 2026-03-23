@@ -218,7 +218,7 @@ class TestThoughtGraphOperations:
     def test_validate_updates_score(self, rooted_graph):
         root = rooted_graph._root
         children = rooted_graph.generate(root, "Test")
-        old_score = children[0].score
+        children[0].score
         new_score = rooted_graph.validate(children[0])
         assert children[0].score == new_score
 
@@ -256,7 +256,7 @@ class TestThoughtGraphOperations:
     def test_prune_custom_threshold(self):
         graph = ThoughtGraph(prune_threshold=0.8)
         root = graph.create_root("Test")
-        children = graph.generate(root, "Test")
+        graph.generate(root, "Test")
         # Children have score 0.5, below 0.8 threshold
         pruned = graph.prune()
         assert pruned > 0
@@ -265,7 +265,7 @@ class TestThoughtGraphOperations:
 
     def test_backtrack_to_node(self, rooted_graph):
         root = rooted_graph._root
-        children = rooted_graph.generate(root, "Test")
+        rooted_graph.generate(root, "Test")
         # Explore children, then backtrack to root
         result = rooted_graph.backtrack(root.id)
         assert result is root

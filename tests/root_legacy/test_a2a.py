@@ -17,10 +17,9 @@ import sys
 
 sys.path.insert(0, "c:\\BIZRA-DATA-LAKE")
 
-from core.a2a.engine import A2AEngine, create_a2a_engine
+from core.a2a.engine import create_a2a_engine
 from core.a2a.schema import (
     A2AMessage,
-    AgentCard,
     Capability,
     CapabilityType,
     MessageType,
@@ -29,8 +28,8 @@ from core.a2a.schema import (
     create_agent_card,
     create_task_request,
 )
-from core.a2a.tasks import TaskDecomposer, TaskManager
-from core.a2a.transport import HybridTransport, LocalTransport
+from core.a2a.tasks import TaskManager
+from core.a2a.transport import LocalTransport
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TEST UTILITIES

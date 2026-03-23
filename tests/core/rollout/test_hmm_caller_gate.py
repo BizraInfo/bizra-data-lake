@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from types import SimpleNamespace
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import patch
 
 import pytest

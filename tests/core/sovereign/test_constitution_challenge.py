@@ -4,7 +4,6 @@ Tests for BIZRA Constitution Challenge (TypeScript implementation tests)
 These tests verify the Python scoring logic matches the TypeScript implementation.
 """
 
-import pytest
 
 
 # Simulate the TypeScript scoring logic in Python for testing

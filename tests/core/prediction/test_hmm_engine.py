@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import math
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 import pytest

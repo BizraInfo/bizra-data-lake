@@ -6,17 +6,14 @@ variance adjustment, position sizing, MAWDU exclusion, and the
 PAT->SAT boundary assessment pipeline.
 """
 
-import math
 
 import pytest
 
 from core.irp import (
     DataPoint,
-    IrpAssessment,
     IsnadChain,
     IsnadGrade,
     Source,
-    aggregate_strength,
     chain_strength,
     irp_position_size,
     irp_variance_adjustment,

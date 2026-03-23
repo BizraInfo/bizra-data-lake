@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Lightweight 24h heartbeat gate — polls kernel API, logs to C: drive."""
-import json, time, sys, urllib.request, urllib.error
+
+import json
+import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -10,12 +14,14 @@ POLL_S = 60
 GATE_S = 24 * 3600
 URL = f"http://127.0.0.1:{KERNEL_PORT}/api/heartbeat"
 
+
 def poll():
     try:
         with urllib.request.urlopen(URL, timeout=10) as r:
             return json.loads(r.read())
     except Exception:
         return None
+
 
 def main():
     EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
@@ -41,7 +47,9 @@ def main():
                 entry["rss"] = d.get("latest", {}).get("memory_rss_mb", 0)
                 entry["backends"] = d.get("latest", {}).get("backends_alive", 0)
                 if total % 10 == 1:
-                    print(f"[{total}] HEALTHY beat={entry['beat']} rss={entry['rss']}MB")
+                    print(
+                        f"[{total}] HEALTHY beat={entry['beat']} rss={entry['rss']}MB"
+                    )
             else:
                 degraded += 1
                 entry["status"] = "degraded"
@@ -56,16 +64,23 @@ def main():
     elapsed = time.time() - start
     hours = elapsed / 3600
     report = {
-        "gate": "24h_heartbeat", "started": ts,
-        "elapsed_hours": round(hours, 2), "total_polls": total,
-        "healthy": healthy, "degraded": degraded, "failed": failed,
+        "gate": "24h_heartbeat",
+        "started": ts,
+        "elapsed_hours": round(hours, 2),
+        "total_polls": total,
+        "healthy": healthy,
+        "degraded": degraded,
+        "failed": failed,
         "anomaly_count": len(anomalies),
         "pass": degraded == 0 and failed == 0 and hours >= 23.5,
     }
     rpt = EVIDENCE_DIR / f"report_{ts}.json"
     rpt.write_text(json.dumps(report, indent=2))
-    print(f"\n{'PASS' if report['pass'] else 'FAIL'}: {healthy}/{total} healthy in {hours:.1f}h")
+    print(
+        f"\n{'PASS' if report['pass'] else 'FAIL'}: {healthy}/{total} healthy in {hours:.1f}h"
+    )
     print(f"Report: {rpt}")
+
 
 if __name__ == "__main__":
     main()

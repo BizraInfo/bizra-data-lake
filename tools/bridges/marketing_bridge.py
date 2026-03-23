@@ -35,15 +35,13 @@ Marketing Bridge Architecture:
 import asyncio
 import json
 import logging
-import ssl
 import threading
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
-from bizra_config import IHSAN_CONSTRAINT, INDEXED_PATH, SNR_THRESHOLD
+from bizra_config import INDEXED_PATH
 
 # Configure logging
 logging.basicConfig(
@@ -682,10 +680,10 @@ async def start_marketing_bridge(port: int = 8444):
 
     print(f"\nMarketing Bridge running on http://localhost:{port}")
     print(f"Documentation: http://localhost:{port}/")
-    print(f"\nEndpoints:")
-    print(f"  POST /query - Knowledge queries")
-    print(f"  POST /campaign_intelligence - Campaign recommendations")
-    print(f"  GET /health - Health check")
+    print("\nEndpoints:")
+    print("  POST /query - Knowledge queries")
+    print("  POST /campaign_intelligence - Campaign recommendations")
+    print("  GET /health - Health check")
     print("\nPress Ctrl+C to stop")
 
     # Run server in thread

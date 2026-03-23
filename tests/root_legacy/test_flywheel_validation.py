@@ -14,11 +14,9 @@ Created: 2026-01-29 | BIZRA Sovereignty
 """
 
 import asyncio
-import json
 import sys
 import tempfile
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 # Add parent to path
@@ -29,11 +27,9 @@ from core.inference.gateway import (
     InferenceConfig,
     InferenceGateway,
     InferenceStatus,
-    TaskComplexity,
 )
 from core.pci.epigenome import (
     EpigeneticLayer,
-    GrowthNarrative,
     InterpretationType,
 )
 
@@ -92,7 +88,6 @@ class FlywheelValidator:
         """Test that inference gateway imports correctly."""
         test_name = "Inference Gateway Imports"
         try:
-            from core.inference import ComputeTier, InferenceConfig, InferenceGateway
 
             self.results[test_name] = ("PASS", "All imports successful")
         except Exception as e:
@@ -195,7 +190,7 @@ class FlywheelValidator:
 
             assert proof["interpretations_count"] == 5
             assert proof["growth_score_delta"] > 0
-            assert proof["content_revealed"] == False
+            assert not proof["content_revealed"]
             assert len(proof["proof_hash"]) == 64
 
             self.results[test_name] = (

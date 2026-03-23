@@ -12,7 +12,6 @@ Covers:
 Standing on Giants: Meyer (DbC, 1986) · Liskov (LSP, 1987)
 """
 
-import pytest
 
 from core.agentic.exceptions import (
     AgentException,

@@ -4,7 +4,6 @@
 # v1.1: Added WARP multi-vector retrieval as high-accuracy alternative
 # Architecture: Symbolic-Neural Bridge with measurable quality metrics
 
-import hashlib
 import json
 import logging
 from collections import defaultdict
@@ -21,15 +20,11 @@ import torch
 from sentence_transformers import SentenceTransformer
 
 from bizra_config import (
-    BATCH_SIZE,
     CHUNKS_TABLE_PATH,
-    CORPUS_TABLE_PATH,
-    EMBEDDINGS_PATH,
     GRAPH_PATH,
     INDEXED_PATH,
     MAX_SEQ_LENGTH,
     SNR_THRESHOLD,
-    WARP_ENABLED,
 )
 
 # Configure structured logging
@@ -482,7 +477,7 @@ class HypergraphRAGEngine:
 
         # Step 4: SNR-based refinement
         if snr_score < snr_threshold and mode != RetrievalMode.SEMANTIC:
-            reasoning_trace.append(f"SNR below threshold, expanding search...")
+            reasoning_trace.append("SNR below threshold, expanding search...")
             expanded_results = self._expand_low_snr(
                 query_embedding, results, k * 2, reasoning_trace
             )
@@ -837,11 +832,11 @@ def main():
         print(f"\nSNR Score: {context.snr_score}")
         print(f"Total Results: {len(context.results)}")
         print(f"Estimated Tokens: {context.total_tokens_est}")
-        print(f"\nReasoning Trace:")
+        print("\nReasoning Trace:")
         for step in context.reasoning_trace:
             print(f"  - {step}")
 
-        print(f"\nTop Results:")
+        print("\nTop Results:")
         for i, result in enumerate(context.results[:3]):
             print(f"\n  [{i+1}] Score: {result.score:.4f} | Doc: {result.doc_id}")
             print(f"      Path: {' -> '.join(result.retrieval_path)}")

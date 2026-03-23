@@ -7,7 +7,6 @@ Standing on: Simon (hierarchy) + Ostrom (commons) + Csikszentmihalyi (flow) + De
 
 from __future__ import annotations
 
-import pytest
 
 # ─── Package Imports via core ────────────────────────────────────────────────
 
@@ -16,36 +15,34 @@ class TestAllPackagesImportable:
     """Verify all packages are importable via core namespace."""
 
     def test_phase25_genesis_importable(self):
-        from core.genesis import GenesisConfig, GenesisOrchestrator, GenesisResult
+        from core.genesis import GenesisOrchestrator
 
         assert GenesisOrchestrator is not None
 
     def test_phase26_guild_importable(self):
-        from core.guild import Guild, GuildMember, GuildRegistry
+        from core.guild import GuildRegistry
 
         assert GuildRegistry is not None
 
     def test_phase26_quest_importable(self):
-        from core.quest import Quest, QuestDifficulty, QuestEngine
+        from core.quest import QuestEngine
 
         assert QuestEngine is not None
 
     def test_phase27_hrm_importable(self):
-        from core.hrm import AbstractionLevel, HierarchicalReasoningModel, HRMConfig
+        from core.hrm import HierarchicalReasoningModel
 
         assert HierarchicalReasoningModel is not None
 
     def test_phase28_northstar_importable(self):
         from core.northstar import (
-            BridgeNodeDetector,
-            GoldenGemDetector,
             NorthStarEngine,
         )
 
         assert NorthStarEngine is not None
 
     def test_phase_memory_agentdb_importable(self):
-        from core.memory import AgentDB, HNSWIndex, MemoryRecord, UnifiedStore
+        from core.memory import AgentDB
 
         assert AgentDB is not None
 

@@ -12,7 +12,6 @@ Standing on Giants: Burns et al. (K8s Health Checking, 2015)
 
 from __future__ import annotations
 
-import pytest
 
 
 class TestHealthLive:

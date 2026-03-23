@@ -4,7 +4,6 @@ Tests for Logistic Emission Decay — Gini-Gated Token Minting
 
 import math
 
-import pytest
 
 from core.token.emission_decay import (
     DEFAULT_EMISSION_MAX,
@@ -115,7 +114,7 @@ class TestLogisticEmissionGate:
 
     def test_gini_rising_causes_emission_drop(self):
         """SAPE spec: simulate Gini rising from 0.20 to 0.40, verify emission drops."""
-        gate = LogisticEmissionGate(e_max=1000.0)
+        LogisticEmissionGate(e_max=1000.0)
 
         rates = []
         for gini in [0.20, 0.25, 0.30, 0.35, 0.40]:

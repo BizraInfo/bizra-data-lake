@@ -5,7 +5,6 @@ Tests for the tiered inference gateway with fail-closed semantics.
 Target: 70% coverage of core/inference/gateway.py (705 lines)
 """
 
-import asyncio
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch

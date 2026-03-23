@@ -4,17 +4,14 @@
 
 import hashlib
 import json
-import os
 import time
 from datetime import datetime
-from pathlib import Path
 
 import torch
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
 from bizra_config import (
-    BATCH_SIZE,
     CHECKPOINT_PATH,
     INDEXED_PATH,
     MAX_SEQ_LENGTH,
@@ -149,7 +146,7 @@ class EmbeddingGenerator:
                         break
                     lines.append(line.strip())
                 return "\n".join(lines)
-        except Exception as e:
+        except Exception:
             return None
 
     def generate_embedding(self, text):
@@ -222,7 +219,7 @@ class EmbeddingGenerator:
             return
 
         print(f"⏱️  Estimated time: {len(files_to_process) * 0.05 / 60:.1f} minutes")
-        print(f"🔥 Starting generation...\n")
+        print("🔥 Starting generation...\n")
 
         start_time = time.time()
         checkpoint_interval = 100  # Save checkpoint every 100 files

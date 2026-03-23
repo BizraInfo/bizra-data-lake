@@ -755,7 +755,6 @@ class TestHTTPHealthServer:
     @staticmethod
     async def _simulate_request(handler, path="/health"):
         """Simulate an HTTP request through the handler."""
-        import asyncio
 
         request_bytes = f"GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n".encode()
 
@@ -824,7 +823,6 @@ class TestHTTPHealthServer:
     @pytest.mark.asyncio
     async def test_header_bomb_returns_431(self, _patch_globals):
         """Oversized headers (>8 KB) get rejected with 431."""
-        import asyncio
 
         from tools.mcp.sovereign_mcp_server import _http_handler
 

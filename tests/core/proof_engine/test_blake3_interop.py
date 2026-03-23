@@ -15,7 +15,6 @@ Test vectors verified against:
 import json
 
 import blake3
-import pytest
 
 from core.proof_engine.canonical import (
     blake3_digest,

@@ -11,7 +11,6 @@ Covers:
 Blueprint Reference: P3 Coverage Ratchet — bounty module (0.25 → higher)
 """
 
-import pytest
 
 from core.bounty.impact_proof import (
     EntropyMeasurement,
@@ -21,7 +20,6 @@ from core.bounty.impact_proof import (
 from core.bounty.oracle import (
     BountyCalculation,
     BountyOracle,
-    BountyPayout,
 )
 from core.proof_engine.receipt import Ed25519Signer
 

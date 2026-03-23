@@ -16,14 +16,14 @@ import json
 import socket
 import time
 import uuid
-from typing import Any, Dict, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
 pytest.importorskip("yaml")
 
-from core.spearpoint.config import MissionType, SpearpointConfig
+from core.spearpoint.config import SpearpointConfig
 from core.spearpoint.rdve_skill import (
     RDVESkillHandler,
     get_rdve_handler,
@@ -485,7 +485,7 @@ class TestBridgeIntegration:
             # The response should either be a success or a "no handler" info
             # (depends on whether SkillRouter can be loaded)
             result = resp.get("result", {})
-            error = resp.get("error")
+            resp.get("error")
 
             # If router loaded, check RDVE response structure
             if result and "output" in result:

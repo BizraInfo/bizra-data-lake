@@ -1,9 +1,9 @@
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 import pytest
 
-from tools.mcp.sqlite_mcp_server import build_server, _ensure_read_only_sql
+from tools.mcp.sqlite_mcp_server import _ensure_read_only_sql, build_server
 
 
 def test_read_only_sql_guard_allows_select_shapes() -> None:

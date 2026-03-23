@@ -137,7 +137,7 @@ def test_tier2_all_exports_resolve(module_path):
     for name in mod.__all__:
         # String constants and version numbers are always OK
         try:
-            attr = getattr(mod, name)
+            getattr(mod, name)
         except (ImportError, AttributeError) as e:
             pytest.fail(
                 f"{module_path}.__all__ exports '{name}' but getattr fails: {e}"

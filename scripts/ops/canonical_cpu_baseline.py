@@ -73,7 +73,7 @@ def _measure_warm_breathe(data_dir: Path, n: int = 5) -> Dict[str, Any]:
     durations: List[float] = []
     for _ in range(n):
         start = time.perf_counter()
-        receipt = hb.breathe()
+        hb.breathe()
         durations.append((time.perf_counter() - start) * 1000)
 
     return {
@@ -221,8 +221,7 @@ def run_baseline(warmup: int = 2) -> Dict[str, Any]:
 
         # Warmup imports
         for _ in range(warmup):
-            from core.node0.heartbeat import Node0Heartbeat  # noqa: F811
-            from core.sovereign.helix3 import Helix3Scheduler  # noqa: F811
+            pass  # noqa: F811
 
         results.append(_measure_boot(data_dir))
         results.append(_measure_cold_breathe(data_dir))

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
 
 from core.sovereign.receipt_outcome import (
     _SNR_QUARANTINE_THRESHOLD,

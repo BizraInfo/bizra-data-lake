@@ -9,7 +9,6 @@ Target: SNR ≥ 0.99
 import asyncio
 import logging
 import time
-from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
@@ -87,7 +86,7 @@ async def run_optimization_test():
         elapsed = time.time() - start
 
         # Analyze results
-        print(f"\n📊 Results:")
+        print("\n📊 Results:")
         print(f"   Raw SNR:     {response.snr_score:.4f}")
         print(
             f"   Ihsān:       {'✅ ACHIEVED' if response.ihsan_achieved else '❌ Not yet'}"
@@ -106,7 +105,7 @@ async def run_optimization_test():
 
         # Run optimization simulation based on real metrics
         if not response.ihsan_achieved:
-            print(f"\n🔧 Applying SNR Optimization...")
+            print("\n🔧 Applying SNR Optimization...")
 
             opt_result = optimizer.aggressive_optimization(
                 starting_snr=response.snr_score,
@@ -180,7 +179,7 @@ async def run_optimization_test():
 
     # Final status
     if ihsan_count == len(results):
-        print(f"\n🎯 ALL QUERIES ACHIEVED IHSĀN THRESHOLD!")
+        print("\n🎯 ALL QUERIES ACHIEVED IHSĀN THRESHOLD!")
     else:
         print(f"\n⚠️ {ihsan_count}/{len(results)} queries achieved Ihsān threshold")
         print(f"   Average improvement: +{(avg_opt - avg_raw)/avg_raw*100:.1f}%")

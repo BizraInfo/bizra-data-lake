@@ -240,10 +240,10 @@ Examples:
     p_pat.add_argument("--quick", action="store_true", help="Quick evaluation")
 
     # Masterpiece command
-    p_mp = subparsers.add_parser("masterpiece", help="Run Peak Masterpiece demo")
+    subparsers.add_parser("masterpiece", help="Run Peak Masterpiece demo")
 
     # Full demo command
-    p_demo = subparsers.add_parser("full-demo", help="Run complete integrated demo")
+    subparsers.add_parser("full-demo", help="Run complete integrated demo")
 
     args = parser.parse_args()
 

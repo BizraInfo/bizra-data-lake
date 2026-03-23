@@ -10,7 +10,6 @@ Standing on Giants:
 - BIZRA Spearpoint PRD: "6 gates, fail fast, fail closed"
 """
 
-from pathlib import Path
 
 import pytest
 

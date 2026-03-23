@@ -20,7 +20,6 @@ from __future__ import annotations
 import os
 import time
 
-import pytest
 
 from core.constitutional.algorithms import (
     EQUITY_FACTOR_MAX,
@@ -31,7 +30,6 @@ from core.constitutional.algorithms import (
     ghazali_equity_factor,
     intent_gate,
     khaldunian_throttle,
-    mint_seed,
     network_asabiyyah,
     progressive_mint,
 )
@@ -42,8 +40,6 @@ from core.constitutional.fixed_point import (
     fp_add,
     fp_div,
     fp_float,
-    fp_mul,
-    fp_sub,
 )
 from core.constitutional.types import ActionReceipt, WalletState
 
@@ -236,7 +232,7 @@ class TestT3NewcomerWave:
     def test_newcomer_wave_gini_manageable(self) -> None:
         """Adding many small-balance nodes doesn't cause Gini collapse."""
         existing = [fp(100)] * 10
-        gini_before = compute_gini(existing)
+        compute_gini(existing)
         # New nodes with tiny balance (above dust)
         newcomers = [fp(1)] * 100
         gini_after = compute_gini(existing + newcomers)

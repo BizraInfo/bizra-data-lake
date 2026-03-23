@@ -110,7 +110,9 @@ def _validate_workstreams(program: dict[str, Any]) -> list[str]:
         ids.append(str(wid))
 
         if workstream.get("priority") not in VALID_PRIORITIES:
-            issues.append(f"workstreams[{idx}] has invalid priority: {workstream.get('priority')}")
+            issues.append(
+                f"workstreams[{idx}] has invalid priority: {workstream.get('priority')}"
+            )
 
         for field_name in ("name", "objective", "current_truth"):
             if not _is_non_empty_string(workstream.get(field_name)):
@@ -226,7 +228,9 @@ def _validate_risk_register(program: dict[str, Any]) -> list[str]:
                 issues.append(f"risk id '{rid_text}' must be unique")
             ids.add(rid_text)
         if risk.get("priority") not in VALID_PRIORITIES:
-            issues.append(f"risk_register[{idx}] has invalid priority: {risk.get('priority')}")
+            issues.append(
+                f"risk_register[{idx}] has invalid priority: {risk.get('priority')}"
+            )
         for field_name in ("risk", "impact", "mitigation"):
             if not _is_non_empty_string(risk.get(field_name)):
                 issues.append(f"risk_register[{idx}].{field_name} must be non-empty")

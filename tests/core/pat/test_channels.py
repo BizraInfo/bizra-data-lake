@@ -11,12 +11,9 @@ Covers:
     - Error handling and graceful degradation
 """
 
-import asyncio
-import json
 import time
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -210,7 +207,6 @@ class TestTelegramAdapter:
     async def test_process_update_text(self):
         from core.pat.adapters.telegram import TelegramAdapter
 
-        responses = []
 
         async def mock_query(content, context=None):
             return f"Answer: {content}"

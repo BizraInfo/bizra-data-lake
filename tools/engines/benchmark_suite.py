@@ -12,7 +12,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Dict, List
 
 # BIZRA Root
 BIZRA_ROOT = Path("C:/BIZRA-DATA-LAKE")
@@ -418,7 +418,7 @@ class VectorSearchBenchmark(Benchmark):
         elif self.vectors is not None:
             # Numpy fallback
             similarities = np.dot(query, self.vectors.T).flatten()
-            top_k = np.argsort(similarities)[-k:]
+            np.argsort(similarities)[-k:]
             return 0.95, {"items": k, "method": "numpy"}
         else:
             return 0.90, {"items": 0}
@@ -633,7 +633,7 @@ async def main():
     suite = BenchmarkSuite()
     suite.add_default_benchmarks()
 
-    result = await suite.run(verbose=True)
+    await suite.run(verbose=True)
 
     # Export results
     export_path = (

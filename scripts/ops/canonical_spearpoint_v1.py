@@ -275,8 +275,12 @@ def _cqrs_delivery_snapshot(runtime: SovereignRuntime) -> dict[str, Any]:
     bus = getattr(getattr(runtime, "_organism", None), "_cqrs_bus", None)
     summary_fn = getattr(bus, "delivery_summary", None)
     organism_stats = getattr(getattr(runtime, "_organism", None), "stats", {})
-    cqrs_stats = organism_stats.get("cqrs_bus", {}) if isinstance(organism_stats, dict) else {}
-    node0_stats = organism_stats.get("node0", {}) if isinstance(organism_stats, dict) else {}
+    cqrs_stats = (
+        organism_stats.get("cqrs_bus", {}) if isinstance(organism_stats, dict) else {}
+    )
+    node0_stats = (
+        organism_stats.get("node0", {}) if isinstance(organism_stats, dict) else {}
+    )
     if not callable(summary_fn):
         return {
             "delivery_receipts": 0,
@@ -393,7 +397,8 @@ async def _await_delivery_settlement(
         else:
             mirrored = (
                 after["delivery_mirror_successes"] > before["delivery_mirror_successes"]
-                or after["delivery_mirror_failures"] > before["delivery_mirror_failures"]
+                or after["delivery_mirror_failures"]
+                > before["delivery_mirror_failures"]
             )
             if acked and mirrored and canonical_recorded:
                 return after
@@ -435,11 +440,10 @@ def _build_run_receipt(
         and delivery_delta["delivery_dead_letters"] == 0
     )
     subscriber_delivery_mirror_verified = (
-        (not delivery_after["delivery_mirror_enabled"])
-        or (
-            delivery_delta["delivery_mirror_successes"] > 0
-            and delivery_delta["delivery_mirror_failures"] == 0
-        )
+        not delivery_after["delivery_mirror_enabled"]
+    ) or (
+        delivery_delta["delivery_mirror_successes"] > 0
+        and delivery_delta["delivery_mirror_failures"] == 0
     )
     node0_canonical_delivery_verified = (
         delivery_delta["node0_canonical_delivery_receipts"] > 0

@@ -14,7 +14,6 @@ Standing on: Hypothesis (Maciver, 2013) — property-based testing
 """
 
 import time
-from unittest.mock import patch
 
 import pytest
 
@@ -30,7 +29,6 @@ from core.proof_engine.constitutional_security_kernel import (
     TierDecision,
     TieredVerificationEngine,
     conservative_constraint_check,
-    register_safe_pattern,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════

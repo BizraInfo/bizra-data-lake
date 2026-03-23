@@ -11,7 +11,6 @@ Verifies that all 5 persistence gaps are closed:
 Standing on Giants: Event Sourcing + Snapshot Pattern + Priority-Aware Restore
 """
 
-import asyncio
 import json
 import time
 

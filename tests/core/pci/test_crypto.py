@@ -9,14 +9,12 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
 
 # Add project root to path (works across platforms)
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
 from core.pci.crypto import (
-    PCI_DOMAIN_PREFIX,
     canonical_json,
     domain_separated_digest,
     generate_keypair,

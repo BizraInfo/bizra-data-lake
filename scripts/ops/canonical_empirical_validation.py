@@ -744,7 +744,6 @@ def _run_live_canonical_validation() -> int:
       Deming (PDCA, 1950) — prove on the real system, not a mock
       Nakamoto (evidence chain, 2008) — receipts link or it doesn't count
     """
-    import time
 
     checks: dict[str, dict[str, Any]] = {}
     hb = None

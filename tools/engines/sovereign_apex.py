@@ -48,17 +48,15 @@ import hashlib
 import json
 import logging
 import math
-import os
 import re
 import threading
 import time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
@@ -558,7 +556,6 @@ class GraphLayer:
             return {}
 
         try:
-            import networkx as nx
             from networkx.algorithms import community
 
             # Convert to undirected for community detection
@@ -1308,7 +1305,7 @@ class ApexUnifiedEngine:
             query_emb = self.vector.embed_single(query_text)
             semantic_results = self.vector.search(query_emb, k=max_results)
 
-            thought = self.reasoning.branch(
+            self.reasoning.branch(
                 self.reasoning.root_id,
                 f"Semantic search: {len(semantic_results)} vectors",
                 confidence=0.8,
@@ -1597,12 +1594,12 @@ def main():
                 print(f"\n💡 INSIGHTS: {' | '.join(result.insights)}")
 
             if result.patterns:
-                print(f"\n🧩 MATCHED PATTERNS:")
+                print("\n🧩 MATCHED PATTERNS:")
                 for p in result.patterns[:3]:
                     print(f"   • {p.description}")
 
             if result.reasoning_chain:
-                print(f"\n🧠 REASONING CHAIN:")
+                print("\n🧠 REASONING CHAIN:")
                 for t in result.reasoning_chain[:5]:
                     indent = "  " * t.depth
                     print(f"   {indent}→ {t.thought[:60]} (conf: {t.confidence:.2f})")
@@ -1613,7 +1610,7 @@ def main():
 
     elif cmd == "stats":
         if apex.load():
-            print(f"\n📊 APEX ENGINE STATISTICS")
+            print("\n📊 APEX ENGINE STATISTICS")
             print("═" * 50)
             print(f"  Nodes:       {apex.stats['nodes']}")
             print(f"  Edges:       {apex.stats['edges']}")
@@ -1628,7 +1625,7 @@ def main():
 
     elif cmd == "bizra":
         if apex.load():
-            print(f"\n🌱 BIZRA ECOSYSTEM ASSETS")
+            print("\n🌱 BIZRA ECOSYSTEM ASSETS")
             print("═" * 60)
 
             bizra = [
@@ -1649,7 +1646,7 @@ def main():
 
     elif cmd == "patterns":
         if apex.load():
-            print(f"\n🧩 DISCOVERED PATTERNS")
+            print("\n🧩 DISCOVERED PATTERNS")
             print("═" * 70)
 
             for p in apex.pattern.patterns[:25]:
@@ -1665,7 +1662,7 @@ def main():
 
     elif cmd == "communities":
         if apex.load():
-            print(f"\n🏘️  DETECTED COMMUNITIES")
+            print("\n🏘️  DETECTED COMMUNITIES")
             print("═" * 60)
 
             comm_nodes = defaultdict(list)

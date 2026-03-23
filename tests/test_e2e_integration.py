@@ -21,8 +21,8 @@ from __future__ import annotations
 import asyncio
 import pathlib
 import tempfile
-from typing import Any, Dict, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -177,7 +177,6 @@ class TestQueryPipelineRouting:
     async def test_complex_query_attempts_orchestrator(self) -> None:
         """Complex query routes to _orchestrate_complex_query."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import SovereignQuery
 
         config = _make_config()
         runtime = SovereignRuntime(config)

@@ -1,8 +1,6 @@
 """Tests for AgentDB Memory Patterns: SessionMemory, FactStore,
 HierarchicalMemory, MemoryConsolidator, ContextSynthesizer."""
 
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -18,7 +16,7 @@ from core.memory.memory_patterns import (
     SessionMemory,
     SynthesizedContext,
 )
-from core.memory.types import MemoryKind, RecordState
+from core.memory.types import MemoryKind
 
 
 @pytest.fixture

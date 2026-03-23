@@ -14,7 +14,7 @@ CATALOG_PATH = GOLD_PATH / "sovereign_catalog.parquet"
 
 
 def omni_search(terms):
-    print(f"🔍 LOADING SOVEREIGN INDEX...")
+    print("🔍 LOADING SOVEREIGN INDEX...")
     try:
         df = pd.read_parquet(CATALOG_PATH)
     except Exception as e:

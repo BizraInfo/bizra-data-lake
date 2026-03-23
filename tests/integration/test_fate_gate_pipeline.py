@@ -22,27 +22,19 @@ differentiator works correctly end-to-end.
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
 
 import pytest
 
 from core.pci.crypto import generate_keypair, sign_message, verify_signature
 from core.pci.envelope import (
-    AgentType,
     EnvelopeBuilder,
-    EnvelopeMetadata,
-    EnvelopePayload,
-    EnvelopeSender,
-    EnvelopeSignature,
     PCIEnvelope,
-    datetime_now_iso,
 )
 from core.pci.gates import (
     IHSAN_MINIMUM_THRESHOLD,
     MAX_CLOCK_SKEW_SECONDS,
     SNR_MINIMUM_THRESHOLD,
     PCIGateKeeper,
-    VerificationResult,
 )
 from core.pci.reject_codes import RejectCode
 

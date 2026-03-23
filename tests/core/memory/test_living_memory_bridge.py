@@ -14,12 +14,11 @@ Validates:
 Standing on Giants: Deming (PDCA, 1950) — every gate must be testable.
 """
 
-import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, Optional, Set
 
 import numpy as np
 import pytest

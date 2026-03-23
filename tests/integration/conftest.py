@@ -10,7 +10,6 @@ Standing on Giants: Dijkstra (testing discipline, 1970)
 import importlib
 import os
 
-import pytest
 
 # -- Collection guard: skip entire directory if python-dotenv is missing --
 try:

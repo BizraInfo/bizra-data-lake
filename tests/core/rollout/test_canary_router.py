@@ -172,8 +172,8 @@ class TestComponentIndependence:
 
     def test_independent_components(self, router: CanaryRouter) -> None:
         key = "shared-key-99"
-        r_search = router.should_route("search", key, percent=50)
-        r_hmm = router.should_route("hmm", key, percent=50)
+        router.should_route("search", key, percent=50)
+        router.should_route("hmm", key, percent=50)
         # We cannot assert they differ for a single key, but over many keys
         # the component name changes the hash input.
         results_search = [

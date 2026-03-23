@@ -31,7 +31,6 @@ import hashlib
 import json
 import os
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Tuple
@@ -426,9 +425,7 @@ def get_confidence_level(verification: dict) -> dict:
 
     type_count = len(types_passed)
     has_tests = "test_suite" in types_passed
-    has_bench = "benchmark" in types_passed
     has_static = "static_analysis" in types_passed
-    has_schema = "schema_validation" in types_passed
 
     if has_tests and type_count >= 4:
         return {
@@ -472,13 +469,13 @@ def forge_receipt(
     timestamp = now.isoformat()
     file_timestamp = now.strftime("%Y-%m-%d_%H%M%S")
 
-    print(f"\n🔨 PROOF FORGE — Generating Evidence Receipt")
+    print("\n🔨 PROOF FORGE — Generating Evidence Receipt")
     print(f"  📂 Project: {project_dir}")
     print(f"  📝 Description: {description}")
     print(f"  ⏰ Timestamp: {timestamp}")
 
     # Phase 1: Discover artifacts
-    print(f"\n  📦 Phase 1: Discovering artifacts...")
+    print("\n  📦 Phase 1: Discovering artifacts...")
     artifacts = discover_artifacts(project_dir, explicit_artifacts)
     print(f"     Found {len(artifacts)} artifacts")
 
@@ -490,7 +487,7 @@ def forge_receipt(
         print(f"     • {t}: {count} files")
 
     # Phase 2: Load verification
-    print(f"\n  🔍 Phase 2: Processing verification report...")
+    print("\n  🔍 Phase 2: Processing verification report...")
     if verification is None:
         verification = {
             "checks": [],
@@ -499,7 +496,7 @@ def forge_receipt(
             "overall_pass": None,
         }
         print(
-            f"     No verification report provided — receipt will be attestation-only"
+            "     No verification report provided — receipt will be attestation-only"
         )
     else:
         cr = verification.get("checks_run", 0)
@@ -511,7 +508,7 @@ def forge_receipt(
     print(f"     Confidence: Level {confidence['level']} — {confidence['label']}")
 
     # Phase 3: Compute hashes
-    print(f"\n  🔐 Phase 3: Computing evidence chain...")
+    print("\n  🔐 Phase 3: Computing evidence chain...")
     previous_hash = get_previous_hash(index)
     evidence_hash = compute_evidence_hash(artifacts, verification, description)
     chain_hash = compute_chain_hash(evidence_hash, previous_hash, timestamp)
@@ -544,7 +541,7 @@ def forge_receipt(
     }
 
     # Phase 4: Sign receipt (Ed25519 — True Spearpoint)
-    print(f"\n  ✍️  Phase 4: Signing receipt with Ed25519...")
+    print("\n  ✍️  Phase 4: Signing receipt with Ed25519...")
     try:
         private_key, public_key = _load_or_create_operator_key(project_dir)
         receipt_body = _canonical_receipt_body(receipt)

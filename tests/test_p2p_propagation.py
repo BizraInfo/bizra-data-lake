@@ -1,7 +1,5 @@
 import asyncio
-import json
 import sys
-import time
 from pathlib import Path
 
 # Add project root to path (portable)
@@ -9,7 +7,6 @@ _project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_project_root))
 
 from core.federation.node import FederationNode
-from core.federation.propagation import ElevatedPattern
 
 
 async def test_p2p_propagation():

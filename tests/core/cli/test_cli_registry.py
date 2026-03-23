@@ -9,14 +9,14 @@ Standing on Giants:
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.cli.hooks import CLIEvent, CLIHooksManager
+from core.cli.hooks import CLIHooksManager
 from core.cli.registry import CommandEntry, CommandRegistry, CommandResult
-from core.cli.shared import CODENAME, VERSION
+from core.cli.shared import VERSION
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 

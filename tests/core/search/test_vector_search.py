@@ -16,7 +16,6 @@ Test classes:
 7. TestDiagnostics             - is_loaded, vector_count, metadata properties
 """
 
-import sys
 import uuid
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -32,9 +31,8 @@ from core.integration.constants import (  # noqa: E402
     FAISS_EMBEDDING_DIM,
     FAISS_SIMILARITY_FLOOR,
 )
-from core.memory.types import MemoryKind, MemoryRecord, SearchResult  # noqa: E402
+from core.memory.types import MemoryKind, SearchResult  # noqa: E402
 from core.search.vector_search import (  # noqa: E402
-    PHASE46_ENABLED,
     VectorSearchEngine,
     _resolve_root,
 )

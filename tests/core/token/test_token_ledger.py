@@ -25,7 +25,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from core.token.ledger import GENESIS_TX_HASH, TokenLedger
 from core.token.mint import (
@@ -36,7 +35,6 @@ from core.token.mint import (
 )
 from core.token.types import (
     FOUNDER_GENESIS_ALLOCATION,
-    GENESIS_EPOCH_ID,
     IHSAN_THRESHOLD,
     SEED_SUPPLY_CAP_PER_YEAR,
     SYSTEM_TREASURY_ALLOCATION,

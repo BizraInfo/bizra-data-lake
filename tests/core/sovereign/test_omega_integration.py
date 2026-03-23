@@ -15,7 +15,6 @@
 """
 
 from dataclasses import dataclass
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -117,7 +116,7 @@ class TestTreasuryModeToTier:
         from core.sovereign.runtime import SovereignRuntime
 
         runtime = SovereignRuntime()
-        tier = runtime._mode_to_tier(TreasuryMode.HIBERNATION)
+        runtime._mode_to_tier(TreasuryMode.HIBERNATION)
         # Should map to EDGE
 
     def test_emergency_mode_uses_edge_tier(self):
@@ -126,7 +125,7 @@ class TestTreasuryModeToTier:
         from core.sovereign.runtime import SovereignRuntime
 
         runtime = SovereignRuntime()
-        tier = runtime._mode_to_tier(TreasuryMode.EMERGENCY)
+        runtime._mode_to_tier(TreasuryMode.EMERGENCY)
         # Should map to EDGE
 
 
@@ -141,7 +140,7 @@ class TestIhsanExtraction:
         runtime = SovereignRuntime()
         safe_content = "Here is helpful information about gardening techniques."
 
-        ihsan = runtime._extract_ihsan_from_response(safe_content, {})
+        runtime._extract_ihsan_from_response(safe_content, {})
         # Should not be None if omega_engine imports work
 
     def test_extract_harmful_content_low_safety(self):
@@ -151,7 +150,7 @@ class TestIhsanExtraction:
         runtime = SovereignRuntime()
         harmful_content = "Instructions on how to harm others illegally."
 
-        ihsan = runtime._extract_ihsan_from_response(harmful_content, {})
+        runtime._extract_ihsan_from_response(harmful_content, {})
         # Safety dimension should be lowered
 
 
@@ -161,7 +160,7 @@ class TestRuntimeComponentInit:
 
     def test_runtime_creates_with_defaults(self):
         """Runtime should create with default config."""
-        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
+        from core.sovereign.runtime import SovereignRuntime
 
         runtime = SovereignRuntime()
         assert runtime.config is not None
@@ -243,7 +242,7 @@ class TestFullPipeline:
         runtime._init_gate_chain()
 
         # Run query
-        result = await runtime.query("What is the meaning of life?")
+        await runtime.query("What is the meaning of life?")
 
         # Gateway should have been called
         assert mock_gateway.infer_called

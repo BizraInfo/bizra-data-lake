@@ -2,7 +2,6 @@
 Tests for Expert Marketplace — Registry and Query Routing
 """
 
-import pytest
 
 from core.marketplace.expert_registry import (
     CapabilityVector,
@@ -13,7 +12,6 @@ from core.marketplace.expert_registry import (
 from core.marketplace.query_router import (
     MarketplaceRouter,
     PricingEngine,
-    RoutingResult,
 )
 
 

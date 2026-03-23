@@ -8,11 +8,8 @@ import random
 import pytest
 
 from core.inference.dp_fedlora import (
-    DEFAULT_CLIP_THRESHOLD,
-    DEFAULT_NOISE_MULTIPLIER,
     DPConfig,
     DPFedLoRAUpdate,
-    DPResult,
     GradientClipper,
     LoRAWeightDelta,
     NoiseInjector,

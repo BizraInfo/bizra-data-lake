@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections import deque
 from dataclasses import fields as dataclass_fields
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -354,12 +353,12 @@ class TestRustServiceAdapterHealthCheck:
     @pytest.mark.asyncio
     async def test_health_check_without_aiohttp_falls_back_healthy(self):
         """When aiohttp is not importable, adapter assumes HEALTHY."""
-        adapter = RustServiceAdapter("test-svc")
+        RustServiceAdapter("test-svc")
         with patch.dict("sys.modules", {"aiohttp": None}):
             with patch(
                 "core.sovereign.swarm_integration.RustServiceAdapter.health_check",
                 new_callable=AsyncMock,
-            ) as mock_hc:
+            ):
                 # Simulate the ImportError branch directly
                 pass
 
@@ -529,9 +528,9 @@ class TestRustServiceAdapterHealthCheck:
         original = sys.modules.get("aiohttp")
         sys.modules["aiohttp"] = None  # type: ignore[assignment]
         try:
-            before = datetime.now(timezone.utc)
+            datetime.now(timezone.utc)
             await adapter.health_check()
-            after = datetime.now(timezone.utc)
+            datetime.now(timezone.utc)
         except (TypeError, ImportError):
             pass
         finally:
@@ -961,7 +960,7 @@ class TestSwarmHealthSummary:
 
     def test_summary_with_all_healthy_python(self):
         orch = HybridSwarmOrchestrator()
-        swarm = _populate_swarm(orch, "s1", python_count=3, rust_count=0)
+        _populate_swarm(orch, "s1", python_count=3, rust_count=0)
 
         summary = orch.get_swarm_health_summary("s1")
         assert summary["swarm_id"] == "s1"
@@ -972,7 +971,7 @@ class TestSwarmHealthSummary:
 
     def test_summary_with_rust_adapter_health(self):
         orch = HybridSwarmOrchestrator()
-        swarm = _populate_swarm(orch, "s1", python_count=2, rust_count=1)
+        _populate_swarm(orch, "s1", python_count=2, rust_count=1)
 
         # Set rust adapter health to DEGRADED
         svc_name = [k for k in orch.rust_adapters.keys()][0]
@@ -1006,7 +1005,7 @@ class TestSwarmHealthSummary:
 
     def test_summary_agent_health_dict(self):
         orch = HybridSwarmOrchestrator()
-        swarm = _populate_swarm(orch, "s1", python_count=1, rust_count=1)
+        _populate_swarm(orch, "s1", python_count=1, rust_count=1)
 
         summary = orch.get_swarm_health_summary("s1")
         assert "agent_health" in summary
@@ -1197,7 +1196,7 @@ class TestScaling:
         python_agents = [
             a for a in swarm.agents.values() if not a.id.startswith("rust:")
         ]
-        rust_agents = [a for a in swarm.agents.values() if a.id.startswith("rust:")]
+        [a for a in swarm.agents.values() if a.id.startswith("rust:")]
 
         # delta=3. Python delta = min(3, 2-1) = 1. Remaining delta = 2.
         # Rust delta = min(2, 3-1) = 2.
@@ -1334,7 +1333,7 @@ class TestSelfHealing:
     async def test_self_heal_replaces_on_failed_restart(self):
         """When restart fails, service is replaced."""
         orch = HybridSwarmOrchestrator()
-        swarm = _populate_swarm(orch, "s1", python_count=1, rust_count=1)
+        _populate_swarm(orch, "s1", python_count=1, rust_count=1)
 
         svc_name = [k for k in orch.rust_adapters.keys()][0]
         adapter = orch.rust_adapters[svc_name]
@@ -1410,7 +1409,7 @@ class TestSelfHealing:
     async def test_self_heal_increments_metrics(self):
         """Each restart/replacement increments the right metric."""
         orch = HybridSwarmOrchestrator()
-        swarm = _populate_swarm(orch, "s1", python_count=0, rust_count=2)
+        _populate_swarm(orch, "s1", python_count=0, rust_count=2)
 
         adapters = list(orch.rust_adapters.values())
         # First adapter: restart succeeds
@@ -1517,7 +1516,7 @@ class TestAvailability:
 
     def test_partial_availability(self):
         orch = HybridSwarmOrchestrator()
-        swarm = _populate_swarm(orch, "s1", python_count=3, rust_count=1)
+        _populate_swarm(orch, "s1", python_count=3, rust_count=1)
 
         # Make rust adapter unhealthy
         svc = list(orch.rust_adapters.keys())[0]

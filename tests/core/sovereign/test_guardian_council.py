@@ -12,19 +12,14 @@ Tests for core.sovereign.guardian_council covering:
 Created: 2026-02-11
 """
 
-import asyncio
 import hashlib
-import hmac as hmac_mod
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from core.pci.crypto import (
-    domain_separated_digest,
     generate_keypair,
-    sign_message,
-    verify_signature,
 )
 from core.sovereign.guardian_council import (
     ConsensusMode,
@@ -775,7 +770,8 @@ class TestGuardianCouncil:
 
     def test_set_guardian_evaluator(self, council):
         """set_guardian_evaluator replaces a guardian's evaluate_fn."""
-        custom_fn = lambda p: IhsanVector(1.0, 1.0, 1.0, 1.0, 1.0)
+        def custom_fn(p):
+            return IhsanVector(1.0, 1.0, 1.0, 1.0, 1.0)
         council.set_guardian_evaluator(GuardianRole.ARCHITECT, custom_fn)
         assert council.guardians[GuardianRole.ARCHITECT].evaluate_fn is custom_fn
 

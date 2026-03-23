@@ -17,7 +17,6 @@ Invariants verified:
 6. Timing-safe comparison reflexivity and symmetry
 """
 
-import pytest
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 

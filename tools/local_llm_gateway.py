@@ -370,7 +370,7 @@ class LocalLLMGateway:
         rag_system = (
             system
             or """You are BIZRA PRIME, an intelligent assistant with access to a vast knowledge base.
-Answer the user's question based on the provided context. If the context doesn't contain 
+Answer the user's question based on the provided context. If the context doesn't contain
 relevant information, say so honestly. Be concise and accurate."""
         )
 
@@ -395,7 +395,7 @@ if __name__ == "__main__":
 
     gateway = LocalLLMGateway()
 
-    print(f"\n📊 INFRASTRUCTURE STATUS:")
+    print("\n📊 INFRASTRUCTURE STATUS:")
     print(
         f"   Provider: {gateway.active_provider.value if gateway.active_provider else 'NONE'}"
     )

@@ -42,42 +42,29 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import heapq
 import json
 import logging
-import math
-import os
 import re
-import sys
 import time
 import uuid
-from abc import ABC, abstractmethod
-from collections import OrderedDict, defaultdict, deque
+from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from functools import lru_cache, wraps
-from pathlib import Path
 from typing import (
     Any,
-    AsyncIterator,
     Callable,
     Dict,
     Final,
-    Generic,
     Hashable,
-    Iterator,
     List,
     Literal,
-    NamedTuple,
     Optional,
     Protocol,
     Set,
     Tuple,
     TypeVar,
-    Union,
     runtime_checkable,
 )
 
@@ -1746,7 +1733,7 @@ class UltimateEngine:
         )
 
         inf = self.got.add_thought(
-            content=f"INFERENCE: Deriving insights from query",
+            content="INFERENCE: Deriving insights from query",
             thought_type=ThoughtType.INFERENCE,
             parent_ids=[root_thought.id, obs.id],
         )
@@ -1794,7 +1781,7 @@ class UltimateEngine:
         log.info(f"🔗 Merkle Hash: {merkle_hash[:16]}...")
 
         # Emit receipt
-        receipt = self._emit_receipt(
+        self._emit_receipt(
             "query_processed",
             {
                 "query_hash": hashlib.blake2b(
@@ -1847,7 +1834,7 @@ class UltimateEngine:
         4. Cryptographic Seal (receipt)
         """
         # Step 1: Neural Intuition
-        hypothesis = self.got.add_thought(
+        self.got.add_thought(
             content=f"HYPOTHESIS: {claim}", thought_type=ThoughtType.HYPOTHESIS
         )
 

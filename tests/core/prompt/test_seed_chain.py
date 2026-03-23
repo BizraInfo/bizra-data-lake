@@ -1,9 +1,17 @@
 """Tests for سلسلة البذرة — The Seed Chain v1.0"""
-import pytest
+
+
 from core.prompt.seed_chain import (
-    Amanah, Bayyinah, BayyinahItem, EvidenceTag, Hadd,
-    Iisal, IisalVerdict, Niyyah, SeedChain, Thamara,
-    full_seed, small_seed,
+    Bayyinah,
+    EvidenceTag,
+    Hadd,
+    Iisal,
+    IisalVerdict,
+    Niyyah,
+    SeedChain,
+    Thamara,
+    full_seed,
+    small_seed,
 )
 
 
@@ -55,9 +63,7 @@ class TestThamara:
         assert t.max_confidence == 0.5
 
     def test_max_confidence_mixed_takes_minimum(self):
-        t = Thamara(evidence_inherited=[
-            EvidenceTag.VERIFIED, EvidenceTag.UNKNOWN
-        ])
+        t = Thamara(evidence_inherited=[EvidenceTag.VERIFIED, EvidenceTag.UNKNOWN])
         assert t.max_confidence == 0.5
 
     def test_empty_evidence_returns_zero(self):

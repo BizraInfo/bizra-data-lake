@@ -25,24 +25,16 @@ from __future__ import annotations
 
 import time
 
-import pytest
 
 from core.constitutional.algorithms import (
-    GINI_CRISIS,
-    GINI_HEALTHY,
-    GINI_WARNING,
     IHSAN_FLOOR,
-    INTENT_FLOOR,
-    MIN_CONNECTIONS,
     NISAB_THRESHOLD,
-    ZAKAT_FP,
     append_event,
     asabiyyah_score,
     compile_reflex,
     compute_gini,
     compute_zakat,
     full_ihsan_check,
-    ghazali_equity_factor,
     ihsan_score,
     intent_gate,
     khaldunian_throttle,
@@ -58,8 +50,6 @@ from core.constitutional.fixed_point import (
     FP_ONE,
     FP_ZERO,
     fp,
-    fp_float,
-    fp_mul,
 )
 from core.constitutional.types import (
     ActionReceipt,

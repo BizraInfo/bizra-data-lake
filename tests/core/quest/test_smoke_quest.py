@@ -8,13 +8,9 @@ Test naming: test_XX_descriptive_name
 Coverage: QuestEngine, Quest, QuestReward, QuestAcceptResult
 """
 
-import pytest
 
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.quest import (
-    DEFAULT_QUESTS,
     Quest,
-    QuestAcceptResult,
     QuestDifficulty,
     QuestEngine,
     QuestReward,

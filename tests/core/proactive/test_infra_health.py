@@ -13,7 +13,6 @@ Blueprint Reference: P3 Coverage Ratchet — proactive module (0% → tested)
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from core.proactive.infra_health import InfraHealthProbe
 

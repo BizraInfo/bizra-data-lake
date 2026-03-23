@@ -33,7 +33,6 @@ from core.pci.crypto import (
 )
 from core.pci.envelope import (
     EnvelopeBuilder,
-    PCIEnvelope,
     _nonce_exists_and_record,
     _nonce_lock,
     _seen_nonces,

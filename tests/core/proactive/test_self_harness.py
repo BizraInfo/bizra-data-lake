@@ -16,11 +16,9 @@ Blueprint Reference: P3 Coverage Ratchet — proactive module (0% → tested)
 """
 
 import asyncio
-import time
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from core.proactive.self_harness import (
     GoalScanner,

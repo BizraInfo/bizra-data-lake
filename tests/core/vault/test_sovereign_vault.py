@@ -3,11 +3,7 @@
 Phase 17: Security Test Scaffolding
 """
 
-import json
-import os
-import tempfile
 from pathlib import Path
-from typing import Generator
 
 import pytest
 

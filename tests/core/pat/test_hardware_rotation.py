@@ -4,14 +4,11 @@ Tests for Hardware Fingerprint Rotation — DID Handoff
 
 import secrets
 
-import pytest
 
 from core.pat.hardware_rotation import (
     MAX_ROTATION_CHAIN_LENGTH,
-    DIDHandoff,
     HardwareRotationCeremony,
     RotationCertificate,
-    RotationHistory,
     compute_fingerprint_hash,
 )
 

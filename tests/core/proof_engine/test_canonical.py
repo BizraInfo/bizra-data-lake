@@ -13,7 +13,6 @@ Standing on Giants:
 import json
 import unicodedata
 
-import pytest
 
 from core.proof_engine.canonical import (
     CanonEnvironment,

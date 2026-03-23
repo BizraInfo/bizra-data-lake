@@ -21,16 +21,13 @@ import asyncio
 import hashlib
 import json
 import os
-import queue
-import signal
-import sys
 import threading
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -1019,7 +1016,7 @@ class Flywheel:
 
         if success:
             status = await self.loop.get_status()
-            print(f"\n✅ Flywheel Active")
+            print("\n✅ Flywheel Active")
             print(f"   State: {status.state.value}")
             print(f"   Models: {', '.join(status.models_loaded) or 'None'}")
             print(f"   Auth: {status.auth_mode}")

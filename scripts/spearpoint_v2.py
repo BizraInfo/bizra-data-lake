@@ -41,7 +41,7 @@ import hashlib
 import json
 import sys
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Optional
 
 

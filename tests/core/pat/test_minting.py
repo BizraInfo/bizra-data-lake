@@ -12,14 +12,10 @@ Tests cover:
 Standing on Giants: pytest + Ed25519 + BLAKE3
 """
 
-from datetime import datetime, timezone
 
 import pytest
 
 from core.pat.agent import (
-    DEFAULT_CAPABILITIES,
-    SYSTEM_AGENT_ALLOCATION,
-    USER_AGENT_ALLOCATION,
     AgentStatus,
     AgentType,
     OwnershipType,
@@ -31,7 +27,6 @@ from core.pat.identity_card import (
     IdentityStatus,
     SovereigntyTier,
     _generate_node_id,
-    generate_identity_keypair,
 )
 from core.pat.minting import (
     PAT_AGENT_COUNT,
@@ -41,8 +36,6 @@ from core.pat.minting import (
     TOTAL_AGENTS_PER_USER,
     USER_AGENT_COUNT,
     IdentityMinter,
-    MinterState,
-    OnboardingResult,
     generate_and_onboard,
     mint_identity_card,
     mint_pat_agents,

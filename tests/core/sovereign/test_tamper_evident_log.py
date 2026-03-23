@@ -21,23 +21,17 @@ Genesis Strict Synthesis v2.2.2
 """
 
 import json
-import os
 import secrets
-import tempfile
 import time
 from pathlib import Path
-from typing import List
 
 import pytest
 
 from core.sovereign.tamper_evident_log import (
     GENESIS_HASH,
-    HMAC_DOMAIN_PREFIX,
     AuditKeyManager,
-    KeyRotationEvent,
     TamperEvidentEntry,
     TamperEvidentLog,
-    TamperingReport,
     TamperType,
     VerificationStatus,
     _compute_content_hash,
@@ -808,7 +802,7 @@ class TestIntegration:
         for i in range(3):
             log.append({"event": f"pre_rotation_{i}"})
 
-        old_key = key_manager.export_key_hex()
+        key_manager.export_key_hex()
 
         # Verify with original key
         report = log.detect_tampering()

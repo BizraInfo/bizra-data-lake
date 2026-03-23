@@ -2,8 +2,6 @@
 """BIZRA Lifecycle Emulation v3 — REAL APIs, REAL DATA"""
 
 import asyncio
-import hashlib
-import os
 import sys
 import time
 
@@ -76,7 +74,6 @@ stage("STAGE 1: CONSTITUTIONAL CONSTANTS (SSOT)")
 from core.integration.constants import (
     ADL_GINI_THRESHOLD,
     DOMAIN_IDENTITY_GENESIS,
-    IHSAN_CANONICAL_WEIGHTS,
     IHSAN_THRESHOLD,
     IHSAN_WEIGHTS,
     KERNEL_INVARIANTS,
@@ -157,7 +154,7 @@ for i, act in enumerate(
     cd = canonical_bytes(rd)
     hd = blake3.blake3(cd).hexdigest()
     receipts.append(hd)
-ck(f"7-receipt chain built", lambda: f"receipts={len(receipts)}")
+ck("7-receipt chain built", lambda: f"receipts={len(receipts)}")
 ck("Chain integrity (no gaps)", lambda: all(len(h) == 64 for h in receipts))
 # Tamper test
 tampered = canonical_bytes(
@@ -193,7 +190,7 @@ try:
         "ReflexCompiler methods",
         lambda: [m for m in dir(rc) if not m.startswith("_")][:8],
     )
-except Exception as e:
+except Exception:
     ck("ReflexCompiler", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # ═══ STAGE 7: PCI GATES (correct API) ═══
@@ -205,7 +202,7 @@ try:
     ck("PCIGateKeeper init", lambda: type(gk).__name__)
     methods = [m for m in dir(gk) if not m.startswith("_")]
     ck("Gate methods", lambda: methods)
-except Exception as e:
+except Exception:
     ck("PCI GateKeeper", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # ═══ STAGE 8: TOKEN ECONOMY (correct names) ═══
@@ -215,7 +212,6 @@ try:
         BLOOM_MINT_FLOOR,
         SEED_MINT_FLOOR,
         TOKEN_ZAKAT_RATE,
-        BloomBalance,
         TokenMinter,
         WalletState,
         compute_gini,
@@ -228,7 +224,7 @@ try:
     ck("BLOOM_MINT_FLOOR", lambda: BLOOM_MINT_FLOOR)
     gini = compute_gini([100, 200, 300, 50, 150])
     ck("Gini computation", lambda: f"gini={gini:.4f} passes_adl={gini<=0.35}")
-except Exception as e:
+except Exception:
     ck("Token economy", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # ═══ STAGE 9: ENTROPY ROUTER (correct method: route/estimate_complexity) ═══
@@ -249,7 +245,7 @@ try:
         "Design a thread-safe double-buffered hot/cold HashMap with ArcSwap for atomic pointer swap"
     )
     ck("Estimate complex complexity", lambda: e2)
-except Exception as e:
+except Exception:
     ck("Entropy router", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # ═══ STAGE 10: LIVING MEMORY (correct: LivingMemoryCore, MemoryEntry) ═══
@@ -260,7 +256,7 @@ try:
     ck("LivingMemoryCore class", lambda: type(LivingMemoryCore).__name__)
     ck("MemoryType enum", lambda: [t.name for t in MemoryType])
     ck("MemoryEntry class", lambda: type(MemoryEntry).__name__)
-except Exception as e:
+except Exception:
     ck("Living memory", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # ═══ STAGE 11: CONSTITUTIONAL SIMULATION ═══
@@ -275,7 +271,7 @@ try:
     ck("SovereignNetworkSimulation", lambda: type(SovereignNetworkSimulation).__name__)
     ck("SimulationConfig", lambda: type(SimulationConfig).__name__)
     ck("run_simulation available", lambda: callable(run_simulation))
-except Exception as e:
+except Exception:
     ck("Simulation", lambda: (_ for _ in ()).throw(Exception(str(e))))
 
 # ═══ FINAL EVALUATION ═══

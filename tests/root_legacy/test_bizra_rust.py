@@ -6,7 +6,7 @@ import sys
 try:
     import bizra
 
-    print(f"✅ bizra module imported successfully")
+    print("✅ bizra module imported successfully")
     print(f"Version: {bizra.__version__}")
     print(f"IHSAN_THRESHOLD: {bizra.IHSAN_THRESHOLD}")
     print(f"SNR_THRESHOLD: {bizra.SNR_THRESHOLD}")

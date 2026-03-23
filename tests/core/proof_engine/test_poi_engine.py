@@ -9,7 +9,6 @@ Standing on Giants:
 - Al-Ghazali (1058-1111): Zakat distribution justice
 """
 
-import math
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -20,16 +19,11 @@ from core.proof_engine.poi_engine import (
     ContributionMetadata,
     ContributionType,
     ContributionVerifier,
-    LongevityScore,
     PoIConfig,
     PoIOrchestrator,
     ProofOfImpact,
-    ReachScore,
-    RebalanceResult,
     SATRebalancer,
     TemporalScorer,
-    TokenDistribution,
-    VerifiedContribution,
     compute_gini,
     compute_token_distribution,
 )

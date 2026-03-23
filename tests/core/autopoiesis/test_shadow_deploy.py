@@ -14,33 +14,24 @@ Genesis Strict Synthesis v2.2.2
 
 import asyncio
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any, Dict
 
 import pytest
 
 from core.autopoiesis.shadow_deploy import (
-    IHSAN_KILL_THRESHOLD,
     MIN_SAMPLE_SIZE,
-    AuditEntry,
     CanaryDeployer,
-    ComparisonResult,
     ComparisonStatus,
     DeploymentVerdict,
-    IsolationLevel,
-    MetricComparison,
-    MetricSample,
     ResourceLimits,
     ShadowDeployer,
-    ShadowDeployment,
     ShadowEnvironment,
     ShadowHypothesis,
     ShadowRequest,
-    ShadowResponse,
     StatisticalAnalyzer,
     TrafficMode,
 )
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 # =============================================================================
 # FIXTURES

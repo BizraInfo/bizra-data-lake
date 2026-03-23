@@ -24,15 +24,13 @@ Usage:
 """
 
 import json
-import os
-import sys
-import time
 import pickle
 import re
+import sys
+import time
 from collections import defaultdict
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 SOVEREIGN_ROOT = Path(r"B:\BIZRA-SOVEREIGN\05_DATA_LAKE")
 MANIFEST_DIR = SOVEREIGN_ROOT / "02_PROCESSED" / "manifests"
@@ -45,18 +43,20 @@ TIMELINE_DIR = INDEX_DIR / "timeline"
 # EMBEDDING ENGINE (Mikolov — distributed representations)
 # ═══════════════════════════════════════════════════════════════
 
+
 class EmbeddingEngine:
     """Generate and store sentence embeddings for semantic search."""
 
     def __init__(self):
         self.model = None
         self.embeddings = {}  # manifest_id → vector
-        self.texts = {}       # manifest_id → text preview
+        self.texts = {}  # manifest_id → text preview
 
     def load_model(self):
         """Load sentence-transformers model. Falls back to TF-IDF."""
         try:
             from sentence_transformers import SentenceTransformer
+
             self.model = SentenceTransformer("all-MiniLM-L6-v2")
             print("  Embedding model: all-MiniLM-L6-v2 (384-dim)")
             return True
@@ -95,8 +95,8 @@ class EmbeddingEngine:
 
     def _tfidf_fallback(self, manifests: list[dict]):
         """TF-IDF fallback when sentence-transformers unavailable."""
-        from collections import Counter
         import math
+        from collections import Counter
 
         texts = []
         ids = []
@@ -111,7 +111,7 @@ class EmbeddingEngine:
         doc_freq = Counter()
         doc_terms = []
         for text in texts:
-            terms = set(re.findall(r'\b[a-z]{3,}\b', text))
+            terms = set(re.findall(r"\b[a-z]{3,}\b", text))
             doc_terms.append(terms)
             for t in terms:
                 doc_freq[t] += 1
@@ -121,9 +121,9 @@ class EmbeddingEngine:
         vocab_idx = {t: i for i, t in enumerate(vocab)}
 
         # Build TF-IDF vectors
-        import array
+
         for i, (mid, text) in enumerate(zip(ids, texts)):
-            terms = re.findall(r'\b[a-z]{3,}\b', text)
+            terms = re.findall(r"\b[a-z]{3,}\b", text)
             tf = Counter(terms)
             vec = [0.0] * len(vocab)
             for t, count in tf.items():
@@ -137,6 +137,7 @@ class EmbeddingEngine:
     def cosine_similarity(self, vec_a, vec_b) -> float:
         """Compute cosine similarity between two vectors."""
         import math
+
         dot = sum(a * b for a, b in zip(vec_a, vec_b))
         norm_a = math.sqrt(sum(a * a for a in vec_a))
         norm_b = math.sqrt(sum(b * b for b in vec_b))
@@ -156,15 +157,16 @@ class EmbeddingEngine:
 # THOUGHT GRAPH ENGINE (Erdos + Barabasi — network structure)
 # ═══════════════════════════════════════════════════════════════
 
+
 class ThoughtGraph:
     """NetworkX-compatible thought graph with 5 edge types."""
 
     def __init__(self):
-        self.nodes = {}          # id → manifest dict
-        self.edges = []          # list of (src, dst, type, weight)
-        self.by_date = defaultdict(list)   # date_str → [ids]
-        self.by_era = defaultdict(list)    # era → [ids]
-        self.by_type = defaultdict(list)   # file_type → [ids]
+        self.nodes = {}  # id → manifest dict
+        self.edges = []  # list of (src, dst, type, weight)
+        self.by_date = defaultdict(list)  # date_str → [ids]
+        self.by_era = defaultdict(list)  # era → [ids]
+        self.by_type = defaultdict(list)  # file_type → [ids]
         self.stats = defaultdict(int)
 
     def add_manifests(self, manifests: list[dict]):
@@ -198,8 +200,7 @@ class ThoughtGraph:
                     ids = self.by_date[d1]
                     for a_idx in range(len(ids)):
                         for b_idx in range(a_idx + 1, len(ids)):
-                            self.edges.append((ids[a_idx], ids[b_idx],
-                                             "TEMPORAL", 1.0))
+                            self.edges.append((ids[a_idx], ids[b_idx], "TEMPORAL", 1.0))
                             count += 1
                 else:
                     for a in self.by_date[d1]:
@@ -209,8 +210,7 @@ class ThoughtGraph:
         self.stats["temporal"] = count
         print(f"  TEMPORAL edges: {count}")
 
-    def build_topical_edges(self, engine: EmbeddingEngine,
-                           threshold: float = 0.75):
+    def build_topical_edges(self, engine: EmbeddingEngine, threshold: float = 0.75):
         """TOPICAL: connect files with cosine similarity >= threshold."""
         ids = list(engine.embeddings.keys())
         count = 0
@@ -218,8 +218,7 @@ class ThoughtGraph:
         for i in range(n):
             for j in range(i + 1, n):
                 sim = engine.cosine_similarity(
-                    engine.embeddings[ids[i]],
-                    engine.embeddings[ids[j]]
+                    engine.embeddings[ids[i]], engine.embeddings[ids[j]]
                 )
                 if sim >= threshold:
                     self.edges.append((ids[i], ids[j], "TOPICAL", round(sim, 4)))
@@ -231,10 +230,10 @@ class ThoughtGraph:
         """SEQUENTIAL: detect A→B patterns from filenames."""
         # Pattern: numbered files, "part 1/2", versioned docs
         patterns = [
-            (r'(.+?)[\s_-]*\((\d+)\)', 'parens_num'),    # file (1), file (2)
-            (r'(.+?)[\s_-]*(\d+)$', 'trailing_num'),       # file1, file2
-            (r'(.+?)[\s_-]*[Pp]art[\s_-]*(\d+)', 'part'),  # Part 1, Part 2
-            (r'(.+?)[\s_-]*[Vv](\d+)', 'version'),         # v1, v2
+            (r"(.+?)[\s_-]*\((\d+)\)", "parens_num"),  # file (1), file (2)
+            (r"(.+?)[\s_-]*(\d+)$", "trailing_num"),  # file1, file2
+            (r"(.+?)[\s_-]*[Pp]art[\s_-]*(\d+)", "part"),  # Part 1, Part 2
+            (r"(.+?)[\s_-]*[Vv](\d+)", "version"),  # v1, v2
         ]
         # Group by base name
         groups = defaultdict(list)
@@ -252,15 +251,14 @@ class ThoughtGraph:
         for key, items in groups.items():
             items.sort()  # by number
             for i in range(len(items) - 1):
-                self.edges.append((items[i][1], items[i+1][1],
-                                 "SEQUENTIAL", 0.9))
+                self.edges.append((items[i][1], items[i + 1][1], "SEQUENTIAL", 0.9))
                 count += 1
         self.stats["sequential"] = count
         print(f"  SEQUENTIAL edges: {count}")
 
-    def build_evolutionary_edges(self, engine: EmbeddingEngine,
-                                 threshold: float = 0.6,
-                                 min_days_apart: int = 30):
+    def build_evolutionary_edges(
+        self, engine: EmbeddingEngine, threshold: float = 0.6, min_days_apart: int = 30
+    ):
         """EVOLUTIONARY: same topic at different maturity (time + similarity)."""
         ids = list(engine.embeddings.keys())
         count = 0
@@ -284,7 +282,8 @@ class ThoughtGraph:
                     continue
                 # Check topic similarity
                 sim = engine.cosine_similarity(
-                    engine.embeddings[a], engine.embeddings[b])
+                    engine.embeddings[a], engine.embeddings[b]
+                )
                 if sim >= threshold:
                     weight = sim * min(days_apart / 365, 1.0)
                     self.edges.append((a, b, "EVOLUTIONARY", round(weight, 4)))
@@ -292,8 +291,9 @@ class ThoughtGraph:
         self.stats["evolutionary"] = count
         print(f"  EVOLUTIONARY edges (>={threshold}, >={min_days_apart}d): {count}")
 
-    def build_cross_mindset_edges(self, engine: EmbeddingEngine,
-                                   threshold: float = 0.65):
+    def build_cross_mindset_edges(
+        self, engine: EmbeddingEngine, threshold: float = 0.65
+    ):
         """CROSS_MINDSET: different era, connected insight."""
         eras = list(self.by_era.keys())
         count = 0
@@ -309,10 +309,10 @@ class ThoughtGraph:
                         if b not in engine.embeddings:
                             continue
                         sim = engine.cosine_similarity(
-                            engine.embeddings[a], engine.embeddings[b])
+                            engine.embeddings[a], engine.embeddings[b]
+                        )
                         if sim >= threshold:
-                            self.edges.append((a, b, "CROSS_MINDSET",
-                                             round(sim, 4)))
+                            self.edges.append((a, b, "CROSS_MINDSET", round(sim, 4)))
                             count += 1
         self.stats["cross_mindset"] = count
         print(f"  CROSS_MINDSET edges (>={threshold}): {count}")
@@ -324,14 +324,15 @@ class ThoughtGraph:
             entries = []
             for mid in self.by_date[date_str]:
                 m = self.nodes[mid]
-                entries.append({
-                    "id": mid[:12],
-                    "filename": m.get("original_filename", "unknown"),
-                    "type": m.get("file_type", "unknown"),
-                    "era": m.get("mindset_era", "unknown"),
-                })
-            timeline.append({"date": date_str, "count": len(entries),
-                           "files": entries})
+                entries.append(
+                    {
+                        "id": mid[:12],
+                        "filename": m.get("original_filename", "unknown"),
+                        "type": m.get("file_type", "unknown"),
+                        "era": m.get("mindset_era", "unknown"),
+                    }
+                )
+            timeline.append({"date": date_str, "count": len(entries), "files": entries})
         return timeline
 
     def save(self):
@@ -342,10 +343,17 @@ class ThoughtGraph:
         # Save edges
         with open(GRAPH_DIR / "edges.jsonl", "w") as f:
             for src, dst, etype, weight in self.edges:
-                f.write(json.dumps({
-                    "src": src[:16], "dst": dst[:16],
-                    "type": etype, "weight": float(weight)
-                }) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "src": src[:16],
+                            "dst": dst[:16],
+                            "type": etype,
+                            "weight": float(weight),
+                        }
+                    )
+                    + "\n"
+                )
 
         # Save node index
         node_index = {}
@@ -361,25 +369,29 @@ class ThoughtGraph:
 
         # Save stats
         with open(GRAPH_DIR / "graph_stats.json", "w") as f:
-            json.dump({
-                "nodes": len(self.nodes),
-                "edges": len(self.edges),
-                "edge_types": dict(self.stats),
-                "eras": {k: len(v) for k, v in self.by_era.items()},
-                "file_types": {k: len(v) for k, v in self.by_type.items()},
-                "date_range": {
-                    "earliest": min(self.by_date.keys()) if self.by_date else "",
-                    "latest": max(self.by_date.keys()) if self.by_date else "",
+            json.dump(
+                {
+                    "nodes": len(self.nodes),
+                    "edges": len(self.edges),
+                    "edge_types": dict(self.stats),
+                    "eras": {k: len(v) for k, v in self.by_era.items()},
+                    "file_types": {k: len(v) for k, v in self.by_type.items()},
+                    "date_range": {
+                        "earliest": min(self.by_date.keys()) if self.by_date else "",
+                        "latest": max(self.by_date.keys()) if self.by_date else "",
+                    },
+                    "built": datetime.now(timezone.utc).isoformat(),
                 },
-                "built": datetime.now(timezone.utc).isoformat(),
-            }, f, indent=2)
+                f,
+                indent=2,
+            )
 
         # Save timeline
         timeline = self.build_timeline()
         with open(TIMELINE_DIR / "thought_timeline.json", "w") as f:
             json.dump(timeline, f, indent=2)
 
-        print(f"\n  Graph saved:")
+        print("\n  Graph saved:")
         print(f"    Nodes: {GRAPH_DIR / 'nodes.json'}")
         print(f"    Edges: {GRAPH_DIR / 'edges.jsonl'}")
         print(f"    Stats: {GRAPH_DIR / 'graph_stats.json'}")
@@ -389,6 +401,7 @@ class ThoughtGraph:
 # ═══════════════════════════════════════════════════════════════
 # MAIN RUNNER
 # ═══════════════════════════════════════════════════════════════
+
 
 def load_manifests() -> list[dict]:
     """Load all manifests from 02_PROCESSED."""
@@ -407,16 +420,23 @@ def load_manifests() -> list[dict]:
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(
-        description="BIZRA Thought Graph Builder — Stage 3")
-    parser.add_argument("--threshold", type=float, default=0.75,
-                        help="Cosine similarity threshold for TOPICAL edges")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Build graph in memory without saving")
+        description="BIZRA Thought Graph Builder — Stage 3"
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.75,
+        help="Cosine similarity threshold for TOPICAL edges",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Build graph in memory without saving"
+    )
     args = parser.parse_args()
 
     start = time.time()
-    print(f"BIZRA Thought Graph Builder")
+    print("BIZRA Thought Graph Builder")
     print(f"{'='*60}")
 
     # Load manifests
@@ -445,7 +465,7 @@ def main():
     # Summary
     total_edges = len(graph.edges)
     elapsed = time.time() - start
-    print(f"\n[5/6] Graph summary:")
+    print("\n[5/6] Graph summary:")
     print(f"  Nodes: {len(graph.nodes)}")
     print(f"  Edges: {total_edges}")
     for etype, count in sorted(graph.stats.items()):
@@ -455,11 +475,11 @@ def main():
 
     # Save
     if not args.dry_run:
-        print(f"\n[6/6] Saving graph...")
+        print("\n[6/6] Saving graph...")
         engine.save(EMBED_DIR)
         graph.save()
     else:
-        print(f"\n[6/6] DRY RUN — graph not saved")
+        print("\n[6/6] DRY RUN — graph not saved")
 
     print(f"\nDone in {elapsed:.1f}s")
 

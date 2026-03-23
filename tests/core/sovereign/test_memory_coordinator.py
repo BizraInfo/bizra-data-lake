@@ -14,7 +14,6 @@ Standing on Giants: Event Sourcing + Snapshot Pattern + Write-Ahead Logging
 
 import asyncio
 import json
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

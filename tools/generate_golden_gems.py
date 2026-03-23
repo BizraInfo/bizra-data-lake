@@ -228,7 +228,7 @@ def generate_gems():
     print("=" * 60)
     print(f"Total gems: {len(gems)}")
     print(f"Run ID: {run_metadata['run_id']}")
-    print(f"\nBy pattern type:")
+    print("\nBy pattern type:")
 
     from collections import Counter
 

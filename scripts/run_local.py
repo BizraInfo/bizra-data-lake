@@ -36,7 +36,7 @@ def main():
     p_query = subparsers.add_parser("query", help="Run a query")
     p_query.add_argument("text", help="Query text")
 
-    p_test = subparsers.add_parser("test", help="Test LM Studio connection")
+    subparsers.add_parser("test", help="Test LM Studio connection")
 
     p_pat = subparsers.add_parser("pat", help="Run PAT team")
     p_pat.add_argument("--quick", action="store_true")

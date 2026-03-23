@@ -21,8 +21,8 @@ Standing on: Deming (PDCA), Shannon (SNR), Al-Ghazali (Ihsan)
 
 import json
 import sys
-from urllib.request import urlopen, Request
 from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 GHOST_WS = "ws://127.0.0.1:9743/ws/ghost"
 KERNEL = "http://127.0.0.1:3006"

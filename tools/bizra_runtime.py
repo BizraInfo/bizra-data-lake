@@ -15,32 +15,20 @@
 import asyncio
 import json
 import logging
-import signal
-import sys
-import threading
 import time
-from abc import ABC, abstractmethod
 from collections import deque
-from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set
 
 # BIZRA imports
 from bizra_config import (
-    CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-    CIRCUIT_BREAKER_TIMEOUT,
-    DEFAULT_TEXT_MODEL,
-    DEFAULT_VISION_MODEL,
     DUAL_AGENTIC_URL,
     HEALTH_CHECK_INTERVAL,
     HEALTH_CHECK_TIMEOUT,
     IHSAN_CONSTRAINT,
     OLLAMA_BASE_URL,
-    OLLAMA_TEXT_MODEL,
-    OLLAMA_VISION_MODEL,
     SNR_THRESHOLD,
 )
 
@@ -482,7 +470,6 @@ class AutoRecoveryService:
         await asyncio.sleep(delay)
 
         # Re-check health
-        old_status = health.status
         await self.health_monitor._check_backend(name, health)
 
         if health.status != BackendStatus.UNHEALTHY:

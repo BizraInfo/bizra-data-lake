@@ -10,7 +10,6 @@ Validates that all components work together correctly:
 "We do not assume. We verify with formal proofs."
 """
 
-import asyncio
 import os
 import sys
 
@@ -29,14 +28,11 @@ from core.sovereign.capability_card import (
     ModelTier,
     TaskType,
     create_capability_card,
-    verify_capability_card,
 )
 from core.sovereign.integration import (
-    InferenceRequest,
     NetworkMode,
     SovereignConfig,
     SovereignRuntime,
-    create_sovereign_runtime,
 )
 from core.sovereign.model_license_gate import (
     GateChain,

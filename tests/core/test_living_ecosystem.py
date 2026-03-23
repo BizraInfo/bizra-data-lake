@@ -8,10 +8,6 @@ Validates:
 - Ecosystem integration
 """
 
-import asyncio
-import tempfile
-from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 
@@ -19,7 +15,6 @@ import pytest
 from core.agentic.agent import (
     AgentState,
     AgentTask,
-    AutonomousAgent,
     SimpleAgent,
     TaskPriority,
     TaskStatus,
@@ -32,23 +27,18 @@ from core.agentic.orchestrator import (
 # Living Memory
 from core.living_memory.core import (
     LivingMemoryCore,
-    MemoryEntry,
     MemoryState,
     MemoryType,
 )
 from core.living_memory.healing import (
-    CorruptionType,
     MemoryHealer,
 )
 from core.living_memory.proactive import (
-    PredictionContext,
     ProactiveRetriever,
 )
 
 # PAT Bridge
 from core.pat.bridge import (
-    ChannelType,
-    MessageType,
     PATBridge,
     PATMessage,
 )
@@ -369,7 +359,7 @@ class TestAutonomousAgent:
             description="Return success",
         )
 
-        success = await agent.run_task(task)
+        await agent.run_task(task)
 
         assert task.status in (TaskStatus.COMPLETED, TaskStatus.FAILED)
 

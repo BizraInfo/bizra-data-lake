@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # Add project root to sys.path
 project_root = "/mnt/c/BIZRA-DATA-LAKE"
@@ -12,12 +12,14 @@ print(f"cwd = {os.getcwd()}")
 
 try:
     from core.sovereign.mission_nervous_system import SovereignNervousSystem
+
     print("SovereignNervousSystem: OK")
 except Exception as e:
     print(f"SovereignNervousSystem FAIL: {e}")
 
 try:
     from core.sovereign.moe_bridge import MOEBridge
+
     print("MOEBridge: OK")
     bridge = MOEBridge.create()
     print(f"Bridge created: {type(bridge)}")

@@ -8,7 +8,6 @@ import sys
 sys.path.append(os.getcwd())
 
 from core.pci import (
-    IHSAN_MINIMUM_THRESHOLD,
     EnvelopeBuilder,
     PCIGateKeeper,
     RejectCode,

@@ -29,9 +29,8 @@ def _get_encoder():
     global _ENCODER
     if _ENCODER is None:
         try:
-            from sentence_transformers import SentenceTransformer
-
             import torch
+            from sentence_transformers import SentenceTransformer
 
             device = "cuda" if torch.cuda.is_available() else "cpu"
             # local_files_only=True skips all HuggingFace HTTP calls (~95s savings)
