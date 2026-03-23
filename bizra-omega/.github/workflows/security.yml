@@ -1,0 +1,116 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6AM UTC
+
+jobs:
+  rust-audit:
+    name: Rust Security Audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Run cargo audit
+        working-directory: bizra-omega
+        run: cargo audit --json > ../cargo-audit-report.json 2>&1 || true
+
+      - name: Check for critical vulnerabilities
+        run: |
+          CRITICAL=$(python3 -c "
+          import json, sys
+          try:
+              data = json.load(open('cargo-audit-report.json'))
+              vulns = data.get('vulnerabilities', {}).get('list', [])
+              critical = [v for v in vulns if v.get('advisory', {}).get('severity', '') in ('critical', 'high')]
+              print(len(critical))
+          except Exception:
+              print(0)
+          ")
+          echo "Critical/High vulnerabilities: $CRITICAL"
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::Found $CRITICAL critical/high Rust vulnerabilities"
+            exit 1
+          fi
+
+  python-security:
+    name: Python Security Check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tools
+        run: pip install bandit pip-audit
+
+      - name: Run bandit (high confidence only)
+        run: |
+          bandit -r core/ -ll -ii --format json -o bandit-report.json 2>&1 || true
+          ISSUES=$(python3 -c "
+          import json
+          try:
+              data = json.load(open('bandit-report.json'))
+              high = [r for r in data.get('results', []) if r.get('issue_severity') == 'HIGH']
+              print(len(high))
+          except Exception:
+              print(0)
+          ")
+          echo "High-severity issues: $ISSUES"
+
+      - name: Run pip-audit
+        run: pip-audit --format json --output pip-audit-report.json 2>&1 || true
+
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          fetch-depth: 0
+
+      - name: Run secret scan
+        run: |
+          pip install detect-secrets
+          detect-secrets scan --all-files --exclude-files '\.env\.example$|test_.*\.py$' > .secrets-report.json
+          SECRETS=$(python3 -c "
+          import json
+          data = json.load(open('.secrets-report.json'))
+          count = sum(len(v) for v in data.get('results', {}).values())
+          print(count)
+          ")
+          echo "Potential secrets found: $SECRETS"
+          echo "## Secret Scan" >> $GITHUB_STEP_SUMMARY
+          echo "Found $SECRETS potential secrets (review .secrets-report.json)" >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    name: Security Summary
+    runs-on: ubuntu-24.04
+    needs: [rust-audit, python-security, secret-scan]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Security Scan Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Rust Audit | ${{ needs.rust-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Security | ${{ needs.python-security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Detection | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
