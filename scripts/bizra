@@ -766,7 +766,47 @@ else:
             fi
         fi
         ;;
-    help|--help|-h) banner; echo "  Usage: bizra [mission|agents|wallet|ghost|skills|organize|browse|scan|desktop|desktop-exec|status|briefing|teach|receipts|frontend|install-skill|start|stop|help]" ;;
+    invite)
+        shift
+        SUBCMD="${1:-list}"
+        source "$VENV/bin/activate" 2>/dev/null
+        case "$SUBCMD" in
+            generate)
+                COUNT="${2:-10}"
+                python3 -c "
+from core.urp.invite import generate_invites
+invites = generate_invites('node0-mumo-genesis', count=$COUNT)
+print(f'  Generated {len(invites)} invite codes:')
+print()
+for inv in invites:
+    print(f'  {inv.code}')
+print()
+print(f'  Share these codes with people you want to join.')
+print(f'  Each code works once and expires in 30 days.')
+"
+                ;;
+            list)
+                python3 -c "
+from core.urp.invite import list_invites
+invites = list_invites(include_expired=True)
+if not invites:
+    print('  No invites generated yet. Run: bizra invite generate')
+else:
+    print(f'  {len(invites)} invites:')
+    for inv in invites:
+        status = inv['status']
+        code = inv['code']
+        claimed = f' -> {inv[\"claimed_by\"]}' if inv.get('claimed_by') else ''
+        print(f'  {code}  [{status}]{claimed}')
+"
+                ;;
+            *)
+                echo -e "  ${D}invite generate [count]${R}  Generate invite codes"
+                echo -e "  ${D}invite list${R}             Show all invites"
+                ;;
+        esac
+        ;;
+    help|--help|-h) banner; echo "  Usage: bizra [mission|agents|wallet|ghost|skills|organize|browse|scan|desktop|desktop-exec|status|briefing|teach|receipts|invite|frontend|install-skill|start|stop|help]" ;;
     "")          interactive ;;
     *)           mission "$*" ;;
 esac
