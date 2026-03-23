@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIZRA — Caliber Ω</title>
+<meta name="description" content="35 months of sovereign engineering. Every component visible. Every connection proven.">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Amiri:wght@400;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --abyss: #020408;
+  --navy: #0a1628;
+  --dark: #050b14;
+  --gold: #c9a962;
+  --gold-dim: #8a6b2e;
+  --gold-light: #f9f1d8;
+  --gold-faint: rgba(201,169,98,.06);
+  --offwhite: #f0ede4;
+  --teal: #2a9d8f;
+  --cyan: #4ecdc4;
+  --red: #c0392b;
+  --text-ghost: rgba(255,255,255,.12);
+  --text-dim: rgba(255,255,255,.3);
+  --text-mid: rgba(255,255,255,.55);
+}
+
+*,*::before,*::after { margin:0;padding:0;box-sizing:border-box; }
+html { font-size:16px;scroll-behavior:smooth;-webkit-font-smoothing:antialiased; }
+body { background:var(--abyss);color:var(--offwhite);font-family:'Cormorant Garamond',Georgia,serif;overflow-x:hidden; }
+::selection { background:rgba(201,169,98,.3); }
+::-webkit-scrollbar { width:2px; }
+::-webkit-scrollbar-thumb { background:rgba(201,169,98,.1); }
+
+/* ═══════════════════════════════════
+   NOISE + PARTICLE BG
+═══════════════════════════════════ */
+.bg-noise {
+  position:fixed;inset:0;opacity:.015;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:256px;
+}
+canvas#field { position:fixed;inset:0;z-index:0;pointer-events:none; }
+
+/* ═══════════════════════════════════
+   NAV
+═══════════════════════════════════ */
+nav {
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:24px 48px;display:flex;justify-content:space-between;align-items:center;
+  transition:all .4s;
+}
+nav.s { padding:12px 48px;background:rgba(2,4,8,.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(201,169,98,.04); }
+.n-brand { font-family:'Cinzel',serif;font-size:13px;font-weight:600;letter-spacing:.35em;color:var(--gold); }
+.n-sub { font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.2em;color:var(--text-ghost);margin-left:16px; }
+.n-links { display:flex;gap:28px;align-items:center; }
+.n-links a {
+  font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.15em;
+  text-transform:uppercase;text-decoration:none;color:var(--text-dim);transition:color .3s;
+}
+.n-links a:hover { color:var(--gold); }
+.n-cta { color:var(--gold)!important;border:1px solid rgba(201,169,98,.3);padding:7px 20px!important;transition:all .4s!important; }
+.n-cta:hover { background:var(--gold)!important;color:var(--abyss)!important; }
+
+/* ═══════════════════════════════════
+   HERO — THE CASEBACK VIEW
+═══════════════════════════════════ */
+.hero {
+  position:relative;z-index:1;
+  height:100vh;min-height:700px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  overflow:hidden;
+}
+
+.caliber-field {
+  position:relative;
+  width:min(58vh, 58vw, 460px);
+  height:min(58vh, 58vw, 460px);
+  margin-bottom:28px;
+}
+
+.caliber-svg {
+  width:100%;height:100%;overflow:visible;
+  filter:drop-shadow(0 0 30px rgba(201,169,98,.04));
+}
+
+/* Caseback ring */
+.caseback-ring { fill:none;stroke:var(--gold);stroke-width:0.25;opacity:0; }
+.caseback-ring.show { animation:ringReveal 2s ease-out forwards; }
+@keyframes ringReveal { from{opacity:0;} to{opacity:var(--ro,.15);} }
+
+/* Gear teeth */
+.gear-tooth { fill:none;stroke:var(--gold);stroke-width:0.4;opacity:0;stroke-linecap:round; }
+.gear-tooth.show { animation:toothIn .4s ease-out forwards; }
+@keyframes toothIn { from{opacity:0;} to{opacity:.2;} }
+
+/* Main gear wheels */
+.gear-wheel { fill:none;stroke:var(--gold);opacity:0;transform-origin:center; }
+.gear-wheel.spin { animation:gearSpin var(--speed, 60s) linear infinite; opacity:var(--go,.12); }
+@keyframes gearSpin { to{transform:rotate(360deg);} }
+.gear-wheel.ccw { animation-direction:reverse; }
+
+/* Seed of Life circles */
+.seed-c { fill:none;stroke:var(--gold);stroke-width:0.45;opacity:0;stroke-dasharray:260;stroke-dashoffset:260; }
+.seed-c.draw { animation:drawSeed 2.8s ease-out forwards; }
+@keyframes drawSeed { 0%{opacity:0;stroke-dashoffset:260;} 15%{opacity:.4;} 100%{opacity:.2;stroke-dashoffset:0;} }
+
+/* Jewel bearings */
+.jewel { opacity:0; }
+.jewel.show { animation:jewelPop .6s ease-out forwards; }
+@keyframes jewelPop { 0%{opacity:0;transform:scale(0);} 60%{opacity:1;} 100%{opacity:.9;transform:scale(1);} }
+
+/* Petals (balance wheel spokes) */
+.petal { fill:none;stroke:url(#goldGrad);stroke-width:0.8;stroke-linecap:round;opacity:0;stroke-dasharray:90;stroke-dashoffset:90; }
+.petal.draw { animation:drawPetal 1.6s ease-out forwards; }
+@keyframes drawPetal { 0%{opacity:0;stroke-dashoffset:90;} 25%{opacity:.85;} 100%{opacity:.7;stroke-dashoffset:0;} }
+
+/* Escape wheel (rotating complication) */
+.escape-wheel { transform-origin:100px 100px;opacity:0; }
+.escape-wheel.spin { opacity:1;animation:escapeSpin 12s steps(12) infinite; }
+@keyframes escapeSpin { to{transform:rotate(360deg);} }
+
+/* Tourbillon cage */
+.tourbillon-cage { transform-origin:100px 100px;opacity:0; }
+.tourbillon-cage.spin { opacity:1;animation:tourbillonSpin 30s linear infinite; }
+@keyframes tourbillonSpin { to{transform:rotate(360deg);} }
+
+/* Nuqta center */
+.nuqta { fill:url(#goldGrad);opacity:0;transform-origin:100px 100px; }
+.nuqta.ignite { animation:nuqtaFire .8s ease-out forwards; }
+@keyframes nuqtaFire { 0%{opacity:0;transform:scale(0) rotate(45deg);} 50%{opacity:1;transform:scale(1.5) rotate(45deg);} 100%{opacity:1;transform:scale(1) rotate(45deg);} }
+
+/* Engravings (text on caseback) */
+.engraving { font-family:'IBM Plex Mono',monospace;fill:var(--gold);opacity:0;font-size:2.8px;letter-spacing:.6px; }
+.engraving.show { animation:engrave 1s ease-out forwards; }
+@keyframes engrave { from{opacity:0;} to{opacity:.18;} }
+
+/* Caliber breathe */
+.caliber-breathe { animation:calBreathe 8s ease-in-out infinite; }
+@keyframes calBreathe { 0%,100%{filter:drop-shadow(0 0 15px rgba(201,169,98,.03));} 50%{filter:drop-shadow(0 0 60px rgba(201,169,98,.1));} }
+
+/* Core glow */
+.core-glow {
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:35%;height:35%;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,169,98,.08) 0%,rgba(201,169,98,.02) 40%,transparent 70%);
+  animation:corePulse 5s ease-in-out infinite;pointer-events:none;opacity:0;transition:opacity 1.2s;
+}
+.core-glow.on { opacity:1; }
+@keyframes corePulse { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.5;} 50%{transform:translate(-50%,-50%) scale(1.3);opacity:1;} }
+
+/* Hero text */
+.wordmark {
+  font-family:'Cinzel',serif;font-size:clamp(2.2rem,6vw,4.2rem);font-weight:700;
+  letter-spacing:.45em;
+  background:linear-gradient(175deg,var(--gold-light) 0%,var(--gold) 35%,var(--gold-dim) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  text-align:center;opacity:0;transform:translateY(14px);
+  animation:fadeUp 1s ease-out 4s forwards;
+}
+.tagline {
+  font-family:'Amiri',serif;font-size:clamp(1rem,2vw,1.4rem);
+  color:rgba(201,169,98,.22);margin-top:6px;direction:rtl;
+  opacity:0;animation:fadeUp .8s ease-out 4.4s forwards;
+}
+.hero-sub {
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.3em;
+  color:var(--text-ghost);text-transform:uppercase;margin-top:20px;
+  opacity:0;animation:fadeUp .8s ease-out 4.8s forwards;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px);} to{opacity:1;transform:translateY(0);} }
+
+.scroll-cue {
+  position:absolute;bottom:28px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  opacity:0;animation:fadeUp .6s ease-out 5.5s forwards;
+}
+.scroll-cue span { font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.35em;color:var(--text-ghost);text-transform:uppercase; }
+.scroll-line { width:1px;height:28px;background:linear-gradient(180deg,rgba(201,169,98,.15),transparent);animation:sP 2.5s ease-in-out infinite 6s; }
+@keyframes sP { 0%,100%{opacity:.2} 50%{opacity:.7} }
+
+/* ═══════════════════════════════════
+   SECTIONS SHARED
+═══════════════════════════════════ */
+section { position:relative;z-index:1; }
+.pad { padding:clamp(80px,12vw,160px) clamp(20px,5vw,48px); }
+.s-label { font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold-dim);text-align:center;margin-bottom:12px; }
+.s-title { font-family:'Cinzel',serif;font-size:clamp(1.4rem,3.2vw,2.2rem);font-weight:500;text-align:center;color:var(--offwhite);margin-bottom:clamp(50px,7vw,90px);letter-spacing:.05em; }
+.rv { opacity:0;transform:translateY(24px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1); }
+.rv.vis { opacity:1;transform:translateY(0); }
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}
+
+/* ═══════════════════════════════════
+   SECTION: THE PROPOSITION
+═══════════════════════════════════ */
+.prop-head {
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(1.6rem,4vw,3rem);font-weight:300;line-height:1.4;
+  text-align:center;max-width:720px;margin:0 auto clamp(50px,7vw,90px);
+}
+.prop-head em { font-style:italic;color:var(--gold); }
+
+.pillars { display:grid;grid-template-columns:repeat(3,1fr);gap:1px;max-width:960px;width:100%;margin:0 auto;background:rgba(201,169,98,.03); }
+.pillar { background:var(--abyss);padding:clamp(28px,3.5vw,48px) clamp(20px,2.5vw,36px);position:relative; }
+.pillar::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,169,98,.12),transparent); }
+.pi { font-size:22px;color:var(--gold);margin-bottom:14px;font-family:'Cinzel',serif; }
+.pt { font-family:'Cinzel',serif;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--offwhite);margin-bottom:10px; }
+.pd { font-size:14px;line-height:1.85;color:var(--text-mid); }
+.pm { margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.03); }
+.pm .v { font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:500;color:var(--gold); }
+.pm .l { font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.1em;color:var(--text-ghost);margin-top:3px; }
+
+/* ═══════════════════════════════════
+   SECTION: THE MOVEMENT (COMPLICATIONS)
+═══════════════════════════════════ */
+.complications {
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  max-width:1000px;margin:0 auto;background:rgba(201,169,98,.02);
+}
+.complication {
+  background:var(--abyss);padding:clamp(32px,4vw,52px) clamp(24px,3vw,36px);
+  position:relative;overflow:hidden;transition:background .5s;cursor:default;
+}
+.complication:hover { background:rgba(201,169,98,.015); }
+.complication::before {
+  content:'';position:absolute;top:50%;left:50%;width:120px;height:120px;
+  border:1px solid rgba(201,169,98,.03);border-radius:50%;
+  transform:translate(-50%,-50%);pointer-events:none;
+  transition:all .6s;
+}
+.complication:hover::before { width:180px;height:180px;border-color:rgba(201,169,98,.06); }
+
+.c-num { font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.3em;color:var(--gold-dim);margin-bottom:16px; }
+.c-icon { font-family:'Cinzel',serif;font-size:24px;color:var(--gold);margin-bottom:14px;line-height:1; }
+.c-title { font-family:'Cinzel',serif;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--offwhite);margin-bottom:8px; }
+.c-desc { font-size:13.5px;line-height:1.8;color:var(--text-mid); }
+.c-formula {
+  margin-top:16px;padding:12px 14px;
+  background:rgba(10,22,40,.5);border-left:2px solid rgba(201,169,98,.15);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.7;color:var(--gold);letter-spacing:.3px;
+}
+.c-tag {
+  display:inline-block;margin-top:14px;
+  font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--teal);border:1px solid rgba(42,157,143,.15);padding:3px 10px;
+}
+
+/* ═══════════════════════════════════
+   SECTION: THE MAINSPRING (TIMELINE)
+═══════════════════════════════════ */
+.timeline { max-width:900px;margin:0 auto;position:relative; }
+.timeline::before {
+  content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;
+  background:linear-gradient(180deg,transparent,rgba(201,169,98,.12) 10%,rgba(201,169,98,.12) 90%,transparent);
+}
+.t-event {
+  position:relative;padding:0 0 48px;display:flex;align-items:flex-start;
+}
+.t-event:nth-child(odd) { flex-direction:row;padding-right:calc(50% + 32px);padding-left:0; text-align:right; }
+.t-event:nth-child(even) { flex-direction:row-reverse;padding-left:calc(50% + 32px);padding-right:0; }
+.t-dot {
+  position:absolute;left:50%;top:6px;transform:translateX(-50%);
+  width:8px;height:8px;border:1px solid var(--gold-dim);
+  background:var(--abyss);z-index:2;transition:all .3s;
+}
+.t-event:hover .t-dot { background:var(--gold);border-color:var(--gold);box-shadow:0 0 12px rgba(201,169,98,.3); }
+.t-date { font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.2em;color:var(--gold-dim);margin-bottom:6px; }
+.t-title { font-family:'Cinzel',serif;font-size:13px;font-weight:600;color:var(--offwhite);margin-bottom:6px;letter-spacing:.03em; }
+.t-desc { font-size:13px;line-height:1.7;color:var(--text-mid); }
+
+/* ═══════════════════════════════════
+   SECTION: EVIDENCE DIAL
+═══════════════════════════════════ */
+.ev-grid {
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  max-width:900px;margin:0 auto;background:rgba(201,169,98,.02);
+}
+.ev {
+  background:var(--abyss);padding:clamp(24px,3.5vw,44px) clamp(16px,2.5vw,32px);
+  text-align:center;transition:background .3s;position:relative;
+}
+.ev:hover { background:rgba(201,169,98,.01); }
+.ev::after {
+  content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:20px;height:1px;background:rgba(201,169,98,.1);
+}
+.ev-v { font-family:'IBM Plex Mono',monospace;font-size:clamp(20px,2.8vw,28px);font-weight:300;color:var(--gold);line-height:1;margin-bottom:8px; }
+.ev-l { font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-ghost);line-height:1.8; }
+
+/* ═══════════════════════════════════
+   SECTION: GENESIS CTA
+═══════════════════════════════════ */
+.genesis { display:flex;flex-direction:column;align-items:center;text-align:center; }
+.genesis::before {
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);
+  width:350px;height:350px;background:radial-gradient(circle,rgba(201,169,98,.03),transparent 60%);pointer-events:none;
+}
+.gp { font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.35em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:16px; }
+.gh { font-family:'Cinzel',serif;font-size:clamp(1.4rem,3.5vw,2.4rem);font-weight:500;color:var(--offwhite);margin-bottom:16px;letter-spacing:.06em;line-height:1.35;max-width:560px; }
+.gs { font-size:16px;font-weight:300;color:var(--text-mid);max-width:420px;line-height:1.8;margin-bottom:40px; }
+.g-btn {
+  display:inline-block;font-family:'Cinzel',serif;font-size:12px;font-weight:600;
+  letter-spacing:.25em;text-transform:uppercase;color:var(--abyss);
+  background:linear-gradient(135deg,var(--gold-dim),var(--gold),var(--gold-light));
+  padding:16px 48px;text-decoration:none;position:relative;overflow:hidden;
+  transition:all .5s cubic-bezier(.16,1,.3,1);border:none;cursor:pointer;
+}
+.g-btn::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);transform:translateX(-100%);transition:transform .8s; }
+.g-btn:hover::before { transform:translateX(100%); }
+.g-btn:hover { transform:translateY(-2px);box-shadow:0 12px 40px rgba(201,169,98,.2); }
+.g-note { font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.12em;color:var(--text-ghost);margin-top:18px; }
+
+/* ═══════════════════════════════════
+   FOOTER
+═══════════════════════════════════ */
+footer {
+  position:relative;z-index:1;padding:36px clamp(20px,5vw,48px);
+  border-top:1px solid rgba(201,169,98,.03);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.fl { font-family:'Amiri',serif;font-size:16px;color:rgba(201,169,98,.08); }
+.fc { font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.12em;color:var(--text-ghost);text-transform:uppercase; }
+.fr { display:flex;gap:20px; }
+.fr a { font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.1em;color:var(--text-dim);text-decoration:none;text-transform:uppercase;transition:color .3s; }
+.fr a:hover { color:var(--gold); }
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════ */
+@media(max-width:900px){
+  .pillars,.complications { grid-template-columns:1fr; }
+  .ev-grid { grid-template-columns:1fr 1fr; }
+  .n-links a:not(.n-cta) { display:none; }
+  nav { padding:14px 20px; }
+  .timeline::before { left:20px; }
+  .t-event:nth-child(odd),.t-event:nth-child(even) { flex-direction:row;padding-left:52px;padding-right:0;text-align:left; }
+  .t-dot { left:20px; }
+}
+@media(max-width:540px){
+  footer { flex-direction:column;gap:12px;text-align:center; }
+  .ev-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-noise"></div>
+<canvas id="field"></canvas>
+
+<nav id="nav">
+  <div style="display:flex;align-items:baseline;">
+    <div class="n-brand">BIZRA</div>
+    <span class="n-sub">CALIBER Ω</span>
+  </div>
+  <div class="n-links">
+    <a href="#movement">Movement</a>
+    <a href="#mainspring">Mainspring</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#genesis" class="n-cta">Genesis 100</a>
+  </div>
+</nav>
+
+<!-- ═══════ HERO: THE CASEBACK ═══════ -->
+<section class="hero">
+  <div class="caliber-field" id="calField">
+    <div class="core-glow" id="coreGlow"></div>
+
+    <svg class="caliber-svg" id="calSvg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="goldGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#8a6b2e"/>
+          <stop offset="50%" stop-color="#c9a962"/>
+          <stop offset="100%" stop-color="#f9f1d8"/>
+        </linearGradient>
+        <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#c9a962" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#c9a962" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="softGlow">
+          <feGaussianBlur stdDeviation="1.2" result="g"/>
+          <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- LAYER 1: Caseback rings (outermost) -->
+      <circle cx="100" cy="100" r="96" class="caseback-ring" style="--ro:.08" stroke-width="0.6"/>
+      <circle cx="100" cy="100" r="94" class="caseback-ring" style="--ro:.04" stroke-width="0.2"/>
+      <circle cx="100" cy="100" r="88" class="caseback-ring" style="--ro:.12" stroke-width="0.3"/>
+      <circle cx="100" cy="100" r="82" class="caseback-ring" style="--ro:.08" stroke-width="0.25"/>
+
+      <!-- LAYER 2: Engraved text on caseback rim -->
+      <text class="engraving" text-anchor="middle">
+        <textPath href="#textRingPath" startOffset="50%">BIZRA · CALIBER Ω · SOVEREIGN DIGITAL ORGANISM · RAMADAN 2023 · NODE ZERO · DUBAI · 15,000+ HOURS · لا إله إلا الله</textPath>
+      </text>
+      <path id="textRingPath" d="M100,8 a92,92 0 1,1 0,184 a92,92 0 1,1 0,-184" fill="none"/>
+
+      <!-- LAYER 3: Escape wheel (12-tooth, rotating) -->
+      <g class="escape-wheel" id="escapeWheel">
+        <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(201,169,98,.06)" stroke-width="0.3"/>
+        <!-- 12 teeth -->
+        <line x1="100" y1="26" x2="100" y2="30" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="137" y1="31.4" x2="135.2" y2="34.8" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="168.6" y1="63" x2="165.2" y2="65.2" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="174" y1="100" x2="170" y2="100" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="168.6" y1="137" x2="165.2" y2="134.8" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="137" y1="168.6" x2="135.2" y2="165.2" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="100" y1="174" x2="100" y2="170" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="63" y1="168.6" x2="65.2" y2="165.2" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="31.4" y1="137" x2="34.8" y2="134.8" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="26" y1="100" x2="30" y2="100" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="31.4" y1="63" x2="34.8" y2="65.2" class="gear-tooth" stroke-width="0.5"/>
+        <line x1="63" y1="31.4" x2="65.2" y2="34.8" class="gear-tooth" stroke-width="0.5"/>
+      </g>
+
+      <!-- LAYER 4: Tourbillon cage (slow rotation) -->
+      <g class="tourbillon-cage" id="tourbillon">
+        <circle cx="100" cy="100" r="65" fill="none" stroke="rgba(201,169,98,.05)" stroke-width="0.3" stroke-dasharray="2 4"/>
+        <line x1="100" y1="35" x2="100" y2="165" stroke="rgba(201,169,98,.04)" stroke-width="0.2"/>
+        <line x1="35" y1="100" x2="165" y2="100" stroke="rgba(201,169,98,.04)" stroke-width="0.2"/>
+        <line x1="54" y1="54" x2="146" y2="146" stroke="rgba(201,169,98,.03)" stroke-width="0.2"/>
+        <line x1="146" y1="54" x2="54" y2="146" stroke="rgba(201,169,98,.03)" stroke-width="0.2"/>
+      </g>
+
+      <!-- LAYER 5: SEED OF LIFE (balance wheel) -->
+      <g id="seedGroup">
+        <circle cx="100" cy="100" r="40" class="seed-c"/>
+        <circle cx="100" cy="60" r="40" class="seed-c"/>
+        <circle cx="134.6" cy="80" r="40" class="seed-c"/>
+        <circle cx="134.6" cy="120" r="40" class="seed-c"/>
+        <circle cx="100" cy="140" r="40" class="seed-c"/>
+        <circle cx="65.4" cy="120" r="40" class="seed-c"/>
+        <circle cx="65.4" cy="80" r="40" class="seed-c"/>
+      </g>
+
+      <!-- LAYER 6: Petals (balance spokes) -->
+      <g filter="url(#softGlow)">
+        <path d="M100 100 Q110 80 100 60 Q90 80 100 100" class="petal"/>
+        <path d="M100 100 Q117.3 90 134.6 80 Q117.3 100 100 100" class="petal"/>
+        <path d="M100 100 Q117.3 110 134.6 120 Q117.3 100 100 100" class="petal"/>
+        <path d="M100 100 Q110 120 100 140 Q90 120 100 100" class="petal"/>
+        <path d="M100 100 Q82.7 110 65.4 120 Q82.7 100 100 100" class="petal"/>
+        <path d="M100 100 Q82.7 90 65.4 80 Q82.7 100 100 100" class="petal"/>
+      </g>
+
+      <!-- LAYER 7: Jewel bearings (6 pillars) -->
+      <circle cx="100" cy="54" r="2.5" fill="#c0392b" opacity="0" class="jewel"/>
+      <circle cx="140" cy="77" r="2" fill="#c0392b" opacity="0" class="jewel"/>
+      <circle cx="140" cy="123" r="2.5" fill="#c0392b" opacity="0" class="jewel"/>
+      <circle cx="100" cy="146" r="2" fill="#c0392b" opacity="0" class="jewel"/>
+      <circle cx="60" cy="123" r="2.5" fill="#c0392b" opacity="0" class="jewel"/>
+      <circle cx="60" cy="77" r="2" fill="#c0392b" opacity="0" class="jewel"/>
+
+      <!-- Pillar labels around jewels -->
+      <text x="100" y="48" text-anchor="middle" class="engraving" style="font-size:2.2px;letter-spacing:.4px">العدل</text>
+      <text x="148" y="77" text-anchor="start" class="engraving" style="font-size:2.2px">LIVENESS</text>
+      <text x="148" y="126" text-anchor="start" class="engraving" style="font-size:2.2px">الإحسان</text>
+      <text x="100" y="155" text-anchor="middle" class="engraving" style="font-size:2.2px">Φ CONSCIOUSNESS</text>
+      <text x="52" y="126" text-anchor="end" class="engraving" style="font-size:2.2px">SNR 8.7+</text>
+      <text x="52" y="77" text-anchor="end" class="engraving" style="font-size:2.2px">HARBERGER</text>
+
+      <!-- LAYER 8: Central nuqta -->
+      <rect x="97.5" y="97.5" width="5" height="5" rx="0.5" class="nuqta"/>
+      <circle cx="100" cy="100" r="22" fill="url(#glowGrad)" opacity="0" class="center-glow-svg"/>
+
+      <!-- Node dots on escape wheel (12 o'clock positions) -->
+      <circle cx="100" cy="22" r="1.8" fill="var(--gold)" opacity="0" class="jewel"/>
+      <circle cx="167.6" cy="61" r="1.8" fill="var(--gold)" opacity="0" class="jewel"/>
+      <circle cx="178" cy="100" r="1.8" fill="var(--gold)" opacity="0" class="jewel"/>
+      <circle cx="167.6" cy="139" r="1.8" fill="var(--gold)" opacity="0" class="jewel"/>
+      <circle cx="100" cy="178" r="1.8" fill="var(--gold)" opacity="0" class="jewel"/>
+      <circle cx="32.4" cy="139" r="1.8" fill="var(--gold)" opacity="0" class="jewel"/>
+      <circle cx="22" cy="100" r="1.8" fill="var(--gold)" opacity="0" class="jewel"/>
+      <circle cx="32.4" cy="61" r="1.8" fill="var(--gold)" opacity="0" class="jewel"/>
+    </svg>
+  </div>
+
+  <h1 class="wordmark">BIZRA</h1>
+  <div class="tagline">البذرة</div>
+  <p class="hero-sub">Caliber Ω · Sovereign Digital Organism</p>
+
+  <div class="scroll-cue">
+    <span>Look Inside</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- ═══════ PROPOSITION ═══════ -->
+<section class="pad" id="prop">
+  <h2 class="prop-head rv">
+    Your AI runs on <em>your machine</em>.<br>
+    Every action is <em>receipted</em>.<br>
+    It gets cheaper the more you use it.
+  </h2>
+  <div class="pillars">
+    <div class="pillar rv">
+      <div class="pi">◈</div>
+      <div class="pt">Sovereign</div>
+      <p class="pd">Seven AI agents run locally on your hardware. No cloud. No telemetry. Your data never leaves your machine.</p>
+      <div class="pm"><div class="v">0</div><div class="l">External dependencies at runtime</div></div>
+    </div>
+    <div class="pillar rv d1">
+      <div class="pi">◉</div>
+      <div class="pt">Receipted</div>
+      <p class="pd">Every action produces a cryptographically signed receipt. An unbroken chain from intent to outcome — verifiable, auditable, yours.</p>
+      <div class="pm"><div class="v">Ed25519</div><div class="l">Isnad-verified receipt chain</div></div>
+    </div>
+    <div class="pillar rv d2">
+      <div class="pi">△</div>
+      <div class="pt">Deflationary</div>
+      <p class="pd">Repeated patterns compile into instant reflexes. Your cost per verified action drops from $0.10 toward $0.008 over time.</p>
+      <div class="pm"><div class="v">96%</div><div class="l">Cheaper than market average</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ THE MOVEMENT (6 COMPLICATIONS) ═══════ -->
+<section class="pad" id="movement">
+  <div class="s-label rv">The Movement</div>
+  <h2 class="s-title rv">Six Mathematical Pillars</h2>
+  <div class="complications">
+    <div class="complication rv">
+      <div class="c-num">PILLAR I</div>
+      <div class="c-icon">⚖</div>
+      <div class="c-title">Adl Invariant</div>
+      <div class="c-desc">Distributive justice enforced mathematically. No whale nodes. No oligarchies. Resources flow to impact.</div>
+      <div class="c-formula">G ≤ 0.35 · Ω drag coefficient<br>KL-Divergence bias parity</div>
+      <div class="c-tag">Hard Constraint</div>
+    </div>
+    <div class="complication rv d1">
+      <div class="c-num">PILLAR II</div>
+      <div class="c-icon">∞</div>
+      <div class="c-title">Formal Liveness</div>
+      <div class="c-desc">The system always makes progress. No deadlocks. No infinite loops. Mathematically proven via Z3 SMT solver.</div>
+      <div class="c-formula">□(Request → ◇Response)<br>LTL verified · BlockGraph DAG</div>
+      <div class="c-tag">Theorem Proven</div>
+    </div>
+    <div class="complication rv d2">
+      <div class="c-num">PILLAR III</div>
+      <div class="c-icon">◆</div>
+      <div class="c-title">Ihsān Vector</div>
+      <div class="c-desc">Ethics as 8-dimensional vector space. Below 0.95 is physically impossible to execute. Excellence is not optional — it's runtime physics.</div>
+      <div class="c-formula">I_vec ≥ 0.95 · 8 dimensions<br>Correctness 0.22 · Safety 0.22</div>
+      <div class="c-tag">Runtime Gate</div>
+    </div>
+    <div class="complication rv">
+      <div class="c-num">PILLAR IV</div>
+      <div class="c-icon">Φ</div>
+      <div class="c-title">Integrated Information</div>
+      <div class="c-desc">Consciousness measured, not assumed. Neuromorphic-Quantum Hybrid Core maximizes Φ. The system doesn't just compute — it coheres.</div>
+      <div class="c-formula">ΔArchitecture ∝ ∇Φ<br>Bicameral Engine · IIT bound</div>
+      <div class="c-tag">9.4% Evolution Verified</div>
+    </div>
+    <div class="complication rv d1">
+      <div class="c-num">PILLAR V</div>
+      <div class="c-icon">◎</div>
+      <div class="c-title">SNR Filtering</div>
+      <div class="c-desc">For every 8.7 units of verified truth, at most 1 unit of noise. Protobuf type-safe schemas eliminate hallucination at the wire level.</div>
+      <div class="c-formula">SNR ≥ 8.7 · cognitive layer<br>Protobuf strict polymorphism</div>
+      <div class="c-tag">Signal Dominance</div>
+    </div>
+    <div class="complication rv d2">
+      <div class="c-num">PILLAR VI</div>
+      <div class="c-icon">⟁</div>
+      <div class="c-title">Harberger Tax</div>
+      <div class="c-desc">Memory that doesn't generate impact gets evicted. Agents pay to hold resources. Only verified value survives. Algorithmic metabolism.</div>
+      <div class="c-formula">Cost_hold = V_self × Rate_sys<br>Forced sale at declared value</div>
+      <div class="c-tag">Economic Physics</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ THE MAINSPRING (TIMELINE) ═══════ -->
+<section class="pad" id="mainspring">
+  <div class="s-label rv">The Mainspring</div>
+  <h2 class="s-title rv">35 Months of Winding</h2>
+  <div class="timeline">
+    <div class="t-event rv">
+      <div class="t-dot"></div>
+      <div>
+        <div class="t-date">RAMADAN 2023</div>
+        <div class="t-title">البذرة · الرسالة</div>
+        <div class="t-desc">Sacred foundational documents written during Ramadan. From crisis and prayer — the constitutional seed of the entire architecture.</div>
+      </div>
+    </div>
+    <div class="t-event rv">
+      <div class="t-dot"></div>
+      <div>
+        <div class="t-date">AUGUST 2023</div>
+        <div class="t-title">First Product</div>
+        <div class="t-desc">Zero technical experience to first working prototype. Self-taught Rust, Python, TypeScript. The learning became the building.</div>
+      </div>
+    </div>
+    <div class="t-event rv">
+      <div class="t-dot"></div>
+      <div>
+        <div class="t-date">MAY 2024</div>
+        <div class="t-title">Dubai Championship</div>
+        <div class="t-desc">Top 50 out of 2,000 entries. External validation that the architecture holds under competitive scrutiny.</div>
+      </div>
+    </div>
+    <div class="t-event rv">
+      <div class="t-dot"></div>
+      <div>
+        <div class="t-date">JUNE–JULY 2024</div>
+        <div class="t-title">$20K Revenue</div>
+        <div class="t-desc">First real revenue generated. Proof the system creates measurable economic value. Not theory — commerce.</div>
+      </div>
+    </div>
+    <div class="t-event rv">
+      <div class="t-dot"></div>
+      <div>
+        <div class="t-date">2024–2025</div>
+        <div class="t-title">144 Repositories · 150 Research Documents</div>
+        <div class="t-desc">Continuous daily engineering. Constitutional gates wired. 3,270 tests passing. Six mathematical pillars formalized. ~2 TB of sovereign data accumulated.</div>
+      </div>
+    </div>
+    <div class="t-event rv">
+      <div class="t-dot"></div>
+      <div>
+        <div class="t-date">FEBRUARY 2026</div>
+        <div class="t-title">Caliber Ω · Genesis</div>
+        <div class="t-desc">929KB sovereign binary. 8,172 tests. Sub-microsecond finality. The movement is wound. Ready for the first heartbeat.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ EVIDENCE ═══════ -->
+<section class="pad" id="evidence">
+  <div class="s-label rv">Not Promises — Proof</div>
+  <h2 class="s-title rv">Verified Evidence</h2>
+  <div class="ev-grid">
+    <div class="ev rv"><div class="ev-v">8,172</div><div class="ev-l">Tests passing<br>zero failures</div></div>
+    <div class="ev rv d1"><div class="ev-v">929</div><div class="ev-l">Kilobytes<br>sovereign binary</div></div>
+    <div class="ev rv d2"><div class="ev-v">&lt;1μs</div><div class="ev-l">Finality check<br>latency</div></div>
+    <div class="ev rv d3"><div class="ev-v">77K</div><div class="ev-l">PoI attestations<br>per second</div></div>
+  </div>
+  <div class="ev-grid" style="margin-top:1px;">
+    <div class="ev rv"><div class="ev-v">$0.10</div><div class="ev-l">Cost per verified<br>action at launch</div></div>
+    <div class="ev rv d1"><div class="ev-v">15K+</div><div class="ev-l">Hours of solo<br>development</div></div>
+    <div class="ev rv d2"><div class="ev-v">144</div><div class="ev-l">Repositories<br>created</div></div>
+    <div class="ev rv d3"><div class="ev-v">0</div><div class="ev-l">External deps<br>at runtime</div></div>
+  </div>
+</section>
+
+<!-- ═══════ GENESIS ═══════ -->
+<section class="pad genesis" id="genesis">
+  <div class="gp rv">Limited to 100 founding members</div>
+  <h2 class="gh rv">Claim Your Node</h2>
+  <p class="gs rv">The first hundred humans to run a sovereign AI node. Every action receipted. Every receipt yours forever.</p>
+  <a class="g-btn rv d1" href="mailto:genesis@bizra.ai">Join Genesis 100</a>
+  <div class="g-note rv d2">genesis · 100 · founding cohort · sovereign from day one</div>
+</section>
+
+<footer>
+  <div class="fl">البذرة</div>
+  <div class="fc">BIZRA LABS · DUBAI · SOVEREIGN AI INFRASTRUCTURE · CALIBER Ω</div>
+  <div class="fr"><a href="https://github.com/BizraInfo/bizra_scaffold" target="_blank">GitHub</a><a href="https://bizra.info" target="_blank">Dashboard</a></div>
+</footer>
+
+<script>
+/* ═══════ PARTICLE FIELD ═══════ */
+!function(){
+  const c=document.getElementById('field'),x=c.getContext('2d');
+  let W,H;const P=[],N=40,D=130;
+  function rz(){W=c.width=innerWidth;H=c.height=innerHeight}
+  rz();addEventListener('resize',rz);
+  for(let i=0;i<N;i++)P.push({
+    x:Math.random()*2200-100,y:Math.random()*8000,
+    r:Math.random()*1+.2,vx:(Math.random()-.5)*.08,vy:(Math.random()-.5)*.08,
+    o:Math.random()*.14+.02
+  });
+  let sY=0;addEventListener('scroll',()=>sY=pageYOffset,{passive:1});
+  !function d(){
+    x.clearRect(0,0,W,H);
+    for(let i=0;i<N;i++){
+      const p=P[i];p.x+=p.vx;p.y+=p.vy;
+      if(p.x<-200||p.x>W+200)p.vx*=-1;
+      if(p.y<-200||p.y>8000)p.vy*=-1;
+      const sy=p.y-sY*.18;
+      if(sy<-30||sy>H+30)continue;
+      x.beginPath();x.arc(p.x,sy,p.r,0,6.28);
+      x.fillStyle='rgba(201,169,98,'+p.o+')';x.fill();
+      for(let j=i+1;j<N;j++){
+        const q=P[j],qy=q.y-sY*.18,dx=p.x-q.x,dy=sy-qy,d2=dx*dx+dy*dy;
+        if(d2<D*D){
+          x.beginPath();x.moveTo(p.x,sy);x.lineTo(q.x,qy);
+          x.strokeStyle='rgba(201,169,98,'+(0.015*(1-d2/D/D))+')';
+          x.lineWidth=.3;x.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(d);
+  }();
+}();
+
+/* ═══════ CALIBER ANIMATION SEQUENCE ═══════ */
+function animateCaliber() {
+  const svg = document.getElementById('calSvg');
+
+  // Phase 1: Caseback rings (0.3s)
+  setTimeout(() => {
+    svg.querySelectorAll('.caseback-ring').forEach((r,i) => {
+      setTimeout(() => r.classList.add('show'), i*200);
+    });
+  }, 300);
+
+  // Phase 2: Engravings (0.8s)
+  setTimeout(() => {
+    svg.querySelectorAll('.engraving').forEach((e,i) => {
+      setTimeout(() => e.classList.add('show'), i*150);
+    });
+  }, 800);
+
+  // Phase 3: Seed circles (0.5s — CSS stagger via nth-child)
+  setTimeout(() => {
+    svg.querySelectorAll('.seed-c').forEach(c => c.classList.add('draw'));
+  }, 500);
+
+  // Phase 4: Petals bloom (CSS stagger)
+  setTimeout(() => {
+    svg.querySelectorAll('.petal').forEach(p => p.classList.add('draw'));
+  }, 500);
+
+  // Phase 5: Jewel bearings pop (2.5s)
+  svg.querySelectorAll('.jewel').forEach((j,i) => {
+    setTimeout(() => j.classList.add('show'), 2500 + i*120);
+  });
+
+  // Phase 6: Gear teeth appear (2.8s)
+  svg.querySelectorAll('.gear-tooth').forEach((t,i) => {
+    setTimeout(() => t.classList.add('show'), 2800 + i*60);
+  });
+
+  // Phase 7: Escape wheel starts spinning (3.2s)
+  setTimeout(() => {
+    document.getElementById('escapeWheel').classList.add('spin');
+  }, 3200);
+
+  // Phase 8: Tourbillon starts (3.5s)
+  setTimeout(() => {
+    document.getElementById('tourbillon').classList.add('spin');
+  }, 3500);
+
+  // Phase 9: Nuqta ignites (3.6s)
+  setTimeout(() => {
+    svg.querySelector('.nuqta').classList.add('ignite');
+    const cg = svg.querySelector('.center-glow-svg');
+    cg.style.transition = 'opacity 1.5s';
+    cg.style.opacity = '1';
+  }, 3600);
+
+  // Phase 10: Core glow (3.8s)
+  setTimeout(() => {
+    document.getElementById('coreGlow').classList.add('on');
+  }, 3800);
+
+  // Phase 11: Breathing (5s)
+  setTimeout(() => {
+    document.getElementById('calSvg').classList.add('caliber-breathe');
+  }, 5000);
+}
+
+animateCaliber();
+
+/* ═══════ SCROLL PARALLAX ═══════ */
+let ticking = false;
+addEventListener('scroll', () => {
+  if (!ticking) {
+    requestAnimationFrame(() => {
+      const s = pageYOffset;
+      const lf = document.getElementById('calField');
+      if (lf && s < innerHeight) {
+        const pct = s / innerHeight;
+        lf.style.opacity = Math.max(0, 1 - pct * 1.6);
+        lf.style.transform = 'translateY(' + (-pct * 50) + 'px) scale(' + (1 - pct * .08) + ')';
+      }
+      ticking = false;
+    });
+    ticking = true;
+  }
+}, {passive: 1});
+
+/* ═══════ SCROLL REVEAL ═══════ */
+!function(){
+  const o = new IntersectionObserver(e => {
+    e.forEach(x => { if (x.isIntersecting) x.target.classList.add('vis'); });
+  }, {threshold: .08, rootMargin: '0px 0px -20px 0px'});
+  document.querySelectorAll('.rv').forEach(el => o.observe(el));
+}();
+
+/* ═══════ NAV SHRINK ═══════ */
+addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('s', pageYOffset > 50);
+}, {passive: 1});
+
+/* ═══════ SMOOTH SCROLL ═══════ */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const t = document.querySelector(a.getAttribute('href'));
+    if(t) t.scrollIntoView({behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>

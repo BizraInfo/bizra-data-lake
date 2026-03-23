@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIZRA — Your AI, Sovereign</title>
+<meta name="description" content="Your AI runs on your machine. Every action is receipted. It gets cheaper the more you use it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Amiri:wght@400;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --abyss: #020408;
+  --navy: #0a1628;
+  --dark: #050b14;
+  --gold: #c9a962;
+  --gold-dim: #8a6b2e;
+  --gold-light: #f9f1d8;
+  --offwhite: #f8f6f1;
+  --teal: #2a9d8f;
+}
+
+*,*::before,*::after { margin:0;padding:0;box-sizing:border-box; }
+html { font-size:16px;scroll-behavior:smooth;-webkit-font-smoothing:antialiased; }
+body { background:var(--abyss);color:var(--offwhite);font-family:'Cormorant Garamond',Georgia,serif;overflow-x:hidden; }
+::selection { background:rgba(201,169,98,.3); }
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:rgba(201,169,98,.12); }
+
+/* ── BG ── */
+.bg-noise {
+  position:fixed;inset:0;opacity:.018;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:256px;
+}
+canvas#field { position:fixed;inset:0;z-index:0;pointer-events:none; }
+
+/* ── NAV ── */
+nav {
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:28px 48px;display:flex;justify-content:space-between;align-items:center;
+  transition:all .4s;
+}
+nav.s { padding:14px 48px;background:rgba(2,4,8,.94);backdrop-filter:blur(20px);border-bottom:1px solid rgba(201,169,98,.05); }
+.n-brand { font-family:'Cinzel',serif;font-size:14px;font-weight:600;letter-spacing:.3em;color:var(--gold); }
+.n-links { display:flex;gap:32px;align-items:center; }
+.n-links a {
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.15em;
+  text-transform:uppercase;text-decoration:none;color:rgba(255,255,255,.3);transition:color .3s;
+}
+.n-links a:hover { color:var(--gold); }
+.n-cta {
+  color:var(--gold)!important;border:1px solid rgba(201,169,98,.35);padding:8px 22px!important;
+  transition:all .4s cubic-bezier(.16,1,.3,1)!important;
+}
+.n-cta:hover { background:var(--gold)!important;color:var(--abyss)!important; }
+
+/* ═══════════════════════════════════════
+   HERO — SVG ANIMATED SEED OF LIFE
+═══════════════════════════════════════ */
+.hero {
+  position:relative;z-index:1;
+  height:100vh;min-height:700px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  overflow:hidden;
+}
+
+.logo-field {
+  position:relative;
+  width:min(65vh, 65vw, 520px);
+  height:min(65vh, 65vw, 520px);
+  margin-bottom:32px;
+}
+
+.logo-svg {
+  width:100%;height:100%;
+  overflow:visible;
+  filter:drop-shadow(0 0 40px rgba(201,169,98,.06));
+}
+
+/* ── SVG ANIMATION CLASSES ── */
+
+/* Seed circles draw themselves */
+.seed-c {
+  fill:none;
+  stroke:var(--gold);
+  stroke-width:0.45;
+  opacity:0;
+  stroke-dasharray:260;
+  stroke-dashoffset:260;
+}
+.seed-c.draw {
+  animation:drawC 2.8s ease-out forwards;
+}
+.seed-c:nth-child(1) { --d:0.4s; }
+.seed-c:nth-child(2) { --d:0.6s; }
+.seed-c:nth-child(3) { --d:0.75s; }
+.seed-c:nth-child(4) { --d:0.9s; }
+.seed-c:nth-child(5) { --d:1.05s; }
+.seed-c:nth-child(6) { --d:1.2s; }
+.seed-c:nth-child(7) { --d:1.35s; }
+.seed-c.draw { animation-delay:var(--d); }
+
+@keyframes drawC {
+  0% { opacity:0;stroke-dashoffset:260; }
+  15% { opacity:0.5; }
+  100% { opacity:0.25;stroke-dashoffset:0; }
+}
+
+/* Petals bloom */
+.petal {
+  fill:none;
+  stroke:url(#goldGrad);
+  stroke-width:1;
+  stroke-linecap:round;
+  opacity:0;
+  stroke-dasharray:90;
+  stroke-dashoffset:90;
+}
+.petal.draw {
+  animation:drawP 1.8s ease-out forwards;
+}
+.petal:nth-of-type(1) { --pd:2.0s; }
+.petal:nth-of-type(2) { --pd:2.15s; }
+.petal:nth-of-type(3) { --pd:2.3s; }
+.petal:nth-of-type(4) { --pd:2.45s; }
+.petal:nth-of-type(5) { --pd:2.6s; }
+.petal:nth-of-type(6) { --pd:2.75s; }
+.petal.draw { animation-delay:var(--pd); }
+
+@keyframes drawP {
+  0% { opacity:0;stroke-dashoffset:90; }
+  25% { opacity:0.9; }
+  100% { opacity:0.85;stroke-dashoffset:0; }
+}
+
+/* Outer rings appear */
+.ring-outer {
+  fill:none;
+  stroke:var(--gold);
+  opacity:0;
+}
+.ring-outer.draw {
+  animation:ringIn 1.5s ease-out forwards;
+}
+
+@keyframes ringIn {
+  from { opacity:0; }
+  to { opacity:1; }
+}
+
+/* Orbital ring rotates */
+.orbit-ring {
+  transform-origin:100px 100px;
+}
+.orbit-ring.spin {
+  animation:orbSpin 90s linear infinite;
+}
+.orbit-ring-2.spin {
+  animation:orbSpin 140s linear infinite reverse;
+}
+@keyframes orbSpin { to { transform:rotate(360deg); } }
+
+/* Node dots appear */
+.node-dot {
+  fill:var(--gold);
+  opacity:0;
+}
+.node-dot.draw {
+  animation:dotPop .5s ease-out forwards;
+}
+@keyframes dotPop {
+  0% { opacity:0;r:0; }
+  60% { opacity:0.7; }
+  100% { opacity:0.5; }
+}
+
+/* Cardinal ticks */
+.tick {
+  stroke:var(--gold);
+  stroke-width:0.8;
+  stroke-linecap:round;
+  opacity:0;
+}
+.tick.draw {
+  animation:tickIn .6s ease-out forwards;
+}
+@keyframes tickIn {
+  from { opacity:0; }
+  to { opacity:0.35; }
+}
+
+/* Nuqta ignites */
+.nuqta {
+  fill:url(#goldGrad);
+  opacity:0;
+  transform-origin:100px 100px;
+}
+.nuqta.ignite {
+  animation:nuqtaFire .8s ease-out forwards;
+}
+@keyframes nuqtaFire {
+  0% { opacity:0;transform:scale(0) rotate(45deg); }
+  50% { opacity:1;transform:scale(1.5) rotate(45deg); }
+  100% { opacity:1;transform:scale(1) rotate(45deg); }
+}
+
+/* Inner leaf */
+.leaf {
+  fill:none;
+  stroke:url(#goldGrad);
+  stroke-width:0.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  opacity:0;
+}
+.leaf.draw {
+  animation:leafGrow .8s ease-out forwards;
+}
+@keyframes leafGrow {
+  from { opacity:0;transform:translateY(2px) scale(0.5); }
+  to { opacity:0.8;transform:translateY(0) scale(1); }
+}
+
+/* Inner detail ring */
+.inner-ring {
+  fill:none;
+  stroke:var(--gold);
+  opacity:0;
+}
+.inner-ring.draw {
+  animation:iRingIn .6s ease-out forwards;
+}
+@keyframes iRingIn {
+  from { opacity:0; }
+  to { opacity:0.2; }
+}
+
+/* Cross hairs (horizontal + vertical through center) */
+.crosshair {
+  stroke:rgba(201,169,98,0.08);
+  stroke-width:0.3;
+  opacity:0;
+}
+.crosshair.draw {
+  animation:chIn 1s ease-out forwards;
+}
+@keyframes chIn { from { opacity:0; } to { opacity:1; } }
+
+/* Whole logo breathe after entrance */
+.logo-breathe {
+  animation:breathe 8s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100% { filter:drop-shadow(0 0 20px rgba(201,169,98,.04)); }
+  50% { filter:drop-shadow(0 0 80px rgba(201,169,98,.14)); }
+}
+
+/* Core glow behind SVG */
+.core-glow {
+  position:absolute;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  width:40%;height:40%;
+  background:radial-gradient(circle,rgba(201,169,98,.1) 0%,rgba(201,169,98,.03) 40%,transparent 70%);
+  border-radius:50%;
+  animation:corePulse 5s ease-in-out infinite;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity 1s;
+}
+.core-glow.on { opacity:1; }
+@keyframes corePulse {
+  0%,100% { transform:translate(-50%,-50%) scale(1);opacity:.6; }
+  50% { transform:translate(-50%,-50%) scale(1.25);opacity:1; }
+}
+
+/* ── TEXT ── */
+.wordmark {
+  font-family:'Cinzel',serif;
+  font-size:clamp(2.5rem,7vw,5rem);font-weight:700;
+  letter-spacing:.4em;
+  background:linear-gradient(175deg,var(--gold-light) 0%,var(--gold) 35%,var(--gold-dim) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  text-align:center;
+  opacity:0;transform:translateY(16px);
+  animation:fadeUp 1.2s ease-out 3.8s forwards;
+}
+
+.tagline {
+  font-family:'Amiri',serif;
+  font-size:clamp(1.1rem,2.2vw,1.6rem);
+  color:rgba(201,169,98,.28);margin-top:8px;direction:rtl;
+  opacity:0;animation:fadeUp .8s ease-out 4.2s forwards;
+}
+
+.hero-sub {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;letter-spacing:.25em;
+  color:rgba(255,255,255,.18);text-transform:uppercase;margin-top:24px;
+  opacity:0;animation:fadeUp .8s ease-out 4.6s forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity:0;transform:translateY(16px); }
+  to { opacity:1;transform:translateY(0); }
+}
+
+.scroll-cue {
+  position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  opacity:0;animation:fadeUp .6s ease-out 5.2s forwards;
+}
+.scroll-cue span {
+  font-family:'IBM Plex Mono',monospace;font-size:7px;
+  letter-spacing:.3em;color:rgba(255,255,255,.1);text-transform:uppercase;
+}
+.scroll-line {
+  width:1px;height:32px;
+  background:linear-gradient(180deg,rgba(201,169,98,.2),transparent);
+  animation:sP 2.5s ease-in-out infinite 5.5s;
+}
+@keyframes sP { 0%,100%{opacity:.3} 50%{opacity:.8} }
+
+/* ═══════════════════════════════════════
+   SECTIONS
+═══════════════════════════════════════ */
+section { position:relative;z-index:1; }
+.pad { padding:clamp(100px,15vw,200px) clamp(20px,5vw,48px); }
+.s-label {
+  font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.35em;
+  text-transform:uppercase;color:var(--gold-dim);text-align:center;margin-bottom:14px;
+}
+.s-title {
+  font-family:'Cinzel',serif;font-size:clamp(1.5rem,3.5vw,2.5rem);
+  font-weight:500;text-align:center;color:var(--offwhite);
+  margin-bottom:clamp(60px,8vw,100px);letter-spacing:.04em;
+}
+
+/* Proposition */
+.prop-head {
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(1.8rem,4.5vw,3.5rem);font-weight:300;line-height:1.35;
+  text-align:center;max-width:780px;margin:0 auto clamp(60px,8vw,100px);
+}
+.prop-head em { font-style:italic;color:var(--gold); }
+
+.pillars { display:grid;grid-template-columns:repeat(3,1fr);gap:1px;max-width:1000px;width:100%;margin:0 auto;background:rgba(201,169,98,.04); }
+.pillar { background:var(--abyss);padding:clamp(32px,4vw,56px) clamp(24px,3vw,40px);position:relative; }
+.pillar::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,169,98,.15),transparent); }
+.pi { font-size:26px;color:var(--gold);margin-bottom:18px;font-family:'Cinzel',serif; }
+.pt { font-family:'Cinzel',serif;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--offwhite);margin-bottom:12px; }
+.pd { font-size:15px;line-height:1.85;color:rgba(255,255,255,.45); }
+.pm { margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.04); }
+.pm .v { font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;color:var(--gold); }
+.pm .l { font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.1em;color:rgba(255,255,255,.2);margin-top:3px; }
+
+/* Journey */
+.steps { display:grid;grid-template-columns:repeat(4,1fr);max-width:1100px;margin:0 auto; }
+.step { padding:clamp(24px,3vw,40px);border-right:1px solid rgba(255,255,255,.04);position:relative; }
+.step:last-child { border-right:none; }
+.step::before { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold-dim),transparent);opacity:.25; }
+.sn { font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.15em;color:var(--gold-dim);margin-bottom:16px; }
+.sh { font-family:'Cinzel',serif;font-size:14px;font-weight:600;color:var(--offwhite);margin-bottom:8px; }
+.sd { font-size:14px;line-height:1.75;color:rgba(255,255,255,.42); }
+.st { margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--teal); }
+
+/* Technology */
+.tech-bg { background:linear-gradient(180deg,transparent,rgba(10,22,40,.35),transparent); }
+.tech-inner { max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,5vw,80px);align-items:center; }
+.tech-emblem { display:flex;justify-content:center; }
+.tech-emblem svg {
+  width:clamp(200px,25vw,320px);height:auto;
+  animation:emblemFloat 14s ease-in-out infinite;
+  filter:drop-shadow(0 0 20px rgba(201,169,98,.06));
+}
+@keyframes emblemFloat {
+  0%,100% { transform:translateY(0); }
+  50% { transform:translateY(-10px); }
+}
+.tf { padding:18px 0;border-bottom:1px solid rgba(255,255,255,.04); }
+.tf:last-child { border-bottom:none; }
+.tf-h { font-family:'Cinzel',serif;font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--offwhite);margin-bottom:6px; }
+.tf-d { font-size:14px;line-height:1.7;color:rgba(255,255,255,.42); }
+.tf-tag { display:inline-block;margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);border:1px solid rgba(42,157,143,.18);padding:2px 8px; }
+
+/* Evidence */
+.ev-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:1px;max-width:960px;margin:0 auto;background:rgba(201,169,98,.03); }
+.ev { background:var(--abyss);padding:clamp(28px,4vw,48px) clamp(20px,3vw,36px);text-align:center;transition:background .3s; }
+.ev:hover { background:rgba(201,169,98,.015); }
+.ev-v { font-family:'IBM Plex Mono',monospace;font-size:clamp(22px,3vw,32px);font-weight:300;color:var(--gold);line-height:1;margin-bottom:10px; }
+.ev-l { font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.18);line-height:1.6; }
+
+/* Genesis CTA */
+.genesis { display:flex;flex-direction:column;align-items:center;text-align:center; }
+.genesis::before { content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);width:400px;height:400px;background:radial-gradient(circle,rgba(201,169,98,.04),transparent 60%);pointer-events:none; }
+.gp { font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:18px; }
+.gh { font-family:'Cinzel',serif;font-size:clamp(1.6rem,4vw,2.8rem);font-weight:500;color:var(--offwhite);margin-bottom:18px;letter-spacing:.06em;line-height:1.3;max-width:600px; }
+.gs { font-size:18px;font-weight:300;color:rgba(255,255,255,.42);max-width:460px;line-height:1.75;margin-bottom:48px; }
+.g-btn {
+  display:inline-block;font-family:'Cinzel',serif;font-size:13px;font-weight:600;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--abyss);
+  background:linear-gradient(135deg,var(--gold-dim),var(--gold),var(--gold-light));
+  padding:18px 56px;text-decoration:none;position:relative;overflow:hidden;
+  transition:all .5s cubic-bezier(.16,1,.3,1);border:none;cursor:pointer;
+}
+.g-btn::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:translateX(-100%);transition:transform .8s; }
+.g-btn:hover::before { transform:translateX(100%); }
+.g-btn:hover { transform:translateY(-2px);box-shadow:0 14px 50px rgba(201,169,98,.25); }
+.g-note { font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.1);margin-top:20px; }
+
+/* Footer */
+footer {
+  position:relative;z-index:1;padding:44px clamp(20px,5vw,48px);
+  border-top:1px solid rgba(201,169,98,.04);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.fl { font-family:'Amiri',serif;font-size:18px;color:rgba(201,169,98,.1); }
+.fc { font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.1em;color:rgba(255,255,255,.1);text-transform:uppercase; }
+.fr { display:flex;gap:24px; }
+.fr a { font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.18);text-decoration:none;text-transform:uppercase;transition:color .3s; }
+.fr a:hover { color:var(--gold); }
+
+/* Reveal */
+.rv { opacity:0;transform:translateY(28px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1); }
+.rv.vis { opacity:1;transform:translateY(0); }
+.d1 { transition-delay:.1s; } .d2 { transition-delay:.2s; } .d3 { transition-delay:.3s; }
+
+/* Responsive */
+@media(max-width:900px){
+  .pillars { grid-template-columns:1fr; }
+  .steps { grid-template-columns:1fr 1fr; }
+  .step { border-right:none;border-bottom:1px solid rgba(255,255,255,.04); }
+  .tech-inner { grid-template-columns:1fr; text-align:center; }
+  .ev-grid { grid-template-columns:1fr 1fr; }
+  .n-links a:not(.n-cta) { display:none; }
+  nav { padding:16px 20px; }
+}
+@media(max-width:540px){
+  .steps { grid-template-columns:1fr; }
+  footer { flex-direction:column;gap:14px;text-align:center; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-noise"></div>
+<canvas id="field"></canvas>
+
+<nav id="nav">
+  <div class="n-brand">BIZRA</div>
+  <div class="n-links">
+    <a href="#prop">Sovereign</a>
+    <a href="#journey">Journey</a>
+    <a href="#tech">Architecture</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#genesis" class="n-cta">Join Genesis</a>
+  </div>
+</nav>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="hero">
+  <div class="logo-field" id="logoField">
+    <div class="core-glow" id="coreGlow"></div>
+
+    <svg class="logo-svg" id="logoSvg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="goldGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#8a6b2e"/>
+          <stop offset="50%" stop-color="#c9a962"/>
+          <stop offset="100%" stop-color="#f9f1d8"/>
+        </linearGradient>
+        <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#c9a962" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#c9a962" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="softGlow">
+          <feGaussianBlur stdDeviation="1.5" result="g"/>
+          <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Crosshairs (subtle axis lines) -->
+      <line x1="15" y1="100" x2="185" y2="100" class="crosshair"/>
+      <line x1="100" y1="15" x2="100" y2="185" class="crosshair"/>
+
+      <!-- Outer rings -->
+      <circle cx="100" cy="100" r="85" class="ring-outer" stroke-width="0.3" style="--rd:1.5s"/>
+      <circle cx="100" cy="100" r="78" class="ring-outer" stroke-width="0.4" style="--rd:1.7s"/>
+      <circle cx="100" cy="100" r="72" class="ring-outer" stroke-width="0.3" style="--rd:1.9s"/>
+
+      <!-- Orbital ring 1 with satellite dots (rotates) -->
+      <g class="orbit-ring" id="orbitRing1">
+        <circle cx="100" cy="100" r="82" fill="none" stroke="rgba(201,169,98,0.06)" stroke-width="0.3"/>
+        <circle cx="100" cy="18" r="2.5" fill="#c9a962" opacity="0.4"/>
+        <circle cx="182" cy="100" r="1.5" fill="#c9a962" opacity="0.25"/>
+        <circle cx="100" cy="182" r="2" fill="#c9a962" opacity="0.35"/>
+        <circle cx="18" cy="100" r="1.5" fill="#c9a962" opacity="0.25"/>
+      </g>
+
+      <!-- Orbital ring 2 (counter-rotates) -->
+      <g class="orbit-ring-2" id="orbitRing2">
+        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(201,169,98,0.03)" stroke-width="0.3"/>
+        <circle cx="100" cy="10" r="1.5" fill="#c9a962" opacity="0.2"/>
+        <circle cx="178" cy="145" r="1" fill="#c9a962" opacity="0.15"/>
+      </g>
+
+      <!-- Cardinal tick marks -->
+      <line x1="100" y1="13" x2="100" y2="5" class="tick"/>
+      <line x1="100" y1="187" x2="100" y2="195" class="tick"/>
+      <line x1="13" y1="100" x2="5" y2="100" class="tick"/>
+      <line x1="187" y1="100" x2="195" y2="100" class="tick"/>
+
+      <!-- Node dots at 12 positions on outer ring -->
+      <circle cx="100" cy="22" r="2.2" class="node-dot"/>
+      <circle cx="139.3" cy="32.4" r="1.4" class="node-dot"/>
+      <circle cx="167.6" cy="61" r="2.2" class="node-dot"/>
+      <circle cx="178" cy="100" r="1.4" class="node-dot"/>
+      <circle cx="167.6" cy="139" r="2.2" class="node-dot"/>
+      <circle cx="139.3" cy="167.6" r="1.4" class="node-dot"/>
+      <circle cx="100" cy="178" r="2.2" class="node-dot"/>
+      <circle cx="60.7" cy="167.6" r="1.4" class="node-dot"/>
+      <circle cx="32.4" cy="139" r="2.2" class="node-dot"/>
+      <circle cx="22" cy="100" r="1.4" class="node-dot"/>
+      <circle cx="32.4" cy="61" r="2.2" class="node-dot"/>
+      <circle cx="60.7" cy="32.4" r="1.4" class="node-dot"/>
+
+      <!-- SEED OF LIFE: 7 circles -->
+      <g id="seedGroup">
+        <circle cx="100" cy="100" r="40" class="seed-c"/>
+        <circle cx="100" cy="60" r="40" class="seed-c"/>
+        <circle cx="134.6" cy="80" r="40" class="seed-c"/>
+        <circle cx="134.6" cy="120" r="40" class="seed-c"/>
+        <circle cx="100" cy="140" r="40" class="seed-c"/>
+        <circle cx="65.4" cy="120" r="40" class="seed-c"/>
+        <circle cx="65.4" cy="80" r="40" class="seed-c"/>
+      </g>
+
+      <!-- FLOWER PETALS (vesica piscis intersections) -->
+      <g filter="url(#softGlow)">
+        <path d="M100 100 Q110 80 100 60 Q90 80 100 100" class="petal"/>
+        <path d="M100 100 Q117.3 90 134.6 80 Q117.3 100 100 100" class="petal"/>
+        <path d="M100 100 Q117.3 110 134.6 120 Q117.3 100 100 100" class="petal"/>
+        <path d="M100 100 Q110 120 100 140 Q90 120 100 100" class="petal"/>
+        <path d="M100 100 Q82.7 110 65.4 120 Q82.7 100 100 100" class="petal"/>
+        <path d="M100 100 Q82.7 90 65.4 80 Q82.7 100 100 100" class="petal"/>
+      </g>
+
+      <!-- Inner detail rings -->
+      <circle cx="100" cy="100" r="14" class="inner-ring"/>
+      <circle cx="100" cy="100" r="10" class="inner-ring"/>
+
+      <!-- Central leaf motif -->
+      <g class="leaf" transform="translate(100,100)">
+        <path d="M0 -7 Q4 -4 3 0 Q2 3 0 5 Q-2 3 -3 0 Q-4 -4 0 -7Z"/>
+        <path d="M-3 -2 Q0 -5 3 -2" fill="none"/>
+        <line x1="0" y1="-5" x2="0" y2="4"/>
+      </g>
+
+      <!-- Central nuqta (diamond) -->
+      <rect x="97.5" y="97.5" width="5" height="5" rx="0.5" class="nuqta"/>
+
+      <!-- Central glow circle -->
+      <circle cx="100" cy="100" r="25" fill="url(#glowGrad)" opacity="0" class="center-glow-svg"/>
+    </svg>
+  </div>
+
+  <h1 class="wordmark">BIZRA</h1>
+  <div class="tagline">البذرة</div>
+  <p class="hero-sub">Your AI, Sovereign</p>
+
+  <div class="scroll-cue">
+    <span>Discover</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- ═══════ PROPOSITION ═══════ -->
+<section class="pad" id="prop">
+  <h2 class="prop-head rv">
+    Your AI runs on <em>your machine</em>.<br>
+    Every action is <em>receipted</em>.<br>
+    It gets cheaper the more you use it.
+  </h2>
+  <div class="pillars">
+    <div class="pillar rv">
+      <div class="pi">◈</div>
+      <div class="pt">Sovereign</div>
+      <p class="pd">Seven AI agents run locally on your hardware. No cloud dependency. No telemetry. Your data never leaves your machine.</p>
+      <div class="pm"><div class="v">0</div><div class="l">External API calls required</div></div>
+    </div>
+    <div class="pillar rv d1">
+      <div class="pi">◉</div>
+      <div class="pt">Receipted</div>
+      <p class="pd">Every action produces a cryptographically signed receipt. An unbroken chain from intent to outcome — verifiable, auditable, yours.</p>
+      <div class="pm"><div class="v">Ed25519</div><div class="l">Signature on every receipt</div></div>
+    </div>
+    <div class="pillar rv d2">
+      <div class="pi">△</div>
+      <div class="pt">Deflationary</div>
+      <p class="pd">Repeated patterns compile into instant reflexes. Your cost per action drops from $0.10 toward $0.008 over time.</p>
+      <div class="pm"><div class="v">96%</div><div class="l">Cheaper than market average</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ JOURNEY ═══════ -->
+<section class="pad" id="journey">
+  <div class="s-label rv">How It Works</div>
+  <h2 class="s-title rv">From Stranger to Sovereign</h2>
+  <div class="steps">
+    <div class="step rv"><div class="sn">01</div><div class="sh">Plant Your Seed</div><p class="sd">Four questions. What do you want? How much time? What do you have? What stresses you? No account. No cloud.</p><div class="st">~2 minutes</div></div>
+    <div class="step rv d1"><div class="sn">02</div><div class="sh">Meet Your Team</div><p class="sd">Seven AI agents assigned to you: Planner, Researcher, Coder, Evaluator, Ethicist, Publisher, Integrator.</p><div class="st">Instant</div></div>
+    <div class="step rv d2"><div class="sn">03</div><div class="sh">Fix Something Real</div><p class="sd">Your agents propose one concrete task. You confirm. They execute. A signed receipt proves what happened.</p><div class="st">7 days</div></div>
+    <div class="step rv d3"><div class="sn">04</div><div class="sh">Live With It</div><p class="sd">The daily loop. Patterns compile into reflexes. Costs go down. Speed goes up. It becomes yours.</p><div class="st">∞</div></div>
+  </div>
+</section>
+
+<!-- ═══════ TECHNOLOGY ═══════ -->
+<section class="pad tech-bg" id="tech">
+  <div class="s-label rv">Under The Surface</div>
+  <h2 class="s-title rv">Sovereign Architecture</h2>
+  <div class="tech-inner">
+    <div class="tech-emblem rv">
+      <!-- Smaller static emblem version for tech section -->
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gG2" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#8a6b2e"/><stop offset="50%" stop-color="#c9a962"/><stop offset="100%" stop-color="#f9f1d8"/>
+          </linearGradient>
+        </defs>
+        <circle cx="100" cy="100" r="85" fill="none" stroke="#c9a962" stroke-width="0.3" opacity="0.2"/>
+        <circle cx="100" cy="100" r="78" fill="none" stroke="#c9a962" stroke-width="0.4" opacity="0.15"/>
+        <!-- Seed circles -->
+        <circle cx="100" cy="100" r="40" fill="none" stroke="#c9a962" stroke-width="0.4" opacity="0.2"/>
+        <circle cx="100" cy="60" r="40" fill="none" stroke="#c9a962" stroke-width="0.4" opacity="0.2"/>
+        <circle cx="134.6" cy="80" r="40" fill="none" stroke="#c9a962" stroke-width="0.4" opacity="0.2"/>
+        <circle cx="134.6" cy="120" r="40" fill="none" stroke="#c9a962" stroke-width="0.4" opacity="0.2"/>
+        <circle cx="100" cy="140" r="40" fill="none" stroke="#c9a962" stroke-width="0.4" opacity="0.2"/>
+        <circle cx="65.4" cy="120" r="40" fill="none" stroke="#c9a962" stroke-width="0.4" opacity="0.2"/>
+        <circle cx="65.4" cy="80" r="40" fill="none" stroke="#c9a962" stroke-width="0.4" opacity="0.2"/>
+        <!-- Petals -->
+        <path d="M100 100 Q110 80 100 60 Q90 80 100 100" fill="none" stroke="url(#gG2)" stroke-width="0.8" opacity="0.6"/>
+        <path d="M100 100 Q117.3 90 134.6 80 Q117.3 100 100 100" fill="none" stroke="url(#gG2)" stroke-width="0.8" opacity="0.6"/>
+        <path d="M100 100 Q117.3 110 134.6 120 Q117.3 100 100 100" fill="none" stroke="url(#gG2)" stroke-width="0.8" opacity="0.6"/>
+        <path d="M100 100 Q110 120 100 140 Q90 120 100 100" fill="none" stroke="url(#gG2)" stroke-width="0.8" opacity="0.6"/>
+        <path d="M100 100 Q82.7 110 65.4 120 Q82.7 100 100 100" fill="none" stroke="url(#gG2)" stroke-width="0.8" opacity="0.6"/>
+        <path d="M100 100 Q82.7 90 65.4 80 Q82.7 100 100 100" fill="none" stroke="url(#gG2)" stroke-width="0.8" opacity="0.6"/>
+        <!-- Node dots -->
+        <circle cx="100" cy="22" r="2" fill="#c9a962" opacity="0.3"/>
+        <circle cx="167.6" cy="61" r="2" fill="#c9a962" opacity="0.3"/>
+        <circle cx="167.6" cy="139" r="2" fill="#c9a962" opacity="0.3"/>
+        <circle cx="100" cy="178" r="2" fill="#c9a962" opacity="0.3"/>
+        <circle cx="32.4" cy="139" r="2" fill="#c9a962" opacity="0.3"/>
+        <circle cx="32.4" cy="61" r="2" fill="#c9a962" opacity="0.3"/>
+        <!-- Central nuqta -->
+        <rect x="97.5" y="97.5" width="5" height="5" rx="0.5" fill="url(#gG2)" opacity="0.7" transform="rotate(45 100 100)"/>
+      </svg>
+    </div>
+    <div>
+      <div class="tf rv"><div class="tf-h">7-Layer Intelligence Stack</div><div class="tf-d">Network, Ledger, Intelligence, Agent, Governance, Soul, Crown. Each layer sovereign and independently verifiable.</div><div class="tf-tag">Formally Verified</div></div>
+      <div class="tf rv d1"><div class="tf-h">Isnad Receipt Chain</div><div class="tf-d">14-century hadith verification methodology applied to AI actions. Every truth claim carries a cryptographic chain back to its source.</div><div class="tf-tag">SNR 0.974</div></div>
+      <div class="tf rv d2"><div class="tf-h">8,072 Verified Tests</div><div class="tf-d">Sovereign 3,234. Proof engine 563. Bridges 200. PAT 199. Integration 408. No assumptions — only verified excellence.</div><div class="tf-tag">100% Pass Rate</div></div>
+      <div class="tf rv d3"><div class="tf-h">Constitutional AI</div><div class="tf-d">Ihsān (ethical excellence) as runtime constraint. Guardian gates enforce quality thresholds on every action before execution.</div><div class="tf-tag">Ihsān Gate ≥ 0.95</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ EVIDENCE ═══════ -->
+<section class="pad" id="evidence">
+  <div class="s-label rv">Not Promises — Proof</div>
+  <h2 class="s-title rv">Verified Evidence</h2>
+  <div class="ev-grid">
+    <div class="ev rv"><div class="ev-v">8,072</div><div class="ev-l">Tests passing<br>across the system</div></div>
+    <div class="ev rv d1"><div class="ev-v">$0.10</div><div class="ev-l">Cost per verified<br>action at launch</div></div>
+    <div class="ev rv d2"><div class="ev-v">15,000+</div><div class="ev-l">Hours of solo<br>development</div></div>
+    <div class="ev rv d3"><div class="ev-v">0</div><div class="ev-l">External dependencies<br>at runtime</div></div>
+  </div>
+</section>
+
+<!-- ═══════ GENESIS ═══════ -->
+<section class="pad genesis" id="genesis">
+  <div class="gp rv">Limited to 100 Founding Members</div>
+  <h2 class="gh rv">Join Genesis 100</h2>
+  <p class="gs rv">The first hundred humans to run a sovereign AI node. Every action receipted. Every receipt yours forever.</p>
+  <a class="g-btn rv d1" href="mailto:m.beshr@bizra.info?subject=Genesis%20100%20—%20I'm%20In">Claim Your Node</a>
+  <div class="g-note rv d2">genesis · 100 · founding cohort · sovereign from day one</div>
+</section>
+
+<footer>
+  <div class="fl">البذرة</div>
+  <div class="fc">BIZRA LABS · DUBAI · SOVEREIGN AI INFRASTRUCTURE</div>
+  <div class="fr"><a href="https://github.com/BizraInfo/bizra_scaffold" target="_blank">GitHub</a><a href="https://bizra.info" target="_blank">Dashboard</a></div>
+</footer>
+
+<script>
+/* ── PARTICLE FIELD ── */
+!function(){
+  const c=document.getElementById('field'),x=c.getContext('2d');
+  let W,H;const P=[],N=50,D=140;
+  function rz(){W=c.width=innerWidth;H=c.height=innerHeight}
+  rz();addEventListener('resize',rz);
+  for(let i=0;i<N;i++)P.push({
+    x:Math.random()*2200-100,y:Math.random()*6000,
+    r:Math.random()*1.2+.2,vx:(Math.random()-.5)*.1,vy:(Math.random()-.5)*.1,
+    o:Math.random()*.18+.03
+  });
+  let sY=0;addEventListener('scroll',()=>sY=pageYOffset,{passive:1});
+  !function d(){
+    x.clearRect(0,0,W,H);
+    for(let i=0;i<N;i++){
+      const p=P[i];p.x+=p.vx;p.y+=p.vy;
+      if(p.x<-200||p.x>W+200)p.vx*=-1;
+      if(p.y<-200||p.y>6000)p.vy*=-1;
+      const sy=p.y-sY*.22;
+      if(sy<-30||sy>H+30)continue;
+      x.beginPath();x.arc(p.x,sy,p.r,0,6.28);
+      x.fillStyle='rgba(201,169,98,'+p.o+')';x.fill();
+      for(let j=i+1;j<N;j++){
+        const q=P[j],qy=q.y-sY*.22,dx=p.x-q.x,dy=sy-qy,d2=dx*dx+dy*dy;
+        if(d2<D*D){
+          x.beginPath();x.moveTo(p.x,sy);x.lineTo(q.x,qy);
+          x.strokeStyle='rgba(201,169,98,'+(0.02*(1-d2/D/D))+')';
+          x.lineWidth=.4;x.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(d);
+  }();
+}();
+
+/* ── LOGO ANIMATION SEQUENCE ── */
+function animateLogo() {
+  const svg = document.getElementById('logoSvg');
+  
+  // Phase 1: Crosshairs (0.2s)
+  setTimeout(() => {
+    svg.querySelectorAll('.crosshair').forEach(el => el.classList.add('draw'));
+  }, 200);
+
+  // Phase 2: Outer rings (1.2s)
+  const rings = svg.querySelectorAll('.ring-outer');
+  rings.forEach((r, i) => {
+    setTimeout(() => r.classList.add('draw'), 1200 + i * 200);
+  });
+
+  // Phase 3: Node dots (1.5s, staggered)
+  svg.querySelectorAll('.node-dot').forEach((d, i) => {
+    setTimeout(() => d.classList.add('draw'), 1500 + i * 80);
+  });
+
+  // Phase 4: Cardinal ticks (1.8s)
+  svg.querySelectorAll('.tick').forEach((t, i) => {
+    setTimeout(() => t.classList.add('draw'), 1800 + i * 100);
+  });
+
+  // Phase 5: Seed circles draw (already via CSS delays, just add class)
+  setTimeout(() => {
+    svg.querySelectorAll('.seed-c').forEach(c => c.classList.add('draw'));
+  }, 400);
+
+  // Phase 6: Petals bloom
+  setTimeout(() => {
+    svg.querySelectorAll('.petal').forEach(p => p.classList.add('draw'));
+  }, 400);
+
+  // Phase 7: Inner rings
+  setTimeout(() => {
+    svg.querySelectorAll('.inner-ring').forEach(r => r.classList.add('draw'));
+  }, 3200);
+
+  // Phase 8: Leaf motif
+  setTimeout(() => {
+    svg.querySelectorAll('.leaf').forEach(l => l.classList.add('draw'));
+  }, 3400);
+
+  // Phase 9: Nuqta ignites
+  setTimeout(() => {
+    svg.querySelector('.nuqta').classList.add('ignite');
+  }, 3500);
+
+  // Phase 10: Center glow SVG
+  setTimeout(() => {
+    const cg = svg.querySelector('.center-glow-svg');
+    cg.style.transition = 'opacity 1.5s';
+    cg.style.opacity = '1';
+  }, 3600);
+
+  // Phase 11: Core glow div
+  setTimeout(() => {
+    document.getElementById('coreGlow').classList.add('on');
+  }, 3600);
+
+  // Phase 12: Orbital rings start spinning
+  setTimeout(() => {
+    document.getElementById('orbitRing1').classList.add('spin');
+    document.getElementById('orbitRing2').classList.add('spin');
+  }, 3800);
+
+  // Phase 13: Breathing begins on the whole SVG
+  setTimeout(() => {
+    document.getElementById('logoSvg').classList.add('logo-breathe');
+  }, 5000);
+}
+
+// Start animation
+animateLogo();
+
+/* ── SCROLL PARALLAX on logo ── */
+let ticking = false;
+addEventListener('scroll', () => {
+  if (!ticking) {
+    requestAnimationFrame(() => {
+      const s = pageYOffset;
+      const lf = document.getElementById('logoField');
+      if (lf && s < innerHeight) {
+        const pct = s / innerHeight;
+        lf.style.opacity = Math.max(0, 1 - pct * 1.5);
+        lf.style.transform = 'translateY(' + (-pct * 60) + 'px) scale(' + (1 - pct * .1) + ')';
+      }
+      ticking = false;
+    });
+    ticking = true;
+  }
+}, {passive: 1});
+
+/* ── SCROLL REVEAL ── */
+!function(){
+  const o = new IntersectionObserver(e => {
+    e.forEach(x => { if (x.isIntersecting) x.target.classList.add('vis'); });
+  }, {threshold: .1, rootMargin: '0px 0px -30px 0px'});
+  document.querySelectorAll('.rv').forEach(el => o.observe(el));
+}();
+
+/* ── NAV SHRINK ── */
+addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('s', pageYOffset > 60);
+}, {passive: 1});
+
+/* ── SMOOTH SCROLL ── */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) t.scrollIntoView({behavior: 'smooth'});
+  });
+});
+</script>
+</body>
+</html>
