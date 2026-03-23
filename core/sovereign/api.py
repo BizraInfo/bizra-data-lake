@@ -1820,7 +1820,7 @@ def create_fastapi_app(runtime: Any) -> Any:
             from core.reasoning.got_bridge import GoTBridge
 
             return GoTBridge(got_engine=graph_engine)
-        except Exception:
+        except (ImportError, AttributeError, TypeError, ValueError, RuntimeError):
             logger.debug("Mission VRG bridge unavailable", exc_info=True)
             return None
 
@@ -1875,7 +1875,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                     f"|success={bool(getattr(channel, 'success', False))}"
                     f"|duration_ms={round(float(getattr(channel, 'duration_ms', 0.0)), 1)}"
                 )
-            except Exception:
+            except (AttributeError, TypeError, ValueError, OSError):
                 continue
 
         context = {
@@ -1916,7 +1916,14 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "surviving_branches": surviving_branches,
                 "detail": str(getattr(proof_receipt, "reason", "") or ""),
             }
-        except Exception:
+        except (
+            ImportError,
+            AttributeError,
+            TypeError,
+            ValueError,
+            RuntimeError,
+            OSError,
+        ):
             logger.debug("Mission VRG proof generation failed", exc_info=True)
             return {
                 "mode": "verified_graph",

@@ -377,7 +377,13 @@ class SovereignNervousSystem:
             rust_bridge = wire_rust_bridge(bus, production=False)
             if rust_bridge:
                 logger.info("Rust bridge ACTIVE on mission nervous system")
-        except Exception as rust_exc:
+        except (
+            ImportError,
+            AttributeError,
+            TypeError,
+            RuntimeError,
+            OSError,
+        ) as rust_exc:
             logger.info("Rust bridge not available (degraded): %s", rust_exc)
 
         return cls(
