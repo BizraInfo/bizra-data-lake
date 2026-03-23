@@ -1,0 +1,107 @@
+{
+  "proof_kernel_version": "1.0",
+  "timestamp": "2026-03-23T01:00:51Z",
+  "properties": [
+    {
+      "property_id": 1,
+      "property_name": "FAIL-CLOSED ROUTING",
+      "statement": "For all execution requests R:\n  If R.authority is None OR R.authority is not in VALID_AUTHORITIES:\n    Then execute(R) returns REJECTED\n    AND no side effects occur\n    AND a rejection receipt is produced\n\nFormally:\n  \u2200R: \u00acvalid_authority(R) \u2192 execute(R) = (REJECTED, receipt)\n  \u2200R: \u00acvalid_authority(R) \u2192 side_effects(R) = \u2205",
+      "verdict": "PROVEN",
+      "evidence": [
+        "authority=None \u2192 REJECTED with receipt",
+        "authority='' \u2192 REJECTED with receipt",
+        "authority='admin' \u2192 REJECTED with receipt",
+        "authority='root' \u2192 REJECTED with receipt",
+        "authority='system' \u2192 REJECTED with receipt",
+        "authority='override' \u2192 REJECTED with receipt",
+        "authority=123 \u2192 REJECTED with receipt",
+        "authority={'nested': 'object'} \u2192 Exception: unhashable type: 'dict' (fail-closed: correct)",
+        "authority='sovereign; DROP TABLE' \u2192 REJECTED with receipt",
+        "authority='sovereign' \u2192 APPROVED (correct)",
+        "authority='delegated' \u2192 APPROVED (correct)",
+        "authority='constitutional' \u2192 APPROVED (correct)"
+      ],
+      "counterexample": null,
+      "duration_ms": 0.04649162292480469,
+      "timestamp": "2026-03-23T01:00:51Z",
+      "code_refs": [
+        "core/sovereign/api.py:4317 \u2014 rejects missing authority",
+        "core/sovereign/runtime_core.py:4445 \u2014 reports authority path",
+        "core/sovereign/organism.py:323 \u2014 routes through constitutional gates"
+      ]
+    },
+    {
+      "property_id": 2,
+      "property_name": "ACCEPT-IMPLIES-INVARIANTS",
+      "statement": "For all approved executions E:\n  If gate(E) = APPROVED:\n    Then ihsan(E) >= 0.95           (I-1: IHSAN_FLOOR)\n    AND  gini(E) <= 0.35            (I-3: ADL_LIMIT)\n    AND  riba(E) = 0                (I-2: RIBA_ZERO)\n    AND  zann(E) = verified         (I-4: ZANN_ZERO)\n    AND  authority(E) != P5 AND != S2  (I-5: FROZEN_AGENTS)\n    AND  cloud_auth(E) = false      (I-6: SOVEREIGNTY)\n    AND  spine_check(E) = passed    (I-7: SPINE_GUARD)\n\nFormally:\n  \u2200E: approved(E) \u2192 \u22c0_{i=1}^{7} invariant_i(E)\n  Contrapositive: \u2203i: \u00acinvariant_i(E) \u2192 \u00acapproved(E)",
+      "verdict": "PROVEN",
+      "evidence": [
+        "Valid execution \u2192 APPROVED (All 7 invariants satisfied)",
+        "I-1 IHSAN_FLOOR \u2192 REJECTED (I-1 IHSAN_FLOOR violated: 0.8 < 0.95)",
+        "I-1 IHSAN_FLOOR boundary \u2192 REJECTED (I-1 IHSAN_FLOOR violated: 0.9499 < 0.95)",
+        "I-2 RIBA_ZERO \u2192 REJECTED (I-2 RIBA_ZERO violated: 0.001 != 0)",
+        "I-3 ADL_LIMIT \u2192 REJECTED (I-3 ADL_LIMIT violated: 0.36 > 0.35)",
+        "I-3 ADL_LIMIT boundary \u2192 REJECTED (I-3 ADL_LIMIT violated: 0.3501 > 0.35)",
+        "I-4 ZANN_ZERO \u2192 REJECTED (I-4 ZANN_ZERO violated: zann=unverified)",
+        "I-5 FROZEN P5 \u2192 REJECTED (I-5 FROZEN_AGENTS violated: ['P1', 'P5'])",
+        "I-5 FROZEN S2 \u2192 REJECTED (I-5 FROZEN_AGENTS violated: ['P2', 'S2'])",
+        "I-6 SOVEREIGNTY \u2192 REJECTED (I-6 SOVEREIGNTY violated: cloud_auth=True)",
+        "I-7 SPINE_GUARD \u2192 REJECTED (I-7 SPINE_GUARD violated: spine_check=failed)",
+        "Contrapositive holds: every invariant violation causes rejection"
+      ],
+      "counterexample": null,
+      "duration_ms": 0.9610652923583984,
+      "timestamp": "2026-03-23T01:00:51Z",
+      "code_refs": [
+        "core/sovereign/api.py \u2014 gate checks before execution",
+        "core/sovereign/helix3.py:304 \u2014 approved-only aggregation",
+        "Enforceable Spine v1.1 \u2014 Sections 3-9 define all 7 invariants"
+      ]
+    },
+    {
+      "property_id": 3,
+      "property_name": "RECEIPT-CHAIN TAMPER EVIDENCE",
+      "statement": "For a receipt chain C = [r_0, r_1, ..., r_n]:\n  r_i.prev_hash = hash(r_{i-1})  for all i > 0\n  r_0.prev_hash = GENESIS_HASH\n\n  If any r_i is modified after chaining:\n    verify(C) returns (TAMPERED, index=i)\n  If no modification:\n    verify(C) returns (INTACT, length=n+1)\n\nFormally:\n  \u2200C: (\u2203i: modified(r_i)) \u2192 verify(C) = TAMPERED\n  \u2200C: (\u2200i: \u00acmodified(r_i)) \u2192 verify(C) = INTACT",
+      "verdict": "PROVEN",
+      "evidence": [
+        "Intact chain (n=20) \u2192 INTACT, length=20",
+        "Tamper at index 0 \u2192 DETECTED at index 0",
+        "Tamper at index 1 \u2192 DETECTED at index 1",
+        "Tamper at index 2 \u2192 DETECTED at index 2",
+        "Tamper at index 3 \u2192 DETECTED at index 3",
+        "Tamper at index 4 \u2192 DETECTED at index 4",
+        "Tamper at index 5 \u2192 DETECTED at index 5",
+        "Tamper at index 6 \u2192 DETECTED at index 6",
+        "Tamper at index 7 \u2192 DETECTED at index 7",
+        "Tamper at index 8 \u2192 DETECTED at index 8",
+        "Tamper at index 9 \u2192 DETECTED at index 9",
+        "Tamper at index 10 \u2192 DETECTED at index 10",
+        "Tamper at index 11 \u2192 DETECTED at index 11",
+        "Tamper at index 12 \u2192 DETECTED at index 12",
+        "Tamper at index 13 \u2192 DETECTED at index 13",
+        "Tamper at index 14 \u2192 DETECTED at index 14",
+        "Tamper at index 15 \u2192 DETECTED at index 15",
+        "Tamper at index 16 \u2192 DETECTED at index 16",
+        "Tamper at index 17 \u2192 DETECTED at index 17",
+        "Tamper at index 18 \u2192 DETECTED at index 18",
+        "Tamper at index 19 \u2192 DETECTED at index 19",
+        "Insertion attack at index 5 \u2192 DETECTED at index 5",
+        "Genesis corruption \u2192 DETECTED at index 0"
+      ],
+      "counterexample": null,
+      "duration_ms": 117.53225326538086,
+      "timestamp": "2026-03-23T01:00:51Z",
+      "code_refs": [
+        "core/node0/heartbeat.py:103 \u2014 folds receipts into breath truth",
+        "core/node0/heartbeat.py:1243 \u2014 persists canonical chain",
+        "BLAKE3 domain-separated hashing \u2014 canonical_hasher.rs (309 lines, 11 domains)"
+      ]
+    }
+  ],
+  "summary": {
+    "proven": 3,
+    "total": 3,
+    "duration_ms": 118.53981018066406,
+    "all_hold": true
+  }
+}

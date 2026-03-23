@@ -1,0 +1,51 @@
+{
+  "simulation_version": "1.0",
+  "timestamp": "2026-03-23T01:00:58Z",
+  "config": {
+    "num_nodes": 100,
+    "num_malicious": 30,
+    "num_ticks": 1000,
+    "ihsan_threshold": 0.95,
+    "gini_limit": 0.35,
+    "trust_decay": 0.01,
+    "detection_window": 10,
+    "seed": 42
+  },
+  "attack_modes": {
+    "direct": {
+      "poisoning_rate": 0.0,
+      "rejection_rate": 1.0,
+      "forensic_quality": 0.0,
+      "total_malicious": 6080,
+      "malicious_accepted": 0
+    },
+    "reputation": {
+      "poisoning_rate": 0.006200177147918512,
+      "rejection_rate": 0.9937998228520815,
+      "forensic_quality": 0.9937611408199644,
+      "total_malicious": 5645,
+      "malicious_accepted": 35
+    },
+    "slow": {
+      "poisoning_rate": 0.0,
+      "rejection_rate": 1.0,
+      "forensic_quality": 0.9807566862361383,
+      "total_malicious": 6132,
+      "malicious_accepted": 0
+    },
+    "sybil": {
+      "poisoning_rate": 0.0,
+      "rejection_rate": 1.0,
+      "forensic_quality": 0.0,
+      "total_malicious": 6043,
+      "malicious_accepted": 0
+    }
+  },
+  "combined": {
+    "total_malicious": 23900,
+    "poisoning_rate": 0.0014644351464435147,
+    "rejection_rate": 0.9985355648535564,
+    "forensic_quality": 0.48560653676932747
+  },
+  "duration_s": 6.279922246932983
+}

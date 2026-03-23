@@ -1,0 +1,54 @@
+{
+  "version": "2.0",
+  "timestamp": "2026-03-23T01:03:06Z",
+  "chain_length": 40,
+  "reflexes_compiled": 3,
+  "deltas": [
+    {
+      "pattern": "ci_stabilization",
+      "before_avg_ms": 131.83666693184736,
+      "after_avg_ms": 19.30875723061588,
+      "speedup": 6.827817314042757,
+      "before_ihsan": 0.9603134154731016,
+      "after_ihsan": 0.9619661656657298,
+      "compilation_receipt_hash": "b6717e1d7d3c3d54",
+      "verification_receipt_hash": "4c94c2119263964c",
+      "chain_length": 38,
+      "timestamp": 1774227786.8740735
+    },
+    {
+      "pattern": "test_generation",
+      "before_avg_ms": 168.88971575996166,
+      "after_avg_ms": 23.005700282453127,
+      "speedup": 7.341211686078384,
+      "before_ihsan": 0.9719190760318893,
+      "after_ihsan": 0.971967754464097,
+      "compilation_receipt_hash": "a5bd99f0728ef8e9",
+      "verification_receipt_hash": "b59f211a00dfdefd",
+      "chain_length": 39,
+      "timestamp": 1774227786.8744912
+    },
+    {
+      "pattern": "code_review",
+      "before_avg_ms": 208.5236125453271,
+      "after_avg_ms": 26.617424389000995,
+      "speedup": 7.834101808569217,
+      "before_ihsan": 0.9646210831309588,
+      "after_ihsan": 0.9662919558245988,
+      "compilation_receipt_hash": "aef01545c2c173a8",
+      "verification_receipt_hash": "5630e9a2e1954d0b",
+      "chain_length": 40,
+      "timestamp": 1774227786.8749256
+    }
+  ],
+  "average_speedup": 7.334376936230119,
+  "ihsan_maintained": true,
+  "chain_hashes": [
+    "6a097d989431a81e",
+    "b3372e7be7884773",
+    "4c94c2119263964c",
+    "b59f211a00dfdefd",
+    "5630e9a2e1954d0b"
+  ],
+  "genesis_hash": "ba8052ae6e277021"
+}
