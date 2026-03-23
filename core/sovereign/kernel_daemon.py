@@ -1328,6 +1328,10 @@ class KernelHandler(SimpleHTTPRequestHandler):
         path = self.path.split("?")[0]
 
         # ── API Routes ──
+        # Support both /api/* (native) and /v1/* (Vercel proxy)
+        if path.startswith("/v1/"):
+            path = "/api/" + path[4:]  # /v1/health → /api/health
+
         if path == "/api/health":
             self._json_response(
                 {"status": "alive", "version": KERNEL_VERSION, "uptime_s": _uptime()}
