@@ -64,6 +64,21 @@ class MissionExecutor:
             "FAISS", bool(context), f"{len(context)} chars" if context else "cold"
         )
 
+        # Stage 1.5: Cognitive Amplification (HMM/HHMM → GoT depth hints)
+        amplification = self._stage_amplify(task)
+        report["stages"]["amplification"] = {
+            "fired": amplification.get("activated", False),
+            "state": amplification.get("predicted_state", ""),
+            "confidence": amplification.get("confidence", 0.0),
+            "got_depth": amplification.get("got_depth", 1),
+        }
+        if amplification.get("activated"):
+            self._emit(
+                "Amplify",
+                True,
+                f'{amplification["predicted_state"]} depth={amplification["got_depth"]}',
+            )
+
         # Stage 2: Ollama Inference via bizra-node
         node_result = self._stage_inference(task, context)
         # Unescape \\n from tab-delimited protocol back to real newlines
@@ -133,6 +148,37 @@ class MissionExecutor:
         report["stages_total"] = len(report["stages"])
 
         return report
+
+    # ── Stage 1.5: Cognitive Amplification ───────────────────
+
+    def _stage_amplify(self, task: str) -> Dict:
+        """HMM/HHMM prediction → GoT depth/hypothesis hints.
+
+        Fail-closed: low confidence → no amplification (baseline behavior).
+        Standing on: Rabiner (HMM, 1989), Besta (GoT, 2024).
+        """
+        try:
+            from core.reasoning.diffusion_reasoning_amplifier import (
+                DiffusionReasoningAmplifier,
+            )
+
+            amp = DiffusionReasoningAmplifier()
+            ctx = amp.amplify(query=task, prediction=None)
+            return {
+                "activated": ctx.activated,
+                "predicted_state": ctx.predicted_state,
+                "confidence": round(ctx.confidence, 4),
+                "got_depth": ctx.got_depth,
+                "got_hypotheses": ctx.got_hypotheses,
+                "snr_target": ctx.snr_target,
+                "observation_symbol": ctx.observation_symbol,
+            }
+        except (ImportError, AttributeError, TypeError, ValueError, RuntimeError):
+            return {
+                "activated": False,
+                "predicted_state": "unavailable",
+                "confidence": 0.0,
+            }
 
     # ── Stage 1: FAISS ──────────────────────────────────────
 
