@@ -205,10 +205,7 @@ def scan_data(watched_dirs: Optional[List[str]] = None) -> DataProfile:
     dp = DataProfile()
 
     dirs_to_watch = watched_dirs or [
-        str(Path.home() / "Downloads"),
-        str(Path.home() / "Desktop"),
-        str(Path.home() / "Documents"),
-        "/mnt/c/BIZRA-DATA-LAKE",
+        "/mnt/c",  # Full C: partition — the PAT's primary home
     ]
 
     # B: drive — BIZRA Sovereign space (the PAT's full home)
@@ -233,10 +230,29 @@ def scan_data(watched_dirs: Optional[List[str]] = None) -> DataProfile:
         if not os.path.isdir(d):
             continue
         try:
-            count = sum(1 for _ in Path(d).iterdir() if _.is_file())
-            dp.watched_dirs[d] = count
-            dp.total_files += count
-        except PermissionError:
+            # Top-level: count immediate children (files + dirs)
+            items = list(Path(d).iterdir())
+            files = [i for i in items if i.is_file()]
+            dirs = [i for i in items if i.is_dir()]
+            dp.watched_dirs[d] = len(files)
+            dp.total_files += len(files)
+
+            # Go one level deeper for key directories
+            for subdir in dirs:
+                name = subdir.name
+                # Skip system/hidden dirs
+                if name.startswith(".") or name in (
+                    "$RECYCLE.BIN", "System Volume Information",
+                    "Windows", "ProgramData", "Recovery",
+                ):
+                    continue
+                try:
+                    sub_count = sum(1 for _ in subdir.iterdir())
+                    dp.watched_dirs[str(subdir)] = sub_count
+                    dp.total_files += sub_count
+                except (PermissionError, OSError):
+                    pass
+        except (PermissionError, OSError):
             pass
 
     return dp
