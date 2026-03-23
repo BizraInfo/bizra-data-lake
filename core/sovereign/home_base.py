@@ -95,47 +95,51 @@ class HomeBase:
 def scan_hardware() -> HardwareProfile:
     """Discover hardware — the PAT knows its physical home."""
     hw = HardwareProfile()
+    import subprocess
+
     hw.hostname = platform.node()
     hw.os_name = platform.system()
     hw.os_version = platform.version()
-    hw.cpu = platform.processor() or "unknown"
 
-    try:
-        hw.cpu_cores = os.cpu_count() or 0
-    except Exception:
-        pass
+    # Detect real hardware via Windows (WSL2 underreports)
+    def _ps(cmd: str) -> str:
+        try:
+            r = subprocess.run(
+                ["powershell.exe", "-Command", cmd],
+                capture_output=True, text=True, timeout=10,
+            )
+            return r.stdout.strip().replace("\r", "") if r.returncode == 0 else ""
+        except Exception:
+            return ""
 
-    try:
-        import psutil
+    hw.cpu = _ps("(Get-WmiObject Win32_Processor).Name") or platform.processor() or "unknown"
 
-        mem = psutil.virtual_memory()
-        hw.ram_gb = round(mem.total / (1024**3), 1)
-    except ImportError:
-        # Fallback: read /proc/meminfo on Linux
+    cores = _ps("(Get-WmiObject Win32_Processor).NumberOfLogicalProcessors")
+    hw.cpu_cores = int(cores) if cores.isdigit() else (os.cpu_count() or 0)
+
+    ram = _ps("[math]::Round((Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory/1GB)")
+    if ram.isdigit():
+        hw.ram_gb = float(ram)
+    else:
         try:
             with open("/proc/meminfo") as f:
                 for line in f:
                     if line.startswith("MemTotal:"):
-                        kb = int(line.split()[1])
-                        hw.ram_gb = round(kb / (1024**2), 1)
+                        hw.ram_gb = round(int(line.split()[1]) / (1024**2), 1)
                         break
         except Exception:
             pass
 
-    # GPU detection
+    # GPU — nvidia-smi is fastest
     try:
-        import subprocess
-
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
-            capture_output=True,
-            text=True,
-            timeout=5,
+            capture_output=True, text=True, timeout=5,
         )
         if result.returncode == 0:
             hw.gpu = result.stdout.strip()
     except Exception:
-        pass
+        hw.gpu = _ps("(Get-WmiObject Win32_VideoController).Name") or ""
 
     # Disk space — the PAT knows every drive in its home
     for mount in ["/", "/mnt/c", "/mnt/b", "/mnt/d"]:
