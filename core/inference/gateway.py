@@ -162,11 +162,15 @@ class InferenceGateway:
         """
         self.status = InferenceStatus.WARMING
 
-        # SECURITY: When require_local=True, ONLY try llama.cpp (embedded)
-        # External services (LM Studio, Ollama) are NOT considered "local"
-        # as they require network connectivity and are not self-contained.
+        # SECURITY: When require_local=True, only try on-machine backends.
+        # llama.cpp (embedded) is tried first; Ollama at localhost is also
+        # sovereign — it runs on the same hardware, no cloud dependency.
+        # LM Studio on the Windows host (WSL gateway) is included because
+        # it is the same physical machine behind the WSL bridge.
         if self.config.require_local:
-            print("[Gateway] require_local=True: Only trying embedded backends")
+            print("[Gateway] require_local=True: Trying on-machine backends")
+
+            # 1. Try llama.cpp (fully embedded)
             llamacpp = LlamaCppBackend(self.config)
             if await llamacpp.initialize():
                 self._backends[ComputeTier.LOCAL] = llamacpp
@@ -176,11 +180,28 @@ class InferenceGateway:
                 print("[Gateway] llama.cpp backend ready (SOVEREIGN MODE)")
                 return True
 
-            # Fail-closed: No fallbacks allowed when require_local=True
+            # 2. Try Ollama at localhost (sovereign — same machine)
+            ollama = OllamaBackend(self.config)
+            if await ollama.initialize():
+                self._backends[ComputeTier.LOCAL] = ollama
+                self._active_backend = ollama
+                self.status = InferenceStatus.READY
+                print("[Gateway] Ollama backend ready (SOVEREIGN MODE)")
+                return True
+
+            # 3. Try LM Studio on WSL gateway (same physical machine)
+            if LMSTUDIO_AVAILABLE:
+                lmstudio = LMStudioBackend(self.config)
+                if await lmstudio.initialize():
+                    self._backends[ComputeTier.LOCAL] = lmstudio
+                    self._active_backend = lmstudio
+                    self.status = InferenceStatus.READY
+                    print("[Gateway] LM Studio backend ready (SOVEREIGN MODE)")
+                    return True
+
+            # Fail-closed: No on-machine backend available
             self.status = InferenceStatus.OFFLINE
-            print(
-                "[Gateway] No embedded backend available (OFFLINE MODE - FAIL-CLOSED)"
-            )
+            print("[Gateway] No on-machine backend available (OFFLINE - FAIL-CLOSED)")
             return False
 
         # --- Fallback-enabled mode (require_local=False) ---

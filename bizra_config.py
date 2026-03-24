@@ -111,12 +111,6 @@ GPU_ENABLED = True
 
 # --- REASONING PARAMETERS ---
 # Import from authoritative single source of truth
-from core.integration.constants import (
-    STRICT_IHSAN_THRESHOLD as IHSAN_CONSTRAINT,  # 0.99 strict excellence target
-)
-from core.integration.constants import (
-    UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD,  # 0.85 minimum signal quality
-)
 
 ARTE_TENSION_LIMIT = 0.75
 
@@ -129,7 +123,7 @@ INGEST_GATE_ENFORCE = os.getenv("BIZRA_INGEST_GATE_ENFORCE", "false").lower() in
 
 # --- EXTRACTION CONFIG (LANGEXTRACT) ---
 EXTRACTION_MODEL = "gemini-1.5-flash"
-EXTRACTION_PROMPT = """Extract core concepts, technical tools, and project decisions. 
+EXTRACTION_PROMPT = """Extract core concepts, technical tools, and project decisions.
 Use verbatim text. Map everything to the underlying BIZRA architecture."""
 
 # --- LOGGING & AUDIT ---
@@ -202,9 +196,9 @@ DEFAULT_EMBEDDING_MODEL = os.getenv(
 )
 
 # Ollama Fallback Models
-OLLAMA_TEXT_MODEL = os.getenv("OLLAMA_TEXT_MODEL", "llama3.2")
-OLLAMA_CODE_MODEL = os.getenv("OLLAMA_CODE_MODEL", "codellama:7b")
-OLLAMA_VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "llava:7b")
+OLLAMA_TEXT_MODEL = os.getenv("OLLAMA_TEXT_MODEL", "qwen2.5:3b")
+OLLAMA_CODE_MODEL = os.getenv("OLLAMA_CODE_MODEL", "deepseek-r1:14b")
+OLLAMA_VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "moondream:1.8b")
 
 # ============================================================================
 # RESILIENCE CONFIGURATION
