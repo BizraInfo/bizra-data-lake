@@ -56,14 +56,20 @@ from core.integration.constants import (
     OLLAMA_URL,
 )
 
-# Expert → Ollama model mapping (overridable via env vars)
+# Expert → model mapping (overridable via env vars)
+# When LM Studio is available, experts use LM Studio models (GPU-accelerated).
+# When only Ollama is available, experts use Ollama models (CPU fallback).
 _EXPERT_MODEL_MAP: Dict[str, str] = {
-    "pat_r": os.getenv("BIZRA_MODEL_PAT_R", "llama3.1:8b"),
+    "pat_r": os.getenv("BIZRA_MODEL_PAT_R", "qwen2.5:3b"),
     "pat_k": os.getenv("BIZRA_MODEL_PAT_K", "qwen2.5:3b"),
-    "pat_s": os.getenv("BIZRA_MODEL_PAT_S", "llama3.1:8b"),
+    "pat_s": os.getenv("BIZRA_MODEL_PAT_S", "qwen2.5:3b"),
     "sat_g": os.getenv("BIZRA_MODEL_SAT_G", "phi3:mini"),
     "sat_v": os.getenv("BIZRA_MODEL_SAT_V", "phi3:mini"),
 }
+
+# LM Studio model for GPU-accelerated inference (used when LM Studio is reachable)
+# Use planner model by default — fast response without thinking token overhead.
+_LMSTUDIO_MODEL = os.getenv("BIZRA_LMSTUDIO_MODEL", "agentflow-planner-7b-i1")
 
 # Expert → system prompt specialization
 # Sovereign identity preamble — shared across all PAT/SAT experts.
@@ -171,6 +177,12 @@ class MOEBridge:
         self._max_tokens = max_tokens
         self._temperature = temperature
         self._stats = MOEBridgeStats()
+
+        # Detect LM Studio availability (same physical machine, GPU-accelerated)
+        self._lmstudio_url: str | None = None
+        self._lmstudio_token: str = ""
+        self._lmstudio_model: str = _LMSTUDIO_MODEL
+        self._detect_lmstudio()
 
         # Lazy-init MOE engine
         self._engine: Any = None
@@ -300,12 +312,44 @@ class MOEBridge:
     # ─── Expert Model Dispatch ───────────────────────────────────
 
     async def _call_expert(self, expert_id: str, prompt: str) -> ExpertCallResult:
-        """Dispatch a single expert to its Ollama model."""
-        model = self._expert_models.get(expert_id, "phi3:mini")
+        """Dispatch a single expert to its model backend.
+
+        Priority: LM Studio (GPU) -> Ollama (CPU fallback).
+        """
         system_prompt = _EXPERT_SYSTEM_PROMPTS.get(expert_id, "")
         t0 = time.monotonic()
-
         self._stats.expert_calls += 1
+
+        # Route to LM Studio if available (GPU-accelerated, bigger models)
+        if self._lmstudio_url:
+            model = self._lmstudio_model
+            self._stats.model_usage[model] = self._stats.model_usage.get(model, 0) + 1
+            try:
+                text = await self._lmstudio_generate(model, prompt, system_prompt)
+                elapsed = (time.monotonic() - t0) * 1000
+                logger.debug(
+                    "Expert %s (%s via LM Studio): %.0fms, %d chars",
+                    expert_id,
+                    model,
+                    elapsed,
+                    len(text),
+                )
+                return ExpertCallResult(
+                    expert_id=expert_id,
+                    model=model,
+                    text=text,
+                    latency_ms=elapsed,
+                    success=True,
+                )
+            except Exception as e:  # noqa: BLE001
+                logger.warning(
+                    "Expert %s LM Studio failed, falling back to Ollama: %s",
+                    expert_id,
+                    e,
+                )
+
+        # Fallback to Ollama
+        model = self._expert_models.get(expert_id, "phi3:mini")
         self._stats.model_usage[model] = self._stats.model_usage.get(model, 0) + 1
 
         try:
@@ -343,6 +387,58 @@ class MOEBridge:
                 success=False,
                 error=str(e),
             )
+
+    def _detect_lmstudio(self) -> None:
+        """Detect LM Studio on same physical machine (WSL gateway)."""
+        try:
+            from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
+
+            import httpx
+
+            url = f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}"
+            token = os.getenv("LM_API_TOKEN") or os.getenv("LM_STUDIO_API_KEY") or ""
+            headers = {"Authorization": f"Bearer {token}"} if token else {}
+            resp = httpx.get(f"{url}/v1/models", headers=headers, timeout=3.0)
+            if resp.status_code == 200:
+                self._lmstudio_url = url
+                self._lmstudio_token = token
+                logger.info("MOEBridge: LM Studio detected at %s (GPU primary)", url)
+            else:
+                logger.info("MOEBridge: LM Studio not available, using Ollama")
+        except Exception:
+            logger.info("MOEBridge: LM Studio not reachable, using Ollama")
+
+    async def _lmstudio_generate(
+        self, model: str, prompt: str, system: str = ""
+    ) -> str:
+        """Call LM Studio via OpenAI-compatible chat endpoint (GPU-accelerated)."""
+        import httpx
+
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        headers = {}
+        if self._lmstudio_token:
+            headers["Authorization"] = f"Bearer {self._lmstudio_token}"
+
+        payload = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": self._max_tokens,
+            "temperature": self._temperature,
+        }
+
+        # LM Studio gets longer timeout — GPU inference with larger models
+        lm_timeout = max(self._timeout_s, 60.0)
+        async with httpx.AsyncClient(headers=headers, timeout=lm_timeout) as client:
+            resp = await client.post(
+                f"{self._lmstudio_url}/v1/chat/completions", json=payload
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["choices"][0]["message"]["content"]
 
     async def _ollama_generate(self, model: str, prompt: str, system: str = "") -> str:
         """Call Ollama /api/generate endpoint."""
