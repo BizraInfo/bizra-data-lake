@@ -170,15 +170,15 @@ class InferenceGateway:
         if self.config.require_local:
             print("[Gateway] require_local=True: Trying on-machine backends")
 
-            # 1. Try llama.cpp (fully embedded)
-            llamacpp = LlamaCppBackend(self.config)
-            if await llamacpp.initialize():
-                self._backends[ComputeTier.LOCAL] = llamacpp
-                self._backends[ComputeTier.EDGE] = llamacpp
-                self._active_backend = llamacpp
-                self.status = InferenceStatus.READY
-                print("[Gateway] llama.cpp backend ready (SOVEREIGN MODE)")
-                return True
+            # 1. Try LM Studio first (PRIMARY — RTX 4090, bigger models)
+            if LMSTUDIO_AVAILABLE:
+                lmstudio = LMStudioBackend(self.config)
+                if await lmstudio.initialize():
+                    self._backends[ComputeTier.LOCAL] = lmstudio
+                    self._active_backend = lmstudio
+                    self.status = InferenceStatus.READY
+                    print("[Gateway] LM Studio backend ready (SOVEREIGN MODE)")
+                    return True
 
             # 2. Try Ollama at localhost (sovereign — same machine)
             ollama = OllamaBackend(self.config)
@@ -189,15 +189,15 @@ class InferenceGateway:
                 print("[Gateway] Ollama backend ready (SOVEREIGN MODE)")
                 return True
 
-            # 3. Try LM Studio on WSL gateway (same physical machine)
-            if LMSTUDIO_AVAILABLE:
-                lmstudio = LMStudioBackend(self.config)
-                if await lmstudio.initialize():
-                    self._backends[ComputeTier.LOCAL] = lmstudio
-                    self._active_backend = lmstudio
-                    self.status = InferenceStatus.READY
-                    print("[Gateway] LM Studio backend ready (SOVEREIGN MODE)")
-                    return True
+            # 3. Try llama.cpp (fully embedded, no server needed)
+            llamacpp = LlamaCppBackend(self.config)
+            if await llamacpp.initialize():
+                self._backends[ComputeTier.LOCAL] = llamacpp
+                self._backends[ComputeTier.EDGE] = llamacpp
+                self._active_backend = llamacpp
+                self.status = InferenceStatus.READY
+                print("[Gateway] llama.cpp backend ready (SOVEREIGN MODE)")
+                return True
 
             # Fail-closed: No on-machine backend available
             self.status = InferenceStatus.OFFLINE
