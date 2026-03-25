@@ -5,6 +5,7 @@ import os
 import secrets
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -20,6 +21,22 @@ class MissionBridge:
 
     def __init__(self) -> None:
         self._orch = None
+
+    @staticmethod
+    def _resolve_workspace_root() -> str:
+        configured = (os.environ.get("BIZRA_MISSION_WORKSPACE_ROOT") or "").strip()
+        if configured:
+            return configured
+
+        cwd = Path.cwd().resolve()
+        if (cwd / "core").exists():
+            return str(cwd)
+
+        for candidate in Path(__file__).resolve().parents:
+            if (candidate / "core").exists():
+                return str(candidate)
+
+        return str(cwd)
 
     @staticmethod
     def _enabled() -> bool:
@@ -52,6 +69,7 @@ class MissionBridge:
                         "/tmp/bizra-mission/evidence.jsonl",
                     ),
                     "hda_port": int(os.environ.get("BIZRA_HDA_PORT", "9743")),
+                    "workspace_root": self._resolve_workspace_root(),
                 }
             )
             await self._orch.initialize()

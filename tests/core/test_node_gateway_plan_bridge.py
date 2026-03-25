@@ -17,7 +17,7 @@ if str(_SERVICE_ROOT) not in sys.path:
     sys.path.insert(0, str(_SERVICE_ROOT))
 
 from app import routers  # noqa: E402
-from app.node.mission_bridge import MissionPlan  # noqa: E402
+from app.node.mission_bridge import MissionBridge, MissionPlan  # noqa: E402
 
 
 def _app() -> FastAPI:
@@ -97,3 +97,46 @@ async def test_plan_requires_api_key(monkeypatch):
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post("/v1/plan", json={"text": "hello", "context": {}})
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_plan_cache_miss_skips_persist_below_threshold(monkeypatch):
+    monkeypatch.setenv("BIZRA_API_KEY", "test-api-key")
+    monkeypatch.setenv("BIZRA_REFLEX_MIN_SNR", "0.95")
+    monkeypatch.setattr(routers.cache, "get", lambda _macro: None)
+
+    persisted: dict[str, list[str]] = {}
+
+    def _put(macro_state: str, steps: list[str]) -> None:
+        persisted[macro_state] = steps
+
+    monkeypatch.setattr(routers.cache, "put", _put)
+
+    async def _bridge(_text, _context, macro_state):
+        return MissionPlan(
+            macro_state=macro_state,
+            steps=["Run browser channel (ok)"],
+            snr=0.91,
+            poi_score=0.93,
+        )
+
+    monkeypatch.setattr(routers.mission_bridge, "run", _bridge)
+
+    transport = httpx.ASGITransport(app=_app())
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/v1/plan",
+            json={"text": "research browser bridge", "context": {}},
+            headers={"x-bizra-api-key": "test-api-key"},
+        )
+    assert response.status_code == 200
+    assert persisted == {}
+
+
+def test_mission_bridge_detects_repo_workspace_root(monkeypatch):
+    monkeypatch.delenv("BIZRA_MISSION_WORKSPACE_ROOT", raising=False)
+
+    root = Path(MissionBridge._resolve_workspace_root())
+
+    assert root.exists()
+    assert (root / "core").exists()

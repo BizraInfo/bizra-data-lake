@@ -57,6 +57,16 @@ class Plan(BaseModel):
     poi_score: float
 
 
+def _reflex_min_snr() -> float:
+    raw = (os.environ.get("BIZRA_REFLEX_MIN_SNR") or "").strip()
+    if not raw:
+        return 0.0
+    try:
+        return max(0.0, min(float(raw), 1.0))
+    except ValueError:
+        return 0.0
+
+
 def _require_api_key(x_bizra_api_key: str | None) -> None:
     expected = (os.environ.get("BIZRA_API_KEY") or "").strip()
     if not expected:
@@ -110,7 +120,8 @@ async def plan(
     # 3) Cache miss -> sovereign mission pipeline bridge
     bridge_plan = await mission_bridge.run(obs.text, obs.context, macro_state=macro)
     if bridge_plan is not None:
-        cache.put(macro, bridge_plan.steps)
+        if bridge_plan.snr >= _reflex_min_snr():
+            cache.put(macro, bridge_plan.steps)
         return Plan(
             macro_state=bridge_plan.macro_state,
             steps=bridge_plan.steps,
