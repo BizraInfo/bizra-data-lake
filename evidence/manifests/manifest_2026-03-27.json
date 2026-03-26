@@ -1,0 +1,32 @@
+{
+  "manifest_version": "1.0",
+  "manifest_number": 1,
+  "date": "2026-03-27",
+  "generated_at": "2026-03-26T22:57:36.971199+00:00",
+  "node_id": "NODE0",
+  "previous_manifest_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "summary": {
+    "total_evidence_entries": 21,
+    "missions_today": 3,
+    "missions_today_ids": [
+      "m-000004",
+      "m-000005",
+      "m-000006"
+    ],
+    "missions_today_ihsan": [
+      0.6494,
+      0.6569,
+      0.7083
+    ],
+    "average_ihsan": 0.6715,
+    "heartbeat_status": "degraded",
+    "heartbeat_beat": 26,
+    "rss_mb": 2526.8,
+    "chain_first_hash": "f0a5cb770b8256e2",
+    "chain_last_hash": "a1e906737ccae6f2",
+    "evidence_chain_length": 21,
+    "rewards_withheld": 3,
+    "rewards_reason": "ihsan below 0.95 floor \u2014 constitutional gate working correctly"
+  },
+  "manifest_hash": "83c9846186eb30272f8c3fe4b5bcc6a515ec4e94eaaef4ff2ec60c14709ff84a"
+}
