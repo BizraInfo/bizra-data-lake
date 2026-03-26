@@ -208,7 +208,7 @@ class MissionOrchestrator:
         self._hda_client: HDAClient | None = None
 
         # Optional injected components
-        self.gateway: Any = None  # InferenceGateway for LLM synthesis
+        self.gateway: Any = None  # InferenceGateway / MOEBridge for LLM synthesis
 
         # Crypto (for evidence signing)
         self._signer_private_hex: str | None = None
@@ -304,9 +304,21 @@ class MissionOrchestrator:
                 "EventBus init failed (continuing without): %s", exc, exc_info=True
             )
 
-        # Initialize InferenceGateway (Ollama/LM Studio) — guarded by env var
+        # Initialize MOEBridge (preferred) or InferenceGateway (fallback)
+        # MOEBridge routes through the 12-agent expert ensemble with GPU dispatch
+        try:
+            from core.sovereign.moe_bridge import MOEBridge
+
+            self.gateway = MOEBridge()
+            logger.info("MOEBridge initialized (12-agent expert dispatch)")
+        except (ImportError, ModuleNotFoundError):
+            logger.debug("MOEBridge not available, trying InferenceGateway")
+        except Exception as exc:  # noqa: BLE001 — optional subsystem init
+            logger.warning("MOEBridge init failed: %s", exc)
+
+        # Fallback: InferenceGateway (Ollama/LM Studio) — guarded by env var
         _llm_flag = os.environ.get("BIZRA_ENABLE_LLM", "").lower()
-        if _llm_flag in ("1", "true", "yes"):
+        if self.gateway is None and _llm_flag in ("1", "true", "yes"):
             try:
                 from core.inference.gateway import InferenceConfig, InferenceGateway
 

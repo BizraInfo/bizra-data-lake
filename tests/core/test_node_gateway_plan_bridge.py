@@ -7,12 +7,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-_SERVICE_ROOT = (
-    Path(__file__).resolve().parents[2]
-    / ".tmp_prod_artifacts_v2"
-    / "services"
-    / "node_gateway"
-)
+_SERVICE_ROOT = Path(__file__).resolve().parents[2] / "services" / "node_gateway"
 if str(_SERVICE_ROOT) not in sys.path:
     sys.path.insert(0, str(_SERVICE_ROOT))
 
