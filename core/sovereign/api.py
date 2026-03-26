@@ -2715,6 +2715,27 @@ def create_fastapi_app(runtime: Any) -> Any:
             },
         }
 
+    @app.get(
+        "/v1/health/constitutional",
+        tags=["health"],
+        summary="Constitutional Membrane Network invariant status",
+    )
+    async def health_constitutional():
+        """CMN invariant check — validates S∧M∧Z∧R constitutional properties.
+
+        Returns the four invariants (Sovereignty, Membrane, Zann Zero, Riba Zero),
+        composite Ihsan score, and the BLAKE3-chained health receipt hash.
+        """
+        cmn = getattr(runtime, "_cmn_runtime", None)
+        if cmn is None:
+            return {
+                "status": "not_initialized",
+                "invariants": {},
+                "ihsan_score": 0.0,
+                "message": "CMN runtime not booted",
+            }
+        return cmn.constitutional_health()
+
     @app.get("/v1/health", tags=["health"])
     async def health():
         """Terminal read model for Dashboard and Settings surfaces."""

@@ -2233,6 +2233,25 @@ class SovereignRuntime:
         # Omega Point Integration
         await self._init_omega_components()
 
+        # CMN Runtime — Constitutional Membrane Network invariant harness
+        try:
+            from core.sovereign.cmn_runtime import CMNRuntime
+
+            seed_ledger = getattr(self, "_seed_ledger_path", None)
+            self._cmn_runtime = CMNRuntime(
+                data_dir=self.config.data_dir,
+                node_id=self.config.node_id,
+                seed_ledger_path=seed_ledger,
+            )
+            cmn_report = self._cmn_runtime.boot()
+            ok_count = sum(1 for v in cmn_report.values() if v == "ok")
+            self.logger.info(
+                "CMN runtime booted: %d/%d components ok", ok_count, len(cmn_report)
+            )
+        except Exception as exc:
+            self._cmn_runtime = None
+            self.logger.warning("CMN runtime unavailable: %s", exc)
+
         # TRUE SPEARPOINT: Wire InferenceGateway into GraphOfThoughts post-hoc.
         # GoT is initialized before the gateway (which lives in omega components),
         # so we inject the gateway after both are ready.
