@@ -434,9 +434,11 @@ def _check_existing_daemon() -> bool:
     try:
         old_pid = int(PID_FILE.read_text(encoding="utf-8").strip())
     except (ValueError, OSError):
+        # Corrupt PID file — remove and allow startup
+        PID_FILE.unlink(missing_ok=True)
         return False
 
-    # Check if process is alive (Windows-compatible)
+    # Check if process is alive AND is actually a kernel_daemon
     if sys.platform == "win32":
         import ctypes
 
@@ -447,12 +449,32 @@ def _check_existing_daemon() -> bool:
         if handle:
             kernel32.CloseHandle(handle)
             return True
+        # Stale PID — clean up
+        PID_FILE.unlink(missing_ok=True)
+        log.info("Cleaned stale PID file (Windows PID %d not found)", old_pid)
         return False
     else:
         try:
             os.kill(old_pid, 0)
-            return True
+            # PID exists — verify it's actually kernel_daemon (not recycled PID)
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ["ps", "-p", str(old_pid), "-o", "args="],
+                    capture_output=True, text=True, timeout=3,
+                )
+                if "kernel_daemon" in result.stdout:
+                    return True
+                # PID recycled to a different process — stale
+                PID_FILE.unlink(missing_ok=True)
+                log.info("Cleaned stale PID file (PID %d is not kernel_daemon)", old_pid)
+                return False
+            except Exception:
+                return True  # Can't verify — assume running (safe default)
         except OSError:
+            # Process doesn't exist — stale PID
+            PID_FILE.unlink(missing_ok=True)
+            log.info("Cleaned stale PID file (PID %d not running)", old_pid)
             return False
 
 
@@ -1682,7 +1704,7 @@ _heartbeat_history: deque[dict[str, Any]] = deque(maxlen=120)  # 1 hour at 30s
 
 # Anomaly thresholds — reflex arc triggers
 _ANOMALY_ERROR_RATE = 0.05  # > 5% error rate
-_ANOMALY_P95_LATENCY_MS = 5000.0  # > 5s p95
+_ANOMALY_P95_LATENCY_MS = 60000.0  # > 60s p95 (local Ollama inference: 13-38s is normal)
 _ANOMALY_RSS_GROWTH_MB = 3000.0  # > 3.0 GB growth (GOLD cache ~1.1 GB + FAISS ~0.5 GB + encoder ~0.4 GB + runtime)
 _ANOMALY_MISSED_BACKENDS = 1  # any backend down
 
