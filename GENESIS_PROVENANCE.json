@@ -1,15 +1,98 @@
 {
   "title": "BIZRA Genesis Provenance Chain",
   "description": "Hash-chained temporal proof of 3-year development (Ramadan 2023-2026)",
-  "generated": "2026-03-26T05:25:59.416339",
-  "chain_length": 1,
-  "chain_root": "ae80ef0e152dd9cc30915429e118252c",
-  "chain_tip": "ae80ef0e152dd9cc30915429e118252c",
+  "generated": "2026-03-26T06:08:28.141923",
+  "chain_length": 11,
+  "chain_root": "8bfeef4927fa9ad9a2e5da84f9d075c9",
+  "chain_tip": "295a403730698665c5c5d785680aced7",
   "entries": [
     {
-      "note": "Drive not mounted. Run on NODE0 with G:\\ accessible.",
-      "hash": "ae80ef0e152dd9cc30915429e118252c",
+      "folder": ".conda",
+      "created": "2024-02-15T18:12:05.160000",
+      "modified": "2024-02-15T18:12:05.160000",
+      "file_count": 3976,
+      "hash": "8bfeef4927fa9ad9a2e5da84f9d075c9",
       "prev_hash": "00000000000000000000000000000000"
+    },
+    {
+      "folder": ".git",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 1788,
+      "hash": "04791cc9e82130a311f879862942b2f6",
+      "prev_hash": "8bfeef4927fa9ad9a2e5da84f9d075c9"
+    },
+    {
+      "folder": ".ipynb_checkpoints",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 235,
+      "hash": "6676410b643cd662bbb5ee87c8c1d1b2",
+      "prev_hash": "04791cc9e82130a311f879862942b2f6"
+    },
+    {
+      "folder": ".mypy_cache",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 2,
+      "hash": "883d596779b8ded0aa14c521b5845f55",
+      "prev_hash": "6676410b643cd662bbb5ee87c8c1d1b2"
+    },
+    {
+      "folder": ".vscode",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 0,
+      "hash": "badb0ef37e5978e5d65574090705734e",
+      "prev_hash": "883d596779b8ded0aa14c521b5845f55"
+    },
+    {
+      "folder": "2023-12-23-conversations",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 95,
+      "hash": "c24668c62e2ddd1e0a0a898ffda76e89",
+      "prev_hash": "badb0ef37e5978e5d65574090705734e"
+    },
+    {
+      "folder": "2023-12-25-conversations",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 1,
+      "hash": "4c470146d097405433f8599b381193ae",
+      "prev_hash": "c24668c62e2ddd1e0a0a898ffda76e89"
+    },
+    {
+      "folder": "Bizra_Blockchain_System",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 2,
+      "hash": "c6f56b08fe485acedbea6296e87ab3ba",
+      "prev_hash": "4c470146d097405433f8599b381193ae"
+    },
+    {
+      "folder": "Data_Strategy",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 0,
+      "hash": "4e9f07f18177cc333c85edf2f32744aa",
+      "prev_hash": "c6f56b08fe485acedbea6296e87ab3ba"
+    },
+    {
+      "folder": "md files",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 22,
+      "hash": "eb1b671fa2dcd6efd6f357b577ff3273",
+      "prev_hash": "4e9f07f18177cc333c85edf2f32744aa"
+    },
+    {
+      "folder": "my work",
+      "created": "2024-02-15T18:12:03.267000",
+      "modified": "2024-02-15T18:12:03.267000",
+      "file_count": 128,
+      "hash": "295a403730698665c5c5d785680aced7",
+      "prev_hash": "eb1b671fa2dcd6efd6f357b577ff3273"
     }
   ]
 }
