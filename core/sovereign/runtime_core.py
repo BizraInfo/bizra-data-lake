@@ -683,7 +683,10 @@ class SovereignRuntime:
             return
 
         try:
-            from core.autopoiesis.loop import AutopoiesisConfig, AutopoieticLoop
+            from core.autopoiesis.loop_engine import (
+                ActivationGuardrails,
+                AutopoieticLoop,
+            )
 
             node0_learning_loop = (
                 getattr(self._node0, "_learning_loop", None)
@@ -711,13 +714,21 @@ class SovereignRuntime:
             if learning_loop is not None and hasattr(learning_loop, "on_candidate"):
                 on_integration = getattr(learning_loop, "on_candidate")
 
-            loop_config = AutopoiesisConfig(
-                ihsan_threshold=self.config.ihsan_threshold,
-                snr_threshold=self.config.snr_threshold,
-                cycle_interval_seconds=self.config.autopoiesis_cycle_seconds,
+            z3_fate_gate = getattr(self._fate_gate, "_z3_gate", None)
+            guardrails = ActivationGuardrails(
+                require_live_sensors=True,
+                allow_mock_sensors=False,
+                require_fate_gate=True,
+                allow_mock_fate_gate=not self._canonical_mode,
+                min_ihsan_score=self.config.ihsan_threshold,
+                min_snr_score=self.config.snr_threshold,
             )
             self._autopoietic_loop = AutopoieticLoop(
-                config=loop_config,
+                fate_gate=z3_fate_gate,
+                ihsan_floor=self.config.ihsan_threshold,
+                snr_floor=self.config.snr_threshold,
+                cycle_interval_s=self.config.autopoiesis_cycle_seconds,
+                activation_guardrails=guardrails,
                 on_integration=on_integration,
             )
             self._learning_loop = learning_loop

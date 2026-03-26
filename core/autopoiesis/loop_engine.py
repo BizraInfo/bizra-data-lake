@@ -34,7 +34,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Deque, Optional
+from types import SimpleNamespace
+from typing import Any, Callable, Deque, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -726,6 +727,7 @@ class AutopoieticLoop:
         audit_log_path: Optional[Path] = None,
         sensor_hub: Optional[Any] = None,
         activation_guardrails: Optional[ActivationGuardrails] = None,
+        on_integration: Optional[Callable[[Any], bool]] = None,
     ):
         """
         Initialize the autopoietic loop.
@@ -751,6 +753,7 @@ class AutopoieticLoop:
         self._activated = False
         self._activation_report: Optional[ActivationReport] = None
         self._activation_failures: int = 0
+        self._on_integration = on_integration
 
         # Internal components
         self._rate_limiter = RateLimiter(
@@ -773,6 +776,7 @@ class AutopoieticLoop:
         self._hypothesis_history: list[Hypothesis] = []
         self._audit_log: list[AuditLogEntry] = []
         self._cycle_results: Deque[AutopoieticResult] = deque(maxlen=50)
+        self._receipt_history: Deque[dict[str, Any]] = deque(maxlen=128)
 
         # Audit log persistence
         self._audit_log_path = (
@@ -847,6 +851,7 @@ class AutopoieticLoop:
             guard.require_live_sensors
             and self._is_mock_sensor_hub()
             and not guard.allow_mock_sensors
+            and len(self._receipt_history) < guard.min_observations
         ):
             reasons.append("mock_sensor_hub_detected")
 
@@ -857,10 +862,15 @@ class AutopoieticLoop:
         ):
             reasons.append("mock_fate_gate_detected")
 
-        observation = await self.observe()
-        if observation is None:
-            reasons.append("observation_failed")
-            return ActivationReport(activated=False, reasons=reasons)
+        needed_observations = max(
+            1, guard.min_observations - len(self._observation_history)
+        )
+        observation: Optional[SystemObservation] = None
+        for _ in range(needed_observations):
+            observation = await self.observe()
+            if observation is None:
+                reasons.append("observation_failed")
+                return ActivationReport(activated=False, reasons=reasons)
 
         if len(self._observation_history) < guard.min_observations:
             reasons.append(
@@ -1069,7 +1079,7 @@ class AutopoieticLoop:
                 return self._finalize_result(result, start_time)
 
             # Phase 5: INTEGRATE
-            integration = await self.integrate(implementation)
+            integration = await self.integrate(implementation, best_hypothesis)
             result.integration_result = integration
             result.state = AutopoieticState.INTEGRATING
 
@@ -1132,12 +1142,17 @@ class AutopoieticLoop:
 
             # Extract metrics from readings
             metrics = self._extract_metrics_from_readings(readings)
+            receipt_summary = self._summarize_receipt_window()
+            if receipt_summary["count"] > 0:
+                metrics = self._merge_receipt_metrics(metrics, receipt_summary)
 
             # Detect trends
-            trend = self._detect_trend()
+            trend = self._detect_trend(receipt_summary=receipt_summary)
 
             # Detect anomalies
             anomalies = self._detect_anomalies(metrics)
+            if receipt_summary["trend"] == "degrading":
+                anomalies.append("receipt_degradation")
 
             observation = SystemObservation(
                 observation_id=observation_id,
@@ -1155,9 +1170,7 @@ class AutopoieticLoop:
                 constitutional_compliance=metrics.get("constitutional_compliance", 1.0),
                 trend_direction=trend,
                 anomalies_detected=anomalies,
-                sensor_readings=(
-                    {r.sensor_id: r.value for r in readings} if readings else {}
-                ),
+                sensor_readings=self._build_sensor_snapshot(readings, receipt_summary),
             )
 
             self._observation_history.append(observation)
@@ -1518,7 +1531,11 @@ class AutopoieticLoop:
                 rollback_reason=str(e),
             )
 
-    async def integrate(self, result: ImplementationResult) -> IntegrationResult:
+    async def integrate(
+        self,
+        result: ImplementationResult,
+        hypothesis: Optional[Hypothesis] = None,
+    ) -> IntegrationResult:
         """
         INTEGRATE phase: Learn from outcome and consolidate.
 
@@ -1579,6 +1596,12 @@ class AutopoieticLoop:
             f"improvement={result.improvement_observed:.1%}, pattern={pattern_id}"
         )
 
+        self._emit_integration_candidate(
+            integration_result=integration_result,
+            implementation_result=result,
+            hypothesis=hypothesis,
+        )
+
         return integration_result
 
     # =========================================================================
@@ -1595,6 +1618,172 @@ class AutopoieticLoop:
 
         return max(hypotheses, key=score)
 
+    @staticmethod
+    def _coerce_float(value: Any) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
+
+    @staticmethod
+    def _coerce_bool(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() not in {"", "0", "false", "no"}
+        return bool(value)
+
+    def record_receipt_observation(
+        self,
+        receipt: dict[str, Any],
+        *,
+        receipt_kind: str = "mission",
+    ) -> None:
+        """Record runtime mission/heartbeat receipts as real observation input."""
+        ihsan = self._coerce_float(
+            receipt.get("ihsan_score", receipt.get("ihsan_composite", 0.0))
+        )
+        snr = self._coerce_float(receipt.get("snr_score", ihsan))
+        latency_ms = self._coerce_float(receipt.get("duration_ms", 0.0))
+
+        if receipt_kind == "heartbeat":
+            success = (
+                self._coerce_bool(receipt.get("gini_ok", True))
+                and ihsan >= self.ihsan_floor
+            )
+        else:
+            success = (
+                self._coerce_bool(receipt.get("gate_passed", True))
+                and str(receipt.get("fate_verdict", "approved")) != "rejected"
+                and ihsan >= self.ihsan_floor
+            )
+
+        self._receipt_history.append(
+            {
+                "kind": receipt_kind,
+                "timestamp": datetime.now(timezone.utc),
+                "ihsan_score": ihsan,
+                "snr_score": snr,
+                "latency_ms": latency_ms,
+                "success": success,
+                "mission_id": str(receipt.get("mission_id", "")),
+                "tick_number": int(receipt.get("tick_number", 0) or 0),
+                "approved_count": int(receipt.get("approved_count", 0) or 0),
+                "rejected_count": int(receipt.get("rejected_count", 0) or 0),
+                "missions_processed": int(receipt.get("missions_processed", 0) or 0),
+                "reflexes_precipitated": int(
+                    receipt.get("reflexes_precipitated", 0) or 0
+                ),
+            }
+        )
+
+    def _summarize_receipt_window(self) -> dict[str, Any]:
+        """Summarize recent runtime receipts into an observation window."""
+        if not self._receipt_history:
+            return {
+                "count": 0,
+                "mission_count": 0,
+                "heartbeat_count": 0,
+                "avg_ihsan": 0.0,
+                "avg_snr": 0.0,
+                "avg_latency_ms": 0.0,
+                "p50_latency_ms": 0.0,
+                "p99_latency_ms": 0.0,
+                "success_rate": 1.0,
+                "throughput_qps": 0.0,
+                "trend": "unknown",
+            }
+
+        window = list(self._receipt_history)[-16:]
+        mission_count = sum(1 for item in window if item["kind"] == "mission")
+        heartbeat_count = len(window) - mission_count
+        avg_ihsan = sum(item["ihsan_score"] for item in window) / len(window)
+        avg_snr = sum(item["snr_score"] for item in window) / len(window)
+        latencies = sorted(item["latency_ms"] for item in window)
+        avg_latency = sum(latencies) / len(latencies)
+        success_rate = sum(1 for item in window if item["success"]) / len(window)
+
+        trend = "stable"
+        if len(window) >= 4:
+            midpoint = len(window) // 2
+            older = window[:midpoint]
+            newer = window[midpoint:]
+            older_ihsan = sum(item["ihsan_score"] for item in older) / len(older)
+            newer_ihsan = sum(item["ihsan_score"] for item in newer) / len(newer)
+            delta = newer_ihsan - older_ihsan
+            if delta > 0.01:
+                trend = "improving"
+            elif delta < -0.01:
+                trend = "degrading"
+
+        throughput_qps = 0.0
+        if len(window) >= 2:
+            span_s = max(
+                1e-6,
+                (window[-1]["timestamp"] - window[0]["timestamp"]).total_seconds(),
+            )
+            throughput_qps = len(window) / span_s
+
+        return {
+            "count": len(window),
+            "mission_count": mission_count,
+            "heartbeat_count": heartbeat_count,
+            "avg_ihsan": round(avg_ihsan, 4),
+            "avg_snr": round(avg_snr, 4),
+            "avg_latency_ms": round(avg_latency, 2),
+            "p50_latency_ms": round(self._percentile(latencies, 0.50), 2),
+            "p99_latency_ms": round(self._percentile(latencies, 0.99), 2),
+            "success_rate": round(success_rate, 4),
+            "throughput_qps": round(throughput_qps, 4),
+            "trend": trend,
+        }
+
+    @staticmethod
+    def _percentile(values: list[float], quantile: float) -> float:
+        if not values:
+            return 0.0
+        if len(values) == 1:
+            return values[0]
+        idx = max(0, min(len(values) - 1, round((len(values) - 1) * quantile)))
+        return values[idx]
+
+    def _merge_receipt_metrics(
+        self,
+        metrics: dict[str, Any],
+        receipt_summary: dict[str, Any],
+    ) -> dict[str, Any]:
+        merged = dict(metrics)
+        merged["ihsan_score"] = receipt_summary["avg_ihsan"]
+        merged["snr_score"] = receipt_summary["avg_snr"]
+        merged["latency_p50_ms"] = receipt_summary["p50_latency_ms"]
+        merged["latency_p99_ms"] = receipt_summary["p99_latency_ms"]
+        merged["error_rate"] = max(0.0, 1.0 - receipt_summary["success_rate"])
+        if receipt_summary["throughput_qps"] > 0:
+            merged["throughput_qps"] = receipt_summary["throughput_qps"]
+        merged["constitutional_compliance"] = min(
+            float(merged.get("constitutional_compliance", 1.0)),
+            receipt_summary["success_rate"],
+        )
+        return merged
+
+    def _build_sensor_snapshot(
+        self,
+        readings: list[Any],
+        receipt_summary: dict[str, Any],
+    ) -> dict[str, Any]:
+        snapshot: dict[str, Any] = {}
+        for reading in readings or []:
+            sensor_id = str(getattr(reading, "sensor_id", "") or "unknown")
+            snapshot[sensor_id] = {
+                "value": self._coerce_float(getattr(reading, "value", 0.0)),
+                "metric_name": str(getattr(reading, "metric_name", "") or ""),
+                "snr_score": self._coerce_float(getattr(reading, "snr_score", 0.0)),
+                "metadata": getattr(reading, "metadata", {}) or {},
+            }
+        if receipt_summary["count"] > 0:
+            snapshot["runtime_receipts"] = receipt_summary
+        return snapshot
+
     def _extract_metrics_from_readings(self, readings: list[Any]) -> dict[str, Any]:
         """Extract metrics from sensor readings."""
         metrics = {
@@ -1610,26 +1799,83 @@ class AutopoieticLoop:
             "agent_performance": {},
         }
 
-        if readings:
-            for reading in readings:
-                sensor_id = getattr(reading, "sensor_id", "")
-                value = getattr(reading, "value", 0)
+        if not readings:
+            return metrics
 
-                if "ihsan" in sensor_id.lower():
-                    metrics["ihsan_score"] = value
-                elif "snr" in sensor_id.lower():
-                    metrics["snr_score"] = value
-                elif "latency" in sensor_id.lower():
-                    metrics["latency_p50_ms"] = value
-                elif "cpu" in sensor_id.lower():
+        ihsan_values: list[float] = []
+        snr_values: list[float] = []
+        latency_values: list[float] = []
+        compliance_values: list[float] = []
+
+        for reading in readings:
+            sensor_id = str(getattr(reading, "sensor_id", "") or "")
+            metric_name = str(getattr(reading, "metric_name", "") or "")
+            metadata = getattr(reading, "metadata", {}) or {}
+            candidates: dict[str, Any] = {
+                metric_name: getattr(reading, "value", 0.0),
+            }
+            if isinstance(metadata, dict):
+                candidates.update(metadata)
+
+            for key, raw_value in candidates.items():
+                value = self._coerce_float(raw_value)
+                key_lower = str(key).lower()
+                if "ihsan" in key_lower:
+                    ihsan_values.append(value)
+                elif "snr" in key_lower:
+                    snr_values.append(value)
+                elif "latency" in key_lower:
+                    latency_values.append(value)
+                elif "cpu" in key_lower:
                     metrics["cpu_usage"] = value
-                elif "memory" in sensor_id.lower():
+                elif "memory" in key_lower:
                     metrics["memory_usage"] = value
+                elif key_lower in {
+                    "completion_rate",
+                    "success_rate",
+                    "coherence_score",
+                }:
+                    metrics["agent_performance"][key] = value
+                    if "success" in key_lower:
+                        metrics["error_rate"] = max(0.0, 1.0 - value)
+                elif key_lower in {
+                    "adl_compliance",
+                    "boundary_adherence",
+                    "ethics_score",
+                }:
+                    compliance_values.append(value)
+
+            sensor_lower = sensor_id.lower()
+            reading_snr = self._coerce_float(getattr(reading, "snr_score", 0.0))
+            if "snr" in sensor_lower and reading_snr > 0:
+                snr_values.append(reading_snr)
+            if "ihsan" in sensor_lower and getattr(reading, "value", None) is not None:
+                ihsan_values.append(self._coerce_float(getattr(reading, "value", 0.0)))
+
+        if ihsan_values:
+            metrics["ihsan_score"] = sum(ihsan_values) / len(ihsan_values)
+        if snr_values:
+            metrics["snr_score"] = sum(snr_values) / len(snr_values)
+        if latency_values:
+            sorted_latencies = sorted(latency_values)
+            metrics["latency_p50_ms"] = self._percentile(sorted_latencies, 0.50)
+            metrics["latency_p99_ms"] = self._percentile(sorted_latencies, 0.99)
+        if compliance_values:
+            metrics["constitutional_compliance"] = min(compliance_values)
+        elif ihsan_values:
+            metrics["constitutional_compliance"] = min(ihsan_values)
 
         return metrics
 
-    def _detect_trend(self) -> str:
+    def _detect_trend(self, receipt_summary: Optional[dict[str, Any]] = None) -> str:
         """Detect trend from observation history."""
+        if (
+            receipt_summary is not None
+            and receipt_summary.get("count", 0) >= 4
+            and receipt_summary.get("trend") not in {"unknown", ""}
+        ):
+            return str(receipt_summary["trend"])
+
         if len(self._observation_history) < 3:
             return "stable"
 
@@ -1701,6 +1947,72 @@ class AutopoieticLoop:
             )
         else:
             logger.debug(f"Cycle {result.cycle_id} completed with no changes")
+
+    def _emit_integration_candidate(
+        self,
+        *,
+        integration_result: IntegrationResult,
+        implementation_result: ImplementationResult,
+        hypothesis: Optional[Hypothesis],
+    ) -> None:
+        """Forward measured integrations to the learning loop when available."""
+        if self._on_integration is None or not integration_result.integrated:
+            return
+        if implementation_result.shadow_metrics.get("_simulated"):
+            return
+        if implementation_result.improvement_observed <= 0:
+            return
+
+        try:
+            from core.autopoiesis.loop import IntegrationCandidate
+
+            genome_id = (
+                hypothesis.id
+                if hypothesis is not None
+                else integration_result.hypothesis_id
+            )
+            description = (
+                hypothesis.description
+                if hypothesis is not None
+                else "Autopoietic improvement"
+            )
+            reasoning_steps = []
+            if hypothesis is not None:
+                reasoning_steps = [
+                    str(change.get("action", "update"))
+                    for change in hypothesis.required_changes
+                ]
+            genome = SimpleNamespace(
+                genome_id=genome_id,
+                snr_score=implementation_result.shadow_metrics.get(
+                    "snr_score", self.snr_floor
+                ),
+                task_description=description,
+                task_output=json.dumps(
+                    implementation_result.shadow_metrics,
+                    sort_keys=True,
+                ),
+                reasoning_steps=reasoning_steps,
+                improvement_suggestions=(
+                    [hypothesis.description] if hypothesis is not None else []
+                ),
+            )
+            candidate = IntegrationCandidate(
+                genome=genome,
+                fitness=max(
+                    implementation_result.shadow_metrics.get("ihsan_score", 0.0),
+                    implementation_result.shadow_metrics.get("snr_score", 0.0),
+                ),
+                novelty_score=min(1.0, implementation_result.improvement_observed),
+                ihsan_score=implementation_result.shadow_metrics.get(
+                    "ihsan_score", self.ihsan_floor
+                ),
+                recommendation=integration_result.lesson_learned,
+                approved=True,
+            )
+            self._on_integration(candidate)
+        except Exception:  # noqa: BLE001 — optional bridge must never block loop
+            logger.debug("Learning-loop integration bridge skipped", exc_info=True)
 
     def _log_audit_entry(
         self,
@@ -1831,6 +2143,7 @@ class AutopoieticLoop:
                 if self._last_improvement_time
                 else None
             ),
+            "receipt_observations": self._summarize_receipt_window(),
             "pending_approvals": len(self._approval_queue.get_pending()),
             "observation_history_size": len(self._observation_history),
             "audit_log_size": len(self._audit_log),

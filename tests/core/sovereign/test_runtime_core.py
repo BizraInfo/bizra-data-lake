@@ -2439,8 +2439,21 @@ class TestAutopoiesisLifecycle:
         captured: dict[str, Any] = {}
 
         class _FakeAutopoieticLoop:
-            def __init__(self, config: object, on_integration: object = None) -> None:
-                captured["config"] = config
+            def __init__(
+                self,
+                *,
+                fate_gate: object = None,
+                ihsan_floor: float = 0.0,
+                snr_floor: float = 0.0,
+                cycle_interval_s: float = 0.0,
+                activation_guardrails: object = None,
+                on_integration: object = None,
+            ) -> None:
+                captured["fate_gate"] = fate_gate
+                captured["ihsan_floor"] = ihsan_floor
+                captured["snr_floor"] = snr_floor
+                captured["cycle_interval_s"] = cycle_interval_s
+                captured["activation_guardrails"] = activation_guardrails
                 captured["on_integration"] = on_integration
 
             async def start(self) -> None:
@@ -2452,13 +2465,21 @@ class TestAutopoiesisLifecycle:
             def get_status(self) -> dict[str, Any]:
                 return {"running": False}
 
-        with patch("core.autopoiesis.loop.AutopoieticLoop", _FakeAutopoieticLoop):
+        with patch(
+            "core.autopoiesis.loop_engine.AutopoieticLoop",
+            _FakeAutopoieticLoop,
+        ):
             rt._init_autopoiesis_stack()
 
         assert rt._learning_loop is node0_learning_loop
         assert rt._autopoiesis_learning_source == "node0_shared"
         assert captured["on_integration"] is node0_learning_loop.on_candidate
-        assert captured["config"].cycle_interval_seconds == pytest.approx(17.5)
+        assert captured["cycle_interval_s"] == pytest.approx(17.5)
+        assert captured["ihsan_floor"] == pytest.approx(rt.config.ihsan_threshold)
+        assert captured["snr_floor"] == pytest.approx(rt.config.snr_threshold)
+        assert captured["activation_guardrails"].min_ihsan_score == pytest.approx(
+            rt.config.ihsan_threshold
+        )
 
     def test_status_includes_autopoiesis_details(self, rt: SovereignRuntime) -> None:
         rt.config.enable_autopoiesis = True

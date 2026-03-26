@@ -441,6 +441,86 @@ class TestAutopoieticLoop:
         assert len(loop._observation_history) == 1
 
     @pytest.mark.asyncio
+    async def test_check_activation_bootstraps_required_observations(
+        self, temp_audit_log
+    ):
+        """Activation should self-bootstrap instead of deadlocking on min_observations."""
+        loop = AutopoieticLoop(
+            fate_gate=MockFATEGate(),
+            sensor_hub=MockSensorHub(),
+            ihsan_floor=UNIFIED_IHSAN_THRESHOLD,
+            snr_floor=UNIFIED_SNR_THRESHOLD,
+            cycle_interval_s=1.0,
+            audit_log_path=temp_audit_log,
+            activation_guardrails=ActivationGuardrails(
+                enabled=True,
+                require_live_sensors=False,
+                allow_mock_sensors=True,
+                require_fate_gate=False,
+                min_observations=3,
+            ),
+        )
+
+        report = await loop.check_activation()
+
+        assert report.activated is True
+        assert len(loop._observation_history) >= 3
+        assert report.observation is not None
+
+    @pytest.mark.asyncio
+    async def test_observe_uses_runtime_receipt_window_as_ground_truth(self, loop):
+        """Runtime receipts should steer the observation instead of placeholder defaults."""
+        loop.record_receipt_observation(
+            {
+                "mission_id": "mission-001",
+                "ihsan_score": 0.98,
+                "snr_score": 0.96,
+                "duration_ms": 10.0,
+                "gate_passed": True,
+                "fate_verdict": "approved",
+            }
+        )
+        loop.record_receipt_observation(
+            {
+                "mission_id": "mission-002",
+                "ihsan_score": 0.82,
+                "snr_score": 0.8,
+                "duration_ms": 40.0,
+                "gate_passed": False,
+                "fate_verdict": "rejected",
+            }
+        )
+        loop.record_receipt_observation(
+            {
+                "mission_id": "mission-003",
+                "ihsan_score": 0.78,
+                "snr_score": 0.76,
+                "duration_ms": 55.0,
+                "gate_passed": False,
+                "fate_verdict": "rejected",
+            }
+        )
+        loop.record_receipt_observation(
+            {
+                "mission_id": "mission-004",
+                "ihsan_score": 0.76,
+                "snr_score": 0.74,
+                "duration_ms": 65.0,
+                "gate_passed": False,
+                "fate_verdict": "rejected",
+            }
+        )
+
+        observation = await loop.observe()
+
+        assert observation is not None
+        assert observation.ihsan_score == pytest.approx((0.98 + 0.82 + 0.78 + 0.76) / 4)
+        assert observation.error_rate == pytest.approx(0.75)
+        assert observation.latency_p99_ms == pytest.approx(65.0)
+        assert observation.trend_direction == "degrading"
+        assert "receipt_degradation" in observation.anomalies_detected
+
+    @pytest.mark.asyncio
     async def test_hypothesize_generates_candidates(self, loop):
         """Test hypothesize generates improvement candidates."""
         # Create observation with issues to trigger hypothesis generation
