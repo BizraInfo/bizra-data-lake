@@ -12,6 +12,7 @@ import asyncio
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -541,6 +542,73 @@ class TestAutopoieticLoop:
 
         assert len(hypotheses) >= 1
         assert all(isinstance(h, Hypothesis) for h in hypotheses)
+
+    @pytest.mark.asyncio
+    async def test_hypothesize_enriches_with_got_and_standing_on_giants(self, loop):
+        """Advanced hypothesis generation should carry GoT traces and provenance."""
+
+        class _FakeExploredHypothesis:
+            def __init__(self) -> None:
+                self.hypothesis = SimpleNamespace(
+                    id="got_hyp_001",
+                    category=SimpleNamespace(value="quality"),
+                    description="Fuse graph reasoning with SNR-first verification",
+                    predicted_improvement={"snr_score_delta": 0.09},
+                    risk_level=SimpleNamespace(value="low"),
+                    implementation_plan=[
+                        "Use Graph-of-Thoughts to compare rival repair paths",
+                        "Rank candidate repairs by SNR before validation",
+                    ],
+                    rollback_plan=["Revert to heuristic-only ranking"],
+                    ihsan_impact=0.04,
+                )
+                self.confidence = 0.91
+                self.snr_score = 0.96
+                self.exploration_path = [
+                    SimpleNamespace(content="Compare multiple disciplinary paths"),
+                    SimpleNamespace(content="Prefer the highest-SNR reversible repair"),
+                ]
+
+            def expected_value(self) -> float:
+                return 0.18
+
+        class _FakeExplorer:
+            async def explore_hypotheses(self, **_: object):
+                return [_FakeExploredHypothesis()]
+
+        loop._get_or_create_hypothesis_generator = lambda: object()
+        loop._get_or_create_got_explorer = lambda: _FakeExplorer()
+
+        observation = SystemObservation(
+            observation_id="obs_got",
+            timestamp=datetime.now(timezone.utc),
+            ihsan_score=0.93,
+            snr_score=0.81,
+            latency_p50_ms=15.0,
+            latency_p99_ms=180.0,
+            error_rate=0.04,
+            throughput_qps=12.0,
+            cpu_usage=0.55,
+            memory_usage=0.72,
+            trend_direction="degrading",
+            anomalies_detected=["receipt_degradation"],
+        )
+
+        hypotheses = await loop.hypothesize(observation)
+
+        got_hypothesis = next(
+            h
+            for h in hypotheses
+            if h.description == "Fuse graph reasoning with SNR-first verification"
+        )
+        assert (
+            "Besta et al. (2024) — Graph-of-Thoughts"
+            in got_hypothesis.standing_on_giants
+        )
+        assert "graph reasoning" in " ".join(got_hypothesis.interdisciplinary_lenses)
+        assert (
+            got_hypothesis.reasoning_trace[0] == "Compare multiple disciplinary paths"
+        )
 
     @pytest.mark.asyncio
     async def test_validate_checks_constraints(self, loop):

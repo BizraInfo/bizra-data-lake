@@ -212,6 +212,9 @@ class Hypothesis:
     source_observation_id: Optional[str] = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     confidence: float = 0.5
+    standing_on_giants: list[str] = field(default_factory=list)
+    interdisciplinary_lenses: list[str] = field(default_factory=list)
+    reasoning_trace: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         # Auto-require human approval for high-risk or structural changes
@@ -231,6 +234,9 @@ class Hypothesis:
             "snr_impact_estimate": self.snr_impact_estimate,
             "requires_approval": self.requires_human_approval,
             "confidence": self.confidence,
+            "standing_on_giants": self.standing_on_giants,
+            "interdisciplinary_lenses": self.interdisciplinary_lenses,
+            "reasoning_trace": self.reasoning_trace,
             "created_at": self.created_at.isoformat(),
         }
 
@@ -754,6 +760,8 @@ class AutopoieticLoop:
         self._activation_report: Optional[ActivationReport] = None
         self._activation_failures: int = 0
         self._on_integration = on_integration
+        self._hypothesis_generator: Optional[Any] = None
+        self._got_explorer: Optional[Any] = None
 
         # Internal components
         self._rate_limiter = RateLimiter(
@@ -1194,16 +1202,44 @@ class AutopoieticLoop:
             list of hypotheses ordered by potential impact
         """
         self._state = AutopoieticState.HYPOTHESIZING
+        hypotheses = self._generate_heuristic_hypotheses(observation)
+
+        if self._should_use_interdisciplinary_reasoning(observation):
+            try:
+                hypotheses.extend(
+                    await self._generate_interdisciplinary_hypotheses(observation)
+                )
+            except Exception as e:  # noqa: BLE001 — optional advanced path
+                logger.warning(
+                    "Interdisciplinary GoT hypothesis generation failed: %s",
+                    e,
+                )
+
+        hypotheses = self._dedupe_and_rank_hypotheses(hypotheses)
+
+        # Store hypotheses for history
+        self._hypothesis_history.extend(hypotheses)
+
+        logger.info(
+            f"Generated {len(hypotheses)} hypotheses from observation {observation.observation_id}"
+        )
+
+        return hypotheses
+
+    def _generate_heuristic_hypotheses(
+        self,
+        observation: SystemObservation,
+    ) -> list[Hypothesis]:
+        """Fast-path heuristic hypotheses for common degradation patterns."""
         hypotheses: list[Hypothesis] = []
 
-        # Performance hypotheses based on latency
         if observation.latency_p99_ms > 100:
             hypotheses.append(
-                Hypothesis(
+                self._build_hypothesis(
                     id=f"hyp_{uuid.uuid4().hex[:8]}",
                     description="Optimize inference batching to reduce P99 latency",
                     category=HypothesisCategory.PERFORMANCE,
-                    predicted_improvement=0.15,  # 15% improvement
+                    predicted_improvement=0.15,
                     required_changes=[
                         {
                             "component": "inference.gateway",
@@ -1227,10 +1263,9 @@ class AutopoieticLoop:
                 )
             )
 
-        # Quality hypotheses based on SNR
         if observation.snr_score < 0.92:
             hypotheses.append(
-                Hypothesis(
+                self._build_hypothesis(
                     id=f"hyp_{uuid.uuid4().hex[:8]}",
                     description="Increase SNR filtering threshold for embeddings",
                     category=HypothesisCategory.QUALITY,
@@ -1258,10 +1293,9 @@ class AutopoieticLoop:
                 )
             )
 
-        # Efficiency hypotheses based on resource usage
         if observation.memory_usage > 0.8:
             hypotheses.append(
-                Hypothesis(
+                self._build_hypothesis(
                     id=f"hyp_{uuid.uuid4().hex[:8]}",
                     description="Enable aggressive cache eviction to reduce memory pressure",
                     category=HypothesisCategory.EFFICIENCY,
@@ -1281,17 +1315,16 @@ class AutopoieticLoop:
                         "parameter": "eviction_policy",
                         "restore_value": "lru_standard",
                     },
-                    ihsan_impact_estimate=-0.01,  # Slight quality impact
+                    ihsan_impact_estimate=-0.01,
                     snr_impact_estimate=0.0,
                     source_observation_id=observation.observation_id,
                     confidence=0.6,
                 )
             )
 
-        # Error rate hypotheses
         if observation.error_rate > 0.02:
             hypotheses.append(
-                Hypothesis(
+                self._build_hypothesis(
                     id=f"hyp_{uuid.uuid4().hex[:8]}",
                     description="Add retry logic with exponential backoff for transient failures",
                     category=HypothesisCategory.ROBUSTNESS,
@@ -1318,14 +1351,327 @@ class AutopoieticLoop:
                 )
             )
 
-        # Store hypotheses for history
-        self._hypothesis_history.extend(hypotheses)
+        return hypotheses
 
-        logger.info(
-            f"Generated {len(hypotheses)} hypotheses from observation {observation.observation_id}"
+    def _build_hypothesis(self, **kwargs: Any) -> Hypothesis:
+        """Create a hypothesis with provenance defaults applied."""
+        hypothesis = Hypothesis(**kwargs)
+        if not hypothesis.standing_on_giants:
+            hypothesis.standing_on_giants = self._default_giants_for_category(
+                hypothesis.category
+            )
+        if not hypothesis.interdisciplinary_lenses:
+            hypothesis.interdisciplinary_lenses = self._default_lenses_for_category(
+                hypothesis.category
+            )
+        if not hypothesis.reasoning_trace:
+            hypothesis.reasoning_trace = [
+                "observe runtime truth",
+                "maximize signal over noise",
+                "prefer reversible improvement",
+                "preserve constitutional safety",
+            ]
+        return hypothesis
+
+    def _should_use_interdisciplinary_reasoning(
+        self,
+        observation: SystemObservation,
+    ) -> bool:
+        """Reserve the heavier GoT path for real pressure or ambiguity."""
+        return bool(
+            observation.latency_p99_ms > 120
+            or observation.error_rate > 0.02
+            or observation.ihsan_score < self.ihsan_floor + 0.01
+            or observation.snr_score < self.snr_floor + 0.03
+            or observation.memory_usage > 0.8
+            or observation.trend_direction == "degrading"
+            or observation.anomalies_detected
         )
 
-        return hypotheses
+    async def _generate_interdisciplinary_hypotheses(
+        self,
+        observation: SystemObservation,
+    ) -> list[Hypothesis]:
+        """Run the advanced interdisciplinary + GoT exploration path."""
+        generator_observation = self._to_generator_observation(observation)
+        hypothesis_generator = self._get_or_create_hypothesis_generator()
+        explorer = self._get_or_create_got_explorer()
+
+        explored = await explorer.explore_hypotheses(
+            observation=generator_observation,
+            num_paths=3,
+            hypothesis_generator=hypothesis_generator,
+        )
+
+        return [
+            self._convert_explored_hypothesis(exp_hyp, observation)
+            for exp_hyp in explored
+        ]
+
+    def _get_or_create_hypothesis_generator(self) -> Any:
+        if self._hypothesis_generator is None:
+            from core.autopoiesis.hypothesis_generator import HypothesisGenerator
+
+            memory_path = self._audit_log_path.parent / "autopoiesis_hypothesis_memory"
+            self._hypothesis_generator = HypothesisGenerator(
+                memory_path=memory_path,
+                ihsan_threshold=self.ihsan_floor,
+                snr_threshold=self.snr_floor,
+            )
+        return self._hypothesis_generator
+
+    def _get_or_create_got_explorer(self) -> Any:
+        if self._got_explorer is None:
+            from core.autopoiesis.got_integration import GoTHypothesisExplorer
+            from core.sovereign.runtime_engines.got_bridge import GoTBridge
+
+            self._got_explorer = GoTHypothesisExplorer(
+                got_bridge=GoTBridge(use_rust=True),
+                ihsan_threshold=self.ihsan_floor,
+                snr_threshold=self.snr_floor,
+            )
+        return self._got_explorer
+
+    def _to_generator_observation(self, observation: SystemObservation) -> Any:
+        """Convert runtime observation into the richer hypothesis-generator schema."""
+        from core.autopoiesis.hypothesis_generator import SystemObservation as GenObs
+
+        quality_trend = 0.0
+        if observation.trend_direction == "improving":
+            quality_trend = 0.2
+        elif observation.trend_direction == "degrading":
+            quality_trend = -0.2
+
+        error_trend = 0.0
+        if "receipt_degradation" in observation.anomalies_detected:
+            error_trend = 0.25
+
+        metadata = dict(observation.sensor_readings)
+        metadata["standing_on_giants"] = [
+            "Maturana & Varela (1972) — autopoiesis",
+            "Besta et al. (2024) — Graph-of-Thoughts",
+            "Shannon (1948) — SNR",
+            "Anthropic (2022) — constitutional AI",
+        ]
+
+        return GenObs(
+            avg_latency_ms=observation.latency_p50_ms,
+            p95_latency_ms=observation.latency_p99_ms,
+            p99_latency_ms=observation.latency_p99_ms,
+            throughput_rps=observation.throughput_qps,
+            cache_hit_rate=metadata.get("cache_hit_rate", 0.0),
+            ihsan_score=observation.ihsan_score,
+            snr_score=observation.snr_score,
+            error_rate=observation.error_rate,
+            verification_failure_rate=metadata.get("verification_failure_rate", 0.0),
+            cpu_percent=observation.cpu_usage * 100,
+            memory_percent=observation.memory_usage * 100,
+            gpu_percent=(observation.gpu_usage or 0.0) * 100,
+            token_usage_avg=metadata.get("token_usage_avg", 0.0),
+            batch_utilization=metadata.get("batch_utilization", 0.0),
+            skill_coverage=metadata.get("skill_coverage", 0.0),
+            pattern_recognition_accuracy=metadata.get(
+                "pattern_recognition_accuracy", 0.0
+            ),
+            tool_success_rate=metadata.get("tool_success_rate", 0.0),
+            uptime_percent=metadata.get("uptime_percent", 100.0),
+            recovery_time_avg_ms=metadata.get("recovery_time_avg_ms", 0.0),
+            retry_rate=metadata.get("retry_rate", observation.error_rate),
+            circuit_breaker_trips=int(metadata.get("circuit_breaker_trips", 0) or 0),
+            latency_trend=quality_trend,
+            quality_trend=quality_trend,
+            efficiency_trend=-0.2 if observation.memory_usage > 0.8 else 0.0,
+            error_trend=error_trend,
+            observation_window_seconds=self.cycle_interval_s,
+            sample_count=max(1, len(self._receipt_history)),
+            metadata=metadata,
+        )
+
+    def _convert_explored_hypothesis(
+        self,
+        explored: Any,
+        observation: SystemObservation,
+    ) -> Hypothesis:
+        """Map GoT/hypothesis-generator output into the governed loop contract."""
+        predicted_values = (
+            getattr(explored.hypothesis, "predicted_improvement", {}) or {}
+        )
+        numeric_improvements = [
+            self._coerce_float(value) for value in predicted_values.values()
+        ]
+        expected_value = max(0.0, self._coerce_float(explored.expected_value()))
+        predicted_improvement = min(
+            0.35,
+            max([0.02, expected_value, *numeric_improvements]),
+        )
+
+        category = self._map_generator_category(explored.hypothesis.category)
+        description = getattr(explored.hypothesis, "description", "GoT improvement")
+        components = self._infer_components_for_category(category)
+        implementation_plan = list(
+            getattr(explored.hypothesis, "implementation_plan", []) or []
+        )
+        rollback_plan = list(getattr(explored.hypothesis, "rollback_plan", []) or [])
+        reasoning_trace = [
+            getattr(node, "content", "")
+            for node in getattr(explored, "exploration_path", [])[:6]
+            if getattr(node, "content", "")
+        ]
+
+        return self._build_hypothesis(
+            id=str(getattr(explored.hypothesis, "id", f"hyp_{uuid.uuid4().hex[:8]}")),
+            description=description,
+            category=category,
+            predicted_improvement=predicted_improvement,
+            required_changes=[
+                {
+                    "component": components[0] if components else "autopoiesis",
+                    "action": "apply_step",
+                    "detail": step,
+                    "source": "standing_on_giants_protocol",
+                }
+                for step in implementation_plan
+            ]
+            or [
+                {
+                    "component": components[0] if components else "autopoiesis",
+                    "action": "refine",
+                    "detail": description,
+                    "source": "standing_on_giants_protocol",
+                }
+            ],
+            affected_components=components,
+            risk_level=self._map_generator_risk(explored.hypothesis.risk_level),
+            reversibility_plan={
+                "strategy": "guided_rollback",
+                "steps": rollback_plan or ["restore_previous_configuration"],
+            },
+            ihsan_impact_estimate=max(
+                -0.1,
+                min(0.1, self._coerce_float(explored.hypothesis.ihsan_impact)),
+            ),
+            snr_impact_estimate=max(
+                0.0,
+                min(
+                    0.1,
+                    self._coerce_float(getattr(explored, "snr_score", 0.0))
+                    - self.snr_floor,
+                ),
+            ),
+            source_observation_id=observation.observation_id,
+            confidence=max(
+                0.5,
+                min(0.95, self._coerce_float(getattr(explored, "confidence", 0.7))),
+            ),
+            standing_on_giants=self._default_giants_for_category(category),
+            interdisciplinary_lenses=self._default_lenses_for_category(category),
+            reasoning_trace=reasoning_trace,
+        )
+
+    def _map_generator_category(self, category: Any) -> HypothesisCategory:
+        value = str(getattr(category, "value", category)).lower()
+        mapping = {
+            "performance": HypothesisCategory.PERFORMANCE,
+            "quality": HypothesisCategory.QUALITY,
+            "efficiency": HypothesisCategory.EFFICIENCY,
+            "capability": HypothesisCategory.CAPABILITY,
+            "resilience": HypothesisCategory.ROBUSTNESS,
+            "robustness": HypothesisCategory.ROBUSTNESS,
+        }
+        return mapping.get(value, HypothesisCategory.CAPABILITY)
+
+    def _map_generator_risk(self, risk_level: Any) -> RiskLevel:
+        value = str(getattr(risk_level, "value", risk_level)).lower()
+        mapping = {
+            "low": RiskLevel.LOW,
+            "medium": RiskLevel.MODERATE,
+            "high": RiskLevel.HIGH,
+        }
+        return mapping.get(value, RiskLevel.MODERATE)
+
+    def _infer_components_for_category(
+        self,
+        category: HypothesisCategory,
+    ) -> list[str]:
+        mapping = {
+            HypothesisCategory.PERFORMANCE: ["inference.gateway"],
+            HypothesisCategory.QUALITY: ["vector_engine"],
+            HypothesisCategory.EFFICIENCY: ["cache_manager"],
+            HypothesisCategory.CAPABILITY: ["reasoning.graph"],
+            HypothesisCategory.ROBUSTNESS: ["http_client"],
+            HypothesisCategory.STRUCTURAL: ["autopoiesis"],
+        }
+        return list(mapping.get(category, ["autopoiesis"]))
+
+    def _default_giants_for_category(
+        self,
+        category: HypothesisCategory,
+    ) -> list[str]:
+        base = [
+            "Maturana & Varela (1972) — autopoiesis",
+            "Besta et al. (2024) — Graph-of-Thoughts",
+            "Shannon (1948) — signal over noise",
+            "Deming (1986) — continuous improvement",
+        ]
+        category_specific = {
+            HypothesisCategory.PERFORMANCE: ["Amdahl (1967) — parallel speedup"],
+            HypothesisCategory.QUALITY: ["Anthropic (2022) — constitutional AI"],
+            HypothesisCategory.EFFICIENCY: ["Knuth (1974) — measured optimization"],
+            HypothesisCategory.CAPABILITY: ["Newell & Simon (1972) — heuristic search"],
+            HypothesisCategory.ROBUSTNESS: [
+                "Saltzer & Schroeder (1975) — fail-safe defaults"
+            ],
+            HypothesisCategory.STRUCTURAL: [
+                "Lamport (1978) — dependable distributed systems"
+            ],
+        }
+        return base + category_specific.get(category, [])
+
+    def _default_lenses_for_category(
+        self,
+        category: HypothesisCategory,
+    ) -> list[str]:
+        base = ["systems theory", "information theory", "control theory"]
+        category_specific = {
+            HypothesisCategory.PERFORMANCE: ["performance engineering"],
+            HypothesisCategory.QUALITY: [
+                "epistemology",
+                "constitutional governance",
+                "graph reasoning",
+            ],
+            HypothesisCategory.EFFICIENCY: ["resource economics"],
+            HypothesisCategory.CAPABILITY: ["cognitive science", "graph reasoning"],
+            HypothesisCategory.ROBUSTNESS: ["resilience engineering"],
+            HypothesisCategory.STRUCTURAL: ["architecture"],
+        }
+        return base + category_specific.get(category, [])
+
+    def _dedupe_and_rank_hypotheses(
+        self,
+        hypotheses: list[Hypothesis],
+    ) -> list[Hypothesis]:
+        """Deduplicate near-identical ideas and keep the strongest signal."""
+        best_by_key: dict[tuple[str, str], Hypothesis] = {}
+        for hypothesis in hypotheses:
+            key = (hypothesis.category.value, hypothesis.description.strip().lower())
+            current = best_by_key.get(key)
+            if current is None or self._hypothesis_priority(
+                hypothesis
+            ) > self._hypothesis_priority(current):
+                best_by_key[key] = hypothesis
+        return sorted(
+            best_by_key.values(),
+            key=self._hypothesis_priority,
+            reverse=True,
+        )
+
+    def _hypothesis_priority(self, hypothesis: Hypothesis) -> float:
+        return (
+            hypothesis.predicted_improvement * max(hypothesis.confidence, 0.1)
+            + hypothesis.snr_impact_estimate
+            + max(hypothesis.ihsan_impact_estimate, 0.0)
+            - (hypothesis.risk_level.value * 0.03)
+        )
 
     async def validate(self, hypothesis: Hypothesis) -> ValidationResult:
         """

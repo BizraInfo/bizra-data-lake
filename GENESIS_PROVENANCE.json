@@ -1,0 +1,15 @@
+{
+  "title": "BIZRA Genesis Provenance Chain",
+  "description": "Hash-chained temporal proof of 3-year development (Ramadan 2023-2026)",
+  "generated": "2026-03-26T05:25:59.416339",
+  "chain_length": 1,
+  "chain_root": "ae80ef0e152dd9cc30915429e118252c",
+  "chain_tip": "ae80ef0e152dd9cc30915429e118252c",
+  "entries": [
+    {
+      "note": "Drive not mounted. Run on NODE0 with G:\\ accessible.",
+      "hash": "ae80ef0e152dd9cc30915429e118252c",
+      "prev_hash": "00000000000000000000000000000000"
+    }
+  ]
+}
