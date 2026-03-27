@@ -1870,6 +1870,40 @@ def _heartbeat_loop(
                 len(backends),
             )
 
+        # Auto-generate daily manifest (check every ~50 min = 100 beats)
+        if beat_count % 100 == 0:
+            try:
+                from datetime import date as _date
+
+                today = _date.today().isoformat()
+                manifest_path = STATE_DIR / "manifests" / f"manifest_{today}.json"
+                if not manifest_path.exists():
+                    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+                    import hashlib as _hashlib
+                    import json as _json
+
+                    manifest = {
+                        "manifest_version": "1.0",
+                        "date": today,
+                        "generated_at": datetime.now(timezone.utc).isoformat(),
+                        "node_id": "NODE0",
+                        "summary": {
+                            "heartbeat_count": beat_count,
+                            "health": health_state,
+                            "rss_mb": rss_mb,
+                            "uptime_s": heartbeat["uptime_s"],
+                            "auto_generated": True,
+                        },
+                    }
+                    content = _json.dumps(manifest, sort_keys=True)
+                    manifest["manifest_hash"] = _hashlib.blake2b(
+                        content.encode(), digest_size=32
+                    ).hexdigest()
+                    manifest_path.write_text(_json.dumps(manifest, indent=2))
+                    log.info("Auto-generated daily manifest: %s", manifest_path.name)
+            except Exception:
+                pass  # Manifest generation must never crash the heartbeat
+
     log.info("Heartbeat thread stopped after %d beats", beat_count)
 
 
