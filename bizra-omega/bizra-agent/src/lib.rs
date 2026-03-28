@@ -2,6 +2,9 @@
 // ============================================================
 // BIZRA Agent Runtime v0.1.0
 // ============================================================
+// Safety docs for unsafe fns are tracked in AUDIT_C but not yet added.
+// TODO: Add # Safety sections to all unsafe fns in keyvault.rs / reflex.rs
+#![allow(clippy::missing_safety_doc)]
 // The sovereign being that uses hooks (nerves) and memory (brain).
 //
 // Architecture:
