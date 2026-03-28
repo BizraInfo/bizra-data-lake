@@ -22,11 +22,12 @@
 
 /// Canonical layer — domain-separated hashing, chain integrity, 5 invariants.
 pub mod canonical;
-pub mod golden_vector;
 /// Constitutional governance — Ihsan thresholds, SNR rules, enforcement policies.
 pub mod constitution;
 /// Genesis primitives — BLAKE3 hashing, cryptographic manifests, execution receipts.
 pub mod genesis;
+/// Golden Vector — cross-language sealing test (Rust/Python digest parity).
+pub mod golden_vector;
 /// Node identity — Ed25519 key management, domain-separated signing.
 pub mod identity;
 /// Islamic finance protocol — Zakat, Mudarabah, Musharakah, Waqf, Shariah compliance.
