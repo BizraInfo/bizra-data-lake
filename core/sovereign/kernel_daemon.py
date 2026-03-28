@@ -1704,7 +1704,7 @@ _heartbeat_history: deque[dict[str, Any]] = deque(maxlen=120)  # 1 hour at 30s
 
 # Anomaly thresholds — reflex arc triggers
 _ANOMALY_ERROR_RATE = 0.05  # > 5% error rate
-_ANOMALY_P95_LATENCY_MS = 60000.0  # > 60s p95 (local Ollama inference: 13-38s is normal)
+_ANOMALY_P95_LATENCY_MS = 180000.0  # > 180s p95 (Ollama cold-start: 130s; warm: 13-38s)
 _ANOMALY_RSS_GROWTH_MB = 3000.0  # > 3.0 GB growth (GOLD cache ~1.1 GB + FAISS ~0.5 GB + encoder ~0.4 GB + runtime)
 _ANOMALY_MISSED_BACKENDS = 1  # any backend down
 
