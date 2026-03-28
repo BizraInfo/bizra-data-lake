@@ -25,12 +25,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml ./
 COPY core/ core/
 
-# Create isolated virtual environment and install dependencies
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir ".[full]"
+# Create isolated virtual environment and install dependencies in one RUN
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/venv/bin/pip install --no-cache-dir ".[full]"
 
 # =============================================================================
 # Stage 2: Runtime — minimal production image
@@ -39,7 +37,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # CUDA variant available via Dockerfile.gpu when GPU inference needed.
 FROM python:3.12-slim-bookworm AS runtime
 
-# Install runtime dependencies only
+# Install runtime dependencies only and cleanup in single layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libpq5 \
@@ -52,31 +50,31 @@ LABEL org.opencontainers.image.version="1.1.0"
 LABEL org.opencontainers.image.vendor="BIZRA"
 LABEL org.opencontainers.image.source="https://github.com/BizraInfo/bizra-data-lake"
 
-# Create non-root user
-RUN useradd --create-home --shell /bin/bash bizra
+# Create non-root user (nologin shell for security)
+RUN useradd --create-home --shell /usr/sbin/nologin bizra
 
 WORKDIR /app
 
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+# Copy virtual environment from builder with correct ownership
+COPY --from=builder --chown=bizra:bizra /opt/venv /opt/venv
 
-# Copy application code
+# Copy application code with correct ownership
 COPY --chown=bizra:bizra core/ core/
 COPY --chown=bizra:bizra pyproject.toml ./
 
 # Copy static data assets (Sci-Reasoning patterns for RDVE)
 COPY --chown=bizra:bizra data/sci_reasoning/ data/sci_reasoning/
 
-# Create data directories
-RUN mkdir -p 00_INTAKE 01_RAW 02_PROCESSED 03_INDEXED 04_GOLD 99_QUARANTINE \
-    && chown -R bizra:bizra /app
+# Create data directories and set permissions in single RUN
+RUN mkdir -p 00_INTAKE 01_RAW 02_PROCESSED 03_INDEXED 04_GOLD 99_QUARANTINE && \
+    chown -R bizra:bizra /app
 
 # Switch to non-root user
 USER bizra
 
 # Environment variables — no secrets, only operational config
-ENV PYTHONUNBUFFERED=1 \
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     BIZRA_ENV=production \
     SNR_THRESHOLD=0.85 \

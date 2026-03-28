@@ -1,157 +1,124 @@
 # Contributing to BIZRA
 
-Thank you for your interest in contributing to BIZRA. Every contribution matters.
+BIZRA is a proof-native constitutional intelligence system. We welcome contributions that strengthen the integrity and clarity of the system.
 
-## Getting Started
+## Prerequisites
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Make your changes
-4. Run tests and linters (see below)
-5. Submit a pull request
+- Rust nightly (latest stable also supported for non-core work)
+- Python 3.11 or later
+- Node 20 or later
+- Git
 
-## Development Setup
+## Building and Testing
 
-### Python
+### Rust Workspace
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# .venv\Scripts\activate   # Windows
-pip install -e ".[dev]"
+cargo test --workspace
 ```
 
-### Rust
+All 1,016 tests must pass. Clippy and `cargo fmt` must pass with no warnings.
 
 ```bash
-cd bizra-omega
-cargo build --workspace
-cargo test --workspace
+cargo fmt --check
+cargo clippy --workspace -- -D warnings
+```
+
+### Python Suite
+
+```bash
+pytest
+```
+
+All tests must pass. Code must conform to ruff and black standards.
+
+```bash
+ruff check .
+black --check .
+isort --check .
 ```
 
 ## Code Standards
 
-### Quality Thresholds
+Every claim in the codebase must carry a truth label. These are non-negotiable:
 
-All code must satisfy constitutional constraints defined in `core/integration/constants.py`:
+- `[ENFORCEMENT: PROVEN]` — Claim is verified by test, proof, or artifact. No exceptions.
+- `[ENFORCEMENT: WIRED]` — Claim is enforced by invariant, type system, or guard. Cannot fail without code change.
+- `[OPTIMIZATION: PARTIAL]` — Claim is heuristic, not guaranteed. Side effects possible.
+- `[OPTIMIZATION: PLANNED]` — Claim is aspirational. Not yet implemented.
 
-| Threshold | Value | Purpose |
-|-----------|-------|---------|
-| Ihsan (Excellence) | >= 0.95 | Minimum quality for any output |
-| SNR (Signal Quality) | >= 0.85 | Information quality filter |
-| ADL (Justice) Gini | <= 0.40 | Resource distribution fairness |
+Every function, module, and architectural boundary must declare its truth status in its docstring or comment.
 
-### Linting (Python)
-
-CI enforces all of these on `core/`:
-
-```bash
-ruff check core/                           # Fast linter (primary)
-black --check core/                        # Formatting
-isort --check-only core/                   # Import order
-mypy core/ --ignore-missing-imports        # Type checking
+Example:
+```rust
+/// Returns claim confidence.
+/// [ENFORCEMENT: PROVEN] — always returns value in [0.0, 1.0]
+fn confidence(&self) -> f64 { ... }
 ```
 
-### Linting (Rust)
+## Constitutional Constraints
 
-```bash
-cd bizra-omega
-cargo fmt --all -- --check                 # Formatting
-cargo clippy --workspace --all-targets -- -D warnings  # Zero warnings
-```
+All code must respect these invariants:
 
-### Style
+- **Ihsān >= 0.95** — Ethical floor. No claim can stand if it violates ethical bounds.
+- **SNR >= 0.85** — Signal-to-noise ratio. Code must be verifiable and clear.
+- **ADL Gini <= 0.35** — Inequality constraint. System design must not concentrate power or knowledge asymmetrically.
 
-- **Python**: Black formatter, isort for imports, ruff for linting
-- **Rust**: `cargo fmt` and `cargo clippy` (zero warnings enforced)
-- **Commits**: Conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `ci:`)
+Violations are non-negotiable rejections.
 
-### Security
+## Pull Request Requirements
 
-- Never hardcode secrets or API keys
-- Use environment variables for all credentials
-- Validate all external input
-- No `eval()` or equivalent
+1. **Tests must pass.** All Rust and Python tests pass locally before pushing.
+2. **No new broad except handlers.** Exceptions must be specific. Never catch all.
+3. **AI-assisted code must be labeled.** If you used Claude, ChatGPT, or similar, mark it:
+   ```
+   // AI-assisted: Claude 3.5 Sonnet (2025-03-27)
+   ```
+4. **Documentation must pass the Daughter Test.** Can a non-technical family member understand the intent? Use plain language.
+5. **No emojis in code or docs.** Professional tone throughout.
 
-## Testing
+## The Daughter Test
 
-### Run Tests Before Submitting
+Before submitting a PR with docs or public APIs, ask: "Would my teenage daughter understand what this does and why it matters?" If not, rewrite it.
 
-```bash
-# Python — fast local gate (recommended before every commit)
-pytest -q tests/core/sovereign/test_runtime_types.py --capture=no
-pytest -q tests/core/proof_engine/test_receipt.py --capture=no
-pytest -q tests/core/sovereign/test_api_metrics.py --capture=no
-
-# Python — full suite (exclude GPU/network tests)
-pytest tests/ -m "not requires_ollama and not requires_gpu and not slow"
-
-# Rust
-cd bizra-omega && cargo test --workspace
-```
-
-### Test Markers
-
-| Marker | Description |
-|--------|-------------|
-| `@pytest.mark.slow` | Long-running tests (>30s) |
-| `@pytest.mark.integration` | Requires external services |
-| `@pytest.mark.requires_ollama` | Requires Ollama running |
-| `@pytest.mark.requires_gpu` | Requires CUDA GPU |
-| `@pytest.mark.requires_network` | Requires internet access |
-
-See [docs/TESTING.md](docs/TESTING.md) for full testing guide.
-
-## Pull Request Process
-
-1. Ensure all tests pass locally
-2. Run `ruff check core/` and `black --check core/` with no errors
-3. Update documentation if you changed behavior, contracts, or APIs
-4. Add test coverage for new features
-5. One approval required for merge
-
-### PR Checklist
-
-- [ ] Tests pass: `pytest tests/ -m "not slow"`
-- [ ] Linters pass: `ruff check core/ && black --check core/`
-- [ ] Docs updated (if contract-sensitive change)
-- [ ] No secrets or credentials in diff
-- [ ] Commit messages follow conventional format
-
-## Documentation Quality Gate
-
-Documentation quality is enforced in CI by `.github/workflows/docs-quality.yml`.
-
-Before opening a PR, run:
-
-```bash
-python scripts/ci_docs_quality.py
-```
-
-Expectations:
-
-- Contract-sensitive changes (`core/sovereign/`, `core/proof_engine/`, `core/pci/`, `deploy/`, etc.) must include documentation updates in the same PR.
-- Canonical documentation entrypoint is [docs/README.md](docs/README.md).
-- Operational and validation guidance must stay current in:
-  - [docs/OPERATIONS_RUNBOOK.md](docs/OPERATIONS_RUNBOOK.md)
-  - [docs/TESTING.md](docs/TESTING.md)
-
-## Branch Naming
-
-- `feature/` — New features
-- `fix/` — Bug fixes
-- `docs/` — Documentation only
-- `refactor/` — Code restructuring
-- `ci/` — CI/CD changes
-
-## Reporting Issues
-
-Use GitHub Issues with clear reproduction steps and expected vs actual behavior.
+This is not about simplification. It is about clarity and honesty.
 
 ## Code of Conduct
 
-See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+BIZRA is guided by Ihsān principles:
 
-## License
+- Act with integrity. Your reputation is your only currency.
+- Honor intellectual lineage. Cite the Giants.
+- Respect those who came before. Every line of code sits on centuries of thought.
+- Disagreement is welcome. Dishonesty is not.
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+## Giants Registry
+
+When you use an idea from the Giants Registry, cite it inline. This is not bureaucracy. This is reverence.
+
+Format:
+```
+// Ibn Khaldun (1377): wealth concentration dynamics
+// See: GIANTS.md — Khaldunian Curve, ADL Gini constraint
+```
+
+## Getting Help
+
+- Read GIANTS.md for intellectual context.
+- Read METRICS_CANONICAL.md to understand current system state.
+- Ask questions in issues before starting large work.
+
+## Release Gate
+
+Releases require:
+
+- CR (Coverage Ratio) = 1.0000
+- SR (Stability Ratio) = 1.0000
+- CV (Code Validation) = 1.0000
+- G (Giants Lineage) = 1.0000
+
+No exceptions.
+
+---
+
+Thank you for strengthening the proof.

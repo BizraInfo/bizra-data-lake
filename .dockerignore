@@ -1,110 +1,78 @@
-# BIZRA .dockerignore — Minimize build context
-# Without this, Docker sends 40GB+ (Rust target/, .venv, data dirs)
-
-# ═══════════════════════════════════════════════════════════════════
-# Rust build artifacts (42GB+)
-# ═══════════════════════════════════════════════════════════════════
-bizra-omega/target/
-*.rs.bk
-
-# ═══════════════════════════════════════════════════════════════════
-# Python virtual environments
-# ═══════════════════════════════════════════════════════════════════
-.venv/
-.venv-linux/
-venv/
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-dist/
-build/
-*.egg
-
-# ═══════════════════════════════════════════════════════════════════
-# Data pipeline directories (large, runtime-generated)
-# ═══════════════════════════════════════════════════════════════════
-00_INTAKE/
-01_RAW/
-02_PROCESSED/
-03_INDEXED/
-04_GOLD/
-99_QUARANTINE/
-
-# ═══════════════════════════════════════════════════════════════════
-# Extracted/temporary data
-# ═══════════════════════════════════════════════════════════════════
-_unzipped_files/
-_unzipped_spearpoint/
-out/
-
-# ═══════════════════════════════════════════════════════════════════
-# Version control
-# ═══════════════════════════════════════════════════════════════════
-.git/
+# Git and version control
+.git
 .gitignore
 .gitattributes
 
-# ═══════════════════════════════════════════════════════════════════
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
 # IDE and editor files
-# ═══════════════════════════════════════════════════════════════════
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
 
-# ═══════════════════════════════════════════════════════════════════
-# CI/CD and tooling (not needed in container)
-# ═══════════════════════════════════════════════════════════════════
-.github/
-.claude/
-.claude-flow/
-.proof-forge/
-.bizra-kernel/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-coverage.xml
-htmlcov/
-
-# ═══════════════════════════════════════════════════════════════════
-# Documentation (not needed in runtime)
-# ═══════════════════════════════════════════════════════════════════
+# Documentation
 docs/
 *.md
-!pyproject.toml
-LICENSE
+!README.md
 
-# ═══════════════════════════════════════════════════════════════════
-# Logs and temporary files
-# ═══════════════════════════════════════════════════════════════════
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker (avoid recursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Development/testing
+tests/
+.pytest/
+coverage/
+.mypy_cache/
 *.log
-*.tmp
-*.bak
-*.backup
 
-# ═══════════════════════════════════════════════════════════════════
-# Secrets (NEVER include)
-# ═══════════════════════════════════════════════════════════════════
-.env
+# OS files
+Thumbs.db
+.DS_Store
 .env.local
-.env.production
-*.pem
-*.key
-sovereign_state/
+.env.*.local
 
-# ═══════════════════════════════════════════════════════════════════
-# External/vendored projects
-# ═══════════════════════════════════════════════════════════════════
-personaplex/
-xtr-warp/
+# Data/cache directories that shouldn't be shipped
+*.cache
+*.tmp
 node_modules/
-
-# ═══════════════════════════════════════════════════════════════════
-# Test fixtures and reports (included separately for test images)
-# ═══════════════════════════════════════════════════════════════════
-junit-*.xml
-*.sarif
-bandit-report.json

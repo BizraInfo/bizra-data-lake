@@ -2,7 +2,7 @@
 
 # BIZRA
 
-**Sovereign Agentic Infrastructure for the Next Internet**
+**Proof-Native Constitutional Intelligence**
 
 <br>
 
@@ -20,7 +20,7 @@
 
 <br>
 
-BIZRA is a decentralized agentic system where every human is a node, every node is sovereign, and every action is ethically constrained. Built on **Proof-Carrying Inference**, **FATE gates**, and **constitutional AI governance**.
+BIZRA is a proof-native constitutional intelligence system in which sovereign local agency acts through a fail-closed membrane, emits receipted evidence for all externally visible effects, uses frozen ethical anchors and claim admissibility to bound reasoning, and improves recursively through a local N=1 flywheel before any network-scale amplification.
 
 [Architecture](#architecture) | [Quick Start](#quick-start) | [Documentation](#documentation) | [Contributing](CONTRIBUTING.md)
 
