@@ -226,6 +226,7 @@ impl ReceiptChain {
 
     /// Append a new receipt and return it. The receipt's `previous_hash` is set
     /// to the current `head_hash` before the new hash is computed. [VERIFIED]
+    #[allow(clippy::too_many_arguments)]
     pub fn record(
         &mut self,
         action_id: ActionId,
