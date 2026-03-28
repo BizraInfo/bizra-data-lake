@@ -1,0 +1,30 @@
+{
+  "manifest_version": "1.0",
+  "manifest_number": 3,
+  "date": "2026-03-29",
+  "generated_at": "2026-03-28T21:25:52.421604+00:00",
+  "node_id": "NODE0",
+  "previous_manifest_hash": "b6f1de6d400496e6cff06b01f1a9fc17c9647e9b850bd5de91c3d2ae4d6b151f",
+  "summary": {
+    "total_evidence_entries": 21,
+    "missions_today": 3,
+    "missions_today_ids": [
+      "m-000001",
+      "m-000002",
+      "m-000003"
+    ],
+    "missions_today_ihsan": [
+      0.6334,
+      0.6944,
+      0.6897
+    ],
+    "average_ihsan": 0.6725,
+    "heartbeat_status": "degraded",
+    "heartbeat_beat": 24,
+    "rss_mb": 2501.2,
+    "evidence_chain_length": 21,
+    "rewards_withheld": 3,
+    "rewards_reason": "ihsan below 0.95 floor"
+  },
+  "manifest_hash": "8928b00edc2231ce0e35d9d4261fa9fa1e721b42a28994cc01614f1acf069556"
+}

@@ -59,10 +59,16 @@ There is **ONE shared Universal Resource Pool (URP).**
 | Run 3 missions | ✅ | m-000004 (0.6494), m-000005 (0.6569), m-000006 (0.7083) |
 | Generate Manifest #1 | ✅ | manifest_2026-03-27.json, hash: 83c9846186eb3027... |
 
-### Day 1 — 28 March 2026
+### Day 1 — 28 March 2026 ✅ AUTO-GENERATED
 
-- [ ] Run ≥ 3 missions
-- [ ] Generate Manifest #2 (chained to #1)
+| Step | Status | Evidence |
+|------|--------|----------|
+| Kernel autonomy | ✅ | 800 heartbeats, 6.67 hours, zero anomalies |
+| Manifest #2 | ✅ | Auto-generated at beat 800, hash: b6f1de6d... |
+| Docker WSL fix | ✅ | wsl --shutdown + wsl -d Ubuntu restart |
+| day_runner.bat | ✅ | One-click Day Runner for remaining days |
+
+- [ ] Run ≥ 3 missions with day_runner.bat
 - [ ] Submit CMN_DEFINITIVE.pdf to arXiv
 
 ### Day 2–6
