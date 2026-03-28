@@ -76,7 +76,10 @@ pub fn compute_golden_digest() -> [u8; 32] {
 
 /// Compute and return the golden vector hex digest.
 pub fn golden_digest_hex() -> String {
-    hex::encode(compute_golden_digest())
+    compute_golden_digest()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 #[cfg(test)]
