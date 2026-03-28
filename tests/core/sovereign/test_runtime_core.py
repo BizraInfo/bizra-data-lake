@@ -881,7 +881,7 @@ class TestCommitExperienceEpisode:
         # Verify graph_hash computed from thoughts (BLAKE3, SEC-001)
         from core.proof_engine.canonical import hex_digest
 
-        expected_hash = hex_digest("thought1|thought2".encode("utf-8"))
+        expected_hash = hex_digest(b"thought1|thought2")
         assert call_kwargs.kwargs["graph_hash"] == expected_hash
         assert call_kwargs.kwargs["graph_node_count"] == 2
         assert call_kwargs.kwargs["snr_score"] == pytest.approx(0.92)
@@ -1704,7 +1704,7 @@ class TestCaching:
 
         query = SovereignQuery(text="test", require_reasoning=False)
         key = rt._cache_key(query)
-        expected = hex_digest("test:False".encode())[:16]
+        expected = hex_digest(b"test:False")[:16]
         assert key == expected
 
     def test_cache_key_differs_by_reasoning(self, rt: SovereignRuntime) -> None:
@@ -2650,6 +2650,38 @@ class TestAutopoiesisLifecycle:
         assert breath_payload["tick_number"] == 11
         assert breath_payload["approved_count"] == 1
         assert breath_payload["rejected_count"] == 0
+
+    def test_status_surfaces_canonical_loop_from_node0(
+        self, rt: SovereignRuntime
+    ) -> None:
+        rt._initialized = True
+        rt._canonical_mode = True
+        rt._organism = MagicMock()
+        rt._node0 = SimpleNamespace(
+            health=lambda: {
+                "canonical_loop_status": {
+                    "truth_label": "CANONICAL_LOOP: PROVEN",
+                    "stages": {
+                        "receipt_ingestion": True,
+                        "fate_filtered_heartbeat": True,
+                        "n1_refinement": True,
+                        "reflex_precipitation": True,
+                    },
+                }
+            }
+        )
+
+        status = rt.status()
+
+        assert status["canonical"]["loop"]["truth_label"] == "CANONICAL_LOOP: PROVEN"
+        assert status["canonical"]["loop"]["mission_state_authority"] is True
+        assert (
+            status["canonical"]["loop"]["authority_path"] == "runtime->organism->node0"
+        )
+        assert (
+            status["canonical"]["loop"]["node0"]["stages"]["reflex_precipitation"]
+            is True
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -43,9 +43,9 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger("bizra.node0.heartbeat")
 
@@ -76,15 +76,15 @@ class BootReceipt:
     node_id: str
     hostname: str
     boot_time: str  # ISO 8601
-    sovereignty_checks: Dict[str, bool]
+    sovereignty_checks: dict[str, bool]
     sovereignty_proven: bool
-    asset_summary: Dict[str, Any]
+    asset_summary: dict[str, Any]
     memory_initialized: bool
     evidence_chain_genesis: str  # Hash of first evidence entry
     boot_hash: str  # BLAKE2b of all fields
     duration_ms: float
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Serialize for evidence chain."""
         return {
             "node_id": self.node_id,
@@ -137,9 +137,9 @@ class BreathReceipt:
     prev_chain_hash: str
 
     # Raw Helix3 tick result for inspection (consequence closure audit)
-    helix_result: Dict[str, Any] = field(default_factory=dict)
+    helix_result: dict[str, Any] = field(default_factory=dict)
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Serialize for evidence chain."""
         return {
             "tick_number": self.tick_number,
@@ -204,10 +204,10 @@ class Node0Heartbeat:
         self,
         *,
         data_dir: Path,
-        node_id: Optional[str] = None,
+        node_id: str | None = None,
         interval_s: float = HEARTBEAT_INTERVAL_S,
-        helix3: Optional[Any] = None,
-        event_bus: Optional[Any] = None,
+        helix3: Any | None = None,
+        event_bus: Any | None = None,
         identity_mode: str = "placeholder_degraded",
         signer_public_key_prefix: str = "",
         signer_public_key_hex: str = "",
@@ -225,24 +225,24 @@ class Node0Heartbeat:
         self._booted = False
         self._tick_number = 0
         self._chain_hash = "0" * 64  # Genesis sentinel
-        self._boot_receipt: Optional[BootReceipt] = None
-        self._breath_history: List[BreathReceipt] = []
+        self._boot_receipt: BootReceipt | None = None
+        self._breath_history: list[BreathReceipt] = []
 
         # Subsystem handles (wired at boot)
-        self._asset_registry: Optional[Any] = None
-        self._helix3: Optional[Any] = helix3  # External Helix3 (e.g. from organism)
+        self._asset_registry: Any | None = None
+        self._helix3: Any | None = helix3  # External Helix3 (e.g. from organism)
         self._external_helix3 = helix3 is not None
-        self._memory: Optional[Any] = None
-        self._evidence: Optional[Any] = None
-        self._reflex_bridge: Optional[Any] = None
-        self._event_bus: Optional[Any] = event_bus  # Nervous system bridge
-        self._reasoning_bank: Optional[Any] = None  # ReasoningBank Intelligence
-        self._learning_loop: Optional[Any] = None  # Closed-loop learning orchestrator
-        self._federation_ambassador: Optional[Any] = (
+        self._memory: Any | None = None
+        self._evidence: Any | None = None
+        self._reflex_bridge: Any | None = None
+        self._event_bus: Any | None = event_bus  # Nervous system bridge
+        self._reasoning_bank: Any | None = None  # ReasoningBank Intelligence
+        self._learning_loop: Any | None = None  # Closed-loop learning orchestrator
+        self._federation_ambassador: Any | None = (
             None  # Distributed Receipt Verification
         )
-        self._urp_bridge: Optional[Any] = None  # URP Rust Bridge (Level 0 safe)
-        self._last_urp_receipt: Optional[Dict[str, Any]] = None
+        self._urp_bridge: Any | None = None  # URP Rust Bridge (Level 0 safe)
+        self._last_urp_receipt: dict[str, Any] | None = None
 
         # Cumulative stats
         self._total_memories_stored = 0
@@ -263,11 +263,11 @@ class Node0Heartbeat:
         self._total_rb_experiences = 0
         self._total_learning_cycles = 0
         self._last_event_delivery_error = ""
-        self._last_dead_letter: Optional[Dict[str, Any]] = None
+        self._last_dead_letter: dict[str, Any] | None = None
         self._dead_letter_path = self._data_dir / "audit" / "event_dead_letters.jsonl"
-        self._last_cqrs_delivery_receipt: Optional[Dict[str, Any]] = None
+        self._last_cqrs_delivery_receipt: dict[str, Any] | None = None
         self._last_cqrs_delivery_receipt_error = ""
-        self._last_boundary_error_receipt: Optional[Dict[str, Any]] = None
+        self._last_boundary_error_receipt: dict[str, Any] | None = None
         self._last_boundary_error_receipt_error = ""
         self._last_breath_cqrs_delivery_receipts = 0
         self._last_breath_cqrs_delivery_acks = 0
@@ -357,7 +357,7 @@ class Node0Heartbeat:
             "memory_ok": memory_ok,
             "evidence_genesis": evidence_genesis,
             "checks": checks,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         boot_hash = hashlib.blake2b(
             str(sorted(_flatten_dict(boot_data))).encode(),
@@ -367,7 +367,7 @@ class Node0Heartbeat:
         receipt = BootReceipt(
             node_id=self._node_id,
             hostname=asset_summary.get("hostname", "unknown"),
-            boot_time=datetime.now(timezone.utc).isoformat(),
+            boot_time=datetime.now(UTC).isoformat(),
             sovereignty_checks=checks,
             sovereignty_proven=sovereign,
             asset_summary=asset_summary,
@@ -487,7 +487,7 @@ class Node0Heartbeat:
 
         receipt = BreathReceipt(
             tick_number=self._tick_number,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             duration_ms=round(duration_ms, 2),
             missions_processed=helix_result.get("missions_processed", 0),
             ihsan_composite=helix_result.get("ihsan_composite", 0.0),
@@ -544,7 +544,7 @@ class Node0Heartbeat:
     # HEALTH — Self-Diagnostic (Mode 3)
     # ═══════════════════════════════════════════════════════════════
 
-    def health(self) -> Dict[str, Any]:
+    def health(self) -> dict[str, Any]:
         """Self-diagnostic: the node inspecting its own vital signs.
 
         Returns a dict suitable for both human review and machine processing.
@@ -639,10 +639,89 @@ class Node0Heartbeat:
             "last_breath": (
                 self._breath_history[-1].as_dict() if self._breath_history else None
             ),
+            "canonical_loop_status": self._get_canonical_loop_status(),
             "reflex_compilation_status": self._get_reflex_compilation_status(),
         }
 
-    def _get_reflex_compilation_status(self) -> Dict[str, Any]:
+    def _get_canonical_loop_status(self) -> dict[str, Any]:
+        """Report the bounded local proof state of the canonical loop.
+
+        The canonical loop is intentionally scoped to the single-node path:
+        mission receipt ingestion → FATE-filtered heartbeat → N=1 refinement
+        → reflex precipitation. Mission authority remains surfaced by the
+        runtime/organism stack above Node0.
+        """
+        last_breath = self._breath_history[-1] if self._breath_history else None
+        bridge_status = (
+            self._reflex_bridge.get_status()
+            if self._reflex_bridge is not None
+            and hasattr(self._reflex_bridge, "get_status")
+            else {}
+        )
+        approved_count = (
+            int(last_breath.helix_result.get("approved_count", 0))
+            if last_breath is not None
+            else 0
+        )
+        rejected_count = (
+            int(last_breath.helix_result.get("rejected_count", 0))
+            if last_breath is not None
+            else 0
+        )
+        missions_processed = (
+            int(last_breath.missions_processed) if last_breath is not None else 0
+        )
+        receipts_ingested = missions_processed > 0 or self._total_evidence_entries > 0
+        fate_filtered = (
+            missions_processed > 0
+            and (approved_count + rejected_count) == missions_processed
+        )
+        n1_refinement = bool(
+            bridge_status.get("total_observations", 0) > 0
+            or bridge_status.get("patterns_tracked", 0) > 0
+        )
+        reflex_precipitated = bool(
+            bridge_status.get("compiled_reflexes", 0) > 0 or self._total_reflexes > 0
+        )
+        proven = (
+            receipts_ingested
+            and fate_filtered
+            and n1_refinement
+            and reflex_precipitated
+        )
+
+        return {
+            "truth_label": (
+                "CANONICAL_LOOP: PROVEN" if proven else "CANONICAL_LOOP: WIRED"
+            ),
+            "stages": {
+                "receipt_ingestion": receipts_ingested,
+                "fate_filtered_heartbeat": fate_filtered,
+                "n1_refinement": n1_refinement,
+                "reflex_precipitation": reflex_precipitated,
+            },
+            "evidence": {
+                "last_tick_number": getattr(last_breath, "tick_number", 0),
+                "missions_processed": missions_processed,
+                "approved_count": approved_count,
+                "rejected_count": rejected_count,
+                "bridge_patterns_tracked": int(
+                    bridge_status.get("patterns_tracked", 0)
+                ),
+                "bridge_total_observations": int(
+                    bridge_status.get("total_observations", 0)
+                ),
+                "compiled_reflexes": int(bridge_status.get("compiled_reflexes", 0)),
+                "total_learning_cycles": self._total_learning_cycles,
+            },
+            "note": (
+                "Node0 proves the local governed loop from receipt ingestion "
+                "through reflex precipitation. Mission-state authority remains "
+                "surfaced at the runtime boundary."
+            ),
+        }
+
+    def _get_reflex_compilation_status(self) -> dict[str, Any]:
         """Report the honest status of the closed-loop reflex compilation path.
 
         Standing on Giants: Al-Ghazali (honest labeling, 1096) — label what
@@ -696,7 +775,7 @@ class Node0Heartbeat:
         return self._chain_hash
 
     @property
-    def boot_receipt(self) -> Optional[BootReceipt]:
+    def boot_receipt(self) -> BootReceipt | None:
         """The genesis ceremony receipt (Block Zero)."""
         return self._boot_receipt
 
@@ -750,7 +829,7 @@ class Node0Heartbeat:
 
         return _generate_node_id(public_key_hex)
 
-    def _boot_asset_registry(self) -> Dict[str, Any]:
+    def _boot_asset_registry(self) -> dict[str, Any]:
         """Initialize the node's self-awareness (§9)."""
         try:
             from core.elite.asset_registry import AssetRegistry
@@ -877,7 +956,7 @@ class Node0Heartbeat:
         except (ImportError, AttributeError, TypeError) as exc:
             logger.warning("LearningLoop unavailable: %s", exc)
 
-    def _run_learning_cycle(self, helix_result: Dict[str, Any]) -> None:
+    def _run_learning_cycle(self, helix_result: dict[str, Any]) -> None:
         """Execute one compilation cycle of the learning loop.
 
         Called every breath. The orchestrator checks for eligible reflex
@@ -926,10 +1005,10 @@ class Node0Heartbeat:
 
     def _verify_sovereignty(
         self,
-        asset_summary: Dict[str, Any],
+        asset_summary: dict[str, Any],
         memory_ok: bool,
         evidence_genesis: str,
-    ) -> Dict[str, bool]:
+    ) -> dict[str, bool]:
         """Verify local sovereignty — the node can stand alone.
 
         Node0 Activation Planning Principle §3:
@@ -953,7 +1032,7 @@ class Node0Heartbeat:
     # PRIVATE: Breathe Subsystems
     # ═══════════════════════════════════════════════════════════════
 
-    def _run_helix3_tick(self) -> Dict[str, Any]:
+    def _run_helix3_tick(self) -> dict[str, Any]:
         """Execute one Helix3 constitutional tick.
 
         Returns a dict with: ihsan_composite, gini, gini_ok, seed_minted,
@@ -1077,7 +1156,7 @@ class Node0Heartbeat:
             "boundary_quality_multiplier": 1.0,
         }
 
-    def _record_evidence(self, helix_result: Dict[str, Any]) -> int:
+    def _record_evidence(self, helix_result: dict[str, Any]) -> int:
         """Store heartbeat in evidence chain. Returns count of entries made."""
         if self._evidence is not None:
             try:
@@ -1111,7 +1190,7 @@ class Node0Heartbeat:
                 logger.warning("Memory evidence fallback failed: %s", exc)
         return 0
 
-    def _persist_to_memory(self, helix_result: Dict[str, Any]) -> int:
+    def _persist_to_memory(self, helix_result: dict[str, Any]) -> int:
         """Persist heartbeat summary to sovereign memory. Returns count."""
         if self._memory is None:
             return 0
@@ -1134,7 +1213,7 @@ class Node0Heartbeat:
             logger.warning("Memory persistence failed: %s", exc)
             return 0
 
-    def _check_reflex_precipitation(self, helix_result: Dict[str, Any]) -> int:
+    def _check_reflex_precipitation(self, helix_result: dict[str, Any]) -> int:
         """Check if heartbeat quality warrants reflex precipitation.
 
         §2 Helix 3: Ihsān ≥ 0.90 for precipitation.
@@ -1154,8 +1233,9 @@ class Node0Heartbeat:
 
         if self._reflex_bridge is not None:
             try:
+                task_key = self._canonical_reflex_observation_key(helix_result)
                 self._reflex_bridge.observe(
-                    task_description=f"Node0 heartbeat #{self._tick_number}",
+                    task_description=task_key,
                     ihsan_score=ihsan,
                     snr_score=ihsan,
                     loss=max(0.0, 1.0 - ihsan),
@@ -1168,7 +1248,22 @@ class Node0Heartbeat:
                 logger.debug("Reflex precipitation check: %s", exc)
         return 0
 
-    def _record_rb_experience(self, helix_result: Dict[str, Any]) -> None:
+    def _canonical_reflex_observation_key(self, helix_result: dict[str, Any]) -> str:
+        """Produce a stable pattern key for repeatable high-quality breaths.
+
+        Using the raw tick number prevents the bridge from ever accumulating
+        enough repeated evidence to compile a reflex. The key stays bounded to
+        the constitutional shape of the breath instead of the unique moment.
+        """
+        approved = int(helix_result.get("approved_count", 0) or 0)
+        rejected = int(helix_result.get("rejected_count", 0) or 0)
+        gini_ok = bool(helix_result.get("gini_ok", True))
+        return (
+            "node0:canonical-loop:"
+            f"approved={approved}:rejected={rejected}:gini_ok={int(gini_ok)}"
+        )
+
+    def _record_rb_experience(self, helix_result: dict[str, Any]) -> None:
         """Record this breath as a ReasoningBank experience.
 
         Standing on Giants: Deming (PDCA, 1950) — Act phase feeds
@@ -1204,7 +1299,7 @@ class Node0Heartbeat:
         self,
         content: str,
         source: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Store a record in AgentDB memory."""
         if self._memory is None:
@@ -1303,7 +1398,7 @@ class Node0Heartbeat:
             },
         )
 
-    def _emit_event(self, event_type_name: str, payload: Dict[str, Any]) -> None:
+    def _emit_event(self, event_type_name: str, payload: dict[str, Any]) -> None:
         """Emit an event to the EventBus if connected.
 
         Gracefully degrades: if no bus is wired or if the bus fails,
@@ -1357,7 +1452,7 @@ class Node0Heartbeat:
         self,
         task: asyncio.Task[Any],
         event_type_name: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
     ) -> None:
         """Convert async event publication completion into local evidence."""
         self._pending_event_tasks.discard(task)
@@ -1373,14 +1468,14 @@ class Node0Heartbeat:
     def _record_event_delivery_failure(
         self,
         event_type_name: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         exc: BaseException,
     ) -> None:
         """Persist publication failure as a local dead-letter artifact."""
         self._total_event_delivery_failures += 1
         self._last_event_delivery_error = f"{type(exc).__name__}: {exc}"
         dead_letter = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "node_id": self._node_id,
             "event_type": event_type_name,
             "payload": payload,
@@ -1397,7 +1492,7 @@ class Node0Heartbeat:
             "EventBus emission failed (non-fatal): %s", self._last_event_delivery_error
         )
 
-    def _capture_cqrs_delivery_window(self) -> Dict[str, int]:
+    def _capture_cqrs_delivery_window(self) -> dict[str, int]:
         """Convert cumulative CQRS delivery counters into per-breath deltas."""
         receipts = max(
             self._total_cqrs_delivery_receipts
@@ -1425,7 +1520,7 @@ class Node0Heartbeat:
             "dead_letters": dead_letters,
         }
 
-    def _capture_boundary_error_window(self) -> Dict[str, int]:
+    def _capture_boundary_error_window(self) -> dict[str, int]:
         """Convert cumulative boundary-error counters into per-breath deltas."""
         receipts = max(
             self._total_boundary_error_receipts
@@ -1461,10 +1556,10 @@ class Node0Heartbeat:
             "retries": retries,
         }
 
-    def record_cqrs_delivery_receipt(self, delivery_receipt: Dict[str, Any]) -> bool:
+    def record_cqrs_delivery_receipt(self, delivery_receipt: dict[str, Any]) -> bool:
         """Persist CQRS subscriber delivery evidence onto Node0's canonical plane."""
         canonical_receipt = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "node_id": self._node_id,
             "source": "node0:cqrs.delivery",
             **delivery_receipt,
@@ -1533,10 +1628,10 @@ class Node0Heartbeat:
 
         return True
 
-    def record_boundary_error_receipt(self, error_receipt: Dict[str, Any]) -> bool:
+    def record_boundary_error_receipt(self, error_receipt: dict[str, Any]) -> bool:
         """Persist typed boundary failures onto Node0's canonical audit plane."""
         canonical_receipt = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "node_id": self._node_id,
             "source": str(error_receipt.get("source") or "node0:boundary.error"),
             **error_receipt,
@@ -1614,7 +1709,7 @@ class Node0Heartbeat:
     # INGEST — Feed missions into the heartbeat cycle
     # ═══════════════════════════════════════════════════════════════
 
-    def ingest_mission_receipt(self, receipt: Dict[str, Any]) -> None:
+    def ingest_mission_receipt(self, receipt: dict[str, Any]) -> None:
         """Feed a completed mission receipt into the heartbeat cycle.
 
         The receipt will be processed at the next breathe() call via Helix3.
@@ -1652,9 +1747,9 @@ class Node0Heartbeat:
 # ═══════════════════════════════════════════════════════════════════
 
 
-def _flatten_dict(d: Dict[str, Any], prefix: str = "") -> List[tuple]:
+def _flatten_dict(d: dict[str, Any], prefix: str = "") -> list[tuple]:
     """Flatten a nested dict for deterministic hashing."""
-    items: List[tuple] = []
+    items: list[tuple] = []
     for k, v in sorted(d.items()):
         key = f"{prefix}.{k}" if prefix else k
         if isinstance(v, dict):

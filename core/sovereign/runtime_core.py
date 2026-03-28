@@ -21,10 +21,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import (
     Any,
-    AsyncIterator,
-    Deque,
-    Optional,
 )
+from collections.abc import AsyncIterator
 
 from .genesis_identity import GenesisState, load_and_validate_genesis
 from .memory_coordinator import (
@@ -133,7 +131,7 @@ def _conservative_fallback_check(ctx: dict[str, Any]) -> bool:
 class _RuntimeInferenceBackend:
     """Inference adapter that lets the runtime-owned organism use the gateway."""
 
-    def __init__(self, runtime: "SovereignRuntime") -> None:
+    def __init__(self, runtime: SovereignRuntime) -> None:
         self._runtime = runtime
 
     async def infer(self, prompt: str, **kwargs: Any) -> str:
@@ -158,7 +156,7 @@ class _MissionPreflightChannel:
         from core.bus.channels import ChannelResult
 
         outcome_hash = _hex_digest(
-            f"{action.action_id}:{action.kind}:{action.channel}".encode("utf-8")
+            f"{action.action_id}:{action.kind}:{action.channel}".encode()
         )
         return ChannelResult(
             success=True,
@@ -267,7 +265,7 @@ class SovereignRuntime:
             print(result.answer)
     """
 
-    def __init__(self, config: Optional[RuntimeConfig] = None) -> None:
+    def __init__(self, config: RuntimeConfig | None = None) -> None:
         self.config: RuntimeConfig = config or RuntimeConfig()
         self.metrics: RuntimeMetrics = RuntimeMetrics()
         self.logger: logging.Logger = logging.getLogger("sovereign.runtime")
@@ -281,137 +279,137 @@ class SovereignRuntime:
         self._stub_components: list[str] = []
 
         # Components (initialized lazily) - using Protocol types for type safety
-        self._graph_reasoner: Optional[GraphReasonerProtocol] = None
-        self._snr_optimizer: Optional[SNROptimizerProtocol] = None
-        self._guardian_council: Optional[GuardianProtocol] = None
-        self._autonomous_loop: Optional[AutonomousLoopProtocol] = None
-        self._orchestrator: Optional[object] = None
-        self._event_bus: Optional[object] = None
-        self._event_bus_task: Optional[asyncio.Task[Any]] = None
+        self._graph_reasoner: GraphReasonerProtocol | None = None
+        self._snr_optimizer: SNROptimizerProtocol | None = None
+        self._guardian_council: GuardianProtocol | None = None
+        self._autonomous_loop: AutonomousLoopProtocol | None = None
+        self._orchestrator: object | None = None
+        self._event_bus: object | None = None
+        self._event_bus_task: asyncio.Task[Any] | None = None
 
         # Genesis Identity (persistent across restarts)
-        self._genesis: Optional[GenesisState] = None
+        self._genesis: GenesisState | None = None
         self._node_role: str = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
         self._origin_snapshot: dict[str, Any] = resolve_origin_snapshot(
             self.config.state_dir, self._node_role
         )
 
         # Unified Memory Coordinator (auto-save + persistence)
-        self._memory_coordinator: Optional[MemoryCoordinator] = None
+        self._memory_coordinator: MemoryCoordinator | None = None
 
         # AgentDB (V3 unified memory with HNSW indexing)
-        self._agent_db: Optional[object] = None
-        self._agent_db_bridge: Optional[object] = None  # AgentDBBridge
-        self._agent_db_health: Optional[object] = None  # AgentDBHealthChecker
+        self._agent_db: object | None = None
+        self._agent_db_bridge: object | None = None  # AgentDBBridge
+        self._agent_db_health: object | None = None  # AgentDBHealthChecker
 
         # Impact Tracker (sovereignty growth engine)
-        self._impact_tracker: Optional[ImpactTrackerProtocol] = None
+        self._impact_tracker: ImpactTrackerProtocol | None = None
 
         # Evidence Ledger (append-only, hash-chained audit trail)
-        self._evidence_ledger: Optional[object] = None  # EvidenceLedger
+        self._evidence_ledger: object | None = None  # EvidenceLedger
 
         # Graph Artifact Store (query_id → schema-compliant GoT artifact)
         self._graph_artifacts: dict[str, dict[str, Any]] = {}
 
         # Last SNR trace from authoritative SNREngine v1 (for receipt embedding)
-        self._last_snr_trace: Optional[dict[str, Any]] = None
+        self._last_snr_trace: dict[str, Any] | None = None
 
         # 6-Gate Chain — fail-closed execution pipeline (Golden Gem #1)
-        self._gate_chain: Optional[object] = None  # GateChain
+        self._gate_chain: object | None = None  # GateChain
 
         # Proof-of-Impact Engine — 4-stage PoI scoring pipeline
-        self._poi_orchestrator: Optional[object] = None  # PoIOrchestrator
+        self._poi_orchestrator: object | None = None  # PoIOrchestrator
 
         # SAT Controller — ecosystem homeostasis engine
-        self._sat_controller: Optional[object] = None  # SATController
+        self._sat_controller: object | None = None  # SATController
 
         # Sovereign Experience Ledger (content-addressed episodic memory)
-        self._experience_ledger: Optional[object] = None  # ExperienceLedger
+        self._experience_ledger: object | None = None  # ExperienceLedger
 
         # Unified Node0 Signer (Ed25519) — single identity for all subsystems
-        self._node_signer: Optional[object] = None  # Ed25519Signer
-        self._organism: Optional[object] = None  # SovereignOrganism
-        self._node0: Optional[object] = None  # Node0Heartbeat
+        self._node_signer: object | None = None  # Ed25519Signer
+        self._organism: object | None = None  # SovereignOrganism
+        self._node0: object | None = None  # Node0Heartbeat
         self._canonical_mode = False
         self._identity_mode = "placeholder_degraded"
         self._signer_public_key_prefix = ""
         self._genesis_backed_identity = False
         self._fate_mode = "degraded"
-        self._fate_gate: Optional[object] = None
+        self._fate_gate: object | None = None
 
         # IHSAN_FLOOR Watchdog — governance invariant enforcer (MCG Layer 7)
-        self._ihsan_watchdog: Optional[object] = None  # IhsanFloorWatchdog
+        self._ihsan_watchdog: object | None = None  # IhsanFloorWatchdog
 
         # Self-Evolving Judgment Engine — observation telemetry (Phase A)
-        self._judgment_telemetry: Optional[object] = None  # JudgmentTelemetry
+        self._judgment_telemetry: object | None = None  # JudgmentTelemetry
 
         # Spearpoint Orchestrator (reproduce / improve / heartbeat)
-        self._spearpoint_orchestrator: Optional[object] = None
+        self._spearpoint_orchestrator: object | None = None
 
         # Omega Point Integration (v2.2.3)
-        self._gateway: Optional[object] = None  # InferenceGateway
-        self._omega: Optional[object] = None  # OmegaEngine
-        self._living_memory: Optional[object] = None  # LivingMemoryCore
-        self._pek: Optional[object] = None  # ProactiveExecutionKernel
-        self._zpk_bootstrap_result: Optional[object] = None
-        self._autopoietic_loop: Optional[object] = None  # AutopoieticLoop
-        self._learning_loop: Optional[object] = None  # LearningLoopOrchestrator
-        self._autopoiesis_task: Optional[asyncio.Task[Any]] = None
-        self._autopoiesis_learning_task: Optional[asyncio.Task[Any]] = None
+        self._gateway: object | None = None  # InferenceGateway
+        self._omega: object | None = None  # OmegaEngine
+        self._living_memory: object | None = None  # LivingMemoryCore
+        self._pek: object | None = None  # ProactiveExecutionKernel
+        self._zpk_bootstrap_result: object | None = None
+        self._autopoietic_loop: object | None = None  # AutopoieticLoop
+        self._learning_loop: object | None = None  # LearningLoopOrchestrator
+        self._autopoiesis_task: asyncio.Task[Any] | None = None
+        self._autopoiesis_learning_task: asyncio.Task[Any] | None = None
         self._autopoiesis_learning_source: str = "disabled"
 
         # Phase 58: Equalizer Agent + Unified Model Router
-        self._equalizer_agent: Optional[object] = None  # EqualizerAgent
-        self._unified_model_router: Optional[object] = None  # UnifiedModelRouter
+        self._equalizer_agent: object | None = None  # EqualizerAgent
+        self._unified_model_router: object | None = None  # UnifiedModelRouter
 
         # Phase 70: Bus Infrastructure (ActionBus, TopicRegistry, Config, Capsules)
-        self._action_bus: Optional[object] = None  # ActionBus
-        self._topic_registry: Optional[object] = None  # TopicRegistry
-        self._telescript_engine: Optional[object] = None  # TeleScriptEngine
-        self._config_loader: Optional[object] = None  # ConfigLoader
-        self._capsule_registry: Optional[object] = None  # CapsuleRegistry
-        self._capsule_runtime: Optional[object] = None  # CapsuleRuntime
-        self._omega_controller: Optional[object] = None  # OmegaLoopController
-        self._bus_wiring_state: Optional[object] = None  # BusWiringState
+        self._action_bus: object | None = None  # ActionBus
+        self._topic_registry: object | None = None  # TopicRegistry
+        self._telescript_engine: object | None = None  # TeleScriptEngine
+        self._config_loader: object | None = None  # ConfigLoader
+        self._capsule_registry: object | None = None  # CapsuleRegistry
+        self._capsule_runtime: object | None = None  # CapsuleRuntime
+        self._omega_controller: object | None = None  # OmegaLoopController
+        self._bus_wiring_state: object | None = None  # BusWiringState
 
         # Phase 71: Seed Engine (DDAGI growth trajectory + self-RLVR)
-        self._seed_engine: Optional[object] = None  # SeedEngine
+        self._seed_engine: object | None = None  # SeedEngine
 
         # PERF FIX: Use deque for O(1) bounded storage
-        self._query_times: Deque[float] = deque(maxlen=100)
+        self._query_times: deque[float] = deque(maxlen=100)
 
         # Cache
         self._cache: OrderedDict[str, SovereignResult] = OrderedDict()
 
         # User Context (the system knows its human)
-        self._user_context: Optional[UserContextManager] = None
+        self._user_context: UserContextManager | None = None
 
         # Phase 31: Cognitive Fusion Engine
-        self._hypergraph_store: Optional[object] = None  # HyperGraphStore
-        self._cognitive_fusion: Optional[object] = None  # CognitiveFusionEngine
-        self._memory_synthesizer: Optional[object] = None  # MemorySynthesizer
-        self._pattern_codebook: Optional[object] = None  # PatternCodebook
+        self._hypergraph_store: object | None = None  # HyperGraphStore
+        self._cognitive_fusion: object | None = None  # CognitiveFusionEngine
+        self._memory_synthesizer: object | None = None  # MemorySynthesizer
+        self._pattern_codebook: object | None = None  # PatternCodebook
 
         # Phase 32: Embedding Service + NTU Adapter
-        self._embedding_service: Optional[object] = None  # EmbeddingService
-        self._embedding_gate: Optional[object] = None  # EmbeddingQualityGate
-        self._ntu_adapter: Optional[object] = None  # NTUFusionAdapter
+        self._embedding_service: object | None = None  # EmbeddingService
+        self._embedding_gate: object | None = None  # EmbeddingQualityGate
+        self._ntu_adapter: object | None = None  # NTUFusionAdapter
 
         # Phase 33: RDVE Engine (Recursive Discovery & Verification)
-        self._rdve_engine: Optional[object] = None  # RDVEOrchestrator
+        self._rdve_engine: object | None = None  # RDVEOrchestrator
 
         # SpearPoint Pipeline — unified post-query cockpit
-        self._spearpoint: Optional[object] = None  # SpearPointPipeline
+        self._spearpoint: object | None = None  # SpearPointPipeline
 
         # α7 Tiered Verification + α9 Performance Attestation (NODE0 integration)
-        self._performance_attestor: Optional[object] = None  # PerformanceAttestor
+        self._performance_attestor: object | None = None  # PerformanceAttestor
         self._tiered_verification_enabled: bool = False
 
         # Phase 25-28: Ecosystem subsystems
-        self._hrm_engine: Optional[object] = None  # HierarchicalReasoningModel
-        self._northstar_engine: Optional[object] = None  # NorthStarEngine
-        self._guild_registry: Optional[object] = None  # GuildRegistry
-        self._quest_engine: Optional[object] = None  # QuestEngine
+        self._hrm_engine: object | None = None  # HierarchicalReasoningModel
+        self._northstar_engine: object | None = None  # NorthStarEngine
+        self._guild_registry: object | None = None  # GuildRegistry
+        self._quest_engine: object | None = None  # QuestEngine
 
     # -------------------------------------------------------------------------
     # LIFECYCLE
@@ -979,8 +977,8 @@ class SovereignRuntime:
     @classmethod
     @asynccontextmanager
     async def create(
-        cls, config: Optional[RuntimeConfig] = None
-    ) -> AsyncIterator["SovereignRuntime"]:
+        cls, config: RuntimeConfig | None = None
+    ) -> AsyncIterator[SovereignRuntime]:
         """Create and manage runtime lifecycle."""
         runtime = cls(config)
         try:
@@ -1313,7 +1311,7 @@ class SovereignRuntime:
             self.logger.debug("Equalizer dispatch error: %s", e)
 
     @staticmethod
-    def _is_stub_component(component: Optional[object]) -> bool:
+    def _is_stub_component(component: object | None) -> bool:
         """Return True when a component is a stub/fallback implementation."""
         if component is None:
             return True
@@ -1428,7 +1426,7 @@ class SovereignRuntime:
             self.logger.debug(f"Judgment Telemetry init skipped (non-fatal): {e}")
             self._judgment_telemetry = None
 
-    def _observe_judgment(self, result: "SovereignResult") -> None:
+    def _observe_judgment(self, result: SovereignResult) -> None:
         """Observe a verdict for the SJE based on query result quality.
 
         Verdict classification (observation only — no policy mutation):
@@ -1460,7 +1458,7 @@ class SovereignRuntime:
             self.logger.debug(f"SJE observe skipped (non-fatal): {e}")
 
     def _commit_experience_episode(
-        self, result: "SovereignResult", query: "SovereignQuery"
+        self, result: SovereignResult, query: SovereignQuery
     ) -> None:
         """Auto-commit a query episode to the SEL on SNR_OK verdict.
 
@@ -1617,7 +1615,7 @@ class SovereignRuntime:
 
     async def _run_gate_chain_preflight(
         self, query: SovereignQuery, result: SovereignResult
-    ) -> Optional[SovereignResult]:
+    ) -> SovereignResult | None:
         """Run the 6-Gate Chain as a pre-flight check.
 
         If any gate fails, returns a rejection SovereignResult immediately.
@@ -1769,7 +1767,7 @@ class SovereignRuntime:
             return result
 
     def _emit_query_receipt(
-        self, result: "SovereignResult", query: "SovereignQuery"
+        self, result: SovereignResult, query: SovereignQuery
     ) -> None:
         """Emit a receipt for a completed query into the Evidence Ledger.
 
@@ -1851,7 +1849,7 @@ class SovereignRuntime:
 
     @staticmethod
     def _receipt_outcome(
-        result: "SovereignResult",
+        result: SovereignResult,
     ) -> tuple[str, str, list[str]]:
         """Compute canonical receipt decision/status/reason codes.
 
@@ -1862,7 +1860,7 @@ class SovereignRuntime:
         return receipt_outcome(result)
 
     async def _apply_receipt_memory_feedback(
-        self, result: "SovereignResult", query: "SovereignQuery"
+        self, result: SovereignResult, query: SovereignQuery
     ) -> None:
         """
         SEL SENSE stage feedback: reinforce/flag source memories from receipt outcome.
@@ -1909,7 +1907,7 @@ class SovereignRuntime:
             self.logger.warning(f"Memory receipt feedback skipped (non-fatal): {e}")
 
     def _schedule_receipt_memory_feedback(
-        self, result: "SovereignResult", query: "SovereignQuery"
+        self, result: SovereignResult, query: SovereignQuery
     ) -> None:
         """Schedule non-blocking SEL SENSE feedback wiring."""
         try:
@@ -1920,7 +1918,7 @@ class SovereignRuntime:
             )
 
     def _register_poi_contribution(
-        self, result: "SovereignResult", query: "SovereignQuery"
+        self, result: SovereignResult, query: SovereignQuery
     ) -> None:
         """Register a successful query as a PoI contribution.
 
@@ -1955,7 +1953,7 @@ class SovereignRuntime:
             self.logger.warning(f"PoI contribution registration failed: {e}")
 
     def _encode_query_memory(
-        self, result: "SovereignResult", query: "SovereignQuery"
+        self, result: SovereignResult, query: SovereignQuery
     ) -> None:
         """Encode successful query experience into Living Memory.
 
@@ -1994,7 +1992,7 @@ class SovereignRuntime:
         except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.debug(f"Memory encoding skipped (non-fatal): {e}")
 
-    def _store_graph_artifact(self, query_id: str, graph_hash: Optional[str]) -> None:
+    def _store_graph_artifact(self, query_id: str, graph_hash: str | None) -> None:
         """Store the GoT graph artifact for later retrieval via API.
 
         Standing on: Besta (GoT, 2024) — graph artifacts are first-class,
@@ -2018,11 +2016,11 @@ class SovereignRuntime:
         except (RuntimeError, ValueError, TypeError, OSError) as e:
             self.logger.warning(f"Graph artifact storage failed (non-fatal): {e}")
 
-    def get_graph_artifact(self, query_id: str) -> Optional[dict[str, Any]]:
+    def get_graph_artifact(self, query_id: str) -> dict[str, Any] | None:
         """Retrieve a stored graph artifact by query ID."""
         return self._graph_artifacts.get(query_id)
 
-    def get_gate_chain_stats(self) -> Optional[dict[str, Any]]:
+    def get_gate_chain_stats(self) -> dict[str, Any] | None:
         """Get GateChain evaluation statistics."""
         if self._gate_chain is None:
             return None
@@ -2062,13 +2060,13 @@ class SovereignRuntime:
             self._poi_orchestrator = None
             self._sat_controller = None
 
-    def get_poi_stats(self) -> Optional[dict[str, Any]]:
+    def get_poi_stats(self) -> dict[str, Any] | None:
         """Get Proof-of-Impact engine statistics."""
         if self._poi_orchestrator is None:
             return None
         return self._poi_orchestrator.get_stats()
 
-    def get_contributor_poi(self, contributor_id: str) -> Optional[dict[str, Any]]:
+    def get_contributor_poi(self, contributor_id: str) -> dict[str, Any] | None:
         """Get most recent PoI for a contributor."""
         if self._poi_orchestrator is None:
             return None
@@ -2077,9 +2075,7 @@ class SovereignRuntime:
             return None
         return poi.to_dict()
 
-    def compute_poi_epoch(
-        self, epoch_id: Optional[str] = None
-    ) -> Optional[dict[str, Any]]:
+    def compute_poi_epoch(self, epoch_id: str | None = None) -> dict[str, Any] | None:
         """Run a full PoI computation epoch.
 
         Returns the audit trail as a dict, or None if engine is unavailable.
@@ -2089,15 +2085,13 @@ class SovereignRuntime:
         audit = self._poi_orchestrator.compute_epoch(epoch_id)
         return audit.to_dict()
 
-    def get_sat_stats(self) -> Optional[dict[str, Any]]:
+    def get_sat_stats(self) -> dict[str, Any] | None:
         """Get SAT Controller statistics."""
         if self._sat_controller is None:
             return None
         return self._sat_controller.get_stats()
 
-    def finalize_sat_epoch(
-        self, epoch_reward: float = 1000.0
-    ) -> Optional[dict[str, Any]]:
+    def finalize_sat_epoch(self, epoch_reward: float = 1000.0) -> dict[str, Any] | None:
         """Finalize a PoI epoch via SAT Controller.
 
         Computes scores, distributes tokens, checks Gini, rebalances if needed.
@@ -2380,7 +2374,7 @@ class SovereignRuntime:
             try:
                 await asyncio.wait_for(self._gateway.initialize(), timeout=30.0)
                 self.logger.info("✓ InferenceGateway loaded and initialized")
-            except (asyncio.TimeoutError, OSError, RuntimeError) as init_err:  # SEC-003
+            except (TimeoutError, OSError, RuntimeError) as init_err:  # SEC-003
                 self.logger.warning(
                     f"⚠ InferenceGateway init timeout/error: {init_err}, gateway available but uninitialized"
                 )
@@ -2938,7 +2932,7 @@ class SovereignRuntime:
         except (RuntimeError, ValueError, TypeError, OSError):
             return {}
 
-    def _record_query_impact(self, result: "SovereignResult") -> None:
+    def _record_query_impact(self, result: SovereignResult) -> None:
         """Record a successful query as an impact event (fire-and-forget)."""
         if not self._impact_tracker:
             return
@@ -3207,7 +3201,7 @@ class SovereignRuntime:
     # -------------------------------------------------------------------------
 
     async def query(
-        self, content: str, context: Optional[dict[str, Any]] = None, **options
+        self, content: str, context: dict[str, Any] | None = None, **options
     ) -> SovereignResult:
         """Process a query through the full sovereign pipeline."""
         if not self._initialized:
@@ -3280,7 +3274,7 @@ class SovereignRuntime:
 
             return result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             duration_ms = (time.perf_counter() - start_time) * 1000
             self.metrics.update_query_stats(False, duration_ms)
             return SovereignResult(
@@ -3678,7 +3672,7 @@ class SovereignRuntime:
 
         return result
 
-    async def _select_compute_tier(self, query: SovereignQuery) -> Optional[object]:
+    async def _select_compute_tier(self, query: SovereignQuery) -> object | None:
         """STAGE 0: Treasury Mode to Compute Tier selection."""
         if not self._omega:
             return None
@@ -3690,7 +3684,7 @@ class SovereignRuntime:
 
     def _run_cognitive_fusion(
         self, query: SovereignQuery, thought_prompt: str
-    ) -> Optional[object]:
+    ) -> object | None:
         """STAGE 1.5: Cognitive Fusion — MoE → HRM → RAG → NorthStar.
 
         Runs the CognitiveFusionEngine synchronously (all subsystems are CPU-bound).
@@ -3786,7 +3780,7 @@ class SovereignRuntime:
 
     async def _execute_reasoning_stage(
         self, query: SovereignQuery
-    ) -> tuple[list[str], float, str, Optional[str]]:
+    ) -> tuple[list[str], float, str, str | None]:
         """STAGE 1: Graph-of-Thoughts exploration.
 
         Returns (reasoning_path, confidence, thought_prompt, graph_hash).
@@ -3794,7 +3788,7 @@ class SovereignRuntime:
         thought_prompt: str = query.text
         reasoning_path: list[str] = []
         confidence: float = 0.75
-        graph_hash: Optional[str] = None
+        graph_hash: str | None = None
 
         if query.require_reasoning and self._graph_reasoner:
             reasoning_result = await self._graph_reasoner.reason(
@@ -3878,7 +3872,7 @@ class SovereignRuntime:
         return f"{system_prompt}\n\n--- QUERY ---\n{thought_prompt}"
 
     async def _perform_llm_inference(
-        self, thought_prompt: str, compute_tier: Optional[object], query: SovereignQuery
+        self, thought_prompt: str, compute_tier: object | None, query: SovereignQuery
     ) -> tuple[str, str]:
         """STAGE 2: LLM inference via gateway with user context.
 
@@ -4168,7 +4162,7 @@ class SovereignRuntime:
             self._cache.popitem(last=False)
         self._cache[key] = result
 
-    def _mode_to_tier(self, mode: object) -> Optional[object]:
+    def _mode_to_tier(self, mode: object) -> object | None:
         """Map TreasuryMode to ComputeTier."""
         try:
             from core.inference.gateway import ComputeTier  # type: ignore[attr-defined]
@@ -4188,7 +4182,7 @@ class SovereignRuntime:
 
     def _extract_ihsan_from_response(
         self, content: str, context: dict[str, Any]
-    ) -> Optional[object]:
+    ) -> object | None:
         """Extract Ihsan vector from response content."""
         try:
             from .omega_engine import ihsan_from_scores
@@ -4458,6 +4452,35 @@ class SovereignRuntime:
             except (RuntimeError, ValueError, TypeError, OSError):
                 self.logger.debug("Failed to collect sovereignty info", exc_info=True)
 
+        canonical_loop_status: dict[str, Any] = {
+            "truth_label": "CANONICAL_LOOP: UNWIRED",
+            "mission_state_authority": self._organism is not None,
+            "authority_path": (
+                "runtime->organism->node0"
+                if self._organism is not None and self._node0 is not None
+                else ""
+            ),
+            "node0": None,
+        }
+        if self._node0 is not None:
+            try:
+                node0_health = self._node0.health()
+                canonical_loop_status["node0"] = node0_health.get(
+                    "canonical_loop_status"
+                )
+                if canonical_loop_status["node0"] is not None:
+                    canonical_loop_status["truth_label"] = str(
+                        canonical_loop_status["node0"].get(
+                            "truth_label",
+                            "CANONICAL_LOOP: WIRED",
+                        )
+                    )
+            except (RuntimeError, ValueError, TypeError, OSError):
+                self.logger.debug(
+                    "Failed to collect canonical loop status from Node0",
+                    exc_info=True,
+                )
+
         return {
             "identity": identity_info,
             "state": {
@@ -4487,6 +4510,7 @@ class SovereignRuntime:
                 "identity_mode": self._identity_mode,
                 "signer_public_key_prefix": self._signer_public_key_prefix,
                 "fate_mode": self._fate_mode,
+                "loop": canonical_loop_status,
             },
             "health": {
                 "status": self._health_status().value,

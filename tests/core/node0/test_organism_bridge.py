@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -394,3 +395,112 @@ class TestNoDoubleIngest:
             f"Expected 3 pending receipts, got {added}. "
             f"Indicates double-ingest or dropped receipts."
         )
+
+
+class TestCanonicalLoopProof:
+    """Prove the bounded local canonical loop end to end."""
+
+    @pytest.fixture()
+    def organism(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
+        from core.sovereign.organism import SovereignOrganism
+
+        monkeypatch.setenv("BIZRA_CLOSED_LOOP_ENABLED", "1")
+        return asyncio.run(
+            SovereignOrganism.boot(
+                EchoInference(),
+                persistence_dir=tmp_path / "sovereign",
+            )
+        )
+
+    def test_approved_cycles_close_loop_into_compiled_reflex(
+        self, organism: Any
+    ) -> None:
+        """Mission-state -> FATE -> receipt -> refinement -> reflex is provable."""
+        counter = {"value": 0}
+
+        async def _high_quality_receipt(_prompt: str) -> SimpleNamespace:
+            counter["value"] += 1
+            n = counter["value"]
+            return SimpleNamespace(
+                mission_id=f"loop-{n:03d}",
+                output_text="[echo] canonical loop",
+                system="COMPLETE",
+                ihsan_score=0.99,
+                snr_score=0.99,
+                rewarded=True,
+                reward_amount=1.0,
+                evidence_hash=f"evidence-{n:03d}",
+                metadata={},
+            )
+
+        organism._nervous_system.run = AsyncMock(side_effect=_high_quality_receipt)
+
+        precipitated = []
+        for i in range(5):
+            receipt = asyncio.run(
+                organism.mission(
+                    "prove the canonical loop",
+                    preflight={
+                        "allow_execution": True,
+                        "fate_verdict": "approved",
+                        "fate_reason_codes": ["authority_bound"],
+                        "fate_mode": "enforced",
+                        "mission_id": f"loop-preflight-{i:03d}",
+                    },
+                )
+            )
+            assert receipt.fate_verdict == "approved"
+            assert receipt.gate_passed is True
+
+            breath = asyncio.run(organism.tick())
+            precipitated.append(breath.reflexes_precipitated)
+            assert breath.missions_processed == 1
+            assert breath.helix_result["approved_count"] == 1
+            assert breath.helix_result["rejected_count"] == 0
+
+        health = organism._node0.health()
+        loop_status = health["canonical_loop_status"]
+        assert loop_status["truth_label"] == "CANONICAL_LOOP: PROVEN"
+        assert loop_status["stages"] == {
+            "receipt_ingestion": True,
+            "fate_filtered_heartbeat": True,
+            "n1_refinement": True,
+            "reflex_precipitation": True,
+        }
+        assert max(precipitated) >= 1
+        assert organism._node0._learning_loop.metrics.reflexes_compiled >= 1
+        assert organism._node0._learning_loop.reflex_cache_size >= 1
+        assert health["reflex_compilation_status"]["enabled"] is True
+
+    def test_rejected_cycles_fail_closed_without_reflex(self, organism: Any) -> None:
+        """Rejected missions may be receipted but must never precipitate reflexes."""
+        for i in range(5):
+            receipt = asyncio.run(
+                organism.mission(
+                    "reject this canonical loop",
+                    preflight={
+                        "allow_execution": False,
+                        "fate_verdict": "rejected",
+                        "fate_reason_codes": ["authority_missing"],
+                        "fate_mode": "enforced",
+                        "mission_id": f"reject-{i:03d}",
+                    },
+                )
+            )
+            assert receipt.fate_verdict == "rejected"
+            assert receipt.gate_passed is False
+
+            breath = asyncio.run(organism.tick())
+            assert breath.reflexes_precipitated == 0
+            assert breath.helix_result["approved_count"] == 0
+            assert breath.helix_result["rejected_count"] == 1
+
+        health = organism._node0.health()
+        loop_status = health["canonical_loop_status"]
+        assert loop_status["truth_label"] == "CANONICAL_LOOP: WIRED"
+        assert loop_status["stages"]["receipt_ingestion"] is True
+        assert loop_status["stages"]["fate_filtered_heartbeat"] is True
+        assert loop_status["stages"]["n1_refinement"] is False
+        assert loop_status["stages"]["reflex_precipitation"] is False
+        assert organism._node0._learning_loop.metrics.reflexes_compiled == 0
+        assert organism._node0._learning_loop.reflex_cache_size == 0

@@ -39,8 +39,8 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime, UTC
+from typing import Any
 
 from core.autopoiesis.loop import IntegrationCandidate
 from core.autopoiesis.sdpo_bridge import AutopoiesisSDPOBridge, EvolutionTrace
@@ -77,10 +77,10 @@ class LoopEvent:
 
     event_type: str  # CANDIDATE_RECEIVED, TRAINING_STARTED, REFLEX_COMPILED, etc.
     source: str  # Which stage emitted this event
-    payload: Dict[str, Any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    payload: dict[str, Any] = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "event_type": self.event_type,
             "source": self.source,
@@ -103,9 +103,9 @@ class LoopMetrics:
     total_observations: int = 0
     avg_training_ihsan: float = 0.0
     loop_cycles: int = 0
-    last_cycle_at: Optional[datetime] = None
+    last_cycle_at: datetime | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "candidates_received": self.candidates_received,
             "candidates_accepted": self.candidates_accepted,
@@ -143,13 +143,13 @@ class LearningLoopOrchestrator:
 
     def __init__(
         self,
-        sdpo_trainer: Optional[BIZRASDPOTrainer] = None,
-        reflex_cache: Optional[Dict[bytes, Reflex]] = None,
-        evolution_bridge: Optional[AutopoiesisSDPOBridge] = None,
-        reflex_bridge: Optional[SDPOReflexBridge] = None,
-        hmm_engine: Optional[HierarchicalHMMEngine] = None,
-        context_cache: Optional[CognitiveHashTable] = None,
-        enabled: Optional[bool] = None,
+        sdpo_trainer: BIZRASDPOTrainer | None = None,
+        reflex_cache: dict[bytes, Reflex] | None = None,
+        evolution_bridge: AutopoiesisSDPOBridge | None = None,
+        reflex_bridge: SDPOReflexBridge | None = None,
+        hmm_engine: HierarchicalHMMEngine | None = None,
+        context_cache: CognitiveHashTable | None = None,
+        enabled: bool | None = None,
     ) -> None:
         self._trainer = sdpo_trainer
         self._reflex_cache = reflex_cache if reflex_cache is not None else {}
@@ -158,10 +158,14 @@ class LearningLoopOrchestrator:
         self._hmm = hmm_engine or HierarchicalHMMEngine()
         self._context_cache = context_cache or CognitiveHashTable()
 
-        self._enabled = enabled if enabled is not None else CLOSED_LOOP_ENABLED
+        self._enabled = (
+            enabled
+            if enabled is not None
+            else os.environ.get("BIZRA_CLOSED_LOOP_ENABLED", "0") == "1"
+        )
         self._metrics = LoopMetrics()
-        self._events: List[LoopEvent] = []
-        self._training_ihsan_history: List[float] = []
+        self._events: list[LoopEvent] = []
+        self._training_ihsan_history: list[float] = []
 
         logger.info(
             "LearningLoopOrchestrator initialized — enabled=%s, "
@@ -257,7 +261,7 @@ class LearningLoopOrchestrator:
 
     # ─── Stage 2: Evolution Bridge → SDPO Training ──────────────────────────
 
-    async def run_training_cycle(self) -> Optional[TrainingResult]:
+    async def run_training_cycle(self) -> TrainingResult | None:
         """Flush buffered evolution traces to SDPO training.
 
         Returns the TrainingResult if training was executed, None otherwise.
@@ -360,7 +364,7 @@ class LearningLoopOrchestrator:
 
     def _observe_training_results(
         self,
-        training_data: Dict[str, List],
+        training_data: dict[str, list],
         result: TrainingResult,
     ) -> None:
         """Pipe training results into the reflex bridge as observations."""
@@ -389,14 +393,14 @@ class LearningLoopOrchestrator:
 
     # ─── Stage 3: Reflex Bridge → Constitutional Compilation ────────────────
 
-    def run_compilation_cycle(self) -> List[ReflexCandidate]:
+    def run_compilation_cycle(self) -> list[ReflexCandidate]:
         """Check for eligible reflex candidates and compile them.
 
         Returns the list of candidates that were successfully compiled.
         Called periodically (e.g., every 30 seconds or every tick).
         """
         self._metrics.loop_cycles += 1
-        self._metrics.last_cycle_at = datetime.now(timezone.utc)
+        self._metrics.last_cycle_at = datetime.now(UTC)
 
         candidates = self._reflex_bridge.get_eligible_candidates()
         if not candidates:
@@ -432,7 +436,7 @@ class LearningLoopOrchestrator:
 
         return compiled
 
-    def _compile_candidate(self, candidate: ReflexCandidate) -> Optional[Reflex]:
+    def _compile_candidate(self, candidate: ReflexCandidate) -> Reflex | None:
         """Compile a single reflex candidate via constitutional algorithm.
 
         Converts the floating-point ihsan score to fixed-point and delegates
@@ -491,7 +495,7 @@ class LearningLoopOrchestrator:
 
     # ─── Full Cycle (convenience) ───────────────────────────────────────────
 
-    async def run_full_cycle(self) -> Dict[str, Any]:
+    async def run_full_cycle(self) -> dict[str, Any]:
         """Execute one complete learning loop cycle.
 
         Runs training (if traces are buffered) then compilation.
@@ -524,7 +528,7 @@ class LearningLoopOrchestrator:
     def reflex_cache_size(self) -> int:
         return len(self._reflex_cache)
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Return comprehensive orchestrator status."""
         return {
             "enabled": self._enabled,
@@ -539,11 +543,11 @@ class LearningLoopOrchestrator:
             "recent_events": [e.to_dict() for e in self._events[-10:]],
         }
 
-    def get_events(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_events(self, limit: int = 50) -> list[dict[str, Any]]:
         """Return recent loop events."""
         return [e.to_dict() for e in self._events[-limit:]]
 
-    def _emit(self, event_type: str, source: str, payload: Dict[str, Any]) -> None:
+    def _emit(self, event_type: str, source: str, payload: dict[str, Any]) -> None:
         """Emit a loop lifecycle event."""
         event = LoopEvent(event_type=event_type, source=source, payload=payload)
         self._events.append(event)
