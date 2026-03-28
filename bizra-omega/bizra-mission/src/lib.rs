@@ -21,6 +21,8 @@
 // - Deming: variation reduction through governed process
 // ============================================================
 
+/// Cross-layer envelope — canonical mission contract with constitutional context.
+pub mod envelope;
 pub mod mission;
 pub mod preflight;
 pub mod receipt;
