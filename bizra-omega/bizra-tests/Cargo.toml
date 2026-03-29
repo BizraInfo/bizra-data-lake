@@ -7,6 +7,7 @@ publish = false
 
 [dependencies]
 bizra-core = { path = "../bizra-core", features = ["dev-mode"] }
+bizra-mission = { path = "../bizra-mission" }
 bizra-inference = { path = "../bizra-inference" }
 bizra-federation = { path = "../bizra-federation" }
 bizra-autopoiesis = { path = "../bizra-autopoiesis" }
@@ -57,6 +58,10 @@ path = "tests/inference_fallback.rs"
 [[test]]
 name = "proof_pyramid_e2e"
 path = "tests/proof_pyramid_e2e.rs"
+
+[[test]]
+name = "sape_probes"
+path = "tests/sape_probes.rs"
 
 [[bench]]
 name = "perf"
