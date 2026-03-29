@@ -90,7 +90,7 @@ impl VerdictGateEntry {
             reject_code: if result.passed {
                 None
             } else {
-                Some(result.code.clone())
+                Some(result.code)
             },
         }
     }
@@ -110,7 +110,7 @@ impl GateVerdict {
         let reject_codes: Vec<RejectCode> = results
             .iter()
             .filter(|r| !r.passed)
-            .map(|r| r.code.clone())
+            .map(|r| r.code)
             .collect();
 
         let gate_results: Vec<VerdictGateEntry> = results
@@ -202,7 +202,7 @@ impl GateVerdict {
 mod tests {
     use super::*;
     use crate::constitution::Constitution;
-    use crate::pci::gates::{default_gate_chain, GateChain, GateContext, GateResult};
+    use crate::pci::gates::{default_gate_chain, GateContext, GateResult};
     use std::time::Duration;
 
     fn mock_passing_results() -> Vec<GateResult> {
