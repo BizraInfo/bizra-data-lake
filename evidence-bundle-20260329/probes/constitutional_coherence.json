@@ -1,0 +1,60 @@
+{
+  "timestamp": 1774747794.8571086,
+  "layers": [
+    {
+      "name": "bizra-omega",
+      "layer_id": 1,
+      "ihsan": 0.95,
+      "snr": null,
+      "gini": 0.35,
+      "gate_chain": [
+        "Schema",
+        "Ihsan",
+        "SNR"
+      ],
+      "tests": -1,
+      "healthy": true,
+      "error": ""
+    },
+    {
+      "name": "core-sovereign",
+      "layer_id": 2,
+      "ihsan": 0.95,
+      "snr": 0.8,
+      "gini": 0.35,
+      "gate_chain": [
+        "Schema",
+        "Ihsan",
+        "SNR"
+      ],
+      "tests": 0,
+      "healthy": true,
+      "error": ""
+    },
+    {
+      "name": "bizra-kernel",
+      "layer_id": 3,
+      "ihsan": 0.95,
+      "snr": 0.99,
+      "gini": null,
+      "gate_chain": [
+        "Structural",
+        "Entropy",
+        "Consistency",
+        "z3",
+        "Proof"
+      ],
+      "tests": 117,
+      "healthy": true,
+      "error": ""
+    }
+  ],
+  "alignment": {
+    "ihsan": true,
+    "snr": true,
+    "gini": true,
+    "gate_chain": true
+  },
+  "overall_coherent": true,
+  "score": 1.0
+}
