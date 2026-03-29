@@ -163,7 +163,10 @@ mod tests {
 
     #[test]
     fn test_envelope_deterministic() {
-        assert_eq!(test_envelope().canonical_hash, test_envelope().canonical_hash);
+        assert_eq!(
+            test_envelope().canonical_hash,
+            test_envelope().canonical_hash
+        );
     }
 
     #[test]
@@ -173,20 +176,40 @@ mod tests {
 
     #[test]
     fn test_envelope_verify_fails_expired() {
-        assert_eq!(test_envelope().verify(1711584200000), Err(EnvelopeError::Expired));
+        assert_eq!(
+            test_envelope().verify(1711584200000),
+            Err(EnvelopeError::Expired)
+        );
     }
 
     #[test]
     fn test_envelope_verify_fails_tamper() {
         let mut env = test_envelope();
         env.initiator_id = "tampered".to_string();
-        assert_eq!(env.verify(1711584000000), Err(EnvelopeError::IntegrityFailure));
+        assert_eq!(
+            env.verify(1711584000000),
+            Err(EnvelopeError::IntegrityFailure)
+        );
     }
 
     #[test]
     fn test_different_payloads_different_hashes() {
-        let e1 = MissionEnvelope::new("m1".into(), "n".into(), b"A", ConstitutionalContext::default(), 1000, 120_000);
-        let e2 = MissionEnvelope::new("m1".into(), "n".into(), b"B", ConstitutionalContext::default(), 1000, 120_000);
+        let e1 = MissionEnvelope::new(
+            "m1".into(),
+            "n".into(),
+            b"A",
+            ConstitutionalContext::default(),
+            1000,
+            120_000,
+        );
+        let e2 = MissionEnvelope::new(
+            "m1".into(),
+            "n".into(),
+            b"B",
+            ConstitutionalContext::default(),
+            1000,
+            120_000,
+        );
         assert_ne!(e1.canonical_hash, e2.canonical_hash);
     }
 }

@@ -113,22 +113,24 @@ pub fn run_canonical_loop(
         mission.ihsan_score = Some(ihsan_score as f32);
         mission.snr_score = Some(snr_score as f32);
         mission.guardian_approved = Some(true);
-        mission.transition(
-            crate::state::MissionState::Complete,
-            now_ms,
-            "Canonical loop: admitted",
-        )
-        .ok();
+        mission
+            .transition(
+                crate::state::MissionState::Complete,
+                now_ms,
+                "Canonical loop: admitted",
+            )
+            .ok();
     } else {
         mission.ihsan_score = Some(ihsan_score as f32);
         mission.snr_score = Some(snr_score as f32);
         mission.guardian_approved = Some(false);
-        mission.transition(
-            crate::state::MissionState::Failed,
-            now_ms,
-            "Canonical loop: rejected by gate chain",
-        )
-        .ok();
+        mission
+            .transition(
+                crate::state::MissionState::Failed,
+                now_ms,
+                "Canonical loop: rejected by gate chain",
+            )
+            .ok();
     }
 
     let receipt = MissionReceipt::from_mission(&mission, previous_receipt);
@@ -154,7 +156,15 @@ pub fn run_canonical_batch(
     let mut prev_hash: Option<[u8; 32]> = None;
 
     for (envelope, payload, ihsan, snr) in &missions {
-        match run_canonical_loop(envelope, payload, constitution, *ihsan, *snr, now_ms, prev_hash) {
+        match run_canonical_loop(
+            envelope,
+            payload,
+            constitution,
+            *ihsan,
+            *snr,
+            now_ms,
+            prev_hash,
+        ) {
             Ok(result) => {
                 let receipt_ref = ReceiptRef {
                     receipt_id: result.receipt.receipt_id,
@@ -211,8 +221,8 @@ mod tests {
             &envelope,
             b"{\"task\": \"sort inbox\"}",
             &test_constitution(),
-            0.97,  // Above Ihsan threshold
-            0.95,  // Above SNR threshold
+            0.97, // Above Ihsan threshold
+            0.95, // Above SNR threshold
             now,
             None,
         )
@@ -231,7 +241,7 @@ mod tests {
             &envelope,
             b"{\"task\": \"evil task\"}",
             &test_constitution(),
-            0.30,  // Below Ihsan threshold — REJECTED
+            0.30, // Below Ihsan threshold — REJECTED
             0.95,
             now,
             None,
@@ -269,23 +279,41 @@ mod tests {
 
         // Mission 1
         let e1 = MissionEnvelope::new(
-            "m1".into(), "node0".into(), b"{\"a\":1}",
-            ConstitutionalContext::default(), now, 120_000,
+            "m1".into(),
+            "node0".into(),
+            b"{\"a\":1}",
+            ConstitutionalContext::default(),
+            now,
+            120_000,
         );
-        let r1 = run_canonical_loop(&e1, b"{\"a\":1}", &constitution, 0.97, 0.95, now, None).unwrap();
+        let r1 =
+            run_canonical_loop(&e1, b"{\"a\":1}", &constitution, 0.97, 0.95, now, None).unwrap();
 
         // Mission 2 — chained to mission 1
         let e2 = MissionEnvelope::new(
-            "m2".into(), "node0".into(), b"{\"a\":2}",
-            ConstitutionalContext::default(), now, 120_000,
+            "m2".into(),
+            "node0".into(),
+            b"{\"a\":2}",
+            ConstitutionalContext::default(),
+            now,
+            120_000,
         );
         let r2 = run_canonical_loop(
-            &e2, b"{\"a\":2}", &constitution, 0.96, 0.93, now,
+            &e2,
+            b"{\"a\":2}",
+            &constitution,
+            0.96,
+            0.93,
+            now,
             Some(r1.receipt.receipt_id), // Chain link
-        ).unwrap();
+        )
+        .unwrap();
 
         // Verify chain
-        assert_eq!(r2.receipt.previous_receipt_hash, Some(r1.receipt.receipt_id));
+        assert_eq!(
+            r2.receipt.previous_receipt_hash,
+            Some(r1.receipt.receipt_id)
+        );
     }
 
     #[test]
@@ -294,22 +322,29 @@ mod tests {
         let constitution = test_constitution();
 
         let e1 = MissionEnvelope::new(
-            "b1".into(), "node0".into(), b"{\"ok\":true}",
-            ConstitutionalContext::default(), now, 120_000,
+            "b1".into(),
+            "node0".into(),
+            b"{\"ok\":true}",
+            ConstitutionalContext::default(),
+            now,
+            120_000,
         );
         let e2 = MissionEnvelope::new(
-            "b2".into(), "node0".into(), b"{\"bad\":true}",
-            ConstitutionalContext::default(), now, 120_000,
+            "b2".into(),
+            "node0".into(),
+            b"{\"bad\":true}",
+            ConstitutionalContext::default(),
+            now,
+            120_000,
         );
 
         let missions = vec![
-            (&e1, b"{\"ok\":true}".as_slice(), 0.97, 0.95),  // Admitted
+            (&e1, b"{\"ok\":true}".as_slice(), 0.97, 0.95), // Admitted
             (&e2, b"{\"bad\":true}".as_slice(), 0.30, 0.95), // Rejected
         ];
 
-        let (results, manifest) = run_canonical_batch(
-            missions, &constitution, "node0", "0.89.1", now,
-        );
+        let (results, manifest) =
+            run_canonical_batch(missions, &constitution, "node0", "0.89.1", now);
 
         assert_eq!(results.len(), 2);
         assert!(results[0].admitted);

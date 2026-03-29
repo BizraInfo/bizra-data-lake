@@ -109,8 +109,10 @@ impl GateVerdict {
             .map(|r| r.code.clone())
             .collect();
 
-        let gate_results: Vec<VerdictGateEntry> =
-            results.iter().map(VerdictGateEntry::from_gate_result).collect();
+        let gate_results: Vec<VerdictGateEntry> = results
+            .iter()
+            .map(VerdictGateEntry::from_gate_result)
+            .collect();
 
         let status = if all_passed {
             VerdictStatus::Admitted
@@ -195,8 +197,8 @@ impl GateVerdict {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pci::gates::{GateResult, GateChain, default_gate_chain, GateContext};
     use crate::constitution::Constitution;
+    use crate::pci::gates::{default_gate_chain, GateChain, GateContext, GateResult};
     use std::time::Duration;
 
     fn mock_passing_results() -> Vec<GateResult> {
@@ -210,14 +212,23 @@ mod tests {
     fn mock_failing_results() -> Vec<GateResult> {
         vec![
             GateResult::pass("Schema", Duration::from_micros(50)),
-            GateResult::fail("Ihsan", RejectCode::RejectGateIhsan, Duration::from_micros(200)),
+            GateResult::fail(
+                "Ihsan",
+                RejectCode::RejectGateIhsan,
+                Duration::from_micros(200),
+            ),
         ]
     }
 
     #[test]
     fn test_verdict_admitted() {
         let v = GateVerdict::from_gate_results(
-            "m1".into(), &mock_passing_results(), 0.97, 0.92, "0.89.1".into(), 1000,
+            "m1".into(),
+            &mock_passing_results(),
+            0.97,
+            0.92,
+            "0.89.1".into(),
+            1000,
         );
         assert!(v.is_admitted());
         assert_eq!(v.status, VerdictStatus::Admitted);
@@ -229,7 +240,12 @@ mod tests {
     #[test]
     fn test_verdict_rejected() {
         let v = GateVerdict::from_gate_results(
-            "m2".into(), &mock_failing_results(), 0.40, 0.92, "0.89.1".into(), 1000,
+            "m2".into(),
+            &mock_failing_results(),
+            0.40,
+            0.92,
+            "0.89.1".into(),
+            1000,
         );
         assert!(!v.is_admitted());
         assert_eq!(v.status, VerdictStatus::Rejected);
@@ -239,10 +255,20 @@ mod tests {
     #[test]
     fn test_verdict_hash_deterministic() {
         let v1 = GateVerdict::from_gate_results(
-            "m1".into(), &mock_passing_results(), 0.97, 0.92, "0.89.1".into(), 1000,
+            "m1".into(),
+            &mock_passing_results(),
+            0.97,
+            0.92,
+            "0.89.1".into(),
+            1000,
         );
         let v2 = GateVerdict::from_gate_results(
-            "m1".into(), &mock_passing_results(), 0.97, 0.92, "0.89.1".into(), 1000,
+            "m1".into(),
+            &mock_passing_results(),
+            0.97,
+            0.92,
+            "0.89.1".into(),
+            1000,
         );
         assert_eq!(v1.verdict_hash, v2.verdict_hash);
     }
@@ -250,10 +276,20 @@ mod tests {
     #[test]
     fn test_verdict_hash_changes_on_rejection() {
         let admitted = GateVerdict::from_gate_results(
-            "m1".into(), &mock_passing_results(), 0.97, 0.92, "0.89.1".into(), 1000,
+            "m1".into(),
+            &mock_passing_results(),
+            0.97,
+            0.92,
+            "0.89.1".into(),
+            1000,
         );
         let rejected = GateVerdict::from_gate_results(
-            "m1".into(), &mock_failing_results(), 0.40, 0.92, "0.89.1".into(), 1000,
+            "m1".into(),
+            &mock_failing_results(),
+            0.40,
+            0.92,
+            "0.89.1".into(),
+            1000,
         );
         assert_ne!(admitted.verdict_hash, rejected.verdict_hash);
     }
@@ -261,7 +297,12 @@ mod tests {
     #[test]
     fn test_verdict_total_latency() {
         let v = GateVerdict::from_gate_results(
-            "m1".into(), &mock_passing_results(), 0.97, 0.92, "0.89.1".into(), 1000,
+            "m1".into(),
+            &mock_passing_results(),
+            0.97,
+            0.92,
+            "0.89.1".into(),
+            1000,
         );
         assert_eq!(v.total_latency_ns(), 350_000); // 50+200+100 us = 350us = 350_000ns
     }
@@ -279,7 +320,12 @@ mod tests {
         };
         let results = chain.verify(&ctx);
         let verdict = GateVerdict::from_gate_results(
-            "mission-001".into(), &results, 0.97, 0.95, "0.89.1".into(), 1000,
+            "mission-001".into(),
+            &results,
+            0.97,
+            0.95,
+            "0.89.1".into(),
+            1000,
         );
         assert!(verdict.is_admitted());
         assert_ne!(verdict.verdict_hash, [0; 32]);

@@ -1,3 +1,5 @@
 max_width = 100
-imports_granularity = "Crate"
-group_imports = "StdExternalCrate"
+# imports_granularity and group_imports require nightly.
+# Disabled to ensure stable/nightly produce identical output in CI.
+# imports_granularity = "Crate"
+# group_imports = "StdExternalCrate"

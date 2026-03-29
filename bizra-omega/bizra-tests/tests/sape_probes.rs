@@ -62,7 +62,7 @@ fn probe_01_negative_path_rejects_missing_scores() {
         envelope_id: "no-scores".into(),
         content: b"{}".to_vec(),
         constitution: Constitution::default(),
-        snr_score: None, // Missing
+        snr_score: None,   // Missing
         ihsan_score: None, // Missing — fail-closed
     };
 
@@ -162,10 +162,7 @@ fn probe_04_replay_divergence_payload_tamper() {
     // Tamper with payload hash directly
     tampered.payload_hash[0] ^= 0xFF;
 
-    assert_eq!(
-        tampered.verify(1000),
-        Err(EnvelopeError::IntegrityFailure)
-    );
+    assert_eq!(tampered.verify(1000), Err(EnvelopeError::IntegrityFailure));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -205,12 +202,10 @@ fn probe_06_different_policy_produces_different_verdict() {
         GateResult::pass("SNR", Duration::from_micros(100)),
     ];
 
-    let v1 = GateVerdict::from_gate_results(
-        "m1".into(), &results, 0.97, 0.95, "0.89.0".into(), 1000,
-    );
-    let v2 = GateVerdict::from_gate_results(
-        "m1".into(), &results, 0.97, 0.95, "0.90.0".into(), 1000,
-    );
+    let v1 =
+        GateVerdict::from_gate_results("m1".into(), &results, 0.97, 0.95, "0.89.0".into(), 1000);
+    let v2 =
+        GateVerdict::from_gate_results("m1".into(), &results, 0.97, 0.95, "0.90.0".into(), 1000);
 
     // Different policy versions MUST produce different hashes
     assert_ne!(
@@ -240,13 +235,7 @@ fn probe_07_manifest_tamper_detected() {
         },
     ];
 
-    let manifest = ManifestArtifact::new(
-        "node0".into(),
-        "0.89.1".into(),
-        1000,
-        2000,
-        receipts,
-    );
+    let manifest = ManifestArtifact::new("node0".into(), "0.89.1".into(), 1000, 2000, receipts);
 
     // Manifest is valid
     assert!(manifest.verify_integrity());
@@ -284,13 +273,7 @@ fn probe_07_manifest_reorder_detected() {
         },
     ];
 
-    let manifest = ManifestArtifact::new(
-        "node0".into(),
-        "0.89.1".into(),
-        1000,
-        2000,
-        receipts,
-    );
+    let manifest = ManifestArtifact::new("node0".into(), "0.89.1".into(), 1000, 2000, receipts);
 
     // Reorder receipts
     let mut reordered = manifest.clone();

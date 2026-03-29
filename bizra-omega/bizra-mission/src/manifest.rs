@@ -136,7 +136,10 @@ impl ManifestArtifact {
 
     /// Manifest ID as hex.
     pub fn id_hex(&self) -> String {
-        self.manifest_id.iter().map(|b| format!("{b:02x}")).collect()
+        self.manifest_id
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
     }
 
     /// Admission rate.
@@ -178,7 +181,11 @@ mod tests {
     #[test]
     fn test_manifest_creation() {
         let m = ManifestArtifact::new(
-            "node0".into(), "0.89.1".into(), 1000, 2000, sample_receipts(),
+            "node0".into(),
+            "0.89.1".into(),
+            1000,
+            2000,
+            sample_receipts(),
         );
         assert_eq!(m.total_missions, 3);
         assert_eq!(m.admitted, 2);
@@ -191,7 +198,11 @@ mod tests {
     #[test]
     fn test_manifest_integrity_valid() {
         let m = ManifestArtifact::new(
-            "node0".into(), "0.89.1".into(), 1000, 2000, sample_receipts(),
+            "node0".into(),
+            "0.89.1".into(),
+            1000,
+            2000,
+            sample_receipts(),
         );
         assert!(m.verify_integrity());
     }
@@ -199,7 +210,11 @@ mod tests {
     #[test]
     fn test_manifest_integrity_fails_on_tamper() {
         let mut m = ManifestArtifact::new(
-            "node0".into(), "0.89.1".into(), 1000, 2000, sample_receipts(),
+            "node0".into(),
+            "0.89.1".into(),
+            1000,
+            2000,
+            sample_receipts(),
         );
         m.receipts.push(ReceiptRef {
             receipt_id: [99; 32],
@@ -213,10 +228,18 @@ mod tests {
     #[test]
     fn test_manifest_deterministic() {
         let m1 = ManifestArtifact::new(
-            "node0".into(), "0.89.1".into(), 1000, 2000, sample_receipts(),
+            "node0".into(),
+            "0.89.1".into(),
+            1000,
+            2000,
+            sample_receipts(),
         );
         let m2 = ManifestArtifact::new(
-            "node0".into(), "0.89.1".into(), 1000, 2000, sample_receipts(),
+            "node0".into(),
+            "0.89.1".into(),
+            1000,
+            2000,
+            sample_receipts(),
         );
         assert_eq!(m1.integrity_hash, m2.integrity_hash);
         assert_eq!(m1.manifest_id, m2.manifest_id);
@@ -233,7 +256,11 @@ mod tests {
     #[test]
     fn test_manifest_admission_rate() {
         let m = ManifestArtifact::new(
-            "node0".into(), "0.89.1".into(), 1000, 2000, sample_receipts(),
+            "node0".into(),
+            "0.89.1".into(),
+            1000,
+            2000,
+            sample_receipts(),
         );
         let rate = m.admission_rate();
         assert!((rate - 2.0 / 3.0).abs() < 0.001);
