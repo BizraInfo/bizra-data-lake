@@ -21,7 +21,7 @@ Data Flow:
                         → get_eligible_candidates() → ReflexCandidate[]
                             → compile_reflex(pattern, chain, confidence) → Reflex
 
-Feature flag: BIZRA_CLOSED_LOOP_ENABLED (default=False, opt-in).
+Default: LIVE (v0.89.1+). Disable with BIZRA_DISABLE_REFLEX=1.
 
 Standing on Giants:
 - Deming (PDCA, 1950) — Plan-Do-Check-Act as a closed loop
@@ -62,8 +62,10 @@ from core.sdpo.training.bizra_sdpo_trainer import (
 
 logger = logging.getLogger(__name__)
 
-# Feature flag: off by default for safety
-CLOSED_LOOP_ENABLED = os.environ.get("BIZRA_CLOSED_LOOP_ENABLED", "0") == "1"
+# Reflex default-live (v0.89.1): closed loop is ON by default.
+# Set BIZRA_DISABLE_REFLEX=1 to disable for debugging only.
+# Previously: BIZRA_CLOSED_LOOP_ENABLED=1 (opt-in). Now: opt-out.
+CLOSED_LOOP_ENABLED = os.environ.get("BIZRA_DISABLE_REFLEX", "0") != "1"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -136,9 +138,8 @@ class LearningLoopOrchestrator:
     2. ``run_training_cycle()`` — called periodically to flush buffered traces → SDPO
     3. ``run_compilation_cycle()`` — called periodically to promote patterns → reflexes
 
-    All operations are gated by Ihsān thresholds and the BIZRA_CLOSED_LOOP_ENABLED
-    feature flag. When disabled, the orchestrator accepts events but does not
-    execute training or compilation (dry-run mode for telemetry).
+    All operations are gated by Ihsān thresholds. Default: LIVE (v0.89.1+).
+    Set BIZRA_DISABLE_REFLEX=1 to disable (dry-run mode for debugging).
     """
 
     def __init__(
@@ -161,7 +162,7 @@ class LearningLoopOrchestrator:
         self._enabled = (
             enabled
             if enabled is not None
-            else os.environ.get("BIZRA_CLOSED_LOOP_ENABLED", "0") == "1"
+            else os.environ.get("BIZRA_DISABLE_REFLEX", "0") != "1"
         )
         self._metrics = LoopMetrics()
         self._events: list[LoopEvent] = []
@@ -291,7 +292,7 @@ class LearningLoopOrchestrator:
         if not self._enabled:
             logger.info(
                 "Learning loop disabled — training data flushed but not executed "
-                "(set BIZRA_CLOSED_LOOP_ENABLED=1 to enable)",
+                "(unset BIZRA_DISABLE_REFLEX to re-enable)",
             )
             self._emit(
                 "TRAINING_SKIPPED_DISABLED",
