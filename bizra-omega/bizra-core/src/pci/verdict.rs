@@ -70,9 +70,13 @@ pub struct GateVerdict {
 /// Individual gate entry in the verdict (serializable version of GateResult).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerdictGateEntry {
+    /// Name of the gate that produced this entry.
     pub gate_name: String,
+    /// Whether the gate check passed.
     pub passed: bool,
+    /// Wall-clock time spent in this gate (nanoseconds).
     pub latency_ns: u64,
+    /// Reject code if gate failed; None if passed.
     pub reject_code: Option<RejectCode>,
 }
 

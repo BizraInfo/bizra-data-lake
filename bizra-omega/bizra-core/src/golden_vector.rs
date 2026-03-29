@@ -17,11 +17,16 @@ pub const DOMAIN_GOLDEN_VECTOR: &str = "bizra-golden-vector-v1";
 pub const FIXED_POINT_P: f64 = 1_000_000.0;
 
 // ── The Golden Vector (FROZEN — never modify) ──────────────
+/// Frozen mission ID for cross-language sealing test.
 pub const GOLDEN_MISSION_ID: &str = "golden-vector-v1";
+/// Frozen initiator ID (node0 genesis identity).
 pub const GOLDEN_INITIATOR_ID: &str = "node0-genesis";
+/// Frozen payload (Basmala — first words of every Surah).
 pub const GOLDEN_PAYLOAD: &[u8] = b"In the Name of Allah, Most Gracious, Most Merciful";
+/// Frozen Ihsan score for deterministic hashing.
 pub const GOLDEN_IHSAN_SCORE: f64 = 0.984700;
-pub const GOLDEN_TIMESTAMP: u64 = 1711584000000; // 2024-03-28T00:00:00Z
+/// Frozen timestamp (2024-03-28T00:00:00Z) for reproducibility.
+pub const GOLDEN_TIMESTAMP: u64 = 1711584000000;
 
 /// The FROZEN digest. Python and Rust must produce this exact hash.
 pub const GOLDEN_DIGEST_HEX: &str =
