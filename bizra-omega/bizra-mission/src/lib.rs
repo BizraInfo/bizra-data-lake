@@ -23,6 +23,8 @@
 
 /// Cross-layer envelope — canonical mission contract with constitutional context.
 pub mod envelope;
+/// Evidence manifest — bundles receipts into reviewable, integrity-checked package.
+pub mod manifest;
 pub mod mission;
 pub mod preflight;
 pub mod receipt;
