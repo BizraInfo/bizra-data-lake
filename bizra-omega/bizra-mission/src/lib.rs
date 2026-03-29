@@ -21,6 +21,8 @@
 // - Deming: variation reduction through governed process
 // ============================================================
 
+/// The canonical loop — production pipeline wiring all 4 contracts.
+pub mod canonical_loop;
 /// Cross-layer envelope — canonical mission contract with constitutional context.
 pub mod envelope;
 /// Evidence manifest — bundles receipts into reviewable, integrity-checked package.
