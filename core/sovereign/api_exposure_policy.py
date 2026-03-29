@@ -118,6 +118,7 @@ API_ROUTE_POLICIES: tuple[APIRoutePolicy, ...] = (
         "/v1/health/live",
         "/v1/health/ready",
         "/v1/health/deep",
+        "/v1/health/constitutional",
         "/v1/health",
         "/v1/status",
         "/v1/metrics",

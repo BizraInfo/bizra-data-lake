@@ -44,6 +44,7 @@ jobs:
   coverage-ratchet:
     name: "📈 Coverage Ratchet"
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     outputs:
       actual_coverage: ${{ steps.ratchet.outputs.actual_coverage }}
       current_floor: ${{ steps.ratchet.outputs.current_floor }}
@@ -70,7 +71,7 @@ jobs:
           python -m pytest tests/ \
             --cov=core --cov-report=xml:coverage.xml --cov-report=term-missing \
             -m "not requires_ollama and not requires_gpu and not slow" \
-            --timeout=60 -q || true
+            --timeout=30 --maxfail=200 -x -q || true
 
       - name: Run Ratchet Check
         id: ratchet
