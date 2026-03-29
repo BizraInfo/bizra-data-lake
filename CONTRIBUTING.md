@@ -2,6 +2,15 @@
 
 BIZRA is a proof-native constitutional intelligence system. We welcome contributions that strengthen the integrity and clarity of the system.
 
+## Documentation Quality Gate
+
+All contributions must pass the documentation quality gate (see `scripts/ci_docs_quality.py`
+and `docs/README.md` for details). Key requirements:
+
+- Every public API change must include documentation updates
+- Truth labels (`[ENFORCEMENT: PROVEN]`, etc.) must be accurate
+- Constitutional thresholds must match `core/integration/constants.py`
+
 ## Prerequisites
 
 - Rust nightly (latest stable also supported for non-core work)
