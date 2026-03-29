@@ -16,7 +16,7 @@
 //!              Al-Ghazali (niyyah), Deming (PDCA), Shannon (SNR)
 
 use crate::{
-    envelope::{ConstitutionalContext, EnvelopeError, MissionEnvelope},
+    envelope::{EnvelopeError, MissionEnvelope},
     manifest::{ManifestArtifact, ReceiptRef},
     mission::Mission,
     receipt::MissionReceipt,
@@ -25,7 +25,7 @@ use bizra_core::{
     constitution::Constitution,
     pci::{
         gates::{default_gate_chain, GateContext},
-        verdict::{GateVerdict, VerdictStatus},
+        verdict::GateVerdict,
     },
 };
 
@@ -197,6 +197,8 @@ pub fn run_canonical_batch(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::envelope::ConstitutionalContext;
+    use bizra_core::pci::verdict::VerdictStatus;
 
     fn test_constitution() -> Constitution {
         Constitution::default()
