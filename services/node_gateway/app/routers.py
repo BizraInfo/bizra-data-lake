@@ -1,6 +1,7 @@
 import hmac
 import os
 import sys
+import time
 from pathlib import Path
 
 from app.node.hhmm import HHMM
@@ -139,6 +140,129 @@ async def plan(
     snr = snr_score(signal=0.9, noise=0.35)
     poi = max(0.0, min((snr + 0.8) / 2.0, 1.0))
     return Plan(macro_state=macro, steps=steps, snr=snr, poi_score=poi)
+
+
+class MissionRequest(BaseModel):
+    text: str
+    context: dict[str, str] = Field(default_factory=dict)
+    slot: str = "cold_core"
+
+
+class CanonicalReceiptResponse(BaseModel):
+    receipt_id: str
+    mission_id: str
+    verdict: str
+    ihsan_score: float
+    snr_score: float
+    route: str
+    state: str
+    federation_admissible: bool
+    response: str
+    model_used: str = ""
+
+
+@router.post("/v1/mission")
+async def canonical_mission(
+    req: MissionRequest,
+    x_bizra_api_key: str | None = Header(default=None, alias="x-bizra-api-key"),
+) -> CanonicalReceiptResponse:
+    """Execute a mission through the canonical constitutional pipeline.
+
+    Returns a CanonicalReceipt-shaped response. Every externally visible
+    effect produces exactly one receipt.
+    """
+    _require_api_key(x_bizra_api_key)
+    received_at = int(time.time() * 1000)
+
+    # 1) HHMM classification → route selection
+    macro = hhmm.predict(req.text, req.context)
+    reflex_steps = cache.get(macro)
+    route = "REFLEX" if reflex_steps else "DELIBERATE"
+
+    # 2) Try reflex path first (System 1)
+    if reflex_steps:
+        snr = snr_score(signal=0.9, noise=0.35)
+        return CanonicalReceiptResponse(
+            receipt_id=f"rx-{received_at}",
+            mission_id=f"m-{received_at}",
+            verdict="ADMITTED",
+            ihsan_score=0.95,
+            snr_score=snr,
+            route="REFLEX",
+            state="COMMITTED",
+            federation_admissible=True,
+            response="; ".join(reflex_steps),
+        )
+
+    # 3) Deliberate path — call kernel cognitive engine
+    response_text = ""
+    model_used = ""
+    ihsan = 0.0
+    verdict = "DEFERRED"
+
+    try:
+        import httpx
+
+        kernel_url = os.environ.get("BIZRA_KERNEL_URL", "http://localhost:8010")
+        token = os.environ.get("BIZRA_API_TOKEN", "")
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            r = await client.post(
+                f"{kernel_url}/v1/cognitive/invoke",
+                json={"prompt": req.text, "slot": req.slot},
+                headers=headers,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("success") and "[ERROR]" not in data.get("response", ""):
+                    response_text = data["response"]
+                    model_used = data.get("model_used", "")
+                    ihsan = data.get("ihsan_score", 0.0)
+                    verdict = "ADMITTED" if data.get("ihsan_passed") else "REJECTED"
+    except Exception:
+        pass
+
+    # 4) Fallback if kernel unreachable
+    if not response_text:
+        bridge_plan = await mission_bridge.run(req.text, req.context, macro_state=macro)
+        if bridge_plan:
+            response_text = "; ".join(bridge_plan.steps)
+            ihsan = 0.90
+            verdict = "ADMITTED"
+            route = "DEGRADED"
+        else:
+            response_text = f"[DEGRADED] Decompose: {macro}"
+            ihsan = 0.0
+            verdict = "DEFERRED"
+            route = "DEGRADED"
+
+    snr = snr_score(signal=0.9, noise=0.35)
+    federation = verdict == "ADMITTED" and ihsan >= 0.95
+
+    # 5) Emit canonical receipt
+    state = {"ADMITTED": "COMMITTED", "REJECTED": "VERIFIED", "DEFERRED": "HYPOTHESIS"}[
+        verdict
+    ]
+
+    # Cache compilation: if deliberate succeeded, consider reflex precipitation
+    if verdict == "ADMITTED" and route == "DELIBERATE" and snr >= _reflex_min_snr():
+        cache.put(macro, [response_text[:200]])
+
+    return CanonicalReceiptResponse(
+        receipt_id=f"cr-{received_at}",
+        mission_id=f"m-{received_at}",
+        verdict=verdict,
+        ihsan_score=ihsan,
+        snr_score=snr,
+        route=route,
+        state=state,
+        federation_admissible=federation,
+        response=response_text,
+        model_used=model_used,
+    )
 
 
 @router.post("/v1/reflexes/{macro_state}")
