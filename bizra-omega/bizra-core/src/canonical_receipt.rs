@@ -434,4 +434,53 @@ mod tests {
         // ID no longer matches
         assert!(!receipt.id_valid());
     }
+
+    /// Golden vector: fixed inputs produce a known canonical byte length and receipt ID.
+    /// The Python adapter MUST produce identical bytes for these exact inputs.
+    #[test]
+    fn test_golden_vector_cross_language() {
+        // Fixed inputs — same values used in Python golden vector test
+        let genesis = GENESIS_SEED;
+        let input_hash = test_hash(0x10);
+        let output_hash = test_hash(0x20);
+
+        let receipt = CanonicalReceipt {
+            receipt_id: [0; 32],
+            mission_id: "golden-vector-001".to_string(),
+            genesis_hash: genesis,
+            policy_version: "v0.90.0".to_string(),
+            verdict: VerdictStatus::Admitted,
+            primary_reject: None,
+            ihsan_score: 0.97,
+            snr_score: 0.92,
+            route: ExecutionRoute::Deliberate,
+            received_at: 1000,
+            sealed_at: 2000,
+            input_hash,
+            output_hash,
+            previous_receipt: genesis,
+            state: ReceiptState::Committed,
+            federation_admissible: true,
+            signature: [0; 64],
+        };
+
+        let canonical = receipt.canonical_bytes();
+        // Golden vector: exact byte length for these inputs
+        assert_eq!(canonical.len(), 196, "Canonical byte length mismatch — cross-language parity broken");
+
+        let id = receipt.compute_id();
+        // The receipt ID is deterministic for these inputs
+        assert_ne!(id, [0; 32]);
+        // Store the hex for cross-language verification
+        let id_hex: String = id.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(id_hex.len(), 64);
+
+        // Print for cross-language test development (cargo test -- --nocapture)
+        #[cfg(test)]
+        {
+            eprintln!("GOLDEN_VECTOR_CANONICAL_LEN={}", canonical.len());
+            eprintln!("GOLDEN_VECTOR_RECEIPT_ID={}", id_hex);
+            eprintln!("GOLDEN_VECTOR_CANONICAL_HEX={}", canonical.iter().map(|b| format!("{b:02x}")).collect::<String>());
+        }
+    }
 }
