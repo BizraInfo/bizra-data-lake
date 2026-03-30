@@ -24,6 +24,8 @@
 pub mod canonical;
 /// CanonicalReceipt v1 — the spearpoint artifact. One receipt per visible effect.
 pub mod canonical_receipt;
+/// MissionState v1 — sovereign mission lifecycle. Human intent through the constitutional pipeline.
+pub mod mission_state;
 /// Constitutional governance — Ihsan thresholds, SNR rules, enforcement policies.
 pub mod constitution;
 /// Genesis primitives — BLAKE3 hashing, cryptographic manifests, execution receipts.
