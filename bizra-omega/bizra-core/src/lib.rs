@@ -30,6 +30,8 @@ pub mod mission_state;
 pub mod topology_canon;
 /// GenesisSeal v1 — deterministic root of trust binding receipts to constitution.
 pub mod genesis_seal;
+/// ReceiptStateMachine v1 — transition law for CanonicalReceipt lifecycle.
+pub mod receipt_state_machine;
 /// Constitutional governance — Ihsan thresholds, SNR rules, enforcement policies.
 pub mod constitution;
 /// Genesis primitives — BLAKE3 hashing, cryptographic manifests, execution receipts.
