@@ -148,121 +148,177 @@ class MissionRequest(BaseModel):
     slot: str = "cold_core"
 
 
-class CanonicalReceiptResponse(BaseModel):
-    receipt_id: str
-    mission_id: str
-    verdict: str
-    ihsan_score: float
-    snr_score: float
-    route: str
-    state: str
-    federation_admissible: bool
-    response: str
-    model_used: str = ""
+_previous_receipt_hash = None
+
+
+def _get_genesis_hash() -> bytes:
+    """Load or compute the genesis seal hash for this node."""
+    try:
+        from core.proof_engine.canonical_receipt_adapter import GENESIS_SEED
+
+        return GENESIS_SEED
+    except ImportError:
+        return b"\xb1\x2a" + b"\x00" * 30
+
+
+def _get_previous() -> bytes:
+    """Get the previous receipt hash for chain linkage."""
+    global _previous_receipt_hash
+    if _previous_receipt_hash is None:
+        _previous_receipt_hash = _get_genesis_hash()
+    return _previous_receipt_hash
 
 
 @router.post("/v1/mission")
 async def canonical_mission(
     req: MissionRequest,
     x_bizra_api_key: str | None = Header(default=None, alias="x-bizra-api-key"),
-) -> CanonicalReceiptResponse:
+) -> dict:
     """Execute a mission through the canonical constitutional pipeline.
 
-    Returns a CanonicalReceipt-shaped response. Every externally visible
-    effect produces exactly one receipt.
+    Returns a cryptographically valid CanonicalReceipt with:
+    - receipt_id computed from BLAKE3 canonical bytes
+    - genesis_hash binding to constitutional universe
+    - chain linkage to previous receipt
+    - lifecycle state from ReceiptStateMachine
+
+    RUNTIME_CUTOVER_02: canonically exact, not just receipt-shaped.
     """
+    global _previous_receipt_hash
     _require_api_key(x_bizra_api_key)
     received_at = int(time.time() * 1000)
 
     # 1) HHMM classification → route selection
     macro = hhmm.predict(req.text, req.context)
     reflex_steps = cache.get(macro)
-    route = "REFLEX" if reflex_steps else "DELIBERATE"
 
-    # 2) Try reflex path first (System 1)
-    if reflex_steps:
-        snr = snr_score(signal=0.9, noise=0.35)
-        return CanonicalReceiptResponse(
-            receipt_id=f"rx-{received_at}",
-            mission_id=f"m-{received_at}",
-            verdict="ADMITTED",
-            ihsan_score=0.95,
-            snr_score=snr,
-            route="REFLEX",
-            state="COMMITTED",
-            federation_admissible=True,
-            response="; ".join(reflex_steps),
-        )
-
-    # 3) Deliberate path — call kernel cognitive engine
+    # 2) Execute mission (reflex / deliberate / degraded)
     response_text = ""
     model_used = ""
     ihsan = 0.0
-    verdict = "DEFERRED"
+    verdict_str = "DEFERRED"
+    route_str = "DELIBERATE"
 
-    try:
-        import httpx
+    if reflex_steps:
+        response_text = "; ".join(reflex_steps)
+        ihsan = 0.95
+        verdict_str = "ADMITTED"
+        route_str = "REFLEX"
+    else:
+        try:
+            import httpx
 
-        kernel_url = os.environ.get("BIZRA_KERNEL_URL", "http://localhost:8010")
-        token = os.environ.get("BIZRA_API_TOKEN", "")
-        headers = {"Content-Type": "application/json"}
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+            kernel_url = os.environ.get("BIZRA_KERNEL_URL", "http://localhost:8010")
+            token = os.environ.get("BIZRA_API_TOKEN", "")
+            headers = {"Content-Type": "application/json"}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            r = await client.post(
-                f"{kernel_url}/v1/cognitive/invoke",
-                json={"prompt": req.text, "slot": req.slot},
-                headers=headers,
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                r = await client.post(
+                    f"{kernel_url}/v1/cognitive/invoke",
+                    json={"prompt": req.text, "slot": req.slot},
+                    headers=headers,
+                )
+                if r.status_code == 200:
+                    data = r.json()
+                    if data.get("success") and "[ERROR]" not in data.get(
+                        "response", ""
+                    ):
+                        response_text = data["response"]
+                        model_used = data.get("model_used", "")
+                        ihsan = data.get("ihsan_score", 0.0)
+                        verdict_str = (
+                            "ADMITTED" if data.get("ihsan_passed") else "REJECTED"
+                        )
+        except Exception:
+            pass
+
+        if not response_text:
+            bridge_plan = await mission_bridge.run(
+                req.text, req.context, macro_state=macro
             )
-            if r.status_code == 200:
-                data = r.json()
-                if data.get("success") and "[ERROR]" not in data.get("response", ""):
-                    response_text = data["response"]
-                    model_used = data.get("model_used", "")
-                    ihsan = data.get("ihsan_score", 0.0)
-                    verdict = "ADMITTED" if data.get("ihsan_passed") else "REJECTED"
-    except Exception:
-        pass
+            if bridge_plan:
+                response_text = "; ".join(bridge_plan.steps)
+                ihsan = 0.90
+                verdict_str = "ADMITTED"
+                route_str = "DEGRADED"
+            else:
+                response_text = f"[DEGRADED] Decompose: {macro}"
+                ihsan = 0.0
+                verdict_str = "DEFERRED"
+                route_str = "DEGRADED"
 
-    # 4) Fallback if kernel unreachable
-    if not response_text:
-        bridge_plan = await mission_bridge.run(req.text, req.context, macro_state=macro)
-        if bridge_plan:
-            response_text = "; ".join(bridge_plan.steps)
-            ihsan = 0.90
-            verdict = "ADMITTED"
-            route = "DEGRADED"
-        else:
-            response_text = f"[DEGRADED] Decompose: {macro}"
-            ihsan = 0.0
-            verdict = "DEFERRED"
-            route = "DEGRADED"
+    snr_val = snr_score(signal=0.9, noise=0.35)
 
-    snr = snr_score(signal=0.9, noise=0.35)
-    federation = verdict == "ADMITTED" and ihsan >= 0.95
+    # 3) Build cryptographically valid CanonicalReceipt
+    try:
+        from core.proof_engine.canonical_receipt_adapter import (
+            ExecutionRoute,
+            VerdictStatus,
+            from_mission_result,
+        )
 
-    # 5) Emit canonical receipt
-    state = {"ADMITTED": "COMMITTED", "REJECTED": "VERIFIED", "DEFERRED": "HYPOTHESIS"}[
-        verdict
-    ]
+        verdict_map = {
+            "ADMITTED": VerdictStatus.ADMITTED,
+            "REJECTED": VerdictStatus.REJECTED,
+            "DEFERRED": VerdictStatus.DEFERRED,
+        }
+        route_map = {
+            "REFLEX": ExecutionRoute.REFLEX,
+            "DELIBERATE": ExecutionRoute.DELIBERATE,
+            "DEGRADED": ExecutionRoute.DEGRADED,
+        }
 
-    # Cache compilation: if deliberate succeeded, consider reflex precipitation
-    if verdict == "ADMITTED" and route == "DELIBERATE" and snr >= _reflex_min_snr():
-        cache.put(macro, [response_text[:200]])
+        receipt = from_mission_result(
+            mission_id=f"{macro}-{received_at}",
+            genesis_hash=_get_genesis_hash(),
+            policy_version="v0.90.0",
+            verdict=verdict_map.get(verdict_str, VerdictStatus.DEFERRED),
+            ihsan_score=ihsan,
+            snr_score=snr_val,
+            route=route_map.get(route_str, ExecutionRoute.DEGRADED),
+            input_text=req.text,
+            output_text=response_text,
+            previous_receipt=_get_previous(),
+            received_at=received_at,
+        )
 
-    return CanonicalReceiptResponse(
-        receipt_id=f"cr-{received_at}",
-        mission_id=f"m-{received_at}",
-        verdict=verdict,
-        ihsan_score=ihsan,
-        snr_score=snr,
-        route=route,
-        state=state,
-        federation_admissible=federation,
-        response=response_text,
-        model_used=model_used,
-    )
+        receipt.receipt_id = receipt.compute_id()
+        _previous_receipt_hash = receipt.receipt_id
+
+        result = receipt.to_dict()
+        result["response"] = response_text
+        result["model_used"] = model_used
+        result["macro_state"] = macro
+
+    except ImportError:
+        # Fallback if canonical adapter not available
+        result = {
+            "receipt_id": f"cr-{received_at}",
+            "mission_id": f"m-{received_at}",
+            "verdict": verdict_str,
+            "ihsan_score": ihsan,
+            "snr_score": snr_val,
+            "route": route_str,
+            "state": {
+                "ADMITTED": "COMMITTED",
+                "REJECTED": "VERIFIED",
+                "DEFERRED": "HYPOTHESIS",
+            }[verdict_str],
+            "federation_admissible": verdict_str == "ADMITTED" and ihsan >= 0.95,
+            "response": response_text,
+            "model_used": model_used,
+            "macro_state": macro,
+            "_canonical": False,
+        }
+
+    # 4) Reflex precipitation
+    if verdict_str == "ADMITTED" and route_str == "DELIBERATE":
+        if snr_val >= _reflex_min_snr():
+            cache.put(macro, [response_text[:200]])
+
+    return result
 
 
 @router.post("/v1/reflexes/{macro_state}")
