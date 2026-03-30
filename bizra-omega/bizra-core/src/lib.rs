@@ -28,6 +28,8 @@ pub mod canonical_receipt;
 pub mod mission_state;
 /// TopologyCanon v1 — frozen agent/node/network topology. PAT-7, SAT-5, gate chain order.
 pub mod topology_canon;
+/// GenesisSeal v1 — deterministic root of trust binding receipts to constitution.
+pub mod genesis_seal;
 /// Constitutional governance — Ihsan thresholds, SNR rules, enforcement policies.
 pub mod constitution;
 /// Genesis primitives — BLAKE3 hashing, cryptographic manifests, execution receipts.
