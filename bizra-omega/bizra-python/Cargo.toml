@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 bizra-core = { path = "../bizra-core" }
+bizra-agent = { path = "../bizra-agent" }
 bizra-inference = { path = "../bizra-inference" }
 bizra-autopoiesis = { path = "../bizra-autopoiesis" }
 bizra-federation = { path = "../bizra-federation" }

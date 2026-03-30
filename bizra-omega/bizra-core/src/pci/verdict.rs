@@ -196,6 +196,53 @@ impl GateVerdict {
     pub fn total_latency_ns(&self) -> u64 {
         self.gate_results.iter().map(|g| g.latency_ns).sum()
     }
+
+    /// Returns the primary reject code, ordered by constitutional precedence.
+    ///
+    /// Precedence (highest to lowest):
+    ///   1. RIBA — exploitation is the worst constitutional violation
+    ///   2. ZANN — speculative/ungrounded content undermines trust
+    ///   3. FATE — fairness/ethics violation
+    ///   4. Ihsan — excellence threshold not met
+    ///   5. SNR — signal quality below threshold
+    ///   6. Everything else (schema, signature, rate, quota, etc.)
+    ///
+    /// When multiple gates fail, this surfaces the most constitutionally
+    /// significant cause — not just the first gate that ran.
+    pub fn primary_reject_code(&self) -> Option<RejectCode> {
+        if self.reject_codes.is_empty() {
+            return None;
+        }
+        self.reject_codes
+            .iter()
+            .copied()
+            .max_by_key(|c| reject_precedence(*c))
+    }
+}
+
+/// Constitutional precedence ordering for reject codes.
+/// Higher value = higher priority = surfaces first in verdicts.
+fn reject_precedence(code: RejectCode) -> u8 {
+    match code {
+        RejectCode::RejectRiba => 100,        // Exploitation — worst violation
+        RejectCode::RejectZann => 90,         // Speculative content — truth violation
+        RejectCode::RejectGateFATE => 80,     // Fairness/ethics
+        RejectCode::RejectGateIhsan => 70,    // Excellence threshold
+        RejectCode::RejectGateSNR => 60,      // Signal quality
+        RejectCode::RejectSignature => 50,    // Crypto integrity
+        RejectCode::RejectHashMismatch => 50, // Content integrity
+        RejectCode::RejectReplay => 45,       // Security
+        RejectCode::RejectGateSchema => 30,   // Schema validation
+        RejectCode::RejectGateSig => 30,      // Gate-level signature
+        RejectCode::RejectGateRate => 20,     // Rate limiting
+        RejectCode::RejectSchema => 15,       // Basic schema
+        RejectCode::RejectMissingField => 15, // Missing field
+        RejectCode::RejectExpired => 10,      // TTL
+        RejectCode::RejectQuota => 10,        // Quota
+        RejectCode::RejectTimeout => 5,       // Timeout
+        RejectCode::RejectInternal => 1,      // Internal error
+        RejectCode::Success => 0,             // Not a rejection
+    }
 }
 
 #[cfg(test)]
@@ -309,6 +356,84 @@ mod tests {
             1000,
         );
         assert_eq!(v.total_latency_ns(), 350_000); // 50+200+100 us = 350us = 350_000ns
+    }
+
+    #[test]
+    fn test_verdict_precedence_riba_surfaces_over_snr() {
+        // THE ONE CONSTITUTIONAL TEST: when a mission triggers both
+        // Riba (exploitation) and SNR (low quality) rejections,
+        // the verdict's primary cause MUST be Riba — not SNR.
+        // Exploitation is a constitutional invariant violation;
+        // low quality is just a threshold miss.
+        let results = vec![
+            GateResult::pass("Schema", Duration::from_micros(30)),
+            GateResult::fail("SNR", RejectCode::RejectGateSNR, Duration::from_micros(100)),
+            GateResult::fail("Riba", RejectCode::RejectRiba, Duration::from_micros(200)),
+        ];
+        let v = GateVerdict::from_gate_results(
+            "exploitative-mission".into(),
+            &results,
+            0.30,
+            0.20,
+            "0.90.0".into(),
+            2000,
+        );
+        assert!(!v.is_admitted());
+        assert_eq!(v.reject_codes.len(), 2);
+        // Primary cause MUST be Riba, not SNR
+        assert_eq!(v.primary_reject_code(), Some(RejectCode::RejectRiba));
+    }
+
+    #[test]
+    fn test_verdict_precedence_zann_over_ihsan() {
+        // Speculative content (zann) outranks excellence threshold (ihsan)
+        let results = vec![
+            GateResult::fail("Ihsan", RejectCode::RejectGateIhsan, Duration::from_micros(150)),
+            GateResult::fail("Zann", RejectCode::RejectZann, Duration::from_micros(100)),
+        ];
+        let v = GateVerdict::from_gate_results(
+            "speculative-mission".into(),
+            &results,
+            0.50,
+            0.80,
+            "0.90.0".into(),
+            3000,
+        );
+        assert_eq!(v.primary_reject_code(), Some(RejectCode::RejectZann));
+    }
+
+    #[test]
+    fn test_verdict_precedence_full_ordering() {
+        // All constitutional codes present — Riba must surface
+        let results = vec![
+            GateResult::fail("Gate1", RejectCode::RejectGateSNR, Duration::from_micros(10)),
+            GateResult::fail("Gate2", RejectCode::RejectGateIhsan, Duration::from_micros(10)),
+            GateResult::fail("Gate3", RejectCode::RejectGateFATE, Duration::from_micros(10)),
+            GateResult::fail("Gate4", RejectCode::RejectZann, Duration::from_micros(10)),
+            GateResult::fail("Gate5", RejectCode::RejectRiba, Duration::from_micros(10)),
+        ];
+        let v = GateVerdict::from_gate_results(
+            "worst-case".into(),
+            &results,
+            0.0,
+            0.0,
+            "0.90.0".into(),
+            4000,
+        );
+        assert_eq!(v.primary_reject_code(), Some(RejectCode::RejectRiba));
+    }
+
+    #[test]
+    fn test_verdict_precedence_admitted_returns_none() {
+        let v = GateVerdict::from_gate_results(
+            "clean-mission".into(),
+            &mock_passing_results(),
+            0.97,
+            0.92,
+            "0.90.0".into(),
+            5000,
+        );
+        assert_eq!(v.primary_reject_code(), None);
     }
 
     #[test]

@@ -372,6 +372,8 @@ dependencies = [
  "bizra-mission",
  "bizra-proofspace",
  "blake3",
+ "ed25519-dalek",
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -670,6 +672,7 @@ name = "bizra-python"
 version = "2.0.0"
 dependencies = [
  "bizra-action",
+ "bizra-agent",
  "bizra-autopoiesis",
  "bizra-core",
  "bizra-federation",
@@ -755,6 +758,7 @@ dependencies = [
  "bizra-core",
  "bizra-federation",
  "bizra-inference",
+ "bizra-mission",
  "blake3",
  "chrono",
  "criterion",

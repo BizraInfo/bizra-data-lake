@@ -35,6 +35,8 @@ crate-type = ["rlib", "staticlib"]
 # The muscle system has ZERO required dependencies.
 # blake3 is optional — enabled via `production` feature for cryptographic receipts.
 blake3 = { workspace = true, optional = true }
+ed25519-dalek = { workspace = true, optional = true, features = ["rand_core"] }
+rand = { workspace = true, optional = true }
 # ━━━ Sprint 2: Saga→Mission Wire (W6) — optional, preserves zero-dep core ━━━
 bizra-mission = { path = "../bizra-mission", optional = true }
 # ━━━ Sprint 2 Wire W1 — optional, gated behind feature ━━━
@@ -48,6 +50,8 @@ bizra-proofspace = { path = "../bizra-proofspace" }
 default = []
 # Enable for production-grade BLAKE3 receipt hashing (replaces dev placeholder)
 production = ["blake3"]
+# Enable for cryptographic receipt signing (Ed25519)
+signing = ["dep:ed25519-dalek", "dep:rand"]
 # Enable saga mission dispatch (W6 wire)
 saga = ["dep:bizra-mission"]
 # W1: Constitutional thresholds from core

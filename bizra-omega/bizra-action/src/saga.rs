@@ -206,6 +206,10 @@ pub struct ReceiptChain {
     pub chain_length: u64,
     /// All receipts in insertion order.
     pub receipts: Vec<ConstitutionalReceipt>,
+    /// Ed25519 signing key for receipt signatures.
+    /// When the `signing` feature is enabled, this holds a real keypair.
+    #[cfg(feature = "signing")]
+    signing_key: ed25519_dalek::SigningKey,
 }
 
 /// Genesis seed for the first receipt in every chain. [VERIFIED — mirrors GENESIS_SEED in receipt.rs]
@@ -221,6 +225,23 @@ impl ReceiptChain {
             head_hash: GENESIS_SEED,
             chain_length: 0,
             receipts: Vec::new(),
+            #[cfg(feature = "signing")]
+            signing_key: {
+                let mut rng = rand::rngs::OsRng;
+                ed25519_dalek::SigningKey::generate(&mut rng)
+            },
+        }
+    }
+
+    /// Create a chain with a specific signing key (for deterministic testing or
+    /// loading a persisted node identity).
+    #[cfg(feature = "signing")]
+    pub fn with_signing_key(key: ed25519_dalek::SigningKey) -> Self {
+        Self {
+            head_hash: GENESIS_SEED,
+            chain_length: 0,
+            receipts: Vec::new(),
+            signing_key: key,
         }
     }
 
@@ -260,7 +281,7 @@ impl ReceiptChain {
             verdict,
             channel,
             action_summary: action_summary.to_string(),
-            signature: [0u8; 64], // TODO: real Ed25519 in production [PLANNED]
+            signature: self.sign_receipt(&content_hash),
             previous_hash,
         };
 
@@ -268,6 +289,28 @@ impl ReceiptChain {
         self.chain_length += 1;
         self.receipts.push(receipt.clone());
         receipt
+    }
+
+    /// Sign a receipt's content hash. When `signing` feature is enabled, produces
+    /// a real Ed25519 signature. Otherwise returns zeroed bytes (dev/test mode).
+    fn sign_receipt(&self, content_hash: &[u8; 32]) -> [u8; 64] {
+        #[cfg(feature = "signing")]
+        {
+            use ed25519_dalek::Signer;
+            let sig = self.signing_key.sign(content_hash);
+            sig.to_bytes()
+        }
+        #[cfg(not(feature = "signing"))]
+        {
+            let _ = content_hash;
+            [0u8; 64] // Dev mode: unsigned receipts
+        }
+    }
+
+    /// Get the public key for verifying this chain's signatures.
+    #[cfg(feature = "signing")]
+    pub fn verifying_key(&self) -> ed25519_dalek::VerifyingKey {
+        self.signing_key.verifying_key()
     }
 
     /// Verify the chain by recomputing every link.
@@ -1401,5 +1444,44 @@ mod tests {
 
         assert_eq!(saga.mission_id, handle.mission_id);
         assert_eq!(handle.submitted_at, 5_000);
+    }
+
+    #[test]
+    #[cfg(feature = "signing")]
+    fn test_receipt_ed25519_signature_is_valid() {
+        use ed25519_dalek::Verifier;
+        let mut chain = ReceiptChain::new();
+        let receipt = chain.record(
+            ActionId(1),
+            ActionTimestamp(1_000_000),
+            "test signing",
+            GuardianVerdict::Approved,
+            IhsanScore::new(0.97),
+            test_hash(42),
+            Channel::Llm,
+        );
+        // Signature must NOT be all zeros
+        assert_ne!(receipt.signature, [0u8; 64]);
+        // Verify the signature against the content hash
+        let sig = ed25519_dalek::Signature::from_bytes(&receipt.signature);
+        let vk = chain.verifying_key();
+        assert!(vk.verify(&receipt.content_hash, &sig).is_ok());
+    }
+
+    #[test]
+    #[cfg(not(feature = "signing"))]
+    fn test_receipt_unsigned_in_dev_mode() {
+        let mut chain = ReceiptChain::new();
+        let receipt = chain.record(
+            ActionId(1),
+            ActionTimestamp(1_000_000),
+            "test unsigned",
+            GuardianVerdict::Approved,
+            IhsanScore::new(0.97),
+            test_hash(42),
+            Channel::Llm,
+        );
+        // Dev mode: signature is zeroed
+        assert_eq!(receipt.signature, [0u8; 64]);
     }
 }

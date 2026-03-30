@@ -1920,6 +1920,35 @@ fn verify_dilithium_signature(
     Ok(pqcrypto_mldsa::mldsa87::verify_detached_signature(&sig, message, &pk).is_ok())
 }
 
+// ============================================================
+// HHMM BRIDGE: Intent Classification (Python → Rust → Python)
+// ============================================================
+// Closes the sensorimotor loop: Python HHMM router can now
+// call Rust IntentClassifier at native speed (<1ms).
+
+#[pyfunction]
+fn classify_intent(text: &str) -> PyResult<PyObject> {
+    use bizra_agent::IntentClassifier;
+    let (intent, confidence) = IntentClassifier::classify(text);
+    let intent_name = match intent {
+        bizra_agent::UserIntent::Question => "question",
+        bizra_agent::UserIntent::Create => "create",
+        bizra_agent::UserIntent::Code => "code",
+        bizra_agent::UserIntent::Chat => "chat",
+        bizra_agent::UserIntent::Analyze => "analyze",
+        bizra_agent::UserIntent::Plan => "plan",
+        bizra_agent::UserIntent::Modify => "modify",
+        bizra_agent::UserIntent::Ambiguous => "ambiguous",
+    };
+    Python::with_gil(|py| {
+        let dict = pyo3::types::PyDict::new(py);
+        dict.set_item("intent", intent_name)?;
+        dict.set_item("intent_code", intent as u8)?;
+        dict.set_item("confidence", confidence.base as f64)?;
+        Ok(dict.into())
+    })
+}
+
 #[pymodule]
 fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core types
@@ -1971,6 +2000,9 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_ihsan_threshold, m)?)?;
     m.add_function(wrap_pyfunction!(get_snr_threshold, m)?)?;
     m.add_function(wrap_pyfunction!(verify_dilithium_signature, m)?)?;
+
+    // HHMM Bridge: Intent Classification (Python → Rust native speed)
+    m.add_function(wrap_pyfunction!(classify_intent, m)?)?;
 
     // Post-Quantum Cryptography
     m.add_class::<PyDilithiumKeypair>()?;

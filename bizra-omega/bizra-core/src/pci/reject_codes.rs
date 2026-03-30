@@ -36,6 +36,10 @@ pub enum RejectCode {
     RejectGateFATE = 24,
     /// Ihsan excellence threshold not met.
     RejectGateIhsan = 25,
+    /// Riba (interest/exploitation) detected — constitutional invariant violation.
+    RejectRiba = 30,
+    /// Speculative/ungrounded content (zann) — truth constraint violation.
+    RejectZann = 31,
     /// Node has exhausted its processing quota.
     RejectQuota = 40,
     /// Processing deadline exceeded.
@@ -61,6 +65,8 @@ impl RejectCode {
             Self::RejectGateSNR => "SNR below threshold",
             Self::RejectGateFATE => "FATE check failed",
             Self::RejectGateIhsan => "Ihsan threshold not met",
+            Self::RejectRiba => "Riba (exploitation) detected",
+            Self::RejectZann => "Speculative content (zann) detected",
             Self::RejectQuota => "Insufficient quota",
             Self::RejectTimeout => "Request timeout",
             Self::RejectInternal => "Internal error",
