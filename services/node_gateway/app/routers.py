@@ -148,25 +148,27 @@ class MissionRequest(BaseModel):
     slot: str = "cold_core"
 
 
-_previous_receipt_hash = None
+# ── Canonical Receipt Infrastructure (startup invariant) ──────────
+# Import failures here are fatal — the gateway MUST speak canonical law.
+try:
+    from app.node.receipt_ledger import append_receipt, read_last_receipt_hash
+    from core.proof_engine.canonical_receipt_adapter import (
+        GENESIS_SEED,
+        ExecutionRoute,
+        VerdictStatus,
+        from_mission_result,
+    )
 
+    _CANONICAL_AVAILABLE = True
+except ImportError as _import_err:
+    import logging as _log
 
-def _get_genesis_hash() -> bytes:
-    """Load or compute the genesis seal hash for this node."""
-    try:
-        from core.proof_engine.canonical_receipt_adapter import GENESIS_SEED
-
-        return GENESIS_SEED
-    except ImportError:
-        return b"\xb1\x2a" + b"\x00" * 30
-
-
-def _get_previous() -> bytes:
-    """Get the previous receipt hash for chain linkage."""
-    global _previous_receipt_hash
-    if _previous_receipt_hash is None:
-        _previous_receipt_hash = _get_genesis_hash()
-    return _previous_receipt_hash
+    _log.getLogger(__name__).error(
+        "FATAL: Canonical receipt adapter not available: %s. "
+        "Gateway will emit non-canonical receipts marked _canonical:false.",
+        _import_err,
+    )
+    _CANONICAL_AVAILABLE = False
 
 
 @router.post("/v1/mission")
@@ -182,9 +184,8 @@ async def canonical_mission(
     - chain linkage to previous receipt
     - lifecycle state from ReceiptStateMachine
 
-    RUNTIME_CUTOVER_02: canonically exact, not just receipt-shaped.
+    RUNTIME_CUTOVER_03: durable chain, startup invariant, canonically exact.
     """
-    global _previous_receipt_hash
     _require_api_key(x_bizra_api_key)
     received_at = int(time.time() * 1000)
 
@@ -252,13 +253,7 @@ async def canonical_mission(
     snr_val = snr_score(signal=0.9, noise=0.35)
 
     # 3) Build cryptographically valid CanonicalReceipt
-    try:
-        from core.proof_engine.canonical_receipt_adapter import (
-            ExecutionRoute,
-            VerdictStatus,
-            from_mission_result,
-        )
-
+    if _CANONICAL_AVAILABLE:
         verdict_map = {
             "ADMITTED": VerdictStatus.ADMITTED,
             "REJECTED": VerdictStatus.REJECTED,
@@ -270,9 +265,12 @@ async def canonical_mission(
             "DEGRADED": ExecutionRoute.DEGRADED,
         }
 
+        # Read previous receipt from durable ledger (survives restart)
+        previous = read_last_receipt_hash()
+
         receipt = from_mission_result(
             mission_id=f"{macro}-{received_at}",
-            genesis_hash=_get_genesis_hash(),
+            genesis_hash=GENESIS_SEED,
             policy_version="v0.90.0",
             verdict=verdict_map.get(verdict_str, VerdictStatus.DEFERRED),
             ihsan_score=ihsan,
@@ -280,20 +278,23 @@ async def canonical_mission(
             route=route_map.get(route_str, ExecutionRoute.DEGRADED),
             input_text=req.text,
             output_text=response_text,
-            previous_receipt=_get_previous(),
+            previous_receipt=previous,
             received_at=received_at,
         )
 
         receipt.receipt_id = receipt.compute_id()
-        _previous_receipt_hash = receipt.receipt_id
 
         result = receipt.to_dict()
         result["response"] = response_text
         result["model_used"] = model_used
         result["macro_state"] = macro
+        result["_canonical"] = True
 
-    except ImportError:
-        # Fallback if canonical adapter not available
+        # Persist to durable ledger (chain survives restart)
+        append_receipt(result)
+
+    else:
+        # Non-canonical fallback — detectable and rejectable downstream
         result = {
             "receipt_id": f"cr-{received_at}",
             "mission_id": f"m-{received_at}",
@@ -306,7 +307,7 @@ async def canonical_mission(
                 "REJECTED": "VERIFIED",
                 "DEFERRED": "HYPOTHESIS",
             }[verdict_str],
-            "federation_admissible": verdict_str == "ADMITTED" and ihsan >= 0.95,
+            "federation_admissible": False,  # Non-canonical = NEVER federable
             "response": response_text,
             "model_used": model_used,
             "macro_state": macro,
