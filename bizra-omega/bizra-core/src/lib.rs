@@ -26,6 +26,8 @@ pub mod canonical;
 pub mod canonical_receipt;
 /// MissionState v1 — sovereign mission lifecycle. Human intent through the constitutional pipeline.
 pub mod mission_state;
+/// TopologyCanon v1 — frozen agent/node/network topology. PAT-7, SAT-5, gate chain order.
+pub mod topology_canon;
 /// Constitutional governance — Ihsan thresholds, SNR rules, enforcement policies.
 pub mod constitution;
 /// Genesis primitives — BLAKE3 hashing, cryptographic manifests, execution receipts.
