@@ -85,7 +85,8 @@ class SovereignModelHub:
         active_providers = [p for p in self.providers.values() if p.active]
         if not active_providers:
             # Fallback for Demo Simulation if no real services are running
-            if os.getenv("BIZRA_SIMULATION", "1") == "1":
+            # SECURITY: Default to Production (0). Simulation must be explicit.
+            if os.getenv("BIZRA_SIMULATION", "0") == "1":
                 routing_decision["selected_provider"] = "OLLAMA_SIMULATED"
                 routing_decision["reason"] = "Simulation Mode Active"
             return routing_decision
@@ -116,7 +117,13 @@ class SovereignModelHub:
 if __name__ == "__main__":
     hub = SovereignModelHub()
     # Mocking environment for demo
-    os.environ["BIZRA_SIMULATION"] = "1"
+    # Validating environment...
+    if os.getenv("BIZRA_ENV") == "production":
+        os.environ["BIZRA_SIMULATION"] = "0"
+    else:
+        # Default to 0 unless explicitly set
+        if "BIZRA_SIMULATION" not in os.environ:
+             os.environ["BIZRA_SIMULATION"] = "0"
     
     hub.run_discovery_sequence()
     

@@ -24,6 +24,41 @@ class GiantProtocol:
                 "principle": "Self-Correction, Self-Awareness, Proprioception",
                 "source": "Omega-Class Architecture",
                 "weight": 0.2
+            },
+            "SECURITY_ZERO_TRUST": {
+                "principle": "zero trust",
+                "source": "Security Giants Protocol",
+                "weight": 0.06,
+                "aliases": [
+                    "never trust, always verify",
+                    "never trust always verify"
+                ]
+            },
+            "SECURITY_DEFENSE_IN_DEPTH": {
+                "principle": "defense in depth",
+                "source": "Security Giants Protocol",
+                "weight": 0.06,
+                "aliases": [
+                    "multiple security layers",
+                    "security layers"
+                ]
+            },
+            "SECURITY_LEAST_PRIVILEGE": {
+                "principle": "least privilege",
+                "source": "Security Giants Protocol",
+                "weight": 0.06,
+                "aliases": [
+                    "minimal privilege"
+                ]
+            },
+            "SECURITY_AUDIT_TRAIL": {
+                "principle": "audit trail",
+                "source": "Security Giants Protocol",
+                "weight": 0.06,
+                "aliases": [
+                    "audit logging",
+                    "tamper evident logs"
+                ]
             }
         }
 
@@ -40,15 +75,22 @@ class GiantProtocol:
         words = action_lower.split()
         
         for key, value in self.wisdom_registry.items():
-            matches = [p.strip().lower() for p in value["principle"].split(",") if p.strip().lower() in action_lower]
-            if matches:
-                # Density check: require at least 1 match to contribute
-                # SNR is now strictly derived from weighted alignment
-                alignment_score += value["weight"] * (len(matches) / len(value["principle"].split(",")))
+            principles = [p.strip().lower() for p in value["principle"].split(",") if p.strip()]
+            aliases = [a.strip().lower() for a in value.get("aliases", []) if a.strip()]
+
+            matched_principles = [p for p in principles if p in action_lower]
+            matched_aliases = [a for a in aliases if a in action_lower]
+
+            if matched_principles or matched_aliases:
+                # Aliases count as a full-strength match to avoid dilution.
+                if matched_aliases:
+                    alignment_score += value["weight"]
+                else:
+                    alignment_score += value["weight"] * (len(matched_principles) / max(1, len(principles)))
                 aligned_principles.append(key)
                 
         # SNR Boost is now purely evidence-based (range [0.0, 1.0])
-        snr_boost = alignment_score 
+        snr_boost = min(1.0, alignment_score)
         
         return {
             "is_aligned": alignment_score > 0.1, # Higher threshold for 'true' alignment

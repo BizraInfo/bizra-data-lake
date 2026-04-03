@@ -77,6 +77,12 @@ class PeakMasterpiece:
             "proof": engine_res["proof"],
             "sovereignty": kernel_res.protocol_hash[:16]
         }
+
+        if "got" in engine_res:
+            report["got_lenses"] = engine_res["got"].get("lenses", [])
+            report["got_cluster_snr"] = engine_res["got"].get("cluster_snr", 0.0)
+        if "safety" in engine_res:
+            report["safety_snr"] = engine_res["safety"].get("safety_snr", 1.0)
         
         return report
 

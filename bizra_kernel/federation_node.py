@@ -217,8 +217,8 @@ class FederationNode:
             writer.close()
             try:
                 await writer.wait_closed()
-            except:
-                pass
+            except (ConnectionError, OSError) as e:
+                print(f"[!] Error during writer closure: {e}")
             async with self.network_lock:
                 # Remove from connections
                 for pid, (r, w) in list(self.peer_connections.items()):

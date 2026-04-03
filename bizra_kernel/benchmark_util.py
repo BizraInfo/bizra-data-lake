@@ -1,5 +1,7 @@
 import time
 import statistics
+import os
+import json
 from .ihsan_gate import IhsanGate
 
 class BIZRABenchmark:
@@ -30,21 +32,24 @@ class BIZRABenchmark:
         print(f"[+] Result: Average Latency = {avg:.4f}ms | P99 = {p99:.4f}ms")
         return {"avg": avg, "p99": p99}
 
-    def simulate_blockgraph_tps(self, duration_sec=1.0):
+    def load_blockgraph_benchmark(self, path: str | None = None) -> dict:
         """
-        Simulates the design target of 523,793 TPS.
+        Load BlockGraph benchmark results from a production run.
         """
-        print(f"[*] Simulating BlockGraph Design Target (Duration: {duration_sec}s)...")
-        design_tps = 523_793
-        total_ops = int(design_tps * duration_sec)
-        
-        # In a real environment, this would use GPU/FPGA offload.
-        # We simulate the validation of this ceiling.
-        print(f"[+] BlockGraph Simulated: {total_ops} operations processed in {duration_sec}s.")
-        print(f"[+] Ceiling Verified: 523,793 TPS compliant with DAG-ledger architecture.")
+        if path is None:
+            path = os.getenv("BIZRA_BLOCKGRAPH_BENCHMARK_PATH")
+        if not path:
+            raise RuntimeError("BIZRA_BLOCKGRAPH_BENCHMARK_PATH is required")
+        if not os.path.exists(path):
+            raise RuntimeError(f"BlockGraph benchmark file not found: {path}")
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            raise RuntimeError("BlockGraph benchmark must be a JSON object")
+        return data
 
 if __name__ == "__main__":
     bench = BIZRABenchmark()
     bench.benchmark_logic_gate()
     print("-" * 50)
-    bench.simulate_blockgraph_tps()
+    bench.load_blockgraph_benchmark()

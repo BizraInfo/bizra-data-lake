@@ -7,9 +7,13 @@ BIZRA Sovereign Organism.
 
 # Legacy Core Components
 from .sape_engine import SAPEEngine, ElevatedPattern
-from .symbolic_harness import SymbolicHarness
-from .abstraction_elevator import AbstractionElevator
-from .tension_studio import TensionStudio
+# Legacy Core Components
+from .sape_engine import SAPEEngine, ElevatedPattern
+from .symbolic_harness import SymbolicHarness, SymbolType, Symbol
+from .abstraction_elevator import (
+    AbstractionElevator, AbstractionLevel, DomainType, Instance, Pattern, Principle
+)
+from .tension_studio import TensionStudio, TensionType
 from .kernel import (
     SystemProtocolKernel, 
     KernelConfig, 
@@ -27,6 +31,8 @@ from .ihsan_vector import (
 from .session_manager import SessionManager, Session, SessionState
 from .verifier import MultiStageVerifier, VerificationResult, ProbeType, ProbeResult
 from .snr_tracker import SNRTracker, SNRMetrics, estimate_useful_tokens
+from .damage_control_engine import DamageControlEngine
+from .got_orchestrator import GoTOrchestrator
 from .lexicon_ledger import (
     LexiconLedger, Term, TruthLabel, TermStatus, LedgerOperation,
     LexiconReceipt, DNA_SIGNATURE
@@ -48,12 +54,15 @@ from .model_hub import SovereignModelHub
 __all__ = [
     # Core
     "SAPEEngine", "ElevatedPattern",
-    "SymbolicHarness", "AbstractionElevator", "TensionStudio",
+    "SymbolicHarness", "SymbolType", "Symbol",
+    "AbstractionElevator", "AbstractionLevel", "DomainType", "Instance", "Pattern", "Principle",
+    "TensionStudio", "TensionType",
     "SystemProtocolKernel", "KernelConfig", "ExecutionResult", "get_kernel", "reset_kernel",
     "IhsanVector", "IhsanDimension", "IhsanConstitution", "constitution", "threshold_for",
     "SessionManager", "Session", "SessionState",
     "MultiStageVerifier", "VerificationResult", "ProbeType", "ProbeResult",
     "SNRTracker", "SNRMetrics", "estimate_useful_tokens",
+    "DamageControlEngine", "GoTOrchestrator",
     "LexiconLedger", "Term", "TruthLabel", "TermStatus", "LedgerOperation",
     "LexiconReceipt", "DNA_SIGNATURE",
     

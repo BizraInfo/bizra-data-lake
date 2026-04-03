@@ -37,7 +37,8 @@ class OmniAwareness:
         if os.path.exists(model_home):
             try:
                 models = os.listdir(model_home)
-            except: pass
+            except (IOError, OSError) as e:
+                print(f"Failed to scan models directory: {e}")
         return {
             "count": len(models),
             "manifest": models
@@ -118,7 +119,7 @@ class OmniAwareness:
         # Sensitivity Mask: Redact environment-specific absolute paths
         def redact(path):
             return path.replace("C:\\Users\\BIZRA-OS", "[REDACTED_SPACE]").replace("c:\\", "[ROOT]\\")
-
+            
         # 1. Map Home Base (Kernel)
         territory.append({
             "node": "KERNEL_HOME",

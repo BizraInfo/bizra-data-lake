@@ -2,7 +2,7 @@
 SNR Tracker — Signal-to-Noise Ratio Optimization
 =================================================
 From the Blueprint:
-  SNR_score = (useful_tokens / total_tokens) × confidence × ethical_compliance × tool_directness
+  SNR_score = (useful_tokens / total_tokens) × confidence × ethical_compliance × safety_compliance × tool_directness
   Target: SNR > 0.90
 
 Tracks token efficiency across sessions and enables SAPE elevation.
@@ -25,6 +25,7 @@ class SNRMetrics:
     tool_directness: float  # How directly the tool addressed the query
     latency_ms: int
     agent_role: str
+    safety_compliance: float = 1.0  # Damage control safety factor
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     
     @property
@@ -38,6 +39,7 @@ class SNRMetrics:
             token_efficiency
             * self.confidence_score
             * self.ethical_compliance
+            * self.safety_compliance
             * self.tool_directness
         )
     
@@ -48,6 +50,7 @@ class SNRMetrics:
             "token_efficiency": self.useful_tokens / max(1, self.total_tokens),
             "confidence_score": self.confidence_score,
             "ethical_compliance": self.ethical_compliance,
+            "safety_compliance": self.safety_compliance,
             "tool_directness": self.tool_directness,
             "snr_score": self.snr_score,
             "latency_ms": self.latency_ms,

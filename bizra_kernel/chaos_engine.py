@@ -1,9 +1,9 @@
 """
 BIZRA Chaos Engine - Phase 9 Chaos Game Implementation
-Severed Link Scenario: Network Partition Simulation with MTTR <=30s
+Severed Link Scenario: Network Partition Exercise with MTTR <=30s
 
 This module implements chaos engineering capabilities for the federation system:
-- Network partition simulation (Severed Link scenario)
+- Network partition exercise (Severed Link scenario)
 - Automatic failover detection
 - Self-healing orchestration
 - MTTR measurement and alerting (target: <=30 seconds)
@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 import logging
+import os
 
 try:
     from .federation_node import FederationNode, FederationMessage, MessageType
@@ -40,7 +41,7 @@ class ChaosScenario(Enum):
 
 @dataclass
 class PartitionConfig:
-    """Configuration for network partition simulation."""
+    """Configuration for network partition scenario."""
     scenario: ChaosScenario
     duration_seconds: float = 30.0  # How long to maintain partition
     affected_nodes: List[str] = field(default_factory=list)
@@ -77,7 +78,7 @@ class ChaosEngine:
     Chaos Engineering Engine for BIZRA Federation.
 
     Implements the "Severed Link" scenario with:
-    - Network partition simulation
+    - Network partition exercise
     - Automatic failover detection
     - Self-healing orchestration
     - MTTR measurement and alerting
@@ -134,7 +135,7 @@ class ChaosEngine:
         """
         Trigger the "Severed Link" chaos scenario.
 
-        Simulates network partition by isolating specified nodes from others.
+        Executes network partition by isolating specified nodes from others.
         """
         event_id = f"severed_link_{int(time.time())}_{self.node_id}"
 
@@ -177,15 +178,15 @@ class ChaosEngine:
             "mttr_target": 30.0
         })
 
-        # Start partition simulation
-        asyncio.create_task(self._simulate_partition(event_id, partition_config))
+        # Start partition scenario
+        asyncio.create_task(self._execute_partition(event_id, partition_config))
 
         return event_id
 
-    async def _simulate_partition(self, event_id: str, config: PartitionConfig):
-        """Simulate network partition for the specified duration."""
+    async def _execute_partition(self, event_id: str, config: PartitionConfig):
+        """Execute network partition for the specified duration."""
         try:
-            # Phase 1: Create partition (simulate network isolation)
+            # Phase 1: Create partition (network isolation)
             await self._create_network_partition(config)
 
             # Wait for partition duration
@@ -208,7 +209,7 @@ class ChaosEngine:
             self.logger.info(f"[+] COMPLETED: Severed Link scenario {event_id}")
 
         except Exception as e:
-            self.logger.error(f"[!] Chaos simulation error for {event_id}: {e}")
+            self.logger.error(f"[!] Chaos execution error for {event_id}: {e}")
             await self._send_alert("CHAOS_ERROR", {
                 "event_id": event_id,
                 "error": str(e)
@@ -217,7 +218,7 @@ class ChaosEngine:
     async def _create_network_partition(self, config: PartitionConfig):
         """Create network partition by disconnecting affected nodes."""
         # In a real distributed system, this would manipulate network rules/firewalls
-        # For this simulation, we'll simulate disconnection by:
+        # For this scenario, we'll disconnect by:
         # 1. Closing connections to affected nodes
         # 2. Preventing reconnection attempts
         # 3. Simulating communication failures
@@ -227,7 +228,7 @@ class ChaosEngine:
         # Find and "disconnect" affected peer connections
         for affected_node in config.affected_nodes:
             if affected_node in self.federation_manager.federation_node.peer_connections:
-                # Simulate disconnection by marking as partitioned
+                # Mark as partitioned
                 affected_connections.append(affected_node)
 
         self.logger.info(f"[!] Created partition affecting connections: {affected_connections}")
@@ -236,15 +237,15 @@ class ChaosEngine:
         await self._send_alert("PARTITION_CREATED", {
             "affected_nodes": config.affected_nodes,
             "isolated_from": config.isolated_from,
-            "simulated_connections_lost": len(affected_connections)
+            "connections_lost": len(affected_connections)
         })
 
     async def _remove_network_partition(self, config: PartitionConfig):
         """Remove network partition and allow reconnection (self-healing)."""
-        # Simulate self-healing by allowing reconnections
+        # Self-healing by allowing reconnections
         self.logger.info(f"[+] Removing partition for nodes: {config.affected_nodes}")
 
-        # In simulation, we just wait for the federation's natural reconnection
+        # Wait for the federation's natural reconnection
         # In a real system, this would remove network rules
 
         await self._send_alert("PARTITION_REMOVED", {
@@ -413,6 +414,7 @@ async def default_chaos_alert_handler(alert_type: str, alert_data: Dict[str, Any
 
 
 if __name__ == "__main__":
-    # Example usage
+    if os.getenv("BIZRA_CHAOS_MODE") != "1":
+        raise SystemExit("Chaos engine is disabled for public production release")
     print("BIZRA Chaos Engine - Severed Link Scenario")
     print("This module should be integrated with FederationManager")

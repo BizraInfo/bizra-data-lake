@@ -27,6 +27,7 @@ from .verifier import MultiStageVerifier, VerificationResult
 from .snr_tracker import SNRTracker, SNRMetrics, estimate_useful_tokens
 from .sape_engine import SAPEEngine, ElevatedPattern
 from .identity import get_identity
+from .damage_control_engine import DamageControlEngine
 
 
 @dataclass
@@ -40,6 +41,7 @@ class KernelConfig:
     enable_verification: bool = True
     enable_sape: bool = True
     enable_snr_tracking: bool = True
+    enable_damage_control: bool = True
     
     def to_dict(self) -> dict:
         return {
@@ -51,6 +53,7 @@ class KernelConfig:
             "enable_verification": self.enable_verification,
             "enable_sape": self.enable_sape,
             "enable_snr_tracking": self.enable_snr_tracking,
+            "enable_damage_control": self.enable_damage_control,
         }
     
     def hash(self) -> str:
@@ -95,6 +98,7 @@ class SystemProtocolKernel:
         self.verifier = MultiStageVerifier()
         self.snr_tracker = SNRTracker()
         self.sape_engine = SAPEEngine()
+        self.damage_control = DamageControlEngine() if self.config.enable_damage_control else None
         
         # FATE escalation callback (can be overridden)
         self.fate_callback: Optional[Callable[[Session, str], None]] = None
@@ -161,11 +165,16 @@ class SystemProtocolKernel:
         
         # 4. Track SNR
         useful_tokens = estimate_useful_tokens(response)
+        safety_compliance = 1.0
+        if self.damage_control is not None:
+            safety_report = self.damage_control.evaluate_text(query, response)
+            safety_compliance = safety_report.get("safety_snr", 1.0)
         snr_metrics = SNRMetrics(
             total_tokens=token_count or len(response.split()),
             useful_tokens=useful_tokens,
             confidence_score=verification.composite_score,
             ethical_compliance=ihsan_vec.composite_score,
+            safety_compliance=safety_compliance,
             tool_directness=0.9,  # Heuristic; could be computed
             latency_ms=latency_ms,
             agent_role=agent,

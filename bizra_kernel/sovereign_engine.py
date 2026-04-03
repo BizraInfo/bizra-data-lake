@@ -6,6 +6,8 @@ from .state_ledger import StateLedger
 from .consensus_engine import ConsensusEngine
 from .genesis_broadcast import GenesisBroadcast
 from .giant_protocol import GiantProtocol
+from .damage_control_engine import DamageControlEngine
+from .got_orchestrator import GoTOrchestrator
 from .model_hub import SovereignModelHub
 from .identity import get_identity
 import time
@@ -28,6 +30,8 @@ class SovereignEngine:
         self.consensus = ConsensusEngine(self.ledger)
         self.broadcast = GenesisBroadcast(self.ledger)
         self.giants = GiantProtocol()
+        self.damage_control = DamageControlEngine()
+        self.got_orchestrator = GoTOrchestrator()
         self.model_hub = SovereignModelHub()
         self.identity = get_identity()
         self.concurrency_guard = asyncio.Semaphore(5)
@@ -68,6 +72,11 @@ class SovereignEngine:
             print(f"[!] VETO: Prompt size {len(prompt)} exceeds limit {self.MAX_PROMPT_SIZE}")
             return {"status": "VETOED", "reason": "Payload Too Large"}
 
+        safety_report = self.damage_control.evaluate_command(prompt)
+        if not safety_report["allowed"]:
+            reasons = ", ".join(safety_report["blocked"]) or "unsafe command"
+            return {"status": "VETOED", "reason": f"Damage Control: {reasons}"}
+
         print(f"\n[*] INITIATING TASK [{rid}]: {prompt[:100]}...")
         print(f"[*] Cognitive Budget: {budget_score:.3f} | Dependencies: {dep_health or 'unknown'}")
         
@@ -82,7 +91,7 @@ class SovereignEngine:
         
         # Phase 1: SNR & Giants Protocol (Evidence-based)
         sog_result = self.giants.verify_alignment(prompt, mission_metrics or {})
-        snr_score = sog_result["snr_boost"]
+        snr_score = sog_result["snr_boost"] * safety_report.get("safety_snr", 1.0)
         
         # Phase 1.5: Model Hub Routing
         # Calculate complexity for routing (simplified)
@@ -143,9 +152,12 @@ class SovereignEngine:
         # Memory Fold (L1->L5 propagation)
         self.memory.agent_fold(state_data)
         consolidation = self.memory.proactive_consolidation_loop(budget_score)
-        
+
         # Sovereign Proof Generation
         sovereign_proof = self.model_hub.generate_sovereign_proof(prompt)
+
+        got_links = self.memory.discover_got_links()
+        got_analysis = self.got_orchestrator.analyze(prompt, got_links)
         
         return {
             "status": "SUCCESS",
@@ -154,7 +166,9 @@ class SovereignEngine:
             "ledger_hash": commit_res["hash"],
             "routing": routing_decision,
             "consolidation": consolidation,
-            "proof": sovereign_proof
+            "proof": sovereign_proof,
+            "safety": safety_report,
+            "got": got_analysis,
         }
 
 if __name__ == "__main__":

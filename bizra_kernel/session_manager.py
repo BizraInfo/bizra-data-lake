@@ -20,6 +20,15 @@ from enum import Enum
 from .ihsan_vector import IhsanVector
 
 
+def canonical_bytes(obj) -> bytes:
+    return json.dumps(
+        obj,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+
 class SessionState(Enum):
     """Session lifecycle states."""
     PENDING = "pending"
@@ -90,8 +99,38 @@ class Session:
             "snr_target": 0.90,
             "fate_circuit_breaker_ms": 100,
         }
-        canonical = json.dumps(config, sort_keys=True)
-        return hashlib.sha256(canonical.encode()).hexdigest()
+        canonical = canonical_bytes(config)
+        return hashlib.sha256(canonical).hexdigest()
+
+    def to_poi_receipt(self) -> str:
+        # 1. Construct the Full Fact
+        payload = {
+            "type": "session_receipt", # Using generic type as event_type is per-event
+            "timestamp_utc": self.created_at, # Use creation time or updated? User snippet implies per-event but this is Session method.
+            # Adapting user snippet to Session context: "data_hash" isn't a Session field. 
+            # User snippet: "type": self.event_type. 
+            # But the method is on Session class. 
+            # I will assume this generates a receipt for the Session itself.
+            "session_id": self.session_id,
+            "protocol_hash": self.protocol_hash,
+            "protocol_version": self.protocol_version,
+            # "ihsan_score": self.ihsan_vectors[-1].score if self.ihsan_vectors else 0.0, # Example adaptation
+            # But strictly following the snippet architecture:
+            "agent_id": self.primary_agent
+        }
+
+        # 2. Canonical Serialization (RFC 8785 style)
+        # sort_keys=True ensures {a:1, b:2} == {b:2, a:1}
+        # separators removes whitespace noise
+        canonical_bytes = json.dumps(
+            payload, 
+            sort_keys=True, 
+            separators=(',', ':')
+        ).encode('utf-8')
+
+        # 3. The Immutable Seal (Full SHA-256)
+        # Truncation is forbidden.
+        return hashlib.sha256(canonical_bytes).hexdigest()
     
     def start(self, agent: str, message: str) -> "Session":
         """Start the session."""
@@ -189,7 +228,7 @@ class Session:
             "timestamp": self.updated_at,
             "events_hash": hashlib.sha256(
                 json.dumps([e.event_type for e in self.events]).encode()
-            ).hexdigest()[:16],
+            ).hexdigest(),
         }
 
 

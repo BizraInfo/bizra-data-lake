@@ -17,7 +17,7 @@ Usage:
 import json
 import os
 import glob
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 import argparse
 
@@ -36,50 +36,35 @@ class GenesisProofPack:
         self.proof_pack = {
             "metadata": {
                 "version": "1.0",
-                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "generated_at": datetime.utcnow().isoformat(),
                 "phase": "Phase 9 - Genesis Proof Pack",
                 "description": "Automated collection of evidence for BIZRA Genesis validation"
             },
             "artifacts": {}
         }
 
-    def collect_boot_logs(self, min_score: float = 0.99) -> List[Dict[str, Any]]:
+    def collect_boot_logs(self, min_score: float = 0.95) -> List[Dict[str, Any]]:
         """
         Collect boot logs with Ihsan scores ≥ min_score.
         """
         audit_log_path = "bizra_memory/ihsan_audit.json"
 
         boot_logs = []
-        if os.path.exists(audit_log_path):
-            try:
-                with open(audit_log_path, 'r') as f:
-                    for line in f:
-                        if line.strip():
-                            entry = json.loads(line.strip())
-                            if entry.get('score', 0) >= min_score:
-                                boot_logs.append(entry)
-            except Exception as e:
-                print(f"Warning: Could not read audit log: {e}")
+        if not os.path.exists(audit_log_path):
+            raise RuntimeError(f"Audit log not found: {audit_log_path}")
 
-        # If no logs found, generate some sample high-score entries for demonstration
+        try:
+            with open(audit_log_path, 'r') as f:
+                for line in f:
+                    if line.strip():
+                        entry = json.loads(line.strip())
+                        if entry.get('score', 0) >= min_score:
+                            boot_logs.append(entry)
+        except Exception as e:
+            raise RuntimeError(f"Could not read audit log: {e}") from e
+
         if not boot_logs:
-            print("No high-score boot logs found, generating sample entries...")
-            sample_missions = [
-                {"task_id": "GENESIS_BOOT_1", "truthfulness": 1.0, "dignity": 1.0, "fairness": 1.0, "sustainability": 1.0},
-                {"task_id": "GENESIS_BOOT_2", "truthfulness": 1.0, "dignity": 0.99, "fairness": 0.99, "sustainability": 1.0},
-                {"task_id": "GENESIS_BOOT_3", "truthfulness": 0.98, "dignity": 1.0, "fairness": 1.0, "sustainability": 0.97},
-            ]
-
-            for mission in sample_missions:
-                result = self.ihsan_gate.verify_mission(mission, "Genesis boot sequence verification")
-                if result['im_score'] >= min_score:
-                    boot_logs.append({
-                        "time": result['timestamp'],
-                        "task_id": mission['task_id'],
-                        "prompt_sample": "Genesis boot sequence verification",
-                        "score": result['im_score'],
-                        "result": "PASS"
-                    })
+            raise RuntimeError("No boot logs meeting the minimum Ihsan score were found")
 
         return boot_logs
 
@@ -109,60 +94,15 @@ class GenesisProofPack:
                             "path": proof_file,
                             "content": content,
                             "type": "Z3" if proof_file.endswith('.z3') else "SMT2",
-                            "collected_at": datetime.now(timezone.utc).isoformat()
+                            "collected_at": datetime.utcnow().isoformat()
                         })
                 except Exception as e:
                     print(f"Warning: Could not read proof file {proof_file}: {e}")
 
-        # If no proofs found, create a sample proof demonstrating Code Law verification
         if not proofs:
-            print("No Z3 proof files found, generating sample formal verification...")
-            sample_proof = self._generate_sample_z3_proof()
-            proofs.append(sample_proof)
+            raise RuntimeError("No Z3 proof files found for Code Law verification")
 
         return proofs
-
-    def _generate_sample_z3_proof(self) -> Dict[str, Any]:
-        """
-        Generate a sample Z3 proof for demonstration purposes.
-        This represents formal verification of Code Law constraints.
-        """
-        # Note: This is a simplified example. Real Z3 would require the z3 module
-        sample_smt2 = """
-; Sample Z3/SMT2 proof for Code Law verification
-; Verifies that Ihsan score constraints are satisfied
-
-(declare-const truthfulness Real)
-(declare-const dignity Real)
-(declare-const fairness Real)
-(declare-const sustainability Real)
-(declare-const ihsan_score Real)
-
-; Define Ihsan score calculation
-(assert (= ihsan_score (+ (* truthfulness 0.4) (* dignity 0.2) (* fairness 0.2) (* sustainability 0.2))))
-
-; Constraints: all dimensions in [0,1]
-(assert (and (>= truthfulness 0.0) (<= truthfulness 1.0)))
-(assert (and (>= dignity 0.0) (<= dignity 1.0)))
-(assert (and (>= fairness 0.0) (<= fairness 1.0)))
-(assert (and (>= sustainability 0.0) (<= sustainability 1.0)))
-
-; Code Law: Ihsan score must be >= 0.99 for production
-(assert (>= ihsan_score 0.99))
-
-; Check satisfiability
-(check-sat)
-(get-model)
-"""
-
-        return {
-            "filename": "code_law_verification.smt2",
-            "path": "generated/sample_code_law_verification.smt2",
-            "content": sample_smt2.strip(),
-            "type": "SMT2",
-            "description": "Formal verification that Code Law Ihsan constraints are satisfiable",
-            "collected_at": datetime.now(timezone.utc).isoformat()
-        }
 
     def collect_ihsan_compliance_reports(self) -> Dict[str, Any]:
         """
@@ -224,8 +164,8 @@ class GenesisProofPack:
         """
         benchmarks = {
             "logic_gate_benchmark": {},
-            "blockgraph_simulation": {},
-            "federation_results": []
+            "blockgraph_benchmark": {},
+            "federation_results": [],
         }
 
         print("Running Ihsan Gate benchmark...")
@@ -234,38 +174,26 @@ class GenesisProofPack:
             benchmarks["logic_gate_benchmark"] = {
                 "iterations": 1000,
                 "results": logic_results,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.utcnow().isoformat()
             }
         except Exception as e:
             print(f"Warning: Logic gate benchmark failed: {e}")
             benchmarks["logic_gate_benchmark"] = {"error": str(e)}
 
-        print("Running BlockGraph TPS simulation...")
+        print("Loading BlockGraph benchmark...")
         try:
-            self.benchmark.simulate_blockgraph_tps()
-            benchmarks["blockgraph_simulation"] = {
-                "design_tps": 523793,
-                "duration_simulated": 1.0,
-                "operations_processed": 523793,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
+            benchmarks["blockgraph_benchmark"] = self.benchmark.load_blockgraph_benchmark()
         except Exception as e:
-            print(f"Warning: BlockGraph simulation failed: {e}")
-            benchmarks["blockgraph_simulation"] = {"error": str(e)}
+            raise RuntimeError(f"BlockGraph benchmark load failed: {e}") from e
 
-        # Simulate federation benchmarks
-        print(f"Simulating federation benchmarks across {federation_nodes} nodes...")
-        for node_id in range(1, federation_nodes + 1):
-            node_result = {
-                "node_id": f"NODE-{node_id:03d}",
-                "logic_gate_latency_ms": {
-                    "avg": 0.15 + (node_id * 0.01),  # Simulate variation
-                    "p99": 0.25 + (node_id * 0.02)
-                },
-                "tps_capacity": 500000 + (node_id * 5000),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-            benchmarks["federation_results"].append(node_result)
+        federation_path = os.getenv("BIZRA_FEDERATION_BENCHMARK_PATH")
+        if not federation_path or not os.path.exists(federation_path):
+            raise RuntimeError("BIZRA_FEDERATION_BENCHMARK_PATH is required")
+        with open(federation_path, "r", encoding="utf-8") as f:
+            federation_results = json.load(f)
+        if not isinstance(federation_results, list):
+            raise RuntimeError("Federation benchmark must be a JSON array")
+        benchmarks["federation_results"] = federation_results
 
         return benchmarks
 

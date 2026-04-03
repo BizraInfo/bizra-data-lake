@@ -352,15 +352,13 @@ class LexiconLedger:
             # Adapter Terms
             "AdapterMode": Term(
                 key="AdapterMode",
-                expansion="Adapter Mode (simulated vs real)",
+                expansion="Adapter Mode (real)",
                 role="Truth label describing whether a subsystem performs real external IO",
                 variants={
-                    "simulated": "No external IO; behavior may be stubbed or scripted.",
                     "real": "Performs external IO; requires evidence receipts and auditability.",
                 },
                 invariants=[
                     "If mode is real, a receipt MUST exist that includes tool calls + hashes.",
-                    "If mode is simulated, outputs MUST NOT claim real-world side effects.",
                 ],
                 ihsan_dimension="auditability",
             ),

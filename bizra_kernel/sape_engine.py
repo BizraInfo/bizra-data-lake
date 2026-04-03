@@ -46,17 +46,71 @@ class ElevatedPattern:
 class SAPEEngine:
     """
     Symbolic-Abstraction Probe Elevation Engine.
-    
+
     Observes verification sequences and elevates recurring patterns
     into optimized kernel-level shortcuts.
+
+    SECURITY:
+    - Rate limiting prevents metric poisoning via forced repetition
+    - Auto-elevated patterns cannot bypass security-critical checks
+    - SNR improvement is calculated, not hardcoded
     """
     
+    def __init__(self):
+        # 9 Core Probes (sum 1.0)
+        # Source: constitution/ihsan_v1.yaml
+        self.probe_weights = {
+            "correctness": 0.22,
+            "safety": 0.22,
+            "user_benefit": 0.14,
+            "efficiency": 0.12,
+            "auditability": 0.12,
+            "anti_centralization": 0.08,
+            "robustness": 0.06,
+            "adl_fairness": 0.04
+        }
+        # PAT Extension: Novelty (0.12)
+        self.novelty_weight = 0.12
+
+    def compute_weighted_score(self, probe_results: Dict[str, float], include_novelty: bool = False) -> float:
+        """
+        Compute SAPE score from probe results.
+        
+        Args:
+            probe_results: Dict of probe_name -> score
+            include_novelty: Whether to include PAT novelty weight (0.12)
+                             If true, weights are normalized.
+        """
+        weighted_sum = 0.0
+        total_weight = 0.0
+        
+        # Core probes
+        for probe, score in probe_results.items():
+            if probe == "novelty": continue
+            weight = self.probe_weights.get(probe, 0.0)
+            weighted_sum += score * weight
+            total_weight += weight
+            
+        # Novelty extension
+        if include_novelty and "novelty" in probe_results:
+            novelty_score = probe_results["novelty"]
+            weighted_sum += novelty_score * self.novelty_weight
+            total_weight += self.novelty_weight
+            
+        return weighted_sum / total_weight if total_weight > 0 else 0.0
+
     ELEVATION_THRESHOLD = 3  # Minimum repetitions to elevate
-    
+    MAX_AUTO_ELEVATIONS_PER_HOUR = 10  # Rate limit for auto-elevation
+    SECURITY_CRITICAL_CHECKS = frozenset([
+        "sat_veto", "ihsan_gate", "security_sentinel", "formal_validator",
+        "ethics_guardian", "fate_verification", "signature_check"
+    ])
+
     def __init__(self):
         self.sequence_history: List[List[str]] = []
         self.sequence_counts: Counter = Counter()
         self.elevated_patterns: Dict[str, ElevatedPattern] = {}
+        self._auto_elevation_timestamps: List[datetime] = []  # Rate limiting
         
         # Pre-defined elevatable patterns from the Blueprint
         self._register_blueprint_patterns()
@@ -146,23 +200,61 @@ class SAPEEngine:
         
         return False
     
-    def _auto_elevate(self, sequence: List[str]) -> ElevatedPattern:
-        """Auto-elevate a frequently occurring sequence."""
+    def _auto_elevate(self, sequence: List[str]) -> Optional[ElevatedPattern]:
+        """
+        Auto-elevate a frequently occurring sequence.
+
+        SECURITY:
+        - Rate limited to MAX_AUTO_ELEVATIONS_PER_HOUR
+        - Cannot elevate sequences containing security-critical checks
+        - SNR improvement calculated from repetition count, not hardcoded
+
+        Returns None if elevation is blocked for security reasons.
+        """
+        # SECURITY: Check rate limit
+        now = datetime.utcnow()
+        hour_ago = now.replace(hour=now.hour - 1 if now.hour > 0 else 23)
+        self._auto_elevation_timestamps = [
+            ts for ts in self._auto_elevation_timestamps if ts > hour_ago
+        ]
+
+        if len(self._auto_elevation_timestamps) >= self.MAX_AUTO_ELEVATIONS_PER_HOUR:
+            # Rate limit exceeded - potential metric poisoning attack
+            return None
+
+        # SECURITY: Block elevation of security-critical sequences
+        sequence_lower = [s.lower() for s in sequence]
+        for critical_check in self.SECURITY_CRITICAL_CHECKS:
+            if critical_check in sequence_lower:
+                # Cannot shortcut security-critical checks
+                return None
+
         sequence_key = tuple(sequence)
         pattern_id = hashlib.sha256(str(sequence_key).encode()).hexdigest()[:8]
-        
+        repetition_count = self.sequence_counts[sequence_key]
+
+        # Calculate SNR improvement based on repetition count and sequence properties
+        # More repetitions = more confidence in the pattern's value
+        # But diminishing returns to prevent gaming
+        base_improvement = 0.02  # Minimum improvement
+        repetition_bonus = min(0.08, (repetition_count - self.ELEVATION_THRESHOLD) * 0.01)
+        sequence_length_factor = min(1.0, len(sequence) / 5.0)  # Longer sequences = more valuable
+
+        calculated_snr_improvement = (base_improvement + repetition_bonus) * sequence_length_factor
+
         pattern = ElevatedPattern(
             pattern_id=f"auto_{pattern_id}",
             pattern_name=f"Auto-elevated: {' -> '.join(sequence[:3])}...",
             trigger_sequence=list(sequence),
-            optimization="Auto-compiled verification shortcut",
-            snr_improvement=0.05,  # Conservative estimate
-            latency_reduction_ms=30,
-            token_savings_percent=20.0,
-            activation_count=self.sequence_counts[sequence_key],
+            optimization="Auto-compiled verification shortcut (rate-limited, security-checked)",
+            snr_improvement=round(calculated_snr_improvement, 4),  # Calculated, not hardcoded
+            latency_reduction_ms=max(10, 30 - repetition_count * 2),  # Diminishing returns
+            token_savings_percent=min(30.0, 15.0 + repetition_count * 1.5),
+            activation_count=repetition_count,
         )
-        
+
         self.elevated_patterns[pattern.pattern_id] = pattern
+        self._auto_elevation_timestamps.append(now)  # Track for rate limiting
         return pattern
     
     def get_active_patterns(self) -> List[ElevatedPattern]:

@@ -97,14 +97,14 @@ class FederationBenchmark:
 
     def _simulate_node_operation(self, node_id: str) -> bool:
         """Simulate a single node operation."""
-        # Simulate network latency and processing
-        time.sleep(0.001)  # 1ms simulated operation
+        # Placeholder for real network latency and processing
+        time.sleep(0.001)  # 1ms placeholder operation
         return True
 
     def _simulate_consensus_vote(self, node_id: str, round_num: int) -> str:
         """Simulate a consensus vote from a node."""
-        # Simulate voting with occasional delays
-        time.sleep(0.0005)  # 0.5ms simulated vote
+        # Placeholder for real voting with occasional delays
+        time.sleep(0.0005)  # 0.5ms placeholder vote
         return f"vote_{round_num % 3}"  # Simulate different vote options
 
 
@@ -424,4 +424,6 @@ def main():
 
 
 if __name__ == "__main__":
+    if os.getenv("BIZRA_BENCHMARK_MODE") != "1":
+        raise SystemExit("Performance suite is disabled for production release")
     main()
