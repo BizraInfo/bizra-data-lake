@@ -11,6 +11,7 @@
 //! SAPE AUDIT STATUS: MASTERPIECE_READY
 //! SNR SCORE: 100.0 (Absolute Signal)
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -91,6 +92,143 @@ pub enum CovenantViolation {
 /// Result type for covenant operations
 pub type CovenantResult<T> = Result<T, CovenantViolation>;
 
+/// Identity drift detection event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdentityDriftEvent {
+    pub timestamp: DateTime<Utc>,
+    pub tier: u8,
+    pub expected_hash: String,
+    pub actual_hash: String,
+    pub action: String, // "halt", "warn", "log"
+}
+
+/// Continuous identity monitoring
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdentityMonitor {
+    pub check_interval_secs: u64,
+    pub last_check: Option<DateTime<Utc>>,
+    pub tier1_hash: Option<String>,
+    pub tier2_hash: Option<String>,
+    pub tier3_hash: Option<String>,
+    pub drift_events: Vec<IdentityDriftEvent>,
+}
+
+impl IdentityMonitor {
+    /// Create a new identity monitor with check interval
+    pub fn new(check_interval_secs: u64) -> Self {
+        Self {
+            check_interval_secs,
+            last_check: None,
+            tier1_hash: None,
+            tier2_hash: None,
+            tier3_hash: None,
+            drift_events: Vec::new(),
+        }
+    }
+
+    /// Record baseline identity fingerprints
+    pub fn record_baseline(&mut self, tier1: &str, tier2: &str, tier3: &str) {
+        self.tier1_hash = Some(tier1.to_string());
+        self.tier2_hash = Some(tier2.to_string());
+        self.tier3_hash = Some(tier3.to_string());
+        self.last_check = Some(Utc::now());
+        tracing::info!(
+            "[IDENTITY] Baseline recorded - Tier1: {}..., Tier2: {}..., Tier3: {}...",
+            &tier1[..16.min(tier1.len())],
+            &tier2[..16.min(tier2.len())],
+            &tier3[..16.min(tier3.len())]
+        );
+    }
+
+    /// Check for identity drift against baseline
+    pub fn check_drift(
+        &mut self,
+        current_tier1: &str,
+        current_tier2: &str,
+        current_tier3: &str,
+    ) -> Option<IdentityDriftEvent> {
+        self.last_check = Some(Utc::now());
+
+        // Tier 1: HARD FAIL - Critical identity mismatch
+        if let Some(ref expected_tier1) = self.tier1_hash {
+            if current_tier1 != expected_tier1 {
+                let event = IdentityDriftEvent {
+                    timestamp: Utc::now(),
+                    tier: 1,
+                    expected_hash: expected_tier1.clone(),
+                    actual_hash: current_tier1.to_string(),
+                    action: "halt".to_string(),
+                };
+                self.drift_events.push(event.clone());
+                tracing::error!(
+                    "[IDENTITY] 🚨 TIER 1 DRIFT DETECTED - HALTING SYSTEM\n\
+                     Expected: {}...\n\
+                     Got:      {}...",
+                    &expected_tier1[..16],
+                    &current_tier1[..16.min(current_tier1.len())]
+                );
+                return Some(event);
+            }
+        }
+
+        // Tier 2: WARN - Hardware component change
+        if let Some(ref expected_tier2) = self.tier2_hash {
+            if current_tier2 != expected_tier2 {
+                let event = IdentityDriftEvent {
+                    timestamp: Utc::now(),
+                    tier: 2,
+                    expected_hash: expected_tier2.clone(),
+                    actual_hash: current_tier2.to_string(),
+                    action: "warn".to_string(),
+                };
+                self.drift_events.push(event.clone());
+                tracing::warn!(
+                    "[IDENTITY] ⚠️ TIER 2 DRIFT DETECTED - Hardware may have changed\n\
+                     Expected: {}...\n\
+                     Got:      {}...",
+                    &expected_tier2[..16],
+                    &current_tier2[..16.min(current_tier2.len())]
+                );
+                return Some(event);
+            }
+        }
+
+        // Tier 3: LOG ONLY - OS/BIOS/context changes (expected)
+        if let Some(ref expected_tier3) = self.tier3_hash {
+            if current_tier3 != expected_tier3 {
+                let event = IdentityDriftEvent {
+                    timestamp: Utc::now(),
+                    tier: 3,
+                    expected_hash: expected_tier3.clone(),
+                    actual_hash: current_tier3.to_string(),
+                    action: "log".to_string(),
+                };
+                self.drift_events.push(event.clone());
+                tracing::info!(
+                    "[IDENTITY] ℹ️ TIER 3 DRIFT DETECTED - OS/BIOS context changed (normal)\n\
+                     Expected: {}...\n\
+                     Got:      {}...",
+                    &expected_tier3[..16],
+                    &current_tier3[..16.min(current_tier3.len())]
+                );
+                return Some(event);
+            }
+        }
+
+        None // No drift detected
+    }
+
+    /// Get all drift events
+    pub fn drift_events(&self) -> &[IdentityDriftEvent] {
+        &self.drift_events
+    }
+
+    /// Clear drift events
+    pub fn clear_drift_events(&mut self) {
+        self.drift_events.clear();
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // THE SOVEREIGN KERNEL
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -109,6 +247,7 @@ pub struct SovereignKernel {
     ihsan_threshold: f64,
     adl_limit: f64,
     snr_minimum: f64,
+    identity_monitor: Option<IdentityMonitor>,
 }
 
 impl SovereignKernel {
@@ -121,6 +260,7 @@ impl SovereignKernel {
             ihsan_threshold: IHSAN_THRESHOLD,
             adl_limit: ADL_LIMIT,
             snr_minimum: 30.0,
+            identity_monitor: None,
         }
     }
 
@@ -133,6 +273,42 @@ impl SovereignKernel {
             ihsan_threshold: ihsan,
             adl_limit: adl,
             snr_minimum: snr,
+            identity_monitor: None,
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // IDENTITY MONITORING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// Enable continuous identity monitoring
+    pub fn enable_identity_monitor(&mut self, check_interval_secs: u64) {
+        self.identity_monitor = Some(IdentityMonitor::new(check_interval_secs));
+    }
+
+    /// Get identity monitor (if enabled)
+    pub fn identity_monitor(&self) -> Option<&IdentityMonitor> {
+        self.identity_monitor.as_ref()
+    }
+
+    /// Record baseline identity fingerprints
+    pub fn record_identity_baseline(&mut self, tier1: &str, tier2: &str, tier3: &str) {
+        if let Some(ref mut monitor) = self.identity_monitor {
+            monitor.record_baseline(tier1, tier2, tier3);
+        }
+    }
+
+    /// Check for identity drift
+    pub fn check_identity_drift(
+        &mut self,
+        current_tier1: &str,
+        current_tier2: &str,
+        current_tier3: &str,
+    ) -> Option<IdentityDriftEvent> {
+        if let Some(ref mut monitor) = self.identity_monitor {
+            monitor.check_drift(current_tier1, current_tier2, current_tier3)
+        } else {
+            None
         }
     }
 
@@ -168,7 +344,10 @@ impl SovereignKernel {
             self.state = RuntimeState::Halting("Hardware Mismatch".into());
             tracing::error!("[KERNEL] ❌ FATAL: This is NOT Node0.");
             tracing::error!("[KERNEL] Expected: {}...", &NODE0_FINGERPRINT[..16]);
-            tracing::error!("[KERNEL] Got: {}...", &fingerprint[..16.min(fingerprint.len())]);
+            tracing::error!(
+                "[KERNEL] Got: {}...",
+                &fingerprint[..16.min(fingerprint.len())]
+            );
 
             Err(CovenantViolation::HardwareMismatch {
                 expected: NODE0_FINGERPRINT.to_string(),
@@ -419,10 +598,7 @@ impl SovereignKernel {
     pub fn statistics(&self) -> HashMap<String, serde_json::Value> {
         let mut stats = HashMap::new();
 
-        stats.insert(
-            "is_node0".to_string(),
-            serde_json::json!(self.is_node0()),
-        );
+        stats.insert("is_node0".to_string(), serde_json::json!(self.is_node0()));
         stats.insert(
             "ledger_size".to_string(),
             serde_json::json!(self.ledger.len()),
@@ -431,20 +607,14 @@ impl SovereignKernel {
             "ihsan_threshold".to_string(),
             serde_json::json!(self.ihsan_threshold),
         );
-        stats.insert(
-            "adl_limit".to_string(),
-            serde_json::json!(self.adl_limit),
-        );
+        stats.insert("adl_limit".to_string(), serde_json::json!(self.adl_limit));
 
         if let Some(id) = &self.identity {
             stats.insert(
                 "hardware_class".to_string(),
                 serde_json::json!(id.hardware_class),
             );
-            stats.insert(
-                "hostname".to_string(),
-                serde_json::json!(id.hostname),
-            );
+            stats.insert("hostname".to_string(), serde_json::json!(id.hostname));
         }
 
         stats
@@ -581,7 +751,10 @@ pub fn demo() {
     println!("[PHASE 1] GENESIS BINDING");
     println!("─────────────────────────────────────────────────────────────────");
 
-    if sovereign.bind_hardware(NODE0_FINGERPRINT, "MSI Titan").is_ok() {
+    if sovereign
+        .bind_hardware(NODE0_FINGERPRINT, "MSI Titan")
+        .is_ok()
+    {
         println!();
 
         // Phase 2: Execute Mission

@@ -20,4 +20,3 @@ async fn main() -> anyhow::Result<()> {
     // 2. Delegate to CLI Orchestrator
     cli::run().await
 }
-

@@ -10,12 +10,12 @@
 // - Proactive Attestation: Cryptographic behavior logging
 // - Pipelined Consciousness: Async SAT updating PAT intuition
 
+pub mod attestor;
+pub mod cognitive_bridge;
 pub mod orchestrator;
 pub mod wisdom;
-pub mod cognitive_bridge;
-pub mod attestor;
 
-pub use orchestrator::UnifiedOrchestrator;
-pub use wisdom::{WisdomAtom, WisdomStore, Symbol, ActionPrimitive};
-pub use cognitive_bridge::CognitiveBridge;
 pub use attestor::CryptographicAttestor;
+pub use cognitive_bridge::CognitiveBridge;
+pub use orchestrator::UnifiedOrchestrator;
+pub use wisdom::{ActionPrimitive, Symbol, WisdomAtom, WisdomStore};

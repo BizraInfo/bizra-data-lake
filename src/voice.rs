@@ -68,9 +68,13 @@ pub fn transcribe_sync(audio_bytes: &[u8]) -> Result<String> {
             "-m",
             &whisper_model,
             "-f",
-            input_path.to_str().ok_or_else(|| anyhow!("Invalid input path"))?,
+            input_path
+                .to_str()
+                .ok_or_else(|| anyhow!("Invalid input path"))?,
             "-of",
-            output_base.to_str().ok_or_else(|| anyhow!("Invalid output path"))?,
+            output_base
+                .to_str()
+                .ok_or_else(|| anyhow!("Invalid output path"))?,
             "-otxt",
         ])
         .stdout(Stdio::null())
@@ -83,8 +87,12 @@ pub fn transcribe_sync(audio_bytes: &[u8]) -> Result<String> {
     }
 
     let transcript_path = output_base.with_extension("txt");
-    let transcript = fs::read_to_string(&transcript_path)
-        .with_context(|| format!("Failed to read transcript from {}", transcript_path.display()))?;
+    let transcript = fs::read_to_string(&transcript_path).with_context(|| {
+        format!(
+            "Failed to read transcript from {}",
+            transcript_path.display()
+        )
+    })?;
 
     let _ = fs::remove_file(input_path);
     let _ = fs::remove_file(transcript_path);
@@ -111,7 +119,9 @@ pub fn synthesize_sync(text: &str) -> Result<Vec<u8>> {
             "-m",
             &piper_model,
             "-f",
-            output_path.to_str().ok_or_else(|| anyhow!("Invalid output path"))?,
+            output_path
+                .to_str()
+                .ok_or_else(|| anyhow!("Invalid output path"))?,
         ])
         .stdin(Stdio::piped())
         .stdout(Stdio::null())

@@ -44,15 +44,13 @@
 //
 // إحسان Quality Standard: 99.0
 
-use crate::blockchain::tokens::{
-    BloomToken, SeedToken, TokenAccount, TokenAmount,
-};
+use crate::blockchain::tokens::{BloomToken, SeedToken, TokenAccount, TokenAmount};
 use crate::sovereign::consensus::{ImpactCategory, PoIConsensus};
 use crate::sovereign::network::{NetworkMultiplier, ResourcePool, ReverseScaling};
 use crate::sovereign::thermal::{Reconciler, ReconcilerMode, ThermalConsciousness};
 use crate::sovereign::{
-    ExecutionResult, SovereignEvent, SovereignState, SovereignTransaction,
-    StateChange, GINI_MAX, IHSAN_THRESHOLD,
+    ExecutionResult, SovereignEvent, SovereignState, SovereignTransaction, StateChange, GINI_MAX,
+    IHSAN_THRESHOLD,
 };
 
 use serde::{Deserialize, Serialize};
@@ -242,9 +240,7 @@ impl Node0 {
             SovereignTransaction::SeedTransfer { from, to, amount } => {
                 self.execute_seed_transfer(*from, *to, *amount)
             }
-            SovereignTransaction::Stake { staker, amount } => {
-                self.execute_stake(*staker, *amount)
-            }
+            SovereignTransaction::Stake { staker, amount } => self.execute_stake(*staker, *amount),
             SovereignTransaction::Unstake { staker, amount } => {
                 self.execute_unstake(*staker, *amount)
             }
@@ -311,8 +307,7 @@ impl Node0 {
         }
 
         // Execute transfer
-        from_account.seed_balance =
-            TokenAmount::from_raw(from_account.seed_balance.raw() - amount);
+        from_account.seed_balance = TokenAmount::from_raw(from_account.seed_balance.raw() - amount);
 
         let to_account = self.accounts.entry(to).or_default();
         to_account.seed_balance = TokenAmount::from_raw(to_account.seed_balance.raw() + amount);
@@ -377,10 +372,7 @@ impl Node0 {
                 account: staker,
                 delta: amount as i128,
             }],
-            events: vec![SovereignEvent::Staked {
-                staker,
-                amount,
-            }],
+            events: vec![SovereignEvent::Staked { staker, amount }],
             error: None,
         }
     }
@@ -389,10 +381,7 @@ impl Node0 {
     fn execute_unstake(&mut self, staker: [u8; 32], amount: u128) -> ExecutionResult {
         let tx_hash = self.compute_op_hash(b"unstake", &staker, &[0u8; 32], amount);
 
-        let account = self
-            .accounts
-            .entry(staker)
-            .or_default();
+        let account = self.accounts.entry(staker).or_default();
 
         // Check staked balance
         if account.staked.raw() < amount {
@@ -423,10 +412,7 @@ impl Node0 {
                 account: staker,
                 delta: -(amount as i128),
             }],
-            events: vec![SovereignEvent::Unstaked {
-                staker,
-                amount,
-            }],
+            events: vec![SovereignEvent::Unstaked { staker, amount }],
             error: None,
         }
     }
@@ -472,9 +458,10 @@ impl Node0 {
         };
 
         // Apply network multiplier to score
-        let multiplied_score =
-            (base_score as f64 * self.network.get_multiplier() * impact_category.multiplier() as f64 / 10000.0)
-                as u64;
+        let multiplied_score = (base_score as f64
+            * self.network.get_multiplier()
+            * impact_category.multiplier() as f64
+            / 10000.0) as u64;
 
         // Record impact
         self.state.total_impact += multiplied_score as u128;
@@ -564,8 +551,11 @@ impl Node0 {
         self.state.resource_nodes += 1;
 
         // Update network multiplier based on new node count
-        self.network
-            .update(self.resources.contributor_count(), self.state.gini_coefficient, self.state.ihsan_score);
+        self.network.update(
+            self.resources.contributor_count(),
+            self.state.gini_coefficient,
+            self.state.ihsan_score,
+        );
         self.scaling.update(self.resources.contributor_count());
 
         ExecutionResult {
@@ -581,10 +571,7 @@ impl Node0 {
     fn execute_claim_rewards(&mut self, staker: [u8; 32]) -> ExecutionResult {
         let tx_hash = self.compute_op_hash(b"claim_rewards", &staker, &[0u8; 32], 0);
 
-        let account = self
-            .accounts
-            .entry(staker)
-            .or_default();
+        let account = self.accounts.entry(staker).or_default();
 
         // Calculate rewards (simplified: 5% APY, per epoch)
         let staked = account.staked.raw();
@@ -636,10 +623,7 @@ impl Node0 {
         // In full implementation, would look up attestation and calculate
         let bloom_amount = TokenAmount::from_tokens(100);
 
-        let account = self
-            .accounts
-            .entry(beneficiary)
-            .or_default();
+        let account = self.accounts.entry(beneficiary).or_default();
 
         account.bloom_balance =
             TokenAmount::from_raw(account.bloom_balance.raw() + bloom_amount.raw());
@@ -921,7 +905,8 @@ mod tests {
         for i in 0..10 {
             let address = [i as u8; 32];
             let balance = TokenAmount::from_tokens((i + 1) as u64 * 100);
-            node.accounts.insert(address, TokenAccount::with_seed(balance));
+            node.accounts
+                .insert(address, TokenAccount::with_seed(balance));
         }
 
         node.recalculate_gini();

@@ -6,8 +6,8 @@ use crate::{
     ihsan,
     mcp::MCPClient,
     pat::PATOrchestrator,
-    sape::{self, ProbeDimension, ProbeResult},
     reasoning::MultiMethodReasoning,
+    sape::{self, ProbeDimension, ProbeResult},
     types::*,
 };
 use std::{
@@ -266,8 +266,7 @@ impl EnhancedPATOrchestrator {
                 let mut count = self.sub_agent_count.write().await;
                 *count += 1;
 
-                let spawn_content =
-                    format!("Spawned sub-agent '{}' for task: {}", role, task);
+                let spawn_content = format!("Spawned sub-agent '{}' for task: {}", role, task);
                 let (ihsan_score, ihsan_vector, sape_flags, sape_probe_count) =
                     self.ihsan_from_content(&spawn_content)?;
                 let (ihsan_env, ihsan_threshold_applied, ihsan_passes_threshold) =
@@ -302,7 +301,9 @@ impl EnhancedPATOrchestrator {
             SlashCommand::Delegate { agent, task } => {
                 info!(agent, task, "Slash command: Delegate to agent");
                 let a2a = self.a2a_server.read().await;
-                let result = a2a.delegate(agent, task.clone()).await
+                let result = a2a
+                    .delegate(agent, task.clone())
+                    .await
                     .map_err(|e| anyhow::anyhow!("Delegation failed: {}", e))?;
 
                 let delegate_content = format!(
@@ -315,11 +316,7 @@ impl EnhancedPATOrchestrator {
                     self.enforce_ihsan(ihsan_score, "docs")?;
 
                 Ok(DualAgenticResponse {
-                    pat_contributions: vec![format!(
-                        "Delegated to {}: {}",
-                        agent,
-                        result.result
-                    )],
+                    pat_contributions: vec![format!("Delegated to {}: {}", agent, result.result)],
                     sat_contributions: vec![],
                     synergy_score: 0.93,
                     ihsan_score,
@@ -380,9 +377,7 @@ impl EnhancedPATOrchestrator {
         }
     }
 
-    fn normalize_tool_allowlist(
-        raw: &Option<Vec<String>>,
-    ) -> Option<HashSet<String>> {
+    fn normalize_tool_allowlist(raw: &Option<Vec<String>>) -> Option<HashSet<String>> {
         let Some(list) = raw else {
             return None;
         };
@@ -463,17 +458,11 @@ impl EnhancedPATOrchestrator {
     fn map_probes_to_ihsan_vector(
         probe_results: &[ProbeResult],
     ) -> anyhow::Result<BTreeMap<String, f64>> {
-        fn find(
-            results: &[ProbeResult],
-            dim: ProbeDimension,
-        ) -> Option<&ProbeResult> {
+        fn find(results: &[ProbeResult], dim: ProbeDimension) -> Option<&ProbeResult> {
             results.iter().find(|r| r.dimension == dim)
         }
 
-        fn weighted_mean(
-            results: &[ProbeResult],
-            dims: &[ProbeDimension],
-        ) -> anyhow::Result<f64> {
+        fn weighted_mean(results: &[ProbeResult], dims: &[ProbeDimension]) -> anyhow::Result<f64> {
             let mut total = 0.0;
             let mut weight_sum = 0.0;
 
@@ -515,10 +504,7 @@ impl EnhancedPATOrchestrator {
         );
         scores.insert(
             "auditability".to_string(),
-            weighted_mean(
-                probe_results,
-                &[ProbeDimension::ComplianceCheck],
-            )?,
+            weighted_mean(probe_results, &[ProbeDimension::ComplianceCheck])?,
         );
         scores.insert(
             "anti_centralization".to_string(),
@@ -563,11 +549,7 @@ impl EnhancedPATOrchestrator {
         }
 
         for result in pat_results {
-            content_parts.push(format!(
-                "{}: {}",
-                result.agent_name,
-                result.contribution
-            ));
+            content_parts.push(format!("{}: {}", result.agent_name, result.contribution));
         }
 
         let content = content_parts.join("\n");
@@ -588,8 +570,8 @@ mod tests {
             "  calculator  ".to_string(),
             "".to_string(),
         ]);
-        let allowlist = EnhancedPATOrchestrator::normalize_tool_allowlist(&raw)
-            .expect("expected allowlist");
+        let allowlist =
+            EnhancedPATOrchestrator::normalize_tool_allowlist(&raw).expect("expected allowlist");
         assert_eq!(allowlist.len(), 1);
         assert!(allowlist.contains("calculator"));
     }
@@ -614,8 +596,7 @@ mod tests {
 
         let mut allow = HashSet::new();
         allow.insert("calculator".to_string());
-        let filtered =
-            EnhancedPATOrchestrator::apply_tool_allowlist(refs, &Some(allow));
+        let filtered = EnhancedPATOrchestrator::apply_tool_allowlist(refs, &Some(allow));
 
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].name, "calculator");
@@ -637,11 +618,7 @@ mod tests {
 
     #[test]
     fn normalize_tool_allowlist_with_only_empty_strings_returns_empty_set() {
-        let raw = Some(vec![
-            "".to_string(),
-            "   ".to_string(),
-            "\t".to_string(),
-        ]);
+        let raw = Some(vec!["".to_string(), "   ".to_string(), "\t".to_string()]);
         let allowlist = EnhancedPATOrchestrator::normalize_tool_allowlist(&raw)
             .expect("expected Some with empty set");
         assert!(

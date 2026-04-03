@@ -12,20 +12,18 @@
 
 use super::{
     attestor::{AttestorError, CryptographicAttestor},
-    cognitive_bridge::{CognitiveBridge, CognitiveRequest, CognitiveResponse, CognitiveErrorCode, ThinkingMode},
-    wisdom::{WisdomAtom, WisdomStore, Symbol, ActionPrimitive},
+    cognitive_bridge::{
+        CognitiveBridge, CognitiveErrorCode, CognitiveRequest, CognitiveResponse, ThinkingMode,
+    },
+    wisdom::{ActionPrimitive, Symbol, WisdomAtom, WisdomStore},
 };
-use crate::{
-    entropy::global_pool,
-    fate::FATECoordinator,
-    ihsan,
-};
+use crate::{entropy::global_pool, fate::FATECoordinator, ihsan};
 use rand::Rng;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, RwLock, Semaphore};
-use tracing::{debug, info, warn, error, instrument};
+use tracing::{debug, error, info, instrument, warn};
 
 /// Agent state in the evolutionary pool
 #[derive(Debug, Clone)]
@@ -175,10 +173,7 @@ impl UnifiedOrchestrator {
             agents.insert(agent_id, state);
         }
 
-        info!(
-            population = agents.len(),
-            "Agent population initialized"
-        );
+        info!(population = agents.len(), "Agent population initialized");
 
         Ok(())
     }
@@ -187,7 +182,9 @@ impl UnifiedOrchestrator {
     #[instrument(skip(self))]
     pub async fn run_cycle(&self) -> Result<CycleResult, OrchestratorError> {
         let cycle_start = Instant::now();
-        let cycle_id = self.cycle_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let cycle_id = self
+            .cycle_counter
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
         debug!(cycle = cycle_id, "🔄 Starting autopoetic cycle");
 
@@ -203,17 +200,17 @@ impl UnifiedOrchestrator {
             let bridge = self.cognitive_bridge.clone();
             let attestor = self.attestor.clone();
             let wisdom_store = self.wisdom_store.clone();
-            let permit = self.processing_semaphore.clone().acquire_owned().await
+            let permit = self
+                .processing_semaphore
+                .clone()
+                .acquire_owned()
+                .await
                 .map_err(|_| OrchestratorError::SemaphoreClosed)?;
             let agent_id = agent.id.clone();
 
             futures.push(tokio::spawn(async move {
-                let result = Self::process_agent(
-                    &bridge,
-                    &attestor,
-                    &wisdom_store,
-                    &agent_id,
-                ).await;
+                let result =
+                    Self::process_agent(&bridge, &attestor, &wisdom_store, &agent_id).await;
                 drop(permit);
                 (agent_id, result)
             }));
@@ -245,7 +242,8 @@ impl UnifiedOrchestrator {
                         results.push((agent_id, response));
                     } else {
                         failures += 1;
-                        self.penalize_agent(&agent_id, &response.error_message.unwrap_or_default()).await;
+                        self.penalize_agent(&agent_id, &response.error_message.unwrap_or_default())
+                            .await;
                     }
                 }
                 Ok((agent_id, Err(e))) => {
@@ -272,8 +270,16 @@ impl UnifiedOrchestrator {
             agents_processed: selected_agents.len(),
             successes,
             failures,
-            average_ihsan: if successes > 0 { total_ihsan / successes as f64 } else { 0.0 },
-            average_snr: if successes > 0 { total_snr / successes as f64 } else { 0.0 },
+            average_ihsan: if successes > 0 {
+                total_ihsan / successes as f64
+            } else {
+                0.0
+            },
+            average_snr: if successes > 0 {
+                total_snr / successes as f64
+            } else {
+                0.0
+            },
             cycle_time,
             generation: self.generation.load(std::sync::atomic::Ordering::Relaxed),
             wisdom_atoms_created: self.wisdom_store.stats().await.total_atoms,
@@ -306,7 +312,8 @@ impl UnifiedOrchestrator {
         ready_agents.sort_by(|a, b| b.fitness_score.partial_cmp(&a.fitness_score).unwrap());
 
         // Select top agents based on selection pressure
-        let select_count = (ready_agents.len() as f64 * self.evolution_config.selection_pressure) as usize;
+        let select_count =
+            (ready_agents.len() as f64 * self.evolution_config.selection_pressure) as usize;
         ready_agents.into_iter().take(select_count.max(1)).collect()
     }
 
@@ -318,7 +325,9 @@ impl UnifiedOrchestrator {
         agent_id: &str,
     ) -> Result<CognitiveResponse, OrchestratorError> {
         // Check authorization
-        let authorized = attestor.is_authorized(agent_id).await
+        let authorized = attestor
+            .is_authorized(agent_id)
+            .await
             .map_err(OrchestratorError::AttestationError)?;
 
         if !authorized {
@@ -347,7 +356,12 @@ impl UnifiedOrchestrator {
             .map_err(|e| OrchestratorError::SerializationError(e.to_string()))?;
 
         attestor
-            .attest_behavior(agent_id, &behavior_data, response.ihsan_score, response.success)
+            .attest_behavior(
+                agent_id,
+                &behavior_data,
+                response.ihsan_score,
+                response.success,
+            )
             .await
             .map_err(OrchestratorError::AttestationError)?;
 
@@ -381,7 +395,11 @@ impl UnifiedOrchestrator {
             // Check for termination threshold
             if agent.fitness_score < self.evolution_config.min_fitness {
                 agent.status = AgentStatus::Terminated;
-                warn!(agent = agent_id, fitness = agent.fitness_score, "Agent terminated - below minimum fitness");
+                warn!(
+                    agent = agent_id,
+                    fitness = agent.fitness_score,
+                    "Agent terminated - below minimum fitness"
+                );
             }
         }
     }
@@ -394,23 +412,25 @@ impl UnifiedOrchestrator {
             Symbol::new("IhsanThresholdMet"),
         ];
         let action = ActionPrimitive::emit(&response.synthesis);
-        let postconditions = vec![
-            Symbol::new("TaskCompleted"),
-            Symbol::new("WisdomDistilled"),
-        ];
+        let postconditions = vec![Symbol::new("TaskCompleted"), Symbol::new("WisdomDistilled")];
 
         let atom = WisdomAtom::new(preconditions, action, postconditions, agent_id);
 
         if let Err(e) = self.wisdom_store.store(atom).await {
             warn!(error = %e, "Failed to store wisdom atom");
         } else {
-            debug!(agent = agent_id, "Wisdom distilled from successful execution");
+            debug!(
+                agent = agent_id,
+                "Wisdom distilled from successful execution"
+            );
         }
     }
 
     /// Evolutionary step - selection, mutation, reproduction
     async fn evolve(&self) -> Result<(), OrchestratorError> {
-        let gen = self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let gen = self
+            .generation
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let mut agents = self.agents.write().await;
 
         // Remove terminated agents
@@ -431,8 +451,14 @@ impl UnifiedOrchestrator {
             let child_id = format!("agent-g{}-{:04}", gen + 1, i);
 
             // Register child with attestor
-            if let Ok(_) = self.attestor
-                .register_agent(&child_id, Some(parent.id.clone()), gen + 1, parent.ihsan_score)
+            if let Ok(_) = self
+                .attestor
+                .register_agent(
+                    &child_id,
+                    Some(parent.id.clone()),
+                    gen + 1,
+                    parent.ihsan_score,
+                )
                 .await
             {
                 let child = AgentState {
@@ -440,7 +466,10 @@ impl UnifiedOrchestrator {
                     generation: gen + 1,
                     fitness_score: parent.fitness_score * 0.9, // Slight penalty for being new
                     ihsan_score: parent.ihsan_score,
-                    context_vector: Self::mutate_context(&parent.context_vector, self.evolution_config.mutation_rate),
+                    context_vector: Self::mutate_context(
+                        &parent.context_vector,
+                        self.evolution_config.mutation_rate,
+                    ),
                     last_active: Self::now(),
                     status: AgentStatus::Ready,
                 };
@@ -489,7 +518,10 @@ impl UnifiedOrchestrator {
         let wisdom_stats = self.wisdom_store.stats().await;
 
         let total_agents = agents.len();
-        let ready_agents = agents.values().filter(|a| a.status == AgentStatus::Ready).count();
+        let ready_agents = agents
+            .values()
+            .filter(|a| a.status == AgentStatus::Ready)
+            .count();
         let avg_fitness = if total_agents > 0 {
             agents.values().map(|a| a.fitness_score).sum::<f64>() / total_agents as f64
         } else {
@@ -506,7 +538,9 @@ impl UnifiedOrchestrator {
             ready_agents,
             terminated_agents: total_agents - ready_agents,
             current_generation: self.generation.load(std::sync::atomic::Ordering::Relaxed),
-            cycles_completed: self.cycle_counter.load(std::sync::atomic::Ordering::Relaxed),
+            cycles_completed: self
+                .cycle_counter
+                .load(std::sync::atomic::Ordering::Relaxed),
             average_fitness: avg_fitness,
             average_ihsan: avg_ihsan,
             wisdom_atoms: wisdom_stats.total_atoms,
@@ -519,7 +553,10 @@ impl UnifiedOrchestrator {
     /// Check if orchestrator is healthy
     pub async fn is_healthy(&self) -> bool {
         let agents = self.agents.read().await;
-        let ready = agents.values().filter(|a| a.status == AgentStatus::Ready).count();
+        let ready = agents
+            .values()
+            .filter(|a| a.status == AgentStatus::Ready)
+            .count();
         ready >= self.evolution_config.population_size / 2
     }
 }
@@ -599,6 +636,9 @@ mod tests {
         let mutated = UnifiedOrchestrator::mutate_context(&context, 1.0); // 100% mutation
         assert_eq!(mutated.len(), context.len());
         // Values should be slightly different
-        assert!(context.iter().zip(mutated.iter()).any(|(a, b)| (a - b).abs() > 0.001));
+        assert!(context
+            .iter()
+            .zip(mutated.iter())
+            .any(|(a, b)| (a - b).abs() > 0.001));
     }
 }

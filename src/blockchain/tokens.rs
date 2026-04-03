@@ -331,10 +331,12 @@ impl SeedToken {
             return Err(TokenError::InsufficientSupply);
         }
 
-        self.total_supply = self.total_supply
+        self.total_supply = self
+            .total_supply
             .checked_sub(amount)
             .ok_or(TokenError::Underflow)?;
-        self.total_burned = self.total_burned
+        self.total_burned = self
+            .total_burned
             .checked_add(amount)
             .ok_or(TokenError::Overflow)?;
 
@@ -343,7 +345,8 @@ impl SeedToken {
 
     /// Record staking
     pub fn stake(&mut self, amount: TokenAmount) -> Result<(), TokenError> {
-        self.total_staked = self.total_staked
+        self.total_staked = self
+            .total_staked
             .checked_add(amount)
             .ok_or(TokenError::Overflow)?;
         Ok(())
@@ -351,7 +354,8 @@ impl SeedToken {
 
     /// Record unstaking
     pub fn unstake(&mut self, amount: TokenAmount) -> Result<(), TokenError> {
-        self.total_staked = self.total_staked
+        self.total_staked = self
+            .total_staked
             .checked_sub(amount)
             .ok_or(TokenError::InsufficientStake)?;
         Ok(())
@@ -450,11 +454,13 @@ impl BloomToken {
         let mint_amount =
             TokenAmount::from_base(self.bloom_rate.base_units() * u128::from(impact_score));
 
-        self.total_supply = self.total_supply
+        self.total_supply = self
+            .total_supply
             .checked_add(mint_amount)
             .ok_or(TokenError::Overflow)?;
 
-        self.total_impact = self.total_impact
+        self.total_impact = self
+            .total_impact
             .checked_add(u128::from(impact_score))
             .ok_or(TokenError::Overflow)?;
 
@@ -607,7 +613,8 @@ impl TokenAccount {
 
     /// Credit SEED tokens
     pub fn credit_seed(&mut self, amount: TokenAmount, timestamp: u64) -> Result<(), TokenError> {
-        self.seed_balance = self.seed_balance
+        self.seed_balance = self
+            .seed_balance
             .checked_add(amount)
             .ok_or(TokenError::Overflow)?;
         self.last_activity = timestamp;
@@ -621,7 +628,8 @@ impl TokenAccount {
             return Err(TokenError::InsufficientBalance);
         }
 
-        self.seed_balance = self.seed_balance
+        self.seed_balance = self
+            .seed_balance
             .checked_sub(amount)
             .ok_or(TokenError::Underflow)?;
         self.last_activity = timestamp;
@@ -630,7 +638,8 @@ impl TokenAccount {
 
     /// Credit BLOOM tokens
     pub fn credit_bloom(&mut self, amount: TokenAmount, timestamp: u64) -> Result<(), TokenError> {
-        self.bloom_balance = self.bloom_balance
+        self.bloom_balance = self
+            .bloom_balance
             .checked_add(amount)
             .ok_or(TokenError::Overflow)?;
         self.last_activity = timestamp;
@@ -644,7 +653,8 @@ impl TokenAccount {
             return Err(TokenError::InsufficientBalance);
         }
 
-        self.staked = self.staked
+        self.staked = self
+            .staked
             .checked_add(amount)
             .ok_or(TokenError::Overflow)?;
         self.last_activity = timestamp;
@@ -657,7 +667,8 @@ impl TokenAccount {
             return Err(TokenError::InsufficientStake);
         }
 
-        self.staked = self.staked
+        self.staked = self
+            .staked
             .checked_sub(amount)
             .ok_or(TokenError::Underflow)?;
         self.last_activity = timestamp;
@@ -713,7 +724,8 @@ impl TokenTransfer {
         }
 
         // Check balance
-        let required = self.amount
+        let required = self
+            .amount
             .checked_add(self.fee)
             .ok_or(TokenError::Overflow)?;
         if required > account.available_seed(timestamp) {
@@ -1016,7 +1028,10 @@ mod tests {
             memo: None,
         };
 
-        assert_eq!(transfer.validate(&account, 0), Err(TokenError::SoulboundToken));
+        assert_eq!(
+            transfer.validate(&account, 0),
+            Err(TokenError::SoulboundToken)
+        );
     }
 
     #[test]

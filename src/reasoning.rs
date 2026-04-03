@@ -15,12 +15,12 @@ pub struct MultiMethodReasoning {
 
 impl MultiMethodReasoning {
     pub fn new(methods: Vec<ReasoningMethod>) -> Self {
-        Self { 
+        Self {
             methods,
             ollama: None,
         }
     }
-    
+
     /// Create with Ollama client for real LLM reasoning
     pub fn with_ollama(methods: Vec<ReasoningMethod>, ollama: OllamaClient) -> Self {
         Self {
@@ -28,7 +28,7 @@ impl MultiMethodReasoning {
             ollama: Some(ollama),
         }
     }
-    
+
     /// Create from environment (auto-detect Ollama)
     pub async fn from_env(methods: Vec<ReasoningMethod>) -> Self {
         let ollama = OllamaClient::from_env().await;
@@ -96,9 +96,9 @@ impl MultiMethodReasoning {
 Break down the problem step by step, showing your thinking clearly.
 Format: Step 1: ... Step 2: ... etc.
 Be thorough but concise."#;
-            
+
             let full_prompt = format!("{}\n\nProblem: {}", system_prompt, prompt);
-            
+
             match ollama.generate(&full_prompt, None, None).await {
                 Ok(response) => {
                     let steps = self.parse_steps(&response.response);
@@ -114,7 +114,7 @@ Be thorough but concise."#;
                 }
             }
         }
-        
+
         // Fallback: structured template
         let steps = vec![
             format!("Step 1: Analyze '{}'", prompt),
@@ -147,9 +147,9 @@ Format:
 - Branch 2: [second approach] - Evaluation: [pros/cons]
 - Branch 3: [third approach] - Evaluation: [pros/cons]
 - Selected: [best branch with justification]"#;
-            
+
             let full_prompt = format!("{}\n\nProblem: {}", system_prompt, prompt);
-            
+
             match ollama.generate(&full_prompt, None, None).await {
                 Ok(response) => {
                     let steps = self.parse_steps(&response.response);
@@ -165,7 +165,7 @@ Format:
                 }
             }
         }
-        
+
         // Fallback: structured template
         let steps = vec![
             format!("Root: Analyzing '{}'", prompt),
@@ -201,9 +201,9 @@ Format:
 - Node 2: [concept] → connects to Node Y
 - Cross-domain insight: [synthesis]
 - Integrated solution: [final synthesis]"#;
-            
+
             let full_prompt = format!("{}\n\nProblem: {}", system_prompt, prompt);
-            
+
             match ollama.generate(&full_prompt, None, None).await {
                 Ok(response) => {
                     let steps = self.parse_steps(&response.response);
@@ -219,7 +219,7 @@ Format:
                 }
             }
         }
-        
+
         // Fallback: structured template
         let steps = vec![
             format!("Initialize concept graph for '{}'", prompt),
@@ -256,9 +256,9 @@ Format:
 - Action: [tool or action to take]
 - Observation: [what you learned]
 Repeat until you reach a final answer."#;
-            
+
             let full_prompt = format!("{}\n\nProblem: {}", system_prompt, prompt);
-            
+
             match ollama.generate(&full_prompt, None, None).await {
                 Ok(response) => {
                     let steps = self.parse_steps(&response.response);
@@ -274,7 +274,7 @@ Repeat until you reach a final answer."#;
                 }
             }
         }
-        
+
         // Fallback: structured template
         let steps = vec![
             format!("Thought: I need to gather information about '{}'", prompt),
@@ -313,9 +313,9 @@ Format:
 - Iteration 2: [improved solution]
 - Self-Critique: [evaluation]
 Continue until the solution meets quality standards."#;
-            
+
             let full_prompt = format!("{}\n\nProblem: {}", system_prompt, prompt);
-            
+
             match ollama.generate(&full_prompt, None, None).await {
                 Ok(response) => {
                     let steps = self.parse_steps(&response.response);
@@ -331,7 +331,7 @@ Continue until the solution meets quality standards."#;
                 }
             }
         }
-        
+
         // Fallback: structured template
         let steps = vec![
             format!("Iteration 1: Initial solution for '{}'", prompt),
@@ -356,7 +356,7 @@ Continue until the solution meets quality standards."#;
             confidence: 0.93,
         })
     }
-    
+
     /// Parse LLM output into steps
     fn parse_steps(&self, response: &str) -> Vec<String> {
         response

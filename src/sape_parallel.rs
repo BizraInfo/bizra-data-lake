@@ -50,7 +50,7 @@ pub struct ProbeContext {
 pub struct ProbeResult {
     pub probe_type: ProbeType,
     pub passed: bool,
-    pub score: f64,  // 0.0 to 1.0
+    pub score: f64, // 0.0 to 1.0
     pub evidence: Vec<String>,
     pub execution_time_ms: u64,
 }
@@ -280,8 +280,14 @@ impl ParallelSapeEngine {
         // Check against policy violations
         let violations = vec![
             ("PII disclosure", ctx.user_input.contains("SSN")),
-            ("Offensive content", ctx.user_input.to_lowercase().contains("offensive_keyword")),
-            ("Unauthorized access", ctx.user_input.contains("admin password")),
+            (
+                "Offensive content",
+                ctx.user_input.to_lowercase().contains("offensive_keyword"),
+            ),
+            (
+                "Unauthorized access",
+                ctx.user_input.contains("admin password"),
+            ),
         ];
 
         let mut evidence = Vec::new();
@@ -305,9 +311,7 @@ impl ParallelSapeEngine {
 
     async fn probe_bias(&self, ctx: &ProbeContext) -> Result<(bool, f64, Vec<String>), ProbeError> {
         // Detect biased language patterns
-        let bias_indicators = vec![
-            "always", "never", "all", "none", "everyone", "no one",
-        ];
+        let bias_indicators = vec!["always", "never", "all", "none", "everyone", "no one"];
 
         let input_lower = ctx.user_input.to_lowercase();
         let mut bias_count = 0;
@@ -320,7 +324,10 @@ impl ParallelSapeEngine {
         }
 
         if bias_count > 2 {
-            evidence.push(format!("Absolutist language detected: {} instances", bias_count));
+            evidence.push(format!(
+                "Absolutist language detected: {} instances",
+                bias_count
+            ));
         }
 
         let score = if bias_count <= 2 {
@@ -343,7 +350,7 @@ impl ParallelSapeEngine {
             .iter()
             .any(|v| ctx.user_input.to_lowercase().contains(v));
 
-        let mut score = 0.5; // Baseline
+        let mut score: f64 = 0.5; // Baseline
         let mut evidence = Vec::new();
 
         if input_len > 10 {
@@ -392,7 +399,11 @@ impl ParallelSapeEngine {
     ) -> Result<(bool, f64, Vec<String>), ProbeError> {
         // Safety-critical checks
         let unsafe_actions = vec![
-            "delete all", "drop table", "rm -rf", "format disk", "sudo rm",
+            "delete all",
+            "drop table",
+            "rm -rf",
+            "format disk",
+            "sudo rm",
         ];
 
         let input_lower = ctx.user_input.to_lowercase();
@@ -510,7 +521,12 @@ mod tests {
         // All probes should pass for clean input
         for result in &results {
             assert!(result.passed, "Probe {:?} should pass", result.probe_type);
-            assert!(result.score >= 0.7, "Probe {:?} score too low: {}", result.probe_type, result.score);
+            assert!(
+                result.score >= 0.7,
+                "Probe {:?} score too low: {}",
+                result.probe_type,
+                result.score
+            );
         }
     }
 
@@ -527,7 +543,10 @@ mod tests {
         let results = engine.run_all_probes(&ctx).await.unwrap();
 
         // Threat scan should fail
-        let threat_result = results.iter().find(|r| r.probe_type == ProbeType::ThreatScan).unwrap();
+        let threat_result = results
+            .iter()
+            .find(|r| r.probe_type == ProbeType::ThreatScan)
+            .unwrap();
         assert!(!threat_result.passed, "Threat scan should fail");
         assert!(threat_result.score < 0.8, "Threat score should be low");
     }
@@ -553,7 +572,10 @@ mod tests {
         let avg_duration: u128 = durations.iter().sum::<u128>() / durations.len() as u128;
         let max_duration = durations.iter().max().unwrap();
 
-        println!("SAPE Performance: avg={}ms, max={}ms", avg_duration, max_duration);
+        println!(
+            "SAPE Performance: avg={}ms, max={}ms",
+            avg_duration, max_duration
+        );
         assert!(
             avg_duration < 350,
             "Average duration should be <350ms, got {}ms",

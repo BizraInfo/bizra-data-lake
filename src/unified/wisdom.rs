@@ -10,7 +10,7 @@
 // - NIST SP 800-207: Zero Trust attestation model
 
 use serde::{Deserialize, Serialize};
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -75,12 +75,12 @@ pub struct ActionPrimitive {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ActionType {
-    Execute,    // Run code/command
-    Delegate,   // Pass to another agent
-    Emit,       // Produce output
-    Store,      // Persist data
-    Query,      // Retrieve information
-    Transform,  // Modify data
+    Execute,   // Run code/command
+    Delegate,  // Pass to another agent
+    Emit,      // Produce output
+    Store,     // Persist data
+    Query,     // Retrieve information
+    Transform, // Modify data
 }
 
 impl ActionPrimitive {
@@ -195,11 +195,13 @@ impl WisdomAtom {
 
     /// Convert to Horn clause representation
     pub fn to_horn_clause(&self) -> String {
-        let precond_str: Vec<String> = self.preconditions
+        let precond_str: Vec<String> = self
+            .preconditions
             .iter()
             .map(|s| s.to_horn_clause())
             .collect();
-        let postcond_str: Vec<String> = self.postconditions
+        let postcond_str: Vec<String> = self
+            .postconditions
             .iter()
             .map(|s| s.to_horn_clause())
             .collect();
@@ -216,7 +218,11 @@ impl WisdomAtom {
     pub fn preconditions_satisfied(&self, state: &HashMap<String, bool>) -> bool {
         self.preconditions.iter().all(|symbol| {
             let present = state.get(&symbol.name).copied().unwrap_or(false);
-            if symbol.negated { !present } else { present }
+            if symbol.negated {
+                !present
+            } else {
+                present
+            }
         })
     }
 
@@ -292,10 +298,7 @@ pub struct FailureSignature {
 
 impl WisdomStore {
     pub fn new(max_capacity: usize) -> Self {
-        info!(
-            max_capacity = max_capacity,
-            "📚 WisdomStore initialized"
-        );
+        info!(max_capacity = max_capacity, "📚 WisdomStore initialized");
         Self {
             atoms: Arc::new(RwLock::new(HashMap::new())),
             failure_signatures: Arc::new(RwLock::new(Vec::new())),
@@ -311,10 +314,11 @@ impl WisdomStore {
         // Check capacity
         if atoms.len() >= self.max_capacity {
             // Evict lowest fitness atom
-            if let Some((lowest_id, _)) = atoms
-                .iter()
-                .min_by(|a, b| a.1.fitness_score().partial_cmp(&b.1.fitness_score()).unwrap())
-            {
+            if let Some((lowest_id, _)) = atoms.iter().min_by(|a, b| {
+                a.1.fitness_score()
+                    .partial_cmp(&b.1.fitness_score())
+                    .unwrap()
+            }) {
                 let id = lowest_id.clone();
                 atoms.remove(&id);
                 debug!(evicted_id = %id, "Evicted low-fitness wisdom atom");
@@ -368,7 +372,10 @@ impl WisdomStore {
     /// Record a failure pattern (T-Cell Memory)
     pub async fn record_failure(&self, pattern_hash: [u8; 32], description: &str, severity: f64) {
         let mut failures = self.failure_signatures.write().await;
-        let pattern_hex: String = pattern_hash[..8].iter().map(|b| format!("{:02x}", b)).collect();
+        let pattern_hex: String = pattern_hash[..8]
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect();
 
         // Check if pattern already exists
         if let Some(existing) = failures.iter_mut().find(|f| f.pattern_hash == pattern_hash) {
@@ -401,7 +408,10 @@ impl WisdomStore {
     }
 
     /// Check if a pattern matches known failures
-    pub async fn matches_failure_pattern(&self, pattern_hash: &[u8; 32]) -> Option<FailureSignature> {
+    pub async fn matches_failure_pattern(
+        &self,
+        pattern_hash: &[u8; 32],
+    ) -> Option<FailureSignature> {
         self.failure_signatures
             .read()
             .await
@@ -472,19 +482,11 @@ mod tests {
 
     #[test]
     fn test_wisdom_atom_creation() {
-        let preconditions = vec![
-            Symbol::new("HighLoad"),
-            Symbol::new("LowMemory"),
-        ];
+        let preconditions = vec![Symbol::new("HighLoad"), Symbol::new("LowMemory")];
         let action = ActionPrimitive::emit("Throttle resources");
         let postconditions = vec![Symbol::new("NormalLoad")];
 
-        let atom = WisdomAtom::new(
-            preconditions,
-            action,
-            postconditions,
-            "TestAgent",
-        );
+        let atom = WisdomAtom::new(preconditions, action, postconditions, "TestAgent");
 
         assert!(atom.id.starts_with("WA-"));
         assert_eq!(atom.source_agent, "TestAgent");
@@ -493,10 +495,7 @@ mod tests {
 
     #[test]
     fn test_precondition_satisfaction() {
-        let preconditions = vec![
-            Symbol::new("HighLoad"),
-            Symbol::new("Available").negated(),
-        ];
+        let preconditions = vec![Symbol::new("HighLoad"), Symbol::new("Available").negated()];
         let action = ActionPrimitive::emit("Scale up");
         let postconditions = vec![];
 

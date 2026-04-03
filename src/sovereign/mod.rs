@@ -158,15 +158,9 @@ pub enum SovereignTransaction {
         amount: u128,
     },
     /// Stake SEED for validation
-    Stake {
-        staker: [u8; 32],
-        amount: u128,
-    },
+    Stake { staker: [u8; 32], amount: u128 },
     /// Unstake SEED
-    Unstake {
-        staker: [u8; 32],
-        amount: u128,
-    },
+    Unstake { staker: [u8; 32], amount: u128 },
     /// Submit impact attestation
     ImpactAttest {
         attester: [u8; 32],
@@ -190,9 +184,7 @@ pub enum SovereignTransaction {
         bandwidth: u64,
     },
     /// Claim staking rewards
-    ClaimRewards {
-        staker: [u8; 32],
-    },
+    ClaimRewards { staker: [u8; 32] },
     /// Claim BLOOM from impact
     ClaimBloom {
         beneficiary: [u8; 32],
@@ -311,10 +303,7 @@ pub enum StateChange {
         delta: i128,
     },
     /// Stake change
-    StakeChange {
-        account: [u8; 32],
-        delta: i128,
-    },
+    StakeChange { account: [u8; 32], delta: i128 },
     /// Impact recorded
     ImpactRecorded {
         account: [u8; 32],
@@ -322,10 +311,7 @@ pub enum StateChange {
         category: u8,
     },
     /// BLOOM minted
-    BloomMinted {
-        account: [u8; 32],
-        amount: u128,
-    },
+    BloomMinted { account: [u8; 32], amount: u128 },
 }
 
 /// Sovereign events
@@ -339,15 +325,9 @@ pub enum SovereignEvent {
         token: String,
     },
     /// Stake event
-    Staked {
-        staker: [u8; 32],
-        amount: u128,
-    },
+    Staked { staker: [u8; 32], amount: u128 },
     /// Unstake event
-    Unstaked {
-        staker: [u8; 32],
-        amount: u128,
-    },
+    Unstaked { staker: [u8; 32], amount: u128 },
     /// Impact attested
     ImpactAttested {
         attester: [u8; 32],

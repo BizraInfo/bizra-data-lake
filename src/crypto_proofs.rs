@@ -5,15 +5,20 @@
 //
 // Ihsān Requirement: Correctness >= 0.99 for L3 logic.
 
-
 /// Verify primality deterministically for u64 inputs.
 /// Uses deterministic Miller-Rabin with specific bases.
 /// Proven correct for n < 2^64.
 /// Bases: 2, 325, 9375, 28178, 450775, 9780504, 1795265022
 pub fn verify_prime_deterministic(n: u64) -> bool {
-    if n < 2 { return false; }
-    if n == 2 || n == 3 { return true; }
-    if n.is_multiple_of(2) { return false; }
+    if n < 2 {
+        return false;
+    }
+    if n == 2 || n == 3 {
+        return true;
+    }
+    if n.is_multiple_of(2) {
+        return false;
+    }
 
     let d = n - 1;
     let s = d.trailing_zeros();
@@ -22,7 +27,9 @@ pub fn verify_prime_deterministic(n: u64) -> bool {
     let bases = [2, 325, 9375, 28178, 450775, 9780504, 1795265022];
 
     for &a in &bases {
-        if a % n == 0 { continue; }
+        if a % n == 0 {
+            continue;
+        }
         if witness(a, d, s, n) {
             return false;
         }
@@ -49,7 +56,9 @@ fn mul_mod(a: u64, b: u64, m: u64) -> u64 {
 }
 
 fn mod_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
-    if modulus == 1 { return 0; }
+    if modulus == 1 {
+        return 0;
+    }
     let mut result = 1;
     base %= modulus;
     while exp > 0 {
@@ -67,8 +76,8 @@ fn mod_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
 /// For Phase 2 Activation, we check for the specific artifact format.
 pub fn verify_lean4_cert(content: &str) -> bool {
     // Check for "LEAN4_CERT:" token or "proof_verified: true" structure with hash
-    content.contains("LEAN4_CERT:") || 
-    (content.contains("proof_verified: true") && content.contains("lean4_hash:"))
+    content.contains("LEAN4_CERT:")
+        || (content.contains("proof_verified: true") && content.contains("lean4_hash:"))
 }
 
 /// Check if the content contains a reference to a Fermat prime check that requires high assurance

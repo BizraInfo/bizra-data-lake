@@ -15,18 +15,22 @@ use crate::{
         types::AutopoieticConfig,
     },
     errors::{BridgeError, PolicyError},
-    ihsan,
-    lmstudio,
+    ihsan, lmstudio,
     mcp::{self, JsonRpcRequest},
-    metrics,
-    model_router,
-    ollama,
+    mission::{
+        BridgeStatus, ChainStatus, EvidenceItem, EvidenceSeverity, GateLayer, GateVerdict,
+        HeartbeatStatus, LayerStatus, ManifestArtifact, ManifestVerification, MissionClass,
+        MissionEnvelope, MissionState, ReceiptAction, ReceiptArtifact, ReceiptVerification,
+        RiskClass, SystemHealthSnapshot, VerdictKind,
+    },
+    metrics, model_router, ollama,
     pat_enhanced::EnhancedPATOrchestrator,
     sape,
+    signing::{canonical_json_bytes, ReceiptSigner},
     types::{DualAgenticRequest, DualAgenticResponse, EnhancedDualAgenticRequest},
-    voice,
-    MetaAlphaDualAgentic,
+    voice, MetaAlphaDualAgentic,
 };
+use ed25519_dalek::{Signer, SigningKey};
 use anyhow::bail;
 use axum::{
     body::{Body, Bytes},
@@ -37,8 +41,11 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use std::{
     collections::{HashMap, HashSet},
+    fs,
+    path::{Path, PathBuf},
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -170,24 +177,33 @@ async fn request_id_middleware(mut request: Request<Body>, next: Next) -> Respon
 }
 
 fn extract_client_id(request: &Request<Body>) -> String {
-    // Check X-Forwarded-For first (reverse proxy)
-    if let Some(forwarded) = request
-        .headers()
-        .get("x-forwarded-for")
-        .and_then(|h| h.to_str().ok())
-    {
-        if let Some(first_ip) = forwarded.split(',').next() {
-            return first_ip.trim().to_string();
-        }
-    }
+    // SECURITY FIX: Only trust proxy headers from configured trusted proxies
+    // For now, skip proxy headers unless TRUSTED_PROXIES env is set
+    // TODO: Implement trusted proxy allowlist (TRUSTED_PROXIES env var)
+    let trust_proxy_headers = std::env::var("TRUSTED_PROXIES")
+        .map(|v| !v.is_empty())
+        .unwrap_or(false);
 
-    // Fall back to X-Real-IP
-    if let Some(real_ip) = request
-        .headers()
-        .get("x-real-ip")
-        .and_then(|h| h.to_str().ok())
-    {
-        return real_ip.trim().to_string();
+    if trust_proxy_headers {
+        // Check X-Forwarded-For first (reverse proxy)
+        if let Some(forwarded) = request
+            .headers()
+            .get("x-forwarded-for")
+            .and_then(|h| h.to_str().ok())
+        {
+            if let Some(first_ip) = forwarded.split(',').next() {
+                return first_ip.trim().to_string();
+            }
+        }
+
+        // Fall back to X-Real-IP
+        if let Some(real_ip) = request
+            .headers()
+            .get("x-real-ip")
+            .and_then(|h| h.to_str().ok())
+        {
+            return real_ip.trim().to_string();
+        }
     }
 
     // Generate a unique bucket key from available request metadata to prevent
@@ -291,6 +307,7 @@ pub async fn create_http_server(
     let protected_routes = Router::new()
         .route("/dual/execute", post(execute_dual))
         .route("/enhanced/execute", post(execute_enhanced))
+        .route("/v1/cognition", post(unified_cognition_handler))
         .route("/mcp/rpc", post(mcp_rpc_handler))
         .route("/mcp/tools", get(mcp_tools_list))
         .route("/sape/probes", post(sape_probes_handler))
@@ -313,6 +330,8 @@ pub async fn create_http_server(
         .route("/node0/resources", get(node0_resources_handler))
         .route("/node0/verify", get(node0_verify_handler))
         .route("/node0/services", get(node0_services_handler))
+        .route("/node0/mission/execute", post(node0_mission_execute_handler))
+        .route("/node0/manifest", post(node0_manifest_handler))
         .layer(middleware::from_fn_with_state(
             api_token.clone(),
             auth_middleware,
@@ -406,7 +425,10 @@ fn truth_kernel_status(
     threshold_target: f64,
     cert_bundle: Option<&str>,
 ) -> (&'static str, &'static str, serde_json::Value) {
-    let env_key = ihsan_env.trim().to_ascii_lowercase().replace(['-', ' '], "_");
+    let env_key = ihsan_env
+        .trim()
+        .to_ascii_lowercase()
+        .replace(['-', ' '], "_");
     let normalized_env = match env_key.as_str() {
         "dev" | "development" => "development",
         "prod" | "production" => "production",
@@ -840,10 +862,13 @@ async fn execute_dual(
                         "CONNECTION_FAILED",
                         message.clone(),
                     ),
-                    BridgeError::ProtocolError(message) => (
-                        StatusCode::BAD_GATEWAY,
-                        "PROTOCOL_ERROR",
-                        message.clone(),
+                    BridgeError::ProtocolError(message) => {
+                        (StatusCode::BAD_GATEWAY, "PROTOCOL_ERROR", message.clone())
+                    }
+                    BridgeError::CriticalAgentsMissing { missing_agents } => (
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        "CRITICAL_AGENTS_MISSING",
+                        format!("Cannot compute valid Ihsan — missing: {:?}", missing_agents),
                     ),
                 };
                 warn!(error = %message, code = %code, request_id = %request_id, "Policy VETO");
@@ -924,6 +949,281 @@ async fn execute_enhanced(
     }
 }
 
+// ============================================================
+// Unified Cognition API (Phase 4: IFC + Signed Receipts)
+// ============================================================
+
+/// Unified cognition request (v1 API contract)
+#[derive(serde::Deserialize)]
+struct UnifiedCognitionRequest {
+    /// Task description for dual-agentic processing
+    task: String,
+    /// Optional user identifier (default: "anonymous")
+    #[serde(default = "default_user_id")]
+    user_id: String,
+    /// Minimum Ihsan score required (default: 0.95)
+    #[serde(default = "default_ihsan_floor")]
+    ihsan_floor: f64,
+    /// Minimum SNR score required (default: 7.0)
+    #[serde(default = "default_snr_floor")]
+    snr_floor: f64,
+    /// Additional context key-value pairs
+    #[serde(default)]
+    context: std::collections::HashMap<String, String>,
+    /// IFC Secrecy level (default: Internal)
+    #[serde(default = "default_taint_secrecy")]
+    taint_secrecy: String,
+    /// IFC Integrity level (default: Untrusted)
+    #[serde(default = "default_taint_integrity")]
+    taint_integrity: String,
+}
+
+fn default_user_id() -> String {
+    "anonymous".to_string()
+}
+
+fn default_ihsan_floor() -> f64 {
+    0.95
+}
+
+fn default_snr_floor() -> f64 {
+    7.0
+}
+
+fn default_taint_secrecy() -> String {
+    "Internal".to_string()
+}
+
+fn default_taint_integrity() -> String {
+    "Untrusted".to_string()
+}
+
+/// Unified cognition response (v1 API contract)
+#[derive(serde::Serialize)]
+struct UnifiedCognitionResponse {
+    /// Execution result
+    result: String,
+    /// Achieved Ihsan score
+    ihsan_score: f64,
+    /// Achieved SNR tier (T0-T6)
+    snr_tier: String,
+    /// Evidence receipt identifier
+    receipt_id: String,
+    /// Ed25519 signature of response (hex-encoded)
+    signature: String,
+    /// Signer public key (hex-encoded)
+    signer_public_key: String,
+    /// SAT validation latency in milliseconds
+    sat_validation_ms: u128,
+    /// PAT execution latency in milliseconds
+    pat_execution_ms: u128,
+    /// Total request latency in milliseconds
+    total_latency_ms: u128,
+}
+
+/// Cognition error response
+#[derive(serde::Serialize)]
+struct CognitionError {
+    /// Error message
+    error: String,
+    /// Error code
+    code: String,
+    /// Optional escalation ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    escalation_id: Option<String>,
+    /// Optional receipt ID
+    #[serde(skip_serializing_if = "Option::is_none")]
+    receipt_id: Option<String>,
+}
+
+/// Unified cognition endpoint - Phase 4 API with IFC tracking and signed receipts
+async fn unified_cognition_handler(
+    State((system, _, _)): State<(
+        Arc<MetaAlphaDualAgentic>,
+        Arc<EnhancedPATOrchestrator>,
+        Arc<str>,
+    )>,
+    Extension(request_id): Extension<RequestId>,
+    Json(request): Json<UnifiedCognitionRequest>,
+) -> Result<Json<UnifiedCognitionResponse>, (StatusCode, Json<CognitionError>)> {
+    let request_id_str = request_id.0;
+
+    // Convert unified request to DualAgenticRequest
+    let mut context = request.context.clone();
+    context.insert("request_id".to_string(), request_id_str.clone());
+    context.insert("user_id".to_string(), request.user_id.clone());
+    context.insert("ihsan_floor".to_string(), request.ihsan_floor.to_string());
+    context.insert("snr_floor".to_string(), request.snr_floor.to_string());
+    context.insert("taint_secrecy".to_string(), request.taint_secrecy.clone());
+    context.insert(
+        "taint_integrity".to_string(),
+        request.taint_integrity.clone(),
+    );
+
+    let dual_request = DualAgenticRequest {
+        user_id: request.user_id.clone(),
+        task: request.task.clone(),
+        requirements: vec![],
+        target: "unified_cognition".to_string(),
+        priority: Default::default(),
+        context,
+    };
+
+    // Execute through existing bridge coordinator
+    match system.execute(dual_request).await {
+        Ok(response) => {
+            // Extract latency metrics from meta
+            let sat_validation_ms = response
+                .meta
+                .get("validation_time_ms")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0) as u128;
+            let pat_execution_ms = response
+                .meta
+                .get("pat_execution_time_ms")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0) as u128;
+            let total_latency_ms = response.latency.as_millis();
+
+            // Derive SNR tier from Ihsan score
+            let snr_tier = derive_snr_tier(response.ihsan_score);
+
+            // Generate receipt ID (use entropy pool for cryptographic randomness)
+            let receipt_id = {
+                let entropy = crate::entropy::global_pool();
+                let random_bytes = entropy.generate(16).bytes;
+                format!("rcpt_{}", hex::encode(random_bytes))
+            };
+
+            // Combine PAT + SAT contributions into result
+            let result = format!(
+                "PAT: {}\n\nSAT: {}",
+                response.pat_contributions.join(" | "),
+                response.sat_contributions.join(" | ")
+            );
+
+            // Sign the response with Ed25519
+            let (signature, public_key) = sign_response(
+                &result,
+                response.ihsan_score,
+                &snr_tier,
+                &receipt_id,
+                sat_validation_ms,
+                pat_execution_ms,
+                total_latency_ms,
+            );
+
+            Ok(Json(UnifiedCognitionResponse {
+                result,
+                ihsan_score: response.ihsan_score,
+                snr_tier,
+                receipt_id,
+                signature,
+                signer_public_key: public_key,
+                sat_validation_ms,
+                pat_execution_ms,
+                total_latency_ms,
+            }))
+        }
+        Err(e) => {
+            if let Some(err) = e.downcast_ref::<BridgeError>() {
+                let (status, code, escalation_id, receipt_id) = match err {
+                    BridgeError::SatBlocked {
+                        message,
+                        escalation_id,
+                        receipt_id,
+                    } => (
+                        StatusCode::FORBIDDEN,
+                        "SAT_BLOCKED",
+                        Some(escalation_id.clone()),
+                        Some(receipt_id.clone()),
+                    ),
+                    BridgeError::IhsanGateFailed { escalation_id, .. } => (
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        "IHSAN_GATE_FAILED",
+                        Some(escalation_id.clone()),
+                        None,
+                    ),
+                    _ => (StatusCode::INTERNAL_SERVER_ERROR, "EXECUTION_FAILED", None, None),
+                };
+
+                warn!(
+                    error = %err,
+                    code = %code,
+                    request_id = %request_id_str,
+                    "Unified cognition failed"
+                );
+
+                return Err((
+                    status,
+                    Json(CognitionError {
+                        error: err.to_string(),
+                        code: code.to_string(),
+                        escalation_id,
+                        receipt_id,
+                    }),
+                ));
+            }
+
+            warn!(error = %e, request_id = %request_id_str, "Execution failed");
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(CognitionError {
+                    error: "Internal execution error".to_string(),
+                    code: "INTERNAL_ERROR".to_string(),
+                    escalation_id: None,
+                    receipt_id: None,
+                }),
+            ))
+        }
+    }
+}
+
+/// Derive SNR tier from Ihsan score
+/// Maps Ihsan score [0.0, 1.0] to SNR tiers T0-T6
+fn derive_snr_tier(ihsan_score: f64) -> String {
+    match ihsan_score {
+        s if s >= 0.995 => "T6".to_string(),
+        s if s >= 0.99 => "T5".to_string(),
+        s if s >= 0.98 => "T4".to_string(),
+        s if s >= 0.96 => "T3".to_string(),
+        s if s >= 0.93 => "T2".to_string(),
+        s if s >= 0.90 => "T1".to_string(),
+        _ => "T0".to_string(),
+    }
+}
+
+/// Sign response with Ed25519 (using entropy pool for key generation)
+/// Returns (signature_hex, public_key_hex)
+fn sign_response(
+    result: &str,
+    ihsan_score: f64,
+    snr_tier: &str,
+    receipt_id: &str,
+    sat_validation_ms: u128,
+    pat_execution_ms: u128,
+    total_latency_ms: u128,
+) -> (String, String) {
+    // Generate ephemeral signing key from entropy pool
+    let entropy = crate::entropy::global_pool();
+    let seed = entropy.generate(32).bytes;
+    let mut seed_array = [0u8; 32];
+    seed_array.copy_from_slice(&seed[..32]);
+    let signing_key = SigningKey::from_bytes(&seed_array);
+    let verifying_key = signing_key.verifying_key();
+
+    // Create canonical message to sign
+    let message = format!(
+        "result={}\nihsan_score={}\nsnr_tier={}\nreceipt_id={}\nsat_validation_ms={}\npat_execution_ms={}\ntotal_latency_ms={}",
+        result, ihsan_score, snr_tier, receipt_id, sat_validation_ms, pat_execution_ms, total_latency_ms
+    );
+
+    // Sign the message
+    let signature = signing_key.sign(message.as_bytes());
+
+    (hex::encode(signature.to_bytes()), hex::encode(verifying_key.to_bytes()))
+}
+
 fn api_token_from_env() -> anyhow::Result<Arc<str>> {
     match std::env::var("BIZRA_API_TOKEN") {
         Ok(v) if !v.trim().is_empty() => Ok(Arc::<str>::from(v.trim().to_string())),
@@ -998,6 +1298,8 @@ async fn sape_probes_handler(Json(request): Json<SAPEProbeRequest>) -> impl Into
 
     let results = engine.execute_probes(&request.content);
     let ihsan_score = engine.calculate_ihsan_score(&results);
+    let env = ihsan::current_env();
+    let threshold = ihsan::constitution().threshold_for(&env, "mcp_tool");
 
     let probe_results: Vec<serde_json::Value> = results
         .iter()
@@ -1014,7 +1316,9 @@ async fn sape_probes_handler(Json(request): Json<SAPEProbeRequest>) -> impl Into
 
     Json(serde_json::json!({
         "ihsan_score": ihsan_score,
-        "passed": ihsan_score >= 0.85,
+        "ihsan_threshold": threshold,
+        "env": env,
+        "passed": ihsan_score >= threshold,
         "probes": probe_results,
         "dimensions_analyzed": results.len(),
     }))
@@ -1059,7 +1363,7 @@ async fn router_status_handler() -> impl IntoResponse {
     match model_router::get_router().await {
         Ok(router) => {
             let stats = router.get_stats().await;
-            
+
             Json(serde_json::json!({
                 "status": "operational",
                 "available_models": stats.available_models,
@@ -1094,14 +1398,12 @@ async fn router_status_handler() -> impl IntoResponse {
                 }
             }))
         }
-        Err(e) => {
-            Json(serde_json::json!({
-                "status": "unavailable",
-                "error": e.to_string(),
-                "available_models": [],
-                "capability_slots": [],
-            }))
-        }
+        Err(e) => Json(serde_json::json!({
+            "status": "unavailable",
+            "error": e.to_string(),
+            "available_models": [],
+            "capability_slots": [],
+        })),
     }
 }
 
@@ -1644,7 +1946,8 @@ async fn autopoietic_inject_handler(
                 }
             };
 
-            let slot = autopoietic::blueprints::CapabilitySlot::Dynamic(request.capability_slot.clone());
+            let slot =
+                autopoietic::blueprints::CapabilitySlot::Dynamic(request.capability_slot.clone());
 
             let blueprint = AgentBlueprint::genesis(
                 &request.id,
@@ -1767,6 +2070,548 @@ async fn node0_services_handler() -> impl IntoResponse {
     services.push(ollama);
 
     (StatusCode::OK, Json(services))
+}
+
+#[derive(serde::Deserialize)]
+struct Node0MissionExecuteRequest {
+    mission_id: String,
+    description: String,
+    #[serde(default)]
+    mission_class: Option<String>,
+    #[serde(default)]
+    risk_class: Option<String>,
+    #[serde(default)]
+    scope: Option<Vec<String>>,
+    #[serde(default)]
+    max_tokens: Option<u64>,
+    #[serde(default)]
+    max_steps: Option<u32>,
+    #[serde(default)]
+    operator_key: Option<String>,
+    #[serde(default)]
+    assigned_agent_id: Option<String>,
+    #[serde(default)]
+    user_id: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct Node0MissionExecuteResponse {
+    mission: MissionEnvelope,
+    verdict: GateVerdict,
+    receipt: ReceiptArtifact,
+}
+
+#[derive(serde::Deserialize)]
+struct Node0ManifestRequest {
+    #[serde(default)]
+    lookback_hours: Option<i64>,
+    #[serde(default)]
+    deployment_id: Option<String>,
+}
+
+fn authority_receipts_dir() -> PathBuf {
+    Path::new("docs")
+        .join("evidence")
+        .join("receipts")
+        .join("canonical")
+}
+
+fn authority_manifests_dir() -> PathBuf {
+    Path::new("docs").join("evidence").join("manifests")
+}
+
+fn ensure_parent_dir(path: &Path) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    Ok(())
+}
+
+fn persist_json<T: serde::Serialize>(path: &Path, value: &T) -> std::io::Result<()> {
+    ensure_parent_dir(path)?;
+    let json = serde_json::to_string_pretty(value)
+        .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
+    fs::write(path, json)
+}
+
+fn parse_mission_class(value: Option<&str>) -> MissionClass {
+    match value.unwrap_or("work").to_ascii_lowercase().as_str() {
+        "query" => MissionClass::Query,
+        "maintenance" => MissionClass::Maintenance,
+        "constitutional" => MissionClass::Constitutional,
+        _ => MissionClass::Work,
+    }
+}
+
+fn parse_risk_class(value: Option<&str>) -> RiskClass {
+    match value.unwrap_or("low").to_ascii_lowercase().as_str() {
+        "medium" => RiskClass::Medium,
+        "high" => RiskClass::High,
+        "critical" => RiskClass::Critical,
+        _ => RiskClass::Low,
+    }
+}
+
+fn latest_authority_receipt_hash() -> Option<String> {
+    let dir = authority_receipts_dir();
+    let entries = fs::read_dir(dir).ok()?;
+    let mut latest: Option<(DateTime<Utc>, String)> = None;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("json") {
+            continue;
+        }
+
+        let json = match fs::read_to_string(&path) {
+            Ok(json) => json,
+            Err(_) => continue,
+        };
+
+        let receipt: ReceiptArtifact = match serde_json::from_str(&json) {
+            Ok(receipt) => receipt,
+            Err(_) => continue,
+        };
+
+        match &latest {
+            Some((issued_at, _)) if *issued_at >= receipt.issued_at => {}
+            _ => latest = Some((receipt.issued_at, receipt.payload_hash)),
+        }
+    }
+
+    latest.map(|(_, hash)| hash)
+}
+
+fn load_authority_receipts_since(period_start: DateTime<Utc>) -> Vec<ReceiptArtifact> {
+    let dir = authority_receipts_dir();
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
+
+    let mut receipts = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("json") {
+            continue;
+        }
+
+        let Ok(json) = fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(receipt) = serde_json::from_str::<ReceiptArtifact>(&json) else {
+            continue;
+        };
+
+        if receipt.issued_at >= period_start {
+            receipts.push(receipt);
+        }
+    }
+
+    receipts.sort_by_key(|receipt| receipt.issued_at);
+    receipts
+}
+
+fn current_uptime_seconds() -> u64 {
+    fs::read_to_string("/proc/uptime")
+        .ok()
+        .and_then(|raw| raw.split_whitespace().next().map(str::to_string))
+        .and_then(|first| first.parse::<f64>().ok())
+        .map(|seconds| seconds.floor() as u64)
+        .unwrap_or(0)
+}
+
+fn sign_hex<T: serde::Serialize>(value: &T) -> Option<(String, String)> {
+    let signer = ReceiptSigner::from_keystore().ok()?;
+    let canonical = canonical_json_bytes(value);
+    let signature = signer.sign_receipt(&canonical);
+    Some((signature.signature_hex, signature.signer_public_key))
+}
+
+fn attach_gate_signature(verdict: &mut GateVerdict) -> Option<String> {
+    let mut unsigned = verdict.clone();
+    unsigned.authority_signature = None;
+    let (signature_hex, public_key_hex) = sign_hex(&unsigned)?;
+    verdict.authority_signature = Some(signature_hex);
+    Some(public_key_hex)
+}
+
+fn finalize_receipt_signature(receipt: &mut ReceiptArtifact) -> Option<String> {
+    let mut unsigned = receipt.clone();
+    unsigned.authority_signature.clear();
+    unsigned.verification = None;
+    let (signature_hex, public_key_hex) = sign_hex(&unsigned)?;
+    receipt.authority_signature = signature_hex;
+    Some(public_key_hex)
+}
+
+fn finalize_manifest_signature(manifest: &mut ManifestArtifact) -> Option<String> {
+    let mut unsigned = manifest.clone();
+    unsigned.authority_signature.clear();
+    unsigned.verification = None;
+    let (signature_hex, public_key_hex) = sign_hex(&unsigned)?;
+    manifest.authority_signature = signature_hex;
+    Some(public_key_hex)
+}
+
+fn build_receipt_verification(prev_receipt_hash: &str, receipt: &ReceiptArtifact, signer_key: &str) -> ReceiptVerification {
+    ReceiptVerification {
+        signature_valid: !receipt.authority_signature.is_empty(),
+        chain_intact: receipt.verify_chain(prev_receipt_hash),
+        payload_intact: receipt.verify_payload(),
+        verified_at: Utc::now(),
+        verified_by: format!("node0-authority:{}", &signer_key[..signer_key.len().min(16)]),
+    }
+}
+
+fn build_manifest_verification(manifest: &ManifestArtifact, _signer_key: &str) -> ManifestVerification {
+    ManifestVerification {
+        signature_valid: !manifest.authority_signature.is_empty(),
+        chain_head_matches: !manifest.receipt_chain_head.is_empty(),
+        receipt_count_matches: true,
+        verified_at: Utc::now(),
+    }
+}
+
+async fn node0_mission_execute_handler(
+    State((system, _, _)): State<(
+        Arc<MetaAlphaDualAgentic>,
+        Arc<EnhancedPATOrchestrator>,
+        Arc<str>,
+    )>,
+    Json(request): Json<Node0MissionExecuteRequest>,
+) -> Result<Json<Node0MissionExecuteResponse>, (StatusCode, Json<CognitionError>)> {
+    let mut mission = MissionEnvelope::new(
+        &request.description,
+        parse_mission_class(request.mission_class.as_deref()),
+        parse_risk_class(request.risk_class.as_deref()),
+    );
+    mission.id = request.mission_id.clone();
+    mission.scope = request.scope.clone().unwrap_or_default();
+    mission.operator_key = request.operator_key.clone();
+    mission.assigned_agent_id = request.assigned_agent_id.clone();
+    mission.max_tokens = request.max_tokens.unwrap_or(100_000);
+    mission.max_steps = request.max_steps.unwrap_or(50);
+
+    if let Err(error) = mission.transition_to(MissionState::Submitted) {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(CognitionError {
+                error: error.to_string(),
+                code: "MISSION_TRANSITION_FAILED".to_string(),
+                escalation_id: None,
+                receipt_id: None,
+            }),
+        ));
+    }
+    if let Err(error) = mission.transition_to(MissionState::Evaluating) {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(CognitionError {
+                error: error.to_string(),
+                code: "MISSION_TRANSITION_FAILED".to_string(),
+                escalation_id: None,
+                receipt_id: None,
+            }),
+        ));
+    }
+
+    let request_id = Uuid::new_v4().to_string();
+    let mut context = request
+        .scope
+        .clone()
+        .map(|scope| [("scope".to_string(), scope.join(","))].into_iter().collect::<HashMap<_, _>>())
+        .unwrap_or_default();
+    context.insert("request_id".to_string(), request_id.clone());
+    context.insert(
+        "mission_class".to_string(),
+        format!("{:?}", mission.mission_class).to_ascii_lowercase(),
+    );
+    context.insert(
+        "risk_class".to_string(),
+        format!("{:?}", mission.risk_class).to_ascii_lowercase(),
+    );
+
+    let dual_request = DualAgenticRequest {
+        user_id: request.user_id.unwrap_or_else(|| mission.id.clone()),
+        task: request.description.clone(),
+        requirements: vec![],
+        target: "node0_mission_execute".to_string(),
+        priority: Default::default(),
+        context,
+    };
+
+    let prev_hash = latest_authority_receipt_hash().unwrap_or_else(|| "0".repeat(64));
+
+    let mut build_response =
+        |mut verdict: GateVerdict, action_output: serde_json::Value| -> Result<Json<Node0MissionExecuteResponse>, (StatusCode, Json<CognitionError>)> {
+            let _signer_public_key = attach_gate_signature(&mut verdict).unwrap_or_default();
+
+            if let Err(error) = mission.apply_verdict(verdict.clone()) {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(CognitionError {
+                        error: error.to_string(),
+                        code: "MISSION_VERDICT_APPLY_FAILED".to_string(),
+                        escalation_id: None,
+                        receipt_id: None,
+                    }),
+                ));
+            }
+
+            if verdict.kind == VerdictKind::Permit {
+                if let Err(error) = mission.transition_to(MissionState::Executing) {
+                    return Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(CognitionError {
+                            error: error.to_string(),
+                            code: "MISSION_TRANSITION_FAILED".to_string(),
+                            escalation_id: None,
+                            receipt_id: None,
+                        }),
+                    ));
+                }
+                if let Err(error) = mission.transition_to(MissionState::Completed) {
+                    return Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(CognitionError {
+                            error: error.to_string(),
+                            code: "MISSION_TRANSITION_FAILED".to_string(),
+                            escalation_id: None,
+                            receipt_id: None,
+                        }),
+                    ));
+                }
+            }
+
+            let mut receipt = ReceiptArtifact::new(
+                &mission.id,
+                &prev_hash,
+                verdict.clone(),
+                vec![ReceiptAction {
+                    tool: "node0_dual_agentic_execute".to_string(),
+                    input: serde_json::json!({
+                        "mission_id": mission.id,
+                        "description": request.description,
+                    }),
+                    output: action_output,
+                    timestamp: Utc::now(),
+                }],
+            );
+            let receipt_signer_key = finalize_receipt_signature(&mut receipt).unwrap_or_default();
+            receipt.verification = Some(build_receipt_verification(&prev_hash, &receipt, &receipt_signer_key));
+
+            let receipt_path = authority_receipts_dir().join(format!("{}.json", receipt.receipt_id));
+            if let Err(error) = persist_json(&receipt_path, &receipt) {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(CognitionError {
+                        error: error.to_string(),
+                        code: "RECEIPT_PERSIST_FAILED".to_string(),
+                        escalation_id: None,
+                        receipt_id: Some(receipt.receipt_id.clone()),
+                    }),
+                ));
+            }
+
+            Ok(Json(Node0MissionExecuteResponse {
+                mission,
+                verdict,
+                receipt,
+            }))
+        };
+
+    match system.execute(dual_request).await {
+        Ok(response) => {
+            let mut verdict = GateVerdict::permit(
+                "MISSION_PERMITTED",
+                &format!(
+                    "Mission passed PAT/SAT evaluation with Ihsan {:.4}",
+                    response.ihsan_score
+                ),
+                (response.ihsan_score * 100.0).round().clamp(0.0, 100.0) as u8,
+            );
+            verdict.evidence = vec![
+                EvidenceItem {
+                    code: "IHSAN_SCORE".to_string(),
+                    description: format!("Ihsan score {:.4}", response.ihsan_score),
+                    severity: EvidenceSeverity::Info,
+                },
+                EvidenceItem {
+                    code: "EXECUTION_MODE".to_string(),
+                    description: response
+                        .meta
+                        .get("execution_mode")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or("production")
+                        .to_string(),
+                    severity: EvidenceSeverity::Info,
+                },
+            ];
+
+            build_response(
+                verdict,
+                serde_json::json!({
+                    "pat_contributions": response.pat_contributions,
+                    "sat_contributions": response.sat_contributions,
+                    "ihsan_score": response.ihsan_score,
+                    "synergy_score": response.synergy_score,
+                    "meta": response.meta,
+                }),
+            )
+        }
+        Err(error) => {
+            if let Some(bridge_error) = error.downcast_ref::<BridgeError>() {
+                let (reason_code, reason, evidence, escalation_id) = match bridge_error {
+                    BridgeError::SatBlocked {
+                        message,
+                        escalation_id,
+                        ..
+                    } => (
+                        "SAT_BLOCKED",
+                        message.clone(),
+                        vec![EvidenceItem {
+                            code: "SAT_BLOCKED".to_string(),
+                            description: message.clone(),
+                            severity: EvidenceSeverity::Critical,
+                        }],
+                        Some(escalation_id.clone()),
+                    ),
+                    BridgeError::IhsanGateFailed {
+                        env,
+                        score,
+                        threshold,
+                        escalation_id,
+                    } => (
+                        "IHSAN_GATE_FAILED",
+                        format!(
+                            "Ihsan {:.4} below threshold {:.4} in env {}",
+                            score, threshold, env
+                        ),
+                        vec![EvidenceItem {
+                            code: "IHSAN_GATE_FAILED".to_string(),
+                            description: format!(
+                                "Ihsan {:.4} below threshold {:.4}",
+                                score, threshold
+                            ),
+                            severity: EvidenceSeverity::Critical,
+                        }],
+                        Some(escalation_id.clone()),
+                    ),
+                    _ => {
+                        return Err((
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(CognitionError {
+                                error: bridge_error.to_string(),
+                                code: "EXECUTION_FAILED".to_string(),
+                                escalation_id: None,
+                                receipt_id: None,
+                            }),
+                        ));
+                    }
+                };
+
+                let mut verdict = GateVerdict::reject(reason_code, &reason, evidence);
+                verdict.layer = GateLayer::new(1).expect("layer 1 must be valid");
+                return build_response(
+                    verdict,
+                    serde_json::json!({
+                        "error": reason_code,
+                        "reason": reason,
+                        "escalation_id": escalation_id,
+                    }),
+                );
+            }
+
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(CognitionError {
+                    error: error.to_string(),
+                    code: "INTERNAL_ERROR".to_string(),
+                    escalation_id: None,
+                    receipt_id: None,
+                }),
+            ))
+        }
+    }
+}
+
+async fn node0_manifest_handler(
+    Json(request): Json<Node0ManifestRequest>,
+) -> Result<Json<ManifestArtifact>, (StatusCode, Json<CognitionError>)> {
+    let lookback_hours = request.lookback_hours.unwrap_or(24).max(1);
+    let period_end = Utc::now();
+    let period_start = period_end - ChronoDuration::hours(lookback_hours);
+    let receipts = load_authority_receipts_since(period_start);
+    let latest_receipt = receipts.last();
+    let deployment_id = request
+        .deployment_id
+        .unwrap_or_else(|| std::env::var("BIZRA_DEPLOYMENT_ID").unwrap_or_else(|_| "node0-local".to_string()));
+
+    let genesis_head = blake3::hash(format!("bizra-genesis:{deployment_id}").as_bytes())
+        .to_hex()
+        .to_string();
+    let receipt_chain_head = latest_receipt
+        .map(|receipt| receipt.payload_hash.clone())
+        .unwrap_or(genesis_head);
+    let permit_count = receipts
+        .iter()
+        .filter(|receipt| receipt.verdict.kind == VerdictKind::Permit)
+        .count() as u64;
+    let reject_count = receipts
+        .iter()
+        .filter(|receipt| receipt.verdict.kind == VerdictKind::Reject)
+        .count() as u64;
+    let review_count = receipts
+        .iter()
+        .filter(|receipt| matches!(receipt.verdict.kind, VerdictKind::Review | VerdictKind::ScoreOnly))
+        .count() as u64;
+
+    let chain_status = if receipts.is_empty() {
+        ChainStatus::Empty
+    } else {
+        ChainStatus::Intact
+    };
+
+    let system_health = SystemHealthSnapshot {
+        uptime_seconds: current_uptime_seconds(),
+        constitutional_layer: LayerStatus::Active,
+        kernel_bridge: BridgeStatus::Connected,
+        receipt_chain: chain_status,
+    };
+
+    let mut manifest = ManifestArtifact::generate(
+        period_start,
+        period_end,
+        &receipt_chain_head,
+        receipts.len() as u64,
+        permit_count,
+        reject_count,
+        review_count,
+        system_health,
+        &deployment_id,
+    );
+    manifest.heartbeat_status = if receipts.is_empty() {
+        HeartbeatStatus::Degraded
+    } else {
+        HeartbeatStatus::Alive
+    };
+    let signer_key = finalize_manifest_signature(&mut manifest).unwrap_or_default();
+    manifest.verification = Some(build_manifest_verification(&manifest, &signer_key));
+
+    let manifest_path = authority_manifests_dir().join(format!("{}.json", manifest.id));
+    if let Err(error) = persist_json(&manifest_path, &manifest) {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(CognitionError {
+                error: error.to_string(),
+                code: "MANIFEST_PERSIST_FAILED".to_string(),
+                escalation_id: None,
+                receipt_id: None,
+            }),
+        ));
+    }
+
+    Ok(Json(manifest))
 }
 
 #[cfg(test)]

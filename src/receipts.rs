@@ -45,6 +45,8 @@ pub enum ReceiptType {
     BlueprintEvolution,
     /// Proof chain anchor
     ProofChainAnchor,
+    /// Circuit breaker state transition
+    CircuitBreakerEvent,
 }
 
 /// Rejection receipt - evidence of SAT blocking a request
@@ -79,6 +81,12 @@ pub struct RejectionReceipt {
     pub recommended_action: String,
     /// SHA-256 hash of receipt content
     pub integrity_hash: String,
+    /// Ed25519 signature of receipt content (hex-encoded)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signature: Option<String>,
+    /// Signer's public key (hex-encoded)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signer_public_key: Option<String>,
 }
 
 /// Execution receipt - evidence of successful SAT approval + execution
@@ -115,6 +123,12 @@ pub struct ExecutionReceipt {
     pub sat_approvers_count: usize,
     /// SHA-256 hash of receipt content
     pub integrity_hash: String,
+    /// Ed25519 signature of receipt content (hex-encoded)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signature: Option<String>,
+    /// Signer's public key (hex-encoded)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signer_public_key: Option<String>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -389,6 +403,34 @@ pub struct ProofChainAnchorReceipt {
     pub integrity_hash: String,
 }
 
+/// Receipt for circuit breaker state transitions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CircuitBreakerReceipt {
+    /// Schema version
+    pub schema: String,
+    /// Receipt type
+    pub receipt_type: ReceiptType,
+    /// Unique receipt ID
+    pub receipt_id: String,
+    /// Timestamp of event
+    pub timestamp: DateTime<Utc>,
+    /// Name of the circuit (agent/service ID)
+    pub circuit_name: String,
+    /// Event type: "tripped", "recovery_started", "recovered", "recovery_failed"
+    pub event_type: String,
+    /// Reason for the event (for Tripped and RecoveryFailed)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// Trip count (for Tripped events)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trip_count: Option<u64>,
+    /// Recovery duration in ms (for Recovered events)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recovery_duration_ms: Option<u64>,
+    /// SHA-256 hash of receipt content
+    pub integrity_hash: String,
+}
+
 /// Receipt emitter - creates and persists receipts
 pub struct ReceiptEmitter {
     /// Directory to store receipts
@@ -397,39 +439,66 @@ pub struct ReceiptEmitter {
     counter: std::sync::atomic::AtomicU64,
     /// Redis client for persistence (optional)
     synapse: Option<SynapseClient>,
+    /// Ed25519 signer for receipt non-repudiation (optional)
+    signer: Option<crate::signing::ReceiptSigner>,
 }
 
 impl ReceiptEmitter {
+    /// Initialize Ed25519 signer from persistent keystore (best-effort)
+    fn init_signer() -> Option<crate::signing::ReceiptSigner> {
+        match crate::signing::ReceiptSigner::from_keystore() {
+            Ok(signer) => {
+                info!(
+                    public_key = signer.public_key_hex(),
+                    "🔏 Receipt signing enabled (Ed25519)"
+                );
+                Some(signer)
+            }
+            Err(e) => {
+                warn!(error = %e, "Receipt signing unavailable — receipts will be unsigned");
+                None
+            }
+        }
+    }
+
     pub fn new(output_dir: &str) -> Self {
         // Ensure output directory exists
         if let Err(e) = fs::create_dir_all(output_dir) {
             warn!(error = %e, dir = output_dir, "Failed to create receipts directory");
         }
-        
-        info!(output_dir = output_dir, "📋 Receipt emitter initialized");
-        
+
+        let signer = Self::init_signer();
+        info!(output_dir = output_dir, signed = signer.is_some(), "📋 Receipt emitter initialized");
+
         Self {
             output_dir: output_dir.to_string(),
             counter: std::sync::atomic::AtomicU64::new(1),
             synapse: None,
+            signer,
         }
     }
-    
+
     /// Create with Redis persistence
     pub fn with_synapse(output_dir: &str, synapse: SynapseClient) -> Self {
         if let Err(e) = fs::create_dir_all(output_dir) {
             warn!(error = %e, dir = output_dir, "Failed to create receipts directory");
         }
-        
-        info!(output_dir = output_dir, "📋 Receipt emitter initialized with Redis persistence");
-        
+
+        let signer = Self::init_signer();
+        info!(
+            output_dir = output_dir,
+            signed = signer.is_some(),
+            "📋 Receipt emitter initialized with Redis persistence"
+        );
+
         Self {
             output_dir: output_dir.to_string(),
             counter: std::sync::atomic::AtomicU64::new(1),
             synapse: Some(synapse),
+            signer,
         }
     }
-    
+
     /// Create from environment (hard fail if Redis unavailable)
     pub async fn from_env(output_dir: &str) -> anyhow::Result<Self> {
         let synapse = crate::synapse::SynapseClient::from_env().await?;
@@ -453,7 +522,8 @@ impl ReceiptEmitter {
         let receipt_id = format!(
             "REJ-{}-{:06}",
             Utc::now().format("%Y%m%d%H%M%S"),
-            self.counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+            self.counter
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
         );
 
         let task_summary = if task.len() > 100 {
@@ -462,10 +532,8 @@ impl ReceiptEmitter {
             task.to_string()
         };
 
-        let rejection_code_strings: Vec<String> = rejection_codes
-            .iter()
-            .map(|c| c.to_string())
-            .collect();
+        let rejection_code_strings: Vec<String> =
+            rejection_codes.iter().map(|c| c.to_string()).collect();
 
         let primary_reason = rejection_codes
             .first()
@@ -480,7 +548,10 @@ impl ReceiptEmitter {
         }
         .to_string();
 
-        let receipt_type = if rejection_codes.iter().any(|c| matches!(c, RejectionCode::Quarantine(_))) {
+        let receipt_type = if rejection_codes
+            .iter()
+            .any(|c| matches!(c, RejectionCode::Quarantine(_)))
+        {
             ReceiptType::Quarantine
         } else {
             ReceiptType::Rejection
@@ -502,10 +573,21 @@ impl ReceiptEmitter {
             approving_validators,
             recommended_action: escalation.recommended_action.clone(),
             integrity_hash: String::new(),
+            signature: None,
+            signer_public_key: None,
         };
 
         // Calculate integrity hash
         receipt.integrity_hash = self.calculate_hash(&receipt);
+
+        // Sign receipt if signer available (Ed25519 non-repudiation)
+        if let Some(ref signer) = self.signer {
+            if let Ok(canonical) = serde_json::to_vec(&receipt) {
+                let sig = signer.sign_receipt(&canonical);
+                receipt.signature = Some(sig.signature_hex);
+                receipt.signer_public_key = Some(sig.signer_public_key);
+            }
+        }
 
         // Persist receipt
         self.persist_receipt(&receipt_id, &receipt);
@@ -513,6 +595,7 @@ impl ReceiptEmitter {
         info!(
             receipt_id = %receipt_id,
             escalation_id = %escalation.id,
+            signed = receipt.signature.is_some(),
             "🧾 Rejection receipt emitted"
         );
 
@@ -536,7 +619,8 @@ impl ReceiptEmitter {
         let receipt_id = format!(
             "EXEC-{}-{:06}",
             Utc::now().format("%Y%m%d%H%M%S"),
-            self.counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+            self.counter
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
         );
 
         let task_summary = if task.len() > 100 {
@@ -561,10 +645,21 @@ impl ReceiptEmitter {
             pat_agents_count,
             sat_approvers_count,
             integrity_hash: String::new(),
+            signature: None,
+            signer_public_key: None,
         };
 
         // Calculate integrity hash
         receipt.integrity_hash = self.calculate_execution_hash(&receipt);
+
+        // Sign receipt if signer available (Ed25519 non-repudiation)
+        if let Some(ref signer) = self.signer {
+            if let Ok(canonical) = serde_json::to_vec(&receipt) {
+                let sig = signer.sign_receipt(&canonical);
+                receipt.signature = Some(sig.signature_hex);
+                receipt.signer_public_key = Some(sig.signer_public_key);
+            }
+        }
 
         // Persist receipt
         self.persist_execution_receipt(&receipt_id, &receipt);
@@ -573,6 +668,7 @@ impl ReceiptEmitter {
             receipt_id = %receipt_id,
             synergy = synergy_score,
             ihsan = ihsan_score,
+            signed = receipt.signature.is_some(),
             "🧾 Execution receipt emitted"
         );
 
@@ -608,7 +704,7 @@ impl ReceiptEmitter {
     fn persist_receipt(&self, receipt_id: &str, receipt: &RejectionReceipt) {
         let filename = format!("{}.json", receipt_id);
         let path = Path::new(&self.output_dir).join(&filename);
-        
+
         match serde_json::to_string_pretty(receipt) {
             Ok(json) => {
                 // Persist to filesystem (Redis persistence via async method)
@@ -625,7 +721,7 @@ impl ReceiptEmitter {
     fn persist_execution_receipt(&self, receipt_id: &str, receipt: &ExecutionReceipt) {
         let filename = format!("{}.json", receipt_id);
         let path = Path::new(&self.output_dir).join(&filename);
-        
+
         match serde_json::to_string_pretty(receipt) {
             Ok(json) => {
                 // Persist to filesystem (Redis persistence via async method)
@@ -638,15 +734,19 @@ impl ReceiptEmitter {
             }
         }
     }
-    
+
     /// Persist receipt to Redis asynchronously
-    pub async fn persist_to_synapse(&self, receipt_id: &str, json: &str) -> Result<(), anyhow::Error> {
+    pub async fn persist_to_synapse(
+        &self,
+        receipt_id: &str,
+        json: &str,
+    ) -> Result<(), anyhow::Error> {
         if let Some(ref synapse) = self.synapse {
             synapse.store_receipt(receipt_id, json).await?;
         }
         Ok(())
     }
-    
+
     /// Retrieve a receipt from Redis by ID (async)
     pub async fn get_receipt_async(&self, receipt_id: &str) -> Option<String> {
         if let Some(ref synapse) = self.synapse {
@@ -654,13 +754,13 @@ impl ReceiptEmitter {
                 return Some(json);
             }
         }
-        
+
         // Fallback to filesystem
         let filename = format!("{}.json", receipt_id);
         let path = Path::new(&self.output_dir).join(&filename);
         fs::read_to_string(&path).ok()
     }
-    
+
     /// Get recent receipts from Redis (async)
     pub async fn recent_receipts_async(&self, limit: usize) -> Vec<String> {
         if let Some(ref synapse) = self.synapse {
@@ -670,17 +770,130 @@ impl ReceiptEmitter {
         }
         Vec::new()
     }
-    
+
     /// Sync version: Retrieve a receipt from filesystem only
     pub fn get_receipt(&self, receipt_id: &str) -> Option<String> {
         let filename = format!("{}.json", receipt_id);
         let path = Path::new(&self.output_dir).join(&filename);
         fs::read_to_string(&path).ok()
     }
-    
+
     /// Sync version: returns empty (use async for Redis)
     pub fn recent_receipts(&self, _limit: usize) -> Vec<String> {
         Vec::new()
+    }
+
+    /// Emit a circuit breaker event receipt
+    pub fn emit_circuit_breaker_event(
+        &self,
+        event: &crate::apex::circuit_breaker::CircuitBreakerEvent,
+    ) -> CircuitBreakerReceipt {
+        let receipt_id = format!(
+            "CB-{}-{:06}",
+            Utc::now().format("%Y%m%d%H%M%S"),
+            self.counter
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        );
+
+        let (event_type, circuit_name, reason, trip_count, recovery_duration_ms) = match event {
+            crate::apex::circuit_breaker::CircuitBreakerEvent::Tripped {
+                circuit_name,
+                reason,
+                trip_count,
+            } => (
+                "tripped".to_string(),
+                circuit_name.clone(),
+                Some(reason.clone()),
+                Some(*trip_count),
+                None,
+            ),
+            crate::apex::circuit_breaker::CircuitBreakerEvent::RecoveryStarted { circuit_name } => {
+                (
+                    "recovery_started".to_string(),
+                    circuit_name.clone(),
+                    None,
+                    None,
+                    None,
+                )
+            }
+            crate::apex::circuit_breaker::CircuitBreakerEvent::Recovered {
+                circuit_name,
+                recovery_duration_ms,
+            } => (
+                "recovered".to_string(),
+                circuit_name.clone(),
+                None,
+                None,
+                Some(*recovery_duration_ms),
+            ),
+            crate::apex::circuit_breaker::CircuitBreakerEvent::RecoveryFailed {
+                circuit_name,
+                reason,
+            } => (
+                "recovery_failed".to_string(),
+                circuit_name.clone(),
+                Some(reason.clone()),
+                None,
+                None,
+            ),
+        };
+
+        let mut receipt = CircuitBreakerReceipt {
+            schema: "bizra-circuit-breaker-receipt-v1".to_string(),
+            receipt_type: ReceiptType::CircuitBreakerEvent,
+            receipt_id: receipt_id.clone(),
+            timestamp: Utc::now(),
+            circuit_name,
+            event_type,
+            reason,
+            trip_count,
+            recovery_duration_ms,
+            integrity_hash: String::new(),
+        };
+
+        // Calculate integrity hash
+        receipt.integrity_hash = self.calculate_circuit_breaker_hash(&receipt);
+
+        // Persist receipt
+        self.persist_circuit_breaker_receipt(&receipt_id, &receipt);
+
+        info!(
+            receipt_id = %receipt_id,
+            event_type = %receipt.event_type,
+            circuit = %receipt.circuit_name,
+            "🧾 Circuit breaker receipt emitted"
+        );
+
+        receipt
+    }
+
+    fn calculate_circuit_breaker_hash(&self, receipt: &CircuitBreakerReceipt) -> String {
+        let content = format!(
+            "{}|{}|{}|{}",
+            receipt.receipt_id,
+            receipt.timestamp.to_rfc3339(),
+            receipt.circuit_name,
+            receipt.event_type
+        );
+        let hash = Sha256::digest(content.as_bytes());
+        format!("sha256:{:x}", hash)
+    }
+
+    fn persist_circuit_breaker_receipt(&self, receipt_id: &str, receipt: &CircuitBreakerReceipt) {
+        let filename = format!("{}.json", receipt_id);
+        let path = Path::new(&self.output_dir).join(&filename);
+
+        match serde_json::to_string_pretty(receipt) {
+            Ok(json) => {
+                // Persist to filesystem (Redis persistence via async method)
+                if let Err(e) = fs::write(&path, json) {
+                    warn!(error = %e, path = ?path, "Failed to persist circuit breaker receipt");
+                }
+            }
+            Err(e) => {
+                warn!(error = %e, "Failed to serialize circuit breaker receipt");
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -709,7 +922,8 @@ impl ReceiptEmitter {
             &receipt.integrity_hash,
             receipt.ihsan_score,
             receipt.sat_approvers_count as u8,
-        ).await
+        )
+        .await
     }
 
     /// Anchor a rejection receipt to BIZRA native blockchain
@@ -734,7 +948,8 @@ impl ReceiptEmitter {
             &receipt.integrity_hash,
             0.0, // Rejections don't have Ihsān score
             receipt.approving_validators.len() as u8,
-        ).await
+        )
+        .await
     }
 
     /// Anchor any receipt to chain by ID (generic method)
@@ -758,7 +973,8 @@ impl ReceiptEmitter {
             integrity_hash,
             ihsan_score,
             sat_approvers,
-        ).await
+        )
+        .await
     }
 }
 
@@ -778,10 +994,10 @@ mod tests {
     fn test_rejection_receipt_creation() {
         let emitter = ReceiptEmitter::new("target/test_receipts");
         let mut fate = FATECoordinator::new();
-        
+
         let codes = vec![RejectionCode::SecurityThreat("SQL injection".to_string())];
         let escalation = fate.escalate_rejection(&codes, "DROP TABLE users", &HashMap::new());
-        
+
         let receipt = emitter.emit_rejection(
             "DROP TABLE users",
             &codes,
@@ -801,10 +1017,10 @@ mod tests {
     fn test_quarantine_receipt_type() {
         let emitter = ReceiptEmitter::new("target/test_receipts");
         let mut fate = FATECoordinator::new();
-        
+
         let codes = vec![RejectionCode::Quarantine("uncertain intent".to_string())];
         let escalation = fate.escalate_rejection(&codes, "ambiguous task", &HashMap::new());
-        
+
         let receipt = emitter.emit_rejection(
             "ambiguous task",
             &codes,
@@ -820,7 +1036,7 @@ mod tests {
     #[test]
     fn test_execution_receipt_creation() {
         let emitter = ReceiptEmitter::new("target/test_receipts");
-        
+
         let receipt = emitter.emit_execution(
             "Generate unit tests for user module",
             15,
@@ -838,5 +1054,75 @@ mod tests {
         assert!(receipt.receipt_id.starts_with("EXEC-"));
         assert!(receipt.integrity_hash.starts_with("sha256:"));
         assert!(receipt.ihsan_score >= receipt.ihsan_threshold);
+    }
+
+    #[test]
+    fn test_circuit_breaker_receipt_tripped() {
+        let emitter = ReceiptEmitter::new("target/test_receipts");
+        let event = crate::apex::circuit_breaker::CircuitBreakerEvent::Tripped {
+            circuit_name: "test_agent".to_string(),
+            reason: "Too many failures".to_string(),
+            trip_count: 3,
+        };
+        let receipt = emitter.emit_circuit_breaker_event(&event);
+
+        assert_eq!(receipt.receipt_type, ReceiptType::CircuitBreakerEvent);
+        assert!(receipt.receipt_id.starts_with("CB-"));
+        assert_eq!(receipt.event_type, "tripped");
+        assert_eq!(receipt.circuit_name, "test_agent");
+        assert_eq!(receipt.reason, Some("Too many failures".to_string()));
+        assert_eq!(receipt.trip_count, Some(3));
+        assert!(receipt.recovery_duration_ms.is_none());
+        assert!(receipt.integrity_hash.starts_with("sha256:"));
+    }
+
+    #[test]
+    fn test_circuit_breaker_receipt_recovery_started() {
+        let emitter = ReceiptEmitter::new("target/test_receipts");
+        let event = crate::apex::circuit_breaker::CircuitBreakerEvent::RecoveryStarted {
+            circuit_name: "test_agent".to_string(),
+        };
+        let receipt = emitter.emit_circuit_breaker_event(&event);
+
+        assert_eq!(receipt.event_type, "recovery_started");
+        assert_eq!(receipt.circuit_name, "test_agent");
+        assert!(receipt.reason.is_none());
+        assert!(receipt.trip_count.is_none());
+        assert!(receipt.recovery_duration_ms.is_none());
+    }
+
+    #[test]
+    fn test_circuit_breaker_receipt_recovered() {
+        let emitter = ReceiptEmitter::new("target/test_receipts");
+        let event = crate::apex::circuit_breaker::CircuitBreakerEvent::Recovered {
+            circuit_name: "test_agent".to_string(),
+            recovery_duration_ms: 5432,
+        };
+        let receipt = emitter.emit_circuit_breaker_event(&event);
+
+        assert_eq!(receipt.event_type, "recovered");
+        assert_eq!(receipt.circuit_name, "test_agent");
+        assert!(receipt.reason.is_none());
+        assert!(receipt.trip_count.is_none());
+        assert_eq!(receipt.recovery_duration_ms, Some(5432));
+    }
+
+    #[test]
+    fn test_circuit_breaker_receipt_recovery_failed() {
+        let emitter = ReceiptEmitter::new("target/test_receipts");
+        let event = crate::apex::circuit_breaker::CircuitBreakerEvent::RecoveryFailed {
+            circuit_name: "test_agent".to_string(),
+            reason: "Failure during half-open testing".to_string(),
+        };
+        let receipt = emitter.emit_circuit_breaker_event(&event);
+
+        assert_eq!(receipt.event_type, "recovery_failed");
+        assert_eq!(receipt.circuit_name, "test_agent");
+        assert_eq!(
+            receipt.reason,
+            Some("Failure during half-open testing".to_string())
+        );
+        assert!(receipt.trip_count.is_none());
+        assert!(receipt.recovery_duration_ms.is_none());
     }
 }

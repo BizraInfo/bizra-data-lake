@@ -10,15 +10,15 @@ use crate::{
     errors::BridgeError,
     fate::FATECoordinator,
     idempotency::{IdempotencyStatus, IdempotentReplayManager},
-    ihsan,
-    metrics,
+    ifc::{IntegrityLevel, SecrecyLevel, TaintContext, TaintLabel},
+    ihsan, metrics,
     pat::PATOrchestrator,
     receipts::ReceiptEmitter,
     sat::SATOrchestrator,
     types::{AgentResult, DualAgenticRequest, DualAgenticResponse},
 };
 use std::{collections::BTreeMap, sync::Mutex, time::Instant};
-use tracing::{info, warn, debug, instrument};
+use tracing::{debug, info, instrument, warn};
 
 /// Bridge coordinator between PAT and SAT
 pub struct BridgeCoordinator {
@@ -45,11 +45,15 @@ impl BridgeCoordinator {
         let receipts = ReceiptEmitter::from_env("docs/evidence/receipts").await?;
         let idempotency = IdempotentReplayManager::new();
 
-        info!(
-            "🔒 IdempotentReplayManager ready (exactly-once semantics enabled)"
-        );
+        info!("🔒 IdempotentReplayManager ready (exactly-once semantics enabled)");
 
-        Ok(Self { pat, sat, fate, receipts, idempotency })
+        Ok(Self {
+            pat,
+            sat,
+            fate,
+            receipts,
+            idempotency,
+        })
     }
 
     /// Execute full dual-agentic workflow with FATE escalation and receipt emission
@@ -80,7 +84,9 @@ impl BridgeCoordinator {
                         "♻️ Returning cached result (exactly-once semantics)"
                     );
                     // Deserialize and return cached response
-                    if let Ok(response) = serde_json::from_str::<DualAgenticResponse>(&cached_result.result) {
+                    if let Ok(response) =
+                        serde_json::from_str::<DualAgenticResponse>(&cached_result.result)
+                    {
                         return Ok(response);
                     }
                 }
@@ -91,9 +97,7 @@ impl BridgeCoordinator {
                     idem_key = %idem_key,
                     "⏳ Request already in progress"
                 );
-                return Err(BridgeError::RequestInProgress {
-                    key: idem_key,
-                }.into());
+                return Err(BridgeError::RequestInProgress { key: idem_key }.into());
             }
             IdempotencyStatus::Expired | IdempotencyStatus::New => {
                 // Continue with normal processing
@@ -101,7 +105,9 @@ impl BridgeCoordinator {
         }
 
         // Reserve slot for this request (mark as in-progress)
-        let checkpoint_id = self.idempotency.reserve(&idem_key)
+        let checkpoint_id = self
+            .idempotency
+            .reserve(&idem_key)
             .map_err(|e| BridgeError::IdempotencyError { message: e })?;
 
         debug!(
@@ -112,12 +118,21 @@ impl BridgeCoordinator {
 
         info!("🚀 Starting dual-agentic execution");
 
+        // IFC: Tag user input as Untrusted/Internal
+        let mut taint_ctx = TaintContext::new("user");
+        taint_ctx.taint(
+            "request.task",
+            TaintLabel::new(SecrecyLevel::Internal, IntegrityLevel::Untrusted, "user".into()),
+        );
+
         // Step 1: SAT validates the request
         let validation = self.sat.validate_request(&request).await?;
         let sat_validation_time = validation.validation_time;
 
         // Record SAT validation metrics
-        let rejection_codes_str: Vec<String> = validation.rejection_codes.iter()
+        let rejection_codes_str: Vec<String> = validation
+            .rejection_codes
+            .iter()
             .map(|c| c.to_string())
             .collect();
         metrics::record_sat_validation(
@@ -131,9 +146,12 @@ impl BridgeCoordinator {
             // FATE escalation for SAT rejection
             // Use scoped lock to extract both escalation and pending count in one acquisition
             let (escalation, fate_pending) = {
-                let mut fate = self.fate.lock().map_err(|e| {
-                    BridgeError::FateLockPoisoned { message: format!("FATE mutex poisoned: {}", e) }
-                })?;
+                let mut fate = self
+                    .fate
+                    .lock()
+                    .map_err(|e| BridgeError::FateLockPoisoned {
+                        message: format!("FATE mutex poisoned: {}", e),
+                    })?;
                 let esc = fate.escalate_rejection(
                     &validation.rejection_codes,
                     &request.task,
@@ -147,12 +165,14 @@ impl BridgeCoordinator {
             metrics::record_fate_escalation(&format!("{:?}", escalation.level), fate_pending);
 
             // Collect rejecting and approving validators
-            let rejecting: Vec<String> = validation.validations
+            let rejecting: Vec<String> = validation
+                .validations
                 .iter()
                 .filter(|v| !v.approved)
                 .map(|v| v.agent_name.clone())
                 .collect();
-            let approving: Vec<String> = validation.validations
+            let approving: Vec<String> = validation
+                .validations
                 .iter()
                 .filter(|v| v.approved)
                 .map(|v| v.agent_name.clone())
@@ -170,6 +190,11 @@ impl BridgeCoordinator {
 
             // Record receipt emission
             metrics::record_receipt_emitted("rejection");
+
+            // Anchor rejection receipt to blockchain (best-effort, don't block on failure)
+            if let Err(e) = self.receipts.anchor_rejection_to_chain(&receipt).await {
+                warn!(error = %e, receipt_id = %receipt.receipt_id, "Blockchain anchoring failed for rejection receipt");
+            }
 
             // Mark idempotency slot as failed (allows retry)
             self.idempotency.fail(&idem_key, "SAT_REJECTION");
@@ -200,6 +225,9 @@ impl BridgeCoordinator {
             "✅ SAT validation passed"
         );
 
+        // IFC: Promote to Validated after SAT consensus
+        let _ = taint_ctx.promote("request.task", IntegrityLevel::Validated);
+
         // Step 2: PAT executes the task
         let pat_start = Instant::now();
         let pat_results = self.pat.execute_parallel(vec![], request.clone()).await?;
@@ -215,6 +243,9 @@ impl BridgeCoordinator {
             "SAT evaluation completed"
         );
 
+        // IFC: Promote to Attested after PAT execution + SAT post-eval
+        let _ = taint_ctx.promote("request.task", IntegrityLevel::Attested);
+
         // Step 4: Calculate synergy and Ihsan scores
         let synergy_score = self.calculate_synergy(&pat_results, &sat_evaluations);
         let (ihsan_score, ihsan_vector) = self.calculate_ihsan(&pat_results, &sat_evaluations)?;
@@ -226,15 +257,23 @@ impl BridgeCoordinator {
         let ihsan_passes_threshold = ihsan_score >= ihsan_threshold_applied;
 
         // Record Ihsān metrics
-        metrics::record_ihsan_result(ihsan_score, ihsan_passes_threshold, &ihsan_env, &ihsan_vector);
+        metrics::record_ihsan_result(
+            ihsan_score,
+            ihsan_passes_threshold,
+            &ihsan_env,
+            &ihsan_vector,
+        );
 
         if !ihsan_passes_threshold && ihsan::should_enforce() {
             // FATE escalation for Ihsān failure
             // Use scoped lock to extract both escalation and pending count in one acquisition
             let (escalation, fate_pending) = {
-                let mut fate = self.fate.lock().map_err(|e| {
-                    BridgeError::FateLockPoisoned { message: format!("FATE mutex poisoned: {}", e) }
-                })?;
+                let mut fate = self
+                    .fate
+                    .lock()
+                    .map_err(|e| BridgeError::FateLockPoisoned {
+                        message: format!("FATE mutex poisoned: {}", e),
+                    })?;
                 let esc = fate.escalate_ihsan_failure(
                     &ihsan_env,
                     ihsan_artifact_class,
@@ -275,7 +314,7 @@ impl BridgeCoordinator {
 
         // Emit execution receipt for successful flow
         let sat_approvers = validation.validations.iter().filter(|v| v.approved).count();
-        let _execution_receipt = self.receipts.emit_execution(
+        let execution_receipt = self.receipts.emit_execution(
             &request.task,
             sat_validation_time.as_millis(),
             pat_execution_time.as_millis(),
@@ -290,6 +329,11 @@ impl BridgeCoordinator {
 
         // Record execution receipt emission
         metrics::record_receipt_emitted("execution");
+
+        // Anchor execution receipt to blockchain (best-effort, don't block on failure)
+        if let Err(e) = self.receipts.anchor_execution_to_chain(&execution_receipt).await {
+            warn!(error = %e, receipt_id = %execution_receipt.receipt_id, "Blockchain anchoring failed for execution receipt");
+        }
 
         // Build response
         let response = DualAgenticResponse {
@@ -318,6 +362,9 @@ impl BridgeCoordinator {
                 "fate_pending_escalations": self.fate.lock().map(|f| f.pending_count()).unwrap_or(0),
                 "idempotency_key": &idem_key,
                 "entropy_pool_level": entropy::global_pool().pool_level(),
+                "ifc_integrity": taint_ctx.get_label("request.task").integrity.to_string(),
+                "ifc_secrecy": taint_ctx.get_label("request.task").secrecy.to_string(),
+                "ifc_audit_count": taint_ctx.audit_log().len(),
             }),
         };
 
@@ -397,27 +444,57 @@ impl BridgeCoordinator {
         // PAT agents use PascalCase, SAT agents use snake_case
         scores.insert(
             "correctness".to_string(),
-            clamp01(find_with_tracking(pat_results, "EthicsGuardian", pat_avg, &mut missing_agents)),
+            clamp01(find_with_tracking(
+                pat_results,
+                "EthicsGuardian",
+                pat_avg,
+                &mut missing_agents,
+            )),
         );
         scores.insert(
             "safety".to_string(),
-            clamp01(find_with_tracking(sat_results, "security_guardian", sat_avg, &mut missing_agents)),
+            clamp01(find_with_tracking(
+                sat_results,
+                "security_guardian",
+                sat_avg,
+                &mut missing_agents,
+            )),
         );
         scores.insert(
             "user_benefit".to_string(),
-            clamp01(find_with_tracking(pat_results, "Communicator", pat_avg, &mut missing_agents)),
+            clamp01(find_with_tracking(
+                pat_results,
+                "Communicator",
+                pat_avg,
+                &mut missing_agents,
+            )),
         );
         scores.insert(
             "efficiency".to_string(),
-            clamp01(find_with_tracking(sat_results, "performance_monitor", sat_avg, &mut missing_agents)),
+            clamp01(find_with_tracking(
+                sat_results,
+                "performance_monitor",
+                sat_avg,
+                &mut missing_agents,
+            )),
         );
         scores.insert(
             "auditability".to_string(),
-            clamp01(find_with_tracking(sat_results, "consistency_checker", sat_avg, &mut missing_agents)),
+            clamp01(find_with_tracking(
+                sat_results,
+                "consistency_checker",
+                sat_avg,
+                &mut missing_agents,
+            )),
         );
         scores.insert(
             "anti_centralization".to_string(),
-            clamp01(find_with_tracking(sat_results, "resource_optimizer", sat_avg, &mut missing_agents)),
+            clamp01(find_with_tracking(
+                sat_results,
+                "resource_optimizer",
+                sat_avg,
+                &mut missing_agents,
+            )),
         );
         scores.insert(
             "robustness".to_string(),
@@ -425,7 +502,12 @@ impl BridgeCoordinator {
         );
         scores.insert(
             "adl_fairness".to_string(),
-            clamp01(find_with_tracking(sat_results, "ethics_validator", sat_avg, &mut missing_agents)),
+            clamp01(find_with_tracking(
+                sat_results,
+                "ethics_validator",
+                sat_avg,
+                &mut missing_agents,
+            )),
         );
 
         // FAIL-VISIBLE: Log warnings for missing agents (required for audit trail)
@@ -447,11 +529,11 @@ impl BridgeCoordinator {
                 .collect();
 
             if !missing_critical.is_empty() {
-                warn!(
-                    missing_critical = ?missing_critical,
-                    "🚨 CRITICAL: Missing critical agents for Ihsān dimensions. \
-                     Score may not reflect true ethical compliance."
-                );
+                // FAIL-CLOSED: Critical agents missing — cannot produce valid Ihsan score
+                // This enforces "la naftarid" (we do not assume) for safety-critical dimensions
+                return Err(BridgeError::CriticalAgentsMissing {
+                    missing_agents: missing_critical.iter().map(|s| s.to_string()).collect(),
+                }.into());
             }
         }
 

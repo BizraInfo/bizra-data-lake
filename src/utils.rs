@@ -4,7 +4,7 @@
 // See scripts/check_parity.py for cross-boundary verification.
 
 use chrono::{DateTime, Utc};
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 /// Generate SHA-256 hash of text, returning hex string
 pub fn sha256_text(text: &str) -> String {
@@ -25,9 +25,7 @@ pub fn utc_now() -> DateTime<Utc> {
 
 /// Normalize a key for comparison (lowercase, replace hyphens/spaces with underscores)
 pub fn normalize_key(raw: &str) -> String {
-    raw.trim()
-        .to_ascii_lowercase()
-        .replace(['-', ' '], "_")
+    raw.trim().to_ascii_lowercase().replace(['-', ' '], "_")
 }
 
 /// Clamp a value to [0.0, 1.0] range

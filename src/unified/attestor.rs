@@ -10,7 +10,7 @@
 // - Ihsān Protocol: Immutable ethical constraints
 
 use crate::entropy::global_pool;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -89,8 +89,9 @@ impl AgentGenealogy {
         let ihsan_factor = self.cumulative_ihsan;
         let experience_factor = (self.total_behaviors as f64).ln().min(5.0) / 5.0;
 
-        self.trust_level = (0.5 * ihsan_factor + 0.3 * (1.0 - violation_ratio) + 0.2 * experience_factor)
-            .clamp(0.0, 1.0);
+        self.trust_level =
+            (0.5 * ihsan_factor + 0.3 * (1.0 - violation_ratio) + 0.2 * experience_factor)
+                .clamp(0.0, 1.0);
     }
 }
 
@@ -173,7 +174,9 @@ impl CryptographicAttestor {
         if let Some(ref parent) = parent_id {
             let agents = self.agents.read().await;
             if let Some(parent_genealogy) = agents.get(parent) {
-                if !parent_genealogy.meets_deployment_threshold(self.min_deployment_ihsan, self.max_violations) {
+                if !parent_genealogy
+                    .meets_deployment_threshold(self.min_deployment_ihsan, self.max_violations)
+                {
                     return Err(AttestorError::ParentUnethical(parent.clone()));
                 }
             }
@@ -311,7 +314,11 @@ impl CryptographicAttestor {
         sig_hasher.update(attestation.agent_id.as_bytes());
         sig_hasher.update(attestation.behavior_hash);
         sig_hasher.update(attestation.ihsan_score.to_le_bytes());
-        sig_hasher.update([if attestation.safety_verified { 1u8 } else { 0u8 }]);
+        sig_hasher.update([if attestation.safety_verified {
+            1u8
+        } else {
+            0u8
+        }]);
         sig_hasher.update(attestation.timestamp.to_le_bytes());
         sig_hasher.update(self.signing_key);
         let expected: Vec<u8> = sig_hasher.finalize().to_vec();
@@ -327,7 +334,10 @@ impl CryptographicAttestor {
 
         let agents = self.agents.read().await;
         if let Some(genealogy) = agents.get(agent_id) {
-            Ok(genealogy.meets_deployment_threshold(self.min_deployment_ihsan, self.max_violations))
+            Ok(
+                genealogy
+                    .meets_deployment_threshold(self.min_deployment_ihsan, self.max_violations),
+            )
         } else {
             Err(AttestorError::AgentNotFound(agent_id.to_string()))
         }

@@ -19,37 +19,32 @@
 //  10. Check convergence (KEP detection - plateau vs explosion)
 //  11. Increment counter and persist (Redis via Synapse)
 
-pub mod types;
 pub mod blueprints;
-pub mod evaluation;
 pub mod convergence;
-pub mod proof_chain;
+pub mod evaluation;
 pub mod loop_engine;
+pub mod proof_chain;
+pub mod step9_implementation;
+pub mod types;
 
 // Re-export core types for convenience
 pub use types::{
-    AutopoieticConfig, AutopoieticStatus, AutopoieticError,
-    GenerationPerformance, KEPState, KEPProgress, KEPThresholds,
+    AutopoieticConfig, AutopoieticError, AutopoieticStatus, GenerationPerformance, KEPProgress,
+    KEPState, KEPThresholds,
 };
 
 pub use blueprints::{
-    AgentBlueprint, AgentTeam, CapabilitySlot, ImprovementGenome,
-    PromptMutation, RoutingPreferences, FitnessCriterion,
+    AgentBlueprint, AgentTeam, CapabilitySlot, FitnessCriterion, ImprovementGenome, PromptMutation,
+    RoutingPreferences,
 };
 
 pub use evaluation::{
-    OperationMonitor, EvaluationResult, OperationalMetrics,
-    EnvironmentMetrics, EconomicMetrics, EthicalMetrics,
+    EconomicMetrics, EnvironmentMetrics, EthicalMetrics, EvaluationResult, OperationMonitor,
+    OperationalMetrics,
 };
 
-pub use convergence::{
-    ConvergenceDetector, ConvergenceMetrics, ConvergenceState,
-};
+pub use convergence::{ConvergenceDetector, ConvergenceMetrics, ConvergenceState};
 
-pub use proof_chain::{
-    ProofChain, ProofNode, EvolutionProof, BlockchainAnchor,
-};
+pub use proof_chain::{BlockchainAnchor, EvolutionProof, ProofChain, ProofNode};
 
-pub use loop_engine::{
-    AutopoieticLoop, AutopoieticEvent, LoopControl,
-};
+pub use loop_engine::{AutopoieticEvent, AutopoieticLoop, LoopControl};

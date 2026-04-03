@@ -138,7 +138,11 @@ impl ReceiptAnchor {
     }
 
     /// Build anchor result from chain receipt
-    fn build_anchor_result(&self, receipt_id: &str, chain_receipt: TransactionReceipt) -> AnchorResult {
+    fn build_anchor_result(
+        &self,
+        receipt_id: &str,
+        chain_receipt: TransactionReceipt,
+    ) -> AnchorResult {
         // Compute chain receipt hash for verification
         let chain_receipt_hash = {
             let content = format!(
@@ -194,7 +198,15 @@ pub async fn anchor_receipt(
 ) -> Result<AnchorResult> {
     let chain = get_chain().await?;
     let anchor = ReceiptAnchor::new(chain);
-    anchor.anchor_by_id(receipt_id, receipt_type, integrity_hash, ihsan_score, sat_approvers).await
+    anchor
+        .anchor_by_id(
+            receipt_id,
+            receipt_type,
+            integrity_hash,
+            ihsan_score,
+            sat_approvers,
+        )
+        .await
 }
 
 /// Record an Ihsan score to the chain
@@ -228,7 +240,11 @@ pub async fn cast_sat_vote(
     let tx = BizraTransaction::CastVote {
         proposal_id: proposal_id.to_string(),
         validator_id: validator_id.to_string(),
-        vote: if approve { "Approve".to_string() } else { "Reject".to_string() },
+        vote: if approve {
+            "Approve".to_string()
+        } else {
+            "Reject".to_string()
+        },
         rejection_code: rejection_code.map(|s| s.to_string()),
     };
 
@@ -261,14 +277,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_anchor_receipt() {
-        let result = anchor_receipt(
-            "EXEC-20260123-001",
-            "Execution",
-            "sha256:abc123",
-            0.97,
-            4,
-        )
-        .await;
+        let result =
+            anchor_receipt("EXEC-20260123-001", "Execution", "sha256:abc123", 0.97, 4).await;
 
         assert!(result.is_ok());
         let anchor = result.unwrap();
@@ -290,13 +300,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_cast_sat_vote() {
-        let result = cast_sat_vote(
-            "PROP-001",
-            "poi_verifier",
-            true,
-            None,
-        )
-        .await;
+        let result = cast_sat_vote("PROP-001", "poi_verifier", true, None).await;
 
         assert!(result.is_ok());
         let receipt = result.unwrap();
@@ -306,13 +310,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_register_agent() {
-        let result = register_agent(
-            "master_reasoner",
-            "PAT",
-            "MasterReasoner",
-            1000,
-        )
-        .await;
+        let result = register_agent("master_reasoner", "PAT", "MasterReasoner", 1000).await;
 
         assert!(result.is_ok());
         let receipt = result.unwrap();
@@ -328,13 +326,7 @@ mod tests {
         let anchor = ReceiptAnchor::new(chain);
 
         let result = anchor
-            .anchor_by_id(
-                "REJ-20260123-001",
-                "Rejection",
-                "sha256:def456",
-                0.0,
-                1,
-            )
+            .anchor_by_id("REJ-20260123-001", "Rejection", "sha256:def456", 0.0, 1)
             .await;
 
         assert!(result.is_ok());

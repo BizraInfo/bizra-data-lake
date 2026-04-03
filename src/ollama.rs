@@ -2,7 +2,7 @@
 //
 // Connects to local Ollama instance for:
 // - Text generation (generate endpoint)
-// - Chat completion (chat endpoint)  
+// - Chat completion (chat endpoint)
 // - Embeddings generation (embeddings endpoint)
 //
 // Environment variables:
@@ -10,7 +10,9 @@
 // - OLLAMA_MODEL: Default model (default: llama3.2)
 
 use lazy_static::lazy_static;
-use prometheus::{register_counter_vec, register_gauge, register_histogram_vec, CounterVec, Gauge, HistogramVec};
+use prometheus::{
+    register_counter_vec, register_gauge, register_histogram_vec, CounterVec, Gauge, HistogramVec,
+};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -37,7 +39,7 @@ lazy_static! {
         "Total Ollama API requests",
         &["endpoint", "model", "result"]  // generate/chat/embeddings, model name, success/error
     ).unwrap();
-    
+
     /// Ollama generation latency
     pub static ref OLLAMA_LATENCY: HistogramVec = register_histogram_vec!(
         "bizra_ollama_latency_seconds",
@@ -45,13 +47,13 @@ lazy_static! {
         &["endpoint", "model"],
         vec![0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0]
     ).unwrap();
-    
+
     /// Ollama connection status
     pub static ref OLLAMA_CONNECTED: Gauge = register_gauge!(
         "bizra_ollama_connected",
         "Ollama connection status (1=connected, 0=disconnected)"
     ).unwrap();
-    
+
     /// Ollama tokens generated
     pub static ref OLLAMA_TOKENS: CounterVec = register_counter_vec!(
         "bizra_ollama_tokens_total",
@@ -79,16 +81,16 @@ pub async fn get_ollama() -> Arc<OllamaClient> {
 pub enum OllamaError {
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
-    
+
     #[error("Invalid response: {0}")]
     InvalidResponse(String),
-    
+
     #[error("Model not found: {0}")]
     ModelNotFound(String),
-    
+
     #[error("Connection failed: {0}")]
     ConnectionFailed(String),
-    
+
     #[error("Generation timeout")]
     Timeout,
 }
@@ -96,21 +98,30 @@ pub enum OllamaError {
 /// Chat message for Ollama chat API
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
-    pub role: String,  // system, user, assistant
+    pub role: String, // system, user, assistant
     pub content: String,
 }
 
 impl ChatMessage {
     pub fn system(content: impl Into<String>) -> Self {
-        Self { role: "system".to_string(), content: content.into() }
+        Self {
+            role: "system".to_string(),
+            content: content.into(),
+        }
     }
-    
+
     pub fn user(content: impl Into<String>) -> Self {
-        Self { role: "user".to_string(), content: content.into() }
+        Self {
+            role: "user".to_string(),
+            content: content.into(),
+        }
     }
-    
+
     pub fn assistant(content: impl Into<String>) -> Self {
-        Self { role: "assistant".to_string(), content: content.into() }
+        Self {
+            role: "assistant".to_string(),
+            content: content.into(),
+        }
     }
 }
 
@@ -200,7 +211,7 @@ impl OllamaClient {
             .timeout(REQUEST_TIMEOUT)
             .build()
             .expect("Failed to create HTTP client");
-        
+
         Self {
             base_url,
             default_model,
@@ -208,16 +219,16 @@ impl OllamaClient {
             connected: false,
         }
     }
-    
+
     /// Create client from environment variables
     pub async fn from_env() -> Self {
-        let base_url = std::env::var("OLLAMA_URL")
-            .unwrap_or_else(|_| DEFAULT_OLLAMA_URL.to_string());
-        let default_model = std::env::var("OLLAMA_MODEL")
-            .unwrap_or_else(|_| DEFAULT_MODEL.to_string());
-        
+        let base_url =
+            std::env::var("OLLAMA_URL").unwrap_or_else(|_| DEFAULT_OLLAMA_URL.to_string());
+        let default_model =
+            std::env::var("OLLAMA_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
+
         let mut client = Self::new(base_url.clone(), default_model);
-        
+
         // Test connection
         match client.health_check().await {
             Ok(_) => {
@@ -231,48 +242,49 @@ impl OllamaClient {
                 OLLAMA_CONNECTED.set(0.0);
             }
         }
-        
+
         client
     }
-    
+
     /// Check if Ollama is connected
     pub fn is_connected(&self) -> bool {
         self.connected
     }
-    
+
     /// Health check - verify Ollama is running
     #[instrument(skip(self))]
     pub async fn health_check(&self) -> Result<(), OllamaError> {
         let url = format!("{}/api/tags", self.base_url);
-        
+
         let resp = self.http.get(&url).send().await?;
-        
+
         if resp.status().is_success() {
             Ok(())
         } else {
             Err(OllamaError::ConnectionFailed(format!(
-                "Status: {}", resp.status()
+                "Status: {}",
+                resp.status()
             )))
         }
     }
-    
+
     /// List available models
     #[instrument(skip(self))]
     pub async fn list_models(&self) -> Result<Vec<ModelInfo>, OllamaError> {
         let url = format!("{}/api/tags", self.base_url);
-        
+
         let resp = self.http.get(&url).send().await?;
         let data: serde_json::Value = resp.json().await?;
-        
+
         let models: Vec<ModelInfo> = data
             .get("models")
             .and_then(|m| serde_json::from_value(m.clone()).ok())
             .unwrap_or_default();
-        
+
         debug!("Found {} Ollama models", models.len());
         Ok(models)
     }
-    
+
     /// Generate text completion
     #[instrument(skip(self, options))]
     pub async fn generate(
@@ -284,13 +296,13 @@ impl OllamaClient {
         let start = Instant::now();
         let model = model.unwrap_or(&self.default_model);
         let url = format!("{}/api/generate", self.base_url);
-        
+
         let mut body = serde_json::json!({
             "model": model,
             "prompt": prompt,
             "stream": false,
         });
-        
+
         // Apply options
         if let Some(opts) = options {
             let mut options_map = serde_json::Map::new();
@@ -322,35 +334,40 @@ impl OllamaClient {
                 body["stop"] = serde_json::json!(stop);
             }
         }
-        
+
         debug!("Calling Ollama generate: model={}", model);
-        
+
         let resp = self.http.post(&url).json(&body).send().await?;
         let latency = start.elapsed();
-        
+
         OLLAMA_LATENCY
             .with_label_values(&["generate", model])
             .observe(latency.as_secs_f64());
-        
+
         if !resp.status().is_success() {
             let status = resp.status();
             let error_text = resp.text().await.unwrap_or_default();
-            OLLAMA_REQUESTS.with_label_values(&["generate", model, "error"]).inc();
-            
+            OLLAMA_REQUESTS
+                .with_label_values(&["generate", model, "error"])
+                .inc();
+
             if error_text.contains("model") && error_text.contains("not found") {
                 return Err(OllamaError::ModelNotFound(model.to_string()));
             }
-            
+
             return Err(OllamaError::InvalidResponse(format!(
-                "Status {}: {}", status, error_text
+                "Status {}: {}",
+                status, error_text
             )));
         }
-        
+
         let response: GenerateResponse = resp.json().await?;
-        
+
         // Record metrics
-        OLLAMA_REQUESTS.with_label_values(&["generate", model, "success"]).inc();
-        
+        OLLAMA_REQUESTS
+            .with_label_values(&["generate", model, "success"])
+            .inc();
+
         if let Some(prompt_tokens) = response.prompt_eval_count {
             OLLAMA_TOKENS
                 .with_label_values(&["prompt", model])
@@ -361,16 +378,16 @@ impl OllamaClient {
                 .with_label_values(&["completion", model])
                 .inc_by(completion_tokens as f64);
         }
-        
+
         debug!(
             "Ollama generate completed in {:.2}s, {} tokens",
             latency.as_secs_f64(),
             response.eval_count.unwrap_or(0)
         );
-        
+
         Ok(response)
     }
-    
+
     /// Chat completion with message history
     #[instrument(skip(self, messages, options))]
     pub async fn chat(
@@ -382,13 +399,13 @@ impl OllamaClient {
         let start = Instant::now();
         let model = model.unwrap_or(&self.default_model);
         let url = format!("{}/api/chat", self.base_url);
-        
+
         let mut body = serde_json::json!({
             "model": model,
             "messages": messages,
             "stream": false,
         });
-        
+
         // Apply options
         if let Some(opts) = options {
             let mut options_map = serde_json::Map::new();
@@ -411,30 +428,39 @@ impl OllamaClient {
                 body["options"] = serde_json::Value::Object(options_map);
             }
         }
-        
-        debug!("Calling Ollama chat: model={}, messages={}", model, messages.len());
-        
+
+        debug!(
+            "Calling Ollama chat: model={}, messages={}",
+            model,
+            messages.len()
+        );
+
         let resp = self.http.post(&url).json(&body).send().await?;
         let latency = start.elapsed();
-        
+
         OLLAMA_LATENCY
             .with_label_values(&["chat", model])
             .observe(latency.as_secs_f64());
-        
+
         if !resp.status().is_success() {
             let status = resp.status();
             let error_text = resp.text().await.unwrap_or_default();
-            OLLAMA_REQUESTS.with_label_values(&["chat", model, "error"]).inc();
-            
+            OLLAMA_REQUESTS
+                .with_label_values(&["chat", model, "error"])
+                .inc();
+
             return Err(OllamaError::InvalidResponse(format!(
-                "Status {}: {}", status, error_text
+                "Status {}: {}",
+                status, error_text
             )));
         }
-        
+
         let response: ChatResponse = resp.json().await?;
-        
-        OLLAMA_REQUESTS.with_label_values(&["chat", model, "success"]).inc();
-        
+
+        OLLAMA_REQUESTS
+            .with_label_values(&["chat", model, "success"])
+            .inc();
+
         if let Some(prompt_tokens) = response.prompt_eval_count {
             OLLAMA_TOKENS
                 .with_label_values(&["prompt", model])
@@ -445,15 +471,12 @@ impl OllamaClient {
                 .with_label_values(&["completion", model])
                 .inc_by(completion_tokens as f64);
         }
-        
-        debug!(
-            "Ollama chat completed in {:.2}s",
-            latency.as_secs_f64()
-        );
-        
+
+        debug!("Ollama chat completed in {:.2}s", latency.as_secs_f64());
+
         Ok(response)
     }
-    
+
     /// Generate embeddings for text
     #[instrument(skip(self, input))]
     pub async fn embeddings(
@@ -464,58 +487,67 @@ impl OllamaClient {
         let start = Instant::now();
         let model = model.unwrap_or("nomic-embed-text"); // Default embedding model
         let url = format!("{}/api/embed", self.base_url);
-        
+
         let body = serde_json::json!({
             "model": model,
             "input": input,
         });
-        
-        debug!("Calling Ollama embeddings: model={}, inputs={}", model, input.len());
-        
+
+        debug!(
+            "Calling Ollama embeddings: model={}, inputs={}",
+            model,
+            input.len()
+        );
+
         let resp = self.http.post(&url).json(&body).send().await?;
         let latency = start.elapsed();
-        
+
         OLLAMA_LATENCY
             .with_label_values(&["embeddings", model])
             .observe(latency.as_secs_f64());
-        
+
         if !resp.status().is_success() {
             let status = resp.status();
             let error_text = resp.text().await.unwrap_or_default();
-            OLLAMA_REQUESTS.with_label_values(&["embeddings", model, "error"]).inc();
-            
+            OLLAMA_REQUESTS
+                .with_label_values(&["embeddings", model, "error"])
+                .inc();
+
             return Err(OllamaError::InvalidResponse(format!(
-                "Status {}: {}", status, error_text
+                "Status {}: {}",
+                status, error_text
             )));
         }
-        
+
         let response: EmbeddingsResponse = resp.json().await?;
-        
-        OLLAMA_REQUESTS.with_label_values(&["embeddings", model, "success"]).inc();
-        
+
+        OLLAMA_REQUESTS
+            .with_label_values(&["embeddings", model, "success"])
+            .inc();
+
         debug!(
             "Ollama embeddings completed in {:.2}s, {} vectors",
             latency.as_secs_f64(),
             response.embeddings.len()
         );
-        
+
         Ok(response)
     }
-    
+
     /// Pull a model from Ollama registry
     #[instrument(skip(self))]
     pub async fn pull_model(&self, model: &str) -> Result<(), OllamaError> {
         let url = format!("{}/api/pull", self.base_url);
-        
+
         info!("📥 Pulling Ollama model: {}", model);
-        
+
         let body = serde_json::json!({
             "name": model,
             "stream": false,
         });
-        
+
         let resp = self.http.post(&url).json(&body).send().await?;
-        
+
         if resp.status().is_success() {
             info!("✅ Model {} pulled successfully", model);
             Ok(())
@@ -524,7 +556,7 @@ impl OllamaClient {
             Err(OllamaError::InvalidResponse(error))
         }
     }
-    
+
     /// Get BIZRA-optimized system prompt
     pub fn bizra_system_prompt() -> String {
         r#"You are an AI assistant operating within the BIZRA META ALPHA ELITE system.
@@ -544,9 +576,10 @@ RESPONSE GUIDELINES:
 - Be concise yet comprehensive
 - Structure complex answers clearly
 - Cite sources when possible
-- Flag any limitations or uncertainties"#.to_string()
+- Flag any limitations or uncertainties"#
+            .to_string()
     }
-    
+
     /// Execute BIZRA-enhanced generation with SAPE integration
     #[instrument(skip(self))]
     pub async fn bizra_generate(
@@ -556,7 +589,7 @@ RESPONSE GUIDELINES:
     ) -> Result<GenerateResponse, OllamaError> {
         let system_prompt = Self::bizra_system_prompt();
         let full_prompt = format!("{}\n\nUser Query:\n{}", system_prompt, prompt);
-        
+
         let options = GenerationOptions {
             temperature: Some(0.7),
             top_p: Some(0.9),
@@ -564,10 +597,10 @@ RESPONSE GUIDELINES:
             repeat_penalty: Some(1.1),
             ..Default::default()
         };
-        
+
         self.generate(&full_prompt, model, Some(options)).await
     }
-    
+
     /// Execute BIZRA-enhanced chat with context
     #[instrument(skip(self, history))]
     pub async fn bizra_chat(
@@ -579,14 +612,14 @@ RESPONSE GUIDELINES:
         let mut messages = vec![ChatMessage::system(Self::bizra_system_prompt())];
         messages.extend(history);
         messages.push(ChatMessage::user(user_message));
-        
+
         let options = GenerationOptions {
             temperature: Some(0.7),
             top_p: Some(0.9),
             num_predict: Some(DEFAULT_MAX_TOKENS),
             ..Default::default()
         };
-        
+
         self.chat(messages, model, Some(options)).await
     }
 }
@@ -597,19 +630,19 @@ RESPONSE GUIDELINES:
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_chat_message_construction() {
         let system = ChatMessage::system("You are helpful");
         assert_eq!(system.role, "system");
-        
+
         let user = ChatMessage::user("Hello");
         assert_eq!(user.role, "user");
-        
+
         let assistant = ChatMessage::assistant("Hi there!");
         assert_eq!(assistant.role, "assistant");
     }
-    
+
     #[test]
     fn test_generation_options() {
         let opts = GenerationOptions {
@@ -618,33 +651,30 @@ mod tests {
             num_predict: Some(1024),
             ..Default::default()
         };
-        
+
         assert_eq!(opts.temperature, Some(0.8));
         assert!(opts.seed.is_none());
     }
-    
+
     #[test]
     fn test_bizra_system_prompt() {
         let prompt = OllamaClient::bizra_system_prompt();
-        
+
         assert!(prompt.contains("IHSĀN"));
         assert!(prompt.contains("SAT"));
         assert!(prompt.contains("0.92"));
     }
-    
+
     // test_fallback_response removed - no fallback simulation in production
-    
+
     #[tokio::test]
     async fn test_client_from_env() {
         // This tests the client creation, not actual connection
         std::env::set_var("OLLAMA_URL", "http://test:11434");
         std::env::set_var("OLLAMA_MODEL", "test-model");
-        
-        let client = OllamaClient::new(
-            "http://test:11434".to_string(),
-            "test-model".to_string(),
-        );
-        
+
+        let client = OllamaClient::new("http://test:11434".to_string(), "test-model".to_string());
+
         assert_eq!(client.default_model, "test-model");
         assert!(!client.is_connected()); // Won't be connected in tests
     }

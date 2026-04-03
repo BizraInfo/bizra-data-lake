@@ -40,6 +40,28 @@ use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
 // ============================================================================
+// WISDOM FEEDBACK TYPES
+// ============================================================================
+
+/// Feedback from WisdomStore to adjust thermal energy landscape
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WisdomFeedback {
+    pub pattern_name: String,
+    pub effectiveness: f64,
+    pub context_vector: Vec<f64>,
+    pub generation: u64,
+}
+
+/// Record of gradient adjustment from wisdom feedback
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GradientAdjustment {
+    pub dimension: String,
+    pub old_weight: f64,
+    pub new_weight: f64,
+    pub reason: String,
+}
+
+// ============================================================================
 // THERMAL CONSCIOUSNESS ENGINE
 // ============================================================================
 
@@ -305,7 +327,9 @@ impl ThermalConsciousness {
         assert_eq!(gradient.len(), self.state.len());
 
         self.time_step += 1;
-        self.temperature = self.calculate_temperature().max(self.config.min_temperature);
+        self.temperature = self
+            .calculate_temperature()
+            .max(self.config.min_temperature);
         self.energy = energy;
 
         // Track best solution
@@ -401,6 +425,46 @@ impl ThermalConsciousness {
         self.time_step = 0;
         self.lyapunov_value = f64::MAX;
     }
+
+    /// Absorb feedback from WisdomStore to adjust energy landscape
+    /// Bounded: max ±10% adjustment per generation to prevent runaway
+    ///
+    /// # Arguments
+    /// * `feedback` - Slice of wisdom feedback from historical patterns
+    ///
+    /// # Returns
+    /// Vector of gradient adjustments applied to the energy landscape
+    ///
+    /// # Theory
+    /// High-performing patterns (effectiveness > 0.95) reduce energy barriers,
+    /// making it easier for the system to follow proven paths. This implements
+    /// a form of "crystallization" where the energy landscape adapts to
+    /// successful trajectories discovered by the wisdom system.
+    pub fn absorb_wisdom_feedback(&mut self, feedback: &[WisdomFeedback]) -> Vec<GradientAdjustment> {
+        let mut adjustments = Vec::new();
+
+        for fb in feedback {
+            if fb.effectiveness > 0.95 {
+                // High-performing pattern: reduce energy in that direction
+                // (make it easier to follow proven paths)
+                let adjustment_factor = (fb.effectiveness - 0.95) * 2.0; // 0.0 to 0.1
+                let clamped = adjustment_factor.clamp(-0.10, 0.10); // ±10% max
+
+                // Record the adjustment
+                adjustments.push(GradientAdjustment {
+                    dimension: fb.pattern_name.clone(),
+                    old_weight: self.energy,
+                    new_weight: self.energy * (1.0 - clamped),
+                    reason: format!("Wisdom feedback: pattern '{}' effectiveness {:.3}", fb.pattern_name, fb.effectiveness),
+                });
+
+                // Apply bounded adjustment to energy
+                self.energy *= 1.0 - clamped;
+            }
+        }
+
+        adjustments
+    }
 }
 
 // ============================================================================
@@ -434,8 +498,7 @@ pub struct Reconciler {
 }
 
 /// Operating modes for PAT↔SAT coordination
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ReconcilerMode {
     /// Exploration mode: High temperature, PAT-dominant
     /// - More creative, exploratory responses
@@ -461,7 +524,6 @@ pub enum ReconcilerMode {
     /// - Stable equilibrium point
     Balanced,
 }
-
 
 impl Reconciler {
     /// Create new reconciler with stability guarantees

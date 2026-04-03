@@ -7,6 +7,7 @@
 // - Audit trail generation
 
 use crate::autopoietic::types::GenerationPerformance;
+use crate::merkle::MerkleTree;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -60,7 +61,8 @@ impl ProofChain {
     /// Append a new generation to the proof chain
     pub fn append(&mut self, generation: u64, performance: &GenerationPerformance) -> ProofNode {
         // Get previous hash
-        let previous_hash = self.head
+        let previous_hash = self
+            .head
             .and_then(|gen| self.nodes.get(&gen))
             .map(|node| node.hash.clone())
             .unwrap_or_else(|| self.genesis_hash.clone());
@@ -132,7 +134,8 @@ impl ProofChain {
         }
 
         let is_valid = errors.is_empty();
-        let chain_hash = self.head
+        let chain_hash = self
+            .head
             .and_then(|gen| self.nodes.get(&gen))
             .map(|n| n.hash.clone())
             .unwrap_or_else(|| self.genesis_hash.clone());
@@ -198,21 +201,25 @@ impl ProofChain {
         })
     }
 
-    /// Compute Merkle root for a range
+    /// Compute Merkle root for a range using proper Merkle tree
     fn compute_path_hash(&self, from_gen: u64, to_gen: u64) -> String {
-        let hashes: Vec<String> = (from_gen..=to_gen)
+        let hashes: Vec<Vec<u8>> = (from_gen..=to_gen)
             .filter_map(|gen| self.nodes.get(&gen))
-            .map(|n| n.hash.clone())
+            .map(|n| n.hash.as_bytes().to_vec())
             .collect();
 
         if hashes.is_empty() {
             return "empty".to_string();
         }
 
-        // Simple Merkle root computation
-        let combined = hashes.join("|");
-        let hash = Sha256::digest(combined.as_bytes());
-        format!("merkle:{:x}", hash)
+        let tree = MerkleTree::build(&hashes);
+        let root = tree.root();
+        format!("merkle:{}", Self::hex_encode(&root))
+    }
+
+    /// Helper to encode bytes as hex string
+    fn hex_encode(bytes: &[u8]) -> String {
+        bytes.iter().map(|b| format!("{:02x}", b)).collect()
     }
 
     /// Get pending anchors (generations not yet anchored to blockchain)
@@ -236,9 +243,102 @@ impl ProofChain {
         );
     }
 
+    /// Batch verify all pending anchors using Merkle tree
+    pub fn batch_verify_pending(&self) -> BatchVerificationResult {
+        if self.pending_anchors.is_empty() {
+            return BatchVerificationResult {
+                merkle_root: "empty".to_string(),
+                verified_count: 0,
+                proofs: vec![],
+            };
+        }
+
+        // Collect hashes of all pending anchors
+        let hashes: Vec<Vec<u8>> = self
+            .pending_anchors
+            .iter()
+            .filter_map(|gen| self.nodes.get(gen))
+            .map(|n| n.hash.as_bytes().to_vec())
+            .collect();
+
+        if hashes.is_empty() {
+            return BatchVerificationResult {
+                merkle_root: "empty".to_string(),
+                verified_count: 0,
+                proofs: vec![],
+            };
+        }
+
+        // Build Merkle tree
+        let tree = MerkleTree::build(&hashes);
+        let root = tree.root();
+
+        // Generate proofs for each pending anchor
+        let mut proofs = Vec::new();
+        for (idx, gen) in self.pending_anchors.iter().enumerate() {
+            if let Some(proof) = tree.proof(idx) {
+                proofs.push((*gen, proof));
+            }
+        }
+
+        info!(
+            pending = self.pending_anchors.len(),
+            verified = proofs.len(),
+            merkle_root = %Self::hex_encode(&root),
+            "🌳 Batch verified pending anchors"
+        );
+
+        BatchVerificationResult {
+            merkle_root: format!("merkle:{}", Self::hex_encode(&root)),
+            verified_count: proofs.len(),
+            proofs,
+        }
+    }
+
+    /// Anchor multiple generations with Merkle proof
+    pub fn anchor_with_merkle_proof(
+        &mut self,
+        generations: &[u64],
+        anchor: BlockchainAnchor,
+    ) -> String {
+        // Collect hashes from specified generations
+        let hashes: Vec<Vec<u8>> = generations
+            .iter()
+            .filter_map(|gen| self.nodes.get(gen))
+            .map(|n| n.hash.as_bytes().to_vec())
+            .collect();
+
+        if hashes.is_empty() {
+            return "empty".to_string();
+        }
+
+        // Build Merkle tree
+        let tree = MerkleTree::build(&hashes);
+        let root = tree.root();
+        let merkle_root = format!("merkle:{}", Self::hex_encode(&root));
+
+        // Mark as anchored (same as mark_anchored)
+        for gen in generations {
+            if let Some(node) = self.nodes.get_mut(gen) {
+                node.blockchain_anchor = Some(anchor.clone());
+            }
+        }
+        self.pending_anchors.retain(|g| !generations.contains(g));
+
+        info!(
+            anchored = generations.len(),
+            remaining = self.pending_anchors.len(),
+            merkle_root = %merkle_root,
+            "⛓️ Anchored generations with Merkle proof"
+        );
+
+        merkle_root
+    }
+
     /// Export chain summary for external verification
     pub fn export_summary(&self) -> ChainSummary {
-        let mut node_summaries: Vec<NodeSummary> = self.nodes
+        let mut node_summaries: Vec<NodeSummary> = self
+            .nodes
             .iter()
             .map(|(gen, node)| NodeSummary {
                 generation: *gen,
@@ -466,6 +566,19 @@ pub struct ChainSummary {
     pub pending_anchors: usize,
 }
 
+/// Result of batch verification using Merkle tree
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchVerificationResult {
+    /// Merkle root of all verified anchors
+    pub merkle_root: String,
+
+    /// Number of anchors verified
+    pub verified_count: usize,
+
+    /// Individual Merkle proofs for each generation
+    pub proofs: Vec<(u64, crate::merkle::MerkleProof)>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -566,6 +679,66 @@ mod tests {
         chain.mark_anchored(&[1, 2, 3], anchor);
         assert!(chain.pending_anchors().is_empty());
 
+        let summary = chain.export_summary();
+        assert!(summary.nodes.iter().all(|n| n.anchored));
+    }
+
+    #[test]
+    fn test_batch_verify_with_merkle() {
+        let mut chain = ProofChain::new();
+
+        // Create 10 generations
+        for i in 1..=10 {
+            let perf = make_performance(i, 0.95 + (i as f64 * 0.001));
+            chain.append(i, &perf);
+        }
+
+        // All generations should be pending
+        assert_eq!(chain.pending_anchors().len(), 10);
+
+        // Batch verify using Merkle tree
+        let batch_result = chain.batch_verify_pending();
+        assert_eq!(batch_result.verified_count, 10);
+        assert!(batch_result.merkle_root.starts_with("merkle:"));
+        assert_eq!(batch_result.proofs.len(), 10);
+
+        // Verify each individual proof
+        use crate::merkle::MerkleTree;
+
+        let hashes: Vec<Vec<u8>> = chain
+            .pending_anchors()
+            .iter()
+            .filter_map(|gen| chain.get(*gen))
+            .map(|n| n.hash.as_bytes().to_vec())
+            .collect();
+
+        let tree = MerkleTree::build(&hashes);
+        let root = tree.root();
+
+        for (gen, proof) in &batch_result.proofs {
+            let node = chain.get(*gen).unwrap();
+            let leaf_data = node.hash.as_bytes();
+            assert!(
+                MerkleTree::verify(&root, leaf_data, proof),
+                "Proof verification failed for generation {}",
+                gen
+            );
+        }
+
+        // Test anchor_with_merkle_proof
+        let anchor = BlockchainAnchor {
+            chain: "bizra-native".to_string(),
+            tx_hash: "0xmerkle123".to_string(),
+            block_number: 99999,
+            anchored_at: Utc::now(),
+            generations: (1..=10).collect(),
+        };
+
+        let merkle_root = chain.anchor_with_merkle_proof(&(1..=10).collect::<Vec<_>>(), anchor);
+        assert!(merkle_root.starts_with("merkle:"));
+        assert!(chain.pending_anchors().is_empty());
+
+        // Verify all nodes are now anchored
         let summary = chain.export_summary();
         assert!(summary.nodes.iter().all(|n| n.anchored));
     }

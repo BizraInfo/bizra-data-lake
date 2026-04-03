@@ -323,8 +323,8 @@ pub fn current_env() -> String {
     constitution().default_env().to_string()
 }
 
-/// Ihsān enforcement is ALWAYS enabled per constitution (threshold: 0.95 in all environments)
-/// The constitution mandates ethical validation in development, CI, and production equally.
+/// Ihsān enforcement is ALWAYS enabled per constitution (thresholds set by env + artifact class).
+/// The constitution mandates ethical validation in development, CI, and production with no bypass.
 /// Removing dev bypass aligns implementation with constitutional requirements.
 pub fn should_enforce() -> bool {
     // SECURITY: Constitution mandates 0.95 threshold in ALL environments

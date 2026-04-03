@@ -80,7 +80,7 @@ impl FATECoordinator {
             synapse: None,
         }
     }
-    
+
     /// Create with Redis persistence
     pub fn with_synapse(synapse: SynapseClient) -> Self {
         info!("⚖️  Initializing FATE with Redis persistence");
@@ -89,7 +89,7 @@ impl FATECoordinator {
             synapse: Some(synapse),
         }
     }
-    
+
     /// Create from environment (hard fail if Redis unavailable to avoid fake persistence)
     pub async fn from_env() -> anyhow::Result<Self> {
         let synapse = crate::synapse::SynapseClient::from_env().await?;
@@ -98,6 +98,54 @@ impl FATECoordinator {
         }
         info!("⚖️  FATE connected to Redis for persistent escalations");
         Ok(Self::with_synapse(synapse))
+    }
+
+    /// Write escalation to Write-Ahead Log (WAL) for durability
+    fn write_wal(&self, escalation: &Escalation) -> Result<(), std::io::Error> {
+        let wal_path = std::path::Path::new("docs/evidence/receipts/fate/wal.jsonl");
+        if let Some(parent) = wal_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(wal_path)?;
+        let line = serde_json::to_string(escalation).unwrap_or_default();
+        use std::io::Write;
+        writeln!(file, "{}", line)?;
+        Ok(())
+    }
+
+    /// Recover pending escalations from WAL
+    pub fn recover_pending_escalations(&mut self) -> Vec<Escalation> {
+        let wal_path = std::path::Path::new("docs/evidence/receipts/fate/wal.jsonl");
+
+        if !wal_path.exists() {
+            return Vec::new();
+        }
+
+        match std::fs::read_to_string(wal_path) {
+            Ok(contents) => {
+                let mut recovered = Vec::new();
+                for line in contents.lines() {
+                    if let Ok(escalation) = serde_json::from_str::<Escalation>(line) {
+                        // Only recover escalations that are still pending
+                        if escalation.status == EscalationStatus::Pending {
+                            recovered.push(escalation);
+                        }
+                    }
+                }
+                info!(
+                    "🔄 Recovered {} pending escalations from WAL",
+                    recovered.len()
+                );
+                recovered
+            }
+            Err(e) => {
+                warn!("Failed to read WAL for recovery: {}", e);
+                Vec::new()
+            }
+        }
     }
 
     /// Escalate a SAT rejection through FATE
@@ -131,9 +179,10 @@ impl FATECoordinator {
             })
             .collect();
 
-        let primary_rejection = rejection_codes.first().cloned().unwrap_or_else(|| {
-            RejectionCode::ConsistencyFailure("Unknown rejection".to_string())
-        });
+        let primary_rejection = rejection_codes
+            .first()
+            .cloned()
+            .unwrap_or_else(|| RejectionCode::ConsistencyFailure("Unknown rejection".to_string()));
 
         let reason = format!(
             "Task '{}' rejected by SAT: {}",
@@ -215,6 +264,15 @@ impl FATECoordinator {
 
         // Store pending escalations (not auto-resolved)
         if escalation.status == EscalationStatus::Pending {
+            // WAL: Write BEFORE Redis for durability
+            if let Err(e) = self.write_wal(&escalation) {
+                warn!(
+                    escalation_id = %escalation.id,
+                    "⚠️ Failed to write escalation to WAL: {}. Redis persistence will still be attempted.",
+                    e
+                );
+            }
+
             // Note: Redis persistence happens via async method persist_to_synapse()
             // Also keep in memory for fast access
             self.pending_escalations.push(escalation.clone());
@@ -222,7 +280,7 @@ impl FATECoordinator {
 
         escalation
     }
-    
+
     /// Persist escalation to Redis (call this separately if synapse is available)
     pub async fn persist_to_synapse(&self, escalation: &Escalation) -> Result<(), anyhow::Error> {
         if let Some(ref synapse) = self.synapse {
@@ -231,12 +289,12 @@ impl FATECoordinator {
         }
         Ok(())
     }
-    
+
     /// Get pending escalations from memory
     pub fn get_pending_escalations(&self) -> Vec<Escalation> {
         self.pending_escalations.clone()
     }
-    
+
     /// Pop next pending escalation for review (async for Redis)
     pub async fn pop_pending_escalation_async(&mut self) -> Option<Escalation> {
         if let Some(ref synapse) = self.synapse {
@@ -250,19 +308,27 @@ impl FATECoordinator {
         }
         self.pending_escalations.pop()
     }
-    
+
     /// Resolve an escalation with Redis persistence (async)
     pub async fn resolve_escalation_async(&mut self, escalation_id: &str, approved: bool) -> bool {
         if let Some(ref synapse) = self.synapse {
             let resolution = if approved { "approved" } else { "blocked" };
-            if synapse.resolve_escalation(escalation_id, resolution).await.is_ok() {
+            if synapse
+                .resolve_escalation(escalation_id, resolution)
+                .await
+                .is_ok()
+            {
                 self.pending_escalations.retain(|e| e.id != escalation_id);
                 return true;
             }
         }
-        
+
         // Fallback to memory-only resolution
-        if let Some(pos) = self.pending_escalations.iter().position(|e| e.id == escalation_id) {
+        if let Some(pos) = self
+            .pending_escalations
+            .iter()
+            .position(|e| e.id == escalation_id)
+        {
             let mut esc = self.pending_escalations.remove(pos);
             esc.status = if approved {
                 EscalationStatus::Approved
@@ -317,6 +383,15 @@ impl FATECoordinator {
             "⚠️ FATE IHSAN ESCALATION - Quality threshold not met"
         );
 
+        // WAL: Write BEFORE Redis for durability
+        if let Err(e) = self.write_wal(&escalation) {
+            warn!(
+                escalation_id = %id,
+                "⚠️ Failed to write Ihsān escalation to WAL: {}",
+                e
+            );
+        }
+
         self.pending_escalations.push(escalation.clone());
         escalation
     }
@@ -365,7 +440,11 @@ impl FATECoordinator {
     }
 
     /// Resolve an escalation (for future human-in-the-loop)
-    pub fn resolve_escalation(&mut self, id: &str, status: EscalationStatus) -> Option<&Escalation> {
+    pub fn resolve_escalation(
+        &mut self,
+        id: &str,
+        status: EscalationStatus,
+    ) -> Option<&Escalation> {
         if let Some(escalation) = self.pending_escalations.iter_mut().find(|e| e.id == id) {
             escalation.status = status;
             Some(escalation)
@@ -390,7 +469,7 @@ mod tests {
         let mut fate = FATECoordinator::new();
         let codes = vec![RejectionCode::SecurityThreat("SQL injection".to_string())];
         let escalation = fate.escalate_rejection(&codes, "test task", &HashMap::new());
-        
+
         assert_eq!(escalation.level, EscalationLevel::Critical);
         assert_eq!(escalation.source, "SAT");
         assert!(escalation.rejection_code.contains("SECURITY_THREAT"));
@@ -401,7 +480,7 @@ mod tests {
         let mut fate = FATECoordinator::new();
         let codes = vec![RejectionCode::Quarantine("uncertain intent".to_string())];
         let escalation = fate.escalate_rejection(&codes, "ambiguous task", &HashMap::new());
-        
+
         assert_eq!(escalation.level, EscalationLevel::High);
         assert_eq!(escalation.status, EscalationStatus::Pending);
     }
@@ -413,24 +492,24 @@ mod tests {
         let mut context = HashMap::new();
         context.insert("password".to_string(), "secret123".to_string());
         context.insert("user_input".to_string(), "normal_value".to_string());
-        
+
         let escalation = fate.escalate_rejection(&codes, "test", &context);
-        
-        assert_eq!(escalation.context.get("password"), Some(&"[REDACTED]".to_string()));
-        assert_eq!(escalation.context.get("user_input"), Some(&"normal_value".to_string()));
+
+        assert_eq!(
+            escalation.context.get("password"),
+            Some(&"[REDACTED]".to_string())
+        );
+        assert_eq!(
+            escalation.context.get("user_input"),
+            Some(&"normal_value".to_string())
+        );
     }
 
     #[test]
     fn test_ihsan_escalation() {
         let mut fate = FATECoordinator::new();
-        let escalation = fate.escalate_ihsan_failure(
-            "ci",
-            "docs",
-            0.75,
-            0.90,
-            &HashMap::new(),
-        );
-        
+        let escalation = fate.escalate_ihsan_failure("ci", "docs", 0.75, 0.90, &HashMap::new());
+
         assert_eq!(escalation.level, EscalationLevel::High);
         assert_eq!(escalation.source, "IHSAN");
         assert!(escalation.reason.contains("0.75"));

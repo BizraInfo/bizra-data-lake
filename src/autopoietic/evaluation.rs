@@ -371,7 +371,7 @@ impl IhsanAccumulators {
 #[derive(Debug, Clone, Default)]
 struct SAPEAccumulators {
     count: u64,
-    threat_scan: (u64, f64),      // (passed_count, score_sum)
+    threat_scan: (u64, f64), // (passed_count, score_sum)
     compliance: (u64, f64),
     bias: (u64, f64),
     user_benefit: (u64, f64),
@@ -573,7 +573,11 @@ impl EvaluationResult {
     }
 
     /// Convert to GenerationPerformance for storage
-    pub fn to_generation_performance(&self, proof_hash: &str, receipt_id: &str) -> GenerationPerformance {
+    pub fn to_generation_performance(
+        &self,
+        proof_hash: &str,
+        receipt_id: &str,
+    ) -> GenerationPerformance {
         GenerationPerformance {
             generation: self.generation,
             started_at: self.start_time,

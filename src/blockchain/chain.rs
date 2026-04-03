@@ -290,23 +290,14 @@ impl BizraChain {
                     name: "ReceiptAnchored".to_string(),
                     contract: self.config.contracts.receipt_registry.clone(),
                     data: HashMap::from([
-                        (
-                            "receiptId".to_string(),
-                            serde_json::json!(receipt_id),
-                        ),
-                        (
-                            "receiptType".to_string(),
-                            serde_json::json!(receipt_type),
-                        ),
+                        ("receiptId".to_string(), serde_json::json!(receipt_id)),
+                        ("receiptType".to_string(), serde_json::json!(receipt_type)),
                         (
                             "integrityHash".to_string(),
                             serde_json::json!(integrity_hash),
                         ),
                         ("ihsanScore".to_string(), serde_json::json!(ihsan_score)),
-                        (
-                            "satApprovers".to_string(),
-                            serde_json::json!(sat_approvers),
-                        ),
+                        ("satApprovers".to_string(), serde_json::json!(sat_approvers)),
                     ]),
                 }]
             }
@@ -337,14 +328,8 @@ impl BizraChain {
                     name: "VoteCast".to_string(),
                     contract: self.config.contracts.sat_consensus.clone(),
                     data: HashMap::from([
-                        (
-                            "proposalId".to_string(),
-                            serde_json::json!(proposal_id),
-                        ),
-                        (
-                            "validatorId".to_string(),
-                            serde_json::json!(validator_id),
-                        ),
+                        ("proposalId".to_string(), serde_json::json!(proposal_id)),
+                        ("validatorId".to_string(), serde_json::json!(validator_id)),
                         ("vote".to_string(), serde_json::json!(vote)),
                         (
                             "rejectionCode".to_string(),

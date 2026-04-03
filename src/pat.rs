@@ -14,7 +14,7 @@ use std::time::Instant;
 use tracing::{debug, info, instrument, warn};
 
 /// PAT Orchestrator with 7 specialized agents
-/// 
+///
 /// Enhanced with Model Router integration for capability-based routing:
 /// - Strategic agents use PrimaryReasoning slot (bizra-planner)
 /// - Quality agents use ColdCore slot (deepseek-r1) for deterministic verification
@@ -42,7 +42,7 @@ impl PATOrchestrator {
         // Check if Ollama is available
         let ollama_client = ollama::get_ollama().await;
         let llm_enabled = ollama_client.is_connected();
-        
+
         // Initialize Model Router for capability-based routing
         let router_enabled = match model_router::get_router().await {
             Ok(_) => {
@@ -50,11 +50,14 @@ impl PATOrchestrator {
                 true
             }
             Err(e) => {
-                warn!("⚠️ Model Router unavailable: {} - agents will use default model", e);
+                warn!(
+                    "⚠️ Model Router unavailable: {} - agents will use default model",
+                    e
+                );
                 false
             }
         };
-        
+
         if llm_enabled {
             info!("✅ Ollama LLM connected - PAT agents will use real reasoning");
         } else {
@@ -64,7 +67,7 @@ impl PATOrchestrator {
         // PAT Agent Definitions - UNIFIED NAMING CONVENTION
         // Names aligned with Python (core/agent_factory.py) and documentation (CLAUDE.md)
         // Using PascalCase for cross-language consistency and API contracts
-        // 
+        //
         // CAPABILITY SLOT ROUTING:
         // - Strategic/Planning agents → PrimaryReasoning (bizra-planner)
         // - Quality/Ethics agents → ColdCore (deepseek-r1) for deterministic verification
@@ -152,8 +155,15 @@ Apply Ihsān principles: excellence through harmonious integration."#.to_string(
             },
         ];
 
-        info!(agents_count = agents.len(), llm_enabled, router_enabled, "PAT agents initialized");
-        Ok(Self { agents, llm_enabled, router_enabled })
+        info!(
+            agents_count = agents.len(),
+            llm_enabled, router_enabled, "PAT agents initialized"
+        );
+        Ok(Self {
+            agents,
+            llm_enabled,
+            router_enabled,
+        })
     }
 
     /// Execute all agents in parallel (with LLM or fallback)
@@ -166,12 +176,13 @@ Apply Ihsān principles: excellence through harmonious integration."#.to_string(
         let start = Instant::now();
 
         // Execute agents concurrently using tokio::join_all
-        let agent_futures: Vec<_> = self.agents
+        let agent_futures: Vec<_> = self
+            .agents
             .iter()
             .map(|agent| self.execute_agent(agent, &request))
             .collect();
 
-        let results: Vec<Result<AgentResult, anyhow::Error>> = 
+        let results: Vec<Result<AgentResult, anyhow::Error>> =
             futures::future::join_all(agent_futures).await;
 
         // Collect successful results, log errors
@@ -203,7 +214,9 @@ Apply Ihsān principles: excellence through harmonious integration."#.to_string(
 
         // STRICT MODE: No simulation. Fail if LLM unavailable.
         if !self.llm_enabled {
-            return Err(anyhow::anyhow!("Ollama LLM unavailable - cannot provide real-time reasoning"));
+            return Err(anyhow::anyhow!(
+                "Ollama LLM unavailable - cannot provide real-time reasoning"
+            ));
         }
 
         // Try LLM-powered response
@@ -235,7 +248,8 @@ Apply Ihsān principles: excellence through harmonious integration."#.to_string(
         let context_str = if request.context.is_empty() {
             "No additional context".to_string()
         } else {
-            request.context
+            request
+                .context
                 .iter()
                 .map(|(k, v)| format!("{}: {}", k, v))
                 .collect::<Vec<_>>()
@@ -245,9 +259,7 @@ Apply Ihsān principles: excellence through harmonious integration."#.to_string(
         // Format user prompt with task context
         let user_prompt = format!(
             "Task: {}\nContext: {}\n\nProvide your {} perspective on this task.",
-            request.task,
-            context_str,
-            agent.role
+            request.task, context_str, agent.role
         );
 
         let messages = vec![
@@ -259,12 +271,10 @@ Apply Ihsān principles: excellence through harmonious integration."#.to_string(
         if self.router_enabled {
             // Route through capability slot for optimal model selection
             let router = model_router::get_router().await?;
-            let result = router.infer_slot(
-                agent.capability_slot,
-                messages,
-                &request.task,
-            ).await?;
-            
+            let result = router
+                .infer_slot(agent.capability_slot, messages, &request.task)
+                .await?;
+
             debug!(
                 agent = %agent.name,
                 slot = agent.capability_slot.name(),
@@ -273,21 +283,22 @@ Apply Ihsān principles: excellence through harmonious integration."#.to_string(
                 latency_ms = result.latency.as_millis(),
                 "Agent inference completed via Model Router"
             );
-            
+
             // Format with agent role and model info
-            Ok(format!("[{}|{}] {}", agent.role, result.model, result.content))
+            Ok(format!(
+                "[{}|{}] {}",
+                agent.role, result.model, result.content
+            ))
         } else {
             // Direct Ollama fallback
             let ollama_client = ollama::get_ollama().await;
             let response = ollama_client.chat(messages, None, None).await?;
             let content = response.message.content;
-            
+
             // Format with agent role prefix
             Ok(format!("[{}] {}", agent.role, content))
         }
     }
-
-
 
     pub fn get_agent_count(&self) -> usize {
         self.agents.len()

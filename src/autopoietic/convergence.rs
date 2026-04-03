@@ -6,9 +6,7 @@
 // - Convergence metrics tracking
 // - Learning rate modulation
 
-use crate::autopoietic::types::{
-    GenerationPerformance, KEPState, KEPThresholds,
-};
+use crate::autopoietic::types::{GenerationPerformance, KEPState, KEPThresholds};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -143,7 +141,10 @@ impl ConvergenceDetector {
         }
 
         // Check if all recent improvement deltas are below threshold
-        metrics.improvement_deltas.iter().all(|d| d.abs() < self.improvement_threshold)
+        metrics
+            .improvement_deltas
+            .iter()
+            .all(|d| d.abs() < self.improvement_threshold)
     }
 
     /// Handle state transition
@@ -182,7 +183,8 @@ impl ConvergenceDetector {
     /// Check if in cooldown period after explosion
     fn in_cooldown(&self) -> bool {
         if let Some(end) = self.last_explosion_end {
-            let cooldown_duration = Duration::seconds(self.thresholds.explosion_cooldown_seconds as i64);
+            let cooldown_duration =
+                Duration::seconds(self.thresholds.explosion_cooldown_seconds as i64);
             return Utc::now() < end + cooldown_duration;
         }
         false
@@ -204,19 +206,20 @@ impl ConvergenceDetector {
 
         let ihsan_scores: Vec<f64> = self.history.iter().map(|p| p.aggregate_ihsan).collect();
         let latencies: Vec<u64> = self.history.iter().map(|p| p.avg_latency_ms).collect();
-        let success_rates: Vec<f64> = self.history.iter().map(|p| {
-            if p.tasks_processed > 0 {
-                p.successful_executions as f64 / p.tasks_processed as f64
-            } else {
-                0.0
-            }
-        }).collect();
+        let success_rates: Vec<f64> = self
+            .history
+            .iter()
+            .map(|p| {
+                if p.tasks_processed > 0 {
+                    p.successful_executions as f64 / p.tasks_processed as f64
+                } else {
+                    0.0
+                }
+            })
+            .collect();
 
         // Calculate improvement deltas (difference from previous generation)
-        let improvement_deltas: Vec<f64> = ihsan_scores
-            .windows(2)
-            .map(|w| w[1] - w[0])
-            .collect();
+        let improvement_deltas: Vec<f64> = ihsan_scores.windows(2).map(|w| w[1] - w[0]).collect();
 
         // Calculate trend
         let trend = if improvement_deltas.is_empty() {
@@ -227,9 +230,11 @@ impl ConvergenceDetector {
 
         // Calculate stability (inverse of variance)
         let mean_ihsan = ihsan_scores.iter().sum::<f64>() / ihsan_scores.len() as f64;
-        let variance = ihsan_scores.iter()
+        let variance = ihsan_scores
+            .iter()
             .map(|s| (s - mean_ihsan).powi(2))
-            .sum::<f64>() / ihsan_scores.len() as f64;
+            .sum::<f64>()
+            / ihsan_scores.len() as f64;
         let stability = 1.0 / (1.0 + variance.sqrt());
 
         // Best/worst values
@@ -249,7 +254,8 @@ impl ConvergenceDetector {
             mean_latency_ms: latencies.iter().sum::<u64>() / latencies.len().max(1) as u64,
             best_latency_ms: best_latency,
             worst_latency_ms: worst_latency,
-            mean_success_rate: success_rates.iter().sum::<f64>() / success_rates.len().max(1) as f64,
+            mean_success_rate: success_rates.iter().sum::<f64>()
+                / success_rates.len().max(1) as f64,
             total_explosion_time_seconds: self.total_explosion_time_seconds,
         }
     }
@@ -394,10 +400,7 @@ impl std::fmt::Display for ConvergenceState {
         write!(
             f,
             "KEP: {:?}, Ihsān: {:.4}, Trend: {:+.4}, Stability: {:.2}",
-            self.kep_state,
-            self.metrics.mean_ihsan,
-            self.metrics.trend,
-            self.metrics.stability
+            self.kep_state, self.metrics.mean_ihsan, self.metrics.trend, self.metrics.stability
         )
     }
 }
@@ -450,9 +453,9 @@ mod tests {
         let mut detector = ConvergenceDetector::default();
 
         let kep = KEPProgress {
-            knowledge_mass: 2000,  // Above min_knowledge_mass (1000)
-            discovery_velocity: 15.0,  // Above min_velocity (10.0)
-            synergy_density: 0.5,  // Above min_synergy_density (0.3)
+            knowledge_mass: 2000,     // Above min_knowledge_mass (1000)
+            discovery_velocity: 15.0, // Above min_velocity (10.0)
+            synergy_density: 0.5,     // Above min_synergy_density (0.3)
             ..Default::default()
         };
 

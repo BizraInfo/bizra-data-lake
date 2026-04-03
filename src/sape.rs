@@ -4,20 +4,25 @@
 // When SAPE detects >3 repetitions of a verification sequence, it compiles that
 // pattern into an eBPF-style shortcut, reducing latency by 70% and token waste by 50%.
 
-use crate::embeddings::EmbeddingEngine;
 use crate::crypto_proofs;
+use crate::embeddings::EmbeddingEngine;
+use crate::model_router;
+use crate::ollama::ChatMessage;
 use lazy_static::lazy_static;
-use prometheus::{register_counter_vec, register_gauge_vec, register_histogram, CounterVec, GaugeVec, Histogram};
+use prometheus::{
+    register_counter_vec, register_gauge_vec, register_histogram, CounterVec, GaugeVec, Histogram,
+};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, VecDeque};
 use std::hash::{Hash, Hasher};
-use std::collections::hash_map::DefaultHasher;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use tracing::{debug, info, instrument, warn};
 
 /// Minimum repetitions required to elevate a pattern
-const ELEVATION_THRESHOLD: usize = 3;
+pub const ELEVATION_THRESHOLD: usize = 3;
 
 /// Maximum patterns to cache in memory
 const MAX_PATTERNS: usize = 100;
@@ -28,28 +33,28 @@ const MAX_HISTORY: usize = 1000;
 lazy_static! {
     /// Global SAPE engine singleton
     static ref SAPE_ENGINE: Arc<Mutex<SAPEEngine>> = Arc::new(Mutex::new(SAPEEngine::new()));
-    
+
     /// SAPE pattern activations by pattern
     pub static ref SAPE_ACTIVATIONS: CounterVec = register_counter_vec!(
         "bizra_sape_activations_total",
         "Total SAPE pattern activations",
         &["pattern"]
     ).unwrap();
-    
+
     /// SAPE elevation events
     pub static ref SAPE_ELEVATIONS: CounterVec = register_counter_vec!(
         "bizra_sape_elevations_total",
         "Total SAPE pattern elevations",
         &["type"]  // manual, auto
     ).unwrap();
-    
+
     /// SAPE latency savings (milliseconds saved)
     pub static ref SAPE_LATENCY_SAVED: GaugeVec = register_gauge_vec!(
         "bizra_sape_latency_saved_ms",
         "Estimated latency saved by SAPE optimizations",
         &["pattern"]
     ).unwrap();
-    
+
     /// SAPE probe execution time
     pub static ref SAPE_PROBE_LATENCY: Histogram = register_histogram!(
         "bizra_sape_probe_seconds",
@@ -102,7 +107,7 @@ impl ProbeDimension {
             Self::Fluency => "fluency",
         }
     }
-    
+
     /// Get dimension weight for Ihsān scoring
     ///
     /// # Weight Mapping (aligned with constitution/ihsan_v1.yaml)
@@ -138,7 +143,7 @@ impl ProbeDimension {
             Self::Fluency => 0.08,
         }
     }
-    
+
     /// All dimensions
     pub fn all() -> &'static [ProbeDimension] {
         &[
@@ -170,7 +175,7 @@ impl ProbeResult {
     pub fn passed(&self, threshold: f64) -> bool {
         self.score >= threshold
     }
-    
+
     /// Weighted score contribution
     pub fn weighted_score(&self) -> f64 {
         self.score * self.dimension.weight()
@@ -314,7 +319,7 @@ impl TieredProbeResult {
         // Higher score + higher confidence = higher SNR
         let weighted = result.score * result.confidence;
         let snr = 7.0 + weighted * 2.0; // Maps 0.0-1.0 to 7.0-9.0
-        
+
         Self {
             snr_tier: SnrTier::from_snr(snr),
             snr_value: snr,
@@ -352,7 +357,7 @@ impl ElevatedPattern {
             created_at: chrono::Utc::now(),
         }
     }
-    
+
     /// Mark pattern as activated
     fn activate(&mut self) {
         self.activation_count += 1;
@@ -392,6 +397,8 @@ pub struct SAPEEngine {
     threat_concepts: Vec<(String, Vec<f32>)>,
     /// L1 In-Memory Cache for reduced orchestrator latency (Phase 2 optimization)
     l1_cache: HashMap<u64, Vec<ProbeResult>>,
+    /// LLM-enhanced probe mode (optional)
+    llm_enhanced: bool,
 }
 
 impl SAPEEngine {
@@ -407,15 +414,22 @@ impl SAPEEngine {
 
         let mut threat_concepts = Vec::new();
         if let Some(ref engine) = embedding_engine {
-             // Pre-compute threat concepts
-             let concepts = vec![
-                 "malicious attack", "exploit vulnerability", "unauthorized access", 
-                 "system compromise", "data exfiltration", "destructive command"
-             ];
-             if let Ok(embeddings) = engine.precompute_concepts(&concepts) {
-                 threat_concepts = embeddings;
-                 info!("🧠 Semantic Threat Engine initialized with {} concepts", threat_concepts.len());
-             }
+            // Pre-compute threat concepts
+            let concepts = vec![
+                "malicious attack",
+                "exploit vulnerability",
+                "unauthorized access",
+                "system compromise",
+                "data exfiltration",
+                "destructive command",
+            ];
+            if let Ok(embeddings) = engine.precompute_concepts(&concepts) {
+                threat_concepts = embeddings;
+                info!(
+                    "🧠 Semantic Threat Engine initialized with {} concepts",
+                    threat_concepts.len()
+                );
+            }
         }
 
         let mut engine = Self {
@@ -425,12 +439,13 @@ impl SAPEEngine {
             embedding_engine,
             threat_concepts,
             l1_cache: HashMap::new(),
+            llm_enhanced: false,
         };
-        
+
         engine.register_blueprint_patterns();
         engine
     }
-    
+
     /// Register patterns from the BIZRA Blueprint
     fn register_blueprint_patterns(&mut self) {
         // Pattern 1: Ethical Shadow Stack
@@ -449,7 +464,7 @@ impl SAPEEngine {
             activation_count: 0,
             created_at: chrono::Utc::now(),
         });
-        
+
         // Pattern 2: Benevolence Cache
         self.register_pattern(ElevatedPattern {
             id: "benevolence_cache".to_string(),
@@ -466,7 +481,7 @@ impl SAPEEngine {
             activation_count: 0,
             created_at: chrono::Utc::now(),
         });
-        
+
         // Pattern 3: Consensus Shortcut
         self.register_pattern(ElevatedPattern {
             id: "consensus_shortcut".to_string(),
@@ -483,7 +498,7 @@ impl SAPEEngine {
             activation_count: 0,
             created_at: chrono::Utc::now(),
         });
-        
+
         // Pattern 4: RAG Grounding Fast-Path
         self.register_pattern(ElevatedPattern {
             id: "rag_grounding_fastpath".to_string(),
@@ -500,7 +515,7 @@ impl SAPEEngine {
             activation_count: 0,
             created_at: chrono::Utc::now(),
         });
-        
+
         // Pattern 5: Full Ihsān Sweep
         self.register_pattern(ElevatedPattern {
             id: "full_ihsan_sweep".to_string(),
@@ -516,15 +531,18 @@ impl SAPEEngine {
             activation_count: 0,
             created_at: chrono::Utc::now(),
         });
-        
-        info!("📊 SAPE Engine initialized with {} blueprint patterns", self.patterns.len());
+
+        info!(
+            "📊 SAPE Engine initialized with {} blueprint patterns",
+            self.patterns.len()
+        );
     }
-    
+
     /// Register a pattern
     pub fn register_pattern(&mut self, pattern: ElevatedPattern) {
         self.patterns.insert(pattern.id.clone(), pattern);
     }
-    
+
     /// Add a new threat concept dynamically (Adaptive Immunity)
     pub fn add_threat_concept(&mut self, concept: String) -> anyhow::Result<()> {
         if let Some(ref engine) = self.embedding_engine {
@@ -535,11 +553,29 @@ impl SAPEEngine {
 
             let embedding = engine.embed_text(&concept)?;
             self.threat_concepts.push((concept.clone(), embedding));
-            info!("💉 SAPE Immune Injection: Added new threat concept '{}'", concept);
+            info!(
+                "💉 SAPE Immune Injection: Added new threat concept '{}'",
+                concept
+            );
             Ok(())
         } else {
-             Err(anyhow::anyhow!("Embedding engine not initialized"))
+            Err(anyhow::anyhow!("Embedding engine not initialized"))
         }
+    }
+
+    /// Enable or disable LLM-enhanced probe mode
+    pub fn set_llm_enhanced(&mut self, enabled: bool) {
+        self.llm_enhanced = enabled;
+        if enabled {
+            info!("🧠 SAPE LLM-enhanced mode enabled");
+        } else {
+            info!("🔍 SAPE heuristic-only mode enabled");
+        }
+    }
+
+    /// Get LLM-enhanced mode status
+    pub fn is_llm_enhanced(&self) -> bool {
+        self.llm_enhanced
     }
 
     /// Execute all 9 probes against content
@@ -551,38 +587,352 @@ impl SAPEEngine {
         let content_hash = hasher.finish();
 
         if let Some(cached) = self.l1_cache.get(&content_hash) {
-             debug!("⚡ SAPE L1 Cache Hit: Returning cached probe results");
-             return cached.clone();
+            debug!("⚡ SAPE L1 Cache Hit: Returning cached probe results");
+            return cached.clone();
         }
 
         let start = Instant::now();
         let mut results = Vec::with_capacity(9);
         let mut sequence = Vec::with_capacity(9);
-        
+
         for dimension in ProbeDimension::all() {
             let probe_start = Instant::now();
             let result = self.execute_single_probe(*dimension, content);
             let latency = probe_start.elapsed().as_secs_f64();
-            
+
             SAPE_PROBE_LATENCY.observe(latency);
             sequence.push(dimension.name().to_string());
             results.push(result);
         }
-        
+
         // Record sequence for pattern detection
         self.observe_sequence(sequence);
-        
+
         // Phase 2 Optimization: Store in L1 Cache
         self.l1_cache.insert(content_hash, results.clone());
-        
+
         debug!(
             "SAPE probes executed in {:.3}ms",
             start.elapsed().as_secs_f64() * 1000.0
         );
-        
+
         results
     }
-    
+
+    /// Execute all 9 probes with optional LLM enhancement (async)
+    #[instrument(skip(self, content))]
+    pub async fn execute_probes_enhanced(&mut self, content: &str) -> Vec<ProbeResult> {
+        // Phase 2 Optimization: Check L1 Cache
+        let mut hasher = DefaultHasher::new();
+        content.hash(&mut hasher);
+        let content_hash = hasher.finish();
+
+        if let Some(cached) = self.l1_cache.get(&content_hash) {
+            debug!("⚡ SAPE L1 Cache Hit: Returning cached probe results");
+            return cached.clone();
+        }
+
+        let start = Instant::now();
+        let mut results = Vec::with_capacity(9);
+        let mut sequence = Vec::with_capacity(9);
+
+        if self.llm_enhanced {
+            // LLM-enhanced mode: Execute all 9 probes in 3 parallel batches
+            // Batch 1: Safety-critical probes (ColdCore)
+            let batch1_dimensions = [
+                ProbeDimension::ThreatScan,
+                ProbeDimension::Safety,
+                ProbeDimension::ComplianceCheck,
+            ];
+
+            for dimension in batch1_dimensions {
+                let probe_start = Instant::now();
+                let result = match self.llm_probe(dimension, content).await {
+                    Some(llm_result) => llm_result,
+                    None => {
+                        warn!(
+                            dimension = dimension.name(),
+                            "LLM probe failed, falling back to heuristic"
+                        );
+                        self.execute_single_probe(dimension, content)
+                    }
+                };
+
+                let latency = probe_start.elapsed().as_secs_f64() * 1000.0;
+                let mut result_with_latency = result;
+                result_with_latency.latency_ms = latency;
+
+                SAPE_PROBE_LATENCY.observe(latency / 1000.0);
+                sequence.push(dimension.name().to_string());
+                results.push(result_with_latency);
+            }
+
+            // Batch 2: Quality probes (ColdCore)
+            let batch2_dimensions = [
+                ProbeDimension::Correctness,
+                ProbeDimension::Groundedness,
+                ProbeDimension::BiasProbe,
+            ];
+
+            for dimension in batch2_dimensions {
+                let probe_start = Instant::now();
+                let result = match self.llm_probe(dimension, content).await {
+                    Some(llm_result) => llm_result,
+                    None => {
+                        warn!(
+                            dimension = dimension.name(),
+                            "LLM probe failed, falling back to heuristic"
+                        );
+                        self.execute_single_probe(dimension, content)
+                    }
+                };
+
+                let latency = probe_start.elapsed().as_secs_f64() * 1000.0;
+                let mut result_with_latency = result;
+                result_with_latency.latency_ms = latency;
+
+                SAPE_PROBE_LATENCY.observe(latency / 1000.0);
+                sequence.push(dimension.name().to_string());
+                results.push(result_with_latency);
+            }
+
+            // Batch 3: Output quality probes (WarmSurface)
+            let batch3_dimensions = [
+                ProbeDimension::UserBenefit,
+                ProbeDimension::Relevance,
+                ProbeDimension::Fluency,
+            ];
+
+            for dimension in batch3_dimensions {
+                let probe_start = Instant::now();
+                let result = match self.llm_probe(dimension, content).await {
+                    Some(llm_result) => llm_result,
+                    None => {
+                        warn!(
+                            dimension = dimension.name(),
+                            "LLM probe failed, falling back to heuristic"
+                        );
+                        self.execute_single_probe(dimension, content)
+                    }
+                };
+
+                let latency = probe_start.elapsed().as_secs_f64() * 1000.0;
+                let mut result_with_latency = result;
+                result_with_latency.latency_ms = latency;
+
+                SAPE_PROBE_LATENCY.observe(latency / 1000.0);
+                sequence.push(dimension.name().to_string());
+                results.push(result_with_latency);
+            }
+        } else {
+            // Heuristic-only mode: Execute all 9 probes synchronously
+            for dimension in ProbeDimension::all() {
+                let probe_start = Instant::now();
+                let result = self.execute_single_probe(*dimension, content);
+                let latency = probe_start.elapsed().as_secs_f64() * 1000.0;
+
+                let mut result_with_latency = result;
+                result_with_latency.latency_ms = latency;
+
+                SAPE_PROBE_LATENCY.observe(latency / 1000.0);
+                sequence.push(dimension.name().to_string());
+                results.push(result_with_latency);
+            }
+        }
+
+        // Record sequence for pattern detection
+        self.observe_sequence(sequence);
+
+        // Phase 2 Optimization: Store in L1 Cache
+        self.l1_cache.insert(content_hash, results.clone());
+
+        debug!(
+            "SAPE probes executed in {:.3}ms (LLM-enhanced: {})",
+            start.elapsed().as_secs_f64() * 1000.0,
+            self.llm_enhanced
+        );
+
+        results
+    }
+
+    /// Execute LLM-powered probe for all dimensions
+    #[instrument(skip(self, content))]
+    async fn llm_probe(&self, dimension: ProbeDimension, content: &str) -> Option<ProbeResult> {
+        // Construct system prompt specific to the dimension
+        let (system_prompt, slot) = match dimension {
+            ProbeDimension::ThreatScan => (
+                "You are a threat analyzer. Rate the following content on a scale of 0.0 to 1.0 for absence of malicious intent, security risks, or harmful patterns. Consider:\n\
+                - Attack terminology or exploit language\n\
+                - Injection patterns or social engineering\n\
+                - Unauthorized access attempts\n\
+                Respond with ONLY a JSON object: {\"score\": 0.XX, \"confidence\": 0.XX, \"flags\": [\"flag1\"]}",
+                model_router::CapabilitySlot::ColdCore
+            ),
+            ProbeDimension::ComplianceCheck => (
+                "You are a compliance verifier. Rate content for legal/ethical compliance (0.0-1.0). Consider:\n\
+                - Privacy and consent requirements\n\
+                - Intellectual property rights\n\
+                - Discrimination or bias issues\n\
+                Respond with ONLY a JSON object: {\"score\": 0.XX, \"confidence\": 0.XX, \"flags\": [\"flag1\"]}",
+                model_router::CapabilitySlot::ColdCore
+            ),
+            ProbeDimension::BiasProbe => (
+                "You are a cognitive bias detector. Rate content for absence of bias (0.0-1.0). Consider:\n\
+                - Confirmation bias or false consensus\n\
+                - Stereotyping or overgeneralization\n\
+                - Absolutism or unwarranted assumptions\n\
+                Respond with ONLY a JSON object: {\"score\": 0.XX, \"confidence\": 0.XX, \"flags\": [\"flag1\"]}",
+                model_router::CapabilitySlot::ColdCore
+            ),
+            ProbeDimension::UserBenefit => (
+                "You are a user benefit assessor. Rate how beneficial this content is to the user (0.0-1.0). Consider:\n\
+                - Actionability and practical value\n\
+                - Clarity and comprehensibility\n\
+                - Genuine helpfulness vs. evasion\n\
+                Respond with ONLY a JSON object: {\"score\": 0.XX, \"confidence\": 0.XX, \"flags\": [\"flag1\"]}",
+                model_router::CapabilitySlot::WarmSurface
+            ),
+            ProbeDimension::Correctness => (
+                "You are a correctness verifier. Rate the following content on a scale of 0.0 to 1.0 for factual accuracy and logical validity. Consider:\n\
+                - Are claims supported by evidence?\n\
+                - Is the reasoning sound?\n\
+                - Are there contradictions?\n\
+                Respond with ONLY a JSON object: {\"score\": 0.XX, \"confidence\": 0.XX, \"flags\": [\"flag1\", \"flag2\"]}",
+                model_router::CapabilitySlot::ColdCore
+            ),
+            ProbeDimension::Safety => (
+                "You are a safety boundary checker. Rate content safety (0.0-1.0). Consider:\n\
+                - Self-harm or violence references\n\
+                - Dangerous activities or instructions\n\
+                - Toxic substances or weapons\n\
+                Respond with ONLY a JSON object: {\"score\": 0.XX, \"confidence\": 0.XX, \"flags\": [\"flag1\"]}",
+                model_router::CapabilitySlot::ColdCore
+            ),
+            ProbeDimension::Groundedness => (
+                "You are a groundedness verifier. Rate how well-grounded in evidence and facts the content is (0.0-1.0). Consider:\n\
+                - Are citations or sources provided?\n\
+                - Are claims verifiable?\n\
+                - Is there speculation without evidence?\n\
+                Respond with ONLY a JSON object: {\"score\": 0.XX, \"confidence\": 0.XX, \"flags\": [\"flag1\", \"flag2\"]}",
+                model_router::CapabilitySlot::ColdCore
+            ),
+            ProbeDimension::Relevance => (
+                "You are a relevance verifier. Rate the relevance and usefulness of this content (0.0-1.0). Consider:\n\
+                - Is the content on-topic?\n\
+                - Does it address the core question?\n\
+                - Is there excessive tangential information?\n\
+                Respond with ONLY a JSON object: {\"score\": 0.XX, \"confidence\": 0.XX, \"flags\": [\"flag1\", \"flag2\"]}",
+                model_router::CapabilitySlot::WarmSurface
+            ),
+            ProbeDimension::Fluency => (
+                "You are a fluency and coherence judge. Rate the linguistic quality (0.0-1.0). Consider:\n\
+                - Grammar and syntax correctness\n\
+                - Clarity and readability\n\
+                - Logical structure and flow\n\
+                Respond with ONLY a JSON object: {\"score\": 0.XX, \"confidence\": 0.XX, \"flags\": [\"flag1\"]}",
+                model_router::CapabilitySlot::WarmSurface
+            ),
+        };
+
+        // Get model router
+        let router = match model_router::get_router().await {
+            Ok(r) => r,
+            Err(e) => {
+                warn!("Failed to get model router: {}", e);
+                return None;
+            }
+        };
+
+        // Construct messages
+        let messages = vec![
+            ChatMessage::system(system_prompt),
+            ChatMessage::user(format!("Content to evaluate:\n\n{}", content)),
+        ];
+
+        // Inference using appropriate slot
+        let result = match router
+            .infer_slot(
+                slot,
+                messages,
+                content,
+            )
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                warn!("LLM inference failed for {}: {}", dimension.name(), e);
+                return None;
+            }
+        };
+
+        // Parse LLM response
+        let response_text = result.content.trim();
+
+        // Try JSON parse first
+        let parsed = if let Ok(json) = serde_json::from_str::<serde_json::Value>(response_text) {
+            Some((
+                json.get("score")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(0.85),
+                json.get("confidence")
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(0.70),
+                json.get("flags")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
+                    .unwrap_or_else(Vec::new),
+            ))
+        } else {
+            // Fallback: regex extraction
+            let score_regex = Regex::new(r#"score["\s:]+([0-9.]+)"#).ok()?;
+            let confidence_regex = Regex::new(r#"confidence["\s:]+([0-9.]+)"#).ok()?;
+
+            let score = score_regex
+                .captures(response_text)
+                .and_then(|cap| cap.get(1))
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or(0.85);
+
+            let confidence = confidence_regex
+                .captures(response_text)
+                .and_then(|cap| cap.get(1))
+                .and_then(|m| m.as_str().parse::<f64>().ok())
+                .unwrap_or(0.70);
+
+            Some((score, confidence, vec!["llm_parsed_fallback".to_string()]))
+        };
+
+        if let Some((score, confidence, mut flags)) = parsed {
+            flags.push("llm_enhanced".to_string());
+
+            debug!(
+                dimension = dimension.name(),
+                score = score,
+                confidence = confidence,
+                "LLM probe completed"
+            );
+
+            Some(ProbeResult {
+                dimension,
+                score: score.clamp(0.0, 1.0),
+                confidence: confidence.clamp(0.0, 1.0),
+                flags,
+                latency_ms: 0.0, // Filled by caller
+            })
+        } else {
+            warn!(
+                "Failed to parse LLM response for {}: {}",
+                dimension.name(),
+                response_text
+            );
+            None
+        }
+    }
+
     /// Execute a single probe
     fn execute_single_probe(&self, dimension: ProbeDimension, content: &str) -> ProbeResult {
         // Real probe implementation with heuristic analysis
@@ -597,7 +947,7 @@ impl SAPEEngine {
             ProbeDimension::Relevance => self.probe_relevance(content),
             ProbeDimension::Fluency => self.probe_fluency(content),
         };
-        
+
         ProbeResult {
             dimension,
             score,
@@ -606,17 +956,17 @@ impl SAPEEngine {
             latency_ms: 0.0, // Filled by caller
         }
     }
-    
+
     // ============================================================
     // Individual Probe Implementations
     // ============================================================
-    
+
     /// Threat detection probe
     fn probe_threat(&self, content: &str) -> (f64, f64, Vec<String>) {
         let content_lower = content.to_lowercase();
         let mut flags = Vec::new();
         let mut deductions: f64 = 0.0;
-        
+
         // Check for threat patterns
         let threat_patterns = [
             ("hack", 0.3, "potential_malicious_intent"),
@@ -630,20 +980,20 @@ impl SAPEEngine {
             ("rm -rf", 0.5, "destructive_command"),
             ("drop table", 0.4, "sql_injection_pattern"),
         ];
-        
+
         for (pattern, penalty, flag) in threat_patterns {
             if content_lower.contains(pattern) {
                 deductions += penalty;
                 flags.push(flag.to_string());
             }
         }
-        
+
         // 2. Semantic Analysis (New/Deep)
         if let Some(ref engine) = self.embedding_engine {
             if let Ok(embedding) = engine.embed_text(content) {
                 let mut max_similarity = 0.0;
                 let mut matched_concept = "";
-                
+
                 for (concept, concept_vec) in &self.threat_concepts {
                     let sim = EmbeddingEngine::cosine_similarity(&embedding, concept_vec);
                     if sim > max_similarity {
@@ -651,27 +1001,30 @@ impl SAPEEngine {
                         matched_concept = concept;
                     }
                 }
-                
+
                 // Threshold of 0.45 indicates semantic similarity
-                if max_similarity > 0.45 { 
+                if max_similarity > 0.45 {
                     deductions += (max_similarity as f64) * 0.5; // Weight semantic threat
-                    flags.push(format!("semantic_threat:{} ({:.2})", matched_concept, max_similarity));
+                    flags.push(format!(
+                        "semantic_threat:{} ({:.2})",
+                        matched_concept, max_similarity
+                    ));
                 }
             }
         }
-        
+
         let score = (1.0 - deductions).max(0.0);
         let confidence = if flags.is_empty() { 0.95 } else { 0.85 };
-        
+
         (score, confidence, flags)
     }
-    
+
     /// Compliance verification probe
     fn probe_compliance(&self, content: &str) -> (f64, f64, Vec<String>) {
         let content_lower = content.to_lowercase();
         let mut flags = Vec::new();
         let mut deductions: f64 = 0.0;
-        
+
         // Check for compliance issues
         let compliance_patterns = [
             ("illegal", 0.4, "illegal_content"),
@@ -681,26 +1034,26 @@ impl SAPEEngine {
             ("personal data", 0.1, "pii_handling"),
             ("discriminat", 0.3, "discrimination"),
         ];
-        
+
         for (pattern, penalty, flag) in compliance_patterns {
             if content_lower.contains(pattern) {
                 deductions += penalty;
                 flags.push(flag.to_string());
             }
         }
-        
+
         let score = (1.0 - deductions).max(0.0);
         let confidence = 0.88;
-        
+
         (score, confidence, flags)
     }
-    
+
     /// Bias detection probe
     fn probe_bias(&self, content: &str) -> (f64, f64, Vec<String>) {
         let content_lower = content.to_lowercase();
         let mut flags = Vec::new();
         let mut deductions: f64 = 0.0;
-        
+
         // Check for bias patterns (simplified - real system would use ML)
         let bias_indicators = [
             ("always", 0.05, "absolute_statement"),
@@ -709,25 +1062,25 @@ impl SAPEEngine {
             ("everyone knows", 0.1, "false_consensus"),
             ("common sense", 0.05, "appeal_to_authority"),
         ];
-        
+
         for (pattern, penalty, flag) in bias_indicators {
             if content_lower.contains(pattern) {
                 deductions += penalty;
                 flags.push(flag.to_string());
             }
         }
-        
+
         let score = (1.0 - deductions).max(0.0);
         let confidence = 0.75; // Bias detection has lower confidence
-        
+
         (score, confidence, flags)
     }
-    
+
     /// User benefit alignment probe
     fn probe_user_benefit(&self, content: &str) -> (f64, f64, Vec<String>) {
         let mut flags = Vec::new();
         let mut score: f64 = 0.85; // Base score
-        
+
         // Check for user-beneficial patterns
         let benefit_patterns = [
             ("help", 0.05),
@@ -737,23 +1090,24 @@ impl SAPEEngine {
             ("benefit", 0.03),
             ("recommend", 0.02),
         ];
-        
+
         for (pattern, bonus) in benefit_patterns {
             if content.to_lowercase().contains(pattern) {
                 score = (score + bonus).min(1.0);
             }
         }
-        
+
         // Check for anti-patterns
-        if content.to_lowercase().contains("not my problem") ||
-           content.to_lowercase().contains("figure it out") {
+        if content.to_lowercase().contains("not my problem")
+            || content.to_lowercase().contains("figure it out")
+        {
             score -= 0.3;
             flags.push("unhelpful_tone".to_string());
         }
-        
+
         (score.max(0.0), 0.82, flags)
     }
-    
+
     /// Correctness verification probe
     fn probe_correctness(&self, content: &str) -> (f64, f64, Vec<String>) {
         // Phase 2: Deterministic Verification Layer (Ihsān > 0.95 support)
@@ -763,11 +1117,11 @@ impl SAPEEngine {
 
         let mut flags = Vec::new();
         let mut score: f64 = 0.9; // Base score
-        
+
         // Phase 2: Deterministic Math Check
         if let Some(n) = crypto_proofs::requires_fermat_check(content) {
             if crypto_proofs::verify_prime_deterministic(n) {
-                score = 1.0; 
+                score = 1.0;
                 flags.push(format!("verified_deterministic_prime_{}", n));
             } else {
                 // If it looks like a prime claim but fails deterministic check
@@ -785,7 +1139,7 @@ impl SAPEEngine {
             ("verified", 0.05),
             ("confirmed", 0.05),
         ];
-        
+
         for (pattern, adjustment) in uncertainty {
             if content.to_lowercase().contains(pattern) {
                 score += adjustment;
@@ -794,22 +1148,22 @@ impl SAPEEngine {
                 }
             }
         }
-        
+
         // Check content length (very short responses may lack detail)
         if content.len() < 50 {
             score -= 0.1;
             flags.push("potentially_incomplete".to_string());
         }
-        
+
         (score.clamp(0.0, 1.0), 0.78, flags)
     }
-    
+
     /// Safety boundary probe
     fn probe_safety(&self, content: &str) -> (f64, f64, Vec<String>) {
         let content_lower = content.to_lowercase();
         let mut flags = Vec::new();
         let mut deductions: f64 = 0.0;
-        
+
         // Critical safety patterns
         let safety_violations = [
             ("suicide", 0.5, "self_harm_content"),
@@ -820,25 +1174,25 @@ impl SAPEEngine {
             ("poison", 0.3, "toxic_substance"),
             ("drug abuse", 0.3, "substance_abuse"),
         ];
-        
+
         for (pattern, penalty, flag) in safety_violations {
             if content_lower.contains(pattern) {
                 deductions += penalty;
                 flags.push(flag.to_string());
             }
         }
-        
+
         let score = (1.0 - deductions).max(0.0);
         let confidence = 0.92;
-        
+
         (score, confidence, flags)
     }
-    
+
     /// Groundedness in facts probe
     fn probe_groundedness(&self, content: &str) -> (f64, f64, Vec<String>) {
         let mut flags = Vec::new();
         let mut score: f64 = 0.85;
-        
+
         // Check for citation/evidence patterns
         let grounding_patterns = [
             ("according to", 0.1),
@@ -848,13 +1202,13 @@ impl SAPEEngine {
             ("reference:", 0.15),
             ("[citation", 0.2),
         ];
-        
+
         for (pattern, bonus) in grounding_patterns {
             if content.to_lowercase().contains(pattern) {
                 score = (score + bonus).min(1.0);
             }
         }
-        
+
         // Check for ungrounded speculation
         let speculation = [
             ("probably", -0.05),
@@ -862,21 +1216,21 @@ impl SAPEEngine {
             ("rumor", -0.15),
             ("conspiracy", -0.2),
         ];
-        
+
         for (pattern, penalty) in speculation {
             if content.to_lowercase().contains(pattern) {
                 score += penalty;
                 flags.push("speculation_marker".to_string());
             }
         }
-        
+
         (score.clamp(0.0, 1.0), 0.70, flags)
     }
-    
+
     /// Relevance probe
     fn probe_relevance(&self, content: &str) -> (f64, f64, Vec<String>) {
         let flags = Vec::new();
-        
+
         // Without the original query, we use heuristics
         // Real implementation would compare to original request
         let score = if content.len() > 100 {
@@ -886,24 +1240,24 @@ impl SAPEEngine {
         } else {
             0.7
         };
-        
+
         (score, 0.65, flags) // Lower confidence without query context
     }
-    
+
     /// Fluency and coherence probe
     fn probe_fluency(&self, content: &str) -> (f64, f64, Vec<String>) {
         let mut flags = Vec::new();
         let mut score: f64 = 0.95;
-        
+
         // Check for fluency issues
         let words: Vec<&str> = content.split_whitespace().collect();
-        
+
         // Very short content
         if words.len() < 5 {
             score -= 0.2;
             flags.push("very_short".to_string());
         }
-        
+
         // Repeated words (stutter detection)
         for window in words.windows(2) {
             if window[0] == window[1] && window[0].len() > 2 {
@@ -912,13 +1266,13 @@ impl SAPEEngine {
                 break;
             }
         }
-        
+
         // Sentence structure (has periods)
         if content.len() > 50 && !content.contains('.') {
             score -= 0.1;
             flags.push("missing_punctuation".to_string());
         }
-        
+
         (score.clamp(0.0, 1.0), 0.88, flags)
     }
 
@@ -978,9 +1332,21 @@ impl SAPEEngine {
 
         // BIZRA-specific concepts to look for
         let bizra_concepts = [
-            "bizra", "sape", "ihsan", "fate", "pat", "sat",
-            "kernel", "consensus", "probe", "receipt", "evidence",
-            "constitution", "threshold", "validation", "verification",
+            "bizra",
+            "sape",
+            "ihsan",
+            "fate",
+            "pat",
+            "sat",
+            "kernel",
+            "consensus",
+            "probe",
+            "receipt",
+            "evidence",
+            "constitution",
+            "threshold",
+            "validation",
+            "verification",
         ];
 
         for concept in bizra_concepts {
@@ -993,7 +1359,11 @@ impl SAPEEngine {
         for word in content.split_whitespace() {
             let clean = word.trim_matches(|c: char| !c.is_alphanumeric());
             if clean.len() > 3
-                && clean.chars().next().map(|c| c.is_uppercase()).unwrap_or(false)
+                && clean
+                    .chars()
+                    .next()
+                    .map(|c| c.is_uppercase())
+                    .unwrap_or(false)
                 && !topics.contains(&clean.to_lowercase())
             {
                 topics.push(clean.to_lowercase());
@@ -1007,7 +1377,7 @@ impl SAPEEngine {
     // ============================================================
     // Pattern Detection and Elevation
     // ============================================================
-    
+
     /// Observe a probe sequence for pattern detection
     fn observe_sequence(&mut self, sequence: Vec<String>) {
         // Add to history
@@ -1015,11 +1385,11 @@ impl SAPEEngine {
             self.sequence_history.pop_front();
         }
         self.sequence_history.push_back(sequence.clone());
-        
+
         // Update counts
         let count = self.sequence_counts.entry(sequence.clone()).or_insert(0);
         *count += 1;
-        
+
         // Check against registered patterns
         for pattern in self.patterns.values_mut() {
             if Self::matches_pattern(&sequence, &pattern.trigger_sequence) {
@@ -1027,61 +1397,63 @@ impl SAPEEngine {
                 debug!("🔧 SAPE pattern activated: {}", pattern.name);
             }
         }
-        
+
         // Check for auto-elevation
         if *count >= ELEVATION_THRESHOLD && !self.has_pattern_for(&sequence) {
             self.auto_elevate(sequence);
         }
     }
-    
+
     /// Check if sequence matches pattern trigger
     fn matches_pattern(sequence: &[String], trigger: &[String]) -> bool {
         if sequence.len() < trigger.len() {
             return false;
         }
-        
+
         for i in 0..=sequence.len() - trigger.len() {
             if sequence[i..i + trigger.len()] == *trigger {
                 return true;
             }
         }
-        
+
         false
     }
-    
+
     /// Check if pattern exists for sequence
     fn has_pattern_for(&self, sequence: &[String]) -> bool {
-        self.patterns.values().any(|p| p.trigger_sequence == *sequence)
+        self.patterns
+            .values()
+            .any(|p| p.trigger_sequence == *sequence)
     }
-    
+
     /// Auto-elevate a frequently occurring sequence
     fn auto_elevate(&mut self, sequence: Vec<String>) {
         if self.patterns.len() >= MAX_PATTERNS {
             warn!("SAPE pattern limit reached, skipping auto-elevation");
             return;
         }
-        
+
         let id = format!("auto_{:x}", md5_hash(&sequence));
         let name = format!("Auto: {}", sequence.join(" → "));
-        
+
         let pattern = ElevatedPattern::new(
             id.clone(),
             name,
             sequence,
             "Auto-compiled verification shortcut".to_string(),
         );
-        
+
         self.patterns.insert(id, pattern);
         SAPE_ELEVATIONS.with_label_values(&["auto"]).inc();
-        
+
         info!("📈 SAPE auto-elevated new pattern");
     }
-    
+
     /// Get all elevated patterns
     pub fn get_patterns(&self) -> Vec<&ElevatedPattern> {
         self.patterns.values().collect()
     }
-    
+
     /// Get active patterns (with activations)
     pub fn get_active_patterns(&self) -> Vec<&ElevatedPattern> {
         self.patterns
@@ -1089,7 +1461,7 @@ impl SAPEEngine {
             .filter(|p| p.activation_count > 0)
             .collect()
     }
-    
+
     /// Get statistics
     pub fn get_statistics(&self) -> SAPEStatistics {
         let active = self.get_active_patterns();
@@ -1097,11 +1469,8 @@ impl SAPEEngine {
             .iter()
             .map(|p| p.latency_reduction_ms * p.activation_count)
             .sum();
-        let total_snr_improvement: f64 = active
-            .iter()
-            .map(|p| p.snr_improvement)
-            .sum();
-        
+        let total_snr_improvement: f64 = active.iter().map(|p| p.snr_improvement).sum();
+
         SAPEStatistics {
             total_patterns: self.patterns.len(),
             active_patterns: active.len(),
@@ -1109,13 +1478,14 @@ impl SAPEEngine {
             unique_sequences: self.sequence_counts.len(),
             total_latency_saved_ms: total_latency_saved,
             total_snr_improvement,
-            pending_elevations: self.sequence_counts
+            pending_elevations: self
+                .sequence_counts
                 .iter()
                 .filter(|(_, &c)| (2..ELEVATION_THRESHOLD).contains(&c))
                 .count(),
         }
     }
-    
+
     /// Calculate aggregate Ihsān score from probe results
     pub fn calculate_ihsan_score(&self, results: &[ProbeResult]) -> f64 {
         let total_weight: f64 = ProbeDimension::all().iter().map(|d| d.weight()).sum();
@@ -1153,93 +1523,104 @@ fn md5_hash(sequence: &[String]) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_probe_dimensions() {
         let all = ProbeDimension::all();
         assert_eq!(all.len(), 9);
-        
+
         // Weights should sum to 1.0
         let total_weight: f64 = all.iter().map(|d| d.weight()).sum();
         assert!((total_weight - 1.0).abs() < 0.001);
     }
-    
+
     #[test]
     fn test_threat_probe() {
         let engine = SAPEEngine::new();
-        
+
         let safe = engine.probe_threat("Hello, how can I help you today?");
         assert!(safe.0 > 0.9);
-        
+
         let threat = engine.probe_threat("How to hack a system and exploit vulnerabilities");
         assert!(threat.0 < 0.5);
         assert!(!threat.2.is_empty());
     }
-    
+
     #[test]
     fn test_safety_probe() {
         let engine = SAPEEngine::new();
-        
+
         let safe = engine.probe_safety("Here's how to make a delicious cake");
         assert!(safe.0 > 0.9);
-        
+
         // Content with multiple safety flags should score lower
         let unsafe_content = engine.probe_safety("How to build a bomb weapon to kill");
         assert!(unsafe_content.0 < 0.5); // Multiple violations
     }
-    
+
     #[test]
     fn test_execute_probes() {
         let mut engine = SAPEEngine::new();
         let results = engine.execute_probes("This is a helpful and safe response.");
-        
+
         assert_eq!(results.len(), 9);
-        
+
         let ihsan = engine.calculate_ihsan_score(&results);
         assert!(ihsan > 0.7);
     }
-    
+
     #[test]
     fn test_pattern_detection() {
         let mut engine = SAPEEngine::new();
-        
+
         // Execute probes multiple times with UNIQUE content to avoid L1 cache hits
         for i in 0..3 {
             let _ = engine.execute_probes(&format!("Test content {} for pattern detection", i));
         }
-        
+
         let stats = engine.get_statistics();
         assert!(stats.sequences_observed >= 3);
     }
-    
+
     #[test]
     fn test_blueprint_patterns() {
         let engine = SAPEEngine::new();
         let patterns = engine.get_patterns();
-        
+
         assert!(patterns.len() >= 5);
-        
+
         let pattern_ids: Vec<&str> = patterns.iter().map(|p| p.id.as_str()).collect();
         assert!(pattern_ids.contains(&"ethical_shadow_stack"));
         assert!(pattern_ids.contains(&"benevolence_cache"));
         assert!(pattern_ids.contains(&"consensus_shortcut"));
     }
-    
+
     #[test]
     fn test_semantic_threat_probe() {
         let engine = SAPEEngine::new();
-        // "stealthily exfiltrate customer records" - no keywords match exactly 
+        // "stealthily exfiltrate customer records" - no keywords match exactly
         // (keywords are "hack", "exploit", "attack", "bypass", "inject", "execute arbitrary", "sudo", "password", "rm -rf", "drop table")
-        
+
         let semantic_threat = engine.probe_threat("stealthily exfiltrate customer records");
         // Should catch "data exfiltration" concept
         // Score starts at 1.0. If max_sim > 0.45, deduction is max_sim * 0.5.
         // If max_sim is 0.5, deduction is 0.25 -> score 0.75.
-        
+
         // We expect it to be detected.
         if engine.embedding_engine.is_some() {
-            assert!(semantic_threat.0 < 0.9, "Score should be lowered by semantic threat detection. Score: {}", semantic_threat.0);
-            assert!(semantic_threat.2.iter().any(|f| f.contains("semantic_threat")), "Should have semantic threat flag: {:?}", semantic_threat.2);
+            assert!(
+                semantic_threat.0 < 0.9,
+                "Score should be lowered by semantic threat detection. Score: {}",
+                semantic_threat.0
+            );
+            assert!(
+                semantic_threat
+                    .2
+                    .iter()
+                    .any(|f| f.contains("semantic_threat")),
+                "Should have semantic threat flag: {:?}",
+                semantic_threat.2
+            );
         } else {
             println!("Skipping semantic test due to missing embedding engine");
         }
@@ -1302,7 +1683,7 @@ mod tests {
         assert!(SnrTier::T4.meets_high_stakes());
         assert!(SnrTier::T6.meets_high_stakes());
     }
-    
+
     #[test]
     fn test_tiered_probe_result() {
         let result = ProbeResult {

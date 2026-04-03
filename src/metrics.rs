@@ -14,7 +14,7 @@ lazy_static! {
     // ============================================================
     // SAT Metrics - Validation layer observability
     // ============================================================
-    
+
     /// Total SAT validation requests
     pub static ref SAT_REQUESTS_TOTAL: CounterVec = register_counter_vec!(
         "bizra_sat_requests_total",
@@ -203,7 +203,7 @@ lazy_static! {
         "Active URP resource leases",
         &["resource_type"] // gpu, cpu, ram
     ).expect("URP_LEASE_ACTIVE metric registration failed");
-    
+
     /// RAG Knowledge Hits
     pub static ref RAG_HIT_TOTAL: CounterVec = register_counter_vec!(
         "bizra_rag_hit_total",
@@ -318,9 +318,11 @@ pub fn record_tool_execution(tool_name: &str, success: bool, timeout: bool) {
     } else {
         "failure"
     };
-    
-    MCP_TOOL_CALLS_TOTAL.with_label_values(&[tool_name, result]).inc();
-    
+
+    MCP_TOOL_CALLS_TOTAL
+        .with_label_values(&[tool_name, result])
+        .inc();
+
     if timeout {
         TOOL_TIMEOUT_TOTAL.with_label_values(&[tool_name]).inc();
     }
@@ -362,7 +364,8 @@ pub fn gather_metrics() -> String {
     if let Err(e) = encoder.encode(&metric_families, &mut buffer) {
         return format!("# Error encoding metrics: {}", e);
     }
-    String::from_utf8(buffer).unwrap_or_else(|e| format!("# Error converting metrics to UTF-8: {}", e))
+    String::from_utf8(buffer)
+        .unwrap_or_else(|e| format!("# Error converting metrics to UTF-8: {}", e))
 }
 
 /// Initialize metrics (call once at startup)

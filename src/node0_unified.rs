@@ -449,9 +449,9 @@ impl UnifiedNode0Manager {
             for mount in mounts {
                 storage.push(StorageStatus {
                     mount_point: mount.to_string(),
-                    total_gb: 500.0,  // Placeholder
-                    used_gb: 250.0,   // Placeholder
-                    free_gb: 250.0,   // Placeholder
+                    total_gb: 500.0, // Placeholder
+                    used_gb: 250.0,  // Placeholder
+                    free_gb: 250.0,  // Placeholder
                     usage_percent: 50.0,
                     filesystem: "NTFS".to_string(),
                 });
@@ -606,7 +606,10 @@ impl UnifiedNode0Manager {
         }
 
         // Count service health
-        let healthy_services = services.iter().filter(|s| s.status == HealthStatus::Healthy).count();
+        let healthy_services = services
+            .iter()
+            .filter(|s| s.status == HealthStatus::Healthy)
+            .count();
         let total_services = services.len();
 
         for s in &services {
@@ -655,7 +658,11 @@ impl UnifiedNode0Manager {
         // Data lake status
         let data_lake = DataLakeStatus {
             connected: std::path::Path::new(&self.data_lake_path).exists(),
-            gold_layer_accessible: std::path::Path::new(&format!("{}/04_GOLD", self.data_lake_path)).exists(),
+            gold_layer_accessible: std::path::Path::new(&format!(
+                "{}/04_GOLD",
+                self.data_lake_path
+            ))
+            .exists(),
             poi_ledger_entries: 0,
             knowledge_nodes: 0,
             knowledge_edges: 0,
@@ -720,7 +727,11 @@ impl UnifiedNode0Manager {
 
         // Robustness (0.06) - GPU healthy
         let robustness = if let Some(g) = gpu {
-            if g.is_healthy() { 1.0 } else { 0.7 }
+            if g.is_healthy() {
+                1.0
+            } else {
+                0.7
+            }
         } else {
             0.5
         };
@@ -783,7 +794,10 @@ impl UnifiedNode0Manager {
 
         // Check 3: Docker services
         let docker = self.check_docker_services().await;
-        let healthy = docker.iter().filter(|s| s.status == HealthStatus::Healthy).count();
+        let healthy = docker
+            .iter()
+            .filter(|s| s.status == HealthStatus::Healthy)
+            .count();
         let total = docker.len();
 
         if healthy == total && total > 0 {

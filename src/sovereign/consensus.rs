@@ -405,7 +405,10 @@ impl PoIConsensus {
     }
 
     /// Unregister a validator
-    pub fn unregister_validator(&mut self, address: &[u8; 32]) -> Result<PoIValidator, ConsensusError> {
+    pub fn unregister_validator(
+        &mut self,
+        address: &[u8; 32],
+    ) -> Result<PoIValidator, ConsensusError> {
         self.validators
             .remove(address)
             .ok_or(ConsensusError::UnknownValidator)
@@ -629,11 +632,7 @@ mod tests {
     use super::*;
 
     fn create_test_validator(id: u8) -> PoIValidator {
-        PoIValidator::new(
-            [id; 32],
-            PoIValidator::MIN_STAKE * 2,
-            0,
-        )
+        PoIValidator::new([id; 32], PoIValidator::MIN_STAKE * 2, 0)
     }
 
     fn create_test_attestation(attester: u8, beneficiary: u8) -> ImpactAttestation {

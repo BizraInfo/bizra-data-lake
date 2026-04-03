@@ -16,15 +16,19 @@
 //  11. Increment counter and persist (Redis via Synapse)
 
 use crate::autopoietic::{
-    blueprints::{AgentBlueprint, AgentTeam, BlueprintManager, BlueprintPerformance, CapabilitySlot},
+    blueprints::{
+        AgentBlueprint, AgentTeam, BlueprintManager, BlueprintPerformance, CapabilitySlot,
+    },
     convergence::{ConvergenceDetector, ConvergenceUpdate},
     evaluation::{EvaluationResult, ExecutionRecord, OperationMonitor},
-    proof_chain::ProofChain,
+    proof_chain::{BlockchainAnchor, ProofChain},
+    step9_implementation::{GenerationReward, TokenIncentiveState},
     types::{
-        AutopoieticConfig, AutopoieticError, AutopoieticStatus, GenerationPerformance,
-        KEPState,
+        AutopoieticConfig, AutopoieticError, AutopoieticStatus, GenerationPerformance, KEPState,
     },
 };
+use crate::blockchain::tokens::TokenAmount;
+use crate::blockchain::{BizraChain, BizraTransaction};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -127,11 +131,23 @@ pub struct AutopoieticLoop {
 
     /// Receipts emitted counter
     receipts_emitted: AtomicU64,
+
+    /// Blockchain client for proof anchoring
+    chain_client: Arc<BizraChain>,
+
+    /// Token incentive state for economic model updates (Step 9)
+    token_state: RwLock<TokenIncentiveState>,
 }
 
 impl AutopoieticLoop {
     /// Create a new AutopoieticLoop
-    pub fn new(config: AutopoieticConfig) -> (Self, mpsc::Receiver<AutopoieticEvent>, mpsc::Sender<LoopControl>) {
+    pub fn new(
+        config: AutopoieticConfig,
+    ) -> (
+        Self,
+        mpsc::Receiver<AutopoieticEvent>,
+        mpsc::Sender<LoopControl>,
+    ) {
         let (event_tx, event_rx) = mpsc::channel(100);
         let (control_tx, control_rx) = mpsc::channel(100);
 
@@ -140,6 +156,9 @@ impl AutopoieticLoop {
             config.convergence_window,
             config.improvement_threshold,
         );
+
+        // Initialize blockchain client for proof anchoring
+        let chain_client = Arc::new(BizraChain::new());
 
         let loop_engine = Self {
             config,
@@ -154,6 +173,8 @@ impl AutopoieticLoop {
             event_tx,
             control_rx: RwLock::new(Some(control_rx)),
             receipts_emitted: AtomicU64::new(0),
+            chain_client,
+            token_state: RwLock::new(TokenIncentiveState::new()),
         };
 
         (loop_engine, event_rx, control_tx)
@@ -183,7 +204,14 @@ impl AutopoieticLoop {
 
         for (id, name, slot, model, vram, prompt) in pat_specs {
             let blueprint = AgentBlueprint::genesis(
-                id, name, AgentTeam::PAT, slot, prompt, model, "ollama", vram,
+                id,
+                name,
+                AgentTeam::PAT,
+                slot,
+                prompt,
+                model,
+                "ollama",
+                vram,
             );
             manager.register(blueprint);
         }
@@ -204,7 +232,14 @@ impl AutopoieticLoop {
 
         for (id, name, slot, prompt) in sat_specs {
             let blueprint = AgentBlueprint::genesis(
-                id, name, AgentTeam::SAT, slot, prompt, "rule-based", "internal", 0.1,
+                id,
+                name,
+                AgentTeam::SAT,
+                slot,
+                prompt,
+                "rule-based",
+                "internal",
+                0.1,
             );
             manager.register(blueprint);
         }
@@ -222,11 +257,17 @@ impl AutopoieticLoop {
             return Err(AutopoieticError::AlreadyRunning);
         }
 
+        // Connect to blockchain for proof anchoring
+        if let Err(e) = self.chain_client.connect().await {
+            warn!("Failed to connect to BIZRA chain: {} (continuing without anchoring)", e);
+        }
+
         self.is_running.store(true, Ordering::SeqCst);
         self.is_paused.store(false, Ordering::SeqCst);
 
         let generation = self.generation_counter.load(Ordering::SeqCst);
-        self.emit_event(AutopoieticEvent::Started { generation }).await;
+        self.emit_event(AutopoieticEvent::Started { generation })
+            .await;
 
         info!(generation = generation, "🚀 AutopoieticLoop started");
 
@@ -302,15 +343,22 @@ impl AutopoieticLoop {
     }
 
     /// Execute a single generation cycle (the 11 steps)
-    pub async fn execute_generation_cycle(&self) -> Result<GenerationPerformance, AutopoieticError> {
+    pub async fn execute_generation_cycle(
+        &self,
+    ) -> Result<GenerationPerformance, AutopoieticError> {
         let generation = self.generation_counter.fetch_add(1, Ordering::SeqCst) + 1;
 
-        self.emit_event(AutopoieticEvent::GenerationStarted { generation }).await;
+        self.emit_event(AutopoieticEvent::GenerationStarted { generation })
+            .await;
         info!(generation = generation, "🔄 Starting generation cycle");
 
         // Step 1: Create agents from current blueprints
         let blueprints = self.step1_create_agents().await?;
-        debug!(generation = generation, agents = blueprints.len(), "Step 1: Agents created");
+        debug!(
+            generation = generation,
+            agents = blueprints.len(),
+            "Step 1: Agents created"
+        );
 
         // Step 2: Deploy agents (simulated - would integrate with actual PAT/SAT)
         self.step2_deploy_agents(&blueprints).await?;
@@ -338,18 +386,27 @@ impl AutopoieticLoop {
 
         // Step 5: Improve blueprints
         let improvements = self.step5_improve_blueprints(&evaluation).await?;
-        debug!(generation = generation, improvements = improvements.len(), "Step 5: Improvements generated");
+        debug!(
+            generation = generation,
+            improvements = improvements.len(),
+            "Step 5: Improvements generated"
+        );
 
         // Step 6: Record GenerationPerformance
-        let receipt_id = self.step6_record_performance(&evaluation, &improvements).await?;
+        let receipt_id = self
+            .step6_record_performance(&evaluation, &improvements)
+            .await?;
         debug!(generation = generation, receipt_id = %receipt_id, "Step 6: Performance recorded");
 
         // Step 7: Update current_blueprints
-        self.step7_update_blueprints(generation, &improvements).await?;
+        self.step7_update_blueprints(generation, &improvements)
+            .await?;
         debug!(generation = generation, "Step 7: Blueprints updated");
 
         // Step 8: Update proof chain
-        let proof_hash = self.step8_update_proof_chain(generation, &evaluation, &receipt_id).await?;
+        let proof_hash = self
+            .step8_update_proof_chain(generation, &evaluation, &receipt_id)
+            .await?;
         debug!(generation = generation, proof_hash = %proof_hash, "Step 8: Proof chain updated");
 
         // Step 9: Economic/ethical model updates
@@ -357,7 +414,9 @@ impl AutopoieticLoop {
         debug!(generation = generation, "Step 9: Models updated");
 
         // Step 10: Check convergence (KEP detection)
-        let convergence_update = self.step10_check_convergence(&evaluation, &proof_hash, &receipt_id).await?;
+        let convergence_update = self
+            .step10_check_convergence(&evaluation, &proof_hash, &receipt_id)
+            .await?;
         debug!(
             generation = generation,
             kep_state = ?convergence_update.new_state,
@@ -405,12 +464,16 @@ impl AutopoieticLoop {
     /// Step 1: Create agents from current blueprints
     async fn step1_create_agents(&self) -> Result<Vec<AgentBlueprint>, AutopoieticError> {
         let manager = self.blueprints.read().await;
-        let blueprints: Vec<AgentBlueprint> = manager.get_all_active().into_iter().cloned().collect();
+        let blueprints: Vec<AgentBlueprint> =
+            manager.get_all_active().into_iter().cloned().collect();
         Ok(blueprints)
     }
 
     /// Step 2: Deploy agents
-    async fn step2_deploy_agents(&self, _blueprints: &[AgentBlueprint]) -> Result<(), AutopoieticError> {
+    async fn step2_deploy_agents(
+        &self,
+        _blueprints: &[AgentBlueprint],
+    ) -> Result<(), AutopoieticError> {
         // In a full implementation, this would:
         // - Create agent instances using warm pools
         // - Register with A2A
@@ -494,7 +557,9 @@ impl AutopoieticLoop {
                 timestamp: Utc::now(),
             };
 
-            let mutations = blueprint.improvement_genome.generate_mutations(&performance);
+            let mutations = blueprint
+                .improvement_genome
+                .generate_mutations(&performance);
 
             if !mutations.is_empty() {
                 improvements.push(format!(
@@ -584,11 +649,90 @@ impl AutopoieticLoop {
     }
 
     /// Step 9: Update economic/ethical models
-    async fn step9_update_models(&self, _evaluation: &EvaluationResult) -> Result<(), AutopoieticError> {
-        // In production, this would:
-        // - Adjust token incentives
-        // - Update Harberger tax rates
-        // - Tune ethical weights
+    ///
+    /// Implements the Proof-of-Impact token incentive feedback loop:
+    /// 1. Calculate impact score from Ihsan + operational success rate
+    /// 2. Mint BLOOM tokens proportional to impact
+    /// 3. Adjust Ihsan dimension weights based on performance trends
+    /// 4. Record generation reward for analytics/auditing
+    async fn step9_update_models(
+        &self,
+        evaluation: &EvaluationResult,
+    ) -> Result<(), AutopoieticError> {
+        let mut state = self.token_state.write().await;
+        let generation = self.generation_counter.load(Ordering::SeqCst);
+
+        // 1. Calculate impact score from evaluation
+        //    impact = (ihsan_score * 100) * (success_rate * 10)
+        //    This creates a multiplicative relationship between ethical quality and practical success
+        let success_rate = if evaluation.operational.tasks_processed > 0 {
+            evaluation.operational.successful_executions as f64
+                / evaluation.operational.tasks_processed as f64
+        } else {
+            0.0
+        };
+        let impact_score =
+            ((evaluation.ethical.aggregate_ihsan * 100.0) * (success_rate * 10.0)) as u64;
+
+        // 2. Mint BLOOM tokens from impact (if above minimum threshold)
+        let bloom_minted = if impact_score >= 10 {
+            match state.bloom.mint_from_impact(impact_score) {
+                Ok(amount) => {
+                    info!(
+                        generation,
+                        impact_score,
+                        bloom = %amount,
+                        "BLOOM minted from Proof-of-Impact"
+                    );
+                    amount
+                }
+                Err(e) => {
+                    warn!(generation, error = %e, "BLOOM minting failed");
+                    TokenAmount::ZERO
+                }
+            }
+        } else {
+            TokenAmount::ZERO
+        };
+
+        // 3. Adjust Ihsan dimension weights based on performance trends
+        //    If safety scores trend below threshold over 3 generations, increase weight
+        let history = self.performance_history.read().await;
+        if history.len() >= 3 {
+            let recent = &history[history.len().saturating_sub(3)..];
+            let safety_trend: f64 = recent
+                .iter()
+                .map(|p| p.ihsan_dimensions.safety)
+                .sum::<f64>()
+                / recent.len() as f64;
+            if safety_trend < 0.95 {
+                state
+                    .ihsan_weight_adjustments
+                    .push(("safety".to_string(), 0.02));
+                info!(
+                    generation,
+                    safety_trend,
+                    "Ihsan safety weight increased due to downward trend"
+                );
+            }
+        }
+        drop(history);
+
+        // 4. Record generation reward
+        state.generation_rewards.push(GenerationReward {
+            generation,
+            bloom_minted,
+            impact_score,
+            ihsan_score: evaluation.ethical.aggregate_ihsan,
+            timestamp: Utc::now(),
+        });
+
+        // Keep only last 100 rewards (rolling window)
+        if state.generation_rewards.len() > 100 {
+            let drain_count = state.generation_rewards.len() - 100;
+            state.generation_rewards.drain(..drain_count);
+        }
+
         Ok(())
     }
 
@@ -616,13 +760,64 @@ impl AutopoieticLoop {
         Ok(update)
     }
 
-    /// Step 11: Persist state
-    async fn step11_persist(&self, _generation: u64) -> Result<(), AutopoieticError> {
-        // In production, persist to Redis via Synapse
-        // - Generation counter
-        // - Blueprint states
-        // - Proof chain
-        // - Convergence state
+    /// Step 11: Persist state via blockchain anchoring
+    async fn step11_persist(&self, generation: u64) -> Result<(), AutopoieticError> {
+        let mut chain = self.proof_chain.write().await;
+
+        // Get pending anchors (generations not yet anchored to blockchain)
+        let pending = chain.pending_anchors().to_vec();
+        if pending.is_empty() {
+            debug!(generation, "No pending anchors to persist");
+            return Ok(());
+        }
+
+        // Batch verify pending anchors using Merkle tree
+        let batch = chain.batch_verify_pending();
+        if batch.verified_count == 0 {
+            debug!(generation, "No verified anchors in batch");
+            return Ok(());
+        }
+
+        // Submit Merkle root to blockchain
+        let tx = BizraTransaction::AnchorReceipt {
+            receipt_id: format!("GEN-BATCH-{}", generation),
+            receipt_type: "ProofChainAnchor".to_string(),
+            integrity_hash: batch.merkle_root.clone(),
+            ihsan_score: 0.0, // Batch anchor doesn't have individual scores
+            sat_approvers: 0,
+        };
+
+        match self.chain_client.submit_transaction(tx).await {
+            Ok(receipt) => {
+                // Mark generations as anchored with blockchain proof
+                let anchor = BlockchainAnchor {
+                    chain: "bizra-native".to_string(),
+                    tx_hash: receipt.tx_hash.clone(),
+                    block_number: receipt.block_number.unwrap_or(0),
+                    anchored_at: Utc::now(),
+                    generations: pending.clone(),
+                };
+
+                chain.anchor_with_merkle_proof(&pending, anchor);
+
+                info!(
+                    generation,
+                    anchored = pending.len(),
+                    tx_hash = %receipt.tx_hash,
+                    merkle_root = %batch.merkle_root,
+                    "⛓️ Proof chain batch anchored to BIZRA blockchain"
+                );
+            }
+            Err(e) => {
+                warn!(
+                    generation,
+                    error = %e,
+                    "Blockchain anchoring failed (non-fatal) - anchors remain pending for next attempt"
+                );
+                // Non-fatal: anchors remain pending for next attempt
+            }
+        }
+
         Ok(())
     }
 

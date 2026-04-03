@@ -10,13 +10,16 @@
  *
  * Three Invariants (The Covenant):
  *   1. Anti-Debt (Riba == 0) - No interest-based transactions
- *   2. Ihsan Floor (>= 0.99) - Excellence threshold
+ *   2. Ihsan Floor (>= 0.95) - Excellence threshold
  *   3. Anti-Assumption (Evidence > 0) - No hallucinations allowed
  */
 
 use crate::errors::BridgeError;
-use tracing::{debug, info, warn, instrument};
-use z3::{ast::{Ast, Bool, Int}, Config, Context, SatResult, Solver};
+use tracing::{debug, info, instrument, warn};
+use z3::{
+    ast::{Ast, Bool, Int},
+    Config, Context, SatResult, Solver,
+};
 
 /// Represents an agent's proposed action for formal verification
 #[derive(Debug, Clone)]
@@ -102,8 +105,10 @@ impl<'ctx> SovereignKernel<'ctx> {
             invariant_names: Vec::new(),
         };
         kernel.initialize_invariants();
-        info!("Sovereign Kernel initialized with {} constitutional invariants",
-              kernel.constitution.len());
+        info!(
+            "Sovereign Kernel initialized with {} constitutional invariants",
+            kernel.constitution.len()
+        );
         kernel
     }
 
@@ -111,34 +116,37 @@ impl<'ctx> SovereignKernel<'ctx> {
     ///
     /// These are hard-coded into the "physics" of the system:
     /// 1. Anti-Debt (Riba == 0)
-    /// 2. Ihsan Floor (>= 99%)
+    /// 2. Ihsan Floor (>= 95%)
     /// 3. Anti-Assumption (Evidence > 0)
     fn initialize_invariants(&mut self) {
         let zero = Int::from_i64(self.ctx, 0);
-        let threshold = Int::from_i64(self.ctx, 99);
+        let threshold = Int::from_i64(self.ctx, 95);
 
         // Invariant 1: Anti-Debt (Riba == 0)
         // The system CANNOT propose interest-bearing transactions
         let interest_rate = Int::new_const(self.ctx, "interest_rate");
         let anti_debt = interest_rate._eq(&zero);
         self.constitution.push(anti_debt);
-        self.invariant_names.push("Anti-Debt (Riba == 0)".to_string());
+        self.invariant_names
+            .push("Anti-Debt (Riba == 0)".to_string());
         debug!("Loaded invariant: Anti-Debt (Riba == 0)");
 
-        // Invariant 2: Ihsan Floor (Ihsan >= 0.99)
+        // Invariant 2: Ihsan Floor (Ihsan >= 0.95)
         // All actions must meet the excellence threshold
         let ihsan_metric = Int::new_const(self.ctx, "ihsan_metric");
         let ihsan_floor = ihsan_metric.ge(&threshold);
         self.constitution.push(ihsan_floor);
-        self.invariant_names.push("Ihsan Floor (>= 0.99)".to_string());
-        debug!("Loaded invariant: Ihsan Floor (>= 0.99)");
+        self.invariant_names
+            .push("Ihsan Floor (>= 0.95)".to_string());
+        debug!("Loaded invariant: Ihsan Floor (>= 0.95)");
 
         // Invariant 3: Anti-Assumption (Evidence > 0)
         // No action without evidence from the Data Lake
         let evidence_count = Int::new_const(self.ctx, "evidence_count");
         let anti_assumption = evidence_count.gt(&zero);
         self.constitution.push(anti_assumption);
-        self.invariant_names.push("Anti-Assumption (Evidence > 0)".to_string());
+        self.invariant_names
+            .push("Anti-Assumption (Evidence > 0)".to_string());
         debug!("Loaded invariant: Anti-Assumption (Evidence > 0)");
     }
 
@@ -182,7 +190,8 @@ impl<'ctx> SovereignKernel<'ctx> {
                 info!("Verification PASSED: Action satisfies Constitution");
                 VerificationResult {
                     verified: true,
-                    explanation: "Action mathematically proven to comply with Constitution".to_string(),
+                    explanation: "Action mathematically proven to comply with Constitution"
+                        .to_string(),
                     invariants_checked: self.invariant_names.clone(),
                     violations: vec![],
                     solver_status: "SAT".to_string(),
@@ -191,10 +200,16 @@ impl<'ctx> SovereignKernel<'ctx> {
             SatResult::Unsat => {
                 // Identify which invariants were violated
                 let violations = self.identify_violations(action);
-                warn!("Verification FAILED: Action violates Constitution - {:?}", violations);
+                warn!(
+                    "Verification FAILED: Action violates Constitution - {:?}",
+                    violations
+                );
                 VerificationResult {
                     verified: false,
-                    explanation: format!("Action violates constitutional invariants: {:?}", violations),
+                    explanation: format!(
+                        "Action violates constitutional invariants: {:?}",
+                        violations
+                    ),
                     invariants_checked: self.invariant_names.clone(),
                     violations,
                     solver_status: "UNSAT".to_string(),
@@ -203,7 +218,8 @@ impl<'ctx> SovereignKernel<'ctx> {
             SatResult::Unknown => {
                 warn!("Verification INCONCLUSIVE: Z3 solver returned Unknown");
                 return Err(BridgeError::ProtocolError(
-                    "Formal verification inconclusive - cannot prove or disprove compliance".to_string()
+                    "Formal verification inconclusive - cannot prove or disprove compliance"
+                        .to_string(),
                 ));
             }
         };
@@ -224,9 +240,9 @@ impl<'ctx> SovereignKernel<'ctx> {
         }
 
         // Check Ihsan Floor
-        if action.ihsan < 0.99 {
+        if action.ihsan < 0.95 {
             violations.push(format!(
-                "Ihsan Floor violation: ihsan = {:.4} (must be >= 0.99)",
+                "Ihsan Floor violation: ihsan = {:.4} (must be >= 0.95)",
                 action.ihsan
             ));
         }
@@ -242,11 +258,14 @@ impl<'ctx> SovereignKernel<'ctx> {
     /// Quick verification that only checks Ihsan score
     /// Used for fast-path validation before full verification
     pub fn quick_ihsan_check(&self, ihsan: f64) -> bool {
-        ihsan >= 0.99
+        ihsan >= 0.95
     }
 
     /// Verify a batch of actions (for parallel processing)
-    pub fn verify_batch(&self, actions: &[AgentAction]) -> Vec<Result<VerificationResult, BridgeError>> {
+    pub fn verify_batch(
+        &self,
+        actions: &[AgentAction],
+    ) -> Vec<Result<VerificationResult, BridgeError>> {
         actions.iter().map(|a| self.verify_intent(a)).collect()
     }
 }
@@ -256,7 +275,7 @@ impl<'ctx> SovereignKernel<'ctx> {
 pub fn create_z3_context() -> Context {
     let mut cfg = Config::new();
     cfg.set_proof_generation(false); // Disable proof generation for speed
-    cfg.set_model_generation(true);  // Enable model generation for debugging
+    cfg.set_model_generation(true); // Enable model generation for debugging
     Context::new(&cfg)
 }
 
@@ -301,8 +320,8 @@ mod tests {
         let ctx = create_z3_context();
         let kernel = SovereignKernel::new(&ctx);
 
-        // Compliant action: Ihsan >= 0.99, interest = 0, evidence > 0
-        let action = create_test_action(0.99, 0, 5);
+        // Compliant action: Ihsan >= 0.95, interest = 0, evidence > 0
+        let action = create_test_action(0.95, 0, 5);
         let result = kernel.verify_intent(&action).unwrap();
 
         assert!(result.verified, "Compliant action should pass verification");
@@ -315,11 +334,14 @@ mod tests {
         let ctx = create_z3_context();
         let kernel = SovereignKernel::new(&ctx);
 
-        // Low Ihsan: 0.85 < 0.99
+        // Low Ihsan: 0.85 < 0.95
         let action = create_test_action(0.85, 0, 5);
         let result = kernel.verify_intent(&action).unwrap();
 
-        assert!(!result.verified, "Low Ihsan action should fail verification");
+        assert!(
+            !result.verified,
+            "Low Ihsan action should fail verification"
+        );
         assert!(result.violations.iter().any(|v| v.contains("Ihsan Floor")));
     }
 
@@ -329,10 +351,13 @@ mod tests {
         let kernel = SovereignKernel::new(&ctx);
 
         // Interest > 0 (Riba violation)
-        let action = create_test_action(0.99, 5, 5);
+        let action = create_test_action(0.95, 5, 5);
         let result = kernel.verify_intent(&action).unwrap();
 
-        assert!(!result.verified, "Interest-bearing action should fail verification");
+        assert!(
+            !result.verified,
+            "Interest-bearing action should fail verification"
+        );
         assert!(result.violations.iter().any(|v| v.contains("Anti-Debt")));
     }
 
@@ -342,11 +367,17 @@ mod tests {
         let kernel = SovereignKernel::new(&ctx);
 
         // No evidence atoms (hallucination risk)
-        let action = create_test_action(0.99, 0, 0);
+        let action = create_test_action(0.95, 0, 0);
         let result = kernel.verify_intent(&action).unwrap();
 
-        assert!(!result.verified, "Action without evidence should fail verification");
-        assert!(result.violations.iter().any(|v| v.contains("Anti-Assumption")));
+        assert!(
+            !result.verified,
+            "Action without evidence should fail verification"
+        );
+        assert!(result
+            .violations
+            .iter()
+            .any(|v| v.contains("Anti-Assumption")));
     }
 
     #[test]
@@ -354,7 +385,7 @@ mod tests {
         let ctx = create_z3_context();
         let kernel = SovereignKernel::new(&ctx);
 
-        assert!(kernel.quick_ihsan_check(0.99));
+        assert!(kernel.quick_ihsan_check(0.95));
         assert!(kernel.quick_ihsan_check(1.0));
         assert!(!kernel.quick_ihsan_check(0.98));
         assert!(!kernel.quick_ihsan_check(0.5));

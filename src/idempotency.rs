@@ -12,13 +12,13 @@
 // - Ihsān principles: Auditability (0.12), Robustness (0.06)
 
 use crate::entropy::generate_entropy_id;
-use sha2::{Sha256, Digest};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tracing::{info, warn, debug};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use tracing::{debug, info, warn};
 
 /// Default TTL for idempotency keys (1 hour)
 const DEFAULT_TTL_SECS: u64 = 3600;
@@ -347,7 +347,13 @@ impl IdempotentReplayManager {
     }
 
     /// Create a checkpoint for crash recovery
-    fn create_checkpoint(&self, key: &str, checkpoint_id: &str, stage: &str, partial: Option<&str>) {
+    fn create_checkpoint(
+        &self,
+        key: &str,
+        checkpoint_id: &str,
+        stage: &str,
+        partial: Option<&str>,
+    ) {
         use std::sync::atomic::Ordering::Relaxed;
 
         let checkpoint = Checkpoint {
@@ -508,7 +514,10 @@ mod tests {
         let fp3 = manager.fingerprint("different request");
 
         assert_eq!(fp1, fp2, "Same content should produce same fingerprint");
-        assert_ne!(fp1, fp3, "Different content should produce different fingerprint");
+        assert_ne!(
+            fp1, fp3,
+            "Different content should produce different fingerprint"
+        );
         assert!(fp1.starts_with("IDEM-"));
     }
 

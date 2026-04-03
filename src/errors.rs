@@ -59,25 +59,19 @@ pub enum BridgeError {
         escalation_id: String,
     },
     #[error("REQUEST IN PROGRESS: key={key} (exactly-once semantics)")]
-    RequestInProgress {
-        key: String,
-    },
+    RequestInProgress { key: String },
     #[error("IDEMPOTENCY ERROR: {message}")]
-    IdempotencyError {
-        message: String,
-    },
+    IdempotencyError { message: String },
     #[error("FATE MUTEX POISONED: {message}")]
-    FateLockPoisoned {
-        message: String,
-    },
+    FateLockPoisoned { message: String },
     #[error("DATA LAKE ERROR: {message}")]
-    DataLakeError {
-        message: String,
-    },
+    DataLakeError { message: String },
     #[error("CONNECTION FAILED: {0}")]
     ConnectionFailed(String),
     #[error("PROTOCOL ERROR: {0}")]
     ProtocolError(String),
+    #[error("CRITICAL AGENTS MISSING: {missing_agents:?} — fail-closed, cannot compute valid Ihsān")]
+    CriticalAgentsMissing { missing_agents: Vec<String> },
 }
 
 #[derive(Error, Debug)]

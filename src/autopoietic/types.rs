@@ -43,7 +43,7 @@ impl Default for AutopoieticConfig {
     fn default() -> Self {
         Self {
             generation_duration_ms: 60_000, // 1 minute per generation
-            max_generations: 0, // Unlimited
+            max_generations: 0,             // Unlimited
             ihsan_threshold: 0.95,
             kep_thresholds: KEPThresholds::default(),
             convergence_window: 10,
@@ -121,7 +121,10 @@ pub enum AutopoieticError {
     FATEEscalation { level: String, reason: String },
 
     #[error("SAT consensus not reached: {votes_for}/5 votes")]
-    SATConsensusFailed { votes_for: usize, votes_against: usize },
+    SATConsensusFailed {
+        votes_for: usize,
+        votes_against: usize,
+    },
 
     #[error("Blueprint evolution failed: {reason}")]
     EvolutionFailed { reason: String },

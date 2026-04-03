@@ -10,7 +10,7 @@ use neo4rs::{Graph, Node, Query};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
-use tracing::{info, warn, instrument};
+use tracing::{info, instrument, warn};
 
 /// House of Wisdom - Neo4j knowledge graph client with ChromaDB vectors
 pub struct HouseOfWisdom {
@@ -63,22 +63,22 @@ impl HouseOfWisdom {
 
     /// Create from environment variables
     pub fn from_env() -> Self {
-        let uri = std::env::var("WISDOM_URL")
-            .unwrap_or_else(|_| "bolt://localhost:7687".to_string());
-        let auth = std::env::var("NEO4J_AUTH")
-            .unwrap_or_else(|_| "neo4j/bizra_wisdom".to_string());
-        
-        let (user, password) = auth.split_once('/')
+        let uri =
+            std::env::var("WISDOM_URL").unwrap_or_else(|_| "bolt://localhost:7687".to_string());
+        let auth = std::env::var("NEO4J_AUTH").unwrap_or_else(|_| "neo4j/bizra_wisdom".to_string());
+
+        let (user, password) = auth
+            .split_once('/')
             .map(|(u, p)| (u.to_string(), p.to_string()))
             .unwrap_or_else(|| ("neo4j".to_string(), "bizra_wisdom".to_string()));
-        
+
         Self::new(uri, user, password)
     }
-    
+
     /// Create from environment with vector store
     pub async fn from_env_with_vectors() -> Self {
         let mut wisdom = Self::from_env();
-        
+
         match ChromaClient::from_env().await {
             Ok(vectors) if vectors.is_available() => {
                 info!("🏛️ House of Wisdom initialized with ChromaDB vectors");
@@ -88,19 +88,22 @@ impl HouseOfWisdom {
                 warn!("⚠️ ChromaDB not available, running without vector search");
             }
         }
-        
+
         wisdom
     }
-    
+
     /// Attach a vector client
     pub fn with_vectors(mut self, vectors: ChromaClient) -> Self {
         self.vectors = Some(vectors);
         self
     }
-    
+
     /// Check if vector store is available
     pub fn has_vectors(&self) -> bool {
-        self.vectors.as_ref().map(|v| v.is_available()).unwrap_or(false)
+        self.vectors
+            .as_ref()
+            .map(|v| v.is_available())
+            .unwrap_or(false)
     }
 
     /// Connect to Neo4j
@@ -146,9 +149,10 @@ impl HouseOfWisdom {
     #[instrument(skip(self, query))]
     pub async fn execute_query(&self, query: &str) -> anyhow::Result<Vec<Node>> {
         let start = Instant::now();
-        
+
         let guard = self.graph.read().await;
-        let graph = guard.as_ref()
+        let graph = guard
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Not connected to Neo4j"))?;
 
         let mut result = graph.execute(Query::new(query.to_string())).await?;
@@ -162,7 +166,7 @@ impl HouseOfWisdom {
 
         let latency = start.elapsed();
         metrics::record_neo4j_query("raw", latency.as_secs_f64(), true);
-        
+
         Ok(nodes)
     }
 
@@ -173,7 +177,8 @@ impl HouseOfWisdom {
         let start = Instant::now();
 
         let guard = self.graph.read().await;
-        let graph = guard.as_ref()
+        let graph = guard
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Not connected to Neo4j"))?;
 
         // Cypher query with full-text search and relationship traversal
@@ -187,7 +192,8 @@ impl HouseOfWisdom {
             OPTIONAL MATCH (node)-[r]-(related)
             WITH node, score, collect(DISTINCT related) AS context
             RETURN node, score, size(context) AS context_size
-            "#.to_string();
+            "#
+        .to_string();
 
         let cypher_query = Query::new(cypher)
             .param("query", query.to_string())
@@ -208,7 +214,11 @@ impl HouseOfWisdom {
 
                 let knowledge_node = KnowledgeNode {
                     id: node.id().to_string(),
-                    node_type: node.labels().first().map(|s| s.to_string()).unwrap_or_default(),
+                    node_type: node
+                        .labels()
+                        .first()
+                        .map(|s| s.to_string())
+                        .unwrap_or_default(),
                     content: node.get::<String>("content").unwrap_or_default(),
                     embedding_id: node.get::<String>("embedding_id").ok(),
                     relevance_score: boosted_score,
@@ -242,7 +252,8 @@ impl HouseOfWisdom {
         let start = Instant::now();
 
         let guard = self.graph.read().await;
-        let graph = guard.as_ref()
+        let graph = guard
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Not connected to Neo4j"))?;
 
         let id = uuid::Uuid::new_v4().to_string();
@@ -285,7 +296,8 @@ impl HouseOfWisdom {
         let start = Instant::now();
 
         let guard = self.graph.read().await;
-        let graph = guard.as_ref()
+        let graph = guard
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Not connected to Neo4j"))?;
 
         let cypher = format!(
@@ -320,7 +332,8 @@ impl HouseOfWisdom {
     #[instrument(skip(self))]
     pub async fn get_stats(&self) -> anyhow::Result<serde_json::Value> {
         let guard = self.graph.read().await;
-        let graph = guard.as_ref()
+        let graph = guard
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Not connected to Neo4j"))?;
 
         let cypher = r#"
@@ -332,7 +345,7 @@ impl HouseOfWisdom {
         "#;
 
         let mut result = graph.execute(Query::new(cypher.to_string())).await?;
-        
+
         if let Ok(Some(row)) = result.next().await {
             let node_count: i64 = row.get("node_count").unwrap_or(0);
             let rel_count: i64 = row.get("rel_count").unwrap_or(0);
@@ -352,46 +365,54 @@ impl HouseOfWisdom {
             }))
         }
     }
-    
+
     // ================================================================
     // Vector Integration Methods
     // ================================================================
-    
+
     /// Semantic vector search using ChromaDB
     #[instrument(skip(self))]
-    pub async fn vector_search(&self, query: &str, limit: usize) -> anyhow::Result<Vec<VectorSearchResult>> {
+    pub async fn vector_search(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> anyhow::Result<Vec<VectorSearchResult>> {
         match &self.vectors {
-            Some(vectors) if vectors.is_available() => {
-                vectors.search(query, limit).await
-            }
+            Some(vectors) if vectors.is_available() => vectors.search(query, limit).await,
             _ => {
                 warn!("⚠️ ChromaDB not available for vector search");
                 Ok(vec![])
             }
         }
     }
-    
+
     /// Hybrid search: combine graph + vector search
     #[instrument(skip(self))]
-    pub async fn hybrid_search(&self, query: &str, limit: usize) -> anyhow::Result<HybridSearchResult> {
+    pub async fn hybrid_search(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> anyhow::Result<HybridSearchResult> {
         let start = Instant::now();
-        
+
         // Parallel execution of graph and vector search
         let (graph_result, vector_result) = tokio::join!(
             self.query_knowledge(query, limit),
             self.vector_search(query, limit)
         );
-        
-        let graph_nodes = graph_result.unwrap_or_else(|_| WisdomResult {
-            nodes: vec![],
-            query_time_ms: 0,
-            hypergraph_boost: 1.0,
-        }).nodes;
-        
+
+        let graph_nodes = graph_result
+            .unwrap_or_else(|_| WisdomResult {
+                nodes: vec![],
+                query_time_ms: 0,
+                hypergraph_boost: 1.0,
+            })
+            .nodes;
+
         let vector_results = vector_result.unwrap_or_default();
-        
+
         let latency = start.elapsed();
-        
+
         info!(
             query = %query,
             graph_results = graph_nodes.len(),
@@ -399,16 +420,16 @@ impl HouseOfWisdom {
             latency_ms = latency.as_millis(),
             "Hybrid search completed"
         );
-        
+
         Ok(HybridSearchResult {
             graph_nodes,
             vector_results,
             query_time_ms: latency.as_millis() as u64,
-            graph_boost: 18.7,  // HyperGraphRAG advantage
-            vector_boost: 1.0,  // Base semantic similarity
+            graph_boost: 18.7, // HyperGraphRAG advantage
+            vector_boost: 1.0, // Base semantic similarity
         })
     }
-    
+
     /// Store knowledge with automatic vector embedding
     #[instrument(skip(self, content))]
     pub async fn store_knowledge_with_embedding(
@@ -418,8 +439,10 @@ impl HouseOfWisdom {
         metadata: serde_json::Value,
     ) -> anyhow::Result<String> {
         // Store in Neo4j first
-        let node_id = self.store_knowledge(node_type, content, metadata.clone()).await?;
-        
+        let node_id = self
+            .store_knowledge(node_type, content, metadata.clone())
+            .await?;
+
         // Also store in ChromaDB for vector search
         if let Some(vectors) = &self.vectors {
             if vectors.is_available() {
@@ -433,16 +456,16 @@ impl HouseOfWisdom {
                         timestamp: Some(chrono::Utc::now().to_rfc3339()),
                     },
                 };
-                
+
                 if let Err(e) = vectors.add_document(doc).await {
                     warn!("Failed to add document to ChromaDB: {}", e);
                 }
             }
         }
-        
+
         Ok(node_id)
     }
-    
+
     /// Get vector collection stats
     pub async fn vector_stats(&self) -> anyhow::Result<serde_json::Value> {
         match &self.vectors {
@@ -455,12 +478,10 @@ impl HouseOfWisdom {
                     "available": true,
                 }))
             }
-            _ => {
-                Ok(serde_json::json!({
-                    "vector_store": "chromadb",
-                    "available": false,
-                }))
-            }
+            _ => Ok(serde_json::json!({
+                "vector_store": "chromadb",
+                "available": false,
+            })),
         }
     }
 }
@@ -478,13 +499,13 @@ mod tests {
     fn test_house_of_wisdom_from_env() {
         std::env::set_var("WISDOM_URL", "bolt://test:7687");
         std::env::set_var("NEO4J_AUTH", "testuser/testpass");
-        
+
         let wisdom = HouseOfWisdom::from_env();
         assert_eq!(wisdom.uri, "bolt://test:7687");
         assert_eq!(wisdom.user, "testuser");
         assert_eq!(wisdom.password, "testpass");
         assert!(!wisdom.has_vectors()); // No vectors without async init
-        
+
         // Clean up
         std::env::remove_var("WISDOM_URL");
         std::env::remove_var("NEO4J_AUTH");
@@ -499,12 +520,12 @@ mod tests {
             embedding_id: Some("emb-123".to_string()),
             relevance_score: 0.95,
         };
-        
+
         assert_eq!(node.id, "test-id");
         assert_eq!(node.node_type, "Concept");
         assert!(node.relevance_score > 0.9);
     }
-    
+
     #[test]
     fn test_hybrid_search_result_structure() {
         let result = HybridSearchResult {
@@ -514,7 +535,7 @@ mod tests {
             graph_boost: 18.7,
             vector_boost: 1.0,
         };
-        
+
         assert_eq!(result.query_time_ms, 42);
         assert_eq!(result.graph_boost, 18.7);
         assert_eq!(result.vector_boost, 1.0);

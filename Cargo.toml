@@ -62,10 +62,22 @@ url = "2.5"
 # Note: TLS support requires manual tokio-native-tls dependency
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 
+# BLAKE3 hashing for PCI protocol
+blake3 = "1.5"
+
+# Ed25519 signatures for PCI protocol (optional)
+ed25519-dalek = { version = "2.1", optional = true }
+
+# ChaCha20-Poly1305 AEAD encryption for data at rest (sovereignty)
+chacha20poly1305 = "0.10"
+
 # System utilities for Node0 unified
 hostname = "0.4"
 tokio-native-tls = "0.3"
 dialoguer = "0.12.0"
+
+# Regex for LLM response parsing
+regex = "1.11"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", features = ["fs"] }
@@ -78,10 +90,11 @@ z3 = { version = "0.12", optional = true }
 # (uses reqwest already included)
 
 [features]
-default = ["http", "observability"]
+default = ["http", "observability", "crypto"]
 http = []
 observability = []
 z3-solver = ["z3"]  # Enable formal verification with Z3 SMT solver
+crypto = ["ed25519-dalek"]  # Enable Ed25519 signing for PCI protocol
 
 [profile.release]
 opt-level = 3

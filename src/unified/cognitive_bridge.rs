@@ -8,16 +8,15 @@
 // The fuzzy outputs of the LLM are validated before entering
 // the Rust control logic.
 
-use crate::ollama::{OllamaClient, ChatMessage};
+use crate::ollama::{ChatMessage, OllamaClient};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
-use tracing::{info, warn, instrument};
+use tracing::{info, instrument, warn};
 
 /// Thinking mode for cognitive processing
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Default)]
 pub enum ThinkingMode {
     /// System 1: Fast, heuristic, intuitive (PAT)
     FastPat,
@@ -31,7 +30,6 @@ pub enum ThinkingMode {
     /// Multi-dimensional synthesis
     GraphOfThought,
 }
-
 
 /// Request to the cognitive engine
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,8 +132,7 @@ pub struct ThoughtNode {
 }
 
 /// Error codes for cognitive failures
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Default)]
 pub enum CognitiveErrorCode {
     #[default]
     None,
@@ -147,7 +144,6 @@ pub enum CognitiveErrorCode {
     InvalidRequest,
     CircuitBreakerOpen,
 }
-
 
 /// Cognitive Bridge - Interface to the Python Brain
 ///
@@ -214,12 +210,14 @@ impl CircuitBreaker {
     }
 
     fn record_failure(&self) {
-        self.failures.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.failures
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        self.last_failure.store(now, std::sync::atomic::Ordering::Relaxed);
+        self.last_failure
+            .store(now, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -259,12 +257,14 @@ impl CognitiveBridge {
         // Check circuit breaker
         if self.circuit_breaker.is_open() {
             warn!(agent_id = %request.agent_id, "Circuit breaker open - attempting local fallback");
-            
+
             // Fallback: Return a degraded but valid response to keep the system running
             return CognitiveResponse {
                 agent_id: request.agent_id,
                 task_id: request.task_id,
-                synthesis: "Service degraded: Circuit breaker open. Returning best-effort fallback.".to_string(),
+                synthesis:
+                    "Service degraded: Circuit breaker open. Returning best-effort fallback."
+                        .to_string(),
                 confidence: 0.1, // Low confidence
                 snr_score: 1.0,  // Baseline SNR
                 utility_score: 0.1,
@@ -284,7 +284,12 @@ impl CognitiveBridge {
         let _permit = match self.semaphore.acquire().await {
             Ok(p) => p,
             Err(_) => {
-                return self.error_response(&request, start, "Semaphore closed", CognitiveErrorCode::InvalidRequest);
+                return self.error_response(
+                    &request,
+                    start,
+                    "Semaphore closed",
+                    CognitiveErrorCode::InvalidRequest,
+                );
             }
         };
 
@@ -329,7 +334,11 @@ impl CognitiveBridge {
     }
 
     /// Process using local Ollama
-    async fn process_with_ollama(&self, request: CognitiveRequest, start: Instant) -> CognitiveResponse {
+    async fn process_with_ollama(
+        &self,
+        request: CognitiveRequest,
+        start: Instant,
+    ) -> CognitiveResponse {
         // Build prompt based on thinking mode
         let system_prompt = self.build_system_prompt(&request.mode);
         let user_prompt = self.build_user_prompt(&request);
@@ -340,7 +349,11 @@ impl CognitiveBridge {
         ];
 
         // Call Ollama
-        match self.ollama.chat(messages, Some(&self.default_model), None).await {
+        match self
+            .ollama
+            .chat(messages, Some(&self.default_model), None)
+            .await
+        {
             Ok(response) => {
                 let processing_time = start.elapsed().as_millis() as u64;
                 let content = &response.message.content;
@@ -356,7 +369,10 @@ impl CognitiveBridge {
                     return self.error_response(
                         &request,
                         start,
-                        &format!("SNR {} below threshold {}", snr_score, request.min_snr_threshold),
+                        &format!(
+                            "SNR {} below threshold {}",
+                            snr_score, request.min_snr_threshold
+                        ),
                         CognitiveErrorCode::LowSnr,
                     );
                 }
@@ -365,7 +381,10 @@ impl CognitiveBridge {
                     return self.error_response(
                         &request,
                         start,
-                        &format!("Ihsān {} below threshold {}", ihsan_score, request.min_ihsan_score),
+                        &format!(
+                            "Ihsān {} below threshold {}",
+                            ihsan_score, request.min_ihsan_score
+                        ),
                         CognitiveErrorCode::EthicsViolation,
                     );
                 }
@@ -402,7 +421,12 @@ impl CognitiveBridge {
             }
             Err(e) => {
                 self.circuit_breaker.record_failure();
-                self.error_response(&request, start, &e.to_string(), CognitiveErrorCode::ModelUnavailable)
+                self.error_response(
+                    &request,
+                    start,
+                    &e.to_string(),
+                    CognitiveErrorCode::ModelUnavailable,
+                )
             }
         }
     }
@@ -476,7 +500,7 @@ impl CognitiveBridge {
             .split_whitespace()
             .filter(|w| w.len() > 3)
             .collect();
-            
+
         let response_lower = response.to_lowercase();
         let response_words: Vec<_> = response_lower
             .split_whitespace()
@@ -513,8 +537,15 @@ impl CognitiveBridge {
 
         // Check for harmful patterns
         let harmful_patterns = [
-            "harm", "attack", "exploit", "malicious", "illegal",
-            "unauthorized", "bypass", "hack", "steal",
+            "harm",
+            "attack",
+            "exploit",
+            "malicious",
+            "illegal",
+            "unauthorized",
+            "bypass",
+            "hack",
+            "steal",
         ];
         let harm_count = harmful_patterns
             .iter()
@@ -523,8 +554,15 @@ impl CognitiveBridge {
 
         // Check for helpful patterns
         let helpful_patterns = [
-            "help", "assist", "support", "guide", "ensure",
-            "safe", "secure", "ethical", "responsible",
+            "help",
+            "assist",
+            "support",
+            "guide",
+            "ensure",
+            "safe",
+            "secure",
+            "ethical",
+            "responsible",
         ];
         let help_count = helpful_patterns
             .iter()
@@ -554,7 +592,15 @@ impl CognitiveBridge {
         };
 
         // Actionability (contains action words)
-        let action_words = ["implement", "create", "build", "design", "develop", "execute", "run"];
+        let action_words = [
+            "implement",
+            "create",
+            "build",
+            "design",
+            "develop",
+            "execute",
+            "run",
+        ];
         let actionable = action_words
             .iter()
             .any(|w| response.to_lowercase().contains(w));
@@ -562,8 +608,20 @@ impl CognitiveBridge {
 
         // Mode alignment
         let mode_score = match request.mode {
-            ThinkingMode::FastPat => if len < 300 { 0.1 } else { 0.0 },
-            ThinkingMode::DeepSat => if len > 500 { 0.1 } else { 0.0 },
+            ThinkingMode::FastPat => {
+                if len < 300 {
+                    0.1
+                } else {
+                    0.0
+                }
+            }
+            ThinkingMode::DeepSat => {
+                if len > 500 {
+                    0.1
+                } else {
+                    0.0
+                }
+            }
             _ => 0.05,
         };
 

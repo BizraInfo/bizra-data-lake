@@ -163,9 +163,14 @@ impl AgentBlueprint {
 
     /// Evolve this blueprint into a new generation
     pub fn evolve(&self, mutations: Vec<PromptMutation>, generation: u64) -> Self {
-        let new_id = format!("{}-gen{}", self.id.split("-gen").next().unwrap_or(&self.id), generation);
+        let new_id = format!(
+            "{}-gen{}",
+            self.id.split("-gen").next().unwrap_or(&self.id),
+            generation
+        );
         let new_prompt = self.apply_mutations(&mutations);
-        let lineage_hash = Self::compute_lineage_hash(Some(&self.lineage_hash), &new_id, generation);
+        let lineage_hash =
+            Self::compute_lineage_hash(Some(&self.lineage_hash), &new_id, generation);
 
         let mut new_genome = self.improvement_genome.clone();
         new_genome.prompt_mutations.extend(mutations.clone());
@@ -204,12 +209,7 @@ impl AgentBlueprint {
 
     /// Compute lineage hash from parent and current info
     fn compute_lineage_hash(parent_hash: Option<&str>, id: &str, generation: u64) -> String {
-        let content = format!(
-            "{}|{}|{}",
-            parent_hash.unwrap_or("genesis"),
-            id,
-            generation
-        );
+        let content = format!("{}|{}|{}", parent_hash.unwrap_or("genesis"), id, generation);
         let hash = Sha256::digest(content.as_bytes());
         format!("lin:{:x}", hash)
     }
@@ -349,7 +349,10 @@ pub enum PromptMutation {
     Prepend { text: String },
 
     /// Replace a pattern with new text
-    Replace { pattern: String, replacement: String },
+    Replace {
+        pattern: String,
+        replacement: String,
+    },
 
     /// Insert text at a specific position
     Insert { position: usize, text: String },
@@ -364,7 +367,10 @@ pub enum PromptMutation {
     ReorderSections { order: Vec<String> },
 
     /// Custom mutation with description
-    Custom { description: String, transform: String },
+    Custom {
+        description: String,
+        transform: String,
+    },
 }
 
 impl PromptMutation {
@@ -373,9 +379,10 @@ impl PromptMutation {
         match self {
             PromptMutation::Append { text } => format!("{}{}", prompt, text),
             PromptMutation::Prepend { text } => format!("{}{}", text, prompt),
-            PromptMutation::Replace { pattern, replacement } => {
-                prompt.replace(pattern, replacement)
-            }
+            PromptMutation::Replace {
+                pattern,
+                replacement,
+            } => prompt.replace(pattern, replacement),
             PromptMutation::Insert { position, text } => {
                 let pos = (*position).min(prompt.len());
                 format!("{}{}{}", &prompt[..pos], text, &prompt[pos..])
@@ -388,7 +395,10 @@ impl PromptMutation {
                 // Complex reordering - simplified for now
                 prompt.to_string()
             }
-            PromptMutation::Custom { description: _, transform: _ } => {
+            PromptMutation::Custom {
+                description: _,
+                transform: _,
+            } => {
                 // Custom transforms require external processing
                 prompt.to_string()
             }
@@ -398,13 +408,24 @@ impl PromptMutation {
     /// Get a description of this mutation
     pub fn description(&self) -> String {
         match self {
-            PromptMutation::Append { text } => format!("Append: {:?}...", &text[..text.len().min(50)]),
-            PromptMutation::Prepend { text } => format!("Prepend: {:?}...", &text[..text.len().min(50)]),
-            PromptMutation::Replace { pattern, replacement } => {
+            PromptMutation::Append { text } => {
+                format!("Append: {:?}...", &text[..text.len().min(50)])
+            }
+            PromptMutation::Prepend { text } => {
+                format!("Prepend: {:?}...", &text[..text.len().min(50)])
+            }
+            PromptMutation::Replace {
+                pattern,
+                replacement,
+            } => {
                 format!("Replace '{}' with '{}'", pattern, replacement)
             }
             PromptMutation::Insert { position, text } => {
-                format!("Insert at {}: {:?}...", position, &text[..text.len().min(30)])
+                format!(
+                    "Insert at {}: {:?}...",
+                    position,
+                    &text[..text.len().min(30)]
+                )
             }
             PromptMutation::Remove { pattern } => format!("Remove: {}", pattern),
             PromptMutation::Emphasize { pattern } => format!("Emphasize: {}", pattern),
@@ -632,7 +653,9 @@ mod tests {
     fn test_prompt_mutations() {
         let prompt = "Hello world";
 
-        let append = PromptMutation::Append { text: "!".to_string() };
+        let append = PromptMutation::Append {
+            text: "!".to_string(),
+        };
         assert_eq!(append.apply(prompt), "Hello world!");
 
         let replace = PromptMutation::Replace {
@@ -664,7 +687,9 @@ mod tests {
 
         manager.register(bp1.clone());
 
-        assert!(manager.get_active(&CapabilitySlot::MasterReasoner).is_some());
+        assert!(manager
+            .get_active(&CapabilitySlot::MasterReasoner)
+            .is_some());
         assert_eq!(manager.get_all_active().len(), 1);
 
         // Evolve and register
@@ -673,7 +698,10 @@ mod tests {
 
         // Should have updated to newer generation
         assert_eq!(
-            manager.get_active(&CapabilitySlot::MasterReasoner).unwrap().generation,
+            manager
+                .get_active(&CapabilitySlot::MasterReasoner)
+                .unwrap()
+                .generation,
             1
         );
     }

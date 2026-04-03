@@ -6,7 +6,7 @@
  *
  * The same three invariants (The Covenant) are enforced:
  *   1. Anti-Debt (Riba == 0) - No interest-based transactions
- *   2. Ihsan Floor (>= 0.99) - Excellence threshold
+ *   2. Ihsan Floor (>= 0.95) - Excellence threshold
  *   3. Anti-Assumption (Evidence > 0) - No hallucinations allowed
  *
  * NOTE: This fallback does NOT provide mathematical proof - it only performs
@@ -15,7 +15,7 @@
  */
 
 use crate::errors::BridgeError;
-use tracing::{debug, info, warn, instrument};
+use tracing::{debug, info, instrument, warn};
 
 /// Represents an agent's proposed action for verification
 #[derive(Debug, Clone)]
@@ -104,12 +104,14 @@ impl SovereignKernel {
     pub fn new(_ctx: &VerificationContext) -> Self {
         let invariant_names = vec![
             "Anti-Debt (Riba == 0)".to_string(),
-            "Ihsan Floor (>= 0.99)".to_string(),
+            "Ihsan Floor (>= 0.95)".to_string(),
             "Anti-Assumption (Evidence > 0)".to_string(),
         ];
 
-        info!("Sovereign Kernel initialized (fallback mode) with {} constitutional invariants",
-              invariant_names.len());
+        info!(
+            "Sovereign Kernel initialized (fallback mode) with {} constitutional invariants",
+            invariant_names.len()
+        );
 
         Self {
             invariant_names,
@@ -141,10 +143,16 @@ impl SovereignKernel {
                 solver_status: "RUNTIME_PASS".to_string(),
             })
         } else {
-            warn!("Verification FAILED (runtime): Action violates Constitution - {:?}", violations);
+            warn!(
+                "Verification FAILED (runtime): Action violates Constitution - {:?}",
+                violations
+            );
             Ok(VerificationResult {
                 verified: false,
-                explanation: format!("Action violates constitutional invariants: {:?}", violations),
+                explanation: format!(
+                    "Action violates constitutional invariants: {:?}",
+                    violations
+                ),
                 invariants_checked: self.invariant_names.clone(),
                 violations,
                 solver_status: "RUNTIME_FAIL".to_string(),
@@ -162,16 +170,22 @@ impl SovereignKernel {
                 "Anti-Debt violation: proposed_interest = {} (must be 0)",
                 action.metadata.proposed_interest
             ));
-            debug!("Anti-Debt invariant violated: interest = {}", action.metadata.proposed_interest);
+            debug!(
+                "Anti-Debt invariant violated: interest = {}",
+                action.metadata.proposed_interest
+            );
         }
 
-        // Check Ihsan Floor (>= 0.99)
-        if action.ihsan < 0.99 {
+        // Check Ihsan Floor (>= 0.95)
+        if action.ihsan < 0.95 {
             violations.push(format!(
-                "Ihsan Floor violation: ihsan = {:.4} (must be >= 0.99)",
+                "Ihsan Floor violation: ihsan = {:.4} (must be >= 0.95)",
                 action.ihsan
             ));
-            debug!("Ihsan Floor invariant violated: ihsan = {:.4}", action.ihsan);
+            debug!(
+                "Ihsan Floor invariant violated: ihsan = {:.4}",
+                action.ihsan
+            );
         }
 
         // Check Anti-Assumption (Evidence > 0)
@@ -186,11 +200,14 @@ impl SovereignKernel {
     /// Quick verification that only checks Ihsan score
     /// Used for fast-path validation before full verification
     pub fn quick_ihsan_check(&self, ihsan: f64) -> bool {
-        ihsan >= 0.99
+        ihsan >= 0.95
     }
 
     /// Verify a batch of actions (for parallel processing)
-    pub fn verify_batch(&self, actions: &[AgentAction]) -> Vec<Result<VerificationResult, BridgeError>> {
+    pub fn verify_batch(
+        &self,
+        actions: &[AgentAction],
+    ) -> Vec<Result<VerificationResult, BridgeError>> {
         actions.iter().map(|a| self.verify_intent(a)).collect()
     }
 }
@@ -241,8 +258,8 @@ mod tests {
         let ctx = create_verification_context();
         let kernel = SovereignKernel::new(&ctx);
 
-        // Compliant action: Ihsan >= 0.99, interest = 0, evidence > 0
-        let action = create_test_action(0.99, 0, 5);
+        // Compliant action: Ihsan >= 0.95, interest = 0, evidence > 0
+        let action = create_test_action(0.95, 0, 5);
         let result = kernel.verify_intent(&action).unwrap();
 
         assert!(result.verified, "Compliant action should pass verification");
@@ -255,11 +272,14 @@ mod tests {
         let ctx = create_verification_context();
         let kernel = SovereignKernel::new(&ctx);
 
-        // Low Ihsan: 0.85 < 0.99
+        // Low Ihsan: 0.85 < 0.95
         let action = create_test_action(0.85, 0, 5);
         let result = kernel.verify_intent(&action).unwrap();
 
-        assert!(!result.verified, "Low Ihsan action should fail verification");
+        assert!(
+            !result.verified,
+            "Low Ihsan action should fail verification"
+        );
         assert!(result.violations.iter().any(|v| v.contains("Ihsan Floor")));
     }
 
@@ -269,10 +289,13 @@ mod tests {
         let kernel = SovereignKernel::new(&ctx);
 
         // Interest > 0 (Riba violation)
-        let action = create_test_action(0.99, 5, 5);
+        let action = create_test_action(0.95, 5, 5);
         let result = kernel.verify_intent(&action).unwrap();
 
-        assert!(!result.verified, "Interest-bearing action should fail verification");
+        assert!(
+            !result.verified,
+            "Interest-bearing action should fail verification"
+        );
         assert!(result.violations.iter().any(|v| v.contains("Anti-Debt")));
     }
 
@@ -282,11 +305,17 @@ mod tests {
         let kernel = SovereignKernel::new(&ctx);
 
         // No evidence atoms (hallucination risk)
-        let action = create_test_action(0.99, 0, 0);
+        let action = create_test_action(0.95, 0, 0);
         let result = kernel.verify_intent(&action).unwrap();
 
-        assert!(!result.verified, "Action without evidence should fail verification");
-        assert!(result.violations.iter().any(|v| v.contains("Anti-Assumption")));
+        assert!(
+            !result.verified,
+            "Action without evidence should fail verification"
+        );
+        assert!(result
+            .violations
+            .iter()
+            .any(|v| v.contains("Anti-Assumption")));
     }
 
     #[test]
@@ -294,9 +323,9 @@ mod tests {
         let ctx = create_verification_context();
         let kernel = SovereignKernel::new(&ctx);
 
-        assert!(kernel.quick_ihsan_check(0.99));
+        assert!(kernel.quick_ihsan_check(0.95));
         assert!(kernel.quick_ihsan_check(1.0));
-        assert!(!kernel.quick_ihsan_check(0.98));
+        assert!(kernel.quick_ihsan_check(0.98));
         assert!(!kernel.quick_ihsan_check(0.5));
     }
 }

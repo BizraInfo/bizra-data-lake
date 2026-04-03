@@ -53,6 +53,8 @@
 //! }
 //! ```
 
+pub mod contract;
+
 #[cfg(feature = "z3-solver")]
 mod sovereign_gate;
 
@@ -61,14 +63,8 @@ mod sovereign_gate_fallback;
 
 #[cfg(feature = "z3-solver")]
 pub use sovereign_gate::{
-    ActionContext,
-    ActionMetadata,
-    AgentAction,
-    EvidenceAtom,
-    SovereignKernel,
-    VerificationResult,
-    create_z3_context,
-    verify_action,
+    create_z3_context, verify_action, ActionContext, ActionMetadata, AgentAction, EvidenceAtom,
+    SovereignKernel, VerificationResult,
 };
 
 // Alias for compatibility
@@ -77,13 +73,6 @@ pub use sovereign_gate::create_z3_context as create_verification_context;
 
 #[cfg(not(feature = "z3-solver"))]
 pub use sovereign_gate_fallback::{
-    ActionContext,
-    ActionMetadata,
-    AgentAction,
-    EvidenceAtom,
-    SovereignKernel,
-    VerificationContext,
-    VerificationResult,
-    create_verification_context,
-    verify_action,
+    create_verification_context, verify_action, ActionContext, ActionMetadata, AgentAction,
+    EvidenceAtom, SovereignKernel, VerificationContext, VerificationResult,
 };
