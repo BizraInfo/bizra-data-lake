@@ -63,7 +63,6 @@ except ImportError:
 try:
     import hashlib
     import json as _json
-    import uuid
 except ImportError:
     pass
 
@@ -672,8 +671,25 @@ async def _synthesize_with_got(
             from core.inference.gateway import InferenceGateway
 
             gateway = InferenceGateway()
+            await gateway.initialize()
+
+            # Validate the backend actually generates (LM Studio may connect
+            # but return empty if model not loaded in VRAM)
+            if gateway._active_backend:
+                test_result = await gateway.infer("test", max_tokens=5, temperature=0.0)
+                if not test_result.content or test_result.tokens_generated == 0:
+                    logger.warning(
+                        "GoT gateway produced empty output, falling back to Ollama"
+                    )
+                    from core.inference._backends import OllamaBackend
+                    from core.inference._types import ComputeTier
+
+                    ollama = OllamaBackend(gateway.config)
+                    if await ollama.initialize():
+                        gateway._active_backend = ollama
+                        gateway._backends[ComputeTier.LOCAL] = ollama
         except Exception:
-            pass
+            gateway = None
 
         got = GraphOfThoughts(
             max_depth=3,

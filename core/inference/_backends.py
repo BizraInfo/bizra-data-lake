@@ -407,17 +407,24 @@ class OllamaBackend(InferenceBackendBase):
                 self._available_models = [m["name"] for m in data.get("models", [])]
 
                 if self._available_models:
-                    # Prefer fast, competent models for synthesis.
+                    # Respect BIZRA_OLLAMA_MODEL env var if set
+                    env_model = os.environ.get("BIZRA_OLLAMA_MODEL", "")
+                    # Prefer larger, more capable models for higher quality output.
                     # Reasoning models (deepseek-r1) are slow on CPU due to
                     # <think> token overhead — prefer instruction-tuned models.
                     preferred = [
-                        "phi3",
-                        "llama3.1",
+                        "llama3.1:8b",
                         "mistral",
-                        "qwen",
+                        "qwen2.5:3b",
+                        "phi3",
                         "llama3",
                         "deepseek-r1",
                     ]
+                    # If env var specifies a model, put it first
+                    if env_model:
+                        preferred = [env_model] + [
+                            p for p in preferred if p != env_model
+                        ]
                     self._current_model = self._available_models[0]
                     found = False
                     for pref in preferred:
