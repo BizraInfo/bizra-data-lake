@@ -1,8 +1,48 @@
 # BIZRA Operations Runbook
 
-Last updated: 2026-03-11
+Last updated: 2026-04-03
 
 This runbook is the operator-focused guide for starting, validating, and troubleshooting BIZRA services.
+
+## Unified Stack Orchestration (Phase 89)
+
+The BIZRA service mesh spans two Docker Compose projects joined by a shared `bizra-mesh` network. Use the unified orchestrator for standardized lifecycle management:
+
+```bash
+# Start all services in dependency order (PDCA cycle)
+./scripts/node0_stack.sh start
+
+# Health dashboard — all services, K8s, GPU, pilot status
+./scripts/node0_stack.sh status
+
+# Graceful shutdown (reverse dependency order)
+./scripts/node0_stack.sh stop
+
+# Full restart
+./scripts/node0_stack.sh restart
+```
+
+### Network Architecture
+
+All services join the external `bizra-mesh` network for cross-project DNS resolution:
+
+```
+bizra-mesh (external bridge)
+├── kernel        (DATA-LAKE)    → resolves: synapse, wisdom, vectors, elite
+├── python-api    (DATA-LAKE)
+├── synapse       (Dual-Agentic) → Redis 6380
+├── wisdom        (Dual-Agentic) → Neo4j 7474/7687
+├── vectors       (Dual-Agentic) → ChromaDB 8001
+├── postgres      (Dual-Agentic) → pgvector 5433
+├── elite         (Dual-Agentic) → Rust PAT+SAT 8080
+└── refinery      (Dual-Agentic) → 8081
+```
+
+### Dependency Pinning
+
+- `runtime/requirements-kernel.txt` — Python deps with floor pins; `async-timeout>=4.0.3` explicit
+- `runtime/Dockerfile.kernel` — smoke test gate: `RUN python -c "import redis, fastapi, torch; print('Smoke: OK')"`
+- Rust deps locked via `Cargo.lock` in `bizra-omega/`
 
 ## Infrastructure Guardian
 
