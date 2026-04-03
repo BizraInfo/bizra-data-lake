@@ -1,0 +1,1 @@
+from bizra_kernel.memory_system import CognitivePermanence

@@ -1,6 +1,6 @@
 agent_id: sovereign_node_0
-integrity_sig: e2f8cc5adc1dffa0c768e1b5942008b87750f650d9a603e479cb43ebcc687c7c
-last_updated: '2026-01-01T21:18:20.927169'
+integrity_sig: ef9dc15fb4f9abe687448a6b304df12edb40339e5b8a277e2ba2f3969f52c15c
+last_updated: '2026-01-06T17:40:06.404698'
 procedural:
   VerifyTokenEmission:
     code: 'def verify_emission(amt): return amt < 5000000'
@@ -14,6 +14,246 @@ semantic:
     rels:
     - SAPE
     - Bridge
+  2638deca:
+    entity: Self
+    fact: ResourceCensus
+    im_score: 0.99
+    rels:
+      data_universe:
+        modified_in_range: 219164
+        top_extensions:
+          '.117': 1
+          '.1760676601951': 1
+          '.1761955868117': 1
+          '.1761955868137': 1
+          '.6303': 1
+          .7z: 2
+          .adk-ui: 1
+          .agents: 1
+          .ahk: 1
+          .ai: 2
+          .apache-2: 1
+          .apk: 1
+          .backup: 4
+          .backup-20251026-211008: 1
+          .backup-original: 1
+          .bak: 1
+          .bat: 36
+          .bib: 1
+          .bin: 1
+          .blf: 4
+          .bz2: 2
+          .cache: 26
+          .cfg: 1
+          .chman: 2
+          .cjs: 21
+          .clean: 1
+          .cmd: 3
+          .code-workspace: 3
+          .collection: 2
+          .conf: 8
+          .config: 1
+          .crdownload: 1
+          .cs: 8
+          .csproj: 5
+          .css: 68
+          .csv: 142
+          .cu: 1
+          .d: 1644
+          .dat: 2
+          .db: 7
+          .db-shm: 1
+          .db-wal: 1
+          .dev: 2
+          .dic: 10
+          .disabled_by_warp_20250906_171549: 1
+          .dll: 96
+          .dmp: 2
+          .docker: 2
+          .docs: 1
+          .docx: 85
+          .dot: 2
+          .download: 192
+          .drawio: 2
+          .editorconfig: 2
+          .env: 2
+          .esil: 2
+          .evtx: 2
+          .example: 26
+          .exe: 323
+          .exit(0);: 1
+          .exp: 74
+          .full: 1
+          .generic-backup: 1
+          .gif: 9
+          .gitkeep: 1
+          .go: 7
+          .gradle: 2
+          .graphml: 2
+          .gz: 11
+          .hcl: 1
+          .heic: 63
+          .html: 507
+          .http: 1
+          .ico: 1
+          .info: 2
+          .ini: 79
+          .ipynb: 4
+          .jinja: 2
+          .jpeg: 54
+          .jpg: 332
+          .js: 326
+          .json: 200762
+          .jsonl: 37
+          .jsx: 22
+          .key: 3
+          .keys: 2
+          .lck: 1
+          .lib: 74
+          .library-ms: 1
+          .lic: 1
+          .lnk: 135
+          .local: 4
+          .lock: 253
+          .log: 82
+          .log1: 2
+          .log2: 2
+          .lrcat: 1
+          .m4a: 5
+          .mainnet: 1
+          .map: 4
+          .md: 3364
+          .mermaid: 2
+          .metadata: 2
+          .mit: 1
+          .mjs: 39
+          .mmd: 7
+          .mod: 1
+          .mp3: 2
+          .mp4: 494
+          .msi: 3
+          .ndjson: 1
+          .new: 1
+          .nfo: 1
+          .nix: 1
+          .node0: 1
+          .node_manager: 1
+          .nvram: 2
+          .onnx: 1
+          .operator: 1
+          .optimized: 1
+          .pcapng: 6
+          .pdb: 340
+          .pdf: 544
+          .pem: 2
+          .pid: 1
+          .png: 1408
+          .pptx: 66
+          .prisma: 1
+          .production: 12
+          .profraw: 1
+          .properties: 1
+          .props: 1
+          .proto: 1
+          .ps1: 116
+          .pst: 1
+          .pt: 2
+          .pth: 1
+          .pub: 1
+          .py: 759
+          .pyc: 198
+          .r: 1
+          .rdvdb: 1
+          .refinery: 1
+          .reg: 14
+          .rego: 4
+          .regtrans-ms: 9
+          .rlib: 718
+          .rmeta: 1403
+          .rs: 251
+          .rust: 1
+          .safetensors: 2
+          .sample: 2
+          .scoreboard: 5
+          .search-ms: 2
+          .searchconnector-ms: 1
+          .sh: 122
+          .sig: 2
+          .sln: 2
+          .slnx: 1
+          .sol: 26
+          .sql: 25
+          .sqlite: 1
+          .sqlite-shm: 1
+          .sqlite-wal: 1
+          .sqlite3: 1
+          .srt: 1
+          .state: 19
+          .stl: 1
+          .sum: 1
+          .svg: 82
+          .tag: 7
+          .targets: 1
+          .test: 1
+          .tf: 19
+          .tgz: 1
+          .timestamp: 106
+          .tmp: 1
+          .toml: 75
+          .tools: 1
+          .tpl: 1
+          .ts: 179
+          .tsbuildinfo: 1
+          .tsx: 326
+          .txt: 1434
+          .unified: 1
+          .update: 1
+          .url: 6
+          .user: 1
+          .vbox-extpack: 1
+          .vmdk: 43
+          .vmem: 1
+          .vmsd: 2
+          .vmx: 2
+          .vmxf: 2
+          .vsix: 2
+          .webp: 45
+          .xapk: 1
+          .xlsx: 6
+          .xml: 8
+          .yaml: 235
+          .yml: 86
+          .zip: 260
+        total_files: 219172
+        total_size_gb: 367.18
+      hardware:
+        cpu:
+          brand: Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+          cores: 24
+          frequency_mhz: 2200.0
+          threads: 32
+        memory:
+          swap_total_gb: 31.0
+          total_gb: 127.71
+        storage:
+        - device: C:\
+          fstype: NTFS
+          mount: C:\
+          total_gb: 3790.85
+          used_gb: 2219.09
+        system:
+          gpu: NVIDIA GeForce RTX 4090 Laptop GPU, 16376 MiB
+          model: Titan 18 HX A14VIG
+      software:
+        applications:
+        - Scanner Offline
+        runtimes:
+          docker: Docker version 29.1.3, build f52814d
+          go: Not Detected
+          node: v24.5.0
+          python: Python 3.13.5
+          rustc: Not Detected
+      timestamp: '2026-01-06T21:39:45.061034'
   32b731e0:
     entity: Finance
     fact: Optimize for 523,793 TPS throughput.
@@ -75,13 +315,17 @@ semantic:
     fact: CognitiveBudget
     im_score: 0.99
     rels:
-      budget_score: 0.28
-      cpu_utilization: 0.271
-      gpu: null
-      max_pressure: 0.72
-      ram_utilization: 0.72
+      budget_score: 0.27
+      cpu_utilization: 0.387
+      gpu:
+        gpu_utilization_ratio: 0.02
+        vram_total_gb: 15.99
+        vram_used_gb: 11.67
+        vram_used_ratio: 0.73
+      max_pressure: 0.73
+      ram_utilization: 0.66
       status: constrained
-      timestamp: '2026-01-01T21:18:20.914307'
+      timestamp: '2026-01-06T17:39:45.351634'
   98a38505:
     entity: Ethics
     fact: Enforce Ihsan-Gate IM >= 0.99 for all emissions.
@@ -125,6 +369,13 @@ semantic:
     fact: CurrentQuery
     im_score: 0.99
     rels: Noise Packet 19
+  e038b844:
+    entity: GenesisPerformance
+    fact: The 523,793 TPS claim is anchored in the Genesis Block.
+    im_score: 0.99
+    rels:
+    - Performance
+    - Sovereignty
   e2e62799:
     entity: Decentralization
     fact: Distribution of power and control across multiple independent nodes
@@ -164,6 +415,15 @@ semantic:
       - node: CORE_OS
         path: C:\BIZRA-OS
         status: DETECTED
+      - node: WSL2_GENESIS
+        path: \\wsl.localhost\Ubuntu\home\bizra-genesis
+        status: DETECTED
+      - node: WEB_INFO
+        path: https://bizra.info
+        status: ONLINE
+      - node: WEB_AI
+        path: https://bizra.ai
+        status: ONLINE
       - node: DATA_LAKE
         path: C:\BIZRA-DATA-LAKE
         status: DETECTED
@@ -184,10 +444,10 @@ semantic:
       - mistral
       - nomic-embed-text
       - qwen2.5
-      owner: momo
+      owner: MoMo
       ownership_certified: true
       total_models: 7
-      total_nodes: 10
+      total_nodes: 13
   f1f22d79:
     entity: Sovereignty
     fact: Autonomous control over digital assets and decision making
@@ -204,6 +464,6 @@ semantic:
       cpu_count: 32
       disk_total_gb: 3790.85
       os: Windows
-      ram_available_gb: 35.72
+      ram_available_gb: 43.37
       ram_total_gb: 127.71
-      timestamp: '2026-01-01T21:18:20.862514'
+      timestamp: '2026-01-06T17:39:45.254207'

@@ -1,0 +1,15 @@
+{
+    "node_id": "BIZRA-4B1093B4",
+    "parent_id": null,
+    "children": [],
+    "status": "GERMINATING",
+    "max_depth": 3,
+    "birth_time": "2026-01-23T23:06:56.239610",
+    "seed_state": "germinating",
+    "ihsan_score": 0.05,
+    "poi_events": 1,
+    "covenant_accepted": false,
+    "token_balance": 0.0,
+    "germinated_at": "2026-01-23T23:06:56.232061",
+    "created_at": "2026-01-23T23:06:56.232038"
+}

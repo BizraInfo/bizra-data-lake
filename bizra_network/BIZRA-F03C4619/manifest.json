@@ -1,0 +1,15 @@
+{
+    "node_id": "BIZRA-F03C4619",
+    "parent_id": null,
+    "children": [],
+    "status": "SAPLING",
+    "max_depth": 3,
+    "birth_time": "2026-01-23T23:06:22.608919",
+    "seed_state": "sapling",
+    "ihsan_score": 0.10000000000000002,
+    "poi_events": 5,
+    "covenant_accepted": false,
+    "token_balance": 0.0,
+    "germinated_at": "2026-01-23T23:06:22.551145",
+    "created_at": "2026-01-23T23:06:22.551091"
+}

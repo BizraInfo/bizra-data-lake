@@ -1,0 +1,13 @@
+version: "5.0.0-OMEGA"
+ihsan_threshold: 0.95
+max_recursion_depth: 5
+budget_floor: 0.2
+giants:
+  - name: "Ibn Khaldun"
+    bias: "Systemic Cohesion"
+  - name: "Shannon"
+    bias: "Signal Clarity"
+invariants:
+  - "No Silent Failures"
+  - "Receipt First Mutation"
+  - "Adl Gini Coefficient <= 0.35"

@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-01-23T22:59:32.314487",
+  "seed_count": 1,
+  "seeds": [
+    {
+      "seed_id": "SEED-473D0943A8B6C32D",
+      "parent_id": null,
+      "state": "germinating",
+      "ihsan_score": 0.0,
+      "poi_events": 0,
+      "created_at": "2026-01-23T22:59:32.305222",
+      "germinated_at": "2026-01-23T22:59:32.314461",
+      "covenant_accepted": false,
+      "children": [],
+      "token_balance": 0.0,
+      "depth": 0,
+      "metadata": {}
+    }
+  ]
+}

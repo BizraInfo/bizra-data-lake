@@ -1,0 +1,180 @@
+// proto/cognitive_engine.proto
+// SAPE Ultimate Integration - The Bridge Contract
+//
+// This is the immutable law binding the Rust Body to the Python Brain.
+// All cognitive operations must pass through this typed boundary.
+
+syntax = "proto3";
+package cognitive_engine;
+
+// The Cognitive Engine Service - Python Brain Interface
+service CognitiveEngine {
+  // Process a thought through the full cognitive pipeline
+  rpc ProcessThought (CognitiveRequest) returns (CognitiveResponse);
+
+  // Stream thoughts for continuous processing
+  rpc StreamThoughts (stream CognitiveRequest) returns (stream CognitiveResponse);
+
+  // Get current cognitive state metrics
+  rpc GetCognitiveState (StateRequest) returns (CognitiveState);
+
+  // Inject wisdom atoms into the system
+  rpc InjectWisdom (WisdomAtom) returns (WisdomReceipt);
+}
+
+// Thinking mode selection
+enum ThinkingMode {
+  FAST_PAT = 0;      // System 1: Fast, heuristic, intuitive
+  DEEP_SAT = 1;      // System 2: Slow, deliberate, analytical
+  HYBRID_SYNERGY = 2; // Combined: PAT initiates, SAT validates
+  REFLEXION = 3;     // Self-improvement through iteration
+  GRAPH_OF_THOUGHT = 4; // Multi-dimensional synthesis
+}
+
+// Cognitive request from Rust orchestrator
+message CognitiveRequest {
+  string agent_id = 1;
+  string task_id = 2;
+  repeated float context_vector = 3;
+  ThinkingMode mode = 4;
+  string prompt = 5;
+  map<string, string> metadata = 6;
+
+  // SAPE constraints
+  float min_snr_threshold = 7;      // Minimum SNR required (dB)
+  float min_ihsan_score = 8;        // Minimum ethical threshold
+  int32 max_thinking_depth = 9;     // Graph exploration depth limit
+  int64 timeout_ms = 10;            // Processing timeout
+}
+
+// Cognitive response to Rust orchestrator
+message CognitiveResponse {
+  string agent_id = 1;
+  string task_id = 2;
+
+  // Primary output
+  string synthesis = 3;             // The final thought/answer
+  float confidence = 4;             // 0.0-1.0 confidence score
+
+  // SAPE metrics
+  float snr_score = 5;              // Signal-to-Noise Ratio (dB)
+  float utility_score = 6;          // Economic/objective alignment
+  float ihsan_score = 7;            // Ethical alignment score
+
+  // Thought structure (for audit/visualization)
+  string serialized_graph = 8;      // JSON representation of thought graph
+  repeated ThoughtNode thought_nodes = 9;
+
+  // Provenance
+  int64 processing_time_ms = 10;
+  string model_used = 11;
+  repeated string reasoning_steps = 12;
+
+  // Error handling
+  bool success = 13;
+  string error_message = 14;
+  ErrorCode error_code = 15;
+}
+
+// Individual thought node in the graph
+message ThoughtNode {
+  string id = 1;
+  string content = 2;
+  float weight = 3;
+  repeated string connections = 4;
+  string node_type = 5;             // "premise", "inference", "conclusion", etc.
+  float local_snr = 6;
+}
+
+// Error codes for cognitive failures
+enum ErrorCode {
+  NONE = 0;
+  LOW_SNR = 1;                      // Signal-to-noise below threshold
+  ETHICS_VIOLATION = 2;             // Ihsān gate failed
+  TIMEOUT = 3;                      // Processing exceeded timeout
+  CONTEXT_OVERFLOW = 4;             // Context too large
+  MODEL_UNAVAILABLE = 5;            // LLM not responding
+  INVALID_REQUEST = 6;              // Malformed request
+  CIRCUIT_BREAKER_OPEN = 7;         // Too many failures
+}
+
+// State request
+message StateRequest {
+  string agent_id = 1;
+  bool include_metrics = 2;
+  bool include_history = 3;
+}
+
+// Current cognitive state
+message CognitiveState {
+  // System metrics
+  int64 total_thoughts_processed = 1;
+  float average_snr = 2;
+  float average_ihsan = 3;
+  int32 active_agents = 4;
+
+  // Resource utilization
+  float gpu_utilization = 5;
+  float memory_usage_mb = 6;
+  int32 pending_requests = 7;
+
+  // Health indicators
+  bool circuit_breaker_closed = 8;
+  int32 consecutive_failures = 9;
+  int64 uptime_seconds = 10;
+
+  // Model status
+  repeated ModelStatus models = 11;
+}
+
+message ModelStatus {
+  string model_name = 1;
+  bool available = 2;
+  float latency_ms = 3;
+  int64 requests_served = 4;
+}
+
+// WisdomAtom - The fundamental unit of verified knowledge
+// Implements the Symbolic Harness from SAPE analysis
+message WisdomAtom {
+  string id = 1;
+
+  // Neural Component
+  repeated float embedding = 2;
+
+  // Symbolic Component (Horn Clause representation)
+  repeated Symbol preconditions = 3;
+  ActionPrimitive action = 4;
+  repeated Symbol postconditions = 5;
+
+  // Evidence Chain (Isnad - Chain of Transmission)
+  repeated bytes provenance_signatures = 6;
+  float success_rate = 7;
+  bytes context_hash = 8;
+
+  // Metadata
+  int64 created_at = 9;
+  string source_agent = 10;
+  int32 generation = 11;
+}
+
+message Symbol {
+  string name = 1;
+  repeated string arguments = 2;
+  bool negated = 3;
+}
+
+message ActionPrimitive {
+  string action_type = 1;           // "execute", "delegate", "emit", "store"
+  map<string, string> parameters = 2;
+  float cost = 3;                   // Resource cost estimate
+}
+
+// Receipt for wisdom injection
+message WisdomReceipt {
+  string wisdom_id = 1;
+  bool accepted = 2;
+  string rejection_reason = 3;
+  bytes attestation_signature = 4;
+  int64 timestamp = 5;
+}
