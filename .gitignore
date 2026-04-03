@@ -196,3 +196,63 @@ tmpclaude-*/
 nul
 claude-code-damage-control/
 rlm/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECURITY: Extended key/cert exclusions
+# ─────────────────────────────────────────────────────────────────────────────
+*.pem.*
+*.csr
+*.srl
+config/redis/openssl.cnf
+mssc/keys/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BINARIES / ARCHIVES (should never be committed)
+# ─────────────────────────────────────────────────────────────────────────────
+*.exe
+*.tar
+*.zip
+*.gz
+*.7z
+*.rar
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TEMP / TEST DATA FILES
+# ─────────────────────────────────────────────────────────────────────────────
+out.txt
+test.json
+test2.json
+test_payload.json
+file.png
+sessions/
+results/
+output/
+memory/
+local_readiness_receipt.json
+awareness_report.json
+workspace-*.tar
+config/redis/*-key.pem
+config/redis/*.pem
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ARCHIVE / LARGE NON-SOURCE DIRECTORIES
+# ─────────────────────────────────────────────────────────────────────────────
+BIZRA-Archive/
+workspace-ux-proposal/
+sovereign-ui/
+personaplex/
+DataAnalysisExpert/
+BIZRA-PAT/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AUTO-GENERATED / TRANSIENT
+# ─────────────────────────────────────────────────────────────────────────────
+.claude-flow/
+.claude-plugin/
+.opencode/
+.lsp.json
+opencode.json
+scripts/scaling_orchestrator.py
+scripts/scaling_orchestrator_minimal.py
+scripts/scaling_orchestrator.py
+scripts/scaling_orchestrator_minimal.py
