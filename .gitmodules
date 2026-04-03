@@ -4,3 +4,6 @@
 [submodule "bizra-genesis-node"]
 	path = bizra-genesis-node
 	url = https://github.com/BizraInfo/bizra-genesis-node.git
+[submodule "vendor/agentic-flow"]
+	path = vendor/agentic-flow
+	url = https://github.com/ruvnet/agentic-flow.git

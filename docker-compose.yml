@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-bizra}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bizra_dev_password}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d:ro
@@ -27,12 +27,21 @@ services:
 
   synapse:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - "${REDIS_PASSWORD:-bizra_synapse_secure}"
+    ports:
+      - "127.0.0.1:6380:6379"
     volumes:
       - synapse_data:/data
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-bizra_synapse_secure}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "sh", "-c", "redis-cli -a $$REDIS_PASSWORD ping"]
       interval: 5s
       timeout: 1s
       retries: 20
@@ -45,8 +54,11 @@ services:
 
   wisdom:
     image: neo4j:5.15-community
+    hostname: wisdom
     environment:
-      NEO4J_AUTH: ${NEO4J_AUTH}
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/bizra_wisdom_dev}
+      NEO4J_server_directories_logs: /logs
+      NEO4J_server_config_strict__validation_enabled: "false"
     ports:
       - "127.0.0.1:7474:7474"
       - "127.0.0.1:7687:7687"
@@ -54,6 +66,12 @@ services:
       - wisdom_data:/data
       - wisdom_logs:/logs
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
     logging:
       driver: json-file
       options:
@@ -69,7 +87,7 @@ services:
       - vectors_data:/chroma/chroma
     restart: unless-stopped
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
     logging:
       driver: json-file
       options:
@@ -84,7 +102,7 @@ services:
       - .env
     environment:
       # Readiness / dependency wiring
-      SYNAPSE_URL: ${SYNAPSE_URL:-redis://synapse:6379}
+      SYNAPSE_URL: ${SYNAPSE_URL:-redis://:${REDIS_PASSWORD:-bizra_synapse_secure}@synapse:6379}
       WISDOM_URL: ${WISDOM_URL:-bolt://wisdom:7687}
       NEO4J_AUTH: ${NEO4J_AUTH}
 
@@ -97,19 +115,29 @@ services:
 
       # Default: require Neo4j evidence for H-stakes SAPE
       BIZRA_SAPE_REQUIRE_NEO4J_EVIDENCE_H: ${BIZRA_SAPE_REQUIRE_NEO4J_EVIDENCE_H:-1}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     ports:
-      - "8010:8000"
+      - "127.0.0.1:8010:8000"
     volumes:
       # Sovereign vault mount (read-only)
-      - "C:/BIZRA-PROJECTS:/mnt/bizra_projects:ro"
+      - "/mnt/c/BIZRA-PROJECTS:/mnt/bizra_projects:ro"
       # Persist receipts outside container FS
       - kernel_receipts:/app/docs/evidence/receipts
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - synapse
-      - wisdom
-      - vectors
+      synapse:
+        condition: service_healthy
+      wisdom:
+        condition: service_healthy
+      vectors:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test:
@@ -142,14 +170,15 @@ services:
       BIZRA_HTTP_HOST: 0.0.0.0
       BIZRA_API_TOKEN: ${BIZRA_API_TOKEN:-}
       OLLAMA_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_HOST: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       NEO4J_URI: ${WISDOM_URL:-bolt://wisdom:7687}
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-bizra_wisdom}
-      REDIS_URL: ${SYNAPSE_URL:-redis://synapse:6379}
+      REDIS_URL: ${SYNAPSE_URL:-redis://:${REDIS_PASSWORD:-bizra_synapse_secure}@synapse:6379}
       CHROMA_URL: ${CHROMA_URL:-http://vectors:8000}
-      BIZRA_IHSAN_ENV: ${BIZRA_IHSAN_ENV:-staging}
+      BIZRA_IHSAN_ENV: ${BIZRA_IHSAN_ENV:-development}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     volumes:
       - elite_receipts:/app/docs/evidence/receipts
     extra_hosts:
@@ -184,11 +213,13 @@ services:
       BIZRA_REFINERY_PORT: ${BIZRA_REFINERY_PORT:-8081}
       BIZRA_REFINERY_BATCH_SIZE: ${BIZRA_REFINERY_BATCH_SIZE:-50}
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
     volumes:
       - ./bizra_data_vault:/app/bizra_data_vault:ro
-      - ./BIZRA_KNOWLEDGE_LEDGER.jsonl:/app/BIZRA_KNOWLEDGE_LEDGER.jsonl
-      - ./BIZRA_GENESIS_BLOCK_0.json:/app/BIZRA_GENESIS_BLOCK_0.json:ro
+      # File mounts disabled — WSL2 bind mount bug after reboot
+      # Re-enable on native Linux: uncomment next 2 lines
+      # - ./BIZRA_KNOWLEDGE_LEDGER.jsonl:/app/BIZRA_KNOWLEDGE_LEDGER.jsonl
+      # - ./BIZRA_GENESIS_BLOCK_0.json:/app/BIZRA_GENESIS_BLOCK_0.json:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
@@ -211,14 +242,14 @@ services:
     env_file:
       - .env
     environment:
-      SYNAPSE_URL: ${SYNAPSE_URL:-redis://synapse:6379}
+      SYNAPSE_URL: ${SYNAPSE_URL:-redis://:${REDIS_PASSWORD:-bizra_synapse_secure}@synapse:6379}
       WISDOM_URL: ${WISDOM_URL:-bolt://wisdom:7687}
       NEO4J_AUTH: ${NEO4J_AUTH}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       LMSTUDIO_BASE_URL: ${LMSTUDIO_BASE_URL:-http://host.docker.internal:1234}
     command: ["python", "-m", "core.fate_auditor_worker"]
     volumes:
-      - "C:/BIZRA-PROJECTS:/mnt/bizra_projects:ro"
+      - "/mnt/c/BIZRA-PROJECTS:/mnt/bizra_projects:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -239,7 +270,8 @@ services:
       - "127.0.0.1:9090:9090"
     volumes:
       - prometheus_data:/prometheus
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # WSL2 file mount fix — re-enable on native Linux
+      # - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -270,8 +302,9 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./dashboards:/var/lib/grafana/dashboards:ro
-      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-      - ./config/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      # WSL2 file mount fix — re-enable on native Linux
+      # - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      # - ./config/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
     depends_on:
       - prometheus
     restart: unless-stopped
@@ -280,6 +313,64 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Finance Service (MaaSP Engine)
+  finance:
+    build:
+      context: .
+      dockerfile: Dockerfile.rust
+    environment:
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "127.0.0.1:3002:3002"
+    command: ["/app/finance-v1"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/pricing"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Agentic-Flow: Swarm Intelligence & Self-Learning Agents
+  agentic-flow:
+    build:
+      context: .
+      dockerfile: Dockerfile.agentic-flow
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      REDIS_URL: redis://:${REDIS_PASSWORD:-bizra_synapse_secure}@synapse:6379
+      OLLAMA_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LMSTUDIO_URL: ${LMSTUDIO_BASE_URL:-http://host.docker.internal:1234}
+      AGENTIC_FLOW_DB_PATH: /data/intelligence.db
+      REASONING_BANK_PATH: /data/reasoningbank
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - agentic_flow_data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      synapse:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3100/health').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     logging:
       driver: json-file
       options:
@@ -296,3 +387,4 @@ volumes:
   elite_receipts:
   prometheus_data:
   grafana_data:
+  agentic_flow_data:

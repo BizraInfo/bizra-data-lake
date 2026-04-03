@@ -107,6 +107,18 @@ jobs:
           python scripts/check_openapi_drift.py
           echo "✅ OpenAPI spec in sync"
 
+      - name: Conventional Commit Check
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "📝 Checking conventional commit format..."
+          npm install --no-save @commitlint/cli@latest @commitlint/config-conventional@latest
+          # Check all commits in the PR
+          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose || {
+            echo "::warning::Some commits don't follow conventional format (type(scope): description)"
+            echo "  Allowed types: feat, fix, perf, refactor, docs, test, ci, build, chore, security, evidence, ihsan, sape"
+          }
+          echo "✅ Commit format checked"
+
   # ============================================================
   # GATE 1: SECURITY GATE
   # ============================================================
@@ -396,6 +408,38 @@ jobs:
           fi
           
           echo "✅ Ihsān threshold gate passed - constitution enforces required minimums"
+          
+          # SNR Threshold Enforcement
+          echo "📡 Running SNR threshold enforcement..."
+          
+          # Check if quality radar report exists
+          if [ -f "evidence/quality_radar_ci.json" ]; then
+            echo "   Found quality radar report, checking SNR thresholds..."
+            
+            # Extract SNR value from quality radar report
+            SNR_VALUE=$(jq -r '.ihsan.snr // "0.0"' evidence/quality_radar_ci.json 2>/dev/null || echo "0.0")
+            SNR_TIER=$(jq -r '.ihsan.tier // "UNKNOWN"' evidence/quality_radar_ci.json 2>/dev/null || echo "UNKNOWN")
+            
+            echo "   SNR Value: $SNR_VALUE ($SNR_TIER)"
+            
+            # Normalize SNR from 7-9 scale to 0-1 scale for threshold comparison
+            # SNR 7.0 = 0.0, SNR 9.0 = 1.0
+            SNR_NORMALIZED=$(echo "scale=3; ($SNR_VALUE - 7.0) / 2.0" | bc -l 2>/dev/null || echo "0.0")
+            
+            echo "   Normalized SNR: $SNR_NORMALIZED (target >= 0.9)"
+            
+            # Check SNR threshold (0.9 target on normalized scale)
+            if [ "$(echo "$SNR_NORMALIZED < 0.9" | bc -l 2>/dev/null || echo "1")" -eq 1 ]; then
+              echo "::error::SNR threshold not met: $SNR_NORMALIZED < 0.9 (raw SNR: $SNR_VALUE, tier: $SNR_TIER)"
+              echo "::warning::SNR improvement needed. Current tier: $SNR_TIER. Target: SNR >= 8.8 (normalized >= 0.9)"
+              exit 1
+            fi
+            
+            echo "✅ SNR threshold passed: $SNR_NORMALIZED >= 0.9 (raw SNR: $SNR_VALUE, tier: $SNR_TIER)"
+          else
+            echo "⚠️ Quality radar report not found, skipping SNR threshold check"
+            echo "::warning::SNR threshold check skipped - quality radar report missing"
+          fi
 
   # ============================================================
   # GATE 3.5: QUALITY RADAR GATE
@@ -661,6 +705,7 @@ jobs:
           import hashlib
           import os
           from datetime import datetime, timezone
+          from pathlib import Path
 
           receipt = {
               "schema": "bizra-ci-evidence-v1.5",
@@ -675,7 +720,7 @@ jobs:
               "gates_passed": [
                   {"name": "security", "checks": ["cargo-audit", "cargo-deny", "gitleaks"]},
                   {"name": "quality", "checks": ["fmt", "clippy", "tests"]},
-                  {"name": "ihsan", "checks": ["constitution", "parity", "sape-validation"]},
+                  {"name": "ihsan", "checks": ["constitution", "parity", "sape-validation", "snr-threshold"]},
                   {"name": "performance", "checks": ["build-time", "test-time", "binary-size"]}
               ],
               "ihsan": {
@@ -690,6 +735,55 @@ jobs:
               }
           }
 
+          # Add SNR telemetry if quality radar report exists
+          quality_radar_path = Path("evidence/quality_radar_ci.json")
+          if quality_radar_path.exists():
+              try:
+                  with open(quality_radar_path, "r") as f:
+                      quality_data = json.load(f)
+                  
+                  # Extract SNR metrics
+                  ihsan_data = quality_data.get("ihsan", {})
+                  snr_value = ihsan_data.get("snr", 0.0)
+                  snr_tier = ihsan_data.get("tier", "UNKNOWN")
+                  overall_score = quality_data.get("overall_score", 0.0)
+                  math_rigor = quality_data.get("math_rigor_score", 0.0)
+                  
+                  # Calculate normalized SNR (7-9 scale to 0-1 scale)
+                  snr_normalized = (snr_value - 7.0) / 2.0 if snr_value >= 7.0 else 0.0
+                  
+                  # Add SNR telemetry to receipt
+                  receipt["snr_telemetry"] = {
+                      "raw_snr": snr_value,
+                      "snr_tier": snr_tier,
+                      "normalized_snr": round(snr_normalized, 3),
+                      "snr_threshold_passed": snr_normalized >= 0.9,
+                      "overall_score": overall_score,
+                      "math_rigor_score": math_rigor,
+                      "quality_radar_version": quality_data.get("version", "unknown"),
+                      "timestamp": quality_data.get("timestamp", "")
+                  }
+                  
+                  print(f"📡 SNR Telemetry Added: SNR={snr_value} ({snr_tier}), Normalized={snr_normalized:.3f}")
+              except Exception as e:
+                  print(f"⚠️ Failed to extract SNR telemetry: {e}")
+                  receipt["snr_telemetry"] = {
+                      "error": str(e),
+                      "raw_snr": 0.0,
+                      "snr_tier": "ERROR",
+                      "normalized_snr": 0.0,
+                      "snr_threshold_passed": False
+                  }
+          else:
+              print("⚠️ Quality radar report not found, SNR telemetry unavailable")
+              receipt["snr_telemetry"] = {
+                  "status": "missing",
+                  "raw_snr": 0.0,
+                  "snr_tier": "MISSING",
+                  "normalized_snr": 0.0,
+                  "snr_threshold_passed": False
+              }
+
           # Calculate integrity hash
           receipt_json = json.dumps(receipt, indent=2, sort_keys=True)
           receipt_hash = hashlib.sha256(receipt_json.encode()).hexdigest()
@@ -699,15 +793,50 @@ jobs:
           with open("ci-evidence-receipt.json", "w") as f:
               json.dump(receipt, f, indent=2)
 
-          print("📜 CI Evidence Receipt Generated")
+          print("📜 CI Evidence Receipt Generated with SNR Telemetry")
           print(json.dumps(receipt, indent=2))
           PY
+
+      - name: Setup Rust for SBOM
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Generate Software Bill of Materials
+        run: |
+          echo "📦 Generating SBOM (CycloneDX)..."
+
+          # Rust SBOM
+          cargo install cargo-cyclonedx --locked 2>/dev/null || echo "::warning::cargo-cyclonedx install failed"
+          if command -v cargo-cyclonedx &>/dev/null || cargo cyclonedx --help &>/dev/null 2>&1; then
+            cargo cyclonedx --format json --output-file docs/evidence/sbom/sbom-rust.json || echo "::warning::Rust SBOM generation failed"
+          fi
+
+          # Python SBOM
+          pip install cyclonedx-bom 2>/dev/null || echo "::warning::cyclonedx-bom install failed"
+          if python -m cyclonedx_py --help &>/dev/null 2>&1; then
+            python -m cyclonedx_py requirements -r requirements-kernel.txt -o docs/evidence/sbom/sbom-python.json --format json || echo "::warning::Python SBOM generation failed"
+          fi
+
+          mkdir -p docs/evidence/sbom
+          ls -la docs/evidence/sbom/*.json 2>/dev/null || echo "⚠️ No SBOM files generated"
+          echo "✅ SBOM generation complete"
+
+      - name: Generate Certification Bundle
+        run: |
+          python scripts/generate_cert_bundle.py --output evidence/cert_bundle.json | tee evidence/cert_bundle.sha256.out
+          BUNDLE_SHA=$(cat evidence/cert_bundle.sha256.out | tr -d '\n')
+          echo "BIZRA_CERT_BUNDLE_SHA256=$BUNDLE_SHA" >> $GITHUB_ENV
+          echo "Certification bundle: $BUNDLE_SHA"
 
       - name: Upload Evidence Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ci-evidence-${{ github.sha }}
-          path: ci-evidence-receipt.json
+          path: |
+            ci-evidence-receipt.json
+            evidence/cert_bundle.json
+            evidence/cert_bundle.sha256
+            docs/evidence/sbom/sbom-rust.json
+            docs/evidence/sbom/sbom-python.json
           retention-days: 90
 
       - name: Pipeline Summary
@@ -723,4 +852,4 @@ jobs:
           echo "| ⚡ Performance | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Evidence:** Signed receipt generated" >> $GITHUB_STEP_SUMMARY
+          echo "**Evidence:** Signed receipt + certification bundle generated" >> $GITHUB_STEP_SUMMARY

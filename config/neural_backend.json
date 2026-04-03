@@ -1,0 +1,84 @@
+{
+    "neural_backend": {
+        "version": "1.2.0",
+        "sovereignty_level": "absolute",
+        "providers": {
+            "ollama_local": {
+                "type": "ollama",
+                "endpoint": "http://localhost:11434",
+                "active": true,
+                "models": {
+                    "reasoning": "deepseek-r1:14b",
+                    "general": "llama3.1:8b",
+                    "embedding": "nomic-embed-text"
+                }
+            },
+            "lmstudio_native": {
+                "type": "lmstudio_v1",
+                "description": "LM Studio 0.4.0+ Native API with MCP and stateful chats",
+                "base_url": "http://localhost:1234",
+                "api_version": "v1",
+                "endpoints": {
+                    "chat": "/api/v1/chat",
+                    "models": "/api/v1/models",
+                    "load": "/api/v1/models/load",
+                    "unload": "/api/v1/models/unload",
+                    "download": "/api/v1/models/download"
+                },
+                "features": {
+                    "stateful_chat": true,
+                    "mcp_support": true,
+                    "model_load_streaming": true,
+                    "prompt_processing_events": true,
+                    "context_length_override": true
+                },
+                "active": true,
+                "models": {
+                    "reasoning": "agentflow-planner-7b-i1",
+                    "general": "qwen3-4b-thinking-2507"
+                }
+            },
+            "lmstudio_openai_compat": {
+                "type": "openai_compatible",
+                "description": "LM Studio OpenAI-compatible endpoint (fallback)",
+                "endpoint": "http://localhost:1234/v1",
+                "active": false,
+                "models": {
+                    "reasoning": "agentflow-planner-7b-i1",
+                    "general": "qwen3-4b-thinking-2507"
+                }
+            },
+            "lmstudio_anthropic_compat": {
+                "type": "anthropic_compatible",
+                "description": "LM Studio Anthropic-compatible endpoint",
+                "endpoint": "http://localhost:1234/v1/messages",
+                "active": false,
+                "models": {}
+            }
+        },
+        "routing": {
+            "default": "general",
+            "priority": [
+                "lmstudio_native",
+                "ollama_local",
+                "lmstudio_openai_compat"
+            ],
+            "thresholds": {
+                "complexity_high": 0.7,
+                "complexity_medium": 0.4
+            }
+        },
+        "lmstudio_config": {
+            "api_version": "v1",
+            "authentication": {
+                "enabled": false,
+                "token_env": "LMSTUDIO_API_KEY"
+            },
+            "mcp": {
+                "enabled": true,
+                "remote_mcps": [],
+                "use_local_mcps": true
+            }
+        }
+    }
+}

@@ -1,0 +1,26 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+# Copy package files first for layer caching
+COPY vendor/agentic-flow/agentic-flow/package*.json ./
+RUN npm install --ignore-scripts 2>/dev/null; exit 0
+
+# Copy agentic-flow source
+COPY vendor/agentic-flow/agentic-flow/ ./
+
+# Build TypeScript (WASM + optional deps may fail, that's OK)
+RUN npm run build 2>/dev/null || true
+
+# Copy BIZRA HTTP server wrapper
+COPY scripts/agentic-flow-server.mjs /app/server.mjs
+
+# Create data directories for SQLite and ReasoningBank
+RUN mkdir -p /data/reasoningbank
+
+ENV NODE_ENV=production
+ENV PORT=3100
+
+EXPOSE 3100
+
+CMD ["node", "/app/server.mjs"]

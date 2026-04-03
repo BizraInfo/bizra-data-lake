@@ -8,3 +8,12 @@ PyYAML>=6.0.1
 prometheus-client>=0.20.0
 httpx>=0.27.0
 starlette>=0.47.2  # Explicit pin: CVE-2024-47874, CVE-2025-54121 fixes
+redis>=5.0.0
+torch>=2.2.0
+transformers>=4.40.0
+
+# Voice I/O (Python-based STT/TTS)
+openai-whisper>=20231117
+faster-whisper>=0.10.0
+aiohttp>=3.9.0
+requests>=2.31.0

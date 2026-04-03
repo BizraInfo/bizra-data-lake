@@ -24,22 +24,27 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 10s
     scrape_timeout: 5s
+    authorization:
+      type: Bearer
+      credentials: 'LI1A_fOCU2NeK2rHqRU4sy_ziN8gtT1CP3F1ZaWYO2E'
 
   # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
-  # Neo4j (wisdom) - if metrics endpoint enabled
-  - job_name: 'neo4j'
-    static_configs:
-      - targets: ['wisdom:2004']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
+  # Neo4j (wisdom) - community edition has no Prometheus exporter
+  # To enable: deploy neo4j-prometheus-exporter sidecar
+  # - job_name: 'neo4j'
+  #   static_configs:
+  #     - targets: ['neo4j-exporter:2004']
+  #   metrics_path: '/metrics'
+  #   scrape_interval: 30s
 
-  # Redis (synapse) - via redis_exporter if deployed
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['synapse:6379']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
+  # Redis (synapse) - disabled: no redis_exporter deployed
+  # To re-enable, deploy redis_exporter sidecar and point to its HTTP port
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #   metrics_path: '/metrics'
+  #   scrape_interval: 30s

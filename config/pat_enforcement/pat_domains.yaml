@@ -1,0 +1,544 @@
+# PAT Domain Registry
+# ===================
+# Defines domain clusters, elite practitioners, and unrelatedness matrix
+# for cross-pollination validation
+
+version: 1
+id: pat_domains_v1
+status: canonical
+
+# Domain Clusters
+# Each cluster contains related domains with high internal similarity
+clusters:
+  formal_sciences:
+    id: "FORMAL"
+    name: "Formal Sciences"
+    description: "Abstract systems of rules and symbols"
+    domains:
+      - mathematics
+      - logic
+      - statistics
+      - computer_science
+      - information_theory
+      - formal_verification
+    keywords:
+      - proof
+      - theorem
+      - axiom
+      - algorithm
+      - computation
+      - formal_method
+
+  natural_sciences:
+    id: "NATURAL"
+    name: "Natural Sciences"
+    description: "Study of natural phenomena"
+    domains:
+      - physics
+      - chemistry
+      - biology
+      - astronomy
+      - geology
+      - ecology
+    keywords:
+      - experiment
+      - hypothesis
+      - observation
+      - natural_law
+      - empirical
+
+  engineering:
+    id: "ENGINEER"
+    name: "Engineering & Technology"
+    description: "Applied sciences for solving practical problems"
+    domains:
+      - software_engineering
+      - systems_engineering
+      - electrical_engineering
+      - mechanical_engineering
+      - civil_engineering
+      - aerospace_engineering
+    keywords:
+      - design
+      - implementation
+      - optimization
+      - architecture
+      - system
+
+  life_sciences:
+    id: "LIFE"
+    name: "Life Sciences & Medicine"
+    description: "Study of living organisms and health"
+    domains:
+      - medicine
+      - neuroscience
+      - genetics
+      - pharmacology
+      - epidemiology
+      - psychology
+    keywords:
+      - clinical
+      - diagnosis
+      - treatment
+      - cognition
+      - behavior
+
+  humanities:
+    id: "HUMAN"
+    name: "Humanities"
+    description: "Study of human culture and expression"
+    domains:
+      - philosophy
+      - ethics
+      - history
+      - linguistics
+      - literature
+      - art_theory
+    keywords:
+      - meaning
+      - interpretation
+      - culture
+      - narrative
+      - value
+
+  social_sciences:
+    id: "SOCIAL"
+    name: "Social Sciences"
+    description: "Study of society and human behavior"
+    domains:
+      - economics
+      - sociology
+      - political_science
+      - anthropology
+      - organizational_behavior
+      - game_theory
+    keywords:
+      - institution
+      - market
+      - society
+      - governance
+      - incentive
+
+  finance_business:
+    id: "FINANCE"
+    name: "Finance & Business"
+    description: "Study of markets, money, and organizations"
+    domains:
+      - financial_economics
+      - accounting
+      - management_science
+      - operations_research
+      - risk_management
+      - quantitative_finance
+    keywords:
+      - valuation
+      - risk
+      - return
+      - strategy
+      - portfolio
+
+  applied_ai:
+    id: "AI"
+    name: "Applied AI & ML"
+    description: "Machine learning and artificial intelligence applications"
+    domains:
+      - machine_learning
+      - deep_learning
+      - natural_language_processing
+      - computer_vision
+      - reinforcement_learning
+      - ai_safety
+    keywords:
+      - model
+      - training
+      - inference
+      - alignment
+      - neural
+
+  security_crypto:
+    id: "SECURITY"
+    name: "Security & Cryptography"
+    description: "Protection of information and systems"
+    domains:
+      - cryptography
+      - cybersecurity
+      - privacy_engineering
+      - distributed_systems
+      - consensus_protocols
+      - blockchain
+    keywords:
+      - encryption
+      - authentication
+      - integrity
+      - trust
+      - decentralization
+
+# Unrelatedness Matrix
+# Higher values = more unrelated (better for cross-pollination)
+# Values 0.0-1.0, diagonal is 0.0 (same cluster)
+unrelatedness_matrix:
+  FORMAL:
+    FORMAL: 0.00
+    NATURAL: 0.45
+    ENGINEER: 0.35
+    LIFE: 0.65
+    HUMAN: 0.80
+    SOCIAL: 0.70
+    FINANCE: 0.50
+    AI: 0.30
+    SECURITY: 0.40
+  NATURAL:
+    FORMAL: 0.45
+    NATURAL: 0.00
+    ENGINEER: 0.40
+    LIFE: 0.35
+    HUMAN: 0.75
+    SOCIAL: 0.65
+    FINANCE: 0.70
+    AI: 0.50
+    SECURITY: 0.60
+  ENGINEER:
+    FORMAL: 0.35
+    NATURAL: 0.40
+    ENGINEER: 0.00
+    LIFE: 0.55
+    HUMAN: 0.85
+    SOCIAL: 0.70
+    FINANCE: 0.55
+    AI: 0.25
+    SECURITY: 0.35
+  LIFE:
+    FORMAL: 0.65
+    NATURAL: 0.35
+    ENGINEER: 0.55
+    LIFE: 0.00
+    HUMAN: 0.60
+    SOCIAL: 0.50
+    FINANCE: 0.75
+    AI: 0.45
+    SECURITY: 0.70
+  HUMAN:
+    FORMAL: 0.80
+    NATURAL: 0.75
+    ENGINEER: 0.85
+    LIFE: 0.60
+    HUMAN: 0.00
+    SOCIAL: 0.35
+    FINANCE: 0.70
+    AI: 0.65
+    SECURITY: 0.80
+  SOCIAL:
+    FORMAL: 0.70
+    NATURAL: 0.65
+    ENGINEER: 0.70
+    LIFE: 0.50
+    HUMAN: 0.35
+    SOCIAL: 0.00
+    FINANCE: 0.40
+    AI: 0.55
+    SECURITY: 0.65
+  FINANCE:
+    FORMAL: 0.50
+    NATURAL: 0.70
+    ENGINEER: 0.55
+    LIFE: 0.75
+    HUMAN: 0.70
+    SOCIAL: 0.40
+    FINANCE: 0.00
+    AI: 0.45
+    SECURITY: 0.50
+  AI:
+    FORMAL: 0.30
+    NATURAL: 0.50
+    ENGINEER: 0.25
+    LIFE: 0.45
+    HUMAN: 0.65
+    SOCIAL: 0.55
+    FINANCE: 0.45
+    AI: 0.00
+    SECURITY: 0.40
+  SECURITY:
+    FORMAL: 0.40
+    NATURAL: 0.60
+    ENGINEER: 0.35
+    LIFE: 0.70
+    HUMAN: 0.80
+    SOCIAL: 0.65
+    FINANCE: 0.50
+    AI: 0.40
+    SECURITY: 0.00
+
+# Elite Practitioner Registry
+# Top 1% practitioners per domain
+practitioners:
+  # Formal Sciences
+  mathematics:
+    - id: terence_tao
+      name: "Terence Tao"
+      tier: "top_1%"
+      specializations: ["harmonic_analysis", "prime_numbers", "pde"]
+      citation_impact: 0.99
+      keywords: ["combinatorics", "analysis", "number_theory"]
+    - id: peter_scholze
+      name: "Peter Scholze"
+      tier: "top_1%"
+      specializations: ["arithmetic_geometry", "perfectoid_spaces"]
+      citation_impact: 0.98
+      keywords: ["algebraic_geometry", "p-adic"]
+    - id: maryam_mirzakhani
+      name: "Maryam Mirzakhani"
+      tier: "top_1%"
+      specializations: ["hyperbolic_geometry", "moduli_spaces"]
+      citation_impact: 0.97
+      keywords: ["riemann_surfaces", "dynamics"]
+
+  computer_science:
+    - id: leslie_lamport
+      name: "Leslie Lamport"
+      tier: "top_1%"
+      specializations: ["distributed_systems", "temporal_logic", "latex"]
+      citation_impact: 0.99
+      keywords: ["consensus", "paxos", "tla+"]
+    - id: barbara_liskov
+      name: "Barbara Liskov"
+      tier: "top_1%"
+      specializations: ["programming_languages", "distributed_systems"]
+      citation_impact: 0.98
+      keywords: ["abstraction", "liskov_substitution"]
+    - id: yoshua_bengio
+      name: "Yoshua Bengio"
+      tier: "top_1%"
+      specializations: ["deep_learning", "neural_networks", "ai"]
+      citation_impact: 0.99
+      keywords: ["representation_learning", "attention"]
+
+  # Philosophy & Ethics
+  philosophy:
+    - id: derek_parfit
+      name: "Derek Parfit"
+      tier: "top_1%"
+      specializations: ["personal_identity", "ethics", "rationality"]
+      citation_impact: 0.97
+      keywords: ["reasons", "consequentialism", "identity"]
+    - id: nick_bostrom
+      name: "Nick Bostrom"
+      tier: "top_1%"
+      specializations: ["existential_risk", "ai_ethics", "simulation"]
+      citation_impact: 0.96
+      keywords: ["superintelligence", "anthropic_principle"]
+    - id: christine_korsgaard
+      name: "Christine Korsgaard"
+      tier: "top_1%"
+      specializations: ["kantian_ethics", "practical_reason"]
+      citation_impact: 0.95
+      keywords: ["normativity", "self-constitution"]
+
+  # Economics
+  economics:
+    - id: daron_acemoglu
+      name: "Daron Acemoglu"
+      tier: "top_1%"
+      specializations: ["political_economy", "growth_theory", "institutions"]
+      citation_impact: 0.99
+      keywords: ["inclusive_institutions", "technological_change"]
+    - id: esther_duflo
+      name: "Esther Duflo"
+      tier: "top_1%"
+      specializations: ["development_economics", "rct", "poverty"]
+      citation_impact: 0.98
+      keywords: ["randomized_trials", "intervention"]
+    - id: paul_milgrom
+      name: "Paul Milgrom"
+      tier: "top_1%"
+      specializations: ["auction_theory", "mechanism_design"]
+      citation_impact: 0.97
+      keywords: ["incentive_compatibility", "market_design"]
+
+  # Neuroscience
+  neuroscience:
+    - id: karl_friston
+      name: "Karl Friston"
+      tier: "top_1%"
+      specializations: ["free_energy_principle", "predictive_coding"]
+      citation_impact: 0.99
+      keywords: ["active_inference", "markov_blanket"]
+    - id: stanislas_dehaene
+      name: "Stanislas Dehaene"
+      tier: "top_1%"
+      specializations: ["consciousness", "numerical_cognition"]
+      citation_impact: 0.98
+      keywords: ["global_workspace", "reading"]
+    - id: david_chalmers
+      name: "David Chalmers"
+      tier: "top_1%"
+      specializations: ["consciousness", "philosophy_of_mind"]
+      citation_impact: 0.97
+      keywords: ["hard_problem", "panpsychism"]
+
+  # AI Safety
+  ai_safety:
+    - id: stuart_russell
+      name: "Stuart Russell"
+      tier: "top_1%"
+      specializations: ["ai_alignment", "rational_agents"]
+      citation_impact: 0.99
+      keywords: ["value_alignment", "assistance_games"]
+    - id: paul_christiano
+      name: "Paul Christiano"
+      tier: "top_1%"
+      specializations: ["alignment_research", "iterated_amplification"]
+      citation_impact: 0.96
+      keywords: ["rlhf", "scalable_oversight"]
+    - id: eliezer_yudkowsky
+      name: "Eliezer Yudkowsky"
+      tier: "top_1%"
+      specializations: ["ai_alignment", "rationality"]
+      citation_impact: 0.95
+      keywords: ["coherent_extrapolated_volition", "mesa-optimization"]
+
+  # Cryptography
+  cryptography:
+    - id: adi_shamir
+      name: "Adi Shamir"
+      tier: "top_1%"
+      specializations: ["cryptanalysis", "secret_sharing"]
+      citation_impact: 0.99
+      keywords: ["rsa", "differential_cryptanalysis"]
+    - id: shafi_goldwasser
+      name: "Shafi Goldwasser"
+      tier: "top_1%"
+      specializations: ["complexity_theory", "zero_knowledge"]
+      citation_impact: 0.98
+      keywords: ["probabilistic_encryption", "proof_systems"]
+    - id: silvio_micali
+      name: "Silvio Micali"
+      tier: "top_1%"
+      specializations: ["cryptography", "algorand"]
+      citation_impact: 0.98
+      keywords: ["verifiable_random_functions", "byzantine"]
+
+  # Systems Engineering
+  systems_engineering:
+    - id: jim_gray
+      name: "Jim Gray"
+      tier: "top_1%"
+      specializations: ["database_systems", "transactions"]
+      citation_impact: 0.99
+      keywords: ["acid", "data_cube", "transaction_processing"]
+    - id: jeff_dean
+      name: "Jeff Dean"
+      tier: "top_1%"
+      specializations: ["distributed_systems", "ml_systems"]
+      citation_impact: 0.99
+      keywords: ["mapreduce", "tensorflow", "tpu"]
+    - id: martin_kleppmann
+      name: "Martin Kleppmann"
+      tier: "top_1%"
+      specializations: ["distributed_data", "crdt"]
+      citation_impact: 0.95
+      keywords: ["data_intensive", "replication"]
+
+  # Medicine
+  medicine:
+    - id: eric_topol
+      name: "Eric Topol"
+      tier: "top_1%"
+      specializations: ["digital_medicine", "genomics"]
+      citation_impact: 0.98
+      keywords: ["precision_medicine", "deep_medicine"]
+    - id: atul_gawande
+      name: "Atul Gawande"
+      tier: "top_1%"
+      specializations: ["surgery", "healthcare_systems"]
+      citation_impact: 0.97
+      keywords: ["checklists", "mortality"]
+    - id: anthony_fauci
+      name: "Anthony Fauci"
+      tier: "top_1%"
+      specializations: ["immunology", "infectious_disease"]
+      citation_impact: 0.98
+      keywords: ["hiv", "pandemic_response"]
+
+  # Physics
+  physics:
+    - id: edward_witten
+      name: "Edward Witten"
+      tier: "top_1%"
+      specializations: ["string_theory", "m_theory"]
+      citation_impact: 0.99
+      keywords: ["supersymmetry", "topological_field_theory"]
+    - id: roger_penrose
+      name: "Roger Penrose"
+      tier: "top_1%"
+      specializations: ["cosmology", "quantum_mechanics"]
+      citation_impact: 0.99
+      keywords: ["black_holes", "twistor_theory"]
+    - id: nima_arkani_hamed
+      name: "Nima Arkani-Hamed"
+      tier: "top_1%"
+      specializations: ["particle_physics", "amplituhedron"]
+      citation_impact: 0.98
+      keywords: ["scattering_amplitudes", "naturalness"]
+
+# Domain to Cluster Mapping (for quick lookup)
+domain_to_cluster:
+  mathematics: FORMAL
+  logic: FORMAL
+  statistics: FORMAL
+  computer_science: FORMAL
+  information_theory: FORMAL
+  formal_verification: FORMAL
+  physics: NATURAL
+  chemistry: NATURAL
+  biology: NATURAL
+  astronomy: NATURAL
+  geology: NATURAL
+  ecology: NATURAL
+  software_engineering: ENGINEER
+  systems_engineering: ENGINEER
+  electrical_engineering: ENGINEER
+  mechanical_engineering: ENGINEER
+  civil_engineering: ENGINEER
+  aerospace_engineering: ENGINEER
+  medicine: LIFE
+  neuroscience: LIFE
+  genetics: LIFE
+  pharmacology: LIFE
+  epidemiology: LIFE
+  psychology: LIFE
+  philosophy: HUMAN
+  ethics: HUMAN
+  history: HUMAN
+  linguistics: HUMAN
+  literature: HUMAN
+  art_theory: HUMAN
+  economics: SOCIAL
+  sociology: SOCIAL
+  political_science: SOCIAL
+  anthropology: SOCIAL
+  organizational_behavior: SOCIAL
+  game_theory: SOCIAL
+  financial_economics: FINANCE
+  accounting: FINANCE
+  management_science: FINANCE
+  operations_research: FINANCE
+  risk_management: FINANCE
+  quantitative_finance: FINANCE
+  machine_learning: AI
+  deep_learning: AI
+  natural_language_processing: AI
+  computer_vision: AI
+  reinforcement_learning: AI
+  ai_safety: AI
+  cryptography: SECURITY
+  cybersecurity: SECURITY
+  privacy_engineering: SECURITY
+  distributed_systems: SECURITY
+  consensus_protocols: SECURITY
+  blockchain: SECURITY
+
+provenance:
+  created: "2026-01-24"
+  note: >
+    Domain registry for PAT cross-pollination validation.
+    Practitioners are exemplars; system should support dynamic registry updates.

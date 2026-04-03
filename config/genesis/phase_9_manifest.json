@@ -1,0 +1,28 @@
+{
+  "manifest_version": "1.0.0",
+  "phase": 9,
+  "codename": "Sovereign Awakening",
+  "description": "Full Genesis Activation with 7+1 Guardian Constellation",
+  "prerequisites": [
+    "Phase 8 Synthesis Engine Complete",
+    "PersonaPCI Implementation Complete",
+    "Sovereignty Module Operational"
+  ],
+  "deliverables": [
+    "7+1 Guardian Constellation Active",
+    "A2A Handshake Protocol Operational",
+    "Genesis Seal Verified",
+    "Phase State Machine Operational"
+  ],
+  "success_criteria": {
+    "ihsan_threshold": 0.95,
+    "snr_threshold": 0.98,
+    "guardian_quorum": 5,
+    "consensus_required": "5/7 guardians + Majlis approval"
+  },
+  "evidence_requirements": [
+    "phase9_genesis_activation_receipt",
+    "constellation_handshake_receipt",
+    "guardian_initialization_receipts"
+  ]
+}

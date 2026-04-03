@@ -1,0 +1,14 @@
+{
+  "deployment_id": "test_deploy_002",
+  "nonce": "a724649e31c0183f98796142a5e1d4093a7b4de7c0eab6b444130e007dcb3f52",
+  "pcr_indices": [
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "pcr_digest": "eb5319174c7ddfb28ab518e3c6c95d678480c303cf4901c7fc433eea87d6e4e8",
+  "manifest_hash": "4dac2481f0188f0c13015ef2b15c1ed226c9c5d6438b0c9be385efd18e054bda",
+  "attestation": "SOFTWARE_TPM_QUOTE_V1"
+}

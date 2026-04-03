@@ -1,0 +1,102 @@
+# docker-compose.caddy.yml - Caddy Reverse Proxy Configuration
+# Standing on Shoulders of Giants Protocol: Caddy web server, HTTP/2, TLS 1.3
+# Extends BIZRA Ihsān security dimensions (safety: 0.22, correctness: 0.22)
+
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: bizra_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./config/caddy_data:/data
+      - ./config/caddy_config:/config
+    environment:
+      - CADDY_ZEROSSL_API_KEY=${ZEROSSL_API_KEY:-}
+      - CADDY_LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-}
+    networks:
+      - bizra_network
+    healthcheck:
+      test: ["CMD", "caddy", "validate"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  bizra_api:
+    image: bizra/api:latest
+    container_name: bizra_api
+    restart: unless-stopped
+    environment:
+      - RUST_LOG=info
+      - DATABASE_URL=postgres://bizra:bizra_secure@postgres:5432/bizra
+      - REDIS_URL=redis://redis:6379
+      - JWT_SIGNING_KEY=${JWT_SIGNING_KEY}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - bizra_network
+    expose:
+      - "8080"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: bizra_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=bizra
+      - POSTGRES_PASSWORD=bizra_secure
+      - POSTGRES_DB=bizra
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bizra_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bizra"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: bizra_redis
+    restart: unless-stopped
+    command: redis-server --tls-port 6379 --port 0 \
+      --tls-cert-file /data/redis-server-cert.pem \
+      --tls-key-file /data/redis-server-key.pem \
+      --tls-ca-cert-file /data/ca-cert.pem
+    volumes:
+      - ./config/redis/redis-server-cert.pem:/data/redis-server-cert.pem:ro
+      - ./config/redis/redis-server-key.pem:/data/redis-server-key.pem:ro
+      - ./config/redis/ca-cert.pem:/data/ca-cert.pem:ro
+      - redis_data:/data
+    networks:
+      - bizra_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--tls", "--cert", "/data/redis-server-cert.pem",
+            "--key", "/data/redis-server-key.pem",
+            "--cacert", "/data/ca-cert.pem", "PING"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  bizra_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

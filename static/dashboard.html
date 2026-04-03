@@ -605,6 +605,40 @@
                     PAT↔SAT alignment
                 </div>
             </div>
+
+            <!-- Phase C1 Metrics -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Tool Timeouts</span>
+                    <span class="card-icon">⏱️</span>
+                </div>
+                <div class="card-value green" id="tool-timeouts">0</div>
+                <div class="card-trend">
+                    Execution interruptions
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">URP Leases</span>
+                    <span class="card-icon">🔋</span>
+                </div>
+                <div class="card-value cyan" id="urp-leases">0</div>
+                <div class="card-trend" id="urp-details">
+                    G:0 C:0 R:0
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">RAG Hits</span>
+                    <span class="card-icon">📚</span>
+                </div>
+                <div class="card-value purple" id="rag-hits">0</div>
+                <div class="card-trend" id="rag-details">
+                    V:0 G:0
+                </div>
+            </div>
         </div>
         
         <!-- Charts Section -->
@@ -922,6 +956,29 @@
             
             document.getElementById('synergy-score').textContent = synergyAvg.toFixed(2);
             
+            // Phase C1 Metrics
+            // Tool Timeouts
+            const toolTimeouts = sumMetric(metrics, 'bizra_tool_timeout_total');
+            document.getElementById('tool-timeouts').textContent = toolTimeouts;
+            const timeoutEl = document.getElementById('tool-timeouts');
+            if (timeoutEl) {
+                timeoutEl.className = toolTimeouts > 0 ? 'card-value red' : 'card-value green';
+            }
+            
+            // URP Leases
+            const urpGpu = getMetricValue(metrics, 'bizra_urp_lease_active', { resource_type: 'gpu' });
+            const urpCpu = getMetricValue(metrics, 'bizra_urp_lease_active', { resource_type: 'cpu' });
+            const urpRam = getMetricValue(metrics, 'bizra_urp_lease_active', { resource_type: 'ram' });
+            document.getElementById('urp-leases').textContent = Math.round(urpGpu + urpCpu + urpRam);
+            document.getElementById('urp-details').textContent = `G:${urpGpu} C:${urpCpu} R:${urpRam}`;
+            
+            // RAG Hits
+            const ragTotal = sumMetric(metrics, 'bizra_rag_hit_total');
+            const ragVector = getMetricValue(metrics, 'bizra_rag_hit_total', { source: 'vector' });
+            const ragGraph = getMetricValue(metrics, 'bizra_rag_hit_total', { source: 'graph' });
+            document.getElementById('rag-hits').textContent = ragTotal;
+            document.getElementById('rag-details').textContent = `V:${ragVector} G:${ragGraph}`;
+
             // Connection status
             const neo4jConnected = getMetricValue(metrics, 'bizra_neo4j_connected') === 1;
             const ollamaConnected = getMetricValue(metrics, 'bizra_ollama_connected') === 1;

@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "name": "onboarding",
+      "module": "bizra_kernel.plugins.builtin_onboarding",
+      "factory": "build_plugin",
+      "enabled": true,
+      "description": "Front-door onboarding flow hook for bizra CLI."
+    }
+  ]
+}
+

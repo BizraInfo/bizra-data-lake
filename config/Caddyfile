@@ -1,0 +1,124 @@
+# config/Caddyfile - Caddy Configuration
+# Standing on Shoulders of Giants Protocol: Caddy web server, HTTP/2, TLS 1.3
+# Extends BIZRA Ihsān security dimensions (safety: 0.22, correctness: 0.22)
+
+{
+    email admin@bizra.local
+    admin off
+    auto_https off
+    log {
+        output file /var/log/caddy/access.log
+        format console {
+            time_format "2006-01-02 15:04:05"
+        }
+    }
+}
+
+:80 {
+    respond "BIZRA Gateway" 200
+}
+
+:443 {
+    tls {
+        modes tls12_13
+        alpn h2 http/1.1
+        issuer zerossl {
+            email admin@bizra.local
+        }
+        issuer internal {
+            ca local
+        }
+    }
+
+    encode zstd gzip {
+        level 5
+        min_size 256
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        -Server
+        -X-Powered-By
+    }
+
+    reverse_proxy /api/* bizra_api:8080 {
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-For {remote}
+        header_up X-Real-IP {remote}
+        transport http {
+            tls
+            tls_insecure_skip_verify
+        }
+    }
+
+    handle_errors {
+        respond "{err.status_code} {err.status_text}" "{err.status_code}"
+    }
+}
+
+api.bizra.local:443 {
+    tls {
+        alpn h2 http/1.1
+    }
+
+    encode zstd gzip
+
+    rate_limit {
+        zone api_ratelimit {
+            key {remote}
+            burst 50
+            window 1s
+        }
+    }
+
+    reverse_proxy bizra_api:8080 {
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-For {remote}
+    }
+
+    log {
+        output file /var/log/caddy/api_access.log
+    }
+}
+
+admin.bizra.local:443 {
+    tls {
+        alpn h2 http/1.1
+        ca local
+    }
+
+    encode zstd gzip
+
+    basic_auth {
+        admin $2a$10$哈希值
+    }
+
+    reverse_proxy bizra_api:8080 {
+        header_up X-Forwarded-Proto https
+        header_up X-Admin-User {http.auth.user.id}
+    }
+}
+
+ws.bizra.local:443 {
+    tls {
+        alpn h2 http/1.1
+    }
+
+    reverse_proxy bizra_api:8080 {
+        header_up Upgrade {header.Connection}
+        header_up Connection "Upgrade"
+        header_up Sec-WebSocket-Version {header.Sec-WebSocket-Version}
+        header_up Sec-WebSocket-Key {header.Sec-WebSocket-Key}
+        header_up Sec-WebSocket-Protocol {header.Sec-WebSocket-Protocol}
+        header_up Sec-WebSocket-Extensions {header.Sec-WebSocket-Extensions}
+        transport http {
+            tls
+            tls_insecure_skip_verify
+        }
+    }
+}

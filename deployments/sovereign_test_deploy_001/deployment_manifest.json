@@ -1,0 +1,49 @@
+{
+  "deployment_id": "test_deploy_001",
+  "timestamp": 57111.0509683,
+  "configuration": {
+    "deployment_id": "test_deploy_001",
+    "constitution": "constitution/scaling_simple.yaml",
+    "agents": 6,
+    "bft_quorum": 4,
+    "ihsan_threshold": 0.95,
+    "model_size": "optimal"
+  },
+  "tpm_state": {
+    "pcrs_extended": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "pcr_16_hash": "c957a4b4eae8dd55206443463b8c822c"
+  },
+  "constitution_hash": "ae93a8dec9339fcc7903c8067fb47506a334a536af71f57ccdfa5db6471e954c",
+  "status": "deployed",
+  "next_steps": [
+    "1. Run scaling experiment: python scripts/test_sovereign_scaling.py",
+    "2. Analyze results: python scripts/analyze_results.py",
+    "3. Deploy optimal model: python scripts/deploy_model.py",
+    "4. Start governance: python scripts/start_governance.py"
+  ]
+}

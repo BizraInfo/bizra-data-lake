@@ -1,0 +1,467 @@
+# ===============================================================================
+# BIZRA Genesis Sealed Parameters
+# ===============================================================================
+# SEALED: These parameters are cryptographically bound to the Genesis Block
+# Single Source of Truth: constitution/ihsan_v1.yaml
+# ===============================================================================
+
+version: "1.0.0"
+schema: "bizra.genesis.sealed.v1"
+constitution_ref: "constitution/ihsan_v1.yaml"
+sealed_status: true
+
+# ===============================================================================
+# GENESIS BLOCK REFERENCE
+# ===============================================================================
+# The Genesis Block is the root of trust for the entire BIZRA ecosystem.
+# Its hash is immutable and forms the basis of all attestation chains.
+# ===============================================================================
+
+genesis_block:
+  file_ref: "BIZRA_GENESIS_BLOCK_0.json"
+
+  # SEALED: Genesis block hash - cryptographic anchor
+  hash: "7253d9f015bcac66e0f996d3cc3ebac021151ec8c75aa8890e4a902447218e8e"
+  hash_algorithm: "SHA256"
+
+  # Genesis metadata
+  block_index: 0
+  timestamp: "2025-12-17T17:32:06.236798Z"
+  architect_node: "node_0000_genesis_momo"
+
+  # Verification requirements
+  verification:
+    hash_must_match: true
+    timestamp_must_exist: true
+    architect_node_must_match: true
+    roots_must_contain: ["Dr. Kais Dukes (Rahimahullah)", "The Architect's Daughter & Family"]
+
+# ===============================================================================
+# CRYPTOGRAPHIC PARAMETERS
+# ===============================================================================
+# All cryptographic operations in BIZRA use these sealed parameters.
+# Changes to these parameters require a new Genesis Block.
+# ===============================================================================
+
+cryptography:
+  # ---------------------------------------------------------------------------
+  # Digital Signatures (Ed25519)
+  # ---------------------------------------------------------------------------
+  signatures:
+    algorithm: "Ed25519"
+    description: "Edwards-curve Digital Signature Algorithm"
+
+    parameters:
+      curve: "ed25519"
+      key_size_bits: 256
+      signature_size_bytes: 64
+      public_key_size_bytes: 32
+      private_key_size_bytes: 32
+
+    security_level: "128-bit equivalent"
+
+    usage:
+      - guardian_attestations
+      - consensus_votes
+      - receipt_signatures
+      - a2a_message_authentication
+      - genesis_seal_verification
+
+    implementation_requirements:
+      deterministic_signing: true
+      constant_time_operations: true
+      side_channel_resistance: required
+
+  # ---------------------------------------------------------------------------
+  # Hash Functions (BLAKE3)
+  # ---------------------------------------------------------------------------
+  hashing:
+    algorithm: "BLAKE3"
+    description: "BLAKE3 cryptographic hash function"
+
+    parameters:
+      output_size_default_bytes: 32
+      output_size_extended_bytes: 64  # For receipts requiring longer hashes
+      block_size_bytes: 64
+
+    performance_target:
+      min_throughput_mbps: 1000  # Hardware-dependent baseline
+
+    usage:
+      - content_addressing
+      - integrity_verification
+      - receipt_hashing
+      - merkle_tree_construction
+      - cache_key_generation
+
+    # Alternative hash for SHA256 compatibility (legacy)
+    sha256_fallback:
+      enabled: true
+      use_cases: ["genesis_block_verification", "external_api_compat"]
+
+  # ---------------------------------------------------------------------------
+  # Key Derivation
+  # ---------------------------------------------------------------------------
+  key_derivation:
+    algorithm: "BLAKE3-KDF"
+    description: "BLAKE3-based Key Derivation Function"
+
+    parameters:
+      context_string_required: true
+      min_output_length_bytes: 32
+      max_output_length_bytes: 64
+
+    usage:
+      - guardian_keypair_derivation
+      - session_key_generation
+      - encryption_key_derivation
+
+# ===============================================================================
+# DOMAIN SEPARATION PREFIXES
+# ===============================================================================
+# Domain separation prevents cross-protocol attacks by ensuring that
+# signatures/hashes in one context cannot be replayed in another.
+# ===============================================================================
+
+domain_separation:
+  description: >
+    Domain separation prefixes are prepended to data before hashing/signing
+    to ensure cryptographic operations are context-bound.
+
+  # SEALED: These prefixes must not change after genesis
+  prefixes:
+    # Guardian operations
+    guardian_attestation: "BIZRA-v1-guardian-attestation"
+    guardian_vote: "BIZRA-v1-guardian-vote"
+    guardian_heartbeat: "BIZRA-v1-guardian-heartbeat"
+
+    # Majlis operations
+    majlis_ratification: "BIZRA-v1-majlis-ratification"
+    majlis_broadcast: "BIZRA-v1-majlis-broadcast"
+
+    # Receipt operations
+    receipt_evidence: "BIZRA-v1-receipt-evidence"
+    receipt_chain: "BIZRA-v1-receipt-chain"
+
+    # A2A operations
+    a2a_handshake: "BIZRA-v1-a2a-handshake"
+    a2a_message: "BIZRA-v1-a2a-message"
+    a2a_delegation: "BIZRA-v1-a2a-delegation"
+
+    # Genesis operations
+    genesis_seal: "BIZRA-v1-genesis-seal"
+    genesis_attestation: "BIZRA-v1-genesis-attestation"
+
+    # Consensus operations
+    consensus_proposal: "BIZRA-v1-consensus-proposal"
+    consensus_commit: "BIZRA-v1-consensus-commit"
+
+    # SAPE operations
+    sape_probe: "BIZRA-v1-sape-probe"
+    sape_elevation: "BIZRA-v1-sape-elevation"
+
+    # Ihsan operations
+    ihsan_score: "BIZRA-v1-ihsan-score"
+    ihsan_gate: "BIZRA-v1-ihsan-gate"
+
+  construction:
+    format: "{prefix}:{timestamp}:{content_hash}"
+    timestamp_format: "iso8601_utc"
+    separator: ":"
+
+# ===============================================================================
+# NONCE GENERATION RULES
+# ===============================================================================
+# Nonces prevent replay attacks. These rules define how nonces are generated
+# and validated across the BIZRA ecosystem.
+# ===============================================================================
+
+nonce_generation:
+  # ---------------------------------------------------------------------------
+  # Primary Nonce Scheme
+  # ---------------------------------------------------------------------------
+  primary:
+    algorithm: "CSPRNG"
+    description: "Cryptographically Secure Pseudo-Random Number Generator"
+
+    parameters:
+      size_bytes: 16  # 128 bits
+      format: "hex"
+
+    source_requirements:
+      - operating_system_entropy
+      - hardware_rng_preferred
+      - fallback_to_software_rng
+
+  # ---------------------------------------------------------------------------
+  # Timestamp-Based Nonce (for ordering)
+  # ---------------------------------------------------------------------------
+  timestamp_nonce:
+    algorithm: "timestamp_random"
+    description: "Timestamp prefix with random suffix for ordering"
+
+    format: "{timestamp_ms}:{random_bytes}"
+    timestamp_precision: "milliseconds"
+    random_suffix_bytes: 8
+
+    usage:
+      - receipt_ordering
+      - consensus_sequencing
+      - a2a_message_ordering
+
+  # ---------------------------------------------------------------------------
+  # Nonce Validation Rules
+  # ---------------------------------------------------------------------------
+  validation:
+    # Prevent replay within time window
+    replay_window_seconds: 300  # 5 minutes
+
+    # Nonce must be unique within scope
+    uniqueness_scope: "per_guardian_per_operation"
+
+    # Cache recent nonces for replay detection
+    cache_size: 10000
+    cache_ttl_seconds: 600
+
+    # Reject nonces from future (clock skew tolerance)
+    max_future_seconds: 30
+
+    # Reject nonces too far in past
+    max_past_seconds: 300
+
+# ===============================================================================
+# ATTESTATION CHAIN REQUIREMENTS
+# ===============================================================================
+# Attestation chains provide cryptographic proof of provenance and integrity.
+# Each attestation links to its predecessor, forming an immutable chain.
+# ===============================================================================
+
+attestation_chain:
+  # ---------------------------------------------------------------------------
+  # Chain Structure
+  # ---------------------------------------------------------------------------
+  structure:
+    root: "genesis_block_hash"
+    link_algorithm: "BLAKE3"
+
+    node_schema:
+      fields:
+        - name: "attestation_id"
+          type: "uuid"
+          required: true
+
+        - name: "parent_hash"
+          type: "bytes32"
+          required: true
+          description: "BLAKE3 hash of parent attestation"
+
+        - name: "timestamp"
+          type: "iso8601"
+          required: true
+
+        - name: "attester_id"
+          type: "string"
+          required: true
+          description: "Guardian or Majlis identifier"
+
+        - name: "attester_pubkey"
+          type: "bytes32"
+          required: true
+          description: "Ed25519 public key"
+
+        - name: "content_hash"
+          type: "bytes32"
+          required: true
+          description: "BLAKE3 hash of attested content"
+
+        - name: "domain_prefix"
+          type: "string"
+          required: true
+          description: "Domain separation prefix used"
+
+        - name: "signature"
+          type: "bytes64"
+          required: true
+          description: "Ed25519 signature"
+
+        - name: "metadata"
+          type: "object"
+          required: false
+          description: "Additional context"
+
+  # ---------------------------------------------------------------------------
+  # Chain Validation Rules
+  # ---------------------------------------------------------------------------
+  validation:
+    # Each attestation must link to valid parent
+    parent_must_exist: true
+
+    # Parent hash must match actual parent
+    parent_hash_must_match: true
+
+    # Timestamps must be monotonically increasing
+    timestamp_ordering: "monotonic_increasing"
+
+    # Attester must be authorized
+    attester_authorization_required: true
+
+    # Signature must be valid
+    signature_verification_required: true
+
+    # Domain prefix must be from allowed set
+    domain_prefix_whitelist_enforced: true
+
+  # ---------------------------------------------------------------------------
+  # Genesis Attestation (Root)
+  # ---------------------------------------------------------------------------
+  genesis_attestation:
+    parent_hash: "0x0000000000000000000000000000000000000000000000000000000000000000"
+    attester_id: "genesis"
+    content_hash: "7253d9f015bcac66e0f996d3cc3ebac021151ec8c75aa8890e4a902447218e8e"
+    domain_prefix: "BIZRA-v1-genesis-seal"
+
+  # ---------------------------------------------------------------------------
+  # Chain Integrity Requirements
+  # ---------------------------------------------------------------------------
+  integrity:
+    # Merkle tree for efficient verification
+    merkle_tree_enabled: true
+    merkle_algorithm: "BLAKE3"
+
+    # Checkpoint frequency
+    checkpoint_interval_attestations: 1000
+
+    # Archive requirements
+    archive_after_days: 30
+    archive_format: "parquet"
+    archive_compression: "zstd"
+
+# ===============================================================================
+# RECEIPT INTEGRITY PARAMETERS
+# ===============================================================================
+# Receipts are the primary evidence artifacts in BIZRA. These parameters
+# ensure receipt integrity and non-repudiation.
+# ===============================================================================
+
+receipt_integrity:
+  # ---------------------------------------------------------------------------
+  # Receipt Hash Computation
+  # ---------------------------------------------------------------------------
+  hash_computation:
+    algorithm: "BLAKE3"
+
+    fields_included:
+      - receipt_id
+      - timestamp
+      - task_summary
+      - rejection_codes
+      - escalation_level
+      - attester_id
+      - parent_receipt_hash
+
+    field_ordering: "alphabetical"
+    null_handling: "empty_string"
+    encoding: "utf8"
+
+  # ---------------------------------------------------------------------------
+  # Receipt Signature
+  # ---------------------------------------------------------------------------
+  signature:
+    algorithm: "Ed25519"
+    domain_prefix: "BIZRA-v1-receipt-evidence"
+
+    signer_requirements:
+      guardian_receipts: "issuing_guardian"
+      majlis_receipts: "majlis_coordinator"
+      system_receipts: "system_keypair"
+
+  # ---------------------------------------------------------------------------
+  # Receipt Chain Linking
+  # ---------------------------------------------------------------------------
+  chain_linking:
+    enabled: true
+
+    link_fields:
+      - parent_receipt_hash
+      - chain_position
+      - chain_id
+
+    orphan_handling: "reject"
+
+# ===============================================================================
+# THRESHOLD PARAMETERS
+# ===============================================================================
+# Sealed thresholds that govern system behavior. Changes require
+# constitutional amendment process.
+# ===============================================================================
+
+thresholds:
+  # From constitution/ihsan_v1.yaml
+  ihsan:
+    minimum: 0.95
+    source: "constitution/ihsan_v1.yaml"
+    immutable: true
+
+  # From constitution/pat_enforcement_v1.yaml
+  snr:
+    minimum: 0.98
+    source: "constitution/pat_enforcement_v1.yaml"
+    immutable: true
+
+  # Guardian quorum
+  guardian_quorum:
+    minimum: 5
+    total: 7
+    description: "5/7 guardians must approve"
+    immutable: true
+
+  # Consensus timeout
+  consensus_timeout_ms:
+    default: 30000
+    maximum: 60000
+    immutable: false  # Can be tuned operationally
+
+# ===============================================================================
+# VERSIONING AND UPGRADE PATH
+# ===============================================================================
+# Sealed parameters can only be changed through formal upgrade process.
+# ===============================================================================
+
+versioning:
+  current_version: "1.0.0"
+  genesis_version: "1.0.0"
+
+  upgrade_requirements:
+    - new_genesis_block_required: false  # Minor version
+    - guardian_consensus_required: true
+    - majlis_ratification_required: true
+    - evidence_chain_required: true
+
+  compatibility:
+    backward_compatible_with: []  # First version
+    forward_compatible_to: ["1.0.x", "1.1.x"]
+
+# ===============================================================================
+# INVARIANTS
+# ===============================================================================
+invariants:
+  genesis_hash_immutable: true
+  cryptographic_algorithms_sealed: true
+  domain_prefixes_sealed: true
+  nonce_rules_sealed: true
+  attestation_chain_structure_sealed: true
+  threshold_minimums_sealed: true
+  constitution_ref_valid: "constitution/ihsan_v1.yaml"
+
+provenance:
+  source:
+    - constitution/ihsan_v1.yaml
+    - constitution/pat_enforcement_v1.yaml
+    - BIZRA_GENESIS_BLOCK_0.json
+  created: "2026-01-28"
+  phase: 9
+  sealed_by: "genesis_initialization"
+  note: >
+    Genesis Sealed Parameters define the cryptographic foundations of BIZRA.
+    These parameters are bound to the Genesis Block and form the root of trust
+    for all operations. Changes require constitutional amendment process.
