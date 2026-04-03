@@ -1,0 +1,258 @@
+{
+  "$schema": "https://bizra.io/schemas/pci/test-vectors-v1.json",
+  "version": "1.0.0",
+  "generated_at": "2025-01-08T12:00:00Z",
+  "description": "PCI Protocol v1.0 Test Vectors for cross-implementation compatibility",
+  
+  "domain_prefix": "bizra-pci-v1:",
+  
+  "test_cases": [
+    {
+      "id": "canonical_json_001",
+      "description": "Canonical JSON serialization (RFC 8785 JCS)",
+      "input": {
+        "zebra": true,
+        "apple": 1,
+        "mango": "hello"
+      },
+      "expected_canonical": "{\"apple\":1,\"mango\":\"hello\",\"zebra\":true}",
+      "expected_bytes_hex": "7b226170706c65223a312c226d616e676f223a2268656c6c6f222c227a65627261223a747275657d"
+    },
+    {
+      "id": "canonical_json_002",
+      "description": "Nested object serialization",
+      "input": {
+        "payload": {
+          "action": "propose",
+          "data": {"task": "analyze"}
+        },
+        "metadata": {
+          "ihsan_score": 0.97
+        }
+      },
+      "expected_canonical": "{\"metadata\":{\"ihsan_score\":0.97},\"payload\":{\"action\":\"propose\",\"data\":{\"task\":\"analyze\"}}}"
+    },
+    {
+      "id": "blake3_digest_001",
+      "description": "BLAKE3 digest of empty string",
+      "input_bytes_hex": "",
+      "expected_digest": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
+    },
+    {
+      "id": "blake3_digest_002",
+      "description": "BLAKE3 digest of 'hello'",
+      "input_bytes_hex": "68656c6c6f",
+      "expected_digest": "ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f"
+    },
+    {
+      "id": "domain_separated_digest_001",
+      "description": "Domain-separated BLAKE3 with bizra-pci-v1: prefix",
+      "domain": "bizra-pci-v1:",
+      "input_bytes_hex": "68656c6c6f",
+      "note": "Computes BLAKE3('bizra-pci-v1:' || 'hello')",
+      "expected_digest": "<<compute_at_runtime>>"
+    },
+    {
+      "id": "nonce_format_001",
+      "description": "Valid nonce format",
+      "valid_nonce": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+      "nonce_bytes": 32,
+      "nonce_hex_chars": 64
+    },
+    {
+      "id": "envelope_structure_001",
+      "description": "Complete valid envelope structure",
+      "envelope": {
+        "version": "1.0.0",
+        "envelope_id": "550e8400-e29b-41d4-a716-446655440000",
+        "timestamp": "2025-01-08T12:00:00.000000+00:00",
+        "nonce": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+        "sender": {
+          "agent_type": "PAT",
+          "agent_id": "pat-strategic-001",
+          "public_key": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        },
+        "payload": {
+          "action": "propose",
+          "data": {
+            "task": "analyze_security",
+            "priority": "high"
+          },
+          "policy_hash": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+          "state_hash": "0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0"
+        },
+        "metadata": {
+          "ihsan_score": 0.97,
+          "snr_score": 0.85,
+          "urgency": "NEAR_REAL_TIME"
+        },
+        "signature": {
+          "algorithm": "ed25519",
+          "value": "<<64_bytes_hex_signature>>",
+          "signed_fields": ["version", "envelope_id", "timestamp", "nonce", "sender", "payload", "metadata"]
+        }
+      }
+    },
+    {
+      "id": "reject_code_registry",
+      "description": "Stable reject code mappings",
+      "codes": {
+        "SUCCESS": 0,
+        "REJECT_SCHEMA": 1,
+        "REJECT_SIGNATURE": 2,
+        "REJECT_NONCE_REPLAY": 3,
+        "REJECT_TIMESTAMP_STALE": 4,
+        "REJECT_TIMESTAMP_FUTURE": 5,
+        "REJECT_IHSAN_BELOW_MIN": 6,
+        "REJECT_SNR_BELOW_MIN": 7,
+        "REJECT_BUDGET_EXCEEDED": 8,
+        "REJECT_POLICY_MISMATCH": 9,
+        "REJECT_STATE_MISMATCH": 10,
+        "REJECT_ROLE_VIOLATION": 11,
+        "REJECT_QUORUM_FAILED": 12,
+        "REJECT_FATE_VIOLATION": 13,
+        "REJECT_INVARIANT_FAILED": 14,
+        "REJECT_RATE_LIMITED": 15,
+        "REJECT_INTERNAL_ERROR": 99
+      }
+    },
+    {
+      "id": "gate_chain_order",
+      "description": "Gate execution order and tier assignment",
+      "tiers": {
+        "CHEAP": {
+          "budget_ms": 10,
+          "gates": ["SCHEMA", "SIGNATURE", "TIMESTAMP", "REPLAY", "ROLE"]
+        },
+        "MEDIUM": {
+          "budget_ms": 150,
+          "gates": ["SNR", "IHSAN", "POLICY"]
+        },
+        "EXPENSIVE": {
+          "budget_ms": 2000,
+          "gates": ["FATE", "FORMAL"]
+        }
+      }
+    },
+    {
+      "id": "ihsan_threshold",
+      "description": "Ihsān threshold enforcement",
+      "threshold": 0.95,
+      "passing_scores": [0.95, 0.96, 0.97, 0.98, 0.99, 1.0],
+      "failing_scores": [0.0, 0.5, 0.94, 0.949]
+    },
+    {
+      "id": "role_permissions_001",
+      "description": "PAT agent role permissions",
+      "agent_type": "PAT",
+      "allowed_actions": ["propose", "suggest", "analyze", "synthesize"],
+      "forbidden_actions": ["commit", "issue_receipt", "modify_state"]
+    },
+    {
+      "id": "role_permissions_002",
+      "description": "SAT agent role permissions",
+      "agent_type": "SAT",
+      "allowed_actions": ["verify", "validate", "commit", "issue_receipt"],
+      "forbidden_actions": ["propose"]
+    },
+    {
+      "id": "receipt_structure_001",
+      "description": "Complete commit receipt structure",
+      "receipt": {
+        "version": "1.0.0",
+        "receipt_id": "660e8400-e29b-41d4-a716-446655440001",
+        "timestamp": "2025-01-08T12:00:01.000000+00:00",
+        "envelope_digest": "<<envelope_blake3_digest>>",
+        "commit_ref": {
+          "type": "eventlog",
+          "offset": 42
+        },
+        "verification": {
+          "tier": "STATISTICAL",
+          "latency_ms": 8.5,
+          "gates_passed": ["SCHEMA", "SIGNATURE", "TIMESTAMP", "REPLAY", "ROLE", "SNR", "IHSAN", "POLICY"],
+          "ihsan_score": 0.97,
+          "snr_score": 0.85
+        },
+        "verifier_set": [
+          {
+            "sat_id": "sat-security-001",
+            "public_key": "<<32_bytes_hex>>",
+            "signature": "<<64_bytes_hex>>",
+            "timestamp": "2025-01-08T12:00:01.000000+00:00"
+          }
+        ],
+        "quorum": {
+          "required": 3,
+          "achieved": 3
+        },
+        "audit_digest": "<<blake3_of_audit_data>>",
+        "policy_hash": "<<constitution_blake3>>"
+      }
+    },
+    {
+      "id": "timestamp_skew_001",
+      "description": "Timestamp skew tolerance",
+      "skew_seconds": 120,
+      "current_time": "2025-01-08T12:00:00Z",
+      "valid_timestamps": [
+        "2025-01-08T11:58:00Z",
+        "2025-01-08T11:59:00Z",
+        "2025-01-08T12:00:00Z",
+        "2025-01-08T12:01:00Z",
+        "2025-01-08T12:02:00Z"
+      ],
+      "invalid_timestamps": [
+        "2025-01-08T11:57:00Z",
+        "2025-01-08T12:03:00Z",
+        "2025-01-07T12:00:00Z"
+      ]
+    },
+    {
+      "id": "verification_tiers",
+      "description": "Verification confidence tiers",
+      "tiers": {
+        "STATISTICAL": {
+          "description": "Statistical sampling verification",
+          "confidence": 0.99
+        },
+        "INCREMENTAL": {
+          "description": "Incremental hash chain verification",
+          "confidence": 0.999
+        },
+        "OPTIMISTIC": {
+          "description": "Optimistic with fraud proofs",
+          "confidence": 0.9999
+        },
+        "FULL_ZK": {
+          "description": "Full zero-knowledge proof",
+          "confidence": 0.99999
+        },
+        "FORMAL": {
+          "description": "Mathematical proof verification",
+          "confidence": 1.0
+        }
+      }
+    }
+  ],
+  
+  "ed25519_test_vectors": {
+    "description": "Ed25519 signature test vectors from RFC 8032",
+    "test_cases": [
+      {
+        "id": "ed25519_001",
+        "secret_key_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+        "public_key_hex": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "message_hex": "",
+        "signature_hex": "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b"
+      },
+      {
+        "id": "ed25519_002",
+        "secret_key_hex": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb",
+        "public_key_hex": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+        "message_hex": "72",
+        "signature_hex": "92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00"
+      }
+    ]
+  }
+}
