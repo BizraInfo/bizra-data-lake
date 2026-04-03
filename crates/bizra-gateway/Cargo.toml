@@ -1,0 +1,43 @@
+[package]
+name = "bizra-gateway"
+version = "0.1.0"
+edition = "2021"
+authors = ["BIZRA Team"]
+description = "WebSocket/REST bridge between React UI and Rust Sovereign Kernel"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.41", features = ["full"] }
+async-trait = "0.1"
+
+# HTTP/WebSocket server
+# Security: Updated to latest versions (h2 0.4.x, fixes CVE-2024-45401)
+actix-web = "4.9"
+actix-ws = "0.3"
+actix-service = "2.0"
+actix-http = "3.9"
+futures-util = "0.3"
+
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# SHA2 for proofs
+sha2 = "0.10.9"
+
+[dependencies.meta_alpha_dual_agentic]
+path = "../.."

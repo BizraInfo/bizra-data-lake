@@ -13,15 +13,20 @@ use tower_http::cors::CorsLayer;
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod transaction;
+pub mod monetization;
+mod transaction; // Expose monetization module
+
 use transaction::{
     SubmitTransactionRequest, SubmitTransactionResponse, Transaction, TransactionStatus,
 };
+
+use monetization::{get_roadmap_projections, EngineeringAPI};
 
 #[derive(Clone)]
 struct AppState {
     transactions: Arc<DashMap<String, Transaction>>,
     ai_client: Client,
+    pricing_model: Arc<EngineeringAPI>, // Cached pricing model
 }
 
 #[tokio::main]
@@ -39,6 +44,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let transactions: Arc<DashMap<String, Transaction>> = Arc::new(DashMap::new());
 
+    // Load pricing model into memory (High Performance / No DB hit for query)
+    let pricing_model = Arc::new(EngineeringAPI::default());
+
     // Create a shared HTTP client for AI verification to avoid connection overhead
     let ai_client = Client::builder()
         .timeout(Duration::from_millis(500))
@@ -47,23 +55,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState {
         transactions,
         ai_client,
+        pricing_model,
     };
 
     let app = Router::new()
         .route("/transactions", post(submit_transaction))
         .route("/transactions/:id", get(get_transaction))
+        .route("/pricing", get(get_pricing_structure))
+        .route("/projections", get(get_financial_projections))
         .with_state(state)
         .layer(CorsLayer::permissive());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    info!("Starting server on {}", addr);
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3002)); // Port 3002 for Finance Service
+    info!("Starting Finance Service (MaaSP) on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    info!("Server listening on {}", addr);
+    info!("Finance Service (MaaSP) Active on {}", addr);
 
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+/// Endpoint: Expose the Engineering API Pricing Structure
+async fn get_pricing_structure(State(state): State<AppState>) -> Json<EngineeringAPI> {
+    info!("Serving MaaSP Pricing Structure");
+    Json((*state.pricing_model).clone())
+}
+
+/// Endpoint: Expose the 5-Year Financial Projections (Transparency)
+async fn get_financial_projections() -> Json<serde_json::Value> {
+    let (year_1, year_5) = get_roadmap_projections();
+    info!("Serving Financial Projections");
+    Json(serde_json::json!({
+        "year_1_conservative": year_1,
+        "year_5_optimistic": year_5,
+        "methodology": "Based on 20% MoM growth in formal verification market"
+    }))
 }
 
 async fn submit_transaction(
