@@ -19,6 +19,9 @@ Evidence Sources:
 - Module architecture (efficiency)
 - Documentation coverage (user_benefit)
 - Security posture scan (safety)
+- Benchmark results (correctness, efficiency)
+- Model baselines (per-model accuracy)
+- Mode comparisons (BIZRA vs Direct vs Routed)
 
 Mathematical Foundations:
 - Weighted composite scoring per ihsan_v1.yaml
@@ -86,6 +89,13 @@ SNR_TIERS = {
     "T3": (7.8, 8.2, "Target"),
     "T2": (7.4, 7.8, "Acceptable"),
     "T1": (0.0, 7.4, "Baseline"),
+}
+
+# SNR thresholds for CI/CD gates (0.0-1.0 scale)
+SNR_THRESHOLDS = {
+    "development": 0.70,  # 0.7 SNR = 7.0 on 7-9 scale
+    "ci": 0.85,           # 0.85 SNR = 8.5 on 7-9 scale
+    "production": 0.90,   # 0.9 SNR = 9.0 on 7-9 scale
 }
 
 # Ihsān dimension weights (canonical from constitution)
@@ -970,7 +980,251 @@ def collect_sape_probe() -> Optional[ProbeResult]:
 
 
 # ============================================================================
-# HISTORY & TREND ANALYSIS  
+# BENCHMARK PROBES (NEW)
+# ============================================================================
+
+def collect_benchmark_probe() -> Optional[ProbeResult]:
+    """Load and analyze recent benchmark results."""
+    print("📊 Analyzing benchmark history...")
+
+    benchmark_path = WORKSPACE / "docs" / "evidence" / "benchmarks"
+
+    with timed_probe("benchmark") as ctx:
+        try:
+            if not benchmark_path.exists():
+                print("   ⚠️ No benchmark results found")
+                return ProbeResult(
+                    name="Benchmarks",
+                    score=0.5,
+                    raw_value={"status": "no_benchmarks"},
+                    source="filesystem",
+                    confidence=0.3,
+                    flags=["no_data"],
+                    latency_ms=ctx["latency_ms"]
+                )
+
+            # Find most recent benchmark files
+            benchmark_files = list(benchmark_path.glob("*.json"))
+            if not benchmark_files:
+                return ProbeResult(
+                    name="Benchmarks",
+                    score=0.5,
+                    raw_value={"status": "no_files"},
+                    source="filesystem",
+                    confidence=0.3,
+                    flags=["no_files"],
+                    latency_ms=ctx["latency_ms"]
+                )
+
+            # Sort by modification time and get most recent
+            benchmark_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+            recent_file = benchmark_files[0]
+
+            data = json.loads(recent_file.read_text(encoding="utf-8"))
+
+            # Extract key metrics
+            results = data.get("results", [])
+            if not results:
+                return ProbeResult(
+                    name="Benchmarks",
+                    score=0.5,
+                    raw_value={"status": "empty_results"},
+                    source=str(recent_file.name),
+                    confidence=0.5,
+                    flags=["empty"],
+                    latency_ms=ctx["latency_ms"]
+                )
+
+            # Calculate aggregate metrics
+            accuracies = []
+            snr_scores = []
+            for r in results:
+                metrics = r.get("metrics", {})
+                acc = metrics.get("accuracy", 0)
+                if acc > 0:
+                    accuracies.append(acc)
+
+                bizra = r.get("bizra_metrics", {})
+                snr = bizra.get("snr_score")
+                if snr:
+                    snr_scores.append(snr)
+
+            avg_accuracy = sum(accuracies) / len(accuracies) if accuracies else 0
+            avg_snr = sum(snr_scores) / len(snr_scores) if snr_scores else None
+
+            # Score based on accuracy (target: >75%)
+            score = min(1.0, avg_accuracy / 0.75) if avg_accuracy > 0 else 0.5
+
+            flags = []
+            if avg_accuracy < 0.7:
+                flags.append("low_accuracy")
+            if avg_snr and avg_snr < 0.85:
+                flags.append("low_snr")
+
+            return ProbeResult(
+                name="Benchmarks",
+                score=score,
+                raw_value={
+                    "file": recent_file.name,
+                    "result_count": len(results),
+                    "avg_accuracy": avg_accuracy,
+                    "avg_snr": avg_snr,
+                    "total_files": len(benchmark_files),
+                },
+                source="benchmark_analysis",
+                confidence=0.9,
+                flags=flags,
+                latency_ms=ctx["latency_ms"]
+            )
+
+        except Exception as e:
+            return ProbeResult(
+                name="Benchmarks",
+                score=0.5,
+                raw_value={"error": str(e)},
+                source="filesystem",
+                confidence=0.3,
+                flags=["error"],
+                latency_ms=ctx["latency_ms"]
+            )
+
+
+def collect_model_baseline_probe() -> Optional[ProbeResult]:
+    """Analyze model baseline benchmark results."""
+    print("🎯 Analyzing model baselines...")
+
+    benchmark_path = WORKSPACE / "docs" / "evidence" / "benchmarks"
+
+    with timed_probe("model_baseline") as ctx:
+        try:
+            if not benchmark_path.exists():
+                return None
+
+            # Look for model baseline files
+            baseline_files = list(benchmark_path.glob("model_baselines_*.json"))
+            if not baseline_files:
+                return None
+
+            # Get most recent
+            baseline_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+            recent_file = baseline_files[0]
+
+            data = json.loads(recent_file.read_text(encoding="utf-8"))
+            results = data.get("results", [])
+
+            if not results:
+                return None
+
+            # Analyze model performance
+            model_scores = {}
+            for r in results:
+                model = r.get("model_name", "unknown")
+                metrics = r.get("metrics", {})
+                accuracy = metrics.get("accuracy", 0)
+                model_scores[model] = accuracy
+
+            # Best model
+            best_model = max(model_scores, key=model_scores.get) if model_scores else None
+            best_accuracy = model_scores.get(best_model, 0) if best_model else 0
+
+            # Calculate overall score
+            avg_accuracy = sum(model_scores.values()) / len(model_scores) if model_scores else 0
+            score = min(1.0, avg_accuracy / 0.75)
+
+            return ProbeResult(
+                name="Model Baselines",
+                score=score,
+                raw_value={
+                    "models_tested": len(model_scores),
+                    "best_model": best_model,
+                    "best_accuracy": best_accuracy,
+                    "avg_accuracy": avg_accuracy,
+                    "model_scores": model_scores,
+                },
+                source="model_baselines",
+                confidence=0.9,
+                flags=["best:" + (best_model or "none")],
+                latency_ms=ctx["latency_ms"]
+            )
+
+        except Exception as e:
+            print(f"   ⚠️ Model baseline analysis failed: {e}")
+            return None
+
+
+def collect_comparison_probe() -> Optional[ProbeResult]:
+    """Analyze comparison benchmark results."""
+    print("📈 Analyzing comparison benchmarks...")
+
+    benchmark_path = WORKSPACE / "docs" / "evidence" / "benchmarks"
+
+    with timed_probe("comparison") as ctx:
+        try:
+            if not benchmark_path.exists():
+                return None
+
+            # Look for comparison files
+            comparison_files = list(benchmark_path.glob("comparison_*.json"))
+            if not comparison_files:
+                return None
+
+            # Get most recent
+            comparison_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+            recent_file = comparison_files[0]
+
+            data = json.loads(recent_file.read_text(encoding="utf-8"))
+            summary = data.get("comparison_summary", {})
+
+            if not summary or "modes" not in summary:
+                return None
+
+            modes = summary.get("modes", {})
+
+            # Extract key comparisons
+            direct_acc = modes.get("direct", {}).get("avg_accuracy", 0)
+            bizra_acc = modes.get("bizra", {}).get("avg_accuracy", 0)
+
+            # Calculate BIZRA improvement
+            accuracy_delta = bizra_acc - direct_acc
+
+            # Score based on BIZRA providing improvement
+            # Target: BIZRA should be at least 5% better
+            if accuracy_delta > 0.05:
+                score = min(1.0, 0.8 + accuracy_delta)
+            elif accuracy_delta > 0:
+                score = 0.7 + accuracy_delta * 2
+            else:
+                score = max(0.4, 0.7 + accuracy_delta)
+
+            flags = []
+            if accuracy_delta > 0.05:
+                flags.append("bizra_improved")
+            elif accuracy_delta < 0:
+                flags.append("bizra_regression")
+
+            return ProbeResult(
+                name="Mode Comparison",
+                score=score,
+                raw_value={
+                    "direct_accuracy": direct_acc,
+                    "bizra_accuracy": bizra_acc,
+                    "accuracy_delta": accuracy_delta,
+                    "modes_tested": list(modes.keys()),
+                    "best_accuracy": summary.get("best_accuracy"),
+                },
+                source="comparison_analysis",
+                confidence=0.95,
+                flags=flags,
+                latency_ms=ctx["latency_ms"]
+            )
+
+        except Exception as e:
+            print(f"   ⚠️ Comparison analysis failed: {e}")
+            return None
+
+
+# ============================================================================
+# HISTORY & TREND ANALYSIS
 # ============================================================================
 
 def init_history_db() -> None:
@@ -1081,6 +1335,9 @@ def calculate_ihsan_vector(probes: dict[str, ProbeResult]) -> IhsanVector:
         "Architecture": ["efficiency", "anti_centralization"],
         "Documentation": ["user_benefit"],
         "SAPE Engine": ["safety", "correctness", "user_benefit"],
+        "Benchmarks": ["correctness", "efficiency"],
+        "Model Baselines": ["correctness"],
+        "Mode Comparison": ["efficiency", "user_benefit"],
     }
     
     for probe_name, dims in probe_mapping.items():
@@ -1142,7 +1399,20 @@ def generate_elite_report(
     sape_probe = collect_sape_probe()
     if sape_probe:
         report.probes["SAPE Engine"] = sape_probe
-    
+
+    # Collect benchmark probes (optional - only if benchmark data exists)
+    benchmark_probe = collect_benchmark_probe()
+    if benchmark_probe:
+        report.probes["Benchmarks"] = benchmark_probe
+
+    model_baseline_probe = collect_model_baseline_probe()
+    if model_baseline_probe:
+        report.probes["Model Baselines"] = model_baseline_probe
+
+    comparison_probe = collect_comparison_probe()
+    if comparison_probe:
+        report.probes["Mode Comparison"] = comparison_probe
+
     # Calculate Ihsān vector
     print("\n⚖️ Calculating Ihsān vector...")
     report.ihsan_vector = calculate_ihsan_vector(report.probes)
@@ -1300,6 +1570,9 @@ def generate_elite_charts(report: QualityReport, output_path: Path) -> bool:
         "Architecture": "Arch",
         "Documentation": "Docs",
         "SAPE Engine": "SAPE",
+        "Benchmarks": "Bench",
+        "Model Baselines": "Models",
+        "Mode Comparison": "Compare",
     }
     short_names = [abbrev.get(n, n[:6]) for n in probe_names]
     
@@ -1509,14 +1782,35 @@ def main():
     # CI gate
     if args.ci:
         env = os.getenv("BIZRA_ENV", "development")
-        thresholds = {"development": 0.80, "ci": 0.90, "production": 0.95}
-        threshold = args.threshold or thresholds.get(env, 0.80)
         
-        if report.ihsan_composite < threshold:
-            print(f"\n❌ CI FAILED: Ihsān {report.ihsan_composite:.4f} < {threshold}")
+        # Get thresholds for current environment
+        ihsan_thresholds = {"development": 0.80, "ci": 0.90, "production": 0.95}
+        snr_thresholds = SNR_THRESHOLDS
+        
+        ihsan_threshold = args.threshold or ihsan_thresholds.get(env, 0.80)
+        snr_threshold = snr_thresholds.get(env, 0.70)
+        
+        # Convert SNR from 7-9 scale to 0-1 scale for comparison
+        # SNR on 7-9 scale: 7.0 = 0.0, 9.0 = 1.0
+        snr_normalized = (report.ihsan_snr - 7.0) / 2.0
+        
+        failures = []
+        
+        if report.ihsan_composite < ihsan_threshold:
+            failures.append(f"Ihsān {report.ihsan_composite:.4f} < {ihsan_threshold}")
+        
+        if snr_normalized < snr_threshold:
+            failures.append(f"SNR {snr_normalized:.4f} < {snr_threshold} (raw: {report.ihsan_snr:.2f})")
+        
+        if failures:
+            print(f"\n❌ CI FAILED:")
+            for failure in failures:
+                print(f"   • {failure}")
             sys.exit(1)
         else:
-            print(f"\n✅ CI PASSED: Ihsān {report.ihsan_composite:.4f} >= {threshold}")
+            print(f"\n✅ CI PASSED:")
+            print(f"   • Ihsān {report.ihsan_composite:.4f} >= {ihsan_threshold}")
+            print(f"   • SNR {snr_normalized:.4f} >= {snr_threshold} (raw: {report.ihsan_snr:.2f})")
     
     sys.exit(0)
 

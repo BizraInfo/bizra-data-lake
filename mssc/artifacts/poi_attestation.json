@@ -1,0 +1,23 @@
+{
+  "anchor": {
+    "chain_id": "BIZRA-MSSC-DEVNET-0",
+    "genesis_merkle_root": "60e72469c21ef4cbc4d7a84f108c6a18d9c112fc9e18cf61072220e9a9fb3af2"
+  },
+  "attester": {
+    "id": "node0-local",
+    "pubkey_ed25519": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAgXYgwrpk86gT2U0Erwz/0VfpCgx69XEVES851vEWfSo=\n-----END PUBLIC KEY-----"
+  },
+  "evidence": {
+    "pack_sha256": "e52440bb714e34e9359703b15eaac0c15b8562017ab61b288017dedcd9f67c82"
+  },
+  "impact": {
+    "score": 50005,
+    "method": "MSSC:sum_range",
+    "inputs": {
+      "n": 10000
+    }
+  },
+  "contribution_id": "8c53261501506f39f7b1b5374e85b1cbdc1e3ec22d7b781f705de6d907197b79",
+  "window": "2026-02-03",
+  "signature_ed25519": "56u+KW58p3KoPYY/JkBSJ8+dRJ+N3bnChHSAWIyV8ojmVCP1lvWAr1WkoV9Nc618/sVhYxCr8abeeGbnw8YLDg=="
+}

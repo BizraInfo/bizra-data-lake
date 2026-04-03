@@ -19,7 +19,8 @@ from dataclasses import asdict
 from typing import Dict, List, Any
 
 # Add bizra_kernel to path
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from bizra_kernel import (
     TensionStudio, TensionType,

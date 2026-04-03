@@ -1,0 +1,667 @@
+version: '3'
+
+# ═══════════════════════════════════════════════════════════════════════
+# BIZRA Ecosystem Taskfile — Multi-Component Orchestration
+# ═══════════════════════════════════════════════════════════════════════
+#
+# Components:
+#   das:*       → C:\BIZRA-Dual-Agentic-system--main  (this repo)
+#   lake:*      → C:\BIZRA-DATA-LAKE                  (data pipeline + Rust omega)
+#   os:*        → C:\BIZRA-OS                          (React dashboard)
+#   node0:*     → C:\BIZRA-NODE0                       (genesis node)
+#   sovereign:* → B:\BIZRA-SOVEREIGN                   (vault / evidence)
+#   docker:*    → Docker Compose services
+#   ci:*        → CI pipeline gates
+#
+# Usage:
+#   task                    # List all tasks
+#   task build              # Build all components
+#   task test               # Test all components
+#   task ci                 # Run full CI pipeline locally
+#   task das:run:kernel     # Start Python kernel
+#   task lake:pipeline      # Run data lake pipeline
+#   task docker:up          # Start all Docker services
+
+vars:
+  # Paths (WSL mounts)
+  DAS_DIR: /mnt/c/BIZRA-Dual-Agentic-system--main
+  LAKE_DIR: /mnt/c/BIZRA-DATA-LAKE
+  OS_DIR: /mnt/c/BIZRA-OS
+  NODE0_DIR: /mnt/c/BIZRA-NODE0
+  SOVEREIGN_DIR: /mnt/b/BIZRA-SOVEREIGN
+  # Defaults
+  BIZRA_ADAPTER_MODE: '{{.BIZRA_ADAPTER_MODE | default "simulated"}}'
+
+env:
+  BIZRA_ADAPTER_MODE: '{{.BIZRA_ADAPTER_MODE}}'
+
+# ═══════════════════════════════════════════════════════════════════════
+# TOP-LEVEL COMPOSITES
+# ═══════════════════════════════════════════════════════════════════════
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list-all
+
+  build:
+    desc: Build all components
+    deps: [das:build, lake:build]
+
+  test:
+    desc: Test all components
+    deps: [das:test, lake:test]
+
+  lint:
+    desc: Lint all components
+    deps: [das:lint, lake:lint]
+
+  validate:
+    desc: Run all validation checks across ecosystem
+    deps: [das:validate, lake:validate]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # DAS — Dual Agentic System (this repo)
+  # ═══════════════════════════════════════════════════════════════════
+
+  das:build:
+    desc: Build DAS (Rust + Python deps)
+    deps: [das:build:rust, das:build:python]
+
+  das:build:rust:
+    desc: "DAS: Build Rust release binary"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo build --release --workspace
+    sources:
+      - src/**/*.rs
+      - crates/**/*.rs
+      - Cargo.toml
+      - Cargo.lock
+
+  das:build:rust:debug:
+    desc: "DAS: Build Rust debug (faster compile)"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo build --workspace
+    sources:
+      - src/**/*.rs
+      - crates/**/*.rs
+      - Cargo.toml
+      - Cargo.lock
+
+  das:build:python:
+    desc: "DAS: Install Python kernel deps"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - pip install -r requirements-kernel.txt -q
+    sources:
+      - requirements-kernel.txt
+
+  das:test:
+    desc: "DAS: Run all tests"
+    deps: [das:test:rust, das:test:python]
+
+  das:test:rust:
+    desc: "DAS: Rust tests"
+    dir: '{{.DAS_DIR}}'
+    env:
+      BIZRA_ADAPTER_MODE: simulated
+    cmds:
+      - cargo test --workspace
+
+  das:test:rust:unit:
+    desc: "DAS: Rust unit tests only"
+    dir: '{{.DAS_DIR}}'
+    env:
+      BIZRA_ADAPTER_MODE: simulated
+    cmds:
+      - cargo test --lib
+
+  das:test:rust:single:
+    desc: "DAS: Single Rust test (task das:test:rust:single -- sape::tests)"
+    dir: '{{.DAS_DIR}}'
+    env:
+      BIZRA_ADAPTER_MODE: simulated
+    cmds:
+      - cargo test {{.CLI_ARGS}}
+
+  das:test:python:
+    desc: "DAS: Python tests"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - pytest tests/ -v --tb=short
+
+  das:test:python:fast:
+    desc: "DAS: Python tests (skip slow)"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - pytest tests/ -m "not slow" -v --tb=short
+
+  das:test:python:single:
+    desc: "DAS: Single Python test (task das:test:python:single -- tests/test_foo.py)"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - pytest {{.CLI_ARGS}} -v --tb=short
+
+  das:test:python:coverage:
+    desc: "DAS: Python tests with coverage"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - pytest tests/ --cov=core --cov=bizra_kernel --cov-report=html --cov-report=term
+
+  das:lint:
+    desc: "DAS: Lint all"
+    deps: [das:lint:rust, das:lint:python]
+
+  das:lint:rust:
+    desc: "DAS: cargo fmt + clippy"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo fmt --check
+      - cargo clippy --all-targets -- -D warnings
+
+  das:lint:python:
+    desc: "DAS: ruff + bandit"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - ruff check core/ bizra_kernel/ constellation/ tests/
+      - bandit -r core/ bizra_kernel/ -q -ll
+
+  das:fmt:
+    desc: "DAS: Auto-format all code"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo fmt
+      - ruff format core/ bizra_kernel/ constellation/ tests/ 2>/dev/null || true
+
+  das:run:kernel:
+    desc: "DAS: Start Python kernel (port 8010)"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python -m core.main
+
+  das:run:elite:
+    desc: "DAS: Start Rust elite server (port 8080)"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo run -- serve --port 8080
+
+  das:run:elite:debug:
+    desc: "DAS: Start Rust server with trace logging"
+    dir: '{{.DAS_DIR}}'
+    env:
+      RUST_LOG: trace
+    cmds:
+      - cargo run -- serve --port 8080
+
+  das:run:demo:
+    desc: "DAS: Run verification demo"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo run -- demo
+
+  das:run:status:
+    desc: "DAS: Check system health"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo run -- status
+
+  das:run:models:
+    desc: "DAS: List available LLM models"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo run -- models
+
+  das:validate:
+    desc: "DAS: All validation checks"
+    deps: [das:validate:parity, das:validate:secrets, das:validate:ihsan]
+
+  das:validate:parity:
+    desc: "DAS: Check Rust-Python parity"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python scripts/check_parity.py
+
+  das:validate:secrets:
+    desc: "DAS: Scan for leaked secrets"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python scripts/check_secrets_hygiene.py
+
+  das:validate:ihsan:
+    desc: "DAS: Audit Ihsan threshold consistency"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - |
+        echo "=== Ihsan Threshold Audit ==="
+        echo "Constitution (canonical):"
+        grep -A2 'production:' constitution/ihsan_v1.yaml 2>/dev/null || echo "  not found"
+        echo ""
+        echo "Hardcoded thresholds outside constitution:"
+        grep -rn 'IHSAN_THRESHOLD\s*=' core/ bizra_kernel/ api/ --include='*.py' 2>/dev/null | grep -v __pycache__ || echo "  none"
+
+  das:validate:snr:
+    desc: "DAS: Validate SNR enforcement"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python scripts/validate_snr_enforcement.py
+
+  das:validate:api-drift:
+    desc: "DAS: Check API schema drift"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python scripts/check_openapi_drift.py
+
+  das:sape:audit:
+    desc: "DAS: Run SAPE audit orchestrator"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python scripts/sape_audit_orchestrator.py
+
+  das:quality:
+    desc: "DAS: Run quality radar"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python scripts/quality_radar.py
+
+  das:security:audit:
+    desc: "DAS: cargo-audit for Rust deps"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo audit
+
+  das:clean:
+    desc: "DAS: Clean build artifacts"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo clean
+      - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+      - rm -rf htmlcov .coverage .pytest_cache
+
+  # ═══════════════════════════════════════════════════════════════════
+  # MSSC — Minimal Self-Sovereign Computation
+  # ═══════════════════════════════════════════════════════════════════
+
+  mssc:genesis:
+    desc: "MSSC: Generate Block 0"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python mssc/mssc.py genesis build
+
+  mssc:api:
+    desc: "MSSC: Start Node-0 Validation API"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python mssc/mssc.py api up
+
+  mssc:poi:
+    desc: "MSSC: Generate + verify Proof-of-Impact"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - python mssc/mssc.py poi attest
+      - python mssc/mssc.py poi verify
+
+  # ═══════════════════════════════════════════════════════════════════
+  # LAKE — BIZRA Data Lake (C:\BIZRA-DATA-LAKE)
+  # ═══════════════════════════════════════════════════════════════════
+
+  lake:build:
+    desc: "Lake: Install Python deps"
+    dir: '{{.LAKE_DIR}}'
+    cmds:
+      - |
+        if [ -d .venv-linux ]; then
+          source .venv-linux/bin/activate && pip install -e ".[dev]" -q
+        else
+          pip install -e ".[dev]" -q
+        fi
+    sources:
+      - pyproject.toml
+
+  lake:build:rust:
+    desc: "Lake: Build bizra-omega Rust workspace"
+    dir: '{{.LAKE_DIR}}/bizra-omega'
+    cmds:
+      - cargo build --workspace --release
+    sources:
+      - src/**/*.rs
+      - crates/**/*.rs
+      - Cargo.toml
+      - Cargo.lock
+
+  lake:test:
+    desc: "Lake: Run all Python tests"
+    dir: '{{.LAKE_DIR}}'
+    cmds:
+      - |
+        if [ -d .venv-linux ]; then source .venv-linux/bin/activate; fi
+        pytest tests/ -m "not requires_ollama and not requires_gpu and not slow" -v --tb=short
+
+  lake:test:rust:
+    desc: "Lake: Run bizra-omega Rust tests"
+    dir: '{{.LAKE_DIR}}/bizra-omega'
+    cmds:
+      - cargo test --workspace --release
+
+  lake:test:coverage:
+    desc: "Lake: Python tests with coverage"
+    dir: '{{.LAKE_DIR}}'
+    cmds:
+      - |
+        if [ -d .venv-linux ]; then source .venv-linux/bin/activate; fi
+        pytest tests/ --cov=core --cov-report=term-missing
+
+  lake:lint:
+    desc: "Lake: ruff + black + isort + mypy"
+    dir: '{{.LAKE_DIR}}'
+    cmds:
+      - ruff check core/ 2>/dev/null || true
+      - black --check core/ 2>/dev/null || true
+      - isort --check-only core/ 2>/dev/null || true
+
+  lake:lint:rust:
+    desc: "Lake: cargo fmt + clippy on bizra-omega"
+    dir: '{{.LAKE_DIR}}/bizra-omega'
+    cmds:
+      - cargo fmt --all -- --check
+      - cargo clippy --workspace --all-targets -- -D warnings
+
+  lake:pipeline:
+    desc: "Lake: Run full data pipeline (corpus → vectors → extraction)"
+    dir: '{{.LAKE_DIR}}'
+    cmds:
+      - |
+        if [ -d .venv-linux ]; then source .venv-linux/bin/activate; fi
+        echo "=== Layer 1: Corpus ==="
+        python corpus_manager.py
+        echo "=== Layer 2: Vectors ==="
+        python vector_engine.py
+        echo "=== Layer 4: LLM Extraction ==="
+        python langextract_engine.py
+        echo "=== ARTE: SNR Validation ==="
+        python arte_engine.py
+
+  lake:pipeline:corpus:
+    desc: "Lake: Build documents.parquet only"
+    dir: '{{.LAKE_DIR}}'
+    cmds:
+      - |
+        if [ -d .venv-linux ]; then source .venv-linux/bin/activate; fi
+        python corpus_manager.py
+
+  lake:pipeline:vectors:
+    desc: "Lake: Generate embeddings only"
+    dir: '{{.LAKE_DIR}}'
+    cmds:
+      - |
+        if [ -d .venv-linux ]; then source .venv-linux/bin/activate; fi
+        python vector_engine.py
+
+  lake:validate:
+    desc: "Lake: Run validation checks"
+    dir: '{{.LAKE_DIR}}'
+    cmds:
+      - python verify_genesis.py 2>/dev/null || echo "verify_genesis not runnable"
+
+  lake:clean:
+    desc: "Lake: Clean Python caches"
+    dir: '{{.LAKE_DIR}}'
+    cmds:
+      - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+      - rm -rf .pytest_cache .mypy_cache .ruff_cache
+
+  # ═══════════════════════════════════════════════════════════════════
+  # OS — BIZRA-OS React Dashboard (C:\BIZRA-OS)
+  # ═══════════════════════════════════════════════════════════════════
+
+  os:install:
+    desc: "OS: Install Node.js dependencies"
+    dir: '{{.OS_DIR}}'
+    cmds:
+      - npm install
+
+  os:dev:
+    desc: "OS: Start dev server (localhost:5173)"
+    dir: '{{.OS_DIR}}'
+    cmds:
+      - npm run dev
+
+  os:build:
+    desc: "OS: Production build"
+    dir: '{{.OS_DIR}}'
+    cmds:
+      - npm run build
+
+  os:quality:
+    desc: "OS: Lint + typecheck + tests"
+    dir: '{{.OS_DIR}}'
+    cmds:
+      - npm run quality 2>/dev/null || npm run lint 2>/dev/null || true
+
+  # ═══════════════════════════════════════════════════════════════════
+  # NODE0 — Genesis Node (C:\BIZRA-NODE0)
+  # ═══════════════════════════════════════════════════════════════════
+
+  node0:install:
+    desc: "Node0: Install all deps (Node + Rust)"
+    dir: '{{.NODE0_DIR}}'
+    cmds:
+      - make install
+
+  node0:build:
+    desc: "Node0: Build everything"
+    dir: '{{.NODE0_DIR}}'
+    cmds:
+      - make build
+
+  node0:test:
+    desc: "Node0: Run all tests"
+    dir: '{{.NODE0_DIR}}'
+    cmds:
+      - make test
+
+  node0:lint:
+    desc: "Node0: Lint"
+    dir: '{{.NODE0_DIR}}'
+    cmds:
+      - make lint 2>/dev/null || true
+
+  # ═══════════════════════════════════════════════════════════════════
+  # SOVEREIGN — B:\BIZRA-SOVEREIGN (read-only vault)
+  # ═══════════════════════════════════════════════════════════════════
+
+  sovereign:status:
+    desc: "Sovereign: Show vault structure"
+    dir: '{{.SOVEREIGN_DIR}}'
+    cmds:
+      - |
+        echo "=== BIZRA SOVEREIGN VAULT ==="
+        for d in */; do
+          count=$(find "$d" -type f 2>/dev/null | wc -l)
+          echo "  $d → $count files"
+        done
+
+  sovereign:evidence:
+    desc: "Sovereign: List evidence chain"
+    dir: '{{.SOVEREIGN_DIR}}'
+    cmds:
+      - ls -la 03_EVIDENCE/ 2>/dev/null || echo "Evidence dir not found"
+
+  sovereign:constitution:
+    desc: "Sovereign: Show constitution files"
+    dir: '{{.SOVEREIGN_DIR}}'
+    cmds:
+      - ls -la 00_CONSTITUTION/ 2>/dev/null || echo "Constitution dir not found"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # DOCKER SERVICES
+  # ═══════════════════════════════════════════════════════════════════
+
+  docker:up:
+    desc: Start all Docker services
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - docker compose up -d
+      - task: docker:health
+
+  docker:down:
+    desc: Stop all Docker services
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - docker compose down
+
+  docker:restart:
+    desc: Restart all Docker services
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - docker compose down && docker compose up -d
+
+  docker:health:
+    desc: Check health of all services
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - docker compose ps --format "table {{`{{.Name}}`}}\t{{`{{.Status}}`}}\t{{`{{.Ports}}`}}"
+
+  docker:logs:
+    desc: "Tail service logs (task docker:logs -- elite)"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - docker compose logs -f --tail=100 {{.CLI_ARGS}}
+
+  docker:infra:
+    desc: Start infra only (postgres, redis, neo4j, chromadb)
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - docker compose up -d postgres synapse wisdom vectors
+
+  docker:build:
+    desc: Build all Docker images
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - docker compose build
+
+  docker:clean:
+    desc: Stop + remove volumes (destructive)
+    dir: '{{.DAS_DIR}}'
+    prompt: This will destroy all Docker volumes including databases. Continue?
+    cmds:
+      - docker compose down -v
+
+  # ═══════════════════════════════════════════════════════════════════
+  # DATABASE SHORTCUTS
+  # ═══════════════════════════════════════════════════════════════════
+
+  db:psql:
+    desc: Connect to PostgreSQL
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - docker compose exec postgres psql -U bizra -d bizra
+
+  db:redis:
+    desc: Connect to Redis/Synapse CLI
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - docker compose exec synapse redis-cli -a "${REDIS_PASSWORD:-bizra_synapse_secure}"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # CI PIPELINE (mirrors GitHub Actions gates)
+  # ═══════════════════════════════════════════════════════════════════
+
+  ci:
+    desc: Run full CI pipeline locally
+    cmds:
+      - task: ci:preflight
+      - task: ci:security
+      - task: ci:quality
+      - task: ci:test
+      - task: ci:validate
+
+  ci:preflight:
+    desc: "CI Gate 1: Preflight"
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - cargo check --workspace
+      - python -c "import core.main; print('Python kernel imports OK')"
+
+  ci:security:
+    desc: "CI Gate 2: Security"
+    deps: [das:security:audit, das:validate:secrets]
+
+  ci:quality:
+    desc: "CI Gate 3: Format + lint"
+    deps: [das:lint:rust]
+
+  ci:test:
+    desc: "CI Gate 4: All tests (simulated mode)"
+    deps: [ci:test:rust, ci:test:python]
+
+  ci:test:rust:
+    internal: true
+    dir: '{{.DAS_DIR}}'
+    env:
+      BIZRA_ADAPTER_MODE: simulated
+    cmds:
+      - cargo test --workspace
+
+  ci:test:python:
+    internal: true
+    dir: '{{.DAS_DIR}}'
+    env:
+      BIZRA_ADAPTER_MODE: simulated
+    cmds:
+      - pytest tests/ -m "not slow and not integration" -v --tb=short
+
+  ci:validate:
+    desc: "CI Gate 5: Parity + Ihsan"
+    deps: [das:validate:parity]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # RECEIPTS & EVIDENCE
+  # ═══════════════════════════════════════════════════════════════════
+
+  receipts:count:
+    desc: Count evidence receipts
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - find docs/evidence/receipts -name '*.json' 2>/dev/null | wc -l
+
+  receipts:recent:
+    desc: List receipts from last 7 days
+    dir: '{{.DAS_DIR}}'
+    cmds:
+      - find docs/evidence/receipts -name '*.json' -mtime -7 2>/dev/null | head -20 || echo "None"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # ECOSYSTEM STATUS
+  # ═══════════════════════════════════════════════════════════════════
+
+  status:
+    desc: Show full ecosystem status
+    cmds:
+      - |
+        echo "═══════════════════════════════════════════"
+        echo "  BIZRA Ecosystem Status"
+        echo "═══════════════════════════════════════════"
+        echo ""
+        echo "DAS (Dual Agentic):"
+        git -C {{.DAS_DIR}} log --oneline -1 2>/dev/null || echo "  not a git repo"
+        echo ""
+        echo "Data Lake:"
+        git -C {{.LAKE_DIR}} log --oneline -1 2>/dev/null || echo "  not a git repo"
+        echo ""
+        echo "BIZRA-OS:"
+        git -C {{.OS_DIR}} log --oneline -1 2>/dev/null || echo "  not a git repo"
+        echo ""
+        echo "Node0:"
+        git -C {{.NODE0_DIR}} log --oneline -1 2>/dev/null || echo "  not a git repo"
+        echo ""
+        echo "Sovereign Vault:"
+        test -d {{.SOVEREIGN_DIR}} && echo "  B: mounted" || echo "  B: NOT mounted"
+        echo ""
+        echo "Docker:"
+        docker compose -f {{.DAS_DIR}}/docker-compose.yml ps --format "  {{`{{.Name}}`}}: {{`{{.Status}}`}}" 2>/dev/null || echo "  not running"
+        echo ""
+        echo "Ollama:"
+        curl -s http://localhost:11434/api/tags 2>/dev/null | python3 -c "import sys,json; [print(f'  {m[\"name\"]}') for m in json.load(sys.stdin).get('models',[])]" 2>/dev/null || echo "  not running"

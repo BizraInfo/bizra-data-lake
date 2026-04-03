@@ -1,0 +1,6 @@
+{
+  "task": "MSSC:sum_range",
+  "n": 10000,
+  "result": 50005000,
+  "seed": 42
+}

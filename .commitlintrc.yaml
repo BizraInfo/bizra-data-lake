@@ -1,0 +1,51 @@
+# BIZRA Conventional Commit Rules
+# Enforced by commitlint in CI
+
+extends:
+  - '@commitlint/config-conventional'
+
+rules:
+  type-enum:
+    - 2
+    - always
+    - - feat      # New feature
+      - fix       # Bug fix
+      - perf      # Performance improvement
+      - refactor  # Code refactoring
+      - docs      # Documentation
+      - test      # Tests
+      - ci        # CI/CD changes
+      - build     # Build system
+      - chore     # Maintenance
+      - security  # Security fix
+      - evidence  # Evidence/receipt changes
+      - ihsan     # Ihsan constitution changes
+      - sape      # SAPE probe changes
+
+  scope-enum:
+    - 1  # Warning only, don't enforce scope values
+    - always
+    - - pat
+      - sat
+      - fate
+      - sape
+      - ihsan
+      - bridge
+      - kernel
+      - receipts
+      - ifc
+      - merkle
+      - signing
+      - sovereign
+      - autopoietic
+      - apex
+
+  subject-max-length:
+    - 2
+    - always
+    - 72
+
+  body-max-line-length:
+    - 1  # Warning only
+    - always
+    - 100

@@ -7,10 +7,10 @@ scan:
   vault_yaml_path: .bizra/vault.yaml
   vault_root_keys:
     - dual_agentic_repo
-    - taskmaster_repo
     - genesis_node_repo
     - node0_repo
     - projects_root
+    - taskmaster_repo
 
   # Optional explicit paths (kept empty by default)
   explicit_roots: []
@@ -38,7 +38,9 @@ archive_tagging:
     - temp
     - tmp
   archived_name_prefixes:
-    - "BIZRA-TaskMaster.backup."
+    - BIZRA-Dual-Agentic-system--main.backup.
+    - BIZRA-TaskMaster.backup.
+    - bizra-genesis-node.backup.
 
 # Optional curated known roots (for reporting only).
 # This references the human map in C_ROOT_MAP.md.

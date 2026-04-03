@@ -56,8 +56,8 @@ except ImportError:
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# E2B API Key
-E2B_API_KEY = os.environ.get("E2B_API_KEY", "e2b_e42b549f6a5f986eae8273cb8157be1e37f6ec1b")
+# E2B API Key - SECURITY: Must be set via environment variable, no default
+E2B_API_KEY = os.environ.get("E2B_API_KEY", "")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,18 @@
+{
+  "name": "bizra-agentic-flow-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BIZRA integration wrapper for agentic-flow swarm intelligence",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "setup": "cd vendor/agentic-flow/agentic-flow && npm install",
+    "build": "cd vendor/agentic-flow/agentic-flow && npm run build",
+    "start": "cd vendor/agentic-flow/agentic-flow && npm start",
+    "mcp:start": "cd vendor/agentic-flow/agentic-flow && node dist/mcp/fastmcp/servers/http-sse.js",
+    "mcp:stdio": "cd vendor/agentic-flow/agentic-flow && node dist/mcp/standalone-stdio.js",
+    "health": "curl -sf http://localhost:3100/health || echo 'agentic-flow not running'",
+    "test": "cd vendor/agentic-flow/agentic-flow && npm test"
+  }
+}

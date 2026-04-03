@@ -101,15 +101,18 @@ workspace_id: local_only
 paths:
   bizra_root: '$repoRoot'
   infra_root: '$repoRoot'
-  kernel_root: '$repoRoot\\.bizra-kernel'
-  evidence_root: '$repoRoot\\evidence'
+  kernel_root: '$repoRoot\\core'
+  evidence_root: '$repoRoot\\docs\\evidence'
 
 runtime:
   ollama_host: 'http://127.0.0.1:11434'
   # SECURITY: do not commit DB passwords; use passwordless local auth or a secret manager/.pgpass.
-  postgres_dsn: 'postgresql://postgres@localhost:5432/bizra'
+  postgres_dsn: 'postgresql://bizra@localhost:5433/bizra'
   redis_host: 'localhost'
-  redis_port: 6379
+  redis_port: 6380
+
+docker:
+  compose_project_name: 'bizra-dual-agentic-system--main'
 "@ | Set-Content -Path $WorkspaceFile -Encoding UTF8
 }
 
@@ -133,8 +136,8 @@ $evidenceRoot = (Get-Deep $ws @("paths","evidence_root"))
 
 if (-not $bizraRoot) { $bizraRoot = $repoRoot }
 if (-not $infraRoot) { $infraRoot = $bizraRoot }
-if (-not $kernelRoot) { $kernelRoot = (Join-Path $bizraRoot ".bizra-kernel") }
-if (-not $evidenceRoot) { $evidenceRoot = (Join-Path $bizraRoot "evidence") }
+if (-not $kernelRoot) { $kernelRoot = (Join-Path $bizraRoot "core") }
+if (-not $evidenceRoot) { $evidenceRoot = (Join-Path $bizraRoot "docs\evidence") }
 
 $ollamaHost = (Get-Deep $ws @("runtime","ollama_host"))
 $postgresDsn = (Get-Deep $ws @("runtime","postgres_dsn"))

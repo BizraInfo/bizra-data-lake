@@ -114,6 +114,51 @@ def extract_rust_probe_weights() -> dict[str, float]:
     return weights
 
 
+def extract_rust_probe_names() -> list[str]:
+    """Extract probe name strings from src/sape.rs ProbeDimension::name()."""
+    if not RUST_SAPE_PATH.exists():
+        print(f"[WARN] Rust SAPE not found: {RUST_SAPE_PATH}")
+        return []
+
+    content = RUST_SAPE_PATH.read_text(encoding="utf-8")
+    in_name_fn = False
+    names: list[str] = []
+    for line in content.split("\n"):
+        if "fn name" in line:
+            in_name_fn = True
+            continue
+        if in_name_fn:
+            match = re.search(r'Self::\w+\s*=>\s*"([^"]+)"', line)
+            if match:
+                names.append(match.group(1))
+                continue
+            if "}" in line and "match" not in line:
+                break
+    return names
+
+
+def extract_python_probe_names() -> list[str]:
+    """Extract probe values from core/sape.py SapeProbe enum."""
+    if not PYTHON_SAPE_PATH.exists():
+        print(f"[WARN] Python SAPE not found: {PYTHON_SAPE_PATH}")
+        return []
+
+    content = PYTHON_SAPE_PATH.read_text(encoding="utf-8")
+    in_enum = False
+    names: list[str] = []
+    for line in content.split("\n"):
+        if line.strip().startswith("class SapeProbe"):
+            in_enum = True
+            continue
+        if in_enum:
+            if line.strip().startswith("class ") or line.strip().startswith("def "):
+                break
+            match = re.search(r'^\s*\w+\s*=\s*"([^"]+)"', line)
+            if match:
+                names.append(match.group(1))
+    return names
+
+
 def check_weight_sum(weights: dict[str, float], source: str) -> bool:
     """Verify weights sum to 1.0."""
     total = sum(weights.values())
@@ -199,6 +244,25 @@ def main() -> int:
     print(f"   Python RejectionCode values: {len(python_codes)}")
     # Note: These have different taxonomies by design (runtime vs. guidance)
     print("   INFO: Codes have different taxonomies (Rust=runtime, Python=guidance)")
+    print()
+
+    # Check 5: SAPE probe name parity
+    print("[CHECK] Check 5: SAPE probe name parity")
+    rust_probe_names = set(extract_rust_probe_names())
+    python_probe_names = set(extract_python_probe_names())
+    if rust_probe_names and python_probe_names:
+        if rust_probe_names != python_probe_names:
+            missing_in_python = rust_probe_names - python_probe_names
+            extra_in_python = python_probe_names - rust_probe_names
+            if missing_in_python:
+                print(f"[FAIL] Python missing SAPE probes: {missing_in_python}")
+            if extra_in_python:
+                print(f"[FAIL] Python extra SAPE probes: {extra_in_python}")
+            errors += 1
+        else:
+            print(f"[PASS] SAPE probe names aligned ({len(rust_probe_names)} probes)")
+    else:
+        print("        [WARN] Could not extract SAPE probe names from Rust/Python")
     print()
     
     # Summary

@@ -49,25 +49,49 @@ def read_pubkey_pem() -> str:
 
 def sign_bytes(data: bytes) -> str:
     ensure_keys()
-    p = subprocess.run(["openssl", "pkeyutl", "-sign", "-inkey", PRIVKEY], input=data, stdout=subprocess.PIPE, check=True)
-    return base64.b64encode(p.stdout).decode("utf-8")
+    with tempfile.NamedTemporaryFile(delete=False) as tf:
+        tf.write(data)
+        tf.flush()
+        infile = tf.name
+    try:
+        p = subprocess.run(
+            ["openssl", "pkeyutl", "-sign", "-inkey", PRIVKEY, "-rawin", "-in", infile],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+        return base64.b64encode(p.stdout).decode("utf-8")
+    finally:
+        try:
+            os.unlink(infile)
+        except OSError:
+            pass
 
 
 def verify_sig(data: bytes, sig_b64: str) -> bool:
     ensure_keys()
     sig = base64.b64decode(sig_b64)
     with tempfile.NamedTemporaryFile(delete=False) as tf:
-        tf.write(sig)
+        tf.write(data)
         tf.flush()
-        sigfile = tf.name
+        infile = tf.name
+    with tempfile.NamedTemporaryFile(delete=False) as tf2:
+        tf2.write(sig)
+        tf2.flush()
+        sigfile = tf2.name
     try:
-        p = subprocess.run(["openssl", "pkeyutl", "-verify", "-pubin", "-inkey", PUBKEY, "-sigfile", sigfile], input=data, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.run(
+            ["openssl", "pkeyutl", "-verify", "-pubin", "-inkey", PUBKEY, "-rawin", "-in", infile, "-sigfile", sigfile],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         return p.returncode == 0
     finally:
-        try:
-            os.unlink(sigfile)
-        except OSError:
-            pass
+        for f in (infile, sigfile):
+            try:
+                os.unlink(f)
+            except OSError:
+                pass
 
 
 def genesis_build():

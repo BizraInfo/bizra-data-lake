@@ -1,0 +1,18 @@
+{
+  "genesis": {
+    "chain_id": "BIZRA-MSSC-DEVNET-0",
+    "version": "0.1",
+    "hash_suite": "SHA256",
+    "sig_suite": "Ed25519",
+    "reward_multiplier_bp": 10000,
+    "impact_score_scale": "int",
+    "policy": {
+      "local_first": true,
+      "no_raw_data": true,
+      "deterministic": true
+    }
+  },
+  "genesis_merkle_root": "60e72469c21ef4cbc4d7a84f108c6a18d9c112fc9e18cf61072220e9a9fb3af2",
+  "signature_ed25519": "l1PyPjmFcAaXhulL6Kej9wJbd2tONAqiZ/JS1BC8FWJkDe0jV0omKRyc20LmjaSr2++kjsPB/FIg4s1KJvd/BQ==",
+  "pubkey_ed25519": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAgXYgwrpk86gT2U0Erwz/0VfpCgx69XEVES851vEWfSo=\n-----END PUBLIC KEY-----"
+}
