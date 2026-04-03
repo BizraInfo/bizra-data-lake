@@ -22,8 +22,8 @@ class SapeProbe(Enum):
 
     These probes map to Ihsān dimensions for weighted scoring:
     - threat_scan    → safety (0.22)
-    - compliance     → auditability (0.12)
-    - bias           → adl_fairness (0.04)
+    - compliance_check → auditability (0.12)
+    - bias_probe       → adl_fairness (0.04)
     - user_benefit   → user_benefit (0.14)
     - correctness    → correctness (0.22)
     - safety         → safety (0.22)
@@ -32,8 +32,8 @@ class SapeProbe(Enum):
     - fluency        → anti_centralization (0.08)
     """
     THREAT_SCAN = "threat_scan"
-    COMPLIANCE = "compliance"
-    BIAS = "bias"
+    COMPLIANCE = "compliance_check"
+    BIAS = "bias_probe"
     USER_BENEFIT = "user_benefit"
     CORRECTNESS = "correctness"
     SAFETY = "safety"

@@ -2,7 +2,7 @@
 """
 BIZRA Ihsān Runtime Gate v1.0
 ==============================
-Enforces Ihsān threshold (≥0.85) on all PAT/SAT agent requests.
+Enforces Ihsān threshold (≥0.95) on all PAT/SAT agent requests.
 
 This module integrates with the agent runner to ensure every request:
 1. Passes FATE (Foundational Alignment Threshold Evaluator)
@@ -48,7 +48,7 @@ logger = logging.getLogger("ihsan_gate")
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Core thresholds
-IHSAN_THRESHOLD = float(os.getenv("BIZRA_IHSAN_THRESHOLD", "0.85"))
+IHSAN_THRESHOLD = float(os.getenv("BIZRA_IHSAN_THRESHOLD", "0.95"))
 SOVEREIGNTY_CHECK = os.getenv("BIZRA_SOVEREIGNTY_CHECK", "true").lower() == "true"
 
 # Kernel connection

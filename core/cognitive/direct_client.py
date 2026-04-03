@@ -25,24 +25,24 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 
 # Model slots aligned with Blueprint - optimized for speed/quality balance
 MODEL_SLOTS = {
-    # Core reasoning (use 7B for balance of quality and speed)
-    "cold_core": "agentflow-planner-7b-i1",  # 6s response
-    "warm_surface": "qwen/qwen3-4b-thinking-2507",  # ~4s
-    "primary_reasoning": "agentflow-planner-7b-i1",  # Planning tasks
+    # Core reasoning — Ollama model names (fallback: override via BIZRA_MODEL_<SLOT>)
+    "cold_core": os.environ.get("BIZRA_MODEL_COLD_CORE", "llama3.1:8b"),
+    "warm_surface": os.environ.get("BIZRA_MODEL_WARM_SURFACE", "qwen2.5:3b"),
+    "primary_reasoning": os.environ.get("BIZRA_MODEL_PRIMARY", "llama3.1:8b"),
     # Extended CoT
-    "thinking": "qwen/qwen3-4b-thinking-2507",  # /think tokens
-    # Vision (multimodal)
-    "vision": "qwen/qwen3-vl-4b",  # Faster than 8B
-    "vision_hq": "qwen/qwen3-vl-8b",  # High quality vision
+    "thinking": os.environ.get("BIZRA_MODEL_THINKING", "deepseek-r1:14b"),
+    # Vision (multimodal) — not available on Ollama, fall back to text
+    "vision": os.environ.get("BIZRA_MODEL_VISION", "llama3.1:8b"),
+    "vision_hq": os.environ.get("BIZRA_MODEL_VISION_HQ", "llama3.1:8b"),
     # Speed optimized
-    "fast": "qwen2.5-0.5b-instruct",  # 8s for simple tasks
-    "nano": "nvidia/nemotron-3-nano",  # Ultra fast
-    "liquid": "liquid/lfm2.5-1.2b",  # Efficient
-    # Heavy reasoning (use sparingly - slow)
-    "deep": "qwen2.5-14b_uncensored_instruct",  # 120s+ timeout risk
-    "reasoning_hq": "mistralai/ministral-3-14b-reasoning",  # Deep reasoning
+    "fast": os.environ.get("BIZRA_MODEL_FAST", "phi3:mini"),
+    "nano": os.environ.get("BIZRA_MODEL_NANO", "phi3:mini"),
+    "liquid": os.environ.get("BIZRA_MODEL_LIQUID", "qwen2.5:3b"),
+    # Heavy reasoning
+    "deep": os.environ.get("BIZRA_MODEL_DEEP", "deepseek-r1:14b"),
+    "reasoning_hq": os.environ.get("BIZRA_MODEL_REASONING_HQ", "mistral:latest"),
     # Embeddings
-    "embeddings": "text-embedding-nomic-embed-text-v1.5",
+    "embeddings": os.environ.get("BIZRA_MODEL_EMBEDDINGS", "nomic-embed-text:latest"),
 }
 
 

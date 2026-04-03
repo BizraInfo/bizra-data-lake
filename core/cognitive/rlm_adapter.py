@@ -288,7 +288,11 @@ class BizraRLMAdapter:
         if not self.config.enable_fate or self._fate is None:
             return True, None
         
-        seal = self._fate.audit_request(intent=prompt, context="rlm_completion")
+        seal = self._fate.audit_request(
+            intent=prompt,
+            context="rlm_completion",
+            artifact_class="mcp_tool",
+        )
         
         if seal.verdict == "REJECTED":
             self.fate_blocks += 1

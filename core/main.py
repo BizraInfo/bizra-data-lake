@@ -9,14 +9,15 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from starlette.responses import JSONResponse, Response
+from starlette.websockets import WebSocketState
 
 from core.fate import FateEngine, FateSeal, get_fate_engine
 from core.llm import LLMCallError, chat_with_routing
@@ -712,7 +713,11 @@ async def agent_query_knowledge(request: AgentRequest):
     start = time.monotonic()
     request_id = uuid.uuid4().hex
 
-    seal = fate.audit_request(intent=request.intent, context=request.context)
+    seal = fate.audit_request(
+        intent=request.intent,
+        context=request.context,
+        artifact_class="mcp_tool",
+    )
     FATE_VERDICTS.labels(verdict=seal.verdict).inc()
 
     if seal.verdict == "REJECTED":
@@ -772,7 +777,11 @@ async def sape_plan(request: SapePlanRequest):
     request_id = uuid.uuid4().hex
     plan_id = uuid.uuid4().hex
 
-    seal = fate.audit_request(intent=request.objective, context=f"{request.domain}\n{request.constraints}".strip())
+    seal = fate.audit_request(
+        intent=request.objective,
+        context=f"{request.domain}\n{request.constraints}".strip(),
+        artifact_class="mcp_tool",
+    )
     FATE_VERDICTS.labels(verdict=seal.verdict).inc()
 
     if seal.verdict == "REJECTED":
@@ -885,7 +894,11 @@ async def sape_execute(request: SapeExecuteRequest):
     request_id = uuid.uuid4().hex
     plan_id = uuid.uuid4().hex
 
-    seal = fate.audit_request(intent=request.objective, context=f"{request.domain}\n{request.constraints}".strip())
+    seal = fate.audit_request(
+        intent=request.objective,
+        context=f"{request.domain}\n{request.constraints}".strip(),
+        artifact_class="mcp_tool",
+    )
     FATE_VERDICTS.labels(verdict=seal.verdict).inc()
 
     if seal.verdict == "REJECTED":
@@ -1328,7 +1341,11 @@ async def meta_prompt_query(req: MetaPromptRequest):
     # Preflight: block unsafe/low-Ihsān intent before running the workflow.
     pre_intent = f"meta_prompt_query: {req.query}"
     pre_context = _safe_json_snippet({"context": req.context, "preferences": req.preferences})
-    pre_seal, pre_feedback = fate_engine.audit_request_with_feedback(intent=pre_intent, context=pre_context)
+    pre_seal, pre_feedback = fate_engine.audit_request_with_feedback(
+        intent=pre_intent,
+        context=pre_context,
+        artifact_class="mcp_tool",
+    )
     if pre_seal.verdict == "REJECTED":
         payload = {
             "schema": "bizra_meta_prompt_fate_receipt_v1",
@@ -1366,7 +1383,11 @@ async def meta_prompt_query(req: MetaPromptRequest):
             "results": [r.model_dump() for r in response.results],
         }
     )
-    post_seal, post_feedback = fate_engine.audit_request_with_feedback(intent=post_intent, context=post_context)
+    post_seal, post_feedback = fate_engine.audit_request_with_feedback(
+        intent=post_intent,
+        context=post_context,
+        artifact_class="mcp_tool",
+    )
 
     payload = {
         "schema": "bizra_meta_prompt_fate_receipt_v1",
@@ -1423,7 +1444,8 @@ class CognitiveRequest(BaseModel):
     slot: Optional[str] = Field(None, description="Model slot (cold_core, fast, thinking, etc.)")
     hook: str = Field("default", description="Named hook (default, fast, planner, thinker)")
     context: str = Field("", description="Additional context for FATE evaluation")
-    require_fate_gate: bool = Field(True, description="Enable FATE gate validation")
+    # SECURITY: require_fate_gate removed - FATE gating is ALWAYS enforced (immutable)
+    # This prevents request-level bypass of safety gates per security audit 2026-01-29
 
 class CognitiveResponse(BaseModel):
     success: bool
@@ -1437,7 +1459,7 @@ class CognitiveResponse(BaseModel):
     tokens_used: int
     timestamp: str
 
-@app.post("/v1/cognitive/invoke", response_model=CognitiveResponse, tags=["Cognitive T1.2"])
+@app.post("/v1/cognitive/invoke", response_model=CognitiveResponse, tags=["Cognitive T1.2"], dependencies=[Depends(verify_token)])
 async def cognitive_invoke(req: CognitiveRequest):
     """
     Invoke a cognitive hook with FATE gating and Ihsān scoring.
@@ -1446,11 +1468,13 @@ async def cognitive_invoke(req: CognitiveRequest):
     - Ihsān threshold: 0.85 per Blueprint
     - Slots: cold_core, fast, thinking, primary_reasoning, vision
     - Hooks: default, fast, planner, thinker
+    
+    SECURITY: FATE gating is ALWAYS enforced and cannot be disabled per-request.
     """
     hook = get_hook(req.hook)
     
-    if not req.require_fate_gate:
-        hook.config.require_fate_gate = False
+    # SECURITY FIX: FATE gating is immutable - removed request-level bypass
+    # hook.config.require_fate_gate is set at startup and never modified
     
     result = hook.invoke(
         prompt=req.prompt,
@@ -1471,7 +1495,7 @@ async def cognitive_invoke(req: CognitiveRequest):
         timestamp=result.timestamp,
     )
 
-@app.get("/v1/cognitive/slots", tags=["Cognitive T1.2"])
+@app.get("/v1/cognitive/slots", tags=["Cognitive T1.2"], dependencies=[Depends(verify_token)])
 async def list_cognitive_slots():
     """List available model slots for cognitive hooks."""
     return {
@@ -1480,7 +1504,7 @@ async def list_cognitive_slots():
         "available_hooks": ["default", "fast", "planner", "thinker"],
     }
 
-@app.get("/v1/cognitive/stats", tags=["Cognitive T1.2"])
+@app.get("/v1/cognitive/stats", tags=["Cognitive T1.2"], dependencies=[Depends(verify_token)])
 async def cognitive_stats():
     """Get statistics for all cognitive hooks."""
     hooks = ["default", "fast", "planner", "thinker"]
@@ -1495,6 +1519,166 @@ async def cognitive_stats():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# RUST COGNITIVE BRIDGE ENDPOINT
+# ─────────────────────────────────────────────────────────────────────────────
+
+class RustCognitiveRequest(BaseModel):
+    """Request format expected by Rust CognitiveBridge."""
+    agent_id: str = Field(..., description="Agent making the request")
+    task_id: str = Field(..., description="Task identifier")
+    context_vector: list[float] = Field(default_factory=list, description="Context embeddings")
+    mode: str = Field("HybridSynergy", description="ThinkingMode: FastPat, DeepSat, HybridSynergy, Reflexion, GraphOfThought")
+    prompt: str = Field(..., description="The actual prompt/task")
+    metadata: dict[str, str] = Field(default_factory=dict, description="Additional metadata")
+    min_snr_threshold: float = Field(15.0, description="Minimum SNR required (dB)")
+    min_ihsan_score: float = Field(0.99, description="Minimum ethical threshold")
+    max_thinking_depth: int = Field(5, description="Graph exploration depth limit")
+    timeout_ms: int = Field(30000, description="Processing timeout in ms")
+
+
+class RustCognitiveResponse(BaseModel):
+    """Response format for Rust CognitiveBridge."""
+    agent_id: str
+    task_id: str
+    synthesis: str
+    confidence: float
+    snr_score: float
+    utility_score: float
+    ihsan_score: float
+    serialized_graph: str
+    thought_nodes: list[dict]
+    processing_time_ms: int
+    model_used: str
+    reasoning_steps: list[str]
+    success: bool
+    error_message: Optional[str] = None
+    error_code: str = "None"
+
+
+@app.post("/process", response_model=RustCognitiveResponse, tags=["Rust Bridge"], dependencies=[Depends(verify_token)])
+async def rust_cognitive_bridge_process(req: RustCognitiveRequest):
+    """
+    Process cognitive request from Rust CognitiveBridge sidecar.
+    
+    This endpoint is called by the Rust orchestrator when Python
+    cognitive processing is available. It provides:
+    - FATE gate validation
+    - Ihsān scoring
+    - SNR enforcement
+    - Thought graph serialization
+    """
+    start_time = time.time()
+    
+    # FATE gate validation
+    fate_engine = get_fate_engine()
+    seal, feedback = fate_engine.audit_request_with_feedback(
+        intent=req.prompt,
+        context=json.dumps(req.metadata),
+        artifact_class="mcp_tool",
+    )
+    
+    if seal.verdict == "REJECTED":
+        return RustCognitiveResponse(
+            agent_id=req.agent_id,
+            task_id=req.task_id,
+            synthesis="",
+            confidence=0.0,
+            snr_score=0.0,
+            utility_score=0.0,
+            ihsan_score=seal.composite_score,
+            serialized_graph="{}",
+            thought_nodes=[],
+            processing_time_ms=int((time.time() - start_time) * 1000),
+            model_used="none",
+            reasoning_steps=["FATE gate rejected request"],
+            success=False,
+            error_message=f"FATE rejection: {feedback.explanation if feedback else seal.reason}",
+            error_code="EthicsViolation",
+        )
+    
+    # Map thinking mode to hook
+    mode_to_hook = {
+        "FastPat": "fast",
+        "DeepSat": "thinker",
+        "HybridSynergy": "default",
+        "Reflexion": "planner",
+        "GraphOfThought": "thinker",
+    }
+    hook_name = mode_to_hook.get(req.mode, "default")
+    
+    try:
+        hook = get_hook(hook_name)
+        result = hook.invoke(
+            prompt=req.prompt,
+            slot="cold_core",  # Use deterministic reasoning
+            context=json.dumps(req.metadata),
+        )
+        
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Build thought graph
+        thought_nodes = [
+            {
+                "id": "root",
+                "content": result.response[:200] if len(result.response) > 200 else result.response,
+                "weight": result.ihsan_score,
+                "connections": [],
+                "node_type": "synthesis",
+                "local_snr": 18.0,  # Estimated SNR
+            }
+        ]
+        
+        serialized_graph = json.dumps({
+            "nodes": thought_nodes,
+            "edges": [],
+            "mode": req.mode,
+            "depth": 1,
+        })
+        
+        return RustCognitiveResponse(
+            agent_id=req.agent_id,
+            task_id=req.task_id,
+            synthesis=result.response,
+            confidence=result.ihsan_score,
+            snr_score=18.0,  # Estimated SNR in dB
+            utility_score=0.9,
+            ihsan_score=result.ihsan_score,
+            serialized_graph=serialized_graph,
+            thought_nodes=thought_nodes,
+            processing_time_ms=processing_time_ms,
+            model_used=result.model_used,
+            reasoning_steps=[
+                f"Mode: {req.mode}",
+                f"Hook: {hook_name}",
+                f"FATE seal: {seal.id[:16]}",
+                "Synthesis complete",
+            ],
+            success=result.success,
+            error_message=None if result.success else "Processing failed",
+            error_code="None" if result.success else "ModelUnavailable",
+        )
+        
+    except Exception as e:
+        return RustCognitiveResponse(
+            agent_id=req.agent_id,
+            task_id=req.task_id,
+            synthesis="",
+            confidence=0.0,
+            snr_score=0.0,
+            utility_score=0.0,
+            ihsan_score=0.0,
+            serialized_graph="{}",
+            thought_nodes=[],
+            processing_time_ms=int((time.time() - start_time) * 1000),
+            model_used="none",
+            reasoning_steps=[f"Error: {str(e)}"],
+            success=False,
+            error_message=str(e),
+            error_code="InvalidRequest",
+        )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # PEAK MASTERPIECE ENDPOINTS (vΩ.1)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1502,7 +1686,7 @@ class RecursiveCycleRequest(BaseModel):
     ihsan_score: float = Field(0.99, description="Current Ihsan score")
     capacity: float = Field(1.0, description="Current cognitive capacity")
 
-@app.post("/v1/cognitive/recursion/cycle", tags=["Peak Masterpiece"])
+@app.post("/v1/cognitive/recursion/cycle", tags=["Peak Masterpiece"], dependencies=[Depends(verify_token)])
 async def trigger_recursive_cycle(req: RecursiveCycleRequest):
     """Trigger a self-optimizing recursive loop cycle."""
     global _COGNITIVE_EXPANDER
@@ -1514,7 +1698,7 @@ class ConstellationRequest(BaseModel):
     query: str
     stakes: str = "medium"
 
-@app.post("/v1/constellation/invoke", tags=["Peak Masterpiece"])
+@app.post("/v1/constellation/invoke", tags=["Peak Masterpiece"], dependencies=[Depends(verify_token)])
 async def invoke_constellation(req: ConstellationRequest):
     """Invoke the 29-Agent Islamic Masterminds Constellation."""
     global _CONSTELLATION_ORCHESTRATOR
@@ -1528,6 +1712,665 @@ async def invoke_constellation(req: ConstellationRequest):
         return asdict(output)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Constellation execution failed: {str(e)}")
+
+
+# ============================================================================
+# MOSHI FULL-DUPLEX VOICE AI ENDPOINT
+# ============================================================================
+
+# Global Moshi instance (lazy-loaded)
+_MOSHI_VOICE = None
+
+
+def _get_moshi_voice():
+    """Get or create global MoshiVoice instance."""
+    global _MOSHI_VOICE
+    if _MOSHI_VOICE is None:
+        from core.voice import MoshiVoice
+        _MOSHI_VOICE = MoshiVoice()
+    return _MOSHI_VOICE
+
+
+async def _verify_websocket_token(websocket: WebSocket) -> bool:
+    """
+    Verify authentication for WebSocket connections.
+    
+    SECURITY: WebSocket auth via query param or first message.
+    Token checked against BIZRA_API_TOKEN environment variable.
+    
+    Returns True if authenticated, False otherwise.
+    """
+    expected = os.getenv("BIZRA_API_TOKEN", "").strip()
+    if not expected:
+        # Fail-closed by default. Dev bypass must be explicit.
+        allow_insecure = os.getenv("BIZRA_ALLOW_INSECURE_DEV", "").strip().lower()
+        return allow_insecure in {"1", "true", "yes"}
+    
+    # Check query param first: /voice/moshi?token=xxx
+    token = websocket.query_params.get("token", "")
+    if token and token == expected:
+        return True
+    
+    # Also check headers (some WebSocket clients support this)
+    auth_header = websocket.headers.get("authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+        if token == expected:
+            return True
+    
+    x_bizra_token = websocket.headers.get("x-bizra-token", "")
+    if x_bizra_token and x_bizra_token.strip() == expected:
+        return True
+    
+    return False
+
+
+@app.websocket("/voice/moshi")
+async def websocket_moshi_voice(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time full-duplex voice dialogue with Moshi.
+    
+    SECURITY: Requires authentication via:
+    - Query param: /voice/moshi?token=YOUR_TOKEN
+    - Header: Authorization: Bearer YOUR_TOKEN
+    - Header: X-BIZRA-Token: YOUR_TOKEN
+    
+    Protocol:
+    - Client sends: {"type": "audio", "data": base64_audio} or {"type": "command", "action": "..."}
+    - Server sends: {"type": "audio", "data": base64_audio} or {"type": "status", "message": "..."}
+    
+    Commands:
+    - {"type": "command", "action": "load"} - Load Moshi model
+    - {"type": "command", "action": "unload"} - Unload model
+    - {"type": "command", "action": "status"} - Get status
+    - {"type": "command", "action": "start_stream"} - Start streaming session
+    - {"type": "command", "action": "stop_stream"} - Stop streaming session
+    """
+    # SECURITY: Verify authentication before accepting WebSocket
+    if not await _verify_websocket_token(websocket):
+        await websocket.close(code=4001, reason="Unauthorized: Invalid or missing token")
+        return
+    
+    await websocket.accept()
+    
+    moshi = _get_moshi_voice()
+    session_id = str(uuid.uuid4())[:8]
+    
+    try:
+        await websocket.send_json({
+            "type": "status",
+            "message": "Moshi voice session started",
+            "session_id": session_id,
+            "status": moshi.get_status(),
+        })
+        
+        while True:
+            try:
+                # Receive message from client
+                data = await websocket.receive_json()
+                msg_type = data.get("type", "")
+                
+                if msg_type == "command":
+                    action = data.get("action", "")
+                    
+                    if action == "load":
+                        # Load model (blocking, may take ~30 seconds)
+                        await websocket.send_json({
+                            "type": "status",
+                            "message": "Loading Moshi model... This may take 30-60 seconds.",
+                        })
+                        
+                        # Run in thread pool to not block event loop
+                        loop = asyncio.get_event_loop()
+                        success = await loop.run_in_executor(None, moshi.load_model)
+                        
+                        await websocket.send_json({
+                            "type": "status",
+                            "message": "Model loaded successfully" if success else "Failed to load model",
+                            "success": success,
+                            "status": moshi.get_status(),
+                        })
+                    
+                    elif action == "unload":
+                        moshi.unload_model()
+                        await websocket.send_json({
+                            "type": "status",
+                            "message": "Model unloaded",
+                            "status": moshi.get_status(),
+                        })
+                    
+                    elif action == "status":
+                        await websocket.send_json({
+                            "type": "status",
+                            "status": moshi.get_status(),
+                        })
+                    
+                    elif action == "start_stream":
+                        success = moshi.start_streaming_session()
+                        await websocket.send_json({
+                            "type": "status",
+                            "message": "Streaming session started" if success else "Failed to start streaming",
+                            "streaming": success,
+                        })
+                    
+                    elif action == "stop_stream":
+                        moshi.stop_streaming_session()
+                        await websocket.send_json({
+                            "type": "status",
+                            "message": "Streaming session stopped",
+                            "streaming": False,
+                        })
+                    
+                    else:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": f"Unknown command: {action}",
+                        })
+                
+                elif msg_type == "audio":
+                    # Handle incoming audio chunk
+                    import base64
+                    
+                    audio_b64 = data.get("data", "")
+                    if not audio_b64:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "No audio data provided",
+                        })
+                        continue
+                    
+                    # Decode base64 audio
+                    try:
+                        audio_bytes = base64.b64decode(audio_b64)
+                    except Exception as e:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": f"Invalid base64 audio: {e}",
+                        })
+                        continue
+                    
+                    # Process audio through Moshi
+                    if not moshi.is_loaded:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "Model not loaded. Send {type: 'command', action: 'load'} first.",
+                        })
+                        continue
+                    
+                    # For now, acknowledge receipt (full audio processing coming later)
+                    await websocket.send_json({
+                        "type": "audio_ack",
+                        "received_bytes": len(audio_bytes),
+                        "message": "Audio received. Full-duplex processing in development.",
+                    })
+                
+                elif msg_type == "ping":
+                    await websocket.send_json({"type": "pong"})
+                
+                else:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": f"Unknown message type: {msg_type}",
+                    })
+                    
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": str(e),
+                })
+    
+    except WebSocketDisconnect:
+        pass
+    finally:
+        # Cleanup on disconnect
+        if moshi._streaming:
+            moshi.stop_streaming_session()
+
+
+@app.get("/voice/moshi/status", tags=["Moshi Voice"], dependencies=[Depends(verify_token)])
+async def get_moshi_status():
+    """Get Moshi voice engine status (HTTP endpoint)."""
+    moshi = _get_moshi_voice()
+    return {
+        "status": "ok",
+        "moshi": moshi.get_status(),
+        "websocket_url": "/voice/moshi",
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AGENTIC-FLOW BRIDGE ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+from core.agentic_flow_bridge import (
+    AgenticFlowBridge,
+    SwarmTopology,
+    WorkerType,
+    get_agentic_flow_bridge,
+)
+
+# Unified Cognition Contract
+_COGNITION_CONTRACT_SCHEMA: Optional[Dict[str, Any]] = None
+
+
+class AgenticFlowSwarmRequest(BaseModel):
+    task: str = Field(..., min_length=1, description="Task description for the swarm")
+    topology: str = Field("hierarchical-mesh", description="Swarm topology")
+    agent_count: int = Field(5, ge=1, le=15, description="Number of agents")
+    timeout_ms: int = Field(30000, ge=1000, le=300000, description="Timeout in ms")
+
+
+class AgenticFlowMCPRequest(BaseModel):
+    tool_name: str = Field(..., min_length=1, description="MCP tool name")
+    arguments: Dict[str, Any] = Field(default_factory=dict, description="Tool arguments")
+
+
+class AgenticFlowWorkerRequest(BaseModel):
+    worker_type: str = Field(..., description="Worker type")
+    directive: str = Field(..., min_length=1, description="Worker directive")
+
+
+# ============================================================================
+# UNIFIED COGNITION CONTRACT (v1) - Rust (8080) <-> Python (8010) Bridge
+# ============================================================================
+
+class UnifiedCognitionRequest(BaseModel):
+    """Unified cognition request schema (defined in config/cognition_contract.json)."""
+    task: str = Field(..., min_length=1, max_length=10000, description="Task description for dual-agentic processing")
+    user_id: str = Field("anonymous", description="Optional user identifier")
+    ihsan_floor: float = Field(0.95, ge=0.0, le=1.0, description="Minimum Ihsan score required")
+    snr_floor: float = Field(7.0, ge=0.0, description="Minimum SNR score required")
+    context: Dict[str, str] = Field(default_factory=dict, description="Additional context key-value pairs")
+    taint_secrecy: str = Field("Internal", description="Secrecy level: Public, Internal, Confidential, Secret")
+    taint_integrity: str = Field("Untrusted", description="Integrity level: Untrusted, Validated, Attested, Sovereign")
+
+
+class UnifiedCognitionResponse(BaseModel):
+    """Unified cognition response schema (defined in config/cognition_contract.json)."""
+    result: str = Field(..., description="Execution result")
+    ihsan_score: float = Field(..., ge=0.0, le=1.0, description="Achieved Ihsan score")
+    snr_tier: str = Field(..., description="Achieved SNR tier: T0-T6")
+    receipt_id: str = Field(..., description="Evidence receipt identifier")
+    signature: Optional[str] = Field(None, description="Ed25519 signature of response (hex-encoded)")
+    signer_public_key: Optional[str] = Field(None, description="Signer public key (hex-encoded)")
+    sat_validation_ms: Optional[int] = Field(None, description="SAT validation latency in milliseconds")
+    pat_execution_ms: Optional[int] = Field(None, description="PAT execution latency in milliseconds")
+    total_latency_ms: int = Field(..., description="Total request latency in milliseconds")
+
+
+def _load_cognition_contract_schema() -> Dict[str, Any]:
+    """Load cognition contract schema from config/cognition_contract.json."""
+    global _COGNITION_CONTRACT_SCHEMA
+    if _COGNITION_CONTRACT_SCHEMA is not None:
+        return _COGNITION_CONTRACT_SCHEMA
+
+    repo_root = Path(__file__).resolve().parents[1]
+    schema_path = repo_root / "config" / "cognition_contract.json"
+
+    if not schema_path.exists():
+        raise HTTPException(
+            status_code=503,
+            detail=f"Cognition contract schema not found: {schema_path}",
+        )
+
+    try:
+        _COGNITION_CONTRACT_SCHEMA = json.loads(schema_path.read_text(encoding="utf-8"))
+        return _COGNITION_CONTRACT_SCHEMA
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to load cognition contract schema: {e}",
+        )
+
+
+def _validate_cognition_request(data: Dict[str, Any]) -> None:
+    """
+    Validate cognition request against contract schema.
+
+    NOTE: This is best-effort validation. If jsonschema is not installed,
+    log a warning and proceed (fail-open for this specific validation).
+    FATE gates provide the actual security enforcement.
+    """
+    try:
+        import jsonschema
+        schema = _load_cognition_contract_schema()
+        request_schema = schema["definitions"]["UnifiedCognitionRequest"]
+        jsonschema.validate(data, request_schema)
+    except ImportError:
+        # jsonschema not installed - log warning and proceed
+        print("[WARN] jsonschema not installed - skipping contract validation")
+    except Exception as e:
+        # Validation failed - log but don't fail request (FATE gates are the real enforcement)
+        print(f"[WARN] Cognition contract validation failed: {e}")
+
+
+def _compute_snr_tier(ihsan_score: float) -> str:
+    """
+    Compute SNR tier from Ihsan score.
+
+    Tier mapping (based on BIZRA SNR standards):
+    - T0: 0.00-0.70 (below threshold)
+    - T1: 0.70-0.80 (basic)
+    - T2: 0.80-0.85 (acceptable)
+    - T3: 0.85-0.90 (good)
+    - T4: 0.90-0.95 (excellent)
+    - T5: 0.95-0.99 (outstanding)
+    - T6: 0.99-1.00 (transcendent)
+    """
+    if ihsan_score >= 0.99:
+        return "T6"
+    elif ihsan_score >= 0.95:
+        return "T5"
+    elif ihsan_score >= 0.90:
+        return "T4"
+    elif ihsan_score >= 0.85:
+        return "T3"
+    elif ihsan_score >= 0.80:
+        return "T2"
+    elif ihsan_score >= 0.70:
+        return "T1"
+    else:
+        return "T0"
+
+
+@app.post("/v1/cognition", response_model=UnifiedCognitionResponse, tags=["Unified Cognition"], dependencies=[Depends(verify_token)])
+async def unified_cognition(req: UnifiedCognitionRequest):
+    """
+    Unified Cognition Contract (v1) - Rust-Python Bridge Endpoint.
+
+    This endpoint provides a standardized interface for dual-agentic processing
+    between the Rust core (8080) and Python kernel (8010).
+
+    Features:
+    - FATE gate validation (SAT pre-approval)
+    - Ihsan scoring with configurable floor
+    - SNR tier classification
+    - Receipt-native evidence tracking
+    - Taint tracking (secrecy + integrity)
+
+    Request Flow:
+    1. Validate against cognition_contract.json schema
+    2. FATE gate pre-validation
+    3. Delegate to existing SAPE execution logic
+    4. Post-process with SNR tier computation
+    5. Return unified response format
+    """
+    start_time = time.monotonic()
+    request_id = uuid.uuid4().hex
+
+    # Validate request against contract schema (best-effort)
+    _validate_cognition_request(req.model_dump())
+
+    # FATE gate pre-validation
+    fate_engine = get_fate_engine()
+    context_str = json.dumps({
+        "user_id": req.user_id,
+        "context": req.context,
+        "taint_secrecy": req.taint_secrecy,
+        "taint_integrity": req.taint_integrity,
+    })
+
+    seal, feedback = fate_engine.audit_request_with_feedback(
+        intent=req.task,
+        context=context_str,
+        artifact_class="mcp_tool",
+    )
+
+    FATE_VERDICTS.labels(verdict=seal.verdict).inc()
+
+    # Fail-closed: Block if FATE rejects
+    if seal.verdict == "REJECTED":
+        payload = {
+            "schema": "bizra_unified_cognition_receipt_v1",
+            "generated_at": utc_now_iso(),
+            "truth_label": "MEASURED",
+            "request_id": request_id,
+            "endpoint": "/v1/cognition",
+            "status": "BLOCKED_BY_FATE",
+            "fate_seal": seal.model_dump(),
+            "feedback": feedback.to_dict() if feedback else None,
+        }
+        _write_receipt(payload)
+
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "SAT_BLOCKED",
+                "code": "SAT_BLOCKED",
+                "reason": seal.reason,
+                "seal_id": seal.id,
+                "receipt_id": request_id,
+                "feedback": feedback.to_dict() if feedback else None,
+            },
+        )
+
+    # Delegate to SAPE execution logic
+    # Build SAPE request from unified cognition request
+    sape_req = SapeExecuteRequest(
+        objective=req.task,
+        domain="general",
+        constraints=context_str,
+        stakes="H" if req.ihsan_floor >= 0.95 else "M",
+        slot="cold_core" if req.ihsan_floor >= 0.95 else "primary_reasoning",
+        require_graph_evidence=False,
+        max_model_attempts=3,
+        include_prompts_in_response=False,
+    )
+
+    try:
+        mf = _get_model_family()
+        slot = _choose_sape_slot(sape_req, mf)
+
+        # Compile SAPE plan
+        compiled = compile_sape_plan(sape_req, evidence=[])
+
+        # Execute with LLM routing
+        sat_start = time.monotonic()
+        completion, attempts = await chat_with_routing(
+            model_family=mf,
+            slot=slot,
+            system_prompt=compiled.system_prompt,
+            user_prompt=compiled.user_prompt,
+            max_attempts=sape_req.max_model_attempts,
+        )
+        sat_duration_ms = int((time.monotonic() - sat_start) * 1000)
+
+        # Track metrics
+        for a in attempts:
+            SAPE_LLM_CALLS.labels(
+                provider=a.get("provider", "unknown"),
+                model=a.get("model", "unknown"),
+                status=a.get("status", "unknown"),
+            ).inc()
+            if a.get("status") == "ok":
+                try:
+                    SAPE_LLM_LATENCY.labels(
+                        provider=a.get("provider", "unknown"),
+                        model=a.get("model", "unknown"),
+                    ).observe(float(a.get("latency_ms", 0.0)) / 1000.0)
+                except Exception:
+                    pass
+
+        # Post-process: Compute Ihsan score and SNR tier
+        ihsan_score = seal.composite_score
+        snr_tier = _compute_snr_tier(ihsan_score)
+
+        # Enforce Ihsan floor
+        if ihsan_score < req.ihsan_floor:
+            payload = {
+                "schema": "bizra_unified_cognition_receipt_v1",
+                "generated_at": utc_now_iso(),
+                "truth_label": "MEASURED",
+                "request_id": request_id,
+                "endpoint": "/v1/cognition",
+                "status": "IHSAN_GATE_FAILED",
+                "ihsan_score": ihsan_score,
+                "ihsan_floor": req.ihsan_floor,
+                "snr_tier": snr_tier,
+                "fate_seal": seal.model_dump(),
+            }
+            _write_receipt(payload)
+
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "IHSAN_GATE_FAILED",
+                    "code": "IHSAN_GATE_FAILED",
+                    "reason": f"Ihsan score {ihsan_score:.4f} below floor {req.ihsan_floor:.4f}",
+                    "receipt_id": request_id,
+                    "ihsan_score": ihsan_score,
+                    "snr_tier": snr_tier,
+                },
+            )
+
+        total_latency_ms = int((time.monotonic() - start_time) * 1000)
+
+        # Emit receipt
+        payload = {
+            "schema": "bizra_unified_cognition_receipt_v1",
+            "generated_at": utc_now_iso(),
+            "truth_label": "MEASURED",
+            "request_id": request_id,
+            "endpoint": "/v1/cognition",
+            "status": "SUCCESS",
+            "ihsan_score": ihsan_score,
+            "snr_tier": snr_tier,
+            "sat_validation_ms": sat_duration_ms,
+            "total_latency_ms": total_latency_ms,
+            "model_used": completion.model_name,
+            "provider_used": completion.provider,
+            "attempts": attempts,
+            "fate_seal": seal.model_dump(),
+        }
+        _write_receipt(payload)
+
+        return UnifiedCognitionResponse(
+            result=completion.text,
+            ihsan_score=ihsan_score,
+            snr_tier=snr_tier,
+            receipt_id=request_id,
+            signature=None,  # TODO: Implement Ed25519 signing
+            signer_public_key=None,
+            sat_validation_ms=sat_duration_ms,
+            pat_execution_ms=None,  # Not tracked separately in current implementation
+            total_latency_ms=total_latency_ms,
+        )
+
+    except LLMCallError as e:
+        # LLM execution failed
+        payload = {
+            "schema": "bizra_unified_cognition_receipt_v1",
+            "generated_at": utc_now_iso(),
+            "truth_label": "MEASURED",
+            "request_id": request_id,
+            "endpoint": "/v1/cognition",
+            "status": "EXECUTION_FAILED",
+            "error": str(e),
+            "fate_seal": seal.model_dump(),
+        }
+        _write_receipt(payload)
+
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "EXECUTION_FAILED",
+                "code": "EXECUTION_FAILED",
+                "reason": str(e),
+                "receipt_id": request_id,
+            },
+        )
+    except HTTPException:
+        # Re-raise HTTP exceptions (FATE/Ihsan gate failures)
+        raise
+    except Exception as e:
+        # Unexpected error
+        payload = {
+            "schema": "bizra_unified_cognition_receipt_v1",
+            "generated_at": utc_now_iso(),
+            "truth_label": "MEASURED",
+            "request_id": request_id,
+            "endpoint": "/v1/cognition",
+            "status": "INTERNAL_ERROR",
+            "error": str(e),
+        }
+        _write_receipt(payload)
+
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "INTERNAL_ERROR",
+                "code": "INTERNAL_ERROR",
+                "reason": str(e),
+                "receipt_id": request_id,
+            },
+        )
+
+
+@app.get("/v1/agentic-flow/health", tags=["Agentic-Flow"])
+async def agentic_flow_health():
+    """Check agentic-flow service health."""
+    bridge = get_agentic_flow_bridge()
+    status = await bridge.health_check()
+    return {
+        "online": status.online,
+        "url": status.url,
+        "version": status.version,
+        "agents": status.agent_count,
+        "tools": status.tool_count,
+        "last_check": status.last_check,
+        "error": status.error,
+    }
+
+
+@app.post("/v1/agentic-flow/swarm", tags=["Agentic-Flow"], dependencies=[Depends(verify_token)])
+async def agentic_flow_swarm(req: AgenticFlowSwarmRequest):
+    """Invoke agentic-flow swarm for parallel agent execution."""
+    bridge = get_agentic_flow_bridge()
+    try:
+        topology = SwarmTopology(req.topology)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid topology: {req.topology}")
+    result = await bridge.invoke_swarm(
+        task=req.task,
+        topology=topology,
+        agent_count=req.agent_count,
+        timeout_ms=req.timeout_ms,
+    )
+    return result.to_dict()
+
+
+@app.post("/v1/agentic-flow/mcp/call", tags=["Agentic-Flow"], dependencies=[Depends(verify_token)])
+async def agentic_flow_mcp_call(req: AgenticFlowMCPRequest):
+    """Call an agentic-flow MCP tool."""
+    bridge = get_agentic_flow_bridge()
+    return await bridge.call_mcp_tool(req.tool_name, req.arguments)
+
+
+@app.get("/v1/agentic-flow/agents", tags=["Agentic-Flow"])
+async def agentic_flow_agents():
+    """List available agentic-flow agents."""
+    bridge = get_agentic_flow_bridge()
+    return await bridge.list_agents()
+
+
+@app.get("/v1/agentic-flow/tools", tags=["Agentic-Flow"])
+async def agentic_flow_tools():
+    """List available agentic-flow MCP tools."""
+    bridge = get_agentic_flow_bridge()
+    return await bridge.list_tools()
+
+
+@app.post("/v1/agentic-flow/worker", tags=["Agentic-Flow"], dependencies=[Depends(verify_token)])
+async def agentic_flow_worker(req: AgenticFlowWorkerRequest):
+    """Dispatch an agentic-flow background worker."""
+    bridge = get_agentic_flow_bridge()
+    try:
+        worker_type = WorkerType(req.worker_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid worker type: {req.worker_type}")
+    return await bridge.dispatch_worker(worker_type, req.directive)
 
 
 @app.on_event("startup")

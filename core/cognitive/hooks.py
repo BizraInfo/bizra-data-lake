@@ -149,6 +149,7 @@ class CognitiveHook:
             fate_seal = self.fate_engine.audit_request(
                 intent=prompt,
                 context=context,
+                artifact_class="mcp_tool",
             )
             
             if fate_seal.verdict == "REJECTED":

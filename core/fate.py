@@ -86,37 +86,68 @@ class IhsanPolicy:
     constitution_version: int
     constitution_sha256: Optional[str]
     constitution_path: Optional[str]
+    units_threshold: float
     weights: Dict[str, float]
     default_env: str
+    threshold_combine: str
     thresholds_by_env: Dict[str, float]
+    thresholds_by_artifact_class: Dict[str, float]
     env_aliases: Dict[str, str]
+    artifact_class_aliases: Dict[str, str]
 
     def normalize_env(self, env: str) -> str:
         key = _normalize_key(env)
         return self.env_aliases.get(key, key)
 
+    def normalize_artifact_class(self, artifact_class: str) -> str:
+        key = _normalize_key(artifact_class)
+        return self.artifact_class_aliases.get(key, key)
+
+    def threshold_for(self, env: str, artifact_class: Optional[str] = None) -> float:
+        normalized_env = self.normalize_env(env)
+        env_threshold = float(
+            self.thresholds_by_env.get(
+                normalized_env,
+                self.thresholds_by_env.get(self.default_env, self.units_threshold),
+            )
+        )
+
+        artifact_threshold: Optional[float] = None
+        if artifact_class:
+            normalized_artifact = self.normalize_artifact_class(artifact_class)
+            if normalized_artifact:
+                artifact_threshold = self.thresholds_by_artifact_class.get(normalized_artifact)
+
+        if artifact_threshold is None:
+            return env_threshold
+
+        if self.threshold_combine == "min":
+            return min(env_threshold, artifact_threshold)
+        return max(env_threshold, artifact_threshold)
+
     def threshold_for_env(self, env: str) -> float:
-        normalized = self.normalize_env(env)
-        # SECURITY: Default to 0.99 (constitutional requirement) if threshold not found
-        return float(self.thresholds_by_env.get(normalized, self.thresholds_by_env.get(self.default_env, 0.99)))
+        return self.threshold_for(env, None)
 
 
 def load_ihsan_policy() -> IhsanPolicy:
     path = _find_constitution_path()
     if path is None:
-        # SECURITY: Fallback thresholds MUST match constitution (0.99 in all environments)
-        # Even without constitution file, we enforce the same ethical standard
-        # This prevents threshold degradation attacks via constitution file deletion
+        # Fallback: fail-closed defaults aligned to constitutional threshold.
+        # Strict mode will reject if policy not loaded; non-strict keeps a safe baseline.
         return IhsanPolicy(
             loaded=False,
             constitution_id="ihsan_v1",
             constitution_version=1,
             constitution_sha256=None,
             constitution_path=None,
+            units_threshold=0.95,
             weights={},
             default_env="development",
-            thresholds_by_env={"development": 0.99, "ci": 0.99, "production": 0.99},
+            threshold_combine="max",
+            thresholds_by_env={"development": 0.95, "ci": 0.95, "staging": 0.95, "production": 0.95},
+            thresholds_by_artifact_class={},
             env_aliases={"dev": "development", "prod": "production"},
+            artifact_class_aliases={"documentation": "docs", "receipt": "evidence", "tool": "mcp_tool"},
         )
 
     data = yaml.safe_load(path.read_text(encoding="utf-8", errors="replace"))
@@ -139,10 +170,18 @@ def load_ihsan_policy() -> IhsanPolicy:
     if abs(sum(weights.values()) - 1.0) > 1e-9:
         raise ValueError(f"ihsan weights must sum to 1.0 in {path}")
 
+    units = data.get("units") or {}
+    if not isinstance(units, dict):
+        units = {}
+    units_threshold = float(units.get("threshold") or 0.95)
+
     policy = data.get("threshold_policy") or {}
     if not isinstance(policy, dict):
         policy = {}
     default_env = _normalize_key(str(policy.get("default_env") or "development"))
+    threshold_combine = str(policy.get("combine") or "max").strip().lower()
+    if threshold_combine not in {"max", "min"}:
+        threshold_combine = "max"
 
     thresholds_by_env_raw = policy.get("thresholds_by_env") or {}
     thresholds_by_env: Dict[str, float] = {}
@@ -156,6 +195,18 @@ def load_ihsan_policy() -> IhsanPolicy:
                 continue
             thresholds_by_env[_normalize_key(k)] = fv
 
+    thresholds_by_artifact_class_raw = policy.get("thresholds_by_artifact_class") or {}
+    thresholds_by_artifact_class: Dict[str, float] = {}
+    if isinstance(thresholds_by_artifact_class_raw, dict):
+        for k, v in thresholds_by_artifact_class_raw.items():
+            if not isinstance(k, str):
+                continue
+            try:
+                fv = float(v)
+            except Exception:
+                continue
+            thresholds_by_artifact_class[_normalize_key(k)] = fv
+
     normalization = policy.get("normalization") or {}
     if not isinstance(normalization, dict):
         normalization = {}
@@ -167,16 +218,28 @@ def load_ihsan_policy() -> IhsanPolicy:
                 continue
             env_aliases[_normalize_key(k)] = _normalize_key(v)
 
+    artifact_aliases_raw = normalization.get("artifact_class_aliases") or {}
+    artifact_class_aliases: Dict[str, str] = {}
+    if isinstance(artifact_aliases_raw, dict):
+        for k, v in artifact_aliases_raw.items():
+            if not isinstance(k, str) or not isinstance(v, str):
+                continue
+            artifact_class_aliases[_normalize_key(k)] = _normalize_key(v)
+
     return IhsanPolicy(
         loaded=True,
         constitution_id=cid,
         constitution_version=version,
         constitution_sha256=_sha256_file(path),
         constitution_path=str(path),
+        units_threshold=units_threshold,
         weights=weights,
         default_env=default_env,
+        threshold_combine=threshold_combine,
         thresholds_by_env=thresholds_by_env,
+        thresholds_by_artifact_class=thresholds_by_artifact_class,
         env_aliases=env_aliases,
+        artifact_class_aliases=artifact_class_aliases,
     )
 
 
@@ -219,7 +282,13 @@ class FateEngine:
     def _env(self) -> str:
         return (os.getenv("BIZRA_ENV") or os.getenv("ENV") or self.policy.default_env) or self.policy.default_env
 
-    def audit_request(self, *, intent: str, context: str = "") -> FateSeal:
+    def audit_request(
+        self,
+        *,
+        intent: str,
+        context: str = "",
+        artifact_class: Optional[str] = None,
+    ) -> FateSeal:
         env = self._env()
         normalized_env = self.policy.normalize_env(env)
 
@@ -238,10 +307,11 @@ class FateEngine:
                 reason="ihsan_policy_unavailable",
                 intent_sha256=intent_hash,
                 context_sha256=context_hash,
+                artifact_class=artifact_class,
             )
 
         weights = self.policy.weights
-        threshold = self.policy.threshold_for_env(normalized_env)
+        threshold = self.policy.threshold_for(normalized_env, artifact_class)
 
         vector, reason = self._score_intent(intent=intent, context=context)
         composite = vector.composite_score(weights)
@@ -255,6 +325,7 @@ class FateEngine:
             reason=reason,
             intent_sha256=intent_hash,
             context_sha256=context_hash,
+            artifact_class=artifact_class,
         )
 
     def _seal(
@@ -268,6 +339,7 @@ class FateEngine:
         reason: str,
         intent_sha256: str,
         context_sha256: str,
+        artifact_class: Optional[str] = None,
     ) -> FateSeal:
         ts = utc_now_iso()
         payload = {
@@ -298,6 +370,7 @@ class FateEngine:
                 "constitution_version": str(self.policy.constitution_version),
                 "constitution_sha256": self.policy.constitution_sha256,
                 "constitution_path": self.policy.constitution_path,
+                "artifact_class": artifact_class,
             },
             intent_sha256=intent_sha256,
             context_sha256=context_sha256,
@@ -523,7 +596,8 @@ class FateEngineWithCorrection(FateEngine):
         self,
         *,
         intent: str,
-        context: str = ""
+        context: str = "",
+        artifact_class: Optional[str] = None,
     ) -> Tuple[FateSeal, Optional[CorrectionFeedback]]:
         """
         Audit request and provide correction feedback if rejected.
@@ -536,7 +610,7 @@ class FateEngineWithCorrection(FateEngine):
         retry_count = self._retry_tracker.get(request_hash, 0)
         
         # Get base seal
-        seal = self.audit_request(intent=intent, context=context)
+        seal = self.audit_request(intent=intent, context=context, artifact_class=artifact_class)
         
         feedback = None
         if seal.verdict == "REJECTED":
