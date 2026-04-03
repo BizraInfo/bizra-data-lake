@@ -34,6 +34,10 @@ class NodeType(str, Enum):
     SKILL = "skill"
     TOOL = "tool"
     SESSION = "session"
+    # KEP Types
+    PRINCIPLE = "principle"
+    COMPOUND = "compound"
+    SYNERGY = "synergy"
 
 
 class EdgeType(str, Enum):
@@ -48,6 +52,10 @@ class EdgeType(str, Enum):
     SPECIALIZES = "specializes"
     DELEGATES_TO = "delegates_to"
     TRIGGERS = "triggers"
+    # KEP Edge Types
+    SYNERGIZES_WITH = "synergizes_with"
+    SYNTHESIZED_FROM = "synthesized_from"
+    BRIDGES_DOMAIN = "bridges_domain"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -496,6 +504,233 @@ class HyperGraphRAGConnector:
         edges_file = self.graph_path / "edges.jsonl"
         with open(edges_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(edge.to_dict()) + "\n")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # KEP SYNERGY PATH DISCOVERY
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def find_synergy_paths(
+        self,
+        node_ids: list[str],
+        max_hops: int = 3,
+    ) -> dict:
+        """
+        Find paths between nodes that indicate synergistic potential (KEP).
+
+        Args:
+            node_ids: List of node IDs to find connections between
+            max_hops: Maximum graph traversal depth
+
+        Returns:
+            Dictionary with path information and synergy score
+        """
+        if len(node_ids) < 2:
+            return {"path": [], "score": 0.0}
+
+        source_id = node_ids[0]
+        target_id = node_ids[1]
+
+        # BFS to find shortest path
+        visited = {source_id}
+        queue = [(source_id, [source_id])]
+        edges_used = []
+
+        while queue:
+            current_id, path = queue.pop(0)
+
+            if len(path) > max_hops + 1:
+                break
+
+            if current_id == target_id:
+                return {
+                    "path": path,
+                    "edges": edges_used,
+                    "hops": len(path) - 1,
+                    "score": 1.0 / len(path),  # Shorter path = higher score
+                }
+
+            # Find edges connecting to current node
+            for edge in self.edges.values():
+                connected_ids = []
+                if current_id in edge.source_nodes:
+                    connected_ids.extend(edge.target_nodes)
+                if current_id in edge.target_nodes:
+                    connected_ids.extend(edge.source_nodes)
+
+                for next_id in connected_ids:
+                    if next_id not in visited:
+                        visited.add(next_id)
+                        queue.append((next_id, path + [next_id]))
+                        edges_used.append(edge.id)
+
+        return {"path": [], "score": 0.0}
+
+    def add_compound_node(
+        self,
+        compound_id: str,
+        compound_name: str,
+        emergent_capability: str,
+        source_principle_ids: list[str],
+        domains: list[str],
+        ihsan_alignment: float,
+    ) -> str:
+        """
+        Add a compound knowledge node to the graph (KEP integration).
+
+        Creates:
+        - The compound node itself
+        - SYNTHESIZED_FROM edges to source principles
+        - BRIDGES_DOMAIN edges for cross-domain compounds
+
+        Returns the compound node ID.
+        """
+        # Create compound node
+        compound_node = KnowledgeNode(
+            id=compound_id,
+            type=NodeType.COMPOUND,
+            content=f"{compound_name}: {emergent_capability}",
+            metadata={
+                "name": compound_name,
+                "emergent_capability": emergent_capability,
+                "source_principles": source_principle_ids,
+                "domains": domains,
+                "ihsan_alignment": ihsan_alignment,
+            },
+            snr_score=ihsan_alignment,
+        )
+        self.add_node(compound_node)
+
+        # Create SYNTHESIZED_FROM edges to source principles
+        if source_principle_ids:
+            synth_edge = HyperEdge(
+                id=self._generate_id(f"synth:{compound_id}"),
+                type=EdgeType.SYNTHESIZED_FROM,
+                source_nodes=[compound_id],
+                target_nodes=source_principle_ids,
+                weight=ihsan_alignment,
+                metadata={"compound_id": compound_id},
+            )
+            self.add_edge(synth_edge)
+
+        # Create BRIDGES_DOMAIN edges for cross-domain compounds
+        if len(domains) > 1:
+            for i, domain1 in enumerate(domains):
+                for domain2 in domains[i + 1:]:
+                    bridge_edge = HyperEdge(
+                        id=self._generate_id(f"bridge:{compound_id}:{domain1}:{domain2}"),
+                        type=EdgeType.BRIDGES_DOMAIN,
+                        source_nodes=[compound_id],
+                        target_nodes=[],
+                        metadata={
+                            "domain_a": domain1,
+                            "domain_b": domain2,
+                        },
+                    )
+                    self.add_edge(bridge_edge)
+
+        return compound_id
+
+    def add_synergy_node(
+        self,
+        synergy_id: str,
+        source_id: str,
+        target_id: str,
+        synergy_score: float,
+        potential_compound: str,
+    ) -> str:
+        """
+        Add a synergy relationship node to the graph (KEP integration).
+
+        Creates:
+        - The synergy node
+        - SYNERGIZES_WITH edges connecting the sources
+
+        Returns the synergy node ID.
+        """
+        # Create synergy node
+        synergy_node = KnowledgeNode(
+            id=synergy_id,
+            type=NodeType.SYNERGY,
+            content=potential_compound,
+            metadata={
+                "source_id": source_id,
+                "target_id": target_id,
+                "synergy_score": synergy_score,
+            },
+            snr_score=synergy_score,
+        )
+        self.add_node(synergy_node)
+
+        # Create SYNERGIZES_WITH edge
+        synergy_edge = HyperEdge(
+            id=self._generate_id(f"syn:{source_id}:{target_id}"),
+            type=EdgeType.SYNERGIZES_WITH,
+            source_nodes=[source_id],
+            target_nodes=[target_id],
+            weight=synergy_score,
+            metadata={
+                "synergy_node": synergy_id,
+                "potential_compound": potential_compound,
+            },
+        )
+        self.add_edge(synergy_edge)
+
+        return synergy_id
+
+    def get_domain_bridges(self) -> list[dict]:
+        """
+        Get all cross-domain bridge relationships (KEP).
+
+        Returns list of dictionaries describing compounds that bridge domains.
+        """
+        bridges = []
+
+        for edge in self.edges.values():
+            if edge.type == EdgeType.BRIDGES_DOMAIN:
+                compound_id = edge.source_nodes[0] if edge.source_nodes else None
+                if compound_id and compound_id in self.nodes:
+                    compound = self.nodes[compound_id]
+                    bridges.append({
+                        "compound_id": compound_id,
+                        "compound_content": compound.content,
+                        "domain_a": edge.metadata.get("domain_a"),
+                        "domain_b": edge.metadata.get("domain_b"),
+                        "ihsan_alignment": compound.snr_score,
+                    })
+
+        return bridges
+
+    def get_synergy_graph_stats(self) -> dict:
+        """Get statistics about synergy relationships in the graph (KEP)."""
+        synergy_nodes = [
+            n for n in self.nodes.values()
+            if n.type == NodeType.SYNERGY
+        ]
+        compound_nodes = [
+            n for n in self.nodes.values()
+            if n.type == NodeType.COMPOUND
+        ]
+        synergy_edges = [
+            e for e in self.edges.values()
+            if e.type == EdgeType.SYNERGIZES_WITH
+        ]
+        bridge_edges = [
+            e for e in self.edges.values()
+            if e.type == EdgeType.BRIDGES_DOMAIN
+        ]
+
+        return {
+            "synergy_nodes": len(synergy_nodes),
+            "compound_nodes": len(compound_nodes),
+            "synergy_edges": len(synergy_edges),
+            "bridge_edges": len(bridge_edges),
+            "avg_synergy_score": (
+                sum(n.snr_score for n in synergy_nodes) / max(1, len(synergy_nodes))
+            ),
+            "avg_compound_ihsan": (
+                sum(n.snr_score for n in compound_nodes) / max(1, len(compound_nodes))
+            ),
+        }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

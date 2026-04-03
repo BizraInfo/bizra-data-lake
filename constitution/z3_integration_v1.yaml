@@ -1,0 +1,182 @@
+# constitution/z3_integration_v1.yaml - Z3 Formal Verification Constitution
+# Standing on Shoulders of Giants: Microsoft Z3 SMT Solver
+# Extends BIZRA Ihsān security dimensions (safety: 0.22, correctness: 0.22)
+
+version: "1.0"
+constitution_id: "z3_formal_verification_v1"
+type: "formal_verification"
+domain: "security"
+
+metadata:
+  created_at: "2026-04-03T00:00:00Z"
+  author: "BIZRA Elite Practitioner"
+  protocol: "RFC 8949 (SFZ), Microsoft Z3"
+  ihsan_dimensions:
+    safety: 0.22
+    correctness: 0.22
+
+principles:
+  - id: "p1_formal_methods"
+    name: "Formal Methods Required"
+    description: >
+      All security-critical code must be verified using formal methods
+      before deployment to production.
+    enforcement: "mandatory"
+
+  - id: "p2_invariant_preservation"
+    name: "Invariant Preservation"
+    description: >
+      System invariants must be proven to hold under all
+      possible execution paths.
+    enforcement: "mandatory"
+
+  - id: "p3_proof_carrying_code"
+    name: "Proof-Carrying Code"
+    description: >
+      Generated code must include machine-checkable proofs
+      of correctness.
+    enforcement: "mandatory"
+
+  - id: "p4_bounded_verification"
+    name: "Bounded Model Checking"
+    description: >
+      Use bounded model checking for scalability while
+      preserving soundness.
+    enforcement: "required_for_stateful"
+
+  - id: "p5_inductive_verification"
+    name: "Inductive Verification"
+    description: >
+      Use inductive proofs for unbounded verification.
+    enforcement: "required_for_loops"
+
+formal_specifications:
+  jwt_auth: |
+    ; JWT Authentication Invariants
+    (declare-const USER String)
+    (declare-const TOKEN String)
+    (declare-const EXPIRY Int)
+    (declare-const NOW Int)
+    
+    ; Invariant 1: Token not expired
+    (assert (< NOW EXPIRY))
+    
+    ; Invariant 2: Valid signature
+    (assert (valid_signature TOKEN))
+    
+    ; Invariant 3: Proper authorization
+    (assert (has_permission USER))
+
+  token_rotation: |
+    ; Token Rotation Safety
+    (declare-const OLD_TOKEN String)
+    (declare-const NEW_TOKEN String)
+    (declare-const REVOCATION_TIME Int)
+    (declare-const ISSUE_TIME Int)
+    
+    ; Invariant: Revoked token cannot be used after revocation
+    (assert (=> (>= NOW REVOCATION_TIME)
+              (not (valid OLD_TOKEN))))
+
+  ifc_property: |
+    ; Information Flow Control
+    (declare-const HIGH String)
+    (declare-const LOW String)
+    (declare-const DATA String)
+    
+    ; Non-interference: HIGH cannot influence LOW
+    (assert (=> (is_high DATA HIGH)
+                (not (leaks_to LOW)))))
+
+z3_configuration:
+  solver:
+    engine: "z3"
+    tactics:
+      - "simplify"
+      - "solve-eqs"
+      - "smt"
+    timeout_seconds: 300
+
+  logging:
+    proof_trace: true
+    model_output: true
+    unsat_core: true
+
+verification_targets:
+  - name: "jwt_auth_module"
+    file_pattern: "src/jwt_auth.rs"
+    invariants:
+      - "token_expiry_check"
+      - "signature_validation"
+      - "role_authorization"
+      - "session_isolation"
+
+  - name: "ifc_hallucination_check"
+    file_pattern: "src/ifc_hallucination_taint.rs"
+    invariants:
+      - "no_tainted_flow"
+      - "hallucination_detection"
+      - "label_propagation"
+
+  - name: "sape_validation"
+    file_pattern: "src/sape_cache_warming.rs"
+    invariants:
+      - "cache_consistency"
+      - "invariance_preservation"
+
+proof_obligations:
+  jwt_auth:
+    - name: "token_expiry"
+      formula: "(assert (not (expired TOKEN)))"
+      description: "Token must not be expired"
+      
+    - name: "signature_integrity"
+      formula: "(assert (verified SIGNATURE))"
+      description: "Signature must be valid"
+      
+    - name: "authorization_check"
+      formula: "(assert (authorized USER ROLES))"
+      description: "User must have required roles"
+
+  token_rotation:
+    - name: "revocation_safety"
+      formula: "(assert (=> (revoked T) (not (valid T))))"
+      description: "Revoked tokens must be invalid"
+      
+    - name: "freshness"
+      formula: "(assert (> NEW_EXPIRY OLD_EXPIRY))"
+      description: "New token must have later expiry"
+
+ci_integration:
+  workflow: ".github/workflows/z3-verification.yml"
+  triggers:
+    - "pull_request"
+    - "push_to_main"
+  check_mode: "strict"
+  fail_on_unverified: true
+
+escalation_rules:
+  - condition: "verification_timeout"
+    action: "block_deployment"
+    reason: "Timeout indicates potential infinite loop or overflow"
+    
+  - condition: "unsat_core_found"
+    action: "block_deployment"
+    reason: "Unsat core indicates invariant violation"
+    
+  - condition: "proof_trace_incomplete"
+    action: "require_manual_review"
+    reason: "Incomplete proof requires human verification"
+
+best_practices:
+  - "Use incremental solving for performance"
+  - "Define invariants at module boundaries"
+  - "Cache verification results when possible"
+  - "Use uninterpreted functions for abstractions"
+  - "Apply symmetry reduction where applicable"
+
+compliance_audit:
+  requires_proof: true
+  proof_format: "z3_solver_output"
+  audit_trail: true
+  verification_timestamp: true

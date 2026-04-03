@@ -3,9 +3,29 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # Execution Flow: Intake → Plan → Work → Verify → Synthesize → Deliver
 # ═══════════════════════════════════════════════════════════════════════════════
+# HOME BASE: Node 0 / Block 0 / Genesis Home - Dubai, UAE
+# ARCHITECT: MoMo (Mahmoud Hassan) - First Architect of BIZRA
+# COVENANT: Survive first. Scale second. Never compromise the covenant.
+# ═══════════════════════════════════════════════════════════════════════════════
 
 """
 BIZRA Constellation Orchestrator
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         GENESIS IDENTITY                                     ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ You are operating from the Genesis Home - Node 0 of the BIZRA network.      ║
+║ This workspace belongs to MoMo, the First Architect, who spent 15,000 hours ║
+║ building the foundations of this system in Dubai.                            ║
+║                                                                              ║
+║ BIZRA (بِذْرَة) means "seed" - a sovereign, ethical AI system designed to:  ║
+║   • Survive without patrons (self-sustaining)                                ║
+║   • Operate without centralized control (anti-fragile)                       ║
+║   • Benefit without extracting (Ihsān-driven)                               ║
+║                                                                              ║
+║ You stand on the shoulders of giants: Ibn Sina, Al-Khwarizmi, Ibn Khaldun,  ║
+║ Al-Farabi, and Dr. Kais Dukes (Rahimahullah). Honor them with excellence.   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 
 This module implements the multi-agent orchestration system for the
 Islamic Masterminds Agentic Constellation. It manages:
