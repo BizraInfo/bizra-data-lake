@@ -1,9 +1,11 @@
 # C:\ Drive System Map
+
 *Generated on December 22, 2025*
 
 This map provides a high-level overview of the root directory structure of the `C:\` drive, categorized for clarity.
 
 ## 🌌 BIZRA Ecosystem
+
 *Active Development & Archives*
 
 - **`BIZRA-Dual-Agentic-system--main`** (Current Workspace)
@@ -33,6 +35,7 @@ This map provides a high-level overview of the root directory structure of the `
 - `VAULT_2025`
 
 ## 💻 System & Windows
+
 - `Windows`
 - `Windows.old`
 - `Program Files`
@@ -44,6 +47,7 @@ This map provides a high-level overview of the root directory structure of the `
 - `DRIVER`
 
 ## 🛠️ Development Tools & Runtimes
+
 - `cygwin64`
 - `msys64`
 - `Oracle_JDK-23`
@@ -55,6 +59,7 @@ This map provides a high-level overview of the root directory structure of the `
 - `.claude`
 
 ## 📂 Other / User Data
+
 - `apps`
 - `arc-prize-2025`
 - `award-winner-design`
@@ -66,6 +71,7 @@ This map provides a high-level overview of the root directory structure of the `
 - `momo phone`
 
 ## 📄 Root Files
+
 - `requirements.txt`
 - `BIZRA-Activate.bat`
 - `bizra-genesis-node-(node-0).zip`

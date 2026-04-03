@@ -75,12 +75,12 @@ Each step is **deterministic** with acceptance criteria.
 ---
 
 ### Phase C — Glass Cockpit (trust layer becomes visible)
-**C1 — Metrics spine**
+**C1 — Metrics spine** (✅ IMPLEMENTED v3.0)
 - Emit structured events:
   - `ihsan_score`, `sat_decision`, `tool_timeout`, `urp_lease`, `rag_hit`
 - **Accept:** events visible in logs + Prometheus scrape works.
 
-**C2 — Cockpit UI**
+**C2 — Cockpit UI** (✅ IMPLEMENTED v3.0)
 - Minimal panels:
   - Ihsān score trend
   - SAT allow/reject rate

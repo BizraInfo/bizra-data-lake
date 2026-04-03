@@ -1,0 +1,60 @@
+{
+  "id": "8fc5d967de5e",
+  "timestamp": "2026-01-22T18:47:30.547024+00:00",
+  "title": "BIZRA Model Baseline: mistral:latest",
+  "description": "Baseline benchmark for mistral:latest",
+  "version": "1.0.0",
+  "results": [
+    {
+      "id": "b49aa17dc0d2",
+      "timestamp": "2026-01-22T18:47:30.546962+00:00",
+      "model_name": "mistral:latest",
+      "model_provider": "ollama",
+      "execution_mode": "direct",
+      "test_set_name": "bizra_qa",
+      "metrics": {
+        "latency_ms": {
+          "p50": 254.89,
+          "p95": 369.31,
+          "p99": 369.31,
+          "mean": 285.08,
+          "stddev": 76.4
+        },
+        "accuracy": 0.9,
+        "correct_answers": 9,
+        "total_questions": 10,
+        "errors": 0,
+        "timeouts": 0,
+        "tokens_per_second": 22.1,
+        "token_efficiency": 0.0473
+      },
+      "bizra_metrics": {
+        "ihsan_score": null,
+        "snr_score": null,
+        "snr_tier": "N/A",
+        "sat_consensus_rate": null,
+        "pat_approval_rate": null,
+        "fate_escalations": 0
+      },
+      "duration_ms": 2851.63,
+      "config": {
+        "warmup_iterations": 1,
+        "max_questions": 10,
+        "model_config": {
+          "provider": "ollama",
+          "description": "Mistral - User-facing interactions",
+          "role": "user_facing",
+          "timeout_s": 60
+        }
+      },
+      "errors": []
+    }
+  ],
+  "comparison_summary": {},
+  "test_sets": [
+    "bizra_qa"
+  ],
+  "total_duration_ms": 0.0,
+  "errors": [],
+  "warnings": []
+}

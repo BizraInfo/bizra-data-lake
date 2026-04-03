@@ -8,10 +8,10 @@
 # - The Genesis Block hash is stored in `BIZRA_GENESIS_BLOCK_0.json`.
 
 genesis:
-  hash: "7d07d9bf68ec8443b4f26fa1fce83ed769fd16ba9aa941e3a5c8d30531a57ba6"
-  total_artifacts: 26922
+  hash: "9dfa0bd5375ee06120e72c04618b407b2cf184f110075a573984a4b185f25974"
+  total_artifacts: 104908
   valuation:
-    bzr_growth_supply: 32863.70  # The IP Equity (Your Work)
+    bzr_growth_supply: 86506.51  # The IP Equity (Your Work)
     bzr_stable_backing: "Hardware_Titan_Node0"
 
   allocations:

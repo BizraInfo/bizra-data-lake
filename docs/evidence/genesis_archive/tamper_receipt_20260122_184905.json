@@ -1,0 +1,8 @@
+{
+  "receipt_type": "GENESIS_LOCAL_MISMATCH",
+  "timestamp": "2026-01-22T14:49:05.647963+00:00",
+  "source_hash": "0327e071d2d40c16...",
+  "existing_hash": "03ee94fd1072a60f...",
+  "archived_to": "/mnt/c/BIZRA-Dual-Agentic-system--main/docs/evidence/genesis_archive/genesis_block_20260122_184905.json",
+  "action": "archived_and_replaced"
+}

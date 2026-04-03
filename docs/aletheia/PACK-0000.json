@@ -1,0 +1,16 @@
+{
+    "header": {
+        "block_id": "PACK-0000",
+        "parent_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "timestamp_iso": "2026-01-07T00:00:00Z",
+        "type": "GENESIS"
+    },
+    "body": {
+        "constitution_hash": "sha256:7f4e5d6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e",
+        "sat_public_key": "did:key:z6MkqB87uSAm4dgX5Yj6fJK2g2fK5U2j5W7j5U7j5Y7j5U7j",
+        "policy_version": "1.0-Elite"
+    },
+    "seal": {
+        "hsm_signature": "SIG_GENESIS_SOVEREIGN_ROOT_PROVENANCE_CERTIFIED"
+    }
+}

@@ -1,0 +1,24 @@
+{
+  "coronation_id": "CORONATION-109C3D9F5C8A8F0D",
+  "timestamp": "2026-01-22T14:49:01.789783+00:00",
+  "node0_pubkey_fingerprint": "96d32bc33a67034251d3d7fe03111a1afb81b9863e41b177de7ce09a6bbc9760",
+  "node0_pubkey_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAJ+hOERLCXY0UkJdGSGMwFQ9pEX69chtJl5nkglLgdVA=\n-----END PUBLIC KEY-----\n",
+  "hardware_fingerprint": "f63681b9230613cc8d3e081ac4a4e6e9840db17beef6bb21aad07729a075acf8",
+  "hardware_tier1_hash": "f63681b9230613cc8d3e081ac4a4e6e9840db17beef6bb21aad07729a075acf8",
+  "hardware_tier2_hash": "4a9fb64bbd0324126f922260a69c17968a424d2d392935d5bdc712f68167668f",
+  "hardware_tier3_hash": "b0d6566d9251a7b549136107be7966a79fddaeb92dca3266226d2ab31b06b3ad",
+  "hardware_verified": true,
+  "genesis_hash": "0327e071d2d40c16e20f2cb213715c933811abd065e80b275602949cf6e7fdca",
+  "genesis_signed": true,
+  "genesis_signature_algorithm": "Ed25519",
+  "sync_locations": [
+    "/mnt/c/BIZRA-DATA-LAKE/00_GENESIS/genesis.json",
+    "/mnt/c/BIZRA-Dual-Agentic-system--main/docs/evidence/genesis_block.json"
+  ],
+  "sync_success": true,
+  "ceremony_complete": true,
+  "dry_run": false,
+  "receipt_hash": "1d9f35ecdaadadaf6fd15a3bd69a47060ff7b7d47be5d25e4e012207112f2da0",
+  "errors": [],
+  "warnings": []
+}

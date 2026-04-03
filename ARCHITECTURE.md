@@ -5,6 +5,7 @@
 ### Layer 1: Rust Core (Foundation)
 
 The foundation is built in Rust for:
+
 - **Memory Safety**: No segfaults, no data races
 - **Performance**: Sub-100ms P99 latency
 - **Concurrency**: Tokio async runtime for high throughput
@@ -107,6 +108,7 @@ MCPClient
 ```
 
 **Usage:**
+
 ```rust
 let result = mcp_client.call_tool(
     "web_search",
@@ -128,6 +130,7 @@ A2AServer
 ```
 
 **Features:**
+
 - Agent capability cards (version, protocols, auth)
 - JSON-RPC communication
 - Byzantine fault tolerant consensus
@@ -163,6 +166,7 @@ Five reasoning strategies:
    - Multiple refinement cycles
 
 **Auto-selection logic:**
+
 ```rust
 match (task_type, complexity) {
     ("linear_process", c) if c < 0.3 => CoT,
@@ -461,6 +465,7 @@ spec:
 **الحمد لله - All praise belongs to Allah**
 
 This architecture embodies:
+
 - 🎯 Peak Performance
 - 📊 Excellence (إحسان)
 - 🚀 Infinite Scalability

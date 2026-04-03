@@ -32,7 +32,7 @@ node0:
 # Component-specific identity (set per-repo)
 component:
   name: "🖥️ Node (Windows)"
-  role: "RIGHT_BRAIN"
+  role: "NODE"
   path: "C:\\BIZRA-Dual-Agentic-system--main"
   repository: "https://github.com/BizraInfo/bizra-genesis-node.git"
   responsibilities:

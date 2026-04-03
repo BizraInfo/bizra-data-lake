@@ -1,0 +1,60 @@
+{
+  "id": "5cf7a23745f8",
+  "timestamp": "2026-01-22T20:11:01.538979+00:00",
+  "title": "BIZRA Model Baseline: deepseek-r1:14b",
+  "description": "Baseline benchmark for deepseek-r1:14b",
+  "version": "1.0.0",
+  "results": [
+    {
+      "id": "6352e809fb8d",
+      "timestamp": "2026-01-22T20:11:01.538609+00:00",
+      "model_name": "deepseek-r1:14b",
+      "model_provider": "ollama",
+      "execution_mode": "direct",
+      "test_set_name": "bizra_qa",
+      "metrics": {
+        "latency_ms": {
+          "p50": 19138.03,
+          "p95": 79749.92,
+          "p99": 95633.73,
+          "mean": 31169.14,
+          "stddev": 23780.96
+        },
+        "accuracy": 0.95,
+        "correct_answers": 95,
+        "total_questions": 100,
+        "errors": 0,
+        "timeouts": 0,
+        "tokens_per_second": 11.9,
+        "token_efficiency": 0.7833
+      },
+      "bizra_metrics": {
+        "ihsan_score": null,
+        "snr_score": null,
+        "snr_tier": "N/A",
+        "sat_consensus_rate": null,
+        "pat_approval_rate": null,
+        "fate_escalations": 0
+      },
+      "duration_ms": 3116931.78,
+      "config": {
+        "warmup_iterations": 1,
+        "max_questions": null,
+        "model_config": {
+          "provider": "ollama",
+          "description": "DeepSeek R1 - Reasoning specialist",
+          "role": "reasoning",
+          "timeout_s": 120
+        }
+      },
+      "errors": []
+    }
+  ],
+  "comparison_summary": {},
+  "test_sets": [
+    "bizra_qa"
+  ],
+  "total_duration_ms": 0.0,
+  "errors": [],
+  "warnings": []
+}

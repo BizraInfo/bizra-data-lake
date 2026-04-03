@@ -1,0 +1,60 @@
+{
+  "id": "b7467d802850",
+  "timestamp": "2026-01-22T18:46:41.726520+00:00",
+  "title": "BIZRA Model Baseline: llama3.1:8b",
+  "description": "Baseline benchmark for llama3.1:8b",
+  "version": "1.0.0",
+  "results": [
+    {
+      "id": "a4a863dcb294",
+      "timestamp": "2026-01-22T18:46:41.726453+00:00",
+      "model_name": "llama3.1:8b",
+      "model_provider": "ollama",
+      "execution_mode": "direct",
+      "test_set_name": "bizra_qa",
+      "metrics": {
+        "latency_ms": {
+          "p50": 393.49,
+          "p95": 511.67,
+          "p99": 511.67,
+          "mean": 424.28,
+          "stddev": 57.68
+        },
+        "accuracy": 1.0,
+        "correct_answers": 10,
+        "total_questions": 10,
+        "errors": 0,
+        "timeouts": 0,
+        "tokens_per_second": 4.71,
+        "token_efficiency": 0.016
+      },
+      "bizra_metrics": {
+        "ihsan_score": null,
+        "snr_score": null,
+        "snr_tier": "N/A",
+        "sat_consensus_rate": null,
+        "pat_approval_rate": null,
+        "fate_escalations": 0
+      },
+      "duration_ms": 4243.63,
+      "config": {
+        "warmup_iterations": 1,
+        "max_questions": 10,
+        "model_config": {
+          "provider": "ollama",
+          "description": "Llama 3.1 8B - General analysis",
+          "role": "analysis",
+          "timeout_s": 60
+        }
+      },
+      "errors": []
+    }
+  ],
+  "comparison_summary": {},
+  "test_sets": [
+    "bizra_qa"
+  ],
+  "total_duration_ms": 0.0,
+  "errors": [],
+  "warnings": []
+}

@@ -1,0 +1,3311 @@
+{
+  "version": "1.0.0",
+  "domain": "bizra-pci-v1:apex:pareto",
+  "timestamp": "2026-01-27T22:07:47.387197+00:00",
+  "pareto_front": [
+    {
+      "point_id": "f73336ff066e78e7",
+      "lambdas": [
+        0.18870369534474005,
+        0.15731843997387332,
+        0.40776560825312824,
+        0.19223282980719983,
+        0.053979426621058646
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.254294+00:00"
+    },
+    {
+      "point_id": "5ffcb0d16696628f",
+      "lambdas": [
+        0.3425433782034784,
+        0.012379435028642864,
+        0.3504839876440178,
+        0.09105824624658,
+        0.20353495287728102
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.256426+00:00"
+    },
+    {
+      "point_id": "d5919cc95162ad15",
+      "lambdas": [
+        0.17275138002211315,
+        0.7041371541472552,
+        0.07238220746518767,
+        0.04728209473721259,
+        0.0034471636282314673
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.257140+00:00"
+    },
+    {
+      "point_id": "faaa0e1a4183ba05",
+      "lambdas": [
+        0.1033620140746138,
+        0.017340984049889277,
+        0.08939754476851827,
+        0.3278690635178109,
+        0.46203039358916775
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.261556+00:00"
+    },
+    {
+      "point_id": "67d921f68ad05dc7",
+      "lambdas": [
+        0.16288779807696604,
+        0.18506708016177215,
+        0.07324089854208035,
+        0.09053178261069046,
+        0.48827244060849095
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.264149+00:00"
+    },
+    {
+      "point_id": "7b9a07b7a696f1c6",
+      "lambdas": [
+        0.006134043534701395,
+        0.20197355848778392,
+        0.2062366131211277,
+        0.28503765083369065,
+        0.3006181340226963
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.265118+00:00"
+    },
+    {
+      "point_id": "d87c502416c44c9e",
+      "lambdas": [
+        0.32286638370119447,
+        0.05627615977740092,
+        0.2846574585457075,
+        0.2659406191969386,
+        0.07025937877875846
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.266017+00:00"
+    },
+    {
+      "point_id": "0fc9f975dab566ae",
+      "lambdas": [
+        0.004554891277332301,
+        0.2656001965100249,
+        0.4768153283319727,
+        0.13859702677825533,
+        0.1144325571024148
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.266895+00:00"
+    },
+    {
+      "point_id": "ef4e89d8909ac4ec",
+      "lambdas": [
+        0.07492955579296474,
+        0.04115112334701715,
+        0.7413730857446363,
+        0.08150587538480647,
+        0.061040359730575214
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.267796+00:00"
+    },
+    {
+      "point_id": "0a8c316fe9dce832",
+      "lambdas": [
+        0.14061453988267428,
+        0.4166124438920447,
+        0.011139293548369785,
+        0.3639292974771326,
+        0.06770442519977855
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.268661+00:00"
+    },
+    {
+      "point_id": "7c001cf5fe9722d2",
+      "lambdas": [
+        0.04279027342260067,
+        0.055778800120499135,
+        0.5410744424908085,
+        0.0023392264307787462,
+        0.358017257535313
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.269459+00:00"
+    },
+    {
+      "point_id": "ac1c70fcc8a8866a",
+      "lambdas": [
+        0.1832133455277545,
+        0.1520908003689325,
+        0.06029084838053072,
+        0.5725784563311452,
+        0.03182654939163692
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.270311+00:00"
+    },
+    {
+      "point_id": "13589e80eb04257b",
+      "lambdas": [
+        0.11645760604843425,
+        0.23620596990987983,
+        0.012715884240971694,
+        0.030700889917251527,
+        0.6039196498834627
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.273388+00:00"
+    },
+    {
+      "point_id": "abeeb3fa5baa81a4",
+      "lambdas": [
+        0.20908887262363107,
+        0.048649302961237026,
+        0.04284690388671989,
+        0.3715812866858686,
+        0.32783363384254344
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.281273+00:00"
+    },
+    {
+      "point_id": "f0d23419552abc29",
+      "lambdas": [
+        0.13195764015229966,
+        0.1351576297149645,
+        0.35813185702390626,
+        0.1393975618354282,
+        0.23535531127340134
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.282235+00:00"
+    },
+    {
+      "point_id": "fde65810cef9551f",
+      "lambdas": [
+        0.06075604804969625,
+        0.07125205140910919,
+        0.017628363390291734,
+        0.3411686412095154,
+        0.5091948959413874
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.283048+00:00"
+    },
+    {
+      "point_id": "88dfffed8f611e64",
+      "lambdas": [
+        0.2845464251552163,
+        0.07585454256544522,
+        0.15216046110124032,
+        0.09875985932089235,
+        0.3886787118572058
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.284000+00:00"
+    },
+    {
+      "point_id": "fb581af607c4957b",
+      "lambdas": [
+        0.10963550726647132,
+        0.10009775385104021,
+        0.2808848188883731,
+        0.09582509778365646,
+        0.413556822210459
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.284810+00:00"
+    },
+    {
+      "point_id": "9cf90d96355efb23",
+      "lambdas": [
+        0.0840495914311119,
+        0.14623536014198116,
+        0.326943918145158,
+        0.17472927593560697,
+        0.26804185434614203
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.285703+00:00"
+    },
+    {
+      "point_id": "7eea8433b5f23078",
+      "lambdas": [
+        0.024337413448153093,
+        0.30612497659319055,
+        0.062232003520471466,
+        0.13628232596450623,
+        0.4710232804736787
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.286527+00:00"
+    },
+    {
+      "point_id": "8b5971e69f34977f",
+      "lambdas": [
+        0.14585032419537283,
+        0.2794074214124074,
+        0.2663954607747379,
+        0.04119357230079307,
+        0.26715322131668884
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 2.0,
+      "thompson_beta": 1.0,
+      "selection_count": 1,
+      "success_count": 1,
+      "created_at": "2026-01-27T22:07:47.287408+00:00"
+    },
+    {
+      "point_id": "935155ec892d1225",
+      "lambdas": [
+        0.5520584369222774,
+        0.07406765542491012,
+        0.10661014197049395,
+        0.2354525788110993,
+        0.03181118687121914
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.288230+00:00"
+    },
+    {
+      "point_id": "9b6569817c1474c8",
+      "lambdas": [
+        0.12362928170632473,
+        0.36209655456198125,
+        0.2744640662522434,
+        0.04099722557313029,
+        0.19881287190632038
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.289030+00:00"
+    },
+    {
+      "point_id": "7bc2645b096cd271",
+      "lambdas": [
+        0.1844786665444973,
+        0.2919476074087525,
+        0.1441632126479114,
+        0.1090527336370553,
+        0.2703577797617835
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.289816+00:00"
+    },
+    {
+      "point_id": "ad3b1de3e95832a1",
+      "lambdas": [
+        0.3952508281148255,
+        0.036627793219565725,
+        0.09584825792758357,
+        0.4321841560989307,
+        0.04008896463909457
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.291050+00:00"
+    },
+    {
+      "point_id": "2d4fafb185d194d2",
+      "lambdas": [
+        0.33355885774634536,
+        0.3065957696747753,
+        0.04697749321624046,
+        0.041796318029961387,
+        0.2710715613326774
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.292681+00:00"
+    },
+    {
+      "point_id": "25ec319269df40ba",
+      "lambdas": [
+        0.034969002289602126,
+        0.09323001982158405,
+        0.0423804675763813,
+        0.13937568418100957,
+        0.690044826131423
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.295331+00:00"
+    },
+    {
+      "point_id": "d5901a07d563ef99",
+      "lambdas": [
+        0.22972505601666776,
+        0.5197255373754468,
+        0.09999902522754059,
+        0.016989291944842846,
+        0.1335610894355021
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.297130+00:00"
+    },
+    {
+      "point_id": "f1df356f7e9dc248",
+      "lambdas": [
+        0.05742624915271044,
+        0.3607603054561475,
+        0.024759850157046282,
+        0.08853044236544282,
+        0.4685231528686529
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.298058+00:00"
+    },
+    {
+      "point_id": "37d3b0974fe047e9",
+      "lambdas": [
+        0.0008032708821831316,
+        0.003821083030958721,
+        0.13138071601424015,
+        0.2346714818277654,
+        0.6293234482448525
+      ],
+      "objectives": {
+        "snr": 0.9255,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.98,
+        "latency_inv": 0.665
+      },
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.300040+00:00"
+    },
+    {
+      "point_id": "bdbe70afd0df226c",
+      "lambdas": [
+        0.14927594623932572,
+        0.18827110641728936,
+        0.19479196920944924,
+        0.44123375665272946,
+        0.026427221481206343
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.327894+00:00"
+    },
+    {
+      "point_id": "95643304c53a24ff",
+      "lambdas": [
+        0.335466356475715,
+        0.2316023248839929,
+        0.03340055484941133,
+        0.25261892697292665,
+        0.1469118368179542
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.328605+00:00"
+    },
+    {
+      "point_id": "01459de376d12310",
+      "lambdas": [
+        0.1686514982770227,
+        0.00013708757242060274,
+        0.3888323685001543,
+        0.2545747180668202,
+        0.18780432758358215
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.329423+00:00"
+    },
+    {
+      "point_id": "8037a06b7e9ac7b5",
+      "lambdas": [
+        0.038806868082791976,
+        0.14142518399551798,
+        0.1442459693175495,
+        0.6043625170334389,
+        0.07115946157070167
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.330134+00:00"
+    },
+    {
+      "point_id": "3041a01557eccd3a",
+      "lambdas": [
+        0.5285035853795367,
+        0.07495024237627843,
+        0.08426802318482209,
+        0.2156177069784033,
+        0.09666044208095957
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.330903+00:00"
+    },
+    {
+      "point_id": "8f5105280d55b2a7",
+      "lambdas": [
+        0.06962841161678059,
+        0.45413823337407366,
+        0.34978613079343707,
+        0.0802804332758996,
+        0.04616679093980912
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.331667+00:00"
+    },
+    {
+      "point_id": "cf0fee8b790c7ec1",
+      "lambdas": [
+        0.7167963892497156,
+        0.12441057312879882,
+        0.03484553460093433,
+        0.013267525592577942,
+        0.11067997742797332
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.332303+00:00"
+    },
+    {
+      "point_id": "5ce2771eb37b7aa8",
+      "lambdas": [
+        0.06813647240359341,
+        0.4865053004249359,
+        0.10981031404682384,
+        0.19049562093621775,
+        0.14505229218842913
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.333157+00:00"
+    },
+    {
+      "point_id": "f1ded618c7f5628d",
+      "lambdas": [
+        0.04936320642717172,
+        0.36923034070912936,
+        0.3522018444232891,
+        0.05868966101261464,
+        0.17051494742779522
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.333911+00:00"
+    },
+    {
+      "point_id": "c81e68767a6ca7c5",
+      "lambdas": [
+        0.151408215721426,
+        0.29673215517163987,
+        0.042635728607378555,
+        0.1400539024375354,
+        0.3691699980620202
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.334467+00:00"
+    },
+    {
+      "point_id": "aaa49be50dd47416",
+      "lambdas": [
+        0.20249972734695879,
+        0.040183870410323966,
+        0.040691046724807924,
+        0.34793269394343385,
+        0.36869266157447556
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.335410+00:00"
+    },
+    {
+      "point_id": "0caec35134c6c602",
+      "lambdas": [
+        0.18870935369947048,
+        0.09291881418080172,
+        0.016863422093493223,
+        0.3097308964789164,
+        0.3917775135473183
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.337442+00:00"
+    },
+    {
+      "point_id": "fc8fa34e0c6213ac",
+      "lambdas": [
+        0.14839278626532898,
+        0.21768007980098825,
+        0.211842601211961,
+        0.04394553386354442,
+        0.37813899885817737
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.338863+00:00"
+    },
+    {
+      "point_id": "4c0e0b8b855cf352",
+      "lambdas": [
+        0.18232026471030674,
+        0.5537326070063919,
+        0.10330625087621172,
+        0.04471845467547212,
+        0.11592242273161751
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.339866+00:00"
+    },
+    {
+      "point_id": "0ea2376164fcc5c6",
+      "lambdas": [
+        0.12642200171606238,
+        0.395695458297465,
+        0.1728559254258852,
+        0.16029555685978517,
+        0.1447310577008023
+      ],
+      "objectives": {
+        "snr": 0.9725,
+        "novelty": 0.75,
+        "alignment": 1.0,
+        "ethics": 0.92,
+        "latency_inv": 0.675
+      },
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.340741+00:00"
+    },
+    {
+      "point_id": "f7ba69b14ef9fe29",
+      "lambdas": [
+        0.08442370602737807,
+        0.22466178317938168,
+        0.08096256968081336,
+        0.5417042913129138,
+        0.06824764979951309
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.341571+00:00"
+    },
+    {
+      "point_id": "ad007dbd0976bcd3",
+      "lambdas": [
+        0.20406943832757254,
+        0.4598828584916593,
+        0.18165908832093194,
+        0.002452816466454152,
+        0.15193579839338212
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.342329+00:00"
+    },
+    {
+      "point_id": "e5103ee10a830045",
+      "lambdas": [
+        0.0866423556747979,
+        0.46703599293581044,
+        0.129343111989904,
+        0.1731515974823293,
+        0.14382694191715842
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.343090+00:00"
+    },
+    {
+      "point_id": "6ec56121219afc54",
+      "lambdas": [
+        0.4823637457061815,
+        0.1214534895766385,
+        0.2530167323130816,
+        0.06856455139496456,
+        0.07460148100913377
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.343847+00:00"
+    },
+    {
+      "point_id": "dd0a2cf26a709dd9",
+      "lambdas": [
+        0.20409574959385487,
+        0.5666226020196964,
+        0.03298676655526555,
+        0.08133277094126183,
+        0.11496211088992145
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.344499+00:00"
+    },
+    {
+      "point_id": "2e98eede3137d3fd",
+      "lambdas": [
+        0.10609926207513783,
+        0.20746570215184276,
+        0.10306559137395874,
+        0.5757217276000836,
+        0.007647716798977066
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.345062+00:00"
+    },
+    {
+      "point_id": "3857b9cf7aa63d4d",
+      "lambdas": [
+        0.191207917512297,
+        0.20665478850265243,
+        0.4252797960278314,
+        0.11850594990083133,
+        0.058351548056387835
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.345683+00:00"
+    },
+    {
+      "point_id": "ea8beaffe636ea0a",
+      "lambdas": [
+        0.3269963863680122,
+        0.16470236518971185,
+        0.037479941272653694,
+        0.3576306986325804,
+        0.11319060853704178
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.346263+00:00"
+    },
+    {
+      "point_id": "85ba59061c390210",
+      "lambdas": [
+        0.0985280443217928,
+        0.5494818472273929,
+        0.025145297073488334,
+        0.03080847641505434,
+        0.2960363349622716
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.346888+00:00"
+    },
+    {
+      "point_id": "7b29eeaa723b0395",
+      "lambdas": [
+        0.14284711323205163,
+        0.543449194875994,
+        0.1944297619573156,
+        0.05992709296112847,
+        0.059346836973510335
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.347547+00:00"
+    },
+    {
+      "point_id": "27b4ab4a96bc251c",
+      "lambdas": [
+        0.1970281758224053,
+        0.12382825497213612,
+        0.05112197774766729,
+        0.1561267594930259,
+        0.47189483196476534
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.348155+00:00"
+    },
+    {
+      "point_id": "536139c5304be834",
+      "lambdas": [
+        0.5022556646565332,
+        0.10544921682490264,
+        0.26432737782737104,
+        0.12025513007780275,
+        0.007712610613390517
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.348918+00:00"
+    },
+    {
+      "point_id": "63d70f9798b652e8",
+      "lambdas": [
+        0.31397203113647026,
+        0.014952143998566203,
+        0.3272336219391279,
+        0.2638400508372741,
+        0.08000215208856153
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.349702+00:00"
+    },
+    {
+      "point_id": "d64a81b3f5026233",
+      "lambdas": [
+        0.26566134048813833,
+        0.3257992266355471,
+        0.08166568013574074,
+        0.2987187130129371,
+        0.028155039727636683
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.350485+00:00"
+    },
+    {
+      "point_id": "27de7474d38bbe6f",
+      "lambdas": [
+        0.15776730972243644,
+        0.15425847208944174,
+        0.10114066311832026,
+        0.2827498829361115,
+        0.30408367213369003
+      ],
+      "objectives": {
+        "snr": 0.9195,
+        "novelty": 0.7,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.685
+      },
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.351263+00:00"
+    },
+    {
+      "point_id": "d080358018bc8f4f",
+      "lambdas": [
+        0.12541165366407675,
+        0.5856653098318619,
+        0.009957259460786417,
+        0.05398133903591403,
+        0.22498443800736093
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.352009+00:00"
+    },
+    {
+      "point_id": "be254895cc5a19c7",
+      "lambdas": [
+        0.11435418667852143,
+        0.15095558623006436,
+        0.011153047802333253,
+        0.17030363057573886,
+        0.5532335487133421
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.352705+00:00"
+    },
+    {
+      "point_id": "9a948dacb68b4ad1",
+      "lambdas": [
+        0.3513687894709182,
+        0.007993633008672538,
+        0.28132125786526047,
+        0.015958930865577398,
+        0.3433573887895714
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.353371+00:00"
+    },
+    {
+      "point_id": "e5793ae258f90b95",
+      "lambdas": [
+        0.28081244023721746,
+        0.27387254034188424,
+        0.11880579308885629,
+        0.15001867237639346,
+        0.17649055395564853
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.354052+00:00"
+    },
+    {
+      "point_id": "a017ab271689f206",
+      "lambdas": [
+        0.16383105742261703,
+        0.10294214371532201,
+        0.45204880634018546,
+        0.1874209394838554,
+        0.09375705303802007
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.354733+00:00"
+    },
+    {
+      "point_id": "25526a564c1d01e2",
+      "lambdas": [
+        0.22677500008270318,
+        0.2650323694337179,
+        0.012994354344197288,
+        0.3619298961451536,
+        0.13326837999422805
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.355516+00:00"
+    },
+    {
+      "point_id": "5a2f0be03401bdb9",
+      "lambdas": [
+        0.5699109933849967,
+        0.1603388600318626,
+        0.16761516812696722,
+        0.06484869898473193,
+        0.03728627947144153
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.356412+00:00"
+    },
+    {
+      "point_id": "663d4b260f8d99e6",
+      "lambdas": [
+        0.1155336414702802,
+        0.4090145146602665,
+        0.25852255787382783,
+        0.20233229276965328,
+        0.014596993225972153
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.357162+00:00"
+    },
+    {
+      "point_id": "ce0808613f9493c0",
+      "lambdas": [
+        0.20445722452141352,
+        0.0813439651571354,
+        0.14696013136327304,
+        0.231078619920583,
+        0.336160059037595
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.359549+00:00"
+    },
+    {
+      "point_id": "45ed251474fa8d4e",
+      "lambdas": [
+        0.1763711998476356,
+        0.006763454028867156,
+        0.2662850399778302,
+        0.001985103661528951,
+        0.5485952024841381
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.362699+00:00"
+    },
+    {
+      "point_id": "89bab930fca1f999",
+      "lambdas": [
+        0.013774834895406173,
+        0.18450491139275094,
+        0.4028126895024845,
+        0.21658299522666957,
+        0.18232456898268884
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.363838+00:00"
+    },
+    {
+      "point_id": "e13f77548e092608",
+      "lambdas": [
+        0.23912831789863526,
+        0.08424148572498132,
+        0.13038160238575563,
+        0.23323048918633718,
+        0.3130181048042906
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.364681+00:00"
+    },
+    {
+      "point_id": "5048999f102d76de",
+      "lambdas": [
+        0.1525620022826839,
+        0.07820643425362976,
+        0.3790837045897975,
+        0.36057850243930534,
+        0.0295693564345836
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.365517+00:00"
+    },
+    {
+      "point_id": "41cfefba71a369d0",
+      "lambdas": [
+        0.5181445666475556,
+        0.08067025780431585,
+        0.07002425737324383,
+        0.009286284972921641,
+        0.3218746332019631
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.366388+00:00"
+    },
+    {
+      "point_id": "b64a5c583dc34341",
+      "lambdas": [
+        0.24373442357639202,
+        0.1978382237477708,
+        0.10164768810159981,
+        0.4048633044042825,
+        0.05191636016995488
+      ],
+      "objectives": {
+        "snr": 0.918,
+        "novelty": 0.8999999999999999,
+        "alignment": 0.0,
+        "ethics": 0.92,
+        "latency_inv": 0.69
+      },
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0,
+      "created_at": "2026-01-27T22:07:47.367299+00:00"
+    }
+  ],
+  "all_points_count": 105,
+  "selection_history_count": 20,
+  "point_states": [
+    {
+      "point_id": "f73336ff066e78e7",
+      "lambdas": [
+        0.18870369534474005,
+        0.15731843997387332,
+        0.40776560825312824,
+        0.19223282980719983,
+        0.053979426621058646
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "5ffcb0d16696628f",
+      "lambdas": [
+        0.3425433782034784,
+        0.012379435028642864,
+        0.3504839876440178,
+        0.09105824624658,
+        0.20353495287728102
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "d5919cc95162ad15",
+      "lambdas": [
+        0.17275138002211315,
+        0.7041371541472552,
+        0.07238220746518767,
+        0.04728209473721259,
+        0.0034471636282314673
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "faaa0e1a4183ba05",
+      "lambdas": [
+        0.1033620140746138,
+        0.017340984049889277,
+        0.08939754476851827,
+        0.3278690635178109,
+        0.46203039358916775
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "67d921f68ad05dc7",
+      "lambdas": [
+        0.16288779807696604,
+        0.18506708016177215,
+        0.07324089854208035,
+        0.09053178261069046,
+        0.48827244060849095
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "7b9a07b7a696f1c6",
+      "lambdas": [
+        0.006134043534701395,
+        0.20197355848778392,
+        0.2062366131211277,
+        0.28503765083369065,
+        0.3006181340226963
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "d87c502416c44c9e",
+      "lambdas": [
+        0.32286638370119447,
+        0.05627615977740092,
+        0.2846574585457075,
+        0.2659406191969386,
+        0.07025937877875846
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "0fc9f975dab566ae",
+      "lambdas": [
+        0.004554891277332301,
+        0.2656001965100249,
+        0.4768153283319727,
+        0.13859702677825533,
+        0.1144325571024148
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "ef4e89d8909ac4ec",
+      "lambdas": [
+        0.07492955579296474,
+        0.04115112334701715,
+        0.7413730857446363,
+        0.08150587538480647,
+        0.061040359730575214
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "0a8c316fe9dce832",
+      "lambdas": [
+        0.14061453988267428,
+        0.4166124438920447,
+        0.011139293548369785,
+        0.3639292974771326,
+        0.06770442519977855
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "7c001cf5fe9722d2",
+      "lambdas": [
+        0.04279027342260067,
+        0.055778800120499135,
+        0.5410744424908085,
+        0.0023392264307787462,
+        0.358017257535313
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "ac1c70fcc8a8866a",
+      "lambdas": [
+        0.1832133455277545,
+        0.1520908003689325,
+        0.06029084838053072,
+        0.5725784563311452,
+        0.03182654939163692
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "13589e80eb04257b",
+      "lambdas": [
+        0.11645760604843425,
+        0.23620596990987983,
+        0.012715884240971694,
+        0.030700889917251527,
+        0.6039196498834627
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "abeeb3fa5baa81a4",
+      "lambdas": [
+        0.20908887262363107,
+        0.048649302961237026,
+        0.04284690388671989,
+        0.3715812866858686,
+        0.32783363384254344
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "f0d23419552abc29",
+      "lambdas": [
+        0.13195764015229966,
+        0.1351576297149645,
+        0.35813185702390626,
+        0.1393975618354282,
+        0.23535531127340134
+      ],
+      "persona_id": "security-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "fde65810cef9551f",
+      "lambdas": [
+        0.06075604804969625,
+        0.07125205140910919,
+        0.017628363390291734,
+        0.3411686412095154,
+        0.5091948959413874
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "88dfffed8f611e64",
+      "lambdas": [
+        0.2845464251552163,
+        0.07585454256544522,
+        0.15216046110124032,
+        0.09875985932089235,
+        0.3886787118572058
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "fb581af607c4957b",
+      "lambdas": [
+        0.10963550726647132,
+        0.10009775385104021,
+        0.2808848188883731,
+        0.09582509778365646,
+        0.413556822210459
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "9cf90d96355efb23",
+      "lambdas": [
+        0.0840495914311119,
+        0.14623536014198116,
+        0.326943918145158,
+        0.17472927593560697,
+        0.26804185434614203
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "7eea8433b5f23078",
+      "lambdas": [
+        0.024337413448153093,
+        0.30612497659319055,
+        0.062232003520471466,
+        0.13628232596450623,
+        0.4710232804736787
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "8b5971e69f34977f",
+      "lambdas": [
+        0.14585032419537283,
+        0.2794074214124074,
+        0.2663954607747379,
+        0.04119357230079307,
+        0.26715322131668884
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 2.0,
+      "thompson_beta": 1.0,
+      "selection_count": 1,
+      "success_count": 1
+    },
+    {
+      "point_id": "935155ec892d1225",
+      "lambdas": [
+        0.5520584369222774,
+        0.07406765542491012,
+        0.10661014197049395,
+        0.2354525788110993,
+        0.03181118687121914
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "9b6569817c1474c8",
+      "lambdas": [
+        0.12362928170632473,
+        0.36209655456198125,
+        0.2744640662522434,
+        0.04099722557313029,
+        0.19881287190632038
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "7bc2645b096cd271",
+      "lambdas": [
+        0.1844786665444973,
+        0.2919476074087525,
+        0.1441632126479114,
+        0.1090527336370553,
+        0.2703577797617835
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "ad3b1de3e95832a1",
+      "lambdas": [
+        0.3952508281148255,
+        0.036627793219565725,
+        0.09584825792758357,
+        0.4321841560989307,
+        0.04008896463909457
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "2d4fafb185d194d2",
+      "lambdas": [
+        0.33355885774634536,
+        0.3065957696747753,
+        0.04697749321624046,
+        0.041796318029961387,
+        0.2710715613326774
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "25ec319269df40ba",
+      "lambdas": [
+        0.034969002289602126,
+        0.09323001982158405,
+        0.0423804675763813,
+        0.13937568418100957,
+        0.690044826131423
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "d5901a07d563ef99",
+      "lambdas": [
+        0.22972505601666776,
+        0.5197255373754468,
+        0.09999902522754059,
+        0.016989291944842846,
+        0.1335610894355021
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "f1df356f7e9dc248",
+      "lambdas": [
+        0.05742624915271044,
+        0.3607603054561475,
+        0.024759850157046282,
+        0.08853044236544282,
+        0.4685231528686529
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "37d3b0974fe047e9",
+      "lambdas": [
+        0.0008032708821831316,
+        0.003821083030958721,
+        0.13138071601424015,
+        0.2346714818277654,
+        0.6293234482448525
+      ],
+      "persona_id": "ethics-validator",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "0507ca6ad6b98ba5",
+      "lambdas": [
+        0.4770353404789627,
+        0.017563652499262016,
+        0.1299202200791598,
+        0.07249063171414714,
+        0.3029901552284683
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "3f7235c21d62c7ec",
+      "lambdas": [
+        0.03729884432590452,
+        0.43352199796745305,
+        0.3012662960339277,
+        0.220969115289759,
+        0.0069437463829557485
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "3ed470ff622b2154",
+      "lambdas": [
+        0.1446083259902536,
+        0.2856386639732055,
+        0.07648083936125642,
+        0.1121066523515791,
+        0.38116551832370543
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "d4b971f38454baac",
+      "lambdas": [
+        0.2962884075604658,
+        0.09137127663572947,
+        0.2551479506643551,
+        0.14498469144466422,
+        0.21220767369478533
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "eb82fa4a23fcfa46",
+      "lambdas": [
+        0.19306988367429784,
+        0.045694790772528034,
+        0.05444051492214925,
+        0.1050440552708361,
+        0.6017507553601887
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "fba6b23e4fcbbaac",
+      "lambdas": [
+        0.52814461885869,
+        0.044696126462048534,
+        0.06978140465163929,
+        0.20080007648304057,
+        0.1565777735445816
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "f39ed87a0fae1635",
+      "lambdas": [
+        0.4526154516717709,
+        0.29428089728917195,
+        0.043718145646792,
+        0.01894063301569038,
+        0.19044487237657473
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "c904bc46f25fc920",
+      "lambdas": [
+        0.021201502550540204,
+        0.6321565378770287,
+        0.1863603004023168,
+        0.07732705872638156,
+        0.08295460044373272
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "6d15eab39d6de981",
+      "lambdas": [
+        0.07727752256211556,
+        0.12988006418896225,
+        0.3418635797766928,
+        0.26552766925032484,
+        0.18545116422190452
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "a51123f61901fd54",
+      "lambdas": [
+        0.2924974070713788,
+        0.46433711524206256,
+        0.05192177120938442,
+        0.1102895850235634,
+        0.08095412145361093
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "c064b720247b4d7a",
+      "lambdas": [
+        0.10708889031314764,
+        0.10412282382831743,
+        0.0795464523471271,
+        0.6694152970536923,
+        0.03982653645771553
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "3ce1e7a9c48d8693",
+      "lambdas": [
+        0.25501916373349837,
+        0.163670611280562,
+        0.14709112058783058,
+        0.08867167790148499,
+        0.3455474264966241
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "90cb464b4adbd82a",
+      "lambdas": [
+        0.37238134137052664,
+        0.049675453095845035,
+        0.10841208932381471,
+        0.15202220129648727,
+        0.31750891491332633
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "40a7f091d73adc9d",
+      "lambdas": [
+        0.015735608078726766,
+        0.1317537334316536,
+        0.19993792805451913,
+        0.4861977207610253,
+        0.1663750096740752
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "dcc2b3e1293841db",
+      "lambdas": [
+        0.13191551932490628,
+        0.14134073387578838,
+        0.573434169751507,
+        0.053778232393917304,
+        0.09953134465388103
+      ],
+      "persona_id": "compliance-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "2df5a5d81ece2f25",
+      "lambdas": [
+        0.06085096642289687,
+        0.13742488826976565,
+        0.05519432758406792,
+        0.6236351506689712,
+        0.12289466705429827
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "57bbad5fe1321e7c",
+      "lambdas": [
+        0.11526431202659188,
+        0.4929035305342895,
+        0.1632103332102567,
+        0.04553485033203559,
+        0.1830869738968263
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "7415287e6cbca702",
+      "lambdas": [
+        0.03303723508664749,
+        0.38963281243708786,
+        0.0024558187154232005,
+        0.5030733241697738,
+        0.0718008095910676
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "4bbed80e58dab03a",
+      "lambdas": [
+        0.09222556837052177,
+        0.0633016265341527,
+        0.0812863458369218,
+        0.37510672188085814,
+        0.3880797373775457
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "48c058f9b0beaf21",
+      "lambdas": [
+        0.15188939401973156,
+        0.06378113750251821,
+        0.08896966323097247,
+        0.35279838861875307,
+        0.34256141662802464
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "b077376c259ea035",
+      "lambdas": [
+        0.2940515466888317,
+        0.2999433157478287,
+        0.24524014179011866,
+        0.11916283647358861,
+        0.0416021592996323
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "88765981ce35ca3b",
+      "lambdas": [
+        0.09713659992374152,
+        0.4684351683756154,
+        0.21817719447985043,
+        0.04466970162485479,
+        0.17158133559593783
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "5f0617587c65a107",
+      "lambdas": [
+        0.013766334752404704,
+        0.15947452360757494,
+        0.1514309512596204,
+        0.2675458318176875,
+        0.4077823585627125
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "7d43c5b4602def2e",
+      "lambdas": [
+        0.7048167179511629,
+        0.01152978985023571,
+        0.16740110508664754,
+        0.057042371713011096,
+        0.05921001539894289
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "217f5cee0738552b",
+      "lambdas": [
+        0.26799407372712464,
+        0.23318363040120796,
+        0.20965399973826218,
+        0.056024211871421564,
+        0.23314408426198358
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "8f64df71a205e372",
+      "lambdas": [
+        0.24473542668197376,
+        0.016504333516246722,
+        0.37755639288599735,
+        0.32269847218416825,
+        0.03850537473161386
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "d5161b75828f07c9",
+      "lambdas": [
+        0.04110930723352775,
+        0.3464563131511323,
+        0.012833076798310493,
+        0.4553818096460104,
+        0.14421949317101915
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "4da239ceb76de166",
+      "lambdas": [
+        0.023285444868766388,
+        0.09575609487810338,
+        0.3267245399623972,
+        0.3228012377734162,
+        0.23143268251731688
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "c00399e8b0465cc3",
+      "lambdas": [
+        0.19750821765473228,
+        0.3900906768577582,
+        0.09850847333832823,
+        0.2577904288853959,
+        0.05610220326378538
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "7c428459bd1568b4",
+      "lambdas": [
+        0.08508766843275087,
+        0.05986280405829422,
+        0.1511843542431864,
+        0.5374384262786612,
+        0.1664267469871073
+      ],
+      "persona_id": "safety-guardian",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "bdbe70afd0df226c",
+      "lambdas": [
+        0.14927594623932572,
+        0.18827110641728936,
+        0.19479196920944924,
+        0.44123375665272946,
+        0.026427221481206343
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "95643304c53a24ff",
+      "lambdas": [
+        0.335466356475715,
+        0.2316023248839929,
+        0.03340055484941133,
+        0.25261892697292665,
+        0.1469118368179542
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "01459de376d12310",
+      "lambdas": [
+        0.1686514982770227,
+        0.00013708757242060274,
+        0.3888323685001543,
+        0.2545747180668202,
+        0.18780432758358215
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "8037a06b7e9ac7b5",
+      "lambdas": [
+        0.038806868082791976,
+        0.14142518399551798,
+        0.1442459693175495,
+        0.6043625170334389,
+        0.07115946157070167
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "3041a01557eccd3a",
+      "lambdas": [
+        0.5285035853795367,
+        0.07495024237627843,
+        0.08426802318482209,
+        0.2156177069784033,
+        0.09666044208095957
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "8f5105280d55b2a7",
+      "lambdas": [
+        0.06962841161678059,
+        0.45413823337407366,
+        0.34978613079343707,
+        0.0802804332758996,
+        0.04616679093980912
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "cf0fee8b790c7ec1",
+      "lambdas": [
+        0.7167963892497156,
+        0.12441057312879882,
+        0.03484553460093433,
+        0.013267525592577942,
+        0.11067997742797332
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "5ce2771eb37b7aa8",
+      "lambdas": [
+        0.06813647240359341,
+        0.4865053004249359,
+        0.10981031404682384,
+        0.19049562093621775,
+        0.14505229218842913
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "f1ded618c7f5628d",
+      "lambdas": [
+        0.04936320642717172,
+        0.36923034070912936,
+        0.3522018444232891,
+        0.05868966101261464,
+        0.17051494742779522
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "c81e68767a6ca7c5",
+      "lambdas": [
+        0.151408215721426,
+        0.29673215517163987,
+        0.042635728607378555,
+        0.1400539024375354,
+        0.3691699980620202
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "aaa49be50dd47416",
+      "lambdas": [
+        0.20249972734695879,
+        0.040183870410323966,
+        0.040691046724807924,
+        0.34793269394343385,
+        0.36869266157447556
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "0caec35134c6c602",
+      "lambdas": [
+        0.18870935369947048,
+        0.09291881418080172,
+        0.016863422093493223,
+        0.3097308964789164,
+        0.3917775135473183
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "fc8fa34e0c6213ac",
+      "lambdas": [
+        0.14839278626532898,
+        0.21768007980098825,
+        0.211842601211961,
+        0.04394553386354442,
+        0.37813899885817737
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "4c0e0b8b855cf352",
+      "lambdas": [
+        0.18232026471030674,
+        0.5537326070063919,
+        0.10330625087621172,
+        0.04471845467547212,
+        0.11592242273161751
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "0ea2376164fcc5c6",
+      "lambdas": [
+        0.12642200171606238,
+        0.395695458297465,
+        0.1728559254258852,
+        0.16029555685978517,
+        0.1447310577008023
+      ],
+      "persona_id": "master-reasoner",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "f7ba69b14ef9fe29",
+      "lambdas": [
+        0.08442370602737807,
+        0.22466178317938168,
+        0.08096256968081336,
+        0.5417042913129138,
+        0.06824764979951309
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "ad007dbd0976bcd3",
+      "lambdas": [
+        0.20406943832757254,
+        0.4598828584916593,
+        0.18165908832093194,
+        0.002452816466454152,
+        0.15193579839338212
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "e5103ee10a830045",
+      "lambdas": [
+        0.0866423556747979,
+        0.46703599293581044,
+        0.129343111989904,
+        0.1731515974823293,
+        0.14382694191715842
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "6ec56121219afc54",
+      "lambdas": [
+        0.4823637457061815,
+        0.1214534895766385,
+        0.2530167323130816,
+        0.06856455139496456,
+        0.07460148100913377
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "dd0a2cf26a709dd9",
+      "lambdas": [
+        0.20409574959385487,
+        0.5666226020196964,
+        0.03298676655526555,
+        0.08133277094126183,
+        0.11496211088992145
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "2e98eede3137d3fd",
+      "lambdas": [
+        0.10609926207513783,
+        0.20746570215184276,
+        0.10306559137395874,
+        0.5757217276000836,
+        0.007647716798977066
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "3857b9cf7aa63d4d",
+      "lambdas": [
+        0.191207917512297,
+        0.20665478850265243,
+        0.4252797960278314,
+        0.11850594990083133,
+        0.058351548056387835
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "ea8beaffe636ea0a",
+      "lambdas": [
+        0.3269963863680122,
+        0.16470236518971185,
+        0.037479941272653694,
+        0.3576306986325804,
+        0.11319060853704178
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "85ba59061c390210",
+      "lambdas": [
+        0.0985280443217928,
+        0.5494818472273929,
+        0.025145297073488334,
+        0.03080847641505434,
+        0.2960363349622716
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "7b29eeaa723b0395",
+      "lambdas": [
+        0.14284711323205163,
+        0.543449194875994,
+        0.1944297619573156,
+        0.05992709296112847,
+        0.059346836973510335
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "27b4ab4a96bc251c",
+      "lambdas": [
+        0.1970281758224053,
+        0.12382825497213612,
+        0.05112197774766729,
+        0.1561267594930259,
+        0.47189483196476534
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "536139c5304be834",
+      "lambdas": [
+        0.5022556646565332,
+        0.10544921682490264,
+        0.26432737782737104,
+        0.12025513007780275,
+        0.007712610613390517
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "63d70f9798b652e8",
+      "lambdas": [
+        0.31397203113647026,
+        0.014952143998566203,
+        0.3272336219391279,
+        0.2638400508372741,
+        0.08000215208856153
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "d64a81b3f5026233",
+      "lambdas": [
+        0.26566134048813833,
+        0.3257992266355471,
+        0.08166568013574074,
+        0.2987187130129371,
+        0.028155039727636683
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "27de7474d38bbe6f",
+      "lambdas": [
+        0.15776730972243644,
+        0.15425847208944174,
+        0.10114066311832026,
+        0.2827498829361115,
+        0.30408367213369003
+      ],
+      "persona_id": "memory-architect",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "d080358018bc8f4f",
+      "lambdas": [
+        0.12541165366407675,
+        0.5856653098318619,
+        0.009957259460786417,
+        0.05398133903591403,
+        0.22498443800736093
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "be254895cc5a19c7",
+      "lambdas": [
+        0.11435418667852143,
+        0.15095558623006436,
+        0.011153047802333253,
+        0.17030363057573886,
+        0.5532335487133421
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "9a948dacb68b4ad1",
+      "lambdas": [
+        0.3513687894709182,
+        0.007993633008672538,
+        0.28132125786526047,
+        0.015958930865577398,
+        0.3433573887895714
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "e5793ae258f90b95",
+      "lambdas": [
+        0.28081244023721746,
+        0.27387254034188424,
+        0.11880579308885629,
+        0.15001867237639346,
+        0.17649055395564853
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "a017ab271689f206",
+      "lambdas": [
+        0.16383105742261703,
+        0.10294214371532201,
+        0.45204880634018546,
+        0.1874209394838554,
+        0.09375705303802007
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "25526a564c1d01e2",
+      "lambdas": [
+        0.22677500008270318,
+        0.2650323694337179,
+        0.012994354344197288,
+        0.3619298961451536,
+        0.13326837999422805
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "5a2f0be03401bdb9",
+      "lambdas": [
+        0.5699109933849967,
+        0.1603388600318626,
+        0.16761516812696722,
+        0.06484869898473193,
+        0.03728627947144153
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "663d4b260f8d99e6",
+      "lambdas": [
+        0.1155336414702802,
+        0.4090145146602665,
+        0.25852255787382783,
+        0.20233229276965328,
+        0.014596993225972153
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "ce0808613f9493c0",
+      "lambdas": [
+        0.20445722452141352,
+        0.0813439651571354,
+        0.14696013136327304,
+        0.231078619920583,
+        0.336160059037595
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "45ed251474fa8d4e",
+      "lambdas": [
+        0.1763711998476356,
+        0.006763454028867156,
+        0.2662850399778302,
+        0.001985103661528951,
+        0.5485952024841381
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "89bab930fca1f999",
+      "lambdas": [
+        0.013774834895406173,
+        0.18450491139275094,
+        0.4028126895024845,
+        0.21658299522666957,
+        0.18232456898268884
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "e13f77548e092608",
+      "lambdas": [
+        0.23912831789863526,
+        0.08424148572498132,
+        0.13038160238575563,
+        0.23323048918633718,
+        0.3130181048042906
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "5048999f102d76de",
+      "lambdas": [
+        0.1525620022826839,
+        0.07820643425362976,
+        0.3790837045897975,
+        0.36057850243930534,
+        0.0295693564345836
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "41cfefba71a369d0",
+      "lambdas": [
+        0.5181445666475556,
+        0.08067025780431585,
+        0.07002425737324383,
+        0.009286284972921641,
+        0.3218746332019631
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    },
+    {
+      "point_id": "b64a5c583dc34341",
+      "lambdas": [
+        0.24373442357639202,
+        0.1978382237477708,
+        0.10164768810159981,
+        0.4048633044042825,
+        0.05191636016995488
+      ],
+      "persona_id": "creative-synthesizer",
+      "thompson_alpha": 1.0,
+      "thompson_beta": 1.0,
+      "selection_count": 0,
+      "success_count": 0
+    }
+  ]
+}

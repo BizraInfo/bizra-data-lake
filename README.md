@@ -1,217 +1,215 @@
-# 🚀 BIZRA META ALPHA ELITE - Complete Unified Production System
+<div align="center">
 
-Truth: TARGET (scaffold/demo; several subsystems are simulated; see `docs/blueprints/MASTER_BLUEPRINT.md`)
-Truth Labels: VERIFIED | MEASURED | TARGET | DERIVED
+# بذرة
 
-[![Rust](https://img.shields.io/badge/rust-1.90%2B-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-production-success.svg)](https://github.com/BizraInfo/BIZRA-Dual-Agentic-system-)
+**The Dual-Agentic Orchestrator**<br>
+*المنسق الوكيل المزدوج*
 
-**The complete Rust-based dual-agentic orchestrator with full arsenal of advanced capabilities.**
+<br>
 
-## 📋 Table of Contents
+<img src="docs/assets/bizra-seed.svg" width="120" alt="BIZRA Seed">
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [API Reference](#api-reference)
-- [Examples](#examples)
-- [Performance](#performance)
+<br><br>
 
-## 🌟 Overview
+[![Constitution](https://img.shields.io/badge/Constitution-v1.1.0--FINAL-gold?style=for-the-badge)](#)
+[![Ihsān](https://img.shields.io/badge/إحسان-0.99-success?style=for-the-badge)](#)
+[![Rust](https://img.shields.io/badge/Rust-1.90+-orange?style=for-the-badge)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-BIZRA META ALPHA ELITE is a production-ready dual-agentic system that combines:
+<br>
 
-- **PAT (Personal Agentic Team)**: 7 specialized agents for task execution
-- **SAT (System Agentic Team)**: 5 guardian agents for validation and quality assurance
-- **Full Arsenal**: MCP, A2A, Multi-Reasoning, Swarm Intelligence, and more
+**PAT + SAT: Execution with safety. Synthesis with veto.**
 
-### Key Metrics
-
-- **Sub-100ms P99 Latency**: Blazingly fast execution
-- **95%+ إحسان Score**: Excellence in quality (Islamic concept of perfection)
-- **Fail-Safe Veto Consensus**: all 5 SAT validators must approve
-- **Production-Ready**: Comprehensive observability and monitoring
-
-## 🏗️ Architecture
-
-```
-╔══════════════════════════════════════════════════════════════════╗
-║                    COMPLETE UNIFIED SYSTEM                        ║
-╠══════════════════════════════════════════════════════════════════╣
-║                                                                   ║
-║   ┌─────────────────────┐         ┌─────────────────────┐       ║
-║   │  PAT (7 Agents)     │         │  SAT (5 Agents)     │       ║
-║   │  ─────────────      │         │  ─────────────      │       ║
-║   │  • Strategic        │         │  • Security         │       ║
-║   │  • Creative         │◄───────►│  • Ethics           │       ║
-║   │  • Analytical       │  Bridge │  • Performance      │       ║
-║   │  • Implementation   │         │  • Consistency      │       ║
-║   │  • Quality          │         │  • Resources        │       ║
-║   │  • User Advocate    │         │                     │       ║
-║   │  • Coordination     │         │                     │       ║
-║   └─────────────────────┘         └─────────────────────┘       ║
-║            │                               │                     ║
-║            └───────────┬───────────────────┘                     ║
-║                        │                                         ║
-║           ┌────────────▼────────────┐                           ║
-║           │  Enhanced Capabilities   │                           ║
-║           │  ──────────────────────  │                           ║
-║           │  • MCP (Tool Access)     │                           ║
-║           │  • A2A (Communication)   │                           ║
-║           │  • Multi-Reasoning       │                           ║
-║           │  • Sub-Agent Spawning    │                           ║
-║           │  • Swarm Intelligence    │                           ║
-║           │  • Hook System           │                           ║
-║           │  • Slash Commands        │                           ║
-║           └──────────────────────────┘                           ║
-║                        │                                         ║
-║           ┌────────────▼────────────┐                           ║
-║           │    HTTP API Server       │                           ║
-║           │    Port 8080             │                           ║
-║           └──────────────────────────┘                           ║
-╚══════════════════════════════════════════════════════════════════╝
-```
-
-## ✨ Features
-
-### Core Dual-Agentic System
-
-- **PAT (Personal Agentic Team)**: 7 specialized agents
-  - Strategic Visionary: Long-term planning
-  - Creative Innovator: Novel solutions
-  - Analytical Optimizer: Data-driven insights
-  - Implementation Specialist: Practical execution
-  - Quality Guardian: إحسان (excellence) standards
-  - User Advocate: User experience focus
-  - Integration Coordinator: System harmony
-
-- **SAT (System Agentic Team)**: 5 guardian agents
-  - Security Guardian: Security validation
-  - Ethics Validator: Ethical compliance
-  - Performance Monitor: Performance optimization
-  - Consistency Checker: Logical coherence
-  - Resource Optimizer: Efficiency management
-
-### Enhanced Capabilities
-
-#### 🔧 MCP Integration (Model Context Protocol)
-Access to 100+ tools including:
-- Filesystem operations
-- Web search
-- Database queries
-- Code analysis
-
-#### 🤝 A2A Protocol (Agent-to-Agent)
-- Agent capability discovery
-- Task delegation
-- Consensus voting
-- Broadcast messaging
-
-#### 🧠 Multi-Method Reasoning
-Five sophisticated reasoning approaches:
-- **Chain-of-Thought (CoT)**: Step-by-step linear reasoning
-- **Tree-of-Thought (ToT)**: Explore multiple branches
-- **Graph-of-Thought (GoT)**: Multi-dimensional synthesis
-- **ReAct**: Reasoning + Acting with tool use
-- **Reflexion**: Self-improvement through iteration
-
-## 🚀 Installation
-
-### Prerequisites
-
-- Rust 1.90 or later
-- Cargo package manager
-
-### Build from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/BizraInfo/BIZRA-Dual-Agentic-system-.git
-cd BIZRA-Dual-Agentic-system-
-
-# Build release version
-cargo build --release
-
-# Run the system
-cargo run --release
-```
-
-## 🎯 Quick Start
-
-### Personal Agentic Team (Evidence Run)
-
-Runs a safe, evidence-first activation that produces receipts under `docs/evidence/receipts/` and indexes into your Data Lake (no deletions).
-
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\\run_master.ps1 `
-  -IngestCrashReports `
-  -RunLLMTeam `
-  -ModelTarget qwen2.5:7b
-```
-
-### HTTP API Usage
-
-Start the server:
-
-```bash
-cargo run --release
-```
-
-Make requests:
-
-```bash
-# Health check
-curl http://localhost:8080/health
-
-# Basic execution
-curl -X POST http://localhost:8080/dual/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "user_001",
-    "task": "Optimize database performance",
-    "requirements": ["speed", "reliability"],
-    "target": "optimization_plan"
-  }'
-
-# Enhanced execution with slash command
-curl -X POST http://localhost:8080/enhanced/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "base": {
-      "user_id": "user_001",
-      "task": "Search for solutions",
-      "requirements": [],
-      "target": "search_results"
-    },
-    "slash_command": {
-      "type": "Tools",
-      "filter": "search"
-    }
-  }'
-```
-
-## 📊 Performance
-
-### Benchmarks
-
-- **P50 Latency**: < 30ms
-- **P99 Latency**: < 100ms
-- **Throughput**: 1000+ requests/second
-- **إحسان Score**: 95%+ consistently
-- **Synergy Score**: 92%+ average
-
-### Scalability
-
-- **Horizontal Scaling**: Ready for Kubernetes deployment
-- **Sub-Agent Pool**: Up to 100 concurrent sub-agents
-- **Connection Pool**: Efficient resource management
-- **Fail-Safe Veto Consensus**: all 5 SAT validators must approve
+</div>
 
 ---
 
-**الحمد لله - All praise belongs to Allah**
+## The Purpose
 
-🚀 **System Status**: PRODUCTION | Performance: PEAK | Standard: إحسان
+This is the **Rust-based dual-agentic orchestrator** — the performance layer of BIZRA.
+
+Where `bizra-genesis` (Python) provides cognitive synthesis, this crate provides:
+- Zero-copy message passing (Iceoryx)
+- Formal verification (Z3 Theorem Prover)
+- Sub-100ms P99 latency
+- Byzantine fault tolerance
+
+Two teams, one mission: **Sovereign AI that cannot harm.**
+
+---
+
+## The Law
+
+<div align="center">
+
+### لا نفترض
+
+**We do not assume.**
+
+</div>
+
+In this crate, THE LAW is enforced through:
+- Formal proofs (Z3) — No claim without mathematical verification
+- SAT veto — Any safety agent can halt any action
+- Receipt chains — Every action leaves cryptographic proof
+- Fail-closed defaults — If uncertain, don't proceed
+
+---
+
+## Architecture
+
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         DUAL-AGENTIC ORCHESTRATOR                             ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║   ┌─────────────────────────────┐     ┌─────────────────────────────┐         ║
+║   │   PAT (Personal Agentic)    │     │   SAT (Security Agentic)    │         ║
+║   │   ─────────────────────     │     │   ─────────────────────     │         ║
+║   │   • Strategic Visionary     │     │   • Security Guardian       │         ║
+║   │   • Creative Innovator      │◄───►│   • Ethics Validator        │         ║
+║   │   • Analytical Optimizer    │     │   • Performance Monitor     │         ║
+║   │   • Implementation          │     │   • Consistency Checker     │         ║
+║   │   • Quality Guardian        │     │   • Resource Optimizer      │         ║
+║   │   • User Advocate           │     │                             │         ║
+║   │   • Coordinator             │     │   ⚠️ CAN VETO ANY ACTION    │         ║
+║   └─────────────────────────────┘     └─────────────────────────────┘         ║
+║                  │                                   │                        ║
+║                  └───────────────┬───────────────────┘                        ║
+║                                  │                                            ║
+║                    ┌─────────────▼─────────────┐                              ║
+║                    │      BRIDGE LAYER          │                              ║
+║                    │  ─────────────────────     │                              ║
+║                    │  • Tokio Broadcast         │                              ║
+║                    │  • Iceoryx Zero-Copy       │                              ║
+║                    │  • Z3 Verification         │                              ║
+║                    └────────────────────────────┘                              ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+```
+
+---
+
+## The Two Teams
+
+### PAT — Personal Agentic Team (7 Agents)
+
+| Agent | Role |
+|:------|:-----|
+| Strategic Visionary | Long-term planning |
+| Creative Innovator | Novel solutions |
+| Analytical Optimizer | Data-driven insights |
+| Implementation Specialist | Practical execution |
+| Quality Guardian | Ihsān standards |
+| User Advocate | User experience |
+| Integration Coordinator | System harmony |
+
+### SAT — Security Agentic Team (5 Agents)
+
+| Agent | Role |
+|:------|:-----|
+| Security Guardian | Security validation |
+| Ethics Validator | Ethical compliance |
+| Performance Monitor | Performance optimization |
+| Consistency Checker | Logical coherence |
+| Resource Optimizer | Efficiency management |
+
+**Key difference:** SAT can veto any PAT action. Safety > Speed.
+
+---
+
+## Quick Start
+
+```bash
+# Clone
+git clone https://github.com/BizraInfo/BIZRA-Dual-Agentic-system-.git
+cd BIZRA-Dual-Agentic-system-
+
+# Build
+cargo build --release
+
+# Run
+cargo run --release
+```
+
+---
+
+## API Usage
+
+### Health Check
+
+```bash
+curl http://localhost:8080/health
+```
+
+### Execute Task
+
+```bash
+curl -X POST http://localhost:8080/dual/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "node_001",
+    "task": "Optimize knowledge retrieval",
+    "requirements": ["speed", "accuracy"],
+    "target": "synthesis_plan"
+  }'
+```
+
+---
+
+## Performance
+
+| Metric | Value |
+|:-------|------:|
+| P50 Latency | < 30ms |
+| P99 Latency | < 100ms |
+| Throughput | 1000+ req/s |
+| Ihsān Score | ≥ 0.95 |
+| SAT Veto Rate | ~2% |
+
+---
+
+## Integration with bizra-genesis
+
+```
+bizra-genesis (Python)          This Crate (Rust)
+─────────────────────           ─────────────────
+
+Cognitive Synthesis ────────────► Formal Verification
+Graph-of-Thoughts   ────────────► Zero-Copy Messaging
+Ihsān Gate (soft)   ────────────► Ihsān Gate (hard)
+API v2              ◄────────────  Performance Layer
+```
+
+---
+
+## Truth Labels
+
+Every claim in this repository is labeled:
+
+| Label | Meaning |
+|:------|:--------|
+| `VERIFIED` | Tested and measured |
+| `MEASURED` | Benchmarked with evidence |
+| `TARGET` | Goal, not yet achieved |
+| `DERIVED` | Calculated from verified data |
+
+**Current status:** Most subsystems are `TARGET` (scaffold/demo). See `docs/blueprints/MASTER_BLUEPRINT.md` for roadmap.
+
+---
+
+<div align="center">
+
+<br>
+
+*الْحَمْدُ لِلَّهِ الَّذِي هَدَانَا لِهَٰذَا*
+
+**Two teams. One mission. Zero harm.**
+
+<br>
+
+---
+
+<sub>Built with إحسان in Dubai 🇦🇪</sub>
+
+</div>

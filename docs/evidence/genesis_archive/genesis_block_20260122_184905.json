@@ -1,0 +1,155 @@
+{
+  "version": "1.0",
+  "name": "BIZRA Genesis Node₀ / Block₀",
+  "timestamp": "2025-12-11T18:30:00Z",
+  "node_id": "node_0000_genesis_momo_dubai",
+  "operator": "momo_architect_founder",
+  "bismillah": "In the Name of Allah, the Most Gracious, the Most Merciful",
+  "token_system": {
+    "seed": {
+      "name": "SEED",
+      "symbol": "BZR_S",
+      "canonical_name": "BIZRA Impact Token",
+      "type": "utility",
+      "minting_rule": "proportional_to_poi_score",
+      "supply_cap_per_year": "1000000",
+      "description": "Earned via Proof of Impact; used for compute, storage, tools, marketplace"
+    },
+    "bloom": {
+      "name": "BLOOM",
+      "symbol": "BZR_B",
+      "canonical_name": "BIZRA Governance Token",
+      "type": "governance",
+      "minting_rule": "seed_stakes_plus_treasury_surplus",
+      "governance_quorum": 0.5,
+      "description": "Earned via SEED staking; used for voting, validator staking, long-term upside"
+    },
+    "impt": {
+      "name": "IMPT",
+      "symbol": "IMPT",
+      "canonical_name": "BIZRA Impact Score (off-chain)",
+      "type": "reputation_xp",
+      "transferable": false,
+      "minting_rule": "impact_measurement_via_poi",
+      "description": "Non-transferable lifetime reputation; compounds reward multipliers"
+    }
+  },
+  "policy": {
+    "no_raw_user_data": true,
+    "gradients_encrypted": true,
+    "constitution_enforced": true,
+    "audit_trail_immutable": true,
+    "rollback_always_possible": true,
+    "riba_forbidden": true,
+    "gharar_forbidden": true,
+    "impact_first_not_speculation": true
+  },
+  "genesis_block": {
+    "block_number": 0,
+    "parent_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "state_root": null,
+    "transactions_root": null,
+    "receipts_root": null,
+    "timestamp": "2025-12-11T18:30:00Z",
+    "extra_data": "BIZRA Genesis - In the Name of Allah, the Most Gracious, the Most Merciful"
+  },
+  "hardware_covenant": {
+    "fingerprint": "f63681b9230613cc8d3e081ac4a4e6e9840db17beef6bb21aad07729a075acf8",
+    "hardware_class": "MSI Titan GT77 HX",
+    "specifications": {
+      "cpu": "Intel(R) Core(TM) i9-14900HX",
+      "cpu_id": "BFEBFBFF000B0671",
+      "gpu": "NVIDIA GeForce RTX 4090 Laptop GPU",
+      "gpu_vram": "16376 MiB",
+      "ram": "128GB DDR5",
+      "hostname": "MSI"
+    },
+    "tiered_covenant": {
+      "tier_1_root": {
+        "hash": "f63681b9230613cc8d3e081ac4a4e6e9840db17beef6bb21aad07729a075acf8",
+        "strict": true,
+        "on_mismatch": "HARD_FAIL",
+        "components": {
+          "cpu_fingerprint": "Intel(R) Core(TM) i9-14900HX|BFEBFBFF000B0671",
+          "gpu_fingerprint": "NVIDIA GeForce RTX 4090 Laptop GPU, 16376 MiB",
+          "platform_signature": "Linux-x86_64"
+        }
+      },
+      "tier_2_mutable": {
+        "hash": "4a9fb64bbd0324126f922260a69c17968a424d2d392935d5bdc712f68167668f",
+        "strict": false,
+        "on_mismatch": "WARN_REQUIRE_ATTESTATION",
+        "components": {
+          "ram_signature": "127GB|WSL",
+          "mac_address": "00:15:5d:37:34:80",
+          "hostname": "MSI"
+        }
+      },
+      "tier_3_contextual": {
+        "hash": "b0d6566d9251a7b549136107be7966a79fddaeb92dca3266226d2ab31b06b3ad",
+        "strict": false,
+        "on_mismatch": "LOG_ONLY",
+        "components": {
+          "os_fingerprint": "Linux-6.6.87.2-microsoft-standard-WSL2",
+          "wsl_context": "true"
+        }
+      }
+    },
+    "attestation": "This hardware IS Node0 - the genesis block of BIZRA network",
+    "covenant_date": "2026-01-22T02:23:00Z",
+    "operator": "momo_architect_founder",
+    "authority_mode": "ORIGIN_ONLY",
+    "delegation_allowed": true,
+    "transfer_allowed": false,
+    "doctrine": "Node0 is not immortal hardware. It is the first witness. The proof of origin. The seed that proves seeds can grow."
+  },
+  "initial_validators": [
+    {
+      "id": "validator_0000_genesis",
+      "name": "MoMo Genesis Validator",
+      "pubkey": "FILL_FROM_node0_signing.pub",
+      "stake": 0,
+      "role": "founder"
+    }
+  ],
+  "initial_state": {
+    "accounts": {},
+    "contracts": {},
+    "storage": {}
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "pubkey": "FILL_FROM_node0_signing.pub",
+    "signature": "FILL_AFTER_SIGNING"
+  },
+  "memorial": {
+    "dr_kais_dukes": {
+      "dedication": "رحمه الله (May Allah have mercy on him)",
+      "role": "Intellectual Foundation",
+      "contributions": {
+        "indigovx_methodology": {
+          "description": "Three-score decision framework (Impact × Feasibility × Alignment)",
+          "success_rate": "90%+",
+          "validation_period": "12 months at Hunna Technology"
+        },
+        "quranic_corpus": {
+          "url": "https://corpus.quran.com/",
+          "morphological_tags": 45,
+          "syntactic_accuracy": 0.995,
+          "encoded_tokens": 132700,
+          "description": "Decades of computational linguistics research"
+        },
+        "ethical_ai_governance": {
+          "principles": [
+            "Human dignity is non-negotiable",
+            "AI augments, never replaces, human judgment",
+            "Accountability trails for all decisions",
+            "Explainability as non-negotiable"
+          ]
+        }
+      },
+      "commitment": "Every decision scored by IndigoVX carries his methodology. Every semantic understanding draws from his linguistic work. Every act of human oversight honors his principles.",
+      "hadith": "خَيْرُكُمْ أَنْفَعُكُمْ لِلنَّاسِ (The best of you are those who bring most benefit to humanity)"
+    }
+  }
+}

@@ -1,0 +1,113 @@
+# CLAUDE.local.md Template
+
+Copy this file to `CLAUDE.local.md` for your personal project preferences.
+This file is automatically gitignored and not shared with the team.
+
+---
+
+# Personal BIZRA Preferences
+
+## My Environment
+
+<!-- Customize these for your local setup -->
+
+### LLM Backends
+- Ollama: http://localhost:11434
+- LM Studio: http://localhost:1234
+- Preferred model: qwen2.5:7b
+
+### Local Services
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+- Neo4j: localhost:7474
+
+### Sandbox URLs
+- Dev API: http://localhost:8080
+- Test API: http://localhost:8010
+- UI Dev: http://localhost:3000
+
+## My Coding Preferences
+
+### Editor Settings
+- Indent: 2 spaces (override team standard if needed)
+- Line length: 100 (my preference)
+- Auto-save: enabled
+
+### Testing Preferences
+- Run tests before every commit
+- Prefer verbose test output
+- Skip slow integration tests locally (run in CI)
+
+### Debug Settings
+- Always enable tracing in development
+- Log level: DEBUG for bizra modules
+- Enable performance profiling
+
+## Personal Workflows
+
+### Morning Routine
+1. `docker compose up -d` - Start services
+2. `cargo watch -x check` - Start Rust watcher
+3. Review overnight CI results
+
+### Before Commit
+1. Run `/rust` - Build and clippy
+2. Run `/python` - Tests
+3. Run `/ihsan` - Validate constitution
+
+### Quick Commands I Use
+- Build fast: `cargo build` (skip release for local dev)
+- Test specific: `cargo test ihsan` (just Ihsān tests)
+- Logs: `docker compose logs -f elite`
+
+## My Test Data
+
+### Preferred Test Users
+- user_001: Standard test user
+- user_admin: Admin privileges
+- user_readonly: Read-only access
+
+### Test Scenarios
+- Simple: "Hello world" tasks
+- Complex: Multi-step reasoning tasks
+- Edge: Unicode, long inputs, special chars
+
+## Notes to Self
+
+<!-- Personal reminders, gotchas, etc. -->
+
+- Remember to restart Docker after config changes
+- Neo4j takes 30s to start, wait before running graph tests
+- If Redis TLS fails, check certificate expiry
+- Rust build is slow on first compile, grab coffee
+
+## Personal Imports
+
+<!-- You can import personal instruction files -->
+<!-- @~/.claude/my-bizra-notes.md -->
+
+## Local Overrides
+
+### Skip These Checks Locally
+- Long integration tests (run in CI)
+- Performance benchmarks (run on dedicated machine)
+- Full SAPE suite (run quick mode locally)
+
+### My Custom Aliases
+```bash
+alias br='cargo run'
+alias bt='cargo test'
+alias bc='docker compose'
+```
+
+---
+
+## Usage
+
+1. Copy this file to `CLAUDE.local.md` in project root
+2. Remove this template header
+3. Customize for your preferences
+4. The file is gitignored automatically
+
+Claude Code will load this file automatically and apply your personal
+preferences on top of the team's shared `CLAUDE.md` settings.
