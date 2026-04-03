@@ -1,30 +1,33 @@
 # BIZRA Node Configuration (Canonical)
 # Node: node_0000_genesis_momo_dubai
-# Generated: 2025-12-14T13:48:00Z
+# Aligned: 2026-04-03
 
 node_id: node_0000_genesis_momo_dubai
 
 paths:
   # Root resolution mode (git_toplevel = use git repo root)
   root_mode: git_toplevel
-  
+
   # All paths relative to repo root
-  kernel_rel: ".bizra-kernel"
+  kernel_rel: "core"
+  python_kernel_rel: "bizra_kernel"
+  rust_core_rel: "src"
+  pat_rel: "BIZRA-PAT"
   docs_rel: "docs"
   evidence_rel: "docs/evidence"
   tools_rel: "tools"
   scripts_rel: "scripts"
-  
+
   # Derived absolute paths (computed at runtime)
   # BIZRA_ROOT = $(git rev-parse --show-toplevel)
-  # KERNEL_ROOT = ${BIZRA_ROOT}\.bizra-kernel
+  # KERNEL_ROOT = ${BIZRA_ROOT}\core
   # DOCS_ROOT = ${BIZRA_ROOT}\docs
   # EVIDENCE_ROOT = ${BIZRA_ROOT}\docs\evidence
 
 runtime:
   timezone: "Asia/Dubai"
   timezone_offset: "+04:00"
-  
+
   # GPU constraints (RTX 4090 Laptop)
   gpu:
     model: "NVIDIA RTX 4090 Laptop GPU"
@@ -32,7 +35,19 @@ runtime:
     vram_available_mb: 13824  # 13.5GB usable
     low_vram_mode: true
     vram_soft_cap_mb: 13500
-  
+
+  ports:
+    elite_api: 8080
+    kernel_api: 8010
+    postgres: 5433
+    redis: 6380
+    chroma: 8001
+    neo4j_http: 7474
+    neo4j_bolt: 7687
+
+  postgres_dsn: "postgresql://bizra@localhost:5433/bizra"
+  redis_url: "redis://:bizra_synapse_secure@localhost:6380"
+
   # Ollama configuration
   ollama:
     host: "http://127.0.0.1:11434"
@@ -43,7 +58,7 @@ runtime:
     num_parallel: 1
     # Use env override for portability (set OLLAMA_MODELS_PATH if needed).
     models_path: "${OLLAMA_MODELS_PATH}"
-  
+
   # Model unload strategy
   model_unload_strategy: "LRU"  # Least Recently Used
 
@@ -52,7 +67,7 @@ phase:
   current: "phase0_week1"
   status: "evidence_capture"
   sealed: false
-  
+
 evidence:
   # Evidence output pattern
   pattern: "docs/evidence/phase0_week1/{timestamp}/"
@@ -70,7 +85,7 @@ departments:
     - SAT-ML        # Models, slots, evals
     - SAT-PLATFORM  # Docker/K8s, runtime
     - SAT-COMPLIANCE # Audit trails, governance
-  
+
   PAT:
     - PAT-EXEC      # Task execution
     - PAT-BUILD     # Build + test

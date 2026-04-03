@@ -4,12 +4,15 @@ workspace_id: node_0000_genesis_momo_dubai
 paths:
   bizra_root: '.'
   infra_root: '.'
-  kernel_root: '.bizra-kernel'
-  evidence_root: 'evidence'
+  kernel_root: 'core'
+  evidence_root: 'docs/evidence'
 
 runtime:
   ollama_host: 'http://127.0.0.1:11434'
   # SECURITY: do not commit DB passwords; use passwordless local auth or a secret manager/.pgpass.
-  postgres_dsn: 'postgresql://postgres@localhost:5432/bizra'
+  postgres_dsn: 'postgresql://bizra@localhost:5433/bizra'
   redis_host: 'localhost'
-  redis_port: 6379
+  redis_port: 6380
+
+docker:
+  compose_project_name: 'bizra-dual-agentic-system--main'
