@@ -1,0 +1,215 @@
+# BIZRA Unified System — docker-compose.unified.yml
+# ============================================================================
+# One command to rule them all: docker compose -f docker-compose.unified.yml up -d
+#
+# Architecture (Phase 89 — 2026-04-03):
+#   This compose defines the BIZRA-DATA-LAKE services. Infrastructure services
+#   (postgres, synapse, wisdom, vectors, grafana, prometheus) run from the
+#   Dual-Agentic stack at /mnt/c/BIZRA-Dual-Agentic-system--main/.
+#
+#   All services join the external `bizra-mesh` network for cross-project
+#   service discovery. Use `scripts/node0_stack.sh start` for orchestrated
+#   multi-compose startup in correct dependency order.
+#
+# Standing on Giants: Docker Compose v2 · Deming (PDCA) · Lamport (distributed state)
+# Constitutional Constraint: Ihsan >= 0.95, SNR >= 0.85
+# ============================================================================
+
+services:
+  # ── Knowledge Substrate ──
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bizra}
+      POSTGRES_USER: ${POSTGRES_USER:-bizra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bizra_dev_password}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./runtime/migrations:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bizra -d bizra"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: &log-cfg
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  synapse:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes", --requirepass, "${REDIS_PASSWORD:-bizra_synapse_secure}"]
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - synapse_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "sh", "-c", "redis-cli -a $$REDIS_PASSWORD ping"]
+      interval: 5s
+      timeout: 1s
+      retries: 20
+      start_period: 5s
+    logging: *log-cfg
+
+  wisdom:
+    image: neo4j:5.15-community
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/bizra_wisdom_dev}
+      NEO4J_server_config_strict__validation_enabled: "false"
+    ports:
+      - "127.0.0.1:7474:7474"
+      - "127.0.0.1:7687:7687"
+    volumes:
+      - wisdom_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    logging: *log-cfg
+
+  vectors:
+    image: chromadb/chroma:latest
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - vectors_data:/chroma/chroma
+    ports:
+      - "127.0.0.1:8001:8000"
+    restart: unless-stopped
+    logging: *log-cfg
+
+  # ── Sovereign Cognitive Engine (Python) ──
+  kernel:
+    build:
+      context: ./runtime
+      dockerfile: Dockerfile.kernel
+    env_file:
+      - ./runtime/.env.reference
+    environment:
+      SYNAPSE_URL: redis://:${REDIS_PASSWORD:-bizra_synapse_secure}@synapse:6379
+      WISDOM_URL: bolt://wisdom:7687
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/bizra_wisdom_dev}
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      LMSTUDIO_BASE_URL: http://host.docker.internal:1234
+      CHROMA_URL: http://vectors:8000
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    ports:
+      - "127.0.0.1:8010:8000"
+    volumes:
+      # Sovereign proof archive (read-only)
+      - "B:/BIZRA-SOVEREIGN:/mnt/sovereign:ro"
+      # Omega source for PyO3 bridge (read-only)
+      - ./bizra-omega:/mnt/omega:ro
+      # Persist receipts
+      - kernel_receipts:/app/docs/evidence/receipts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - bizra-mesh
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=0.95).read()"]
+      interval: 10s
+      timeout: 2s
+      retries: 20
+      start_period: 10s
+    logging: *log-cfg
+
+  # ── Rust Engine (PAT+SAT+FATE+SAPE) ──
+  elite:
+    build:
+      context: ./runtime
+      dockerfile: Dockerfile.elite
+    env_file:
+      - ./runtime/.env.reference
+    environment:
+      RUST_LOG: ${RUST_LOG:-info}
+      BIZRA_HTTP_PORT: 8080
+      BIZRA_HTTP_HOST: 0.0.0.0
+      BIZRA_API_TOKEN: ${BIZRA_API_TOKEN:-}
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_HOST: http://host.docker.internal:11434
+      NEO4J_URI: bolt://wisdom:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-bizra_wisdom}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-bizra_synapse_secure}@synapse:6379
+      CHROMA_URL: http://vectors:8000
+      BIZRA_IHSAN_ENV: ${BIZRA_IHSAN_ENV:-development}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - elite_receipts:/app/docs/evidence/receipts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      synapse: { condition: service_healthy }
+      wisdom:  { condition: service_started }
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging: *log-cfg
+
+  # ── BIZRA-OS Frontend (React) ──
+  frontend:
+    image: node:20-slim
+    working_dir: /app
+    command: ["npx", "vite", "--host", "0.0.0.0", "--port", "3000"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - "C:/BIZRA-OS:/app"
+    environment:
+      VITE_KERNEL_URL: http://host.docker.internal:8010
+      VITE_ELITE_URL: http://host.docker.internal:8080
+      VITE_KERNEL_TOKEN: ${BIZRA_API_TOKEN:-}
+    depends_on:
+      kernel: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *log-cfg
+
+  # ── Prometheus (optional metrics) ──
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./runtime/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command: ['--config.file=/etc/prometheus/prometheus.yml', '--storage.tsdb.path=/prometheus', '--storage.tsdb.retention.time=30d']
+    restart: unless-stopped
+    logging: *log-cfg
+
+volumes:
+  pgdata:
+  synapse_data:
+  wisdom_data:
+  vectors_data:
+  kernel_receipts:
+  elite_receipts:
+  prometheus_data:
+
+# ── Shared Network ──
+# External network created by scripts/node0_stack.sh
+# Enables cross-project service discovery (kernel ↔ synapse, wisdom, vectors)
+networks:
+  bizra-mesh:
+    external: true
+    name: bizra-mesh

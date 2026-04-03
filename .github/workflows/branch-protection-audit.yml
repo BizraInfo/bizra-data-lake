@@ -45,12 +45,15 @@ jobs:
           echo "mode=${MODE}" >> "$GITHUB_OUTPUT"
           REF="${GITHUB_REF}"
           if [ -z "${{ secrets.BIZRA_ADMIN_TOKEN }}" ]; then
-            if [ "$REF" = "refs/heads/main" ] || [ "$REF" = "refs/heads/master" ]; then
+            echo "token=false" >> "$GITHUB_OUTPUT"
+            if [ "${{ github.event_name }}" = "schedule" ]; then
+              echo "::warning::BIZRA_ADMIN_TOKEN is not configured; skipping scheduled branch protection ${MODE}."
+            elif [ "$REF" = "refs/heads/main" ] || [ "$REF" = "refs/heads/master" ]; then
               echo "::error::BIZRA_ADMIN_TOKEN is required on protected branches (${REF})."
               exit 1
+            else
+              echo "::warning::BIZRA_ADMIN_TOKEN is not configured; skipping branch protection ${MODE} on ${REF}."
             fi
-            echo "token=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::BIZRA_ADMIN_TOKEN is not configured; skipping branch protection ${MODE} on ${REF}."
           else
             echo "token=true" >> "$GITHUB_OUTPUT"
           fi
