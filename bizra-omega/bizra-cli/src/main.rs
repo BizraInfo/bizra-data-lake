@@ -928,32 +928,63 @@ fn render_tasks(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::R
     f.render_widget(para, area);
 }
 
-fn render_treasury(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layout::Rect) {
-    use ratatui::{
-        text::Span,
-        widgets::{Block, Borders, Paragraph},
+fn render_treasury(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
+    use ratatui::layout::{Constraint, Direction, Layout};
+
+    use crate::widgets::{SkillTree, Wallet};
+
+    let Some(data) = &app.dashboard_data else {
+        use ratatui::{
+            text::Span,
+            widgets::{Block, Borders, Paragraph},
+        };
+        let block = Block::default()
+            .title(Span::styled(" Treasury ", crate::theme::Theme::title()))
+            .borders(Borders::ALL)
+            .style(crate::theme::Theme::panel());
+        let msg = Paragraph::new("Gathering treasury data...").block(block);
+        f.render_widget(msg, area);
+        return;
     };
 
-    use crate::theme::Theme;
+    // Two-column: Wallet (50%) + Skills (50%)
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(area);
 
-    let block = Block::default()
-        .title(Span::styled(" Treasury ", Theme::title()))
-        .borders(Borders::ALL)
-        .border_style(Theme::panel_border())
-        .style(Theme::panel());
-
-    let para = Paragraph::new("Treasury management coming soon...").block(block);
-    f.render_widget(para, area);
+    f.render_widget(Wallet::from_data(data), columns[0]);
+    f.render_widget(SkillTree::from_data(data), columns[1]);
 }
 
-fn render_settings(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layout::Rect) {
+fn render_settings(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
     use ratatui::{
+        layout::{Constraint, Direction, Layout},
         text::{Line, Span},
         widgets::{Block, Borders, Paragraph},
     };
 
-    use crate::theme::Theme;
+    use crate::{theme::Theme, widgets::MemoryPanel};
 
+    // Two-column: Memory (50%) + Config (50%)
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(area);
+
+    // Left: Memory panel (needs dashboard data)
+    if let Some(data) = &app.dashboard_data {
+        f.render_widget(MemoryPanel::from_data(data), columns[0]);
+    } else {
+        let block = Block::default()
+            .title(Span::styled(" Memory ", Theme::title()))
+            .borders(Borders::ALL)
+            .style(Theme::panel());
+        let msg = Paragraph::new("Gathering memory data...").block(block);
+        f.render_widget(msg, columns[0]);
+    }
+
+    // Right: Configuration settings
     let block = Block::default()
         .title(Span::styled(" Settings ", Theme::title()))
         .borders(Borders::ALL)
@@ -970,13 +1001,25 @@ fn render_settings(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layou
             Span::styled("8998", Theme::text()),
         ]),
         Line::from(vec![
-            Span::styled("Ihsān Threshold: ", Theme::muted()),
+            Span::styled("Ihsan Threshold: ", Theme::muted()),
             Span::styled("0.95", Theme::ihsan()),
+        ]),
+        Line::from(vec![
+            Span::styled("SNR Threshold:   ", Theme::muted()),
+            Span::styled("0.85", Theme::text()),
+        ]),
+        Line::from(vec![
+            Span::styled("Gini Ceiling:    ", Theme::muted()),
+            Span::styled("0.35", Theme::text()),
+        ]),
+        Line::from(vec![
+            Span::styled("Zakat Rate:      ", Theme::muted()),
+            Span::styled("2.5%", Theme::ihsan()),
         ]),
     ];
 
     let para = Paragraph::new(lines).block(block);
-    f.render_widget(para, area);
+    f.render_widget(para, columns[1]);
 }
 
 // ── Phase 6 TUI Smoke Tests (Headless) ───────────────────
@@ -1351,5 +1394,107 @@ mod tests {
             content.contains("Trust"),
             "Must show Trust rail when no receipt selected"
         );
+    }
+
+    // ── Sprint 7.3+7.4: Treasury + Memory + Skills Rendering ──
+
+    #[test]
+    fn test_treasury_view_renders_wallet_and_skills() {
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = app::App::new();
+        app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+        app.last_refresh = Some(std::time::Instant::now());
+        app.active_view = app::ActiveView::Treasury;
+
+        terminal.draw(|f| ui(f, &app)).unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let content: String = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol().chars().next().unwrap_or(' '))
+            .collect();
+
+        assert!(
+            content.contains("Treasury"),
+            "Treasury view must render Wallet panel"
+        );
+        assert!(
+            content.contains("Skills") || content.contains("Reflex"),
+            "Treasury view must render Skills panel"
+        );
+    }
+
+    #[test]
+    fn test_settings_view_renders_memory_panel() {
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = app::App::new();
+        app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+        app.last_refresh = Some(std::time::Instant::now());
+        app.active_view = app::ActiveView::Settings;
+
+        terminal.draw(|f| ui(f, &app)).unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let content: String = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol().chars().next().unwrap_or(' '))
+            .collect();
+
+        assert!(
+            content.contains("Memory"),
+            "Settings view must render Memory panel"
+        );
+        assert!(
+            content.contains("Settings"),
+            "Settings view must render Settings panel"
+        );
+    }
+
+    #[test]
+    fn test_treasury_no_data_renders_loading() {
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = app::App::new();
+        app.active_view = app::ActiveView::Treasury;
+        // No dashboard_data
+
+        terminal.draw(|f| ui(f, &app)).unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let content: String = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol().chars().next().unwrap_or(' '))
+            .collect();
+
+        assert!(
+            content.contains("Gathering") || content.contains("Treasury"),
+            "Treasury with no data must show loading"
+        );
+    }
+
+    #[test]
+    fn test_all_views_render_with_data() {
+        // Every view must render without panic when data is present
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = app::App::new();
+        app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+        app.last_refresh = Some(std::time::Instant::now());
+
+        for view in app::ActiveView::all() {
+            app.active_view = *view;
+            terminal
+                .draw(|f| ui(f, &app))
+                .unwrap_or_else(|e| panic!("Render failed for {:?}: {}", view, e));
+        }
     }
 }
