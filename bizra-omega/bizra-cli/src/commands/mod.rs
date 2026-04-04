@@ -49,6 +49,20 @@ pub enum Commands {
         watch: bool,
     },
 
+    /// Execute a governed mission through the constitutional pipeline
+    Mission {
+        /// The mission objective (what you want to accomplish)
+        #[arg(required = true)]
+        objective: String,
+    },
+
+    /// View and verify the last mission receipt
+    Receipt {
+        /// Verify BLAKE3 hash integrity
+        #[arg(short = 'k', long)]
+        verify: bool,
+    },
+
     /// Interact with PAT agents
     #[command(subcommand)]
     Agent(AgentCommands),

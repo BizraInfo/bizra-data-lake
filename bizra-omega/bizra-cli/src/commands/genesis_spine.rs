@@ -8,11 +8,24 @@
 //!
 //! Standing on Giants: Bernstein (Ed25519) · Aumasson (BLAKE3) · Al-Ghazali (Ihsan)
 
+use std::sync::Mutex;
+
 use anyhow::{Context, Result};
 
 use bizra_core::genesis_seal::{ConstitutionalParams, GenesisSeal};
 use bizra_core::topology_canon::{PatAgent, SatAgent, TopologyCanon};
+use bizra_node::mission_bridge::{self, MissionResult};
 use bizra_node::substrate::ResourceManifest;
+use bizra_node::AgentRuntime;
+
+/// Thread-safe storage for the last mission receipt (session-scoped).
+static LAST_RECEIPT: Mutex<Option<LastReceipt>> = Mutex::new(None);
+
+struct LastReceipt {
+    result: MissionResult,
+    objective: String,
+    verifying_key: ed25519_dalek::VerifyingKey,
+}
 
 // ── bizra init ──────────────────────────────────────────────
 
@@ -429,6 +442,251 @@ pub fn exec_node(_watch: bool) -> Result<()> {
         }
     );
     println!();
+
+    Ok(())
+}
+
+// ── bizra mission ───────────────────────────────────────────
+
+/// Execute a governed mission through the constitutional pipeline.
+pub fn exec_mission(objective: &str) -> Result<()> {
+    println!();
+    println!("  \x1b[36m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("  \x1b[36m║\x1b[0m           \x1b[1mBIZRA Governed Mission Execution\x1b[0m                 \x1b[36m║\x1b[0m");
+    println!("  \x1b[36m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!();
+
+    println!("  \x1b[33mObjective:\x1b[0m {}", objective);
+    println!();
+
+    // ── Discover available models ──
+    println!("  \x1b[33m[1/4]\x1b[0m Discovering substrate models...");
+    let manifest = ResourceManifest::discover();
+    let model_names = mission_bridge::extract_model_names(&manifest);
+    println!("        {} models available", model_names.len());
+    if model_names.is_empty() {
+        println!("  \x1b[31m✗ No models available — mission cannot proceed\x1b[0m");
+        println!("    Install models: ollama pull qwen2.5:3b");
+        println!();
+        return Ok(());
+    }
+
+    // ── Generate ephemeral signing key ──
+    println!("  \x1b[33m[2/4]\x1b[0m Generating Ed25519 signing key...");
+    let signing_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
+    let verifying_key = ed25519_dalek::VerifyingKey::from(&signing_key);
+
+    // ── Set Ihsan and timestamp ──
+    let ihsan = bizra_node::IhsanScore::from_f64(0.96);
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    // ── Execute governed mission ──
+    println!("  \x1b[33m[3/4]\x1b[0m Executing through constitutional pipeline...");
+    println!("        Gate chain: {:?}", TopologyCanon::GATE_ORDER);
+
+    let mut runtime = AgentRuntime::new();
+    let result = mission_bridge::execute_governed_mission(
+        &mut runtime,
+        &ihsan,
+        objective,
+        now,
+        &model_names,
+        None, // genesis receipt (no chain predecessor)
+        Some(&signing_key),
+    );
+
+    // ── Display receipt ──
+    println!("  \x1b[33m[4/4]\x1b[0m Receipt emitted.");
+    println!();
+
+    let receipt = &result.receipt;
+    let state_label = format!("{:?}", receipt.final_state);
+    let state_color = if receipt.is_success() {
+        "\x1b[32m"
+    } else if receipt.is_degraded() {
+        "\x1b[33m"
+    } else {
+        "\x1b[31m"
+    };
+
+    println!("  \x1b[32m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("  \x1b[32m║\x1b[0m  MISSION RECEIPT                                           \x1b[32m║\x1b[0m");
+    println!("  \x1b[32m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!("    Receipt ID:  {}", receipt.id_hex());
+    println!("    State:       {}{}\x1b[0m", state_color, state_label);
+    println!(
+        "    Ihsan:       {}",
+        receipt
+            .ihsan_score
+            .map(|s| format!("{:.2}", s))
+            .unwrap_or_else(|| "—".into())
+    );
+    println!(
+        "    Guardian:    {}",
+        match receipt.guardian_approved {
+            Some(true) => "\x1b[32mAPPROVED\x1b[0m",
+            Some(false) => "\x1b[31mVETOED\x1b[0m",
+            None => "—",
+        }
+    );
+    println!(
+        "    Model:       {}",
+        receipt.chosen_model.as_deref().unwrap_or("none")
+    );
+    println!(
+        "    Signed:      {}",
+        if receipt.is_signed() {
+            "\x1b[32mYes (Ed25519)\x1b[0m"
+        } else {
+            "\x1b[31mNo\x1b[0m"
+        }
+    );
+    println!(
+        "    Hash Valid:  {}",
+        if receipt.verify_hash() {
+            "\x1b[32mYes (BLAKE3)\x1b[0m"
+        } else {
+            "\x1b[31mNo\x1b[0m"
+        }
+    );
+    println!(
+        "    Sig Valid:   {}",
+        if receipt.verify_signature(&verifying_key) {
+            "\x1b[32mYes\x1b[0m"
+        } else {
+            "\x1b[31mNo\x1b[0m"
+        }
+    );
+    println!("    Tier:        {}", receipt.degradation_tier);
+    println!(
+        "    States:      {}",
+        receipt
+            .states_traversed
+            .iter()
+            .map(|s| format!("{:?}", s))
+            .collect::<Vec<_>>()
+            .join(" → ")
+    );
+
+    if let Some(ref resp) = result.runtime_response {
+        println!();
+        println!("  \x1b[33mResponse:\x1b[0m");
+        let content = resp.response.content.as_str();
+        for line in content.lines().take(20) {
+            println!("    {}", line);
+        }
+    }
+
+    // Store for `bizra receipt` to access
+    if let Ok(mut lock) = LAST_RECEIPT.lock() {
+        *lock = Some(LastReceipt {
+            result,
+            objective: objective.to_string(),
+            verifying_key,
+        });
+    }
+
+    println!();
+    println!("    Next: \x1b[1mbizra receipt --verify\x1b[0m — verify receipt integrity");
+    println!();
+
+    Ok(())
+}
+
+// ── bizra receipt ───────────────────────────────────────────
+
+/// Display and optionally verify the last mission receipt.
+pub fn exec_receipt(verify: bool) -> Result<()> {
+    println!();
+    println!("  \x1b[36m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("  \x1b[36m║\x1b[0m             \x1b[1mBIZRA Receipt Verification\x1b[0m                     \x1b[36m║\x1b[0m");
+    println!("  \x1b[36m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!();
+
+    let lock = LAST_RECEIPT
+        .lock()
+        .map_err(|_| anyhow::anyhow!("receipt lock poisoned"))?;
+
+    match lock.as_ref() {
+        None => {
+            println!(
+                "  No receipt in session. Run \x1b[1mbizra mission \"<objective>\"\x1b[0m first."
+            );
+            println!();
+        }
+        Some(last) => {
+            let receipt = &last.result.receipt;
+
+            println!("  \x1b[33mReceipt:\x1b[0m");
+            println!("    ID:          {}", receipt.id_hex());
+            println!("    Objective:   {}", last.objective);
+            println!("    State:       {:?}", receipt.final_state);
+            println!(
+                "    Ihsan:       {}",
+                receipt
+                    .ihsan_score
+                    .map(|s| format!("{:.2}", s))
+                    .unwrap_or_else(|| "—".into())
+            );
+            println!(
+                "    Model:       {}",
+                receipt.chosen_model.as_deref().unwrap_or("none")
+            );
+            println!("    Tier:        {}", receipt.degradation_tier);
+            println!("    Signed:      {}", receipt.is_signed());
+            println!(
+                "    Chain Link:  {}",
+                receipt
+                    .previous_receipt_hash
+                    .map(hex::encode)
+                    .unwrap_or_else(|| "genesis (no predecessor)".into())
+            );
+            println!();
+
+            if verify {
+                println!("  \x1b[33mVerification:\x1b[0m");
+                let hash_ok = receipt.verify_hash();
+                let sig_ok = receipt.verify_signature(&last.verifying_key);
+                let full_ok = receipt.verify_full(&last.verifying_key, None);
+
+                println!(
+                    "    [{}] BLAKE3 hash integrity",
+                    if hash_ok {
+                        "\x1b[32m✓\x1b[0m"
+                    } else {
+                        "\x1b[31m✗\x1b[0m"
+                    }
+                );
+                println!(
+                    "    [{}] Ed25519 signature",
+                    if sig_ok {
+                        "\x1b[32m✓\x1b[0m"
+                    } else {
+                        "\x1b[31m✗\x1b[0m"
+                    }
+                );
+                println!(
+                    "    [{}] Full integrity (hash + sig + chain)",
+                    if full_ok {
+                        "\x1b[32m✓\x1b[0m"
+                    } else {
+                        "\x1b[31m✗\x1b[0m"
+                    }
+                );
+                println!();
+
+                if hash_ok && sig_ok && full_ok {
+                    println!("  \x1b[32m✓ Receipt is cryptographically valid\x1b[0m");
+                } else {
+                    println!("  \x1b[31m✗ Receipt verification failed\x1b[0m");
+                }
+                println!();
+            }
+        }
+    }
 
     Ok(())
 }
