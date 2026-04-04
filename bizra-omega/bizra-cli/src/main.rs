@@ -82,6 +82,7 @@ fn main() -> Result<()> {
         Some(Commands::Replay { id }) => commands::genesis_spine::exec_replay(&id),
         Some(Commands::Trust) => commands::genesis_spine::exec_trust(),
         Some(Commands::Manifest) => commands::genesis_spine::exec_manifest(),
+        Some(Commands::Brief) => commands::genesis_spine::exec_brief(),
 
         Some(Commands::Agent(cmd)) => match cmd {
             AgentCommands::List => commands::exec_agent_list(),

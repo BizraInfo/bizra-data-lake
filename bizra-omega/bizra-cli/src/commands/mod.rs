@@ -76,6 +76,9 @@ pub enum Commands {
     /// Show daily receipt manifest — proof-of-life artifact
     Manifest,
 
+    /// Sovereign morning briefing — proactive system intelligence
+    Brief,
+
     /// Interact with PAT agents
     #[command(subcommand)]
     Agent(AgentCommands),

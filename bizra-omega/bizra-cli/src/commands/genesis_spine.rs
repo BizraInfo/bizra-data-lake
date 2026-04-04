@@ -1297,3 +1297,226 @@ pub fn exec_replay(id_prefix: &str) -> Result<()> {
 
     Ok(())
 }
+
+// ── bizra brief ─────────────────────────────────────────────
+
+/// Sovereign morning briefing — proactive system intelligence.
+/// The Ghost layer's first visible surface: aggregates health,
+/// receipts, trust, models, and recommendations into one view.
+pub fn exec_brief() -> Result<()> {
+    use chrono::Timelike;
+
+    let now = chrono::Local::now();
+    let greeting = match now.hour() {
+        5..=11 => "Good morning",
+        12..=16 => "Good afternoon",
+        17..=21 => "Good evening",
+        _ => "Sovereign briefing",
+    };
+
+    println!();
+    println!("  \x1b[36m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!(
+        "  \x1b[36m║\x1b[0m  \x1b[1m{}, MoMo.\x1b[0m{}\x1b[36m║\x1b[0m",
+        greeting,
+        " ".repeat(43 - greeting.len())
+    );
+    println!("  \x1b[36m║\x1b[0m  BIZRA Sovereign Node — Daily Brief                        \x1b[36m║\x1b[0m");
+    println!(
+        "  \x1b[36m║\x1b[0m  {:<56}\x1b[36m║\x1b[0m",
+        now.format("%A, %B %e, %Y • %H:%M")
+    );
+    println!("  \x1b[36m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!();
+
+    // ── Substrate ──
+    let manifest = ResourceManifest::discover();
+    let hw = &manifest.hardware;
+    let ram_pct = if hw.ram_total_gb > 0.0 {
+        ((hw.ram_total_gb - hw.ram_available_gb) / hw.ram_total_gb) * 100.0
+    } else {
+        0.0
+    };
+
+    println!("  \x1b[33m[Substrate]\x1b[0m");
+    println!(
+        "    {} • {} cores • {:.0} GB RAM ({:.0}% used)",
+        hw.cpu_name, hw.cpu_cores, hw.ram_total_gb, ram_pct
+    );
+    if let Some(gpu) = hw.gpus.first() {
+        let gpu_pct = if gpu.vram_total_mb > 0 {
+            (gpu.vram_used_mb as f64 / gpu.vram_total_mb as f64) * 100.0
+        } else {
+            0.0
+        };
+        println!(
+            "    {} • {}/{} MB VRAM ({:.0}%)",
+            gpu.name, gpu.vram_used_mb, gpu.vram_total_mb, gpu_pct
+        );
+    }
+    println!(
+        "    {} models across {} runtime(s)",
+        manifest.total_models(),
+        manifest.model_count_by_runtime.len()
+    );
+    println!();
+
+    // ── Runtime Health ──
+    let runtime = AgentRuntime::new();
+    let health = runtime.health();
+    println!("  \x1b[33m[Runtime]\x1b[0m");
+    println!(
+        "    State: \x1b[{}m{:?}\x1b[0m  •  Reflex: {}  •  Rules: {}",
+        match health.state {
+            bizra_node::RuntimeState::Ready => "32",
+            bizra_node::RuntimeState::Degraded => "33",
+            _ => "31",
+        },
+        health.state,
+        health.reflex_mode.as_str(),
+        health.reflex_rules
+    );
+    println!(
+        "    Agents: {}/{}  •  Vetoes: {}  •  Knows-Me: {:.2}",
+        health.agents_active, health.agents_registered, health.total_vetoes, health.knows_me_score
+    );
+    println!();
+
+    // ── Receipt Chain ──
+    println!("  \x1b[33m[Receipts]\x1b[0m");
+    let entries = load_ledger().unwrap_or_default();
+    if entries.is_empty() {
+        println!("    No receipts yet. Your first mission awaits.");
+    } else {
+        let total = entries.len();
+        let complete = entries.iter().filter(|e| e.receipt.is_success()).count();
+        let degraded = entries.iter().filter(|e| e.receipt.is_degraded()).count();
+        let failed = total - complete - degraded;
+        let all_valid = entries.iter().all(|e| e.receipt.verify_hash());
+
+        println!(
+            "    {} total  •  \x1b[32m{} complete\x1b[0m  •  \x1b[33m{} degraded\x1b[0m  •  \x1b[31m{} failed\x1b[0m",
+            total, complete, degraded, failed
+        );
+        println!(
+            "    Chain: {}",
+            if all_valid {
+                "\x1b[32m✓ All hashes valid\x1b[0m"
+            } else {
+                "\x1b[31m✗ Chain integrity broken\x1b[0m"
+            }
+        );
+
+        // Last mission
+        let last = entries.last().unwrap();
+        let state_color = if last.receipt.is_success() {
+            "\x1b[32m"
+        } else if last.receipt.is_degraded() {
+            "\x1b[33m"
+        } else {
+            "\x1b[31m"
+        };
+        println!(
+            "    Last:  {}…  {}{:?}\x1b[0m  {}",
+            &last.receipt.id_hex()[..12],
+            state_color,
+            last.receipt.final_state,
+            last.objective
+        );
+    }
+    println!();
+
+    // ── Constitutional Trust ──
+    println!("  \x1b[33m[Constitution]\x1b[0m");
+    let ihsan_ok = (bizra_core::IHSAN_THRESHOLD - 0.95).abs() < f64::EPSILON;
+    let snr_ok = (bizra_core::SNR_THRESHOLD - 0.85).abs() < f64::EPSILON;
+    let gini_ok = (bizra_core::omega::ADL_GINI_THRESHOLD - 0.35).abs() < f64::EPSILON;
+    let topo_ok = TopologyCanon::PAT_COUNT == 7 && TopologyCanon::SAT_COUNT == 5;
+    let gates_ok = TopologyCanon::GATE_ORDER.len() == 3;
+    let all_trust = ihsan_ok && snr_ok && gini_ok && topo_ok && gates_ok;
+
+    println!(
+        "    Ihsan: {:.2}  SNR: {:.2}  Gini: {:.2}  PAT/SAT: {}/{}  Gates: {}",
+        bizra_core::IHSAN_THRESHOLD,
+        bizra_core::SNR_THRESHOLD,
+        bizra_core::omega::ADL_GINI_THRESHOLD,
+        TopologyCanon::PAT_COUNT,
+        TopologyCanon::SAT_COUNT,
+        TopologyCanon::GATE_ORDER.len()
+    );
+    println!(
+        "    Trust: {}",
+        if all_trust {
+            "\x1b[32mSOVEREIGN\x1b[0m"
+        } else {
+            "\x1b[33mDEGRADED — run bizra trust\x1b[0m"
+        }
+    );
+    println!();
+
+    // ── Models ──
+    println!("  \x1b[33m[Models]\x1b[0m");
+    let model_names = mission_bridge::extract_model_names(&manifest);
+    let is_vision = |m: &str| m.contains("moondream") || m.contains("VL") || m.contains("vision");
+    let text_models: Vec<&String> = model_names.iter().filter(|m| !is_vision(m)).collect();
+    let vision_models: Vec<&String> = model_names.iter().filter(|m| is_vision(m)).collect();
+
+    if !text_models.is_empty() {
+        println!(
+            "    Text:   {} ({})",
+            text_models.len(),
+            text_models
+                .iter()
+                .take(3)
+                .map(|m| m.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
+    if !vision_models.is_empty() {
+        println!(
+            "    Vision: {} ({})",
+            vision_models.len(),
+            vision_models
+                .iter()
+                .take(2)
+                .map(|m| m.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
+    if model_names.is_empty() {
+        println!("    \x1b[31mNo models available\x1b[0m");
+    }
+    println!();
+
+    // ── Recommendations ──
+    println!("  \x1b[33m[Recommendations]\x1b[0m");
+    let mut recs: Vec<&str> = Vec::new();
+
+    if entries.is_empty() {
+        recs.push("Run your first mission: bizra mission \"<objective>\"");
+    }
+    if manifest.total_models() == 0 {
+        recs.push("Install a model: ollama pull qwen2.5:3b");
+    }
+    if text_models.is_empty() && !model_names.is_empty() {
+        recs.push("Install a text model — only vision models detected");
+    }
+    if !entries.is_empty() && entries.iter().any(|e| !e.receipt.verify_hash()) {
+        recs.push("Receipt chain has invalid hashes — run: bizra receipt --verify");
+    }
+    if recs.is_empty() {
+        recs.push("System healthy. Ready for sovereign missions.");
+    }
+
+    for rec in &recs {
+        println!("    → {rec}");
+    }
+    println!();
+
+    println!("  \x1b[2m\"Every human is a node. Every node is a seed.\" — بذرة\x1b[0m");
+    println!();
+
+    Ok(())
+}
