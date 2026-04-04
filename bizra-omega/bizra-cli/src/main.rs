@@ -71,6 +71,13 @@ fn main() -> Result<()> {
         }
         Some(Commands::Status) => commands::exec_status(),
         Some(Commands::Info) => commands::exec_info(),
+
+        // Genesis Spine (Phase 1)
+        Some(Commands::Init { force }) => commands::genesis_spine::exec_init(force),
+        Some(Commands::Genesis { verbose }) => commands::genesis_spine::exec_genesis(verbose),
+        Some(Commands::Agents { verbose }) => commands::genesis_spine::exec_agents(verbose),
+        Some(Commands::Node { watch }) => commands::genesis_spine::exec_node(watch),
+
         Some(Commands::Agent(cmd)) => match cmd {
             AgentCommands::List => commands::exec_agent_list(),
             AgentCommands::Show { name } => {

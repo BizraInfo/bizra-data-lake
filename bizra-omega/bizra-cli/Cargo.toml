@@ -36,6 +36,18 @@ anyhow = "1.0"
 reqwest.workspace = true
 futures = "0.3"
 
+# BIZRA Core — Constitutional spine, genesis seal, topology
+bizra-core = { path = "../bizra-core" }
+
+# BIZRA Node — Substrate discovery, identity registry, node state
+bizra-node = { path = "../bizra-node" }
+
+# Cryptographic signing
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+rand = "0.8"
+blake3 = { workspace = true }
+hex = { workspace = true }
+
 [features]
 default = []
 

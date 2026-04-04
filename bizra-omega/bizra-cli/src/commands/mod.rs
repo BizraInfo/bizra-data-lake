@@ -1,9 +1,17 @@
 //! BIZRA CLI Commands
 //!
 //! Non-interactive CLI command handlers.
+//!
+//! Genesis Spine (Phase 1):
+//!   bizra init    — Discover substrate, generate node identity
+//!   bizra genesis — Compute GenesisSeal, bind to constitution
+//!   bizra agents  — Show PAT-7 + SAT-5 topology and mint status
+//!   bizra node    — Node health, identity, constitutional compliance
 
 use anyhow::Result;
 use clap::Subcommand;
+
+pub mod genesis_spine;
 
 #[derive(Subcommand)]
 pub enum Commands {
@@ -12,6 +20,34 @@ pub enum Commands {
 
     /// Show node status
     Status,
+
+    /// Initialize sovereign node — discover substrate, generate Ed25519 identity
+    Init {
+        /// Force re-initialization even if node already exists
+        #[arg(long)]
+        force: bool,
+    },
+
+    /// Compute and display the Genesis Seal — constitutional root of trust
+    Genesis {
+        /// Show full constitutional parameters
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Show PAT-7 + SAT-5 agent topology and mint status
+    Agents {
+        /// Show detailed agent capabilities
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Show sovereign node health and constitutional compliance
+    Node {
+        /// Watch mode — continuous health updates
+        #[arg(short, long)]
+        watch: bool,
+    },
 
     /// Interact with PAT agents
     #[command(subcommand)]
