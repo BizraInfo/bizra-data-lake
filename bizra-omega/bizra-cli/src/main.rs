@@ -399,10 +399,24 @@ where
                             app.prev_view();
                         }
                         KeyCode::Char('j') | KeyCode::Down => {
-                            app.next_agent();
+                            if app.active_view == app::ActiveView::Dashboard {
+                                app.next_receipt();
+                            } else {
+                                app.next_agent();
+                            }
                         }
                         KeyCode::Char('k') | KeyCode::Up => {
-                            app.prev_agent();
+                            if app.active_view == app::ActiveView::Dashboard {
+                                app.prev_receipt();
+                            } else {
+                                app.prev_agent();
+                            }
+                        }
+                        KeyCode::Esc => {
+                            // Deselect receipt on Dashboard
+                            if app.active_view == app::ActiveView::Dashboard {
+                                app.selected_receipt = None;
+                            }
                         }
                         KeyCode::Char('r') => {
                             let mut new_data = commands::genesis_spine::gather_dashboard_data();
@@ -420,12 +434,63 @@ where
                             app.last_refresh = Some(std::time::Instant::now());
                             app.set_status("Dashboard refreshed");
                         }
+                        KeyCode::Char('m') => {
+                            if app.active_view == app::ActiveView::Dashboard {
+                                app.input_mode = app::InputMode::MissionInput;
+                                app.input.clear();
+                            }
+                        }
                         KeyCode::Char('1') => app.active_view = app::ActiveView::Dashboard,
                         KeyCode::Char('2') => app.active_view = app::ActiveView::Agents,
                         KeyCode::Char('3') => app.active_view = app::ActiveView::Chat,
                         KeyCode::Char('4') => app.active_view = app::ActiveView::Tasks,
                         KeyCode::Char('5') => app.active_view = app::ActiveView::Treasury,
                         KeyCode::Char('6') => app.active_view = app::ActiveView::Settings,
+                        _ => {}
+                    },
+                    app::InputMode::MissionInput => match key.code {
+                        KeyCode::Esc => {
+                            app.input_mode = app::InputMode::Normal;
+                            app.input.clear();
+                        }
+                        KeyCode::Enter => {
+                            let objective = app.input.trim().to_string();
+                            if !objective.is_empty() {
+                                app.set_status(format!("Submitting mission: {}...", &objective));
+                                app.input_mode = app::InputMode::Normal;
+                                app.input.clear();
+
+                                // Execute governed mission through mission_bridge
+                                match commands::genesis_spine::submit_mission_from_tui(&objective) {
+                                    Ok(msg) => app.set_status(msg),
+                                    Err(e) => app.set_status(format!("Mission failed: {e}")),
+                                }
+
+                                // Refresh dashboard to show new receipt
+                                let mut new_data = commands::genesis_spine::gather_dashboard_data();
+                                if let Some(ref prev) = app.dashboard_data {
+                                    let new_events =
+                                        commands::genesis_spine::detect_events(prev, &new_data);
+                                    let mut log = prev.event_log.clone();
+                                    log.extend(new_events);
+                                    if log.len() > 20 {
+                                        log.drain(..log.len() - 20);
+                                    }
+                                    new_data.event_log = log;
+                                }
+                                app.dashboard_data = Some(new_data);
+                                app.last_refresh = Some(std::time::Instant::now());
+                            } else {
+                                app.input_mode = app::InputMode::Normal;
+                                app.input.clear();
+                            }
+                        }
+                        KeyCode::Char(c) => {
+                            app.input.push(c);
+                        }
+                        KeyCode::Backspace => {
+                            app.input.pop();
+                        }
                         _ => {}
                     },
                     app::InputMode::Editing | app::InputMode::Command => {
@@ -586,15 +651,13 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
             height: 3,
         };
 
+        let input_title = match app.input_mode {
+            app::InputMode::Command => " Command ",
+            app::InputMode::MissionInput => " Mission Objective (Enter to submit, Esc to cancel) ",
+            _ => " Message ",
+        };
         let input_block = Block::default()
-            .title(Span::styled(
-                if app.input_mode == app::InputMode::Command {
-                    " Command "
-                } else {
-                    " Message "
-                },
-                Theme::highlight(),
-            ))
+            .title(Span::styled(input_title, Theme::highlight()))
             .borders(Borders::ALL)
             .border_style(Theme::panel_border_focused())
             .style(Theme::panel_focused());
@@ -614,7 +677,9 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
 fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
     use ratatui::layout::{Constraint, Direction, Layout};
 
-    use crate::widgets::{GhostFeed, ParliamentPanel, ReceiptRail, SubstratePanel, TrustRail};
+    use crate::widgets::{
+        GhostFeed, ParliamentPanel, ReceiptDetail, ReceiptRail, SubstratePanel, TrustRail,
+    };
 
     // Guard: need data to render
     let Some(data) = &app.dashboard_data else {
@@ -634,7 +699,7 @@ fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layou
         .constraints([
             Constraint::Percentage(30), // Left: Parliament + Substrate
             Constraint::Percentage(35), // Center: Ghost + Receipt
-            Constraint::Percentage(35), // Right: Trust
+            Constraint::Percentage(35), // Right: Trust or Receipt Detail
         ])
         .split(area);
 
@@ -665,9 +730,27 @@ fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layou
     // Zone 6: Receipt Rail
     f.render_widget(ReceiptRail::from_data(data), center[1]);
 
-    // ── Right Column: Trust Rail (full height) ──
-    // Zone 4: Trust Rail
-    f.render_widget(TrustRail::from_data(data), columns[2]);
+    // ── Right Column: Receipt Detail (if selected) or Trust Rail ──
+    if let Some(idx) = app.selected_receipt {
+        if let Some(receipt) = data.all_receipts.get(idx) {
+            // Sprint 7.2: Receipt detail replaces trust rail when selected
+            let right = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(65), Constraint::Percentage(35)])
+                .split(columns[2]);
+
+            f.render_widget(
+                ReceiptDetail::new(receipt, idx, data.all_receipts.len()),
+                right[0],
+            );
+            f.render_widget(TrustRail::from_data(data), right[1]);
+        } else {
+            f.render_widget(TrustRail::from_data(data), columns[2]);
+        }
+    } else {
+        // Zone 4: Trust Rail (full height, default)
+        f.render_widget(TrustRail::from_data(data), columns[2]);
+    }
 }
 
 fn render_agents(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
@@ -1098,6 +1181,175 @@ mod tests {
         assert!(
             content.contains("abc123") || content.contains("mission"),
             "Ghost feed must render injected event content"
+        );
+    }
+
+    // ── Sprint 7.2: Receipt Detail + Navigation Tests ─────────
+
+    #[test]
+    fn test_receipt_detail_renders_with_selection() {
+        use commands::genesis_spine::ReceiptSummary;
+
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = app::App::new();
+        let mut data = commands::genesis_spine::gather_dashboard_data();
+
+        // Inject test receipts
+        data.all_receipts = vec![ReceiptSummary {
+            id_short: "deadbeef01234567".into(),
+            objective: "Sovereign proof test".into(),
+            state_label: "Complete",
+            is_success: true,
+            is_degraded: false,
+            signed: true,
+            ihsan_score: Some(0.97),
+            snr_score: Some(0.93),
+            chosen_model: Some("qwen2.5-coder:3b".into()),
+            degradation_tier: 0,
+            states_traversed: 7,
+            chain_link: Some("prev0123456789ab".into()),
+        }];
+
+        app.dashboard_data = Some(data);
+        app.last_refresh = Some(std::time::Instant::now());
+        app.selected_receipt = Some(0); // Select first receipt
+
+        terminal.draw(|f| ui(f, &app)).unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let content: String = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol().chars().next().unwrap_or(' '))
+            .collect();
+
+        // Receipt detail panel must render
+        assert!(
+            content.contains("deadbeef"),
+            "Receipt detail must show receipt ID"
+        );
+        assert!(
+            content.contains("0.97") || content.contains("Ihsan"),
+            "Receipt detail must show Ihsan score or label"
+        );
+    }
+
+    #[test]
+    fn test_receipt_navigation_cycle() {
+        let mut app = app::App::new();
+        let mut data = commands::genesis_spine::gather_dashboard_data();
+
+        // Inject 3 receipts
+        data.all_receipts = vec![
+            commands::genesis_spine::ReceiptSummary {
+                id_short: "r1".into(),
+                objective: "First".into(),
+                state_label: "Complete",
+                is_success: true,
+                is_degraded: false,
+                signed: true,
+                ihsan_score: Some(0.96),
+                snr_score: Some(0.90),
+                chosen_model: None,
+                degradation_tier: 0,
+                states_traversed: 3,
+                chain_link: None,
+            },
+            commands::genesis_spine::ReceiptSummary {
+                id_short: "r2".into(),
+                objective: "Second".into(),
+                state_label: "Complete",
+                is_success: true,
+                is_degraded: false,
+                signed: true,
+                ihsan_score: Some(0.95),
+                snr_score: Some(0.88),
+                chosen_model: None,
+                degradation_tier: 0,
+                states_traversed: 4,
+                chain_link: Some("r1hash".into()),
+            },
+            commands::genesis_spine::ReceiptSummary {
+                id_short: "r3".into(),
+                objective: "Third".into(),
+                state_label: "Degraded",
+                is_success: false,
+                is_degraded: true,
+                signed: true,
+                ihsan_score: Some(0.80),
+                snr_score: Some(0.70),
+                chosen_model: None,
+                degradation_tier: 2,
+                states_traversed: 5,
+                chain_link: Some("r2hash".into()),
+            },
+        ];
+        app.dashboard_data = Some(data);
+
+        assert!(app.selected_receipt.is_none());
+
+        // Navigate forward
+        app.next_receipt();
+        assert_eq!(app.selected_receipt, Some(0));
+        app.next_receipt();
+        assert_eq!(app.selected_receipt, Some(1));
+        app.next_receipt();
+        assert_eq!(app.selected_receipt, Some(2));
+        // Wraps around
+        app.next_receipt();
+        assert_eq!(app.selected_receipt, Some(0));
+
+        // Navigate backward from 0 wraps to end
+        app.prev_receipt();
+        assert_eq!(app.selected_receipt, Some(2));
+    }
+
+    #[test]
+    fn test_mission_input_mode() {
+        let mut app = app::App::new();
+
+        // Start in Normal mode
+        assert_eq!(app.input_mode, app::InputMode::Normal);
+        assert!(app.input.is_empty());
+
+        // Simulate entering mission input mode
+        app.input_mode = app::InputMode::MissionInput;
+        app.input = "Test sovereign mission".into();
+
+        assert_eq!(app.input_mode, app::InputMode::MissionInput);
+        assert_eq!(app.input, "Test sovereign mission");
+
+        // Simulate cancel
+        app.input_mode = app::InputMode::Normal;
+        app.input.clear();
+        assert!(app.input.is_empty());
+    }
+
+    #[test]
+    fn test_dashboard_renders_without_selection() {
+        // Dashboard with no receipt selected should render trust rail (not detail)
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = app::App::new();
+        app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+        app.last_refresh = Some(std::time::Instant::now());
+        app.selected_receipt = None;
+
+        terminal.draw(|f| ui(f, &app)).unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let content: String = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol().chars().next().unwrap_or(' '))
+            .collect();
+
+        assert!(
+            content.contains("Trust"),
+            "Must show Trust rail when no receipt selected"
         );
     }
 }

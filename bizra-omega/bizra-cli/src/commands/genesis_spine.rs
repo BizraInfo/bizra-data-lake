@@ -97,15 +97,20 @@ pub struct GpuInfo {
 }
 
 /// Summary of a single receipt for dashboard display.
+#[derive(Clone)]
 pub struct ReceiptSummary {
     pub id_short: String,
     pub objective: String,
     pub state_label: &'static str,
     pub is_success: bool,
     pub is_degraded: bool,
-    // Scaffolding — used when receipt rail shows signature badges
-    #[allow(dead_code)]
     pub signed: bool,
+    pub ihsan_score: Option<f32>,
+    pub snr_score: Option<f32>,
+    pub chosen_model: Option<String>,
+    pub degradation_tier: u8,
+    pub states_traversed: usize,
+    pub chain_link: Option<String>,
 }
 
 /// A single trust surface check.
@@ -258,6 +263,7 @@ pub struct DashboardData {
     pub failed_count: usize,
     pub chain_valid: bool,
     pub recent_receipts: Vec<ReceiptSummary>,
+    pub all_receipts: Vec<ReceiptSummary>,
 
     // Today's manifest
     pub today_count: usize,
@@ -346,28 +352,36 @@ pub fn gather_dashboard_data() -> DashboardData {
     let failed_count = total_receipts - complete_count - degraded_count;
     let chain_valid = entries.iter().all(|e| e.receipt.verify_hash());
 
-    let recent_receipts: Vec<ReceiptSummary> = entries
-        .iter()
-        .rev()
-        .take(10)
-        .map(|e| {
-            let state_label = if e.receipt.is_success() {
-                "Complete"
-            } else if e.receipt.is_degraded() {
-                "Degraded"
-            } else {
-                "Failed"
-            };
-            ReceiptSummary {
-                id_short: e.receipt.id_hex().chars().take(16).collect(),
-                objective: truncate_str(&e.objective, 40),
-                state_label,
-                is_success: e.receipt.is_success(),
-                is_degraded: e.receipt.is_degraded(),
-                signed: e.receipt.is_signed(),
-            }
-        })
-        .collect();
+    let to_summary = |e: &LedgerEntry| -> ReceiptSummary {
+        let state_label = if e.receipt.is_success() {
+            "Complete"
+        } else if e.receipt.is_degraded() {
+            "Degraded"
+        } else {
+            "Failed"
+        };
+        let chain_link = e
+            .receipt
+            .previous_receipt_hash
+            .map(|h| hex::encode(h).chars().take(16).collect());
+        ReceiptSummary {
+            id_short: e.receipt.id_hex().chars().take(16).collect(),
+            objective: truncate_str(&e.objective, 40),
+            state_label,
+            is_success: e.receipt.is_success(),
+            is_degraded: e.receipt.is_degraded(),
+            signed: e.receipt.is_signed(),
+            ihsan_score: e.receipt.ihsan_score,
+            snr_score: e.receipt.snr_score,
+            chosen_model: e.receipt.chosen_model.clone(),
+            degradation_tier: e.receipt.degradation_tier,
+            states_traversed: e.receipt.states_traversed.len(),
+            chain_link,
+        }
+    };
+
+    let all_receipts: Vec<ReceiptSummary> = entries.iter().rev().map(to_summary).collect();
+    let recent_receipts: Vec<ReceiptSummary> = all_receipts.iter().take(10).cloned().collect();
 
     // ── 5. Today's manifest ──
     let now_secs = std::time::SystemTime::now()
@@ -573,6 +587,7 @@ pub fn gather_dashboard_data() -> DashboardData {
         failed_count,
         chain_valid,
         recent_receipts,
+        all_receipts,
         today_count,
         today_complete,
         manifest_seal,
@@ -2038,7 +2053,68 @@ pub fn exec_brief() -> Result<()> {
     Ok(())
 }
 
-// ── Phase 6 Acceptance Tests ──────────────────────────────
+// ── TUI Mission Submission (Sprint 7.2) ──────────────────
+
+/// Submit a mission from the TUI dashboard. Returns a status message.
+/// Same truth path as `exec_mission` — no shadow authority.
+pub fn submit_mission_from_tui(objective: &str) -> Result<String> {
+    let manifest = ResourceManifest::discover();
+    let model_names = mission_bridge::extract_model_names(&manifest);
+    if model_names.is_empty() {
+        return Ok("No models available — install with: ollama pull qwen2.5:3b".into());
+    }
+
+    let signing_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
+    let verifying_key = ed25519_dalek::VerifyingKey::from(&signing_key);
+    let ihsan = bizra_node::IhsanScore::from_f64(0.96);
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let mut runtime = AgentRuntime::new();
+    let result = mission_bridge::execute_governed_mission(
+        &mut runtime,
+        &ihsan,
+        objective,
+        now,
+        &model_names,
+        None,
+        Some(&signing_key),
+    );
+
+    let receipt = &result.receipt;
+    let state_label = if receipt.is_success() {
+        "Complete"
+    } else if receipt.is_degraded() {
+        "Degraded"
+    } else {
+        "Failed"
+    };
+
+    // Persist to disk ledger
+    let entry = LedgerEntry {
+        objective: objective.to_string(),
+        verifying_key_hex: hex::encode(verifying_key.to_bytes()),
+        receipt: result.receipt.clone(),
+    };
+    append_to_ledger(&entry)?;
+
+    let ihsan_str = receipt
+        .ihsan_score
+        .map(|s| format!(" Ihsan {:.2}", s))
+        .unwrap_or_default();
+
+    Ok(format!(
+        "Mission {} — {}{} [{}]",
+        state_label,
+        &receipt.id_hex()[..8],
+        ihsan_str,
+        receipt.chosen_model.as_deref().unwrap_or("unknown")
+    ))
+}
+
+// ── Phase 6 Acceptance Tests ─��────────────────────────────
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2228,6 +2304,7 @@ mod tests {
             failed_count: 0,
             chain_valid: true,
             recent_receipts: vec![],
+            all_receipts: vec![],
             today_count: 2,
             today_complete: 2,
             manifest_seal: None,
@@ -2239,6 +2316,29 @@ mod tests {
             greeting: "Good evening, MoMo".into(),
             recommendations: vec![],
             event_log: vec![],
+        }
+    }
+
+    fn make_test_receipt(
+        id: &str,
+        obj: &str,
+        label: &'static str,
+        success: bool,
+        degraded: bool,
+    ) -> ReceiptSummary {
+        ReceiptSummary {
+            id_short: id.into(),
+            objective: obj.into(),
+            state_label: label,
+            is_success: success,
+            is_degraded: degraded,
+            signed: true,
+            ihsan_score: if success { Some(0.96) } else { None },
+            snr_score: if success { Some(0.92) } else { None },
+            chosen_model: Some("qwen2.5-coder".into()),
+            degradation_tier: if degraded { 2 } else { 0 },
+            states_traversed: 5,
+            chain_link: None,
         }
     }
 
@@ -2255,14 +2355,13 @@ mod tests {
         let prev = make_test_dashboard();
         let mut curr = make_test_dashboard();
         curr.total_receipts = 6;
-        curr.recent_receipts = vec![ReceiptSummary {
-            id_short: "a1b2c3".into(),
-            objective: "Test mission".into(),
-            state_label: "Complete",
-            is_success: true,
-            is_degraded: false,
-            signed: true,
-        }];
+        curr.recent_receipts = vec![make_test_receipt(
+            "a1b2c3",
+            "Test mission",
+            "Complete",
+            true,
+            false,
+        )];
 
         let events = detect_events(&prev, &curr);
         assert_eq!(events.len(), 1, "One new receipt → one event");
@@ -2337,14 +2436,13 @@ mod tests {
         let mut curr = make_test_dashboard();
         // Three simultaneous changes
         curr.total_receipts = 6;
-        curr.recent_receipts = vec![ReceiptSummary {
-            id_short: "beef42".into(),
-            objective: "Multi-event test".into(),
-            state_label: "Degraded",
-            is_success: false,
-            is_degraded: true,
-            signed: true,
-        }];
+        curr.recent_receipts = vec![make_test_receipt(
+            "beef42",
+            "Multi-event test",
+            "Degraded",
+            false,
+            true,
+        )];
         curr.trust_verdict = TrustVerdict::Degraded;
         curr.today_complete = 3;
 
@@ -2377,17 +2475,68 @@ mod tests {
         let prev = make_test_dashboard();
         let mut curr = make_test_dashboard();
         curr.total_receipts = 6;
-        curr.recent_receipts = vec![ReceiptSummary {
-            id_short: "dead01".into(),
-            objective: "Degraded mission".into(),
-            state_label: "Degraded",
-            is_success: false,
-            is_degraded: true,
-            signed: false,
+        curr.recent_receipts = vec![{
+            let mut r = make_test_receipt("dead01", "Degraded mission", "Degraded", false, true);
+            r.signed = false;
+            r
         }];
 
         let events = detect_events(&prev, &curr);
         assert_eq!(events.len(), 1);
         assert!(events[0].message.contains("Degraded"));
+    }
+
+    // ── Sprint 7.2 Tests ─────────────────────────────────────
+
+    #[test]
+    fn test_receipt_summary_extended_fields() {
+        let r = make_test_receipt("abc123def456", "Test objective", "Complete", true, false);
+        assert_eq!(r.ihsan_score, Some(0.96));
+        assert_eq!(r.snr_score, Some(0.92));
+        assert_eq!(r.chosen_model.as_deref(), Some("qwen2.5-coder"));
+        assert_eq!(r.degradation_tier, 0);
+        assert_eq!(r.states_traversed, 5);
+        assert!(r.chain_link.is_none());
+        assert!(r.signed);
+    }
+
+    #[test]
+    fn test_receipt_summary_clone() {
+        let r = make_test_receipt("aabbcc", "Clone test", "Complete", true, false);
+        let r2 = r.clone();
+        assert_eq!(r.id_short, r2.id_short);
+        assert_eq!(r.ihsan_score, r2.ihsan_score);
+        assert_eq!(r.chosen_model, r2.chosen_model);
+    }
+
+    #[test]
+    fn test_all_receipts_populated_from_gather() {
+        let data = gather_dashboard_data();
+        // all_receipts should contain at least as many as recent_receipts
+        assert!(
+            data.all_receipts.len() >= data.recent_receipts.len(),
+            "all_receipts ({}) must be >= recent_receipts ({})",
+            data.all_receipts.len(),
+            data.recent_receipts.len()
+        );
+        // recent_receipts capped at 10
+        assert!(data.recent_receipts.len() <= 10);
+        // If there are receipts, verify extended fields exist
+        if let Some(r) = data.all_receipts.first() {
+            assert!(!r.id_short.is_empty());
+            assert!(!r.objective.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_dashboard_data_all_receipts_order() {
+        let data = gather_dashboard_data();
+        // all_receipts should be newest-first (reversed from ledger)
+        // recent_receipts should be a prefix of all_receipts
+        for (i, r) in data.recent_receipts.iter().enumerate() {
+            if let Some(a) = data.all_receipts.get(i) {
+                assert_eq!(r.id_short, a.id_short, "recent[{i}] must match all[{i}]");
+            }
+        }
     }
 }

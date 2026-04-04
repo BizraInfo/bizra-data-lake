@@ -188,13 +188,14 @@ impl ActiveView {
     }
 }
 
-/// Input mode for chat
+/// Input mode for chat and mission submission
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum InputMode {
     #[default]
     Normal,
     Editing,
     Command,
+    MissionInput,
 }
 
 /// Chat message
@@ -301,6 +302,9 @@ pub struct App {
 
     /// Last dashboard data refresh
     pub last_refresh: Option<Instant>,
+
+    /// Selected receipt index in the scrollable receipt list (Sprint 7.2)
+    pub selected_receipt: Option<usize>,
 }
 
 impl Default for App {
@@ -342,6 +346,7 @@ impl App {
             status_message: None,
             dashboard_data: None,
             last_refresh: None,
+            selected_receipt: None,
         }
     }
 
@@ -399,6 +404,38 @@ impl App {
         } else {
             self.selected_agent = Some(roles[roles.len() - 1]);
         }
+    }
+
+    /// Select next receipt in the scrollable list
+    pub fn next_receipt(&mut self) {
+        let count = self
+            .dashboard_data
+            .as_ref()
+            .map(|d| d.all_receipts.len())
+            .unwrap_or(0);
+        if count == 0 {
+            return;
+        }
+        self.selected_receipt = Some(match self.selected_receipt {
+            Some(i) => (i + 1) % count,
+            None => 0,
+        });
+    }
+
+    /// Select previous receipt in the scrollable list
+    pub fn prev_receipt(&mut self) {
+        let count = self
+            .dashboard_data
+            .as_ref()
+            .map(|d| d.all_receipts.len())
+            .unwrap_or(0);
+        if count == 0 {
+            return;
+        }
+        self.selected_receipt = Some(match self.selected_receipt {
+            Some(i) => (i + count - 1) % count,
+            None => count - 1,
+        });
     }
 
     /// Add chat message

@@ -63,6 +63,7 @@ impl Widget for StatusBar<'_> {
             InputMode::Normal => ("NORMAL", Theme::muted()),
             InputMode::Editing => ("INSERT", Theme::success()),
             InputMode::Command => ("COMMAND", Theme::highlight()),
+            InputMode::MissionInput => ("MISSION", Theme::ihsan()),
         };
 
         let mut spans = vec![
@@ -81,9 +82,10 @@ impl Widget for StatusBar<'_> {
 
         // Help hints based on mode
         let hints = match self.mode {
-            InputMode::Normal => "q:Quit Tab:View r:Refresh j/k:Nav i:Insert",
+            InputMode::Normal => "q:Quit Tab:View r:Refresh j/k:Receipts m:Mission i:Insert",
             InputMode::Editing => "Esc:Normal  Enter:Send  ↑↓:History",
             InputMode::Command => "Esc:Cancel  Enter:Execute  Tab:Complete",
+            InputMode::MissionInput => "Enter:Submit  Esc:Cancel",
         };
         spans.push(Span::styled(hints, Theme::muted()));
 
