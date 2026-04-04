@@ -18,15 +18,26 @@ use crate::canonical_receipt::ReceiptState;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TransitionEvidence {
     /// Gate chain evaluation completed with verdict.
-    GateVerdict { admitted: bool, ihsan: f64 },
+    GateVerdict {
+        /// Whether the gate admitted the mission.
+        admitted: bool,
+        /// Ihsan quality score from gate evaluation.
+        ihsan: f64,
+    },
     /// Constitutional gate approved execution.
     ExecutionApproved,
     /// Effects committed, receipt signed.
-    ReceiptSealed { receipt_id_hex: String },
+    ReceiptSealed {
+        /// Hex-encoded receipt identifier.
+        receipt_id_hex: String,
+    },
     /// Replay path verified (deterministic re-execution matches).
     ReplayVerified,
     /// Published to marketplace with PoI attestation.
-    MarketplacePublished { poi_score: f64 },
+    MarketplacePublished {
+        /// Proof-of-Impact score for marketplace listing.
+        poi_score: f64,
+    },
 }
 
 /// Result of a transition attempt.
@@ -35,12 +46,23 @@ pub enum TransitionResult {
     /// Transition succeeded.
     Ok(ReceiptState),
     /// Transition denied — invalid from current state.
-    Denied { from: ReceiptState, to: ReceiptState, reason: &'static str },
+    Denied {
+        /// Source state of the denied transition.
+        from: ReceiptState,
+        /// Target state of the denied transition.
+        to: ReceiptState,
+        /// Human-readable reason for denial.
+        reason: &'static str,
+    },
     /// Transition denied — evidence insufficient.
-    InsufficientEvidence { required: &'static str },
+    InsufficientEvidence {
+        /// Description of the evidence that was required.
+        required: &'static str,
+    },
 }
 
 impl TransitionResult {
+    /// Returns true if the transition succeeded.
     pub fn is_ok(&self) -> bool {
         matches!(self, Self::Ok(_))
     }
@@ -58,74 +80,63 @@ impl ReceiptStateMachine {
     ) -> TransitionResult {
         match (current, target) {
             // HYPOTHESIS → VERIFIED: gate chain must have evaluated
-            (ReceiptState::Hypothesis, ReceiptState::Verified) => {
-                match evidence {
-                    TransitionEvidence::GateVerdict { .. } => TransitionResult::Ok(target),
-                    _ => TransitionResult::InsufficientEvidence {
-                        required: "GateVerdict (gate chain must evaluate before verification)",
-                    },
-                }
-            }
+            (ReceiptState::Hypothesis, ReceiptState::Verified) => match evidence {
+                TransitionEvidence::GateVerdict { .. } => TransitionResult::Ok(target),
+                _ => TransitionResult::InsufficientEvidence {
+                    required: "GateVerdict (gate chain must evaluate before verification)",
+                },
+            },
 
             // VERIFIED → EXECUTABLE: gates must have admitted
-            (ReceiptState::Verified, ReceiptState::Executable) => {
-                match evidence {
-                    TransitionEvidence::GateVerdict { admitted: true, ihsan }
-                        if *ihsan >= 0.85 =>
-                    {
-                        TransitionResult::Ok(target)
+            (ReceiptState::Verified, ReceiptState::Executable) => match evidence {
+                TransitionEvidence::GateVerdict {
+                    admitted: true,
+                    ihsan,
+                } if *ihsan >= 0.85 => TransitionResult::Ok(target),
+                TransitionEvidence::GateVerdict {
+                    admitted: false, ..
+                } => TransitionResult::Denied {
+                    from: current,
+                    to: target,
+                    reason: "Gate verdict rejected — cannot become executable",
+                },
+                TransitionEvidence::GateVerdict { ihsan, .. } if *ihsan < 0.85 => {
+                    TransitionResult::Denied {
+                        from: current,
+                        to: target,
+                        reason: "Ihsan below 0.85 — constitutional floor not met",
                     }
-                    TransitionEvidence::GateVerdict { admitted: false, .. } => {
-                        TransitionResult::Denied {
-                            from: current, to: target,
-                            reason: "Gate verdict rejected — cannot become executable",
-                        }
-                    }
-                    TransitionEvidence::GateVerdict { ihsan, .. } if *ihsan < 0.85 => {
-                        TransitionResult::Denied {
-                            from: current, to: target,
-                            reason: "Ihsan below 0.85 — constitutional floor not met",
-                        }
-                    }
-                    _ => TransitionResult::InsufficientEvidence {
-                        required: "GateVerdict with admitted=true and ihsan>=0.85",
-                    },
                 }
-            }
+                _ => TransitionResult::InsufficientEvidence {
+                    required: "GateVerdict with admitted=true and ihsan>=0.85",
+                },
+            },
 
             // EXECUTABLE → COMMITTED: receipt must be sealed
-            (ReceiptState::Executable, ReceiptState::Committed) => {
-                match evidence {
-                    TransitionEvidence::ReceiptSealed { .. } => TransitionResult::Ok(target),
-                    _ => TransitionResult::InsufficientEvidence {
-                        required: "ReceiptSealed (Ed25519 signature + chain link)",
-                    },
-                }
-            }
+            (ReceiptState::Executable, ReceiptState::Committed) => match evidence {
+                TransitionEvidence::ReceiptSealed { .. } => TransitionResult::Ok(target),
+                _ => TransitionResult::InsufficientEvidence {
+                    required: "ReceiptSealed (Ed25519 signature + chain link)",
+                },
+            },
 
             // COMMITTED → REPLAYABLE: replay path must be verified
-            (ReceiptState::Committed, ReceiptState::Replayable) => {
-                match evidence {
-                    TransitionEvidence::ReplayVerified => TransitionResult::Ok(target),
-                    _ => TransitionResult::InsufficientEvidence {
-                        required: "ReplayVerified (deterministic re-execution matches)",
-                    },
-                }
-            }
+            (ReceiptState::Committed, ReceiptState::Replayable) => match evidence {
+                TransitionEvidence::ReplayVerified => TransitionResult::Ok(target),
+                _ => TransitionResult::InsufficientEvidence {
+                    required: "ReplayVerified (deterministic re-execution matches)",
+                },
+            },
 
             // REPLAYABLE → MARKETABLE: PoI attestation required
-            (ReceiptState::Replayable, ReceiptState::Marketable) => {
-                match evidence {
-                    TransitionEvidence::MarketplacePublished { poi_score }
-                        if *poi_score > 0.0 =>
-                    {
-                        TransitionResult::Ok(target)
-                    }
-                    _ => TransitionResult::InsufficientEvidence {
-                        required: "MarketplacePublished with poi_score > 0",
-                    },
+            (ReceiptState::Replayable, ReceiptState::Marketable) => match evidence {
+                TransitionEvidence::MarketplacePublished { poi_score } if *poi_score > 0.0 => {
+                    TransitionResult::Ok(target)
                 }
-            }
+                _ => TransitionResult::InsufficientEvidence {
+                    required: "MarketplacePublished with poi_score > 0",
+                },
+            },
 
             // All other transitions are invalid
             _ => TransitionResult::Denied {
@@ -180,7 +191,11 @@ impl ReceiptStateMachine {
         };
         let f = ord(from);
         let t = ord(to);
-        if t >= f { Some(t - f) } else { None }
+        if t >= f {
+            Some(t - f)
+        } else {
+            None
+        }
     }
 }
 
@@ -193,35 +208,48 @@ mod tests {
         let mut state = ReceiptState::Hypothesis;
 
         let r = ReceiptStateMachine::transition(
-            state, ReceiptState::Verified,
-            &TransitionEvidence::GateVerdict { admitted: true, ihsan: 0.97 },
+            state,
+            ReceiptState::Verified,
+            &TransitionEvidence::GateVerdict {
+                admitted: true,
+                ihsan: 0.97,
+            },
         );
         assert!(r.is_ok());
         state = ReceiptState::Verified;
 
         let r = ReceiptStateMachine::transition(
-            state, ReceiptState::Executable,
-            &TransitionEvidence::GateVerdict { admitted: true, ihsan: 0.97 },
+            state,
+            ReceiptState::Executable,
+            &TransitionEvidence::GateVerdict {
+                admitted: true,
+                ihsan: 0.97,
+            },
         );
         assert!(r.is_ok());
         state = ReceiptState::Executable;
 
         let r = ReceiptStateMachine::transition(
-            state, ReceiptState::Committed,
-            &TransitionEvidence::ReceiptSealed { receipt_id_hex: "abc123".into() },
+            state,
+            ReceiptState::Committed,
+            &TransitionEvidence::ReceiptSealed {
+                receipt_id_hex: "abc123".into(),
+            },
         );
         assert!(r.is_ok());
         state = ReceiptState::Committed;
 
         let r = ReceiptStateMachine::transition(
-            state, ReceiptState::Replayable,
+            state,
+            ReceiptState::Replayable,
             &TransitionEvidence::ReplayVerified,
         );
         assert!(r.is_ok());
         state = ReceiptState::Replayable;
 
         let r = ReceiptStateMachine::transition(
-            state, ReceiptState::Marketable,
+            state,
+            ReceiptState::Marketable,
             &TransitionEvidence::MarketplacePublished { poi_score: 0.95 },
         );
         assert!(r.is_ok());
@@ -232,7 +260,10 @@ mod tests {
         let r = ReceiptStateMachine::transition(
             ReceiptState::Verified,
             ReceiptState::Executable,
-            &TransitionEvidence::GateVerdict { admitted: false, ihsan: 0.30 },
+            &TransitionEvidence::GateVerdict {
+                admitted: false,
+                ihsan: 0.30,
+            },
         );
         assert!(!r.is_ok());
     }
@@ -242,7 +273,10 @@ mod tests {
         let r = ReceiptStateMachine::transition(
             ReceiptState::Verified,
             ReceiptState::Executable,
-            &TransitionEvidence::GateVerdict { admitted: true, ihsan: 0.70 },
+            &TransitionEvidence::GateVerdict {
+                admitted: true,
+                ihsan: 0.70,
+            },
         );
         assert!(!r.is_ok());
     }
@@ -252,7 +286,9 @@ mod tests {
         let r = ReceiptStateMachine::transition(
             ReceiptState::Hypothesis,
             ReceiptState::Committed,
-            &TransitionEvidence::ReceiptSealed { receipt_id_hex: "x".into() },
+            &TransitionEvidence::ReceiptSealed {
+                receipt_id_hex: "x".into(),
+            },
         );
         assert!(!r.is_ok());
     }
@@ -272,29 +308,56 @@ mod tests {
         let r = ReceiptStateMachine::transition(
             ReceiptState::Committed,
             ReceiptState::Hypothesis,
-            &TransitionEvidence::GateVerdict { admitted: true, ihsan: 0.99 },
+            &TransitionEvidence::GateVerdict {
+                admitted: true,
+                ihsan: 0.99,
+            },
         );
         assert!(!r.is_ok());
     }
 
     #[test]
     fn test_can_transition() {
-        assert!(ReceiptStateMachine::can_transition(ReceiptState::Hypothesis, ReceiptState::Verified));
-        assert!(!ReceiptStateMachine::can_transition(ReceiptState::Hypothesis, ReceiptState::Committed));
-        assert!(!ReceiptStateMachine::can_transition(ReceiptState::Marketable, ReceiptState::Hypothesis));
+        assert!(ReceiptStateMachine::can_transition(
+            ReceiptState::Hypothesis,
+            ReceiptState::Verified
+        ));
+        assert!(!ReceiptStateMachine::can_transition(
+            ReceiptState::Hypothesis,
+            ReceiptState::Committed
+        ));
+        assert!(!ReceiptStateMachine::can_transition(
+            ReceiptState::Marketable,
+            ReceiptState::Hypothesis
+        ));
     }
 
     #[test]
     fn test_next_state() {
-        assert_eq!(ReceiptStateMachine::next_state(ReceiptState::Hypothesis), Some(ReceiptState::Verified));
-        assert_eq!(ReceiptStateMachine::next_state(ReceiptState::Marketable), None);
+        assert_eq!(
+            ReceiptStateMachine::next_state(ReceiptState::Hypothesis),
+            Some(ReceiptState::Verified)
+        );
+        assert_eq!(
+            ReceiptStateMachine::next_state(ReceiptState::Marketable),
+            None
+        );
     }
 
     #[test]
     fn test_distance() {
-        assert_eq!(ReceiptStateMachine::distance(ReceiptState::Hypothesis, ReceiptState::Marketable), Some(5));
-        assert_eq!(ReceiptStateMachine::distance(ReceiptState::Committed, ReceiptState::Committed), Some(0));
-        assert_eq!(ReceiptStateMachine::distance(ReceiptState::Marketable, ReceiptState::Hypothesis), None);
+        assert_eq!(
+            ReceiptStateMachine::distance(ReceiptState::Hypothesis, ReceiptState::Marketable),
+            Some(5)
+        );
+        assert_eq!(
+            ReceiptStateMachine::distance(ReceiptState::Committed, ReceiptState::Committed),
+            Some(0)
+        );
+        assert_eq!(
+            ReceiptStateMachine::distance(ReceiptState::Marketable, ReceiptState::Hypothesis),
+            None
+        );
     }
 
     #[test]

@@ -24,34 +24,39 @@
 pub mod canonical;
 /// CanonicalReceipt v1 — the spearpoint artifact. One receipt per visible effect.
 pub mod canonical_receipt;
-/// MissionState v1 — sovereign mission lifecycle. Human intent through the constitutional pipeline.
-pub mod mission_state;
-/// TopologyCanon v1 — frozen agent/node/network topology. PAT-7, SAT-5, gate chain order.
-pub mod topology_canon;
-/// GenesisSeal v1 — deterministic root of trust binding receipts to constitution.
-pub mod genesis_seal;
-/// ReceiptStateMachine v1 — transition law for CanonicalReceipt lifecycle.
-pub mod receipt_state_machine;
 /// Constitutional governance — Ihsan thresholds, SNR rules, enforcement policies.
 pub mod constitution;
 /// Genesis primitives — BLAKE3 hashing, cryptographic manifests, execution receipts.
 pub mod genesis;
+/// GenesisSeal v1 — deterministic root of trust binding receipts to constitution.
+pub mod genesis_seal;
 /// Golden Vector — cross-language sealing test (Rust/Python digest parity).
 pub mod golden_vector;
 /// Node identity — Ed25519 key management, domain-separated signing.
 pub mod identity;
 /// Islamic finance protocol — Zakat, Mudarabah, Musharakah, Waqf, Shariah compliance.
 pub mod islamic_finance;
+/// Kernel Action Grammar — Constitutional Computability Doctrine v1.
+/// Defines the finite action set decidable as blocking syscalls,
+/// the four-verdict enum (PERMIT|REJECT|REVIEW|SCORE_ONLY),
+/// and budget contracts for bounded constitutional review.
+pub mod kernel_action_grammar;
+/// MissionState v1 — sovereign mission lifecycle. Human intent through the constitutional pipeline.
+pub mod mission_state;
 /// Omega governance engine — Adl invariant, Byzantine consensus, treasury, Ihsan projector.
 pub mod omega;
 /// PAT/SAT agent minting — Personal and Shared Agentic Teams with attestation.
 pub mod pat;
 /// Proof-Carrying Inference — Envelopes, gate chains, reject codes.
 pub mod pci;
+/// ReceiptStateMachine v1 — transition law for CanonicalReceipt lifecycle.
+pub mod receipt_state_machine;
 /// SIMD-accelerated operations — Parallel hashing, batch signature verification.
 pub mod simd;
 /// Sovereign reasoning — Graph-of-Thoughts, SNR engine, Giants protocol, Omega circuit.
 pub mod sovereign;
+/// TopologyCanon v1 — frozen agent/node/network topology. PAT-7, SAT-5, gate chain order.
+pub mod topology_canon;
 /// Walking Skeleton — thinnest end-to-end constitutional liveness proof.
 pub mod walking_skeleton;
 

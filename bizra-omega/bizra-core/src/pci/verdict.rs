@@ -388,7 +388,11 @@ mod tests {
     fn test_verdict_precedence_zann_over_ihsan() {
         // Speculative content (zann) outranks excellence threshold (ihsan)
         let results = vec![
-            GateResult::fail("Ihsan", RejectCode::RejectGateIhsan, Duration::from_micros(150)),
+            GateResult::fail(
+                "Ihsan",
+                RejectCode::RejectGateIhsan,
+                Duration::from_micros(150),
+            ),
             GateResult::fail("Zann", RejectCode::RejectZann, Duration::from_micros(100)),
         ];
         let v = GateVerdict::from_gate_results(
@@ -406,9 +410,21 @@ mod tests {
     fn test_verdict_precedence_full_ordering() {
         // All constitutional codes present — Riba must surface
         let results = vec![
-            GateResult::fail("Gate1", RejectCode::RejectGateSNR, Duration::from_micros(10)),
-            GateResult::fail("Gate2", RejectCode::RejectGateIhsan, Duration::from_micros(10)),
-            GateResult::fail("Gate3", RejectCode::RejectGateFATE, Duration::from_micros(10)),
+            GateResult::fail(
+                "Gate1",
+                RejectCode::RejectGateSNR,
+                Duration::from_micros(10),
+            ),
+            GateResult::fail(
+                "Gate2",
+                RejectCode::RejectGateIhsan,
+                Duration::from_micros(10),
+            ),
+            GateResult::fail(
+                "Gate3",
+                RejectCode::RejectGateFATE,
+                Duration::from_micros(10),
+            ),
             GateResult::fail("Gate4", RejectCode::RejectZann, Duration::from_micros(10)),
             GateResult::fail("Gate5", RejectCode::RejectRiba, Duration::from_micros(10)),
         ];

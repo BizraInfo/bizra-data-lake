@@ -39,16 +39,22 @@ mod sig_bytes {
     }
 
     pub fn serialize<S>(bytes: &[u8; 64], serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer {
+    where
+        S: Serializer,
+    {
         serializer.serialize_str(&to_hex(bytes))
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 64], D::Error>
-    where D: Deserializer<'de> {
+    where
+        D: Deserializer<'de>,
+    {
         let s = String::deserialize(deserializer)?;
         let v = from_hex(&s).map_err(serde::de::Error::custom)?;
         let mut arr = [0u8; 64];
-        if v.len() == 64 { arr.copy_from_slice(&v); }
+        if v.len() == 64 {
+            arr.copy_from_slice(&v);
+        }
         Ok(arr)
     }
 }
@@ -142,10 +148,8 @@ pub struct CanonicalReceipt {
 
 /// Genesis seed for the first receipt in every chain.
 pub const GENESIS_SEED: [u8; 32] = [
-    0xb1, 0x2a, 0xf3, 0x7e, 0xd4, 0x91, 0xc8, 0x56,
-    0x2f, 0x0e, 0x8b, 0xd7, 0x43, 0x9a, 0x5c, 0x11,
-    0xe7, 0x2d, 0x60, 0xf8, 0x1b, 0x37, 0xa4, 0xce,
-    0x95, 0x4f, 0x0d, 0x82, 0x76, 0x3c, 0xb9, 0x0a,
+    0xb1, 0x2a, 0xf3, 0x7e, 0xd4, 0x91, 0xc8, 0x56, 0x2f, 0x0e, 0x8b, 0xd7, 0x43, 0x9a, 0x5c, 0x11,
+    0xe7, 0x2d, 0x60, 0xf8, 0x1b, 0x37, 0xa4, 0xce, 0x95, 0x4f, 0x0d, 0x82, 0x76, 0x3c, 0xb9, 0x0a,
 ];
 
 impl CanonicalReceipt {
@@ -232,9 +236,8 @@ impl CanonicalReceipt {
     /// Verify the receipt's signature against a public key.
     pub fn verify(&self, key: &VerifyingKey) -> bool {
         let canonical = self.canonical_bytes();
-        match Signature::from_bytes(&self.signature) {
-            sig => key.verify(&canonical, &sig).is_ok(),
-        }
+        let sig = Signature::from_bytes(&self.signature);
+        key.verify(&canonical, &sig).is_ok()
     }
 
     /// Check if this receipt is chain-valid against a previous hash.
@@ -258,6 +261,7 @@ pub struct CanonicalReceiptBuilder {
 }
 
 impl CanonicalReceiptBuilder {
+    /// Create a new receipt builder with the required chain context.
     pub fn new(
         mission_id: impl Into<String>,
         genesis_hash: [u8; 32],
@@ -275,6 +279,7 @@ impl CanonicalReceiptBuilder {
     }
 
     /// Seal the receipt with verdict results and sign it.
+    #[allow(clippy::too_many_arguments)]
     pub fn seal(
         self,
         verdict: VerdictStatus,
@@ -338,12 +343,22 @@ mod tests {
     fn test_receipt_sign_verify() {
         let key = test_key();
         let builder = CanonicalReceiptBuilder::new(
-            "mission-001", test_hash(0xAA), "v0.90.0", GENESIS_SEED, 1000,
+            "mission-001",
+            test_hash(0xAA),
+            "v0.90.0",
+            GENESIS_SEED,
+            1000,
         );
         let receipt = builder.seal(
-            VerdictStatus::Admitted, None, 0.97, 0.92,
+            VerdictStatus::Admitted,
+            None,
+            0.97,
+            0.92,
             ExecutionRoute::Deliberate,
-            test_hash(0x10), test_hash(0x20), 2000, &key,
+            test_hash(0x10),
+            test_hash(0x20),
+            2000,
+            &key,
         );
         assert!(receipt.verify(&key.verifying_key()));
         assert!(receipt.id_valid());
@@ -354,20 +369,31 @@ mod tests {
     #[test]
     fn test_receipt_chain_integrity() {
         let key = test_key();
-        let r1 = CanonicalReceiptBuilder::new(
-            "m1", test_hash(0xAA), "v0.90.0", GENESIS_SEED, 1000,
-        ).seal(
-            VerdictStatus::Admitted, None, 0.96, 0.91,
-            ExecutionRoute::Deliberate,
-            test_hash(0x10), test_hash(0x20), 1500, &key,
-        );
-        let r2 = CanonicalReceiptBuilder::new(
-            "m2", test_hash(0xAA), "v0.90.0", r1.receipt_id, 2000,
-        ).seal(
-            VerdictStatus::Admitted, None, 0.98, 0.93,
-            ExecutionRoute::Reflex,
-            test_hash(0x30), test_hash(0x40), 2500, &key,
-        );
+        let r1 = CanonicalReceiptBuilder::new("m1", test_hash(0xAA), "v0.90.0", GENESIS_SEED, 1000)
+            .seal(
+                VerdictStatus::Admitted,
+                None,
+                0.96,
+                0.91,
+                ExecutionRoute::Deliberate,
+                test_hash(0x10),
+                test_hash(0x20),
+                1500,
+                &key,
+            );
+        let r2 =
+            CanonicalReceiptBuilder::new("m2", test_hash(0xAA), "v0.90.0", r1.receipt_id, 2000)
+                .seal(
+                    VerdictStatus::Admitted,
+                    None,
+                    0.98,
+                    0.93,
+                    ExecutionRoute::Reflex,
+                    test_hash(0x30),
+                    test_hash(0x40),
+                    2500,
+                    &key,
+                );
         assert!(r1.chain_valid(&GENESIS_SEED));
         assert!(r2.chain_valid(&r1.receipt_id));
         assert!(!r2.chain_valid(&GENESIS_SEED));
@@ -377,13 +403,22 @@ mod tests {
     fn test_receipt_rejected_not_federation_admissible() {
         let key = test_key();
         let receipt = CanonicalReceiptBuilder::new(
-            "bad-mission", test_hash(0xBB), "v0.90.0", GENESIS_SEED, 1000,
-        ).seal(
+            "bad-mission",
+            test_hash(0xBB),
+            "v0.90.0",
+            GENESIS_SEED,
+            1000,
+        )
+        .seal(
             VerdictStatus::Rejected,
             Some(RejectCode::RejectRiba),
-            0.30, 0.20,
+            0.30,
+            0.20,
             ExecutionRoute::Rejected,
-            test_hash(0x50), test_hash(0x60), 1100, &key,
+            test_hash(0x50),
+            test_hash(0x60),
+            1100,
+            &key,
         );
         assert!(!receipt.federation_admissible);
         assert_eq!(receipt.state, ReceiptState::Verified);
@@ -394,11 +429,22 @@ mod tests {
     fn test_receipt_below_ihsan_not_federation_admissible() {
         let key = test_key();
         let receipt = CanonicalReceiptBuilder::new(
-            "ok-but-weak", test_hash(0xCC), "v0.90.0", GENESIS_SEED, 1000,
-        ).seal(
-            VerdictStatus::Admitted, None, 0.90, 0.88,
+            "ok-but-weak",
+            test_hash(0xCC),
+            "v0.90.0",
+            GENESIS_SEED,
+            1000,
+        )
+        .seal(
+            VerdictStatus::Admitted,
+            None,
+            0.90,
+            0.88,
             ExecutionRoute::Deliberate,
-            test_hash(0x70), test_hash(0x80), 1200, &key,
+            test_hash(0x70),
+            test_hash(0x80),
+            1200,
+            &key,
         );
         assert!(!receipt.federation_admissible);
         assert_eq!(receipt.state, ReceiptState::Committed);
@@ -407,26 +453,37 @@ mod tests {
     #[test]
     fn test_receipt_deterministic_id() {
         let key = test_key();
-        let r1 = CanonicalReceiptBuilder::new(
-            "m1", test_hash(0xAA), "v0.90.0", GENESIS_SEED, 1000,
-        ).seal(
-            VerdictStatus::Admitted, None, 0.97, 0.92,
-            ExecutionRoute::Deliberate,
-            test_hash(0x10), test_hash(0x20), 2000, &key,
-        );
+        let r1 = CanonicalReceiptBuilder::new("m1", test_hash(0xAA), "v0.90.0", GENESIS_SEED, 1000)
+            .seal(
+                VerdictStatus::Admitted,
+                None,
+                0.97,
+                0.92,
+                ExecutionRoute::Deliberate,
+                test_hash(0x10),
+                test_hash(0x20),
+                2000,
+                &key,
+            );
         assert_eq!(r1.receipt_id, r1.compute_id());
     }
 
     #[test]
     fn test_receipt_tamper_detection() {
         let key = test_key();
-        let mut receipt = CanonicalReceiptBuilder::new(
-            "m1", test_hash(0xAA), "v0.90.0", GENESIS_SEED, 1000,
-        ).seal(
-            VerdictStatus::Admitted, None, 0.97, 0.92,
-            ExecutionRoute::Deliberate,
-            test_hash(0x10), test_hash(0x20), 2000, &key,
-        );
+        let mut receipt =
+            CanonicalReceiptBuilder::new("m1", test_hash(0xAA), "v0.90.0", GENESIS_SEED, 1000)
+                .seal(
+                    VerdictStatus::Admitted,
+                    None,
+                    0.97,
+                    0.92,
+                    ExecutionRoute::Deliberate,
+                    test_hash(0x10),
+                    test_hash(0x20),
+                    2000,
+                    &key,
+                );
         // Tamper with ihsan score
         receipt.ihsan_score = 0.50;
         // Signature no longer valid
@@ -466,7 +523,11 @@ mod tests {
 
         let canonical = receipt.canonical_bytes();
         // Golden vector: exact byte length for these inputs
-        assert_eq!(canonical.len(), 196, "Canonical byte length mismatch — cross-language parity broken");
+        assert_eq!(
+            canonical.len(),
+            196,
+            "Canonical byte length mismatch — cross-language parity broken"
+        );
 
         let id = receipt.compute_id();
         // The receipt ID is deterministic for these inputs
@@ -480,7 +541,13 @@ mod tests {
         {
             eprintln!("GOLDEN_VECTOR_CANONICAL_LEN={}", canonical.len());
             eprintln!("GOLDEN_VECTOR_RECEIPT_ID={}", id_hex);
-            eprintln!("GOLDEN_VECTOR_CANONICAL_HEX={}", canonical.iter().map(|b| format!("{b:02x}")).collect::<String>());
+            eprintln!(
+                "GOLDEN_VECTOR_CANONICAL_HEX={}",
+                canonical
+                    .iter()
+                    .map(|b| format!("{b:02x}"))
+                    .collect::<String>()
+            );
         }
     }
 }

@@ -56,11 +56,17 @@ impl Default for ConstitutionalParams {
             ihsan_threshold: 0.95,
             snr_threshold: 0.85,
             gini_ceiling: 0.35,
-            gate_order: TopologyCanon::GATE_ORDER.iter().map(|s| s.to_string()).collect(),
+            gate_order: TopologyCanon::GATE_ORDER
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
             pat_count: TopologyCanon::PAT_COUNT as u8,
             sat_count: TopologyCanon::SAT_COUNT as u8,
             constitution_id: "ihsan_v1".to_string(),
-            verdict_precedence: TopologyCanon::VERDICT_PRECEDENCE.iter().map(|s| s.to_string()).collect(),
+            verdict_precedence: TopologyCanon::VERDICT_PRECEDENCE
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
         }
     }
 }
@@ -158,8 +164,10 @@ mod tests {
     #[test]
     fn test_genesis_seal_changes_on_param_change() {
         let s1 = GenesisSeal::node0_default(1000);
-        let mut params = ConstitutionalParams::default();
-        params.ihsan_threshold = 0.90; // Lower threshold = different constitution
+        let params = ConstitutionalParams {
+            ihsan_threshold: 0.90, // Lower threshold = different constitution
+            ..ConstitutionalParams::default()
+        };
         let s2 = GenesisSeal::compute(params, 1000);
         assert_ne!(s1.seal_hash, s2.seal_hash);
     }
@@ -187,8 +195,10 @@ mod tests {
     #[test]
     fn test_genesis_seal_topology_sensitivity() {
         let s1 = GenesisSeal::node0_default(1000);
-        let mut params = ConstitutionalParams::default();
-        params.pat_count = 6; // Wrong PAT count
+        let params = ConstitutionalParams {
+            pat_count: 6, // Wrong PAT count
+            ..ConstitutionalParams::default()
+        };
         let s2 = GenesisSeal::compute(params, 1000);
         assert_ne!(s1.seal_hash, s2.seal_hash);
     }
@@ -196,8 +206,10 @@ mod tests {
     #[test]
     fn test_genesis_seal_gate_order_sensitivity() {
         let s1 = GenesisSeal::node0_default(1000);
-        let mut params = ConstitutionalParams::default();
-        params.gate_order = vec!["Schema".into(), "SNR".into(), "Ihsan".into()]; // Wrong order
+        let params = ConstitutionalParams {
+            gate_order: vec!["Schema".into(), "SNR".into(), "Ihsan".into()], // Wrong order
+            ..ConstitutionalParams::default()
+        };
         let s2 = GenesisSeal::compute(params, 1000);
         assert_ne!(s1.seal_hash, s2.seal_hash);
     }

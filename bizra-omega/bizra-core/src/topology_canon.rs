@@ -37,8 +37,13 @@ pub enum PatAgent {
 impl PatAgent {
     /// All PAT agents in canonical order.
     pub const ALL: [PatAgent; 7] = [
-        Self::Atlas, Self::Oracle, Self::Forge, Self::Judge,
-        Self::Crown, Self::Herald, Self::Nexus,
+        Self::Atlas,
+        Self::Oracle,
+        Self::Forge,
+        Self::Judge,
+        Self::Crown,
+        Self::Herald,
+        Self::Nexus,
     ];
 
     /// Protocol callsign (used in receipts and logs).
@@ -100,8 +105,11 @@ pub enum SatAgent {
 impl SatAgent {
     /// All SAT agents in canonical order.
     pub const ALL: [SatAgent; 5] = [
-        Self::Sentinel, Self::OracleSat, Self::Ledger,
-        Self::Conductor, Self::Ambassador,
+        Self::Sentinel,
+        Self::OracleSat,
+        Self::Ledger,
+        Self::Conductor,
+        Self::Ambassador,
     ];
 
     /// Protocol callsign.
@@ -140,9 +148,8 @@ impl TopologyCanon {
     /// Gate chain order (canonical, from gates.rs:225).
     pub const GATE_ORDER: &'static [&'static str] = &["Schema", "Ihsan", "SNR"];
     /// Verdict precedence (canonical, from verdict.rs).
-    pub const VERDICT_PRECEDENCE: &'static [&'static str] = &[
-        "RIBA", "ZANN", "FATE", "Ihsan", "SNR",
-    ];
+    pub const VERDICT_PRECEDENCE: &'static [&'static str] =
+        &["RIBA", "ZANN", "FATE", "Ihsan", "SNR"];
 
     /// Validate that a PAT count matches canon.
     pub fn validate_pat_count(count: usize) -> bool {

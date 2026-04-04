@@ -57,7 +57,10 @@ impl MissionPhase {
 
     /// Whether execution is still in progress.
     pub fn is_active(&self) -> bool {
-        matches!(self, Self::Admitted | Self::Decomposed | Self::Executing | Self::Degraded)
+        matches!(
+            self,
+            Self::Admitted | Self::Decomposed | Self::Executing | Self::Degraded
+        )
     }
 }
 
@@ -159,7 +162,11 @@ impl MissionState {
     }
 
     /// Transition to a new phase. Returns Err if the transition is invalid.
-    pub fn transition(&mut self, to: MissionPhase, now_ms: u64) -> Result<(), MissionTransitionError> {
+    pub fn transition(
+        &mut self,
+        to: MissionPhase,
+        now_ms: u64,
+    ) -> Result<(), MissionTransitionError> {
         if self.phase.is_terminal() {
             return Err(MissionTransitionError::AlreadyTerminal(self.phase));
         }
@@ -208,7 +215,9 @@ impl MissionState {
 
     /// Progress ratio (0.0 to 1.0).
     pub fn progress(&self) -> f64 {
-        if self.subtask_count == 0 { return 0.0; }
+        if self.subtask_count == 0 {
+            return 0.0;
+        }
         self.subtasks_done as f64 / self.subtask_count as f64
     }
 
@@ -293,7 +302,10 @@ mod tests {
         // Cannot skip directly to Executing from Proposed
         let err = m.transition(MissionPhase::Executing, 1100);
         assert!(err.is_err());
-        assert!(matches!(err.unwrap_err(), MissionTransitionError::InvalidTransition(..)));
+        assert!(matches!(
+            err.unwrap_err(),
+            MissionTransitionError::InvalidTransition(..)
+        ));
     }
 
     #[test]
