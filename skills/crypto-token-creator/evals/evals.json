@@ -1,0 +1,52 @@
+{
+  "skill_name": "crypto-token-creator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a meme coin called BIZRA on Ethereum with 1 billion total supply, 3% buy tax and 5% sell tax going to a marketing wallet. Make it so the owner can reduce but never increase the tax. Include the full Hardhat project with deploy script and tests.",
+      "expected_output": "Complete Hardhat project with a Solidity ERC-20 contract featuring tax mechanism with only-decrease modifier, deployment script for Sepolia, test file, hardhat.config.js, .env.example, and README",
+      "files": [],
+      "expectations": [
+        "A Solidity contract file exists with pragma solidity ^0.8",
+        "The contract implements buy and sell tax logic with basis points",
+        "Tax can only be decreased, never increased (monotonic decrease guard)",
+        "A Hardhat deployment script exists",
+        "A test file exists with at least 3 test cases",
+        "A hardhat.config.js or hardhat.config.ts exists with network configs",
+        "A .env.example file exists with placeholder for private key",
+        "Total supply is 1 billion tokens",
+        "A security checklist or security notes are included"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to launch an NFT collection on Solana — 10,000 PFPs called 'Desert Guardians' with 7.5% royalties. Set up everything I need including the metadata format and a candy machine config.",
+      "expected_output": "Solana NFT project with Metaplex integration, collection setup, metadata JSON template, candy machine configuration, mint script, and deployment instructions",
+      "files": [],
+      "expectations": [
+        "Metaplex or equivalent NFT framework is used",
+        "Collection size is configured for 10,000 items",
+        "Royalty is set to 7.5% (750 basis points)",
+        "A metadata JSON template following Metaplex standard is included",
+        "Deployment instructions for Solana devnet are provided",
+        "The collection name 'Desert Guardians' is used throughout",
+        "A README or guide explains the full setup and deployment process"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Build me a governance token on TON called SHURA with 100M supply. I need a Jetton contract with the ability to mint up to max supply, plus a simple staking mechanism where holders can lock tokens for 30 days to earn rewards. Include tests.",
+      "expected_output": "TON Blueprint project with Tact Jetton contract, staking contract, deployment scripts, test files, and tokenomics documentation",
+      "files": [],
+      "expectations": [
+        "A Tact or FunC Jetton contract exists following TEP-74",
+        "Max supply is set to 100 million tokens",
+        "The token is named SHURA",
+        "A staking contract or mechanism is included with 30-day lock",
+        "Deployment script for TON testnet exists",
+        "Test file exists with at least 2 test cases",
+        "A README or guide explains how to build and deploy"
+      ]
+    }
+  ]
+}
