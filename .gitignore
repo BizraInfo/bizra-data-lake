@@ -13,10 +13,15 @@ cleanup_mocks.py
 .env
 .env.local
 .env.*.local
+.env.reference
+.env.ref*
 *.pem
+*.pem.*
 *.key
+*.key.*
 *.p12
 *.pfx
+*.csr
 
 # ── Deploy runtime state ────────────────────────────────────
 deploy/.deploy-version
