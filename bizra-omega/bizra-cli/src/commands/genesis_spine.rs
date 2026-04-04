@@ -1120,3 +1120,180 @@ pub fn exec_manifest() -> Result<()> {
 
     Ok(())
 }
+
+// ── bizra replay ────────────────────────────────────────────
+
+/// Replay a mission from its receipt ID — re-execute and chain.
+pub fn exec_replay(id_prefix: &str) -> Result<()> {
+    println!();
+    println!("  \x1b[36m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("  \x1b[36m║\x1b[0m             \x1b[1mBIZRA Mission Replay\x1b[0m                            \x1b[36m║\x1b[0m");
+    println!("  \x1b[36m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!();
+
+    if id_prefix.len() < 8 {
+        println!("  \x1b[31mReceipt ID prefix must be at least 8 hex characters.\x1b[0m");
+        println!();
+        return Ok(());
+    }
+
+    // ── Find receipt by prefix ──
+    let entries = load_ledger().context("failed to load receipt ledger")?;
+    let matches: Vec<&LedgerEntry> = entries
+        .iter()
+        .filter(|e| e.receipt.id_hex().starts_with(id_prefix))
+        .collect();
+
+    if matches.is_empty() {
+        println!(
+            "  \x1b[31mNo receipt matching prefix '{}' in ledger.\x1b[0m",
+            id_prefix
+        );
+        println!(
+            "  Ledger: {} ({} entries)",
+            ledger_path().display(),
+            entries.len()
+        );
+        println!();
+        return Ok(());
+    }
+    if matches.len() > 1 {
+        println!(
+            "  \x1b[33mAmbiguous prefix '{}' matches {} receipts. Be more specific.\x1b[0m",
+            id_prefix,
+            matches.len()
+        );
+        for m in &matches {
+            println!("    {}…  {}", &m.receipt.id_hex()[..16], m.objective);
+        }
+        println!();
+        return Ok(());
+    }
+
+    let original = matches[0];
+    let original_id = original.receipt.id_hex();
+
+    println!("  \x1b[33mOriginal Receipt:\x1b[0m {}…", &original_id[..16]);
+    println!("  \x1b[33mObjective:\x1b[0m       {}", original.objective);
+    println!(
+        "  \x1b[33mOriginal State:\x1b[0m  {:?}",
+        original.receipt.final_state
+    );
+    println!();
+
+    // ── Re-execute through governed pipeline ──
+    println!("  \x1b[33m[1/3]\x1b[0m Discovering substrate models...");
+    let manifest = ResourceManifest::discover();
+    let model_names = mission_bridge::extract_model_names(&manifest);
+    if model_names.is_empty() {
+        println!("  \x1b[31m✗ No models available — replay cannot proceed\x1b[0m");
+        println!();
+        return Ok(());
+    }
+
+    println!("  \x1b[33m[2/3]\x1b[0m Re-executing with chain link to original...");
+    let signing_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
+    let verifying_key = ed25519_dalek::VerifyingKey::from(&signing_key);
+    let ihsan = bizra_node::IhsanScore::from_f64(0.96);
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let mut runtime = AgentRuntime::new();
+    let result = mission_bridge::execute_governed_mission(
+        &mut runtime,
+        &ihsan,
+        &original.objective,
+        now,
+        &model_names,
+        Some(original.receipt.receipt_id), // chain to original
+        Some(&signing_key),
+    );
+
+    // ── Display replay receipt ──
+    println!("  \x1b[33m[3/3]\x1b[0m Replay receipt emitted.");
+    println!();
+
+    let receipt = &result.receipt;
+    let state_color = if receipt.is_success() {
+        "\x1b[32m"
+    } else if receipt.is_degraded() {
+        "\x1b[33m"
+    } else {
+        "\x1b[31m"
+    };
+
+    println!("  \x1b[32m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("  \x1b[32m║\x1b[0m  REPLAY RECEIPT                                            \x1b[32m║\x1b[0m");
+    println!("  \x1b[32m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!("    New ID:       {}", receipt.id_hex());
+    println!("    Original:     {}…", &original_id[..16]);
+    println!(
+        "    State:        {}{:?}\x1b[0m",
+        state_color, receipt.final_state
+    );
+    println!(
+        "    Ihsan:        {}",
+        receipt
+            .ihsan_score
+            .map(|s| format!("{:.2}", s))
+            .unwrap_or_else(|| "—".into())
+    );
+    println!(
+        "    Model:        {}",
+        receipt.chosen_model.as_deref().unwrap_or("none")
+    );
+    println!(
+        "    Chained To:   {}",
+        receipt
+            .previous_receipt_hash
+            .map(hex::encode)
+            .unwrap_or_else(|| "none".into())
+    );
+    println!(
+        "    Signed:       {}",
+        if receipt.is_signed() {
+            "\x1b[32mYes (Ed25519)\x1b[0m"
+        } else {
+            "\x1b[31mNo\x1b[0m"
+        }
+    );
+    println!(
+        "    Hash Valid:   {}",
+        if receipt.verify_hash() {
+            "\x1b[32mYes (BLAKE3)\x1b[0m"
+        } else {
+            "\x1b[31mNo\x1b[0m"
+        }
+    );
+
+    // ── Persist replay receipt ──
+    let entry = LedgerEntry {
+        objective: format!("[REPLAY] {}", original.objective),
+        verifying_key_hex: hex::encode(verifying_key.to_bytes()),
+        receipt: result.receipt.clone(),
+    };
+    match append_to_ledger(&entry) {
+        Ok(()) => println!(
+            "    \x1b[32mLedger:\x1b[0m   Persisted (chain length: {})",
+            entries.len() + 1
+        ),
+        Err(e) => println!("    \x1b[31mLedger:\x1b[0m   Failed: {e}"),
+    }
+    println!();
+
+    // ── Determinism check ──
+    let same_state = receipt.final_state == original.receipt.final_state;
+    println!(
+        "  \x1b[33mDeterminism:\x1b[0m {}",
+        if same_state {
+            "\x1b[32mSame final state as original — replay consistent\x1b[0m"
+        } else {
+            "\x1b[33mDifferent final state — non-deterministic (expected for LLM inference)\x1b[0m"
+        }
+    );
+    println!();
+
+    Ok(())
+}

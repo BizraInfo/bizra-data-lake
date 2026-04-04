@@ -91,19 +91,35 @@ pub fn run_preflight(
         };
     }
 
-    // No preference — use first available model
-    // For capabilities like Vision, check if any vision model exists
+    // No preference — select model by capability match.
+    //
+    // Vision models (moondream, VL, vision) are only selected for Vision capability.
+    // Text models are preferred for Chat, Code, Reasoning, ToolUse.
+    let is_vision_model =
+        |m: &str| m.contains("moondream") || m.contains("VL") || m.contains("vision");
+
     if required_capabilities.contains(&Capability::Vision) {
-        let has_vision = available_models
-            .iter()
-            .any(|m| m.contains("VL") || m.contains("vision") || m.contains("moondream"));
-        if !has_vision {
-            return PreflightResult::NoModelAvailable {
-                reason: "vision capability required but no vision model installed".to_string(),
+        // Vision requested — find a vision-capable model
+        if let Some(vision) = available_models.iter().find(|m| is_vision_model(m)) {
+            return PreflightResult::Ready {
+                model: vision.clone(),
+                vram_used_mb: 0,
             };
         }
+        return PreflightResult::NoModelAvailable {
+            reason: "vision capability required but no vision model installed".to_string(),
+        };
     }
 
+    // Non-vision capability — prefer text models, skip vision-only models
+    if let Some(text_model) = available_models.iter().find(|m| !is_vision_model(m)) {
+        return PreflightResult::Ready {
+            model: text_model.clone(),
+            vram_used_mb: 0,
+        };
+    }
+
+    // All models are vision-only — use first as fallback
     PreflightResult::Ready {
         model: available_models[0].clone(),
         vram_used_mb: 0,

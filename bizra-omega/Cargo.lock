@@ -444,10 +444,17 @@ name = "bizra-cli"
 version = "2.0.0"
 dependencies = [
  "anyhow",
+ "bizra-core",
+ "bizra-mission",
+ "bizra-node",
+ "blake3",
  "chrono",
  "clap",
  "crossterm 0.28.1",
+ "ed25519-dalek",
  "futures",
+ "hex",
+ "rand 0.8.5",
  "ratatui",
  "reqwest",
  "serde",

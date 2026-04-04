@@ -63,6 +63,13 @@ pub enum Commands {
         verify: bool,
     },
 
+    /// Replay a mission from its receipt ID (re-execute + chain)
+    Replay {
+        /// Receipt ID prefix (at least 8 hex characters)
+        #[arg(required = true)]
+        id: String,
+    },
+
     /// Show constitutional trust surface — verify all invariants
     Trust,
 

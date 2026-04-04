@@ -79,6 +79,7 @@ fn main() -> Result<()> {
         Some(Commands::Node { watch }) => commands::genesis_spine::exec_node(watch),
         Some(Commands::Mission { objective }) => commands::genesis_spine::exec_mission(&objective),
         Some(Commands::Receipt { verify }) => commands::genesis_spine::exec_receipt(verify),
+        Some(Commands::Replay { id }) => commands::genesis_spine::exec_replay(&id),
         Some(Commands::Trust) => commands::genesis_spine::exec_trust(),
         Some(Commands::Manifest) => commands::genesis_spine::exec_manifest(),
 
