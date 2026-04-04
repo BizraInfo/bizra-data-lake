@@ -12,10 +12,10 @@ O(k) gate checks into O(1) lookups, freeing cognitive depth for novel reasoning.
 
 Usage:
     cel = ConstitutionalEngramLayer()
-    
+
     # First time: computes and caches
     clearance = cel.check(mission_type="research_query", context={...})
-    
+
     # Second time: O(1) lookup, no recomputation
     clearance = cel.check(mission_type="research_query", context={...})
 """
@@ -25,7 +25,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 log = logging.getLogger("bizra.cel")
@@ -45,6 +45,7 @@ INVARIANTS = {
 @dataclass
 class EngramEntry:
     """A cached constitutional clearance result."""
+
     mission_type_hash: str
     cleared: bool
     invariants_checked: int
@@ -57,6 +58,7 @@ class EngramEntry:
 @dataclass
 class CELStats:
     """Engram layer performance metrics."""
+
     total_checks: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
@@ -67,7 +69,7 @@ class CELStats:
 
 class ConstitutionalEngramLayer:
     """O(1) constitutional memory — pre-verified clearance cache.
-    
+
     Invariants are immutable. Their verification results are deterministic.
     Cache them once, look up forever. No invalidation needed because
     the invariants never change.
@@ -79,8 +81,11 @@ class ConstitutionalEngramLayer:
         self._stats = CELStats()
         self._hit_times: list[float] = []
         self._miss_times: list[float] = []
-        log.info("CEL initialized (max_entries=%d, invariants=%d)", 
-                 max_entries, len(INVARIANTS))
+        log.info(
+            "CEL initialized (max_entries=%d, invariants=%d)",
+            max_entries,
+            len(INVARIANTS),
+        )
 
     def _compute_key(self, mission_type: str, context: Dict[str, Any]) -> str:
         """Hash mission type + constitutional-relevant context fields."""
@@ -101,7 +106,7 @@ class ConstitutionalEngramLayer:
         context: Dict[str, Any],
     ) -> tuple[bool, dict]:
         """Check constitutional clearance — O(1) if cached, O(k) on first check.
-        
+
         Returns (cleared, detail_dict).
         """
         t0 = time.monotonic()
@@ -224,9 +229,17 @@ def get_cel() -> ConstitutionalEngramLayer:
     if _cel is None:
         _cel = ConstitutionalEngramLayer()
         # Preload common mission types
-        _cel.preload([
-            "research_query", "code_generation", "file_organization",
-            "knowledge_search", "text_analysis", "summarization",
-            "planning", "evaluation", "publishing",
-        ])
+        _cel.preload(
+            [
+                "research_query",
+                "code_generation",
+                "file_organization",
+                "knowledge_search",
+                "text_analysis",
+                "summarization",
+                "planning",
+                "evaluation",
+                "publishing",
+            ]
+        )
     return _cel

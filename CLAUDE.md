@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**BIZRA-DATA-LAKE** is the persistent memory and knowledge layer of the BIZRA ecosystem — a decentralized agentic system built on Proof-Carrying Inference, FATE gates, and constitutional AI governance. The repo contains a Python sovereignty infrastructure (`core/`) and a high-performance Rust workspace (`bizra-omega/`, 24 crates).
+**BIZRA-DATA-LAKE** is the primary codebase of the BIZRA ecosystem — a proof-native constitutional intelligence system. The repo contains a Python sovereignty infrastructure (`core/`, 628 files, 249K LOC) and a high-performance Rust workspace (`bizra-omega/`, 27 crates, 108K LOC, 1,603+ tests).
 
 **Environment:** WSL Ubuntu on Windows | Python 3.11+ | Rust stable (1.91+)
 
@@ -75,12 +75,28 @@ npm run ci                         # Full gate: typecheck + lint + test + build
 
 React 18 + TypeScript + Vite. Phase state machine (trust→splash→genesis→teach→assembly→dashboard). Dashboard has 6 tabs: cmd, char, skill, quest, comm, prog. Design tokens in `frontend/src/tokens.ts` (synced with `constants.py`).
 
+## Constitutional Spine (Frozen 2026-03-30)
+
+Five root objects in `bizra-omega/bizra-core/src/` — 246 tests, cross-language parity proven:
+
+| Object | File | What |
+|--------|------|------|
+| `CanonicalReceipt` | `canonical_receipt.rs` | One receipt per visible effect — signed, chained, genesis-bound |
+| `MissionState` | `mission_state.rs` | Sovereign input lifecycle (PROPOSED→...→RECEIPTED) |
+| `TopologyCanon` | `topology_canon.rs` | PAT-7 + SAT-5, gate order, verdict precedence |
+| `GenesisSeal` | `genesis_seal.rs` | Deterministic root of trust |
+| `ReceiptStateMachine` | `receipt_state_machine.rs` | Transition law (HYPOTHESIS→...→MARKETABLE) |
+
+Python mirror: `core/proof_engine/canonical_receipt_adapter.py` (byte-identical to Rust)
+
+Gateway: `services/node_gateway/app/routers.py` — `POST /v1/mission` emits canonical receipts
+
 ## Architecture
 
 ### Python (`core/`) and Rust (`bizra-omega/`) Mirror
 
 ```
-Python (core/)                          Rust (bizra-omega/ — 24 crates)
+Python (core/)                          Rust (bizra-omega/ — 27 crates)
 ├── pci/        Proof-Carrying Inference    bizra-core/        Constitution + FATE + Identity
 ├── federation/ P2P gossip + BFT consensus  bizra-federation/  Gossip + signed messages
 ├── inference/  Tiered LLM gateway          bizra-inference/   Inference backends
