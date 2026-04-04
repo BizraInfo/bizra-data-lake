@@ -192,6 +192,16 @@ out/
 # ── One-off Noise (untracked root artifacts) ─────────────────
 mypy_full.txt
 analyze_mypy.py
+
+# ── Workspace Tarballs (ephemeral worktree artifacts) ────────
+workspace-*.tar
+
+# ── Archive (large, not source code) ─────────────────────────
+BIZRA-Archive/
+
+# ── Runtime workspace (separate Rust workspace, tracked independently) ──
+runtime/.env
+runtime/.env.reference
 fix_mypy_batch.py
 DATA4LLM_full_extract.txt
 

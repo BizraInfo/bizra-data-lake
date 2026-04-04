@@ -4,6 +4,20 @@
 > The judiciary between user domain (PAT) and system domain (SAT/URP).
 > Only proof-carrying requests cross. No raw authority leaks.
 
+## Gate Layer Map
+
+```
+FATE gates (this spec, crossing boundary):    PCI gates (bizra-core, local validation):
+  Gate::Ihsan    (>= 0.95)                      SchemaGate   (structural validity)
+  Gate::Adl      (Gini <= 0.35)                 IhsanGate    (quality/ethics score)
+  Gate::Guardian  (constitutional approval)      SNRGate      (signal-to-noise)
+
+FATE runs AFTER PCI. PCI validates locally within PAT. FATE validates at the crossing.
+Both are fail-closed, fixed-order, non-skippable.
+Code ref: bizra-core/src/pci/gates.rs:232 (default_gate_chain)
+Code ref: bizra-core/src/topology_canon.rs:149 (GATE_ORDER = ["Schema","Ihsan","SNR"])
+```
+
 ## Pseudocode: FATE Gate Chain
 
 ```
