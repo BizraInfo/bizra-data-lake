@@ -122,6 +122,97 @@ pub enum TrustVerdict {
     Degraded,
 }
 
+/// Event category for Ghost feed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventKind {
+    ReceiptCreated,
+    TrustChanged,
+    MissionCompleted,
+}
+
+/// A live node event detected by state diffing.
+#[derive(Debug, Clone)]
+pub struct NodeEvent {
+    pub kind: EventKind,
+    pub message: String,
+    pub timestamp: String,
+}
+
+/// Detect events by comparing previous and current dashboard state.
+/// Same truth path — derived entirely from existing backends.
+pub fn detect_events(prev: &DashboardData, curr: &DashboardData) -> Vec<NodeEvent> {
+    let mut events = Vec::new();
+    let ts = chrono::Local::now().format("%H:%M:%S").to_string();
+
+    // Receipt created — new receipts appeared in the chain
+    if curr.total_receipts > prev.total_receipts {
+        let new_count = curr.total_receipts - prev.total_receipts;
+        for receipt in curr.recent_receipts.iter().take(new_count) {
+            let label = if receipt.is_success {
+                "Complete"
+            } else if receipt.is_degraded {
+                "Degraded"
+            } else {
+                "Failed"
+            };
+            events.push(NodeEvent {
+                kind: EventKind::ReceiptCreated,
+                message: format!(
+                    "Receipt {} — {} ({})",
+                    receipt.id_short,
+                    truncate_str(&receipt.objective, 40),
+                    label
+                ),
+                timestamp: ts.clone(),
+            });
+        }
+    }
+
+    // Trust changed — verdict flipped
+    if curr.trust_verdict != prev.trust_verdict {
+        let msg = match curr.trust_verdict {
+            TrustVerdict::Sovereign => "Trust restored — SOVEREIGN",
+            TrustVerdict::Degraded => "Trust degraded — checks failing",
+        };
+        events.push(NodeEvent {
+            kind: EventKind::TrustChanged,
+            message: msg.to_string(),
+            timestamp: ts.clone(),
+        });
+    }
+
+    // Mission completed — today's completion count increased
+    if curr.today_complete > prev.today_complete {
+        let new_missions = curr.today_complete - prev.today_complete;
+        events.push(NodeEvent {
+            kind: EventKind::MissionCompleted,
+            message: format!(
+                "{} mission{} completed today (total: {})",
+                new_missions,
+                if new_missions > 1 { "s" } else { "" },
+                curr.today_complete
+            ),
+            timestamp: ts.clone(),
+        });
+    }
+
+    // Chain integrity changed
+    if curr.chain_valid != prev.chain_valid {
+        let msg = if curr.chain_valid {
+            "Chain integrity restored — all hashes valid"
+        } else {
+            "Chain integrity BROKEN — hash mismatch detected"
+        };
+        events.push(NodeEvent {
+            kind: EventKind::TrustChanged,
+            message: msg.to_string(),
+            timestamp: ts,
+        });
+    }
+
+    events
+}
+
 /// Agent info for parliament display.
 pub struct AgentInfo {
     pub index: u8,
@@ -185,6 +276,9 @@ pub struct DashboardData {
     // Ghost / Recommendations
     pub greeting: String,
     pub recommendations: Vec<String>,
+
+    // Live event log — populated by detect_events() on refresh
+    pub event_log: Vec<NodeEvent>,
 }
 
 /// Collect all dashboard data in a single pass.
@@ -489,6 +583,7 @@ pub fn gather_dashboard_data() -> DashboardData {
         sat_agents,
         greeting,
         recommendations,
+        event_log: Vec::new(),
     }
 }
 
@@ -2105,5 +2200,194 @@ mod tests {
         assert_eq!(TrustVerdict::Sovereign, TrustVerdict::Sovereign);
         assert_eq!(TrustVerdict::Degraded, TrustVerdict::Degraded);
         assert_ne!(TrustVerdict::Sovereign, TrustVerdict::Degraded);
+    }
+
+    // ── Event Detection Tests (Sprint 7.1) ────────────────────
+
+    /// Build a minimal DashboardData for event detection tests.
+    fn make_test_dashboard() -> DashboardData {
+        DashboardData {
+            cpu_name: "test-cpu".into(),
+            cpu_cores: 4,
+            ram_total_gb: 16.0,
+            ram_used_pct: 50.0,
+            gpu: None,
+            model_count: 0,
+            text_models: vec![],
+            vision_models: vec![],
+            runtime_count: 0,
+            platform: "test".into(),
+            runtime_state: "Ready".into(),
+            reflex_mode: "Active".into(),
+            reflex_rules: 3,
+            agents_active: 12,
+            agents_registered: 12,
+            total_receipts: 5,
+            complete_count: 4,
+            degraded_count: 1,
+            failed_count: 0,
+            chain_valid: true,
+            recent_receipts: vec![],
+            today_count: 2,
+            today_complete: 2,
+            manifest_seal: None,
+            trust_checks: vec![],
+            receipt_chain_checks: vec![],
+            trust_verdict: TrustVerdict::Sovereign,
+            pat_agents: vec![],
+            sat_agents: vec![],
+            greeting: "Good evening, MoMo".into(),
+            recommendations: vec![],
+            event_log: vec![],
+        }
+    }
+
+    #[test]
+    fn test_detect_events_no_change() {
+        let prev = make_test_dashboard();
+        let curr = make_test_dashboard();
+        let events = detect_events(&prev, &curr);
+        assert!(events.is_empty(), "No state change → no events");
+    }
+
+    #[test]
+    fn test_detect_events_receipt_created() {
+        let prev = make_test_dashboard();
+        let mut curr = make_test_dashboard();
+        curr.total_receipts = 6;
+        curr.recent_receipts = vec![ReceiptSummary {
+            id_short: "a1b2c3".into(),
+            objective: "Test mission".into(),
+            state_label: "Complete",
+            is_success: true,
+            is_degraded: false,
+            signed: true,
+        }];
+
+        let events = detect_events(&prev, &curr);
+        assert_eq!(events.len(), 1, "One new receipt → one event");
+        assert_eq!(events[0].kind, EventKind::ReceiptCreated);
+        assert!(events[0].message.contains("a1b2c3"));
+        assert!(events[0].message.contains("Complete"));
+    }
+
+    #[test]
+    fn test_detect_events_trust_verdict_flip() {
+        let prev = make_test_dashboard();
+        let mut curr = make_test_dashboard();
+        curr.trust_verdict = TrustVerdict::Degraded;
+
+        let events = detect_events(&prev, &curr);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, EventKind::TrustChanged);
+        assert!(events[0].message.contains("degraded"));
+    }
+
+    #[test]
+    fn test_detect_events_trust_restored() {
+        let mut prev = make_test_dashboard();
+        prev.trust_verdict = TrustVerdict::Degraded;
+        let curr = make_test_dashboard(); // Sovereign
+
+        let events = detect_events(&prev, &curr);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, EventKind::TrustChanged);
+        assert!(events[0].message.contains("restored"));
+    }
+
+    #[test]
+    fn test_detect_events_mission_completed() {
+        let prev = make_test_dashboard();
+        let mut curr = make_test_dashboard();
+        curr.today_complete = 4;
+
+        let events = detect_events(&prev, &curr);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, EventKind::MissionCompleted);
+        assert!(events[0].message.contains("2 missions completed"));
+        assert!(events[0].message.contains("total: 4"));
+    }
+
+    #[test]
+    fn test_detect_events_chain_integrity_broken() {
+        let prev = make_test_dashboard();
+        let mut curr = make_test_dashboard();
+        curr.chain_valid = false;
+
+        let events = detect_events(&prev, &curr);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, EventKind::TrustChanged);
+        assert!(events[0].message.contains("BROKEN"));
+    }
+
+    #[test]
+    fn test_detect_events_chain_integrity_restored() {
+        let mut prev = make_test_dashboard();
+        prev.chain_valid = false;
+        let curr = make_test_dashboard(); // chain_valid = true
+
+        let events = detect_events(&prev, &curr);
+        assert_eq!(events.len(), 1);
+        assert!(events[0].message.contains("restored"));
+    }
+
+    #[test]
+    fn test_detect_events_multiple_simultaneous() {
+        let prev = make_test_dashboard();
+        let mut curr = make_test_dashboard();
+        // Three simultaneous changes
+        curr.total_receipts = 6;
+        curr.recent_receipts = vec![ReceiptSummary {
+            id_short: "beef42".into(),
+            objective: "Multi-event test".into(),
+            state_label: "Degraded",
+            is_success: false,
+            is_degraded: true,
+            signed: true,
+        }];
+        curr.trust_verdict = TrustVerdict::Degraded;
+        curr.today_complete = 3;
+
+        let events = detect_events(&prev, &curr);
+        assert_eq!(events.len(), 3, "Three state changes → three events");
+
+        let kinds: Vec<&EventKind> = events.iter().map(|e| &e.kind).collect();
+        assert!(kinds.contains(&&EventKind::ReceiptCreated));
+        assert!(kinds.contains(&&EventKind::TrustChanged));
+        assert!(kinds.contains(&&EventKind::MissionCompleted));
+    }
+
+    #[test]
+    fn test_detect_events_single_mission_plural() {
+        let prev = make_test_dashboard();
+        let mut curr = make_test_dashboard();
+        curr.today_complete = 3; // +1 mission
+
+        let events = detect_events(&prev, &curr);
+        assert_eq!(events.len(), 1);
+        assert!(
+            events[0].message.contains("1 mission completed"),
+            "Singular form for 1 mission: {}",
+            events[0].message
+        );
+    }
+
+    #[test]
+    fn test_detect_events_degraded_receipt() {
+        let prev = make_test_dashboard();
+        let mut curr = make_test_dashboard();
+        curr.total_receipts = 6;
+        curr.recent_receipts = vec![ReceiptSummary {
+            id_short: "dead01".into(),
+            objective: "Degraded mission".into(),
+            state_label: "Degraded",
+            is_success: false,
+            is_degraded: true,
+            signed: false,
+        }];
+
+        let events = detect_events(&prev, &curr);
+        assert_eq!(events.len(), 1);
+        assert!(events[0].message.contains("Degraded"));
     }
 }

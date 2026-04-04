@@ -405,8 +405,18 @@ where
                             app.prev_agent();
                         }
                         KeyCode::Char('r') => {
-                            app.dashboard_data =
-                                Some(commands::genesis_spine::gather_dashboard_data());
+                            let mut new_data = commands::genesis_spine::gather_dashboard_data();
+                            if let Some(ref prev) = app.dashboard_data {
+                                let new_events =
+                                    commands::genesis_spine::detect_events(prev, &new_data);
+                                let mut log = prev.event_log.clone();
+                                log.extend(new_events);
+                                if log.len() > 20 {
+                                    log.drain(..log.len() - 20);
+                                }
+                                new_data.event_log = log;
+                            }
+                            app.dashboard_data = Some(new_data);
                             app.last_refresh = Some(std::time::Instant::now());
                             app.set_status("Dashboard refreshed");
                         }
@@ -466,13 +476,27 @@ where
             }
         }
 
-        // Periodic dashboard refresh (every 5 seconds)
+        // Periodic dashboard refresh (every 5 seconds) with event detection
         if app
             .last_refresh
             .map(|t| t.elapsed() > Duration::from_secs(5))
             .unwrap_or(true)
         {
-            app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+            let mut new_data = commands::genesis_spine::gather_dashboard_data();
+
+            // Detect events by diffing previous state
+            if let Some(ref prev) = app.dashboard_data {
+                let new_events = commands::genesis_spine::detect_events(prev, &new_data);
+                // Carry forward existing event log + append new events (cap at 20)
+                let mut log = prev.event_log.clone();
+                log.extend(new_events);
+                if log.len() > 20 {
+                    log.drain(..log.len() - 20);
+                }
+                new_data.event_log = log;
+            }
+
+            app.dashboard_data = Some(new_data);
             app.last_refresh = Some(std::time::Instant::now());
         }
 
@@ -1020,5 +1044,60 @@ mod tests {
         // Status should not clear within 5 seconds
         app.clear_expired_status();
         assert!(app.status_message.is_some());
+    }
+
+    // ── Sprint 7.1: Event Rendering Test ──────────────────────
+
+    #[test]
+    fn test_ghost_feed_renders_injected_events() {
+        use commands::genesis_spine::{EventKind, NodeEvent};
+
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = app::App::new();
+        let mut data = commands::genesis_spine::gather_dashboard_data();
+
+        // Inject events into DashboardData
+        data.event_log = vec![
+            NodeEvent {
+                kind: EventKind::ReceiptCreated,
+                message: "Receipt abc123 — Test mission (Complete)".into(),
+                timestamp: "14:30:00".into(),
+            },
+            NodeEvent {
+                kind: EventKind::TrustChanged,
+                message: "Trust degraded — checks failing".into(),
+                timestamp: "14:30:05".into(),
+            },
+            NodeEvent {
+                kind: EventKind::MissionCompleted,
+                message: "1 mission completed today (total: 5)".into(),
+                timestamp: "14:30:10".into(),
+            },
+        ];
+
+        app.dashboard_data = Some(data);
+        app.last_refresh = Some(std::time::Instant::now());
+
+        terminal.draw(|f| ui(f, &app)).unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let content: String = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol().chars().next().unwrap_or(' '))
+            .collect();
+
+        // Ghost feed must render the Events section
+        assert!(
+            content.contains("Events"),
+            "Ghost feed must render Events header"
+        );
+        // At least one event message should appear in the buffer
+        assert!(
+            content.contains("abc123") || content.contains("mission"),
+            "Ghost feed must render injected event content"
+        );
     }
 }

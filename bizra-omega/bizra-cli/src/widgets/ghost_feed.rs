@@ -11,7 +11,7 @@ use ratatui::{
 };
 
 use crate::{
-    commands::genesis_spine::DashboardData,
+    commands::genesis_spine::{DashboardData, EventKind, NodeEvent},
     theme::{borders, symbols, Theme},
 };
 
@@ -23,6 +23,7 @@ pub struct GhostFeed<'a> {
     reflex_mode: &'a str,
     reflex_rules: usize,
     recommendations: &'a [String],
+    event_log: &'a [NodeEvent],
 }
 
 impl<'a> GhostFeed<'a> {
@@ -35,6 +36,7 @@ impl<'a> GhostFeed<'a> {
             reflex_mode: &data.reflex_mode,
             reflex_rules: data.reflex_rules,
             recommendations: &data.recommendations,
+            event_log: &data.event_log,
         }
     }
 }
@@ -103,6 +105,37 @@ impl Widget for GhostFeed<'_> {
                 Span::styled(format!("{} ", symbols::ARROW_RIGHT), Theme::ihsan()),
                 Span::styled(display, Theme::text()),
             ]));
+        }
+
+        // Live event log — most recent events from state diffing
+        if !self.event_log.is_empty() {
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled("── Events ──", Theme::muted())));
+            // Show last 5 events (most recent last)
+            let start = self.event_log.len().saturating_sub(5);
+            for event in &self.event_log[start..] {
+                let icon = match event.kind {
+                    EventKind::ReceiptCreated => symbols::SUCCESS,
+                    EventKind::TrustChanged => symbols::WARNING,
+                    EventKind::MissionCompleted => symbols::STAR,
+                };
+                let style = match event.kind {
+                    EventKind::ReceiptCreated => Theme::success(),
+                    EventKind::TrustChanged => Theme::warning(),
+                    EventKind::MissionCompleted => Theme::ihsan(),
+                };
+                let max_w = (inner.width as usize).saturating_sub(14);
+                let msg = if event.message.len() > max_w && max_w > 3 {
+                    format!("{}...", &event.message[..max_w - 3])
+                } else {
+                    event.message.clone()
+                };
+                lines.push(Line::from(vec![
+                    Span::styled(format!("{} ", event.timestamp), Theme::muted()),
+                    Span::styled(format!("{icon} "), style),
+                    Span::styled(msg, Theme::text()),
+                ]));
+            }
         }
 
         Paragraph::new(lines)
