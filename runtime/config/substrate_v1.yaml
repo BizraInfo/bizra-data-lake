@@ -1,0 +1,215 @@
+# BIZRA Knowledge Substrate v1 Configuration
+# P1.11 Implementation
+
+version: 1
+status: active
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BACKING STORE
+# ══════════════════════════════════════════════════════════════════════════════
+
+database:
+  type: postgres
+  version: "16"
+  extensions:
+    - pgcrypto
+    - vector  # pgvector for embeddings
+  
+  # Connection (override via BIZRA_PG_DSN env var)
+  default_dsn: "postgresql://bizra:bizra_dev_password@localhost:5432/bizra"
+  
+  # Connection pool settings
+  pool:
+    min_size: 2
+    max_size: 10
+    timeout_seconds: 30
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EMBEDDINGS
+# ══════════════════════════════════════════════════════════════════════════════
+
+embeddings:
+  # Default: null (no network egress, deterministic test vectors)
+  # Options: null, local, openai
+  default_provider: null
+  
+  providers:
+    null:
+      dims: 768
+      description: "Dev-safe: no embeddings, forces graph/text fallback"
+    
+    local:
+      model: "all-mpnet-base-v2"  # sentence-transformers
+      dims: 768
+      description: "Local inference, no network egress"
+      install: "pip install sentence-transformers"
+    
+    openai:
+      model: "text-embedding-3-small"
+      dims: 1536
+      description: "OpenAI API (requires OPENAI_API_KEY)"
+      egress_warning: true
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GRAPH LAYER
+# ══════════════════════════════════════════════════════════════════════════════
+
+graph:
+  type: adjacency_list  # Postgres tables, not Neo4j
+  
+  # Traversal limits
+  max_hops: 3
+  max_neighbors: 100
+  
+  # Edge types (from kg/schema_v1.json)
+  edge_types:
+    - CO_OCCURS
+    - DEPENDS_ON
+    - VERIFIES
+    - RISKS
+    - MEASURES
+    - REWARDS
+    - DEFINES
+    - IMPLEMENTS
+    - EXTENDS
+    - CONTRADICTS
+    - SUPERSEDES
+    - CITES
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RECEIPTS & AUDIT
+# ══════════════════════════════════════════════════════════════════════════════
+
+receipts:
+  # Append-only enforcement (database trigger)
+  append_only: true
+  
+  # Signature requirements
+  signature:
+    required_in_prod: true
+    algorithm: "sha256"
+  
+  # Retention
+  retention_days: 365
+  
+  # Receipt kinds
+  kinds:
+    - INGEST
+    - QUERY
+    - SAPE
+    - ELEVATION
+    - GATE
+    - SEED
+    - FEEDBACK
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SNR BUDGET
+# ══════════════════════════════════════════════════════════════════════════════
+
+snr:
+  default_tier: concise
+  enforce: false  # Set to true in production
+  
+  tiers:
+    minimal:
+      max_tokens: 500
+      max_words: 100
+      require_evidence: true
+    concise:
+      max_tokens: 1500
+      max_words: 300
+      require_evidence: true
+    standard:
+      max_tokens: 4000
+      max_words: 800
+      require_evidence: true
+    expanded:
+      max_tokens: 8000
+      max_words: 2000
+      require_evidence: false
+
+# ══════════════════════════════════════════════════════════════════════════════
+# IHSAN GATE
+# ══════════════════════════════════════════════════════════════════════════════
+
+ihsan:
+  enforce: false  # Set to true in production
+  min_score: 0.5
+  
+  tiers:
+    gold:
+      min_score: 0.9
+      description: "Excellence verified"
+    silver:
+      min_score: 0.7
+      description: "Good quality"
+    bronze:
+      min_score: 0.5
+      description: "Acceptable"
+    unrated:
+      min_score: 0.0
+      description: "Not evaluated"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FATE (Fail-Closed Escalation)
+# ══════════════════════════════════════════════════════════════════════════════
+
+fate:
+  # High-stakes queries require evidence
+  require_evidence_h_stakes: true
+  
+  # Maximum retries before escalation
+  max_retries: 2
+  
+  # Escalation targets
+  escalation:
+    method: receipt  # Log to receipts with ESCALATED decision
+    notify: false    # Future: webhook/email notification
+
+# ══════════════════════════════════════════════════════════════════════════════
+# API
+# ══════════════════════════════════════════════════════════════════════════════
+
+api:
+  prefix: /v1/kg
+  
+  endpoints:
+    - path: /query
+      methods: [POST]
+      description: "Hybrid vector + graph retrieval"
+    - path: /entity
+      methods: [POST]
+      description: "Entity-based lookup"
+    - path: /receipts
+      methods: [GET]
+      description: "List receipts"
+    - path: /receipts/{receipt_id}
+      methods: [GET]
+      description: "Get receipt by ID"
+    - path: /stats
+      methods: [GET]
+      description: "Database statistics"
+    - path: /health
+      methods: [GET]
+      description: "Health check"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SOVEREIGNTY
+# ══════════════════════════════════════════════════════════════════════════════
+
+sovereignty:
+  # Default: no network egress for core operations
+  network_egress:
+    default: false
+    allowed_for:
+      - openai_embeddings  # Only if explicitly configured
+  
+  # Data stays local
+  data_residency: local
+  
+  # External dependencies
+  external_deps:
+    required: []
+    optional:
+      - sentence-transformers  # For local embeddings
+      - openai  # For OpenAI embeddings (if enabled)

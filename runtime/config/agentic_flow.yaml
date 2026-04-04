@@ -1,0 +1,63 @@
+# BIZRA Agentic-Flow Integration Configuration
+# Maps agentic-flow's swarm intelligence to BIZRA's orchestration framework.
+
+service:
+  url: ${AGENTIC_FLOW_URL:-http://localhost:3100}
+  timeout_seconds: 30
+  enabled: true
+  max_agents: 15
+
+# Topology mapping: BIZRA swarm modes -> agentic-flow topologies
+topology_mapping:
+  independent: mesh            # Agents work autonomously, results aggregated
+  collaborative: hierarchical-mesh  # Agents share workspace, build on each other
+  hivemind: star               # Collective decision-making with consensus
+
+# Default swarm configuration
+swarm_defaults:
+  topology: hierarchical-mesh
+  agent_count: 5
+  timeout_ms: 30000
+  consensus: raft              # raft | byzantine | gossip
+
+# BIZRA PAT agent -> agentic-flow agent mapping
+agent_mapping:
+  strategic_visionary:
+    - planner
+    - researcher
+  creative_innovator:
+    - coder
+  analytical_optimizer:
+    - reviewer
+  implementation_specialist:
+    - coder
+    - tester
+  quality_guardian:
+    - reviewer
+    - tester
+  user_advocate:
+    - planner
+  integration_coordinator:
+    - hierarchical-coordinator
+
+# SONA (Self-Optimizing Neural Architecture) settings
+sona:
+  attention_type: flash        # flash | multi-head | linear | hyperbolic | moe
+  gnn_enabled: true            # GNN query refinement (+12.4% recall)
+  lora_enabled: false          # LoRA fine-tuning (99% parameter reduction)
+  reasoning_bank: true         # Cross-agent pattern sharing
+
+# Background workers
+workers:
+  - type: audit
+    interval_seconds: 300
+  - type: optimize
+    interval_seconds: 600
+  - type: consolidate
+    interval_seconds: 900
+
+# Receipt configuration
+receipts:
+  directory: docs/evidence/receipts/agentic_flow
+  format: jsonl
+  integrity_hash: sha256

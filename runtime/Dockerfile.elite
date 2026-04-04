@@ -1,0 +1,112 @@
+# BIZRA META ALPHA ELITE - Rust Production Container
+# Multi-stage build for minimal production image
+
+# ============================================================
+# Stage 1: Build
+# ============================================================
+FROM rust:1.83-slim-bookworm AS builder
+# RUN rustup toolchain install nightly && rustup default nightly
+
+# Install build dependencies (g++ provides libstdc++ for linking)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    g++ \
+    clang \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy manifests first for better layer caching
+COPY Cargo.toml Cargo.lock ./
+
+# [FIX] Scaffold Workspace Members
+# Create directory structure and dummy manifests for ALL workspace members
+# defined in the root Cargo.toml to satisfy cargo's workspace validation.
+RUN mkdir -p crates/finance-v1/src && \
+    echo 'fn main() {}' > crates/finance-v1/src/main.rs && \
+    printf '[package]\nname = "finance-v1"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\n' > crates/finance-v1/Cargo.toml && \
+    mkdir -p crates/bizra-gateway/src && \
+    echo 'fn main() {}' > crates/bizra-gateway/src/main.rs && \
+    printf '[package]\nname = "bizra-gateway"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\n' > crates/bizra-gateway/Cargo.toml && \
+    mkdir -p crates/bizra_bridge/src && \
+    echo 'fn main() {}' > crates/bizra_bridge/src/main.rs && \
+    printf '[package]\nname = "bizra_bridge"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\n' > crates/bizra_bridge/Cargo.toml
+
+# Scaffold Root Crate
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    echo "pub fn lib() {}" > src/lib.rs
+
+# Build dependencies only (cached layer)
+RUN cargo build --release --workspace && rm -rf src
+
+# Copy actual workspace crates (overwriting scaffolds)
+COPY crates ./crates
+
+# Copy actual source
+COPY src ./src
+COPY constitution ./constitution
+COPY static ./static
+
+# Touch to invalidate cache and rebuild with real source
+RUN touch src/main.rs src/lib.rs
+
+# Build release binary
+RUN cargo build --release --workspace
+
+# ============================================================
+# Stage 2: Runtime
+# ============================================================
+FROM debian:bookworm-slim AS runtime
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libstdc++6 \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN useradd -m -u 1000 -s /bin/bash bizra
+
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /app/target/release/meta_alpha_dual_agentic /app/bizra-elite
+COPY --from=builder /app/target/release/finance-v1 /app/finance-v1
+
+# Copy required assets
+COPY --from=builder /app/constitution /app/constitution
+COPY --from=builder /app/static /app/static
+
+# Create directories for runtime data
+RUN mkdir -p /app/docs/evidence/receipts && \
+    chown -R bizra:bizra /app
+
+# Switch to non-root user
+USER bizra
+
+# Environment defaults
+ENV RUST_LOG=info \
+    BIZRA_HTTP_PORT=8080 \
+    BIZRA_API_TOKEN="" \
+    OLLAMA_URL=http://host.docker.internal:11434 \
+    NEO4J_URI=bolt://wisdom:7687 \
+    NEO4J_USER=neo4j \
+    NEO4J_PASSWORD=bizra_wisdom \
+    REDIS_URL=redis://synapse:6379 \
+    CHROMA_URL=http://vectors:8000 \
+    BIZRA_IHSAN_ENV=staging
+
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the binary
+CMD ["/app/bizra-elite"]

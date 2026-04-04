@@ -1,0 +1,173 @@
+version: 1
+semver: 1.0.1
+id: bizra_lexicon_v1_0_1
+status: canonical
+append_only: true
+
+contract: constitution/lexicon_ledger_contract_v1.yaml
+schema: schemas/lexicon_v1.schema.json
+receipt_schema: schemas/lexicon_receipt_v1.schema.json
+
+purpose: >
+  Freeze meanings for core system terms to prevent governance drift across docs, code, agents,
+  and receipts. This ledger is normative: new terms must be added here before being used as
+  "production" language.
+
+terms:
+  ACE:
+    expansion: "Agentic Control Environment"
+    role: "Session OS / governance layer coordinating tools, verification, receipts, and gates"
+    notes:
+      - "ACE is responsible for fail-closed behavior under uncertainty (see FATE)."
+
+  AdapterMode:
+    expansion: "Adapter mode (simulated vs real)"
+    role: "Truth label describing whether a subsystem performs real external IO"
+    variants:
+      simulated: "No external IO; behavior may be stubbed or scripted."
+      real: "Performs external IO; requires evidence receipts and auditability."
+    invariants:
+      - "If mode is real, a receipt MUST exist that includes tool calls + hashes."
+      - "If mode is simulated, outputs MUST NOT claim real-world side effects."
+
+  AdapterModes:
+    expansion: "Adapter mode vector"
+    role: "Per-subsystem AdapterMode summary (PAT/SAT/MCP/A2A/Reasoning)"
+    required_fields:
+      - pat
+      - sat
+      - mcp
+      - a2a
+      - reasoning
+
+  ArtifactClass:
+    expansion: "Artifact classification"
+    role: "Categorizes what a receipt or gate is evaluating"
+    variants:
+      code: "Executable source code"
+      docs: "Documentation claims and policies"
+      config: "Configuration / environment"
+      data: "Databases, migrations, seed files"
+      evidence: "Receipts, logs, measurements"
+
+  BAT:
+    expansion: "Build & Audit Tooling"
+    role: "Deterministic integrity gate (build/test/lint/secret-scan/truth-lint/parity)"
+
+  Constitution:
+    expansion: "Constitution file"
+    role: "Normative, versioned policy file that implementations must match"
+    examples:
+      - constitution/ihsan_v1.yaml
+      - constitution/lexicon_v1.yaml
+
+  FATE:
+    expansion: "Fail-Closed Escalation Protocol"
+    role: "Escalation path when verification is uncertain or thresholds are not met"
+    notes:
+      - "Fail closed: refuse to claim success when evidence is missing."
+
+  GenesisManifest:
+    expansion: "Genesis manifest"
+    role: "Allowlisted file set + hashes that define a sealed genesis state"
+    notes:
+      - "A GenesisManifest binds to specific constitution IDs + hashes."
+
+  GenesisSeal:
+    expansion: "Genesis seal"
+    role: "Process and artifact that marks a state as immutable for audit purposes"
+    notes:
+      - "Sealing requires a deterministic allowlist + hash set (see GenesisManifest)."
+
+  Ihsan:
+    expansion: "Ihsan (excellence gate)"
+    role: "Ethical/quality gate defined by constitution/ihsan_v1.yaml"
+    references:
+      - constitution/ihsan_v1.yaml
+
+  LexiconReceipt:
+    expansion: "Lexicon evidence receipt"
+    role: "Append-only receipt that binds lexicon and constitution versions by hash"
+    required_fields:
+      - lexicon_id
+      - lexicon_sha256
+      - ihsan_constitution_id
+      - ihsan_constitution_sha256
+      - lexicon_contract_sha256
+      - lexicon_schema_sha256
+      - lexicon_receipt_schema_sha256
+      - policy_sha256
+      - repo_commit
+      - adapter_modes
+      - truth_label
+      - timestamp
+    references:
+      - schemas/lexicon_receipt_v1.schema.json
+      - tools/generate_lexicon_receipt.py
+
+  PAT:
+    expansion: "Personal Agent Team"
+    role: "Generation/execution team producing candidate outputs"
+    notes:
+      - "PAT outputs are claims until verified by SAT and/or evidence receipts."
+
+  Probe:
+    expansion: "Probe (SAPE)"
+    role: "Targeted test/exploration to surface hidden assumptions and rare failure modes"
+    notes:
+      - "A probe is successful when it produces evidence, not when it feels plausible."
+
+  Receipt:
+    expansion: "Evidence receipt"
+    role: "Append-only record of inputs, outputs, tool calls, policy versions, and hashes"
+    required_fields:
+      - inputs
+      - outputs
+      - tool_calls
+      - policy_versions
+      - hashes
+      - timestamps
+
+  SAPE:
+    expansion: "Symbolic-Abstraction-Probe-Elevation"
+    role: "Reasoning framework that elevates patterns without fabricating verification"
+    notes:
+      - "Symbolic: bind to constitutions/lexicon."
+      - "Probe: generate evidence; do not hallucinate measurements."
+
+  SAT:
+    expansion: "System Agent Team"
+    role: "Validation/verification team; enforces policy and evidence gates"
+    notes:
+      - "SAT must be capable of refusal and escalation; 'always approve' is simulation-only."
+
+  SNR:
+    expansion: "Signal-to-Noise Ratio"
+    role: "Measure of useful output vs filler; tracked and optimized"
+
+  SoT:
+    expansion: "Source of Truth"
+    role: "The authoritative location for a definition, policy, or artifact"
+    notes:
+      - "SoT must be explicit to prevent split-brain governance drift."
+
+  Token:
+    expansion: "Authentication token / capability token"
+    role: "Controls access to execution endpoints and high-risk tools"
+    notes:
+      - "Tokens are never logged in plaintext in production."
+
+  TruthLabel:
+    expansion: "Truth label"
+    role: "Classifies claims by evidence strength"
+    variants:
+      VERIFIED: "Backed by code-level evidence and/or reproducible command receipts"
+      MEASURED: "Backed by executed measurements with recorded outputs"
+      TARGET: "Planned/desired; not yet true in current implementation"
+      DERIVED: "Computed from other values; not directly measured"
+
+truth_labels:
+  VERIFIED: "Backed by code-level evidence and/or reproducible command receipts"
+  MEASURED: "Backed by executed measurements with recorded outputs"
+  TARGET: "Planned/desired; not yet true in current implementation"
+  DERIVED: "Computed from other values; not directly measured"

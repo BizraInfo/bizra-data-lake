@@ -1,0 +1,595 @@
+# ===============================================================================
+# BIZRA Genesis Activation Sequence
+# ===============================================================================
+# Single Source of Truth: constitution/ihsan_v1.yaml
+# Constellation Reference: config/genesis/constellation_7plus1.yaml
+# ===============================================================================
+
+version: "1.0.0"
+schema: "bizra.genesis.activation.v1"
+constitution_ref: "constitution/ihsan_v1.yaml"
+
+# ===============================================================================
+# ACTIVATION PHASE DEFINITIONS
+# ===============================================================================
+# Genesis activation proceeds through 4 phases (0 -> 1 -> 2 -> 3)
+# Each phase has prerequisites, actions, and verification gates
+# ===============================================================================
+
+phases:
+  # ---------------------------------------------------------------------------
+  # PHASE 0: DORMANT (Initial State)
+  # ---------------------------------------------------------------------------
+  phase_0:
+    name: "Dormant"
+    codename: "Al-Sukoon"  # Arabic: The Stillness
+    description: "Initial dormant state before activation"
+
+    state:
+      constellation_active: false
+      guardians_initialized: false
+      majlis_operational: false
+      a2a_handshake_complete: false
+
+    exit_requirements:
+      - genesis_block_verified
+      - constitution_loaded
+      - cryptographic_keys_generated
+      - infrastructure_healthy
+
+    health_checks:
+      - endpoint: "/health/infrastructure"
+        expected_status: 200
+        required_fields: ["postgres", "redis", "neo4j"]
+
+      - endpoint: "/health/constitution"
+        expected_status: 200
+        required_fields: ["ihsan_v1_loaded", "weights_valid"]
+
+    evidence_required:
+      - phase0_dormant_verification_receipt
+
+  # ---------------------------------------------------------------------------
+  # PHASE 0 -> PHASE 1 TRANSITION
+  # ---------------------------------------------------------------------------
+  phase_0_to_1:
+    name: "Awakening Initiation"
+    description: "Transition from dormant to guardian initialization"
+
+    prerequisites:
+      - condition: "genesis_block_integrity_verified"
+        validation: "BLAKE3 hash matches genesis_hash_ref"
+        fail_action: "abort"
+
+      - condition: "constitution_ihsan_v1_loaded"
+        validation: "8 dimensions, weights sum to 1.0"
+        fail_action: "abort"
+
+      - condition: "cryptographic_infrastructure_ready"
+        validation: "Ed25519 keypairs generated, BLAKE3 available"
+        fail_action: "abort"
+
+      - condition: "infrastructure_services_healthy"
+        validation: "PostgreSQL, Redis, Neo4j responding"
+        fail_action: "wait_and_retry"
+        max_retries: 5
+        retry_delay_ms: 5000
+
+    actions:
+      - action: "load_constellation_manifest"
+        source: "config/genesis/constellation_7plus1.yaml"
+        validation: "7 guardians + 1 majlis parsed"
+
+      - action: "generate_genesis_attestation"
+        inputs: ["genesis_block", "node_keypair"]
+        outputs: ["attestation_signature", "attestation_timestamp"]
+
+      - action: "initialize_phase_state_machine"
+        initial_state: "PHASE_1_INITIALIZING"
+
+    gate:
+      ihsan_threshold: 0.95
+      snr_threshold: 0.98
+      timeout_ms: 60000
+
+    evidence_required:
+      - phase0_to_1_transition_receipt
+
+  # ---------------------------------------------------------------------------
+  # PHASE 1: GUARDIAN INITIALIZATION
+  # ---------------------------------------------------------------------------
+  phase_1:
+    name: "Guardian Initialization"
+    codename: "Al-Istiqaadh"  # Arabic: The Awakening
+    description: "Initialize all 7 guardians with genesis attestation"
+
+    state:
+      constellation_active: false
+      guardians_initialized: true
+      majlis_operational: false
+      a2a_handshake_complete: false
+
+    guardian_init_sequence:
+      # Safety and Correctness first (highest priority)
+      - guardian_id: "guardian_1_ameen"
+        priority: 1
+        critical: true
+        timeout_ms: 30000
+
+      - guardian_id: "guardian_2_sadiq"
+        priority: 1
+        critical: true
+        timeout_ms: 30000
+
+      # User-facing guardians next
+      - guardian_id: "guardian_3_nafi"
+        priority: 2
+        critical: false
+        timeout_ms: 30000
+
+      - guardian_id: "guardian_4_raqib"
+        priority: 2
+        critical: false
+        timeout_ms: 30000
+
+      # System guardians
+      - guardian_id: "guardian_5_muqsit"
+        priority: 3
+        critical: false
+        timeout_ms: 30000
+
+      - guardian_id: "guardian_6_matin"
+        priority: 3
+        critical: false
+        timeout_ms: 30000
+
+      - guardian_id: "guardian_7_wakil"
+        priority: 3
+        critical: false
+        timeout_ms: 30000
+
+    per_guardian_init:
+      steps:
+        - step: "load_guardian_config"
+          source: "config/genesis/constellation_7plus1.yaml"
+
+        - step: "generate_guardian_keypair"
+          algorithm: "Ed25519"
+
+        - step: "sign_genesis_attestation"
+          inputs: ["guardian_keypair", "genesis_block_hash"]
+
+        - step: "register_capabilities"
+          protocol: "a2a/json-rpc/2.0"
+
+        - step: "emit_init_receipt"
+          destination: "docs/evidence/receipts/genesis/"
+
+    exit_requirements:
+      - all_guardians_initialized
+      - all_genesis_attestations_valid
+      - critical_guardians_healthy  # guardian_1 and guardian_2
+
+    health_checks:
+      - endpoint: "/health/guardians"
+        expected_status: 200
+        required_fields: ["initialized_count", "healthy_count"]
+        validation: "initialized_count == 7"
+
+      - endpoint: "/health/guardian/{id}"
+        for_each: ["guardian_1_ameen", "guardian_2_sadiq"]
+        expected_status: 200
+        required_fields: ["status", "attestation_valid"]
+
+    evidence_required:
+      - guardian_1_init_receipt
+      - guardian_2_init_receipt
+      - guardian_3_init_receipt
+      - guardian_4_init_receipt
+      - guardian_5_init_receipt
+      - guardian_6_init_receipt
+      - guardian_7_init_receipt
+
+  # ---------------------------------------------------------------------------
+  # PHASE 1 -> PHASE 2 TRANSITION
+  # ---------------------------------------------------------------------------
+  phase_1_to_2:
+    name: "Majlis Formation"
+    description: "Transition from guardian init to Majlis activation"
+
+    prerequisites:
+      - condition: "all_guardians_initialized"
+        validation: "7 guardians with valid attestations"
+        fail_action: "abort"
+
+      - condition: "critical_guardians_healthy"
+        validation: "guardian_1_ameen and guardian_2_sadiq responding"
+        fail_action: "abort"
+
+      - condition: "guardian_receipts_complete"
+        validation: "All 7 init receipts emitted and verified"
+        fail_action: "wait_and_retry"
+        max_retries: 3
+
+    actions:
+      - action: "initialize_majlis_coordinator"
+        inputs: ["guardian_registry", "constellation_config"]
+
+      - action: "register_majlis_with_guardians"
+        broadcast: true
+
+      - action: "verify_bidirectional_communication"
+        test: "ping_pong_all_guardians"
+
+    gate:
+      ihsan_threshold: 0.95
+      snr_threshold: 0.98
+      timeout_ms: 45000
+
+    evidence_required:
+      - phase1_to_2_transition_receipt
+      - majlis_init_receipt
+
+  # ---------------------------------------------------------------------------
+  # PHASE 2: CONSTELLATION SYNCHRONIZATION
+  # ---------------------------------------------------------------------------
+  phase_2:
+    name: "Constellation Synchronization"
+    codename: "Al-Takaamul"  # Arabic: The Integration
+    description: "A2A handshake and constellation synchronization"
+
+    state:
+      constellation_active: false
+      guardians_initialized: true
+      majlis_operational: true
+      a2a_handshake_complete: false
+
+    a2a_handshake_sequence:
+      - step: 1
+        name: "capability_discovery"
+        description: "Each guardian broadcasts capabilities to Majlis"
+        timeout_ms: 10000
+        required: true
+
+      - step: 2
+        name: "routing_table_sync"
+        description: "Majlis distributes routing table to all guardians"
+        timeout_ms: 10000
+        required: true
+
+      - step: 3
+        name: "consensus_protocol_verify"
+        description: "Test consensus protocol with dummy vote"
+        timeout_ms: 15000
+        required: true
+
+      - step: 4
+        name: "heartbeat_establish"
+        description: "Establish heartbeat with all guardians"
+        interval_ms: 30000
+        required: true
+
+      - step: 5
+        name: "genesis_seal_verify"
+        description: "All participants verify genesis seal"
+        timeout_ms: 10000
+        required: true
+
+    exit_requirements:
+      - a2a_handshake_complete
+      - routing_table_distributed
+      - consensus_test_passed
+      - heartbeat_established
+      - genesis_seal_verified_by_all
+
+    health_checks:
+      - endpoint: "/health/a2a"
+        expected_status: 200
+        required_fields: ["handshake_complete", "active_connections"]
+
+      - endpoint: "/health/consensus"
+        expected_status: 200
+        required_fields: ["protocol_ready", "quorum_capable"]
+
+    evidence_required:
+      - a2a_handshake_receipt
+      - routing_table_receipt
+      - consensus_test_receipt
+      - genesis_seal_verification_receipt
+
+  # ---------------------------------------------------------------------------
+  # PHASE 2 -> PHASE 3 TRANSITION
+  # ---------------------------------------------------------------------------
+  phase_2_to_3:
+    name: "Sovereign Activation"
+    description: "Final transition to fully operational constellation"
+
+    prerequisites:
+      - condition: "a2a_handshake_complete"
+        validation: "All handshake steps passed"
+        fail_action: "abort"
+
+      - condition: "consensus_protocol_verified"
+        validation: "Dummy vote reached quorum"
+        fail_action: "abort"
+
+      - condition: "genesis_seal_universal"
+        validation: "All 8 participants verified seal"
+        fail_action: "abort"
+
+      - condition: "evidence_chain_complete"
+        validation: "All required receipts present and valid"
+        fail_action: "wait_and_retry"
+        max_retries: 3
+
+    actions:
+      - action: "activate_constellation"
+        set_state: "OPERATIONAL"
+
+      - action: "enable_request_routing"
+        guardians: "all"
+
+      - action: "emit_genesis_activation_receipt"
+        includes: ["all_previous_receipts"]
+
+      - action: "broadcast_activation_complete"
+        channels: ["majlis", "guardians", "external_observers"]
+
+    gate:
+      ihsan_threshold: 0.95
+      snr_threshold: 0.98
+      timeout_ms: 30000
+
+    evidence_required:
+      - phase2_to_3_transition_receipt
+      - genesis_activation_final_receipt
+
+  # ---------------------------------------------------------------------------
+  # PHASE 3: OPERATIONAL (Target State)
+  # ---------------------------------------------------------------------------
+  phase_3:
+    name: "Operational"
+    codename: "Al-Qiyaam"  # Arabic: The Standing
+    description: "Fully operational 7+1 Guardian Constellation"
+
+    state:
+      constellation_active: true
+      guardians_initialized: true
+      majlis_operational: true
+      a2a_handshake_complete: true
+
+    operational_mode:
+      request_routing: enabled
+      consensus_voting: enabled
+      evidence_emission: enabled
+      heartbeat_monitoring: enabled
+
+    monitoring:
+      metrics_interval_ms: 60000
+      health_check_interval_ms: 30000
+      consensus_audit_interval_ms: 300000
+
+    health_checks:
+      - endpoint: "/health/constellation"
+        expected_status: 200
+        required_fields: ["phase", "active_guardians", "majlis_status"]
+        validation: "phase == 3 AND active_guardians == 7"
+
+      - endpoint: "/health/consensus"
+        expected_status: 200
+        required_fields: ["quorum_capable", "last_vote_timestamp"]
+
+      - endpoint: "/metrics/ihsan"
+        expected_status: 200
+        validation: "current_score >= 0.95"
+
+# ===============================================================================
+# ROLLBACK PROCEDURES
+# ===============================================================================
+rollback:
+  # ---------------------------------------------------------------------------
+  # Phase 3 -> Phase 2 Rollback
+  # ---------------------------------------------------------------------------
+  phase_3_to_2:
+    trigger_conditions:
+      - "consensus_failures_exceed_threshold"
+      - "critical_guardian_unhealthy"
+      - "ihsan_score_below_threshold"
+
+    threshold_values:
+      consensus_failure_max: 5  # Within 5 minutes
+      ihsan_minimum: 0.90       # Below this triggers rollback
+
+    actions:
+      - action: "disable_request_routing"
+        immediate: true
+
+      - action: "emit_rollback_receipt"
+        reason: "automated_health_triggered"
+
+      - action: "notify_observers"
+        channels: ["majlis", "external_monitors"]
+
+      - action: "attempt_recovery"
+        strategy: "resync_constellation"
+        timeout_ms: 60000
+
+    recovery_on_success:
+      target_phase: 3
+      requires_manual_approval: false
+
+  # ---------------------------------------------------------------------------
+  # Phase 2 -> Phase 1 Rollback
+  # ---------------------------------------------------------------------------
+  phase_2_to_1:
+    trigger_conditions:
+      - "a2a_handshake_failed"
+      - "majlis_unresponsive"
+      - "routing_table_corrupted"
+
+    actions:
+      - action: "terminate_a2a_connections"
+        immediate: true
+
+      - action: "reset_majlis"
+        preserve_guardian_state: true
+
+      - action: "emit_rollback_receipt"
+        reason: "a2a_failure"
+
+      - action: "schedule_retry"
+        delay_ms: 30000
+
+    recovery_on_success:
+      target_phase: 2
+      requires_manual_approval: false
+
+  # ---------------------------------------------------------------------------
+  # Phase 1 -> Phase 0 Rollback (Critical)
+  # ---------------------------------------------------------------------------
+  phase_1_to_0:
+    trigger_conditions:
+      - "critical_guardian_init_failed"
+      - "genesis_attestation_invalid"
+      - "infrastructure_failure"
+
+    actions:
+      - action: "terminate_all_guardians"
+        immediate: true
+
+      - action: "clear_attestation_cache"
+
+      - action: "emit_critical_rollback_receipt"
+        reason: "guardian_init_failure"
+
+      - action: "alert_operators"
+        severity: "critical"
+        channels: ["pagerduty", "slack", "email"]
+
+    recovery_on_success:
+      target_phase: 1
+      requires_manual_approval: true  # Critical rollback needs human
+
+  # ---------------------------------------------------------------------------
+  # Emergency Full Rollback
+  # ---------------------------------------------------------------------------
+  emergency_shutdown:
+    trigger_conditions:
+      - "security_breach_detected"
+      - "integrity_violation"
+      - "manual_operator_trigger"
+
+    actions:
+      - action: "immediate_halt"
+        all_operations: true
+
+      - action: "snapshot_state"
+        for_forensics: true
+
+      - action: "emit_emergency_receipt"
+        includes: ["full_state_dump", "trigger_reason"]
+
+      - action: "notify_all_channels"
+        severity: "emergency"
+
+    recovery:
+      requires_manual_approval: true
+      requires_security_review: true
+      restart_from_phase: 0
+
+# ===============================================================================
+# HEALTH CHECK ENDPOINTS
+# ===============================================================================
+health_endpoints:
+  infrastructure:
+    path: "/health/infrastructure"
+    method: "GET"
+    response_schema:
+      postgres: "boolean"
+      redis: "boolean"
+      neo4j: "boolean"
+      timestamp: "iso8601"
+
+  constitution:
+    path: "/health/constitution"
+    method: "GET"
+    response_schema:
+      ihsan_v1_loaded: "boolean"
+      weights_valid: "boolean"
+      threshold: "number"
+
+  guardians:
+    path: "/health/guardians"
+    method: "GET"
+    response_schema:
+      initialized_count: "integer"
+      healthy_count: "integer"
+      guardians: "array"
+
+  guardian_detail:
+    path: "/health/guardian/{guardian_id}"
+    method: "GET"
+    response_schema:
+      id: "string"
+      status: "enum[healthy, degraded, unhealthy, initializing]"
+      attestation_valid: "boolean"
+      last_heartbeat: "iso8601"
+
+  a2a:
+    path: "/health/a2a"
+    method: "GET"
+    response_schema:
+      handshake_complete: "boolean"
+      active_connections: "integer"
+      routing_table_version: "string"
+
+  consensus:
+    path: "/health/consensus"
+    method: "GET"
+    response_schema:
+      protocol_ready: "boolean"
+      quorum_capable: "boolean"
+      last_vote_timestamp: "iso8601"
+      votes_in_progress: "integer"
+
+  constellation:
+    path: "/health/constellation"
+    method: "GET"
+    response_schema:
+      phase: "integer"
+      codename: "string"
+      active_guardians: "integer"
+      majlis_status: "enum[operational, degraded, offline]"
+      uptime_seconds: "integer"
+
+  ihsan:
+    path: "/metrics/ihsan"
+    method: "GET"
+    response_schema:
+      current_score: "number"
+      threshold: "number"
+      dimension_scores: "object"
+      last_calculated: "iso8601"
+
+# ===============================================================================
+# INVARIANTS
+# ===============================================================================
+invariants:
+  phase_sequence_enforced: true
+  rollback_receipts_required: true
+  health_checks_mandatory: true
+  ihsan_threshold: 0.95
+  snr_threshold: 0.98
+  constitution_ref_valid: "constitution/ihsan_v1.yaml"
+
+provenance:
+  source:
+    - constitution/ihsan_v1.yaml
+    - config/genesis/constellation_7plus1.yaml
+    - config/genesis/phase_9_manifest.json
+  created: "2026-01-28"
+  phase: 9
+  note: >
+    Activation sequence defines the orderly progression from dormant
+    to fully operational 7+1 Guardian Constellation, with comprehensive
+    rollback procedures and health monitoring at each phase.

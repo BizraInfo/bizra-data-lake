@@ -1,0 +1,504 @@
+# BIZRA Apex Orchestrator Constitution v1
+# ══════════════════════════════════════════════════════════════════════════════
+# Single source of truth for Apex Orchestrator behavior, constraints, and gates
+# Extends: ihsan_v1.yaml, pat_enforcement_v1.yaml
+# ══════════════════════════════════════════════════════════════════════════════
+
+version: 1
+id: apex_orchestrator_v1
+status: canonical
+extends:
+  - ihsan_v1
+  - pat_enforcement_v1
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DEFINITION
+# ══════════════════════════════════════════════════════════════════════════════
+
+definition: >
+  The Apex Orchestrator is the supreme coordination layer for the BIZRA dual-agentic
+  system. It employs Thompson Sampling for intelligent agent selection, SONA
+  (Self-Optimizing Neural Architecture) for continuous learning, and enforces
+  multi-layered quality gates (SAPE, Ihsan, SAT) with fail-closed semantics.
+
+  Core Principle: No task proceeds without validation. No failure is silent.
+  Excellence (Ihsan) is a hard constraint, not an aspiration.
+
+# ══════════════════════════════════════════════════════════════════════════════
+# THOMPSON SAMPLING CONSTITUTION
+# Multi-Armed Bandit for Agent Selection
+# ══════════════════════════════════════════════════════════════════════════════
+
+thompson_sampling:
+  # Constitutional parameters
+  parameters:
+    # Initial uninformative priors (Beta(1,1) = uniform)
+    initial_alpha: 1
+    initial_beta: 1
+
+    # Sampling constraints
+    min_exploration_rate: 0.05      # Always explore at least 5%
+    max_exploitation_rate: 0.95     # Never exploit more than 95%
+
+    # Distribution bounds
+    min_alpha: 0.1                  # Prevent alpha from collapsing
+    min_beta: 0.1                   # Prevent beta from collapsing
+    max_alpha_beta_ratio: 100       # Prevent overconfidence
+
+    # Convergence parameters
+    confidence_threshold: 0.95      # Confidence for "learned" agent
+    min_samples_for_confidence: 50  # Samples needed for confidence
+
+  # Selection policy
+  policy:
+    strategy: sample_and_select     # Sample from Beta, select highest
+    tie_breaker: capability_score   # Break ties with static capability
+    cold_start: capability_based    # Use capability matrix when no history
+
+  # Fairness constraints
+  fairness:
+    min_selection_rate: 0.01        # Every agent selected at least 1%
+    max_selection_rate: 0.50        # No agent dominates above 50%
+    rebalance_interval_tasks: 100   # Check fairness every 100 tasks
+
+  # Prior update rules
+  update_rules:
+    on_success:
+      alpha_increment: 1            # Add 1 to alpha on success
+    on_failure:
+      beta_increment: 1             # Add 1 to beta on failure
+    on_timeout:
+      beta_increment: 0.5           # Partial penalty for timeout
+    on_partial_success:
+      alpha_increment: 0.5          # Partial credit for partial success
+      beta_increment: 0.5
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SONA LEARNING CONSTRAINTS
+# Self-Optimizing Neural Architecture
+# ══════════════════════════════════════════════════════════════════════════════
+
+sona:
+  # Learning rate constitutional bounds
+  learning_rate:
+    floor: 0.001                    # Absolute minimum learning rate
+    ceiling: 0.1                    # Absolute maximum learning rate
+    initial: 0.05                   # Starting learning rate
+    decay_per_epoch: 0.999          # Decay rate per epoch
+    adaptive: true                  # Enable adaptive learning rate
+
+  # Adaptive learning rate rules
+  adaptive_rules:
+    increase_on:
+      - high_variance_outcomes
+      - distribution_shift_detected
+      - new_agent_added
+    decrease_on:
+      - stable_performance
+      - convergence_detected
+      - low_variance_outcomes
+    adjustment_factor: 0.1          # Change by 10% at a time
+
+  # Experience replay constraints
+  replay:
+    buffer_size: 1000               # Maximum replay buffer size
+    min_buffer_for_replay: 100      # Minimum samples before replaying
+    batch_size: 32                  # Replay batch size
+    prioritization: td_error        # Options: uniform, td_error, reward
+    max_staleness_tasks: 500        # Discard experiences older than this
+
+  # Forgetting and retention
+  forgetting:
+    factor: 0.99                    # Multiplicative forgetting per task
+    min_effective_samples: 10       # Always maintain minimum effective samples
+    reweight_on_shift: true         # Reweight on distribution shift
+
+  # Stability constraints
+  stability:
+    max_prior_change_per_update: 0.1  # Max change to alpha/beta per update
+    smoothing_window: 10            # Moving average window for metrics
+    outlier_rejection_sigma: 3      # Reject outliers beyond 3 sigma
+
+# ══════════════════════════════════════════════════════════════════════════════
+# QUALITY GATE REQUIREMENTS
+# SAPE + Ihsan + SAT Integration
+# ══════════════════════════════════════════════════════════════════════════════
+
+quality_gates:
+  # Gate execution order (must be sequential)
+  execution_order:
+    - pre_validation        # Input validation
+    - sat_pre_consensus     # SAT pre-approval (3/5)
+    - sape_probes           # 9-probe validation
+    - ihsan_gate            # Excellence threshold
+    - sat_post_consensus    # SAT post-approval (3/5)
+    - receipt_emission      # Evidence trail
+
+  # SAPE Constitutional Requirements
+  sape:
+    # Mandatory probes (must pass for ANY task)
+    mandatory_probes:
+      - threat_scan
+      - safety
+      - correctness
+
+    # Probe thresholds (minimum scores)
+    probe_thresholds:
+      threat_scan: 0.90
+      compliance: 0.85
+      bias: 0.85
+      user_benefit: 0.80
+      correctness: 0.90
+      safety: 0.95           # Highest threshold for safety
+      groundedness: 0.80
+      relevance: 0.80
+      fluency: 0.75
+
+    # Aggregate requirements
+    aggregate:
+      min_average_score: 0.85
+      min_passed_probes: 7   # At least 7 of 9 probes must pass
+      weighted_threshold: 0.87
+
+    # Probe weights (must sum to 1.0)
+    probe_weights:
+      threat_scan: 0.15
+      compliance: 0.10
+      bias: 0.12
+      user_benefit: 0.12
+      correctness: 0.15
+      safety: 0.15
+      groundedness: 0.08
+      relevance: 0.08
+      fluency: 0.05
+
+  # Ihsan Constitutional Requirements
+  ihsan:
+    # Production threshold (from ihsan_v1.yaml)
+    threshold: 0.95
+
+    # Environment-specific (inherit from ihsan_v1.yaml)
+    thresholds_by_env:
+      development: 0.80
+      ci: 0.90
+      staging: 0.95
+      production: 0.95
+
+    # Dimension weights (must match ihsan_v1.yaml exactly)
+    dimension_weights:
+      correctness: 0.22
+      safety: 0.22
+      user_benefit: 0.14
+      efficiency: 0.12
+      auditability: 0.12
+      anti_centralization: 0.08
+      robustness: 0.06
+      adl_fairness: 0.04
+
+    # Hard minimums per dimension
+    dimension_minimums:
+      correctness: 0.80
+      safety: 0.85           # Safety has higher minimum
+      user_benefit: 0.70
+      efficiency: 0.60
+      auditability: 0.70
+      anti_centralization: 0.50
+      robustness: 0.60
+      adl_fairness: 0.50
+
+  # SAT Constitutional Requirements
+  sat:
+    # Consensus requirements
+    consensus:
+      required_votes: 3      # Minimum votes for consensus
+      total_validators: 5    # Total SAT validators
+      majority_type: simple  # Options: simple, weighted, unanimous
+
+    # Required validators (must participate)
+    required_validators:
+      - RiskGuardian
+      - GovernanceEngine
+
+    # Validator weights (for weighted consensus)
+    validator_weights:
+      PoiVerifier: 1.0
+      RiskGuardian: 1.2      # Higher weight for risk assessment
+      GovernanceEngine: 1.0
+      ResourceAllocator: 0.8
+      EvidenceEngine: 1.0
+
+    # Quorum requirements
+    quorum:
+      min_validators_present: 4
+      max_abstentions: 1
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FAIL-CLOSED ENFORCEMENT RULES
+# No silent failures, no bypasses
+# ══════════════════════════════════════════════════════════════════════════════
+
+fail_closed:
+  # Core principle
+  principle: >
+    Every failure MUST be visible, logged, and result in explicit rejection.
+    No task may proceed without passing all mandatory quality gates.
+    Errors are features that prevent harm, not bugs to be hidden.
+
+  # Enforcement rules
+  rules:
+    # Rule 1: No silent failures
+    no_silent_failures:
+      description: "All failures must emit evidence"
+      enforcement:
+        - emit_rejection_receipt
+        - log_failure_reason
+        - increment_failure_counter
+      exception: none
+
+    # Rule 2: No SAT bypass
+    no_sat_bypass:
+      description: "SAT consensus required for all tasks"
+      enforcement:
+        - sat_pre_consensus_required
+        - sat_post_consensus_required
+      exception: health_checks_only
+
+    # Rule 3: No Ihsan bypass
+    no_ihsan_bypass:
+      description: "Ihsan threshold must be met"
+      enforcement:
+        - ihsan_score_required
+        - dimension_minimums_checked
+      exception: none
+
+    # Rule 4: No SAPE bypass
+    no_sape_bypass:
+      description: "SAPE probes must execute"
+      enforcement:
+        - mandatory_probes_required
+        - aggregate_threshold_checked
+      exception: none
+
+    # Rule 5: Receipt generation mandatory
+    receipt_mandatory:
+      description: "Every decision emits a receipt"
+      enforcement:
+        - success_receipt_on_completion
+        - rejection_receipt_on_failure
+        - escalation_receipt_on_fate
+      exception: none
+
+  # Failure handling
+  failure_actions:
+    critical_probe_failure:
+      action: immediate_block
+      escalate: true
+      fate_level: Critical
+      receipt: rejection
+
+    ihsan_below_threshold:
+      action: block
+      escalate: true
+      fate_level: High
+      receipt: rejection
+
+    sat_consensus_failed:
+      action: block
+      escalate: true
+      fate_level: High
+      receipt: rejection
+
+    circuit_breaker_open:
+      action: route_to_fallback
+      escalate: false
+      fate_level: Medium
+      receipt: routing
+
+    timeout:
+      action: retry_or_block
+      max_retries: 2
+      escalate_after_retries: true
+      fate_level: Medium
+      receipt: timeout
+
+  # FATE escalation levels (from fate.py)
+  escalation_levels:
+    Low:
+      human_review: false
+      quarantine: false
+      auto_retry: true
+    Medium:
+      human_review: false
+      quarantine: true
+      auto_retry: true
+    High:
+      human_review: true
+      quarantine: true
+      auto_retry: false
+    Critical:
+      human_review: true
+      quarantine: true
+      auto_retry: false
+      immediate_notification: true
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CIRCUIT BREAKER CONSTITUTION
+# Fault tolerance boundaries
+# ══════════════════════════════════════════════════════════════════════════════
+
+circuit_breaker:
+  # State machine
+  states:
+    CLOSED:
+      description: "Normal operation"
+      transitions:
+        - to: OPEN
+          on: failure_threshold_exceeded
+    OPEN:
+      description: "Failures exceeded, blocking requests"
+      transitions:
+        - to: HALF_OPEN
+          on: recovery_timeout_elapsed
+    HALF_OPEN:
+      description: "Testing recovery with limited requests"
+      transitions:
+        - to: CLOSED
+          on: success_threshold_met
+        - to: OPEN
+          on: test_failure
+
+  # Default thresholds
+  default_thresholds:
+    failure_threshold: 5
+    recovery_timeout_seconds: 60
+    half_open_requests: 3
+    success_threshold: 2
+
+  # Critical agent overrides (lower tolerance)
+  critical_agent_thresholds:
+    agents:
+      - MasterReasoner
+      - EthicsGuardian
+      - RiskGuardian
+    failure_threshold: 2
+    recovery_timeout_seconds: 30
+    half_open_requests: 1
+
+  # Global circuit (system-wide)
+  global_circuit:
+    failure_threshold: 20
+    recovery_timeout_seconds: 120
+    cascade_protection: true
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RECEIPT SCHEMA EXTENSION
+# Apex-specific receipt fields
+# ══════════════════════════════════════════════════════════════════════════════
+
+receipt_schema:
+  # Inherit base fields from receipts.rs
+  base_fields:
+    - receipt_id
+    - timestamp
+    - task_summary
+    - rejection_codes
+    - escalation_level
+    - integrity_hash
+
+  # Apex-specific fields
+  apex_fields:
+    - agent_selected
+    - thompson_sample_value
+    - routing_strategy_used
+    - circuit_breaker_state
+    - sape_probe_results
+    - ihsan_score
+    - ihsan_dimension_scores
+    - sat_votes
+    - sat_consensus_achieved
+    - sona_learning_update
+    - prior_before
+    - prior_after
+    - execution_latency_ms
+
+  # Receipt kinds for Apex
+  apex_receipt_kinds:
+    - APEX_ROUTING
+    - APEX_EXECUTION
+    - APEX_VALIDATION
+    - APEX_LEARNING
+    - APEX_CIRCUIT_STATE
+    - APEX_ESCALATION
+
+# ══════════════════════════════════════════════════════════════════════════════
+# INVARIANTS
+# Properties that must ALWAYS hold
+# ══════════════════════════════════════════════════════════════════════════════
+
+invariants:
+  # Thompson Sampling invariants
+  thompson_sampling:
+    alpha_positive: "alpha > 0 for all agents"
+    beta_positive: "beta > 0 for all agents"
+    ratio_bounded: "alpha/beta <= max_alpha_beta_ratio"
+    exploration_maintained: "selection_rate >= min_exploration_rate"
+
+  # Quality gate invariants
+  quality_gates:
+    sape_executed: "All mandatory probes must execute"
+    ihsan_checked: "Ihsan score must be computed"
+    sat_consensus_obtained: "SAT must vote on all tasks"
+    gates_sequential: "Gates execute in defined order"
+
+  # Fail-closed invariants
+  fail_closed:
+    no_silent_failures: "Every failure emits a receipt"
+    no_gate_bypass: "No task bypasses quality gates"
+    escalation_on_critical: "Critical failures escalate to FATE"
+
+  # Receipt invariants
+  receipts:
+    always_emitted: "Every task completion emits a receipt"
+    append_only: "Receipts are never modified or deleted"
+    integrity_verified: "Integrity hash matches content"
+
+  # SONA learning invariants
+  sona:
+    learning_rate_bounded: "floor <= learning_rate <= ceiling"
+    priors_stable: "Prior changes within max_prior_change_per_update"
+    forgetting_applied: "Forgetting factor applied periodically"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROVENANCE
+# ══════════════════════════════════════════════════════════════════════════════
+
+provenance:
+  source:
+    - constitution/ihsan_v1.yaml
+    - constitution/pat_enforcement_v1.yaml
+    - src/sape.rs
+    - src/ihsan.rs
+    - src/fate.rs
+    - src/receipts.rs
+    - core/sape.py
+    - core/fate.py
+
+  created: "2026-01-27"
+
+  authors:
+    - BIZRA Genesis Team
+    - Apex Architecture Working Group
+
+  note: >
+    The Apex Orchestrator Constitution defines the supreme coordination layer
+    for BIZRA. It integrates Thompson Sampling for intelligent agent selection,
+    SONA for continuous learning, and multi-layered quality gates (SAPE, Ihsan 0.95,
+    SAT 3/5) with fail-closed enforcement. This constitution is executable—
+    implementations MUST match these specifications exactly.
+
+  compliance:
+    ihsan_v1: required
+    pat_enforcement_v1: required
+    sape_9_probes: required
+    fate_escalation: required
+    receipt_generation: required

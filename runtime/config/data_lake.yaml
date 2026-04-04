@@ -1,0 +1,89 @@
+# BIZRA Data Lake Configuration
+# Unified memory integration with BIZRA-DATA-LAKE
+
+version: "1.0"
+description: "Configuration for BIZRA-DATA-LAKE unified memory integration"
+
+# Data Lake Paths
+paths:
+  root: "/mnt/c/BIZRA-DATA-LAKE"
+  intake: "/mnt/c/BIZRA-DATA-LAKE/00_INTAKE"
+  raw: "/mnt/c/BIZRA-DATA-LAKE/01_RAW"
+  processed: "/mnt/c/BIZRA-DATA-LAKE/02_PROCESSED"
+  indexed: "/mnt/c/BIZRA-DATA-LAKE/03_INDEXED"
+  gold: "/mnt/c/BIZRA-DATA-LAKE/04_GOLD"
+  quarantine: "/mnt/c/BIZRA-DATA-LAKE/99_QUARANTINE"
+
+# MCP Bridge Configuration
+mcp:
+  url: "https://localhost:8443"
+  transport: "http"
+  tls: true
+  verify_tls: false  # Self-signed cert
+  timeout_ms: 30000
+  retries: 3
+  tools:
+    - knowledge_retrieve
+
+# Memory Tier Mapping
+# Maps Data Lake tiers (M1-M6) to Dual-Agentic tiers (L1-L5)
+memory_tiers:
+  # Data Lake → Dual-Agentic
+  M1_TaskMaster: L1_Immediate      # Current session context
+  M2_ShortTerm: L2_Working         # Short-term summaries
+  M3_Semantic: L3_Episodic         # Facts and episodes
+  M4_Procedural: L4_Semantic       # Learned patterns
+  M5_Historical: L5_Procedural     # Long-term skills
+  M6_Sovereign: null               # Cross-domain (new tier)
+
+# Sovereign Memory (M6) - Cross-Domain Omniscient
+sovereign:
+  enabled: true
+  description: "God view across entire 1.37TB data lake"
+  capabilities:
+    - cross_domain_query
+    - temporal_archaeology
+    - impact_lineage
+    - pattern_discovery
+  query_limit: 100  # Max results per query
+  cache_ttl_seconds: 3600
+
+# Gold Layer Assets
+gold_assets:
+  chunks: "chunks.parquet"           # 267.6MB chunked text
+  documents: "documents.parquet"     # 51.1MB canonical corpus
+  catalog: "sovereign_catalog.parquet"  # 40.3MB, 709k nodes
+  poi_ledger: "poi_ledger.jsonl"     # Proof-of-Impact attestations
+  state: "bizra_prime_state.json"    # PRIME agent state
+  assertions: "assertions.jsonl"     # Logical assertions
+
+# Evidence Sync Configuration
+evidence:
+  enabled: true
+  bidirectional: true
+  # Data Lake → Dual-Agentic
+  source_ledger: "/mnt/c/BIZRA-DATA-LAKE/04_GOLD/poi_ledger.jsonl"
+  # Dual-Agentic → Data Lake
+  target_receipts: "docs/evidence/receipts"
+  sync_interval_seconds: 60
+  integrity_verification: true
+
+# Hypergraph Configuration
+hypergraph:
+  nodes: 709000  # Approximate node count
+  edges: 1400000  # Approximate edge count
+  embedding_dim: 384
+  model: "sentence-transformers/all-MiniLM-L6-v2"
+
+# Quality Gates (aligned with Ihsān)
+gates:
+  ihsan_threshold: 0.99
+  snr_threshold: 0.99
+  arte_tension_limit: 0.75
+
+# Health Check
+health:
+  endpoint: "https://localhost:8443/health"
+  interval_seconds: 30
+  timeout_seconds: 5
+  unhealthy_threshold: 3

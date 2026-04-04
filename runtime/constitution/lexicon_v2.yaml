@@ -1,0 +1,340 @@
+# BIZRA Lexicon v2.0 — Hub Concepts Edition
+# Extends lexicon_v1.yaml with 26 core hub concepts extracted from HyperGraphRAG analysis
+# Append-only: new terms only; existing v1 terms inherited
+
+version: 2
+semver: 2.0.0
+id: bizra_lexicon_v2_0_0
+status: draft
+append_only: true
+extends: constitution/lexicon_v1.yaml
+
+contract: constitution/lexicon_ledger_contract_v1.yaml
+schema: schemas/lexicon_v1.schema.json
+receipt_schema: schemas/lexicon_receipt_v1.schema.json
+
+purpose: >
+  Extends lexicon_v1 with 26 hub concepts discovered through HyperGraphRAG analysis.
+  These are the highest-connectivity nodes in the unified knowledge graph, representing
+  foundational concepts that bind technical, ethical, and governance domains.
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CORE HUB CONCEPTS (from hypergraph entity extraction)
+# ══════════════════════════════════════════════════════════════════════════════
+
+hub_concepts:
+  BIZRA:
+    expansion: "Benevolent Intelligence Zero-Risk Architecture"
+    role: "Root identity; the sovereign AI civilization framework"
+    type: CONCEPT
+    aliases:
+      - "BIZRA Protocol"
+      - "BIZRA System"
+    forbidden_confusions:
+      - "Do not conflate with specific implementations (Node0, PAT, SAT)"
+      - "BIZRA is the philosophy; Node0 is an implementation"
+
+  Ihsan:
+    expansion: "Excellence through ethical awareness (إحسان)"
+    role: "Core ethical principle; the quality gate for all outputs"
+    type: CONCEPT
+    aliases:
+      - "Ihsān"
+      - "Ihsan Gate"
+      - "Excellence Gate"
+    references:
+      - constitution/ihsan_v1.yaml
+    forbidden_confusions:
+      - "Ihsan is not a score; ihsan_score is a metric measuring Ihsan compliance"
+      - "Ihsan is not optional; it is foundational"
+
+  Node0:
+    expansion: "Genesis production node"
+    role: "First production deployment of BIZRA; reference implementation"
+    type: MODULE
+    aliases:
+      - "NODE0"
+      - "Genesis Node"
+      - "Flagship Node"
+    forbidden_confusions:
+      - "Node0 is an implementation, not the BIZRA protocol itself"
+
+  GoT:
+    expansion: "Graph of Thought"
+    role: "Reasoning pattern using graph traversal for multi-path thinking"
+    type: PATTERN
+    aliases:
+      - "Graph-of-Thought"
+      - "GoT-RAG"
+    forbidden_confusions:
+      - "Not Chain-of-Thought (CoT); GoT allows non-linear traversal"
+
+  HyperGraphRAG:
+    expansion: "Hypergraph-based Retrieval Augmented Generation"
+    role: "Knowledge retrieval system using hyperedges for multi-entity relationships"
+    type: PROTOCOL
+    aliases:
+      - "HyperGraph RAG"
+      - "HGRAG"
+    forbidden_confusions:
+      - "Not standard vector RAG; uses hyperedges, not just embeddings"
+
+  PoI:
+    expansion: "Proof of Impact"
+    role: "Consensus mechanism; validates contributions by measured outcomes"
+    type: PROTOCOL
+    aliases:
+      - "Proof-of-Impact"
+      - "Impact Proof"
+    forbidden_confusions:
+      - "Not Proof of Work or Proof of Stake"
+      - "Impact must be measured, not claimed"
+
+  BLOOM:
+    expansion: "Benevolent Ledger of Organic Outcomes & Milestones"
+    role: "Governance token; reputation-weighted voting rights"
+    type: TOKEN
+    aliases:
+      - "BLOOM Token"
+      - "Governance Token"
+    forbidden_confusions:
+      - "BLOOM is governance; BIZRA Token is utility"
+
+  TMP:
+    expansion: "Transcendent Meta-Protocol"
+    role: "Mathematical consciousness safety framework"
+    type: PROTOCOL
+    aliases:
+      - "Meta-Protocol"
+      - "TMP Framework"
+    forbidden_confusions:
+      - "TMP is theoretical framework; SAPE is operational implementation"
+
+  MCP:
+    expansion: "Model Context Protocol"
+    role: "Standard for model-to-tool communication"
+    type: PROTOCOL
+    aliases:
+      - "Context Protocol"
+    forbidden_confusions:
+      - "Not A2A (Agent-to-Agent); MCP is model-tool, A2A is agent-agent"
+
+  A2A:
+    expansion: "Agent-to-Agent Protocol"
+    role: "Communication standard between autonomous agents"
+    type: PROTOCOL
+    aliases:
+      - "Agent2Agent"
+    forbidden_confusions:
+      - "Not MCP; A2A is peer-to-peer, MCP is model-tool"
+
+  Evidence:
+    expansion: "Verifiable proof artifact"
+    role: "Any artifact that can be hashed, reproduced, or audited"
+    type: CONCEPT
+    aliases:
+      - "Proof"
+      - "Evidence Artifact"
+    forbidden_confusions:
+      - "Claims without evidence are not evidence"
+      - "Evidence must be hashable and reproducible"
+
+  Receipt:
+    expansion: "Signed evidence record"
+    role: "Immutable record binding inputs, outputs, policies, and hashes"
+    type: STRUCTURE
+    aliases:
+      - "Evidence Receipt"
+      - "Audit Receipt"
+    forbidden_confusions:
+      - "Receipts are append-only; never modify existing receipts"
+
+  Gate:
+    expansion: "Policy enforcement checkpoint"
+    role: "Pass/fail checkpoint that blocks progression without compliance"
+    type: STRUCTURE
+    aliases:
+      - "Quality Gate"
+      - "Policy Gate"
+    forbidden_confusions:
+      - "Gates are binary; they do not produce scores"
+      - "Gates block; metrics measure"
+
+  Agent:
+    expansion: "Autonomous execution entity"
+    role: "Software entity that can perceive, decide, and act"
+    type: AGENT
+    aliases:
+      - "AI Agent"
+      - "Autonomous Agent"
+    forbidden_confusions:
+      - "Agents are not models; agents use models"
+      - "Agents have agency; models have capability"
+
+  Reasoning:
+    expansion: "Structured inference process"
+    role: "Process of deriving conclusions from premises with traceable logic"
+    type: PATTERN
+    aliases:
+      - "Inference"
+      - "Logic Chain"
+    forbidden_confusions:
+      - "Reasoning must be traceable; generation is not reasoning"
+
+  Metrics:
+    expansion: "Quantitative measurements"
+    role: "Numerical values that track system state and performance"
+    type: METRIC
+    aliases:
+      - "Measurements"
+      - "KPIs"
+    forbidden_confusions:
+      - "Metrics are not goals; they measure progress toward goals"
+      - "Metrics without context are noise"
+
+  Constitution:
+    expansion: "Normative governance document"
+    role: "Versioned policy file that defines system behavior"
+    type: DOCUMENT
+    aliases:
+      - "Policy Document"
+      - "Governance Doc"
+    forbidden_confusions:
+      - "Constitution is normative (what SHOULD be); implementation is descriptive"
+
+  Provenance:
+    expansion: "Origin and chain of custody"
+    role: "Complete history of how an artifact came to exist"
+    type: STRUCTURE
+    aliases:
+      - "Lineage"
+      - "Audit Trail"
+    forbidden_confusions:
+      - "Provenance is not just source; it includes transformations"
+
+  Sovereignty:
+    expansion: "Self-determination and independence"
+    role: "The property of not depending on external systems for core function"
+    type: CONCEPT
+    aliases:
+      - "Independence"
+      - "Self-Sovereignty"
+    forbidden_confusions:
+      - "Sovereignty does not mean isolation"
+      - "Can use external tools while maintaining sovereignty over decisions"
+
+  Trust:
+    expansion: "Verified reliability"
+    role: "Earned through consistent evidence, not claimed"
+    type: CONCEPT
+    aliases:
+      - "Trustworthiness"
+    forbidden_confusions:
+      - "Trust is earned, not granted"
+      - "Trust without evidence is assumption"
+
+  Execution:
+    expansion: "Action implementation"
+    role: "The actual running of code, commands, or processes"
+    type: PATTERN
+    aliases:
+      - "Runtime"
+      - "Action"
+    forbidden_confusions:
+      - "Planning is not execution"
+      - "Execution produces evidence; planning produces intent"
+
+  Validation:
+    expansion: "Correctness verification"
+    role: "Process of confirming outputs meet requirements"
+    type: PATTERN
+    aliases:
+      - "Verification"
+      - "Checking"
+    forbidden_confusions:
+      - "Validation is not approval; it is measurement"
+
+  Architecture:
+    expansion: "System structure design"
+    role: "The high-level organization of components and their relationships"
+    type: STRUCTURE
+    aliases:
+      - "System Architecture"
+      - "Design"
+    forbidden_confusions:
+      - "Architecture is structure; implementation is realization"
+
+  Integration:
+    expansion: "Component connection"
+    role: "The process of making components work together"
+    type: PATTERN
+    aliases:
+      - "Wiring"
+      - "Composition"
+    forbidden_confusions:
+      - "Integration is not aggregation; integration implies interaction"
+
+  Safety:
+    expansion: "Harm prevention"
+    role: "The property of not causing damage under operation"
+    type: CONCEPT
+    aliases:
+      - "Harm Prevention"
+      - "Risk Mitigation"
+    forbidden_confusions:
+      - "Safety is not security; safety is outcome, security is mechanism"
+
+  Governance:
+    expansion: "Decision-making framework"
+    role: "The rules and processes by which decisions are made"
+    type: STRUCTURE
+    aliases:
+      - "Decision Framework"
+      - "Policy Framework"
+    forbidden_confusions:
+      - "Governance is not control; governance is structure"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FORBIDDEN TERM MAPPINGS (prevent drift)
+# ══════════════════════════════════════════════════════════════════════════════
+
+forbidden_terms:
+  "AI":
+    redirect_to: "Agent or Model (be specific)"
+    reason: "AI is too vague; specify whether you mean agent, model, or system"
+
+  "Smart Contract":
+    redirect_to: "Policy Contract"
+    reason: "BIZRA uses policy contracts, not blockchain smart contracts"
+
+  "Blockchain":
+    redirect_to: null
+    reason: "BIZRA does not require blockchain; use 'append-only ledger' if needed"
+
+  "Machine Learning":
+    redirect_to: "Model or Training"
+    reason: "Be specific about what aspect of ML you mean"
+
+  "Crypto":
+    redirect_to: "Cryptographic or Token (be specific)"
+    reason: "Ambiguous; specify cryptography or cryptocurrency"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROMOTION QUEUE (concepts pending review for canonicalization)
+# ══════════════════════════════════════════════════════════════════════════════
+
+promotion_queue:
+  - term: "Synaptic"
+    frequency: 47
+    context: "Used in synapse.py and synaptic_loader.py"
+    status: pending_review
+
+  - term: "Refinery"
+    frequency: 23
+    context: "Data processing pipeline component"
+    status: pending_review
+
+  - term: "Wisdom"
+    frequency: 18
+    context: "Used in wisdom.py for knowledge extraction"
+    status: pending_review

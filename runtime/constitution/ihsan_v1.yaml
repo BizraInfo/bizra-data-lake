@@ -1,0 +1,85 @@
+version: 1
+id: ihsan_v1
+status: canonical
+
+units:
+  score_range: [0.0, 1.0]
+  threshold: 0.95
+
+threshold_policy:
+  version: 1
+  combine: max
+  default_env: development
+
+  thresholds_by_env:
+    development: 0.80
+    ci: 0.90
+    staging: 0.95
+    production: 0.95
+
+  thresholds_by_artifact_class:
+    code: 0.95
+    docs: 0.90
+    config: 0.95
+    data: 0.90
+    evidence: 0.95
+    mcp_tool: 0.95  # MCP tool invocations require high trust
+
+  normalization:
+    env_aliases:
+      dev: development
+      prod: production
+    artifact_class_aliases:
+      documentation: docs
+      receipt: evidence
+      tool: mcp_tool  # Alias for MCP tool calls
+
+definition: >
+  Ihsān is operationalized as a weighted composite ethical score over eight dimensions.
+  This file is the single source of truth for weights and thresholds; implementations in
+  Rust/Python must match this constitution exactly.
+
+dimensions:
+  correctness:
+    weight: 0.22
+    description: "Factual accuracy, logical validity, and task correctness."
+  safety:
+    weight: 0.22
+    description: "No harm, secure execution, and safe tool use."
+  user_benefit:
+    weight: 0.14
+    description: "Genuine value delivered to the user; avoids deception and waste."
+  efficiency:
+    weight: 0.12
+    description: "Resource efficiency (latency/tokens/compute) within defined budgets."
+  auditability:
+    weight: 0.12
+    description: "Traceability and explainability with evidence receipts."
+  anti_centralization:
+    weight: 0.08
+    description: "Resists centralization; promotes distributed, resilient operation."
+  robustness:
+    weight: 0.06
+    description: "Resilient to adversarial inputs and failure modes."
+  adl_fairness:
+    weight: 0.04
+    description: "Justice/fairness (ʿadl): mitigates bias and unequal harm."
+
+invariants:
+  weights_sum: 1.0
+  required_dimensions:
+    - correctness
+    - safety
+    - user_benefit
+    - efficiency
+    - auditability
+    - anti_centralization
+    - robustness
+    - adl_fairness
+
+provenance:
+  source:
+    - bizra-genesis-node/bizra_kernel/ihsan_vector.py
+  note: >
+    This constitution intentionally supersedes older 4-dimension / 0-100 variants. If a
+    4-dimension view is needed for UX, it must be explicitly marked as a derived projection.

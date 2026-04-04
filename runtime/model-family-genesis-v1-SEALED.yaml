@@ -1,0 +1,199 @@
+version: 1
+sealed: true
+sealed_at_utc: "2025-12-17T13:05:28Z"
+sealed_by: ["node_0000_genesis_momo_dubai"]
+
+# ----------------------------
+# Capability Slots (Routing)
+# ----------------------------
+capability_slots:
+  cold_core:
+    description: "Deterministic reasoning + self-correction + causal trace"
+    allowed_models: ["deepseek-r1:8b", "mistral:latest"]
+    routing:
+      primary: "deepseek-r1:8b"
+      fallback: "mistral:latest"
+
+  warm_surface:
+    description: "Nuance + formatting + user-facing tone control"
+    allowed_models: ["mistral:latest", "qwen2.5:7b", "llama3.2:latest"]
+    routing:
+      primary: "mistral:latest"
+      fallback: "qwen2.5:7b"
+
+  embeddings:
+    description: "Deterministic embedding for RAG / semantic search"
+    allowed_models: ["nomic-embed-text:latest"]
+    routing:
+      primary: "nomic-embed-text:latest"
+
+  primary_reasoning:
+    description: "Multi-agent orchestration + strategic planning"
+    allowed_models: ["bizra-planner:latest", "agentflow-planner-7b-i1"]
+    routing:
+      primary: "bizra-planner:latest"
+      fallback: "agentflow-planner-7b-i1"
+
+  vision:
+    description: "Vision-capable inference (multimodal)"
+    allowed_models: ["qwen/qwen3-vl-8b", "qwen/qwen3-vl-4b"]
+    routing:
+      primary: "qwen/qwen3-vl-8b"
+      fallback: "qwen/qwen3-vl-4b"
+
+# ----------------------------
+# Pinned Artifacts (Identity)
+# ----------------------------
+pinned_artifacts:
+  # Canonical Phase 0 Digests
+  # DeepSeek R1 8B (Distilled)
+  deepseek-r1:8b:
+    provider: ollama
+    digest: "sha256:6995872bfe4c521a67b32da386cd21d5c6e819b6e0d62f79f64ec83be99f5763"
+    modelfile_sha256: "9b18509954cf18c05a088c7f7b745c2d6468754fa691835ccc13c9c6650dfae7"
+    params:
+      num_ctx: 8192
+      temperature: 0.6  # Optimized for consistency
+
+  # Mistral 7B Instruct (v0.3)
+  mistral:latest:
+    provider: ollama
+    digest: "sha256:6577803aa9a036369e481d648a2baebb381ebc6e897f2bb9a766a2aa7bfbc1cf"
+    modelfile_sha256: "444db7299aa3935c78b4d5011ced13ad0cdaea6a524c547a9c27b9309f39ff39"
+    params:
+      num_ctx: 32768
+      temperature: 0.3
+
+  bizra-planner:latest:
+    provider: ollama
+    digest: "sha256:31f7cb3c10487890a5086016922e8a3de652c8b0f832cb60c907bb9c8cc0a656"
+    modelfile_sha256: "29c5f871d56a9b97b8adbd4663775dab4c0e2ed2c314eba9ef82825271b92ccc"
+    params:
+      num_ctx: 4096
+      temperature: 0.7
+
+  llama3.2:latest:
+    provider: ollama
+    digest: "sha256:a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72"
+    modelfile_sha256: "298cc4f866fe6f56987d71c5de1bb9c2f7edf8b7d5e10bc6a629233ebe5e85c7"
+    params:
+      num_ctx: 4096
+      temperature: 0.6
+
+  nomic-embed-text:latest:
+    provider: ollama
+    digest: "sha256:0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f"
+    modelfile_sha256: "57b9b3744f3d16c3ae1adec70a1c2095cd59739f4e980c413a81d91088821c10"
+    params:
+      embedding_dim: 768
+
+  qwen2.5:7b:
+    provider: ollama
+    digest: "sha256:845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e"
+    modelfile_sha256: "ecf2db736cd9e0d9f31c448b65ea0583773f82833949ebd76a359dc0989f5b9c"
+    params:
+      num_ctx: 32768
+      temperature: 0.7
+
+  agentflow-planner-7b-i1:
+    provider: lmstudio
+    model_id: "agentflow-planner-7b-i1"
+    files:
+      - name: "AgentFlow-Planner-7B.i1-Q6_K.gguf"
+        size_bytes: 6254199360
+        sha256: "16d0f011ff8bbf4216ad2dba0f5274aa2a1eb88a49c08ca2776c566cdb58b68d"
+    params:
+      notes: "LM Studio GGUF artifact pin (weights file only)"
+
+  ibm/granite-4-h-tiny:
+    provider: lmstudio
+    model_id: "ibm/granite-4-h-tiny"
+    files:
+      - name: "granite-4.0-h-tiny-Q8_0.gguf"
+        size_bytes: 7390331328
+        sha256: "3528ba7c7ece5cb9ea8b981f57577bae41d280c5753e1de8f3df4b03ac46d5b8"
+    params:
+      notes: "LM Studio GGUF artifact pin (weights file only)"
+
+  mistralai/ministral-3-14b-reasoning:
+    provider: lmstudio
+    model_id: "mistralai/ministral-3-14b-reasoning"
+    files:
+      - name: "Ministral-3-14B-Reasoning-2512-Q8_0.gguf"
+        size_bytes: 14359309344
+        sha256: "cf2855605e3c911915d97eb163ae077b7ce73b9e2dd8272d14e059510de7e961"
+      - name: "mmproj-Ministral-3-14B-Reasoning-2512-F16.gguf"
+        size_bytes: 878053440
+        sha256: "1ca60e63c089cd4aaff0a719660fa3c6c48ebba8c81921ec4cabaee17e3231e9"
+    params:
+      notes: "LM Studio multimodal model (weights + mmproj)"
+
+  qwen/qwen3-4b-thinking-2507:
+    provider: lmstudio
+    model_id: "qwen/qwen3-4b-thinking-2507"
+    files:
+      - name: "Qwen3-4B-Thinking-2507-Q8_0.gguf"
+        size_bytes: 4280404928
+        sha256: "d63fdf3d6cc7019610d089cb6d1d5779a6aa7337e16313a389099aace29dd22a"
+    params:
+      notes: "LM Studio GGUF artifact pin (weights file only)"
+
+  qwen/qwen3-vl-4b:
+    provider: lmstudio
+    model_id: "qwen/qwen3-vl-4b"
+    files:
+      - name: "Qwen3-VL-4B-Instruct-Q8_0.gguf"
+        size_bytes: 4280406048
+        sha256: "bb77131c3fa39a1e8edce1bd9a65f49cfaa4502d5fda7bbee2671dcca468f206"
+      - name: "mmproj-Qwen3-VL-4B-Instruct-F16.gguf"
+        size_bytes: 836180160
+        sha256: "1b70e983d69dd424eb16e0ed2104d0b2a58bf01d866657f4de5da6c963620f19"
+    params:
+      notes: "LM Studio multimodal model (weights + mmproj)"
+
+  qwen/qwen3-vl-8b:
+    provider: lmstudio
+    model_id: "qwen/qwen3-vl-8b"
+    files:
+      - name: "Qwen3-VL-8B-Instruct-Q8_0.gguf"
+        size_bytes: 8709519456
+        sha256: "0ebb655452b6c41388c7831c502f49ca23e9262e5463e21b61c696e6f8fe446f"
+      - name: "mmproj-Qwen3-VL-8B-Instruct-F16.gguf"
+        size_bytes: 1159029824
+        sha256: "30cc93c7375b529b2abe165d1597e12f6717bf87565655a546727c4bd2bb5ada"
+    params:
+      notes: "LM Studio multimodal model (weights + mmproj)"
+
+# ----------------------------
+# Operational Constraints
+# ----------------------------
+resource_policy:
+  ollama:
+    max_loaded_models: 1
+    keep_alive: "5m"
+    num_parallel: 1
+    request_timeout_s: 30
+  lmstudio:
+    max_loaded_models: 1
+    request_timeout_s: 30
+  global:
+    max_loaded_models_total: 1
+    note: "Single-resident VRAM policy across Ollama + LM Studio"
+  gpu:
+    enforce_vram_soft_cap_mb: 14000
+    fail_open_cpu: true
+
+performance_bounds:
+  phase_0:
+    snr_target: 7.8
+    snr_floor: 7.0  # Safe mode trigger
+    p95_latency_ms: 1500
+
+bft_genesis:
+  N: 5
+  f: 1
+  quorum_commit: 3  # Q = 2f + 1
+  safe_mode_triggers:
+    - "equivocation_detected"
+    - "validator_disagreement > 5%"
+    - "consecutive_missed_blocks > 10"

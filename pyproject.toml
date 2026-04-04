@@ -152,6 +152,7 @@ output = "coverage.xml"
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+extend-exclude = ["runtime/"]  # Pre-omega historical workspace — exempt from lint
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]
@@ -236,6 +237,7 @@ exclude = [
     "^build/",
     "^\\.venv/",
     "^venv/",
+    "^runtime/",  # Pre-omega historical workspace — exempt from type checking
 ]
 
 # =============================================================================

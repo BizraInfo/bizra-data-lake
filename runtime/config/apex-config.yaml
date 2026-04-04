@@ -1,0 +1,467 @@
+# BIZRA Apex Orchestrator Configuration v1
+# Thompson Sampling + SONA Learning + Quality Gate Integration
+# ══════════════════════════════════════════════════════════════════════════════
+
+version: 1
+id: apex_orchestrator_config_v1
+status: active
+extends: [ihsan_v1, pat_enforcement_v1]
+
+# ══════════════════════════════════════════════════════════════════════════════
+# THOMPSON SAMPLING CONFIGURATION
+# Multi-Armed Bandit for Agent Selection
+# ══════════════════════════════════════════════════════════════════════════════
+
+thompson_sampling:
+  # Initial Beta distribution priors (uninformative)
+  # alpha = successes + 1, beta = failures + 1
+  initial_priors:
+    alpha: 1
+    beta: 1
+
+  # Per-agent priors (start with uninformative, learn over time)
+  agent_priors:
+    # PAT Agents (7 execution agents)
+    MasterReasoner:
+      alpha: 1
+      beta: 1
+      description: "Strategic thinking, multi-step planning"
+    MemoryArchitect:
+      alpha: 1
+      beta: 1
+      description: "Context management, memory retrieval"
+    CreativeSynthesizer:
+      alpha: 1
+      beta: 1
+      description: "Novel generation, creative output"
+    CodeCrafter:
+      alpha: 1
+      beta: 1
+      description: "Code generation and refinement"
+    DataAnalyst:
+      alpha: 1
+      beta: 1
+      description: "Data processing, analysis tasks"
+    ResearchScholar:
+      alpha: 1
+      beta: 1
+      description: "Research, literature review"
+    EthicsGuardian:
+      alpha: 1
+      beta: 1
+      description: "Parallel ethical validation"
+
+    # SAT Guardians (5 validation agents)
+    PoiVerifier:
+      alpha: 1
+      beta: 1
+      description: "Proof-of-Impact verification"
+    RiskGuardian:
+      alpha: 1
+      beta: 1
+      description: "Risk assessment, threat detection"
+    GovernanceEngine:
+      alpha: 1
+      beta: 1
+      description: "Policy compliance, governance"
+    ResourceAllocator:
+      alpha: 1
+      beta: 1
+      description: "Efficiency validation, resource mgmt"
+    EvidenceEngine:
+      alpha: 1
+      beta: 1
+      description: "Audit trail, evidence validation"
+
+  # Sampling parameters
+  sampling:
+    exploration_bonus: 0.1        # UCB exploration term
+    decay_rate: 0.995             # Prior decay for non-selected agents
+    min_samples_for_confidence: 10  # Minimum samples before confident selection
+    temperature: 1.0              # Softmax temperature for selection
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AGENT CAPABILITY MATRIX
+# Maps task types to agent capabilities
+# ══════════════════════════════════════════════════════════════════════════════
+
+capability_matrix:
+  # Task type to capable agents mapping
+  task_mappings:
+    strategic_planning:
+      primary: MasterReasoner
+      fallback: [ResearchScholar, CreativeSynthesizer]
+      min_capability: 0.7
+
+    code_generation:
+      primary: CodeCrafter
+      fallback: [MasterReasoner, DataAnalyst]
+      min_capability: 0.8
+
+    data_analysis:
+      primary: DataAnalyst
+      fallback: [CodeCrafter, ResearchScholar]
+      min_capability: 0.75
+
+    creative_writing:
+      primary: CreativeSynthesizer
+      fallback: [MasterReasoner, ResearchScholar]
+      min_capability: 0.7
+
+    research:
+      primary: ResearchScholar
+      fallback: [MasterReasoner, DataAnalyst]
+      min_capability: 0.75
+
+    memory_management:
+      primary: MemoryArchitect
+      fallback: [MasterReasoner]
+      min_capability: 0.8
+
+    ethical_review:
+      primary: EthicsGuardian
+      fallback: [GovernanceEngine, RiskGuardian]
+      min_capability: 0.9
+
+    risk_assessment:
+      primary: RiskGuardian
+      fallback: [PoiVerifier, GovernanceEngine]
+      min_capability: 0.85
+
+  # Agent capability scores (static baseline, modified by learning)
+  agent_capabilities:
+    MasterReasoner:
+      strategic_planning: 0.95
+      code_generation: 0.75
+      data_analysis: 0.70
+      creative_writing: 0.80
+      research: 0.85
+      coordination: 0.95
+
+    CodeCrafter:
+      code_generation: 0.95
+      data_analysis: 0.80
+      debugging: 0.90
+      documentation: 0.75
+
+    DataAnalyst:
+      data_analysis: 0.95
+      code_generation: 0.70
+      visualization: 0.85
+      statistics: 0.90
+
+    CreativeSynthesizer:
+      creative_writing: 0.95
+      ideation: 0.90
+      synthesis: 0.85
+      narrative: 0.90
+
+    ResearchScholar:
+      research: 0.95
+      literature_review: 0.90
+      citation: 0.85
+      synthesis: 0.80
+
+    MemoryArchitect:
+      memory_management: 0.95
+      context_retrieval: 0.90
+      knowledge_organization: 0.85
+
+    EthicsGuardian:
+      ethical_review: 0.95
+      safety_validation: 0.90
+      bias_detection: 0.85
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CONTEXT OPTIMIZATION
+# Dynamic context window management
+# ══════════════════════════════════════════════════════════════════════════════
+
+context_optimization:
+  # Context window thresholds
+  thresholds:
+    max_context_tokens: 128000      # Maximum context window
+    target_context_tokens: 64000    # Target for optimal performance
+    min_context_tokens: 4000        # Minimum required context
+    compression_trigger: 0.75       # Trigger compression at 75% capacity
+
+  # Compression strategies
+  compression:
+    strategy: hierarchical          # Options: truncate, summarize, hierarchical
+    preserve_recent_turns: 10       # Always keep recent interactions
+    preserve_system_context: true   # Never compress system prompts
+    summary_ratio: 0.3              # Compress to 30% of original
+
+  # Context prioritization weights
+  prioritization:
+    recent_messages: 0.30
+    task_relevant: 0.25
+    user_specified: 0.20
+    agent_state: 0.15
+    background_knowledge: 0.10
+
+  # Token budget allocation
+  budget_allocation:
+    system_prompt: 0.15
+    task_context: 0.35
+    conversation_history: 0.30
+    working_memory: 0.15
+    reserved: 0.05
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CIRCUIT BREAKER CONFIGURATION
+# Fault tolerance and recovery
+# ══════════════════════════════════════════════════════════════════════════════
+
+circuit_breaker:
+  # Per-agent circuit breakers
+  default:
+    failure_threshold: 5          # Failures before opening circuit
+    recovery_timeout: 60          # Seconds before attempting recovery
+    half_open_requests: 3         # Test requests in half-open state
+    success_threshold: 2          # Successes needed to close circuit
+
+  # Agent-specific overrides
+  agent_overrides:
+    MasterReasoner:
+      failure_threshold: 3        # Critical agent, lower tolerance
+      recovery_timeout: 30
+      half_open_requests: 2
+
+    EthicsGuardian:
+      failure_threshold: 2        # Critical for safety
+      recovery_timeout: 15        # Faster recovery needed
+      half_open_requests: 1
+
+    RiskGuardian:
+      failure_threshold: 2
+      recovery_timeout: 15
+      half_open_requests: 1
+
+  # Circuit states
+  states:
+    CLOSED:
+      description: "Normal operation, requests flow through"
+    OPEN:
+      description: "Failures exceeded threshold, requests blocked"
+    HALF_OPEN:
+      description: "Testing recovery, limited requests allowed"
+
+  # Global circuit breaker (system-wide)
+  global:
+    failure_threshold: 20
+    recovery_timeout: 120
+    cascade_protection: true      # Prevent cascade failures
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SONA LEARNING CONFIGURATION
+# Self-Optimizing Neural Architecture
+# ══════════════════════════════════════════════════════════════════════════════
+
+sona_learning:
+  # Learning rate bounds (for Thompson Sampling updates)
+  learning_rate:
+    min: 0.001                    # Minimum learning rate
+    max: 0.1                      # Maximum learning rate
+    initial: 0.05                 # Starting learning rate
+    decay: 0.999                  # Per-iteration decay
+    adaptive: true                # Enable adaptive learning rate
+
+  # Reward signal configuration
+  rewards:
+    success_reward: 1.0           # Base reward for successful task
+    failure_penalty: -0.5         # Penalty for failed task
+    quality_bonus_weight: 0.3     # Weight for quality-based bonus
+    latency_penalty_weight: 0.1   # Weight for latency-based penalty
+
+  # Reward modifiers based on quality gates
+  quality_modifiers:
+    ihsan_above_threshold: 0.2    # Bonus for Ihsan >= 0.95
+    sape_all_probes_pass: 0.15    # Bonus for all SAPE probes passing
+    sat_consensus: 0.1            # Bonus for SAT 3/5 consensus
+    evidence_complete: 0.05       # Bonus for complete evidence trail
+
+  # Learning constraints
+  constraints:
+    min_samples_before_update: 5  # Minimum samples before updating priors
+    max_prior_ratio: 100          # Max alpha/beta ratio (prevents overconfidence)
+    prior_reset_threshold: 0.01   # Reset if prior drops below this
+    forgetting_factor: 0.99       # Gradual forgetting of old observations
+
+  # Experience replay
+  replay:
+    buffer_size: 1000             # Maximum experiences to store
+    batch_size: 32                # Batch size for replay updates
+    replay_frequency: 10          # Update every N tasks
+    prioritized: true             # Use prioritized experience replay
+
+# ══════════════════════════════════════════════════════════════════════════════
+# QUALITY GATE THRESHOLDS
+# Integration with SAPE, Ihsan, and SAT
+# ══════════════════════════════════════════════════════════════════════════════
+
+quality_gates:
+  # SAPE (Symbolic-Abstraction Probe Elevation) thresholds
+  sape:
+    enabled: true
+    min_probe_score: 0.80         # Minimum score per probe
+    aggregate_threshold: 0.85     # Minimum average across probes
+    critical_probes:              # Must pass these probes
+      - threat_scan
+      - safety
+      - correctness
+
+    # 9 SAPE probes with weights
+    probes:
+      threat_scan:
+        weight: 0.15
+        threshold: 0.90
+        fail_action: block
+      compliance:
+        weight: 0.10
+        threshold: 0.85
+        fail_action: warn
+      bias:
+        weight: 0.12
+        threshold: 0.85
+        fail_action: escalate
+      user_benefit:
+        weight: 0.12
+        threshold: 0.80
+        fail_action: warn
+      correctness:
+        weight: 0.15
+        threshold: 0.90
+        fail_action: block
+      safety:
+        weight: 0.15
+        threshold: 0.95
+        fail_action: block
+      groundedness:
+        weight: 0.08
+        threshold: 0.80
+        fail_action: warn
+      relevance:
+        weight: 0.08
+        threshold: 0.80
+        fail_action: warn
+      fluency:
+        weight: 0.05
+        threshold: 0.75
+        fail_action: none
+
+  # Ihsan (Excellence) threshold
+  ihsan:
+    enabled: true
+    threshold: 0.95               # Production threshold
+
+    # Environment-specific thresholds (from ihsan_v1.yaml)
+    by_environment:
+      development: 0.80
+      ci: 0.90
+      staging: 0.95
+      production: 0.95
+
+    # Dimension weights (must sum to 1.0)
+    dimensions:
+      correctness: 0.22
+      safety: 0.22
+      user_benefit: 0.14
+      efficiency: 0.12
+      auditability: 0.12
+      anti_centralization: 0.08
+      robustness: 0.06
+      adl_fairness: 0.04
+
+  # SAT (System Agentic Team) consensus
+  sat:
+    enabled: true
+    consensus_required: 3         # Minimum votes for consensus
+    total_validators: 5           # Total SAT validators
+
+    # Validator weights
+    validators:
+      PoiVerifier:
+        weight: 1.0
+        required: false
+      RiskGuardian:
+        weight: 1.2               # Higher weight for risk
+        required: true
+      GovernanceEngine:
+        weight: 1.0
+        required: true
+      ResourceAllocator:
+        weight: 0.8
+        required: false
+      EvidenceEngine:
+        weight: 1.0
+        required: false
+
+  # Combined gate logic
+  gate_logic:
+    mode: all_required            # Options: all_required, weighted_average, any_pass
+    escalation_on_fail: true      # Escalate via FATE on failure
+    receipt_on_fail: true         # Emit rejection receipt
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ROUTING CONFIGURATION
+# Task routing and agent selection
+# ══════════════════════════════════════════════════════════════════════════════
+
+routing:
+  # Routing strategy
+  strategy: thompson_sampling     # Options: round_robin, capability_based, thompson_sampling
+
+  # Fallback behavior
+  fallback:
+    max_retries: 3
+    fallback_to_primary: true
+    timeout_ms: 30000
+
+  # Load balancing
+  load_balancing:
+    enabled: true
+    max_concurrent_per_agent: 5
+    queue_timeout_ms: 60000
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TELEMETRY & METRICS
+# ══════════════════════════════════════════════════════════════════════════════
+
+telemetry:
+  enabled: true
+
+  metrics:
+    - agent_selection_count
+    - agent_success_rate
+    - thompson_sampling_exploration_ratio
+    - circuit_breaker_state_changes
+    - quality_gate_pass_rate
+    - average_task_latency
+    - sona_learning_rate
+
+  export:
+    prometheus: true
+    opentelemetry: false
+
+# ══════════════════════════════════════════════════════════════════════════════
+# INVARIANTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+invariants:
+  thompson_sampling_enabled: true
+  quality_gates_mandatory: true
+  circuit_breakers_enabled: true
+  sona_learning_enabled: true
+  fail_closed_enforcement: true
+  receipt_generation_required: true
+
+provenance:
+  source:
+    - constitution/ihsan_v1.yaml
+    - constitution/pat_enforcement_v1.yaml
+  created: "2026-01-27"
+  note: >
+    Apex Orchestrator configuration integrating Thompson Sampling for agent
+    selection, SONA learning for continuous improvement, and quality gates
+    (SAPE, Ihsan 0.95, SAT 3/5) for execution validation.

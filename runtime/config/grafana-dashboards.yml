@@ -1,0 +1,15 @@
+# Grafana dashboard provisioning for BIZRA Glass Cockpit
+
+apiVersion: 1
+
+providers:
+  - name: 'BIZRA Glass Cockpit'
+    orgId: 1
+    folder: 'BIZRA'
+    folderUid: 'bizra'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

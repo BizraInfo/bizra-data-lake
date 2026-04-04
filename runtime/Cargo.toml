@@ -1,0 +1,102 @@
+[workspace]
+members = ["crates/finance-v1", "crates/bizra-gateway", "crates/bizra_bridge"]
+
+[package]
+name = "meta_alpha_dual_agentic"
+version = "2.0.0"
+edition = "2021"
+authors = ["BIZRA Team"]
+description = "Complete unified production system: PAT + SAT with full arsenal"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.41", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# HTTP server
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors", "fs"] }
+
+# HTTP client (for Ollama)
+reqwest = { version = "0.12", features = ["json"] }
+
+# Error handling
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+indicatif = "0.17"
+console = "0.15"
+comfy-table = "=7.1.3"
+thiserror = "=1.0.69"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID generation
+uuid = { version = "1.11", features = ["v4", "serde"] }
+sha2 = "0.10.9"
+prometheus = "0.14.0"
+lazy_static = "1.5.0"
+neo4rs = "0.8.0"
+fastembed = "4"
+image = "=0.25.4" # Pinned to avoid moxcms edition 2024 issue
+home = "=0.5.9" # Pinned to avoid edition 2024 issue
+
+# Cryptographic entropy (EntropyPool pattern)
+getrandom = "0.2"
+rand = "0.8"
+hex = "0.4"
+url = "2.5"
+
+# Redis for state persistence
+# Note: TLS support requires manual tokio-native-tls dependency
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+
+# BLAKE3 hashing for PCI protocol
+blake3 = "1.5"
+
+# Ed25519 signatures for PCI protocol (optional)
+ed25519-dalek = { version = "2.1", optional = true }
+
+# ChaCha20-Poly1305 AEAD encryption for data at rest (sovereignty)
+chacha20poly1305 = "0.10"
+
+# System utilities for Node0 unified
+hostname = "0.4"
+tokio-native-tls = "0.3"
+dialoguer = "0.12.0"
+
+# Regex for LLM response parsing
+regex = "1.11"
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.29", features = ["fs"] }
+
+# Z3 SMT Solver for Formal Verification (Sovereign Kernel)
+# Requires z3 library installed on system - make optional for builds without z3
+z3 = { version = "0.12", optional = true }
+
+# ChromaDB HTTP client
+# (uses reqwest already included)
+
+[features]
+default = ["http", "observability", "crypto"]
+http = []
+observability = []
+z3-solver = ["z3"]  # Enable formal verification with Z3 SMT solver
+crypto = ["ed25519-dalek"]  # Enable Ed25519 signing for PCI protocol
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

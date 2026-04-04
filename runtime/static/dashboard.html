@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIZRA Glass Cockpit - Real-Time Observability</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --border-color: #374151;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .logo-text p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .status-bar {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.green { background: var(--accent-green); }
+        .status-dot.yellow { background: var(--accent-yellow); }
+        .status-dot.red { background: var(--accent-red); }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .main-container {
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .card-title {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .card-icon {
+            font-size: 1.25rem;
+        }
+        
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-value.green { color: var(--accent-green); }
+        .card-value.red { color: var(--accent-red); }
+        .card-value.yellow { color: var(--accent-yellow); }
+        .card-value.blue { color: var(--accent-blue); }
+        .card-value.purple { color: var(--accent-purple); }
+        .card-value.cyan { color: var(--accent-cyan); }
+        
+        .card-trend {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .card-trend .up { color: var(--accent-green); }
+        .card-trend .down { color: var(--accent-red); }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            min-height: 300px;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            height: 220px;
+            position: relative;
+        }
+        
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 100%;
+            padding: 1rem 0;
+        }
+        
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .bar {
+            width: 40px;
+            background: linear-gradient(180deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+            position: relative;
+        }
+        
+        .bar::after {
+            content: attr(data-value);
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .bar-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        
+        .ihsan-gauge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        
+        .gauge-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--accent-green) 0deg,
+                var(--accent-green) calc(var(--score) * 3.6deg),
+                var(--bg-secondary) calc(var(--score) * 3.6deg),
+                var(--bg-secondary) 360deg
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .gauge-inner {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .gauge-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+        
+        .gauge-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .dimension-bars {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .dimension-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .dimension-name {
+            font-size: 0.625rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        .dimension-track {
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .dimension-fill {
+            height: 100%;
+            background: var(--accent-cyan);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .logs-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .logs-container {
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.75rem;
+        }
+        
+        .log-entry {
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .log-time {
+            color: var(--text-secondary);
+            min-width: 80px;
+        }
+        
+        .log-level {
+            min-width: 60px;
+            font-weight: 600;
+        }
+        
+        .log-level.info { color: var(--accent-blue); }
+        .log-level.warn { color: var(--accent-yellow); }
+        .log-level.error { color: var(--accent-red); }
+        .log-level.success { color: var(--accent-green); }
+        
+        .log-message {
+            flex: 1;
+        }
+        
+        .connection-panel {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .connection-card {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .connection-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .connection-icon.neo4j { background: rgba(0, 178, 255, 0.2); }
+        .connection-icon.ollama { background: rgba(139, 92, 246, 0.2); }
+        .connection-icon.mcp { background: rgba(16, 185, 129, 0.2); }
+        
+        .connection-info h3 {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .connection-status {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .sape-patterns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .pattern-card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            border-left: 3px solid var(--accent-purple);
+        }
+        
+        .pattern-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .pattern-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .pattern-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .refresh-btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            background: var(--accent-purple);
+        }
+        
+        .refresh-btn.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .status-bar {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .connection-panel {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">🛡️</div>
+            <div class="logo-text">
+                <h1>BIZRA Glass Cockpit</h1>
+                <p>Real-Time Observability Dashboard v1.4.0</p>
+            </div>
+        </div>
+        <div class="status-bar">
+            <div class="status-indicator">
+                <span class="status-dot green" id="system-status"></span>
+                <span>System Active</span>
+            </div>
+            <div class="status-indicator">
+                <span id="last-update">Last update: --</span>
+            </div>
+            <button class="refresh-btn" onclick="fetchMetrics()">
+                <span>↻</span> Refresh
+            </button>
+        </div>
+    </header>
+    
+    <main class="main-container">
+        <!-- Connection Panel -->
+        <div class="connection-panel">
+            <div class="connection-card">
+                <div class="connection-icon neo4j">🔷</div>
+                <div class="connection-info">
+                    <h3>Neo4j House of Wisdom</h3>
+                    <div class="connection-status" id="neo4j-status">Checking...</div>
+                </div>
+            </div>
+            <div class="connection-card">
+                <div class="connection-icon ollama">🦙</div>
+                <div class="connection-info">
+                    <h3>Ollama LLM</h3>
+                    <div class="connection-status" id="ollama-status">Checking...</div>
+                </div>
+            </div>
+            <div class="connection-card">
+                <div class="connection-icon mcp">🔌</div>
+                <div class="connection-info">
+                    <h3>MCP Tools</h3>
+                    <div class="connection-status" id="mcp-status">4 tools registered</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Key Metrics -->
+        <h2 class="section-title">📊 Key Metrics</h2>
+        <div class="metrics-grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">SAT Requests</span>
+                    <span class="card-icon">🛡️</span>
+                </div>
+                <div class="card-value blue" id="sat-total">0</div>
+                <div class="card-trend">
+                    <span id="sat-approved">0</span> approved • 
+                    <span id="sat-rejected">0</span> rejected
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Ihsān Score</span>
+                    <span class="card-icon">✨</span>
+                </div>
+                <div class="card-value green" id="ihsan-score">0.00</div>
+                <div class="card-trend">
+                    Average across all requests
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">FATE Escalations</span>
+                    <span class="card-icon">⚠️</span>
+                </div>
+                <div class="card-value yellow" id="fate-total">0</div>
+                <div class="card-trend">
+                    <span id="fate-pending">0</span> pending review
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Avg Latency</span>
+                    <span class="card-icon">⚡</span>
+                </div>
+                <div class="card-value cyan" id="avg-latency">0ms</div>
+                <div class="card-trend">
+                    End-to-end request time
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">SAPE Patterns</span>
+                    <span class="card-icon">🔧</span>
+                </div>
+                <div class="card-value purple" id="sape-patterns">5</div>
+                <div class="card-trend">
+                    <span id="sape-activations">0</span> activations
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Synergy Score</span>
+                    <span class="card-icon">🤝</span>
+                </div>
+                <div class="card-value green" id="synergy-score">0.00</div>
+                <div class="card-trend">
+                    PAT↔SAT alignment
+                </div>
+            </div>
+
+            <!-- Phase C1 Metrics -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Tool Timeouts</span>
+                    <span class="card-icon">⏱️</span>
+                </div>
+                <div class="card-value green" id="tool-timeouts">0</div>
+                <div class="card-trend">
+                    Execution interruptions
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">URP Leases</span>
+                    <span class="card-icon">🔋</span>
+                </div>
+                <div class="card-value cyan" id="urp-leases">0</div>
+                <div class="card-trend" id="urp-details">
+                    G:0 C:0 R:0
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">RAG Hits</span>
+                    <span class="card-icon">📚</span>
+                </div>
+                <div class="card-value purple" id="rag-hits">0</div>
+                <div class="card-trend" id="rag-details">
+                    V:0 G:0
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Section -->
+        <h2 class="section-title">📈 Analytics</h2>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">SAT Validation Results</span>
+                </div>
+                <div class="chart-container">
+                    <div class="bar-chart" id="sat-chart">
+                        <div class="bar-group">
+                            <div class="bar" style="height: 80%;" data-value="80%"></div>
+                            <span class="bar-label">Approved</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 15%; background: linear-gradient(180deg, var(--accent-yellow) 0%, var(--accent-red) 100%);" data-value="15%"></div>
+                            <span class="bar-label">Rejected</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 5%; background: linear-gradient(180deg, var(--accent-yellow) 0%, #f97316 100%);" data-value="5%"></div>
+                            <span class="bar-label">Quarantine</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">Ihsān Quality Gate</span>
+                </div>
+                <div class="chart-container">
+                    <div class="ihsan-gauge">
+                        <div class="gauge-circle" style="--score: 92;">
+                            <div class="gauge-inner">
+                                <span class="gauge-value" id="ihsan-gauge-value">0.92</span>
+                                <span class="gauge-label">Ihsān Score</span>
+                            </div>
+                        </div>
+                        <div class="dimension-bars">
+                            <div class="dimension-bar">
+                                <span class="dimension-name">Safety</span>
+                                <div class="dimension-track">
+                                    <div class="dimension-fill" style="width: 98%;"></div>
+                                </div>
+                            </div>
+                            <div class="dimension-bar">
+                                <span class="dimension-name">Correctness</span>
+                                <div class="dimension-track">
+                                    <div class="dimension-fill" style="width: 95%;"></div>
+                                </div>
+                            </div>
+                            <div class="dimension-bar">
+                                <span class="dimension-name">User Benefit</span>
+                                <div class="dimension-track">
+                                    <div class="dimension-fill" style="width: 90%;"></div>
+                                </div>
+                            </div>
+                            <div class="dimension-bar">
+                                <span class="dimension-name">Groundedness</span>
+                                <div class="dimension-track">
+                                    <div class="dimension-fill" style="width: 88%;"></div>
+                                </div>
+                            </div>
+                            <div class="dimension-bar">
+                                <span class="dimension-name">Relevance</span>
+                                <div class="dimension-track">
+                                    <div class="dimension-fill" style="width: 92%;"></div>
+                                </div>
+                            </div>
+                            <div class="dimension-bar">
+                                <span class="dimension-name">Fluency</span>
+                                <div class="dimension-track">
+                                    <div class="dimension-fill" style="width: 96%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">SAPE Elevated Patterns</span>
+                </div>
+                <div class="sape-patterns" id="sape-patterns-list">
+                    <div class="pattern-card">
+                        <div class="pattern-name">Ethical Shadow Stack</div>
+                        <div class="pattern-stats">
+                            <span class="pattern-stat">⚡ 80ms saved</span>
+                            <span class="pattern-stat">📈 15% SNR+</span>
+                        </div>
+                    </div>
+                    <div class="pattern-card">
+                        <div class="pattern-name">Benevolence Cache</div>
+                        <div class="pattern-stats">
+                            <span class="pattern-stat">⚡ 50ms saved</span>
+                            <span class="pattern-stat">📈 8% SNR+</span>
+                        </div>
+                    </div>
+                    <div class="pattern-card">
+                        <div class="pattern-name">Consensus Shortcut</div>
+                        <div class="pattern-stats">
+                            <span class="pattern-stat">⚡ 60ms saved</span>
+                            <span class="pattern-stat">📈 18% SNR+</span>
+                        </div>
+                    </div>
+                    <div class="pattern-card">
+                        <div class="pattern-name">RAG Grounding Fast-Path</div>
+                        <div class="pattern-stats">
+                            <span class="pattern-stat">⚡ 100ms saved</span>
+                            <span class="pattern-stat">📈 12% SNR+</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">Request Latency Distribution</span>
+                </div>
+                <div class="chart-container">
+                    <div class="bar-chart">
+                        <div class="bar-group">
+                            <div class="bar" style="height: 30%;" data-value="<50ms"></div>
+                            <span class="bar-label">&lt;50ms</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 45%;" data-value="50-100ms"></div>
+                            <span class="bar-label">50-100</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 60%;" data-value="100-250ms"></div>
+                            <span class="bar-label">100-250</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 40%;" data-value="250-500ms"></div>
+                            <span class="bar-label">250-500</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 20%;" data-value="500ms-1s"></div>
+                            <span class="bar-label">500-1s</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" style="height: 10%; background: linear-gradient(180deg, var(--accent-yellow) 0%, var(--accent-red) 100%);" data-value=">1s"></div>
+                            <span class="bar-label">&gt;1s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity Log -->
+        <h2 class="section-title">📋 Activity Log</h2>
+        <div class="logs-section">
+            <div class="logs-container" id="logs-container">
+                <div class="log-entry">
+                    <span class="log-time">12:34:56</span>
+                    <span class="log-level success">SUCCESS</span>
+                    <span class="log-message">SAT validation passed (5/5 consensus) • Ihsān: 0.94</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">12:34:52</span>
+                    <span class="log-level info">INFO</span>
+                    <span class="log-message">PAT execution completed in 127ms • Synergy: 0.91</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">12:34:48</span>
+                    <span class="log-level info">INFO</span>
+                    <span class="log-message">SAPE pattern elevated: Ethical Shadow Stack (3 repetitions)</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">12:34:40</span>
+                    <span class="log-level warn">WARN</span>
+                    <span class="log-message">FATE escalation: Medium severity • Requires review</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">12:34:35</span>
+                    <span class="log-level error">REJECT</span>
+                    <span class="log-message">SAT rejection: SECURITY_THREAT detected • Code: threat_pattern_match</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">12:34:30</span>
+                    <span class="log-level success">SUCCESS</span>
+                    <span class="log-message">Neo4j HyperGraphRAG query completed • 18.7x boost factor</span>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        // Configuration
+        const METRICS_URL = '/metrics';
+        const REFRESH_INTERVAL = 5000; // 5 seconds
+        
+        // State
+        let lastMetrics = null;
+        let isLoading = false;
+        
+        // Parse Prometheus metrics text format
+        function parsePrometheusMetrics(text) {
+            const metrics = {};
+            const lines = text.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('#') || !line.trim()) continue;
+                
+                // Match metric name and value
+                const match = line.match(/^([a-zA-Z_:][a-zA-Z0-9_:]*)\{?([^}]*)\}?\s+(.+)$/);
+                if (match) {
+                    const [, name, labels, value] = match;
+                    if (!metrics[name]) {
+                        metrics[name] = [];
+                    }
+                    metrics[name].push({
+                        labels: parseLabels(labels),
+                        value: parseFloat(value)
+                    });
+                } else {
+                    // Simple metric without labels
+                    const simpleMatch = line.match(/^([a-zA-Z_:][a-zA-Z0-9_:]*)\s+(.+)$/);
+                    if (simpleMatch) {
+                        const [, name, value] = simpleMatch;
+                        metrics[name] = [{ labels: {}, value: parseFloat(value) }];
+                    }
+                }
+            }
+            
+            return metrics;
+        }
+        
+        // Parse label string
+        function parseLabels(labelStr) {
+            if (!labelStr) return {};
+            const labels = {};
+            const matches = labelStr.matchAll(/([a-zA-Z_][a-zA-Z0-9_]*)="([^"]*)"/g);
+            for (const match of matches) {
+                labels[match[1]] = match[2];
+            }
+            return labels;
+        }
+        
+        // Get metric value with optional label filter
+        function getMetricValue(metrics, name, labelFilter = {}) {
+            const metric = metrics[name];
+            if (!metric) return 0;
+            
+            for (const m of metric) {
+                let match = true;
+                for (const [key, value] of Object.entries(labelFilter)) {
+                    if (m.labels[key] !== value) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) return m.value;
+            }
+            return 0;
+        }
+        
+        // Sum metric values
+        function sumMetric(metrics, name) {
+            const metric = metrics[name];
+            if (!metric) return 0;
+            return metric.reduce((sum, m) => sum + m.value, 0);
+        }
+        
+        // Update dashboard with new metrics
+        function updateDashboard(metrics) {
+            // SAT metrics
+            const satApproved = getMetricValue(metrics, 'bizra_sat_requests_total', { result: 'approved' });
+            const satRejected = getMetricValue(metrics, 'bizra_sat_requests_total', { result: 'rejected' });
+            const satTotal = satApproved + satRejected;
+            
+            document.getElementById('sat-total').textContent = Math.round(satTotal);
+            document.getElementById('sat-approved').textContent = Math.round(satApproved);
+            document.getElementById('sat-rejected').textContent = Math.round(satRejected);
+            
+            // Ihsān score (use sum for histogram, approximate average)
+            const ihsanSum = sumMetric(metrics, 'bizra_ihsan_score_sum');
+            const ihsanCount = sumMetric(metrics, 'bizra_ihsan_score_count');
+            const ihsanAvg = ihsanCount > 0 ? (ihsanSum / ihsanCount) : 0.92;
+            
+            document.getElementById('ihsan-score').textContent = ihsanAvg.toFixed(2);
+            document.getElementById('ihsan-gauge-value').textContent = ihsanAvg.toFixed(2);
+            
+            // Update gauge visual
+            const gaugeCircle = document.querySelector('.gauge-circle');
+            if (gaugeCircle) {
+                gaugeCircle.style.setProperty('--score', Math.round(ihsanAvg * 100));
+            }
+            
+            // FATE escalations
+            const fateLow = getMetricValue(metrics, 'bizra_fate_escalations_total', { level: 'low' });
+            const fateMed = getMetricValue(metrics, 'bizra_fate_escalations_total', { level: 'medium' });
+            const fateHigh = getMetricValue(metrics, 'bizra_fate_escalations_total', { level: 'high' });
+            const fateCrit = getMetricValue(metrics, 'bizra_fate_escalations_total', { level: 'critical' });
+            const fateTotal = fateLow + fateMed + fateHigh + fateCrit;
+            const fatePending = getMetricValue(metrics, 'bizra_fate_pending_escalations');
+            
+            document.getElementById('fate-total').textContent = Math.round(fateTotal);
+            document.getElementById('fate-pending').textContent = Math.round(fatePending);
+            
+            // Latency
+            const latencySum = sumMetric(metrics, 'bizra_request_latency_seconds_sum');
+            const latencyCount = sumMetric(metrics, 'bizra_request_latency_seconds_count');
+            const avgLatency = latencyCount > 0 ? (latencySum / latencyCount * 1000) : 0;
+            
+            document.getElementById('avg-latency').textContent = Math.round(avgLatency) + 'ms';
+            
+            // Synergy score
+            const synergySum = sumMetric(metrics, 'bizra_synergy_score_sum');
+            const synergyCount = sumMetric(metrics, 'bizra_synergy_score_count');
+            const synergyAvg = synergyCount > 0 ? (synergySum / synergyCount) : 0.85;
+            
+            document.getElementById('synergy-score').textContent = synergyAvg.toFixed(2);
+            
+            // Phase C1 Metrics
+            // Tool Timeouts
+            const toolTimeouts = sumMetric(metrics, 'bizra_tool_timeout_total');
+            document.getElementById('tool-timeouts').textContent = toolTimeouts;
+            const timeoutEl = document.getElementById('tool-timeouts');
+            if (timeoutEl) {
+                timeoutEl.className = toolTimeouts > 0 ? 'card-value red' : 'card-value green';
+            }
+            
+            // URP Leases
+            const urpGpu = getMetricValue(metrics, 'bizra_urp_lease_active', { resource_type: 'gpu' });
+            const urpCpu = getMetricValue(metrics, 'bizra_urp_lease_active', { resource_type: 'cpu' });
+            const urpRam = getMetricValue(metrics, 'bizra_urp_lease_active', { resource_type: 'ram' });
+            document.getElementById('urp-leases').textContent = Math.round(urpGpu + urpCpu + urpRam);
+            document.getElementById('urp-details').textContent = `G:${urpGpu} C:${urpCpu} R:${urpRam}`;
+            
+            // RAG Hits
+            const ragTotal = sumMetric(metrics, 'bizra_rag_hit_total');
+            const ragVector = getMetricValue(metrics, 'bizra_rag_hit_total', { source: 'vector' });
+            const ragGraph = getMetricValue(metrics, 'bizra_rag_hit_total', { source: 'graph' });
+            document.getElementById('rag-hits').textContent = ragTotal;
+            document.getElementById('rag-details').textContent = `V:${ragVector} G:${ragGraph}`;
+
+            // Connection status
+            const neo4jConnected = getMetricValue(metrics, 'bizra_neo4j_connected') === 1;
+            const ollamaConnected = getMetricValue(metrics, 'bizra_ollama_connected') === 1;
+            
+            document.getElementById('neo4j-status').textContent = neo4jConnected ? 
+                '✅ Connected • HyperGraphRAG active' : '⚠️ Disconnected • Fallback mode';
+            document.getElementById('ollama-status').textContent = ollamaConnected ?
+                '✅ Connected • Local inference ready' : '⚠️ Disconnected • No local LLM';
+            
+            // Update timestamp
+            document.getElementById('last-update').textContent = 
+                'Last update: ' + new Date().toLocaleTimeString();
+        }
+        
+        // Fetch metrics from server
+        async function fetchMetrics() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            const btn = document.querySelector('.refresh-btn');
+            btn.classList.add('loading');
+            
+            try {
+                const response = await fetch(METRICS_URL);
+                if (!response.ok) throw new Error('Failed to fetch metrics');
+                
+                const text = await response.text();
+                const metrics = parsePrometheusMetrics(text);
+                lastMetrics = metrics;
+                
+                updateDashboard(metrics);
+                
+                // Update system status
+                document.getElementById('system-status').className = 'status-dot green';
+                
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+                document.getElementById('system-status').className = 'status-dot yellow';
+                
+                // Use demo data if server not available
+                updateWithDemoData();
+            } finally {
+                isLoading = false;
+                btn.classList.remove('loading');
+            }
+        }
+        
+        // Update with demo data when server is unavailable
+        function updateWithDemoData() {
+            document.getElementById('sat-total').textContent = '247';
+            document.getElementById('sat-approved').textContent = '231';
+            document.getElementById('sat-rejected').textContent = '16';
+            document.getElementById('ihsan-score').textContent = '0.93';
+            document.getElementById('ihsan-gauge-value').textContent = '0.93';
+            document.getElementById('fate-total').textContent = '3';
+            document.getElementById('fate-pending').textContent = '1';
+            document.getElementById('avg-latency').textContent = '127ms';
+            document.getElementById('synergy-score').textContent = '0.89';
+            document.getElementById('sape-patterns').textContent = '5';
+            document.getElementById('sape-activations').textContent = '42';
+            
+            document.getElementById('neo4j-status').textContent = '⚠️ Demo mode';
+            document.getElementById('ollama-status').textContent = '⚠️ Demo mode';
+            
+            document.getElementById('last-update').textContent = 
+                'Last update: ' + new Date().toLocaleTimeString() + ' (demo)';
+        }
+        
+        // Add log entry
+        function addLogEntry(level, message) {
+            const container = document.getElementById('logs-container');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${new Date().toLocaleTimeString('en-US', { hour12: false })}</span>
+                <span class="log-level ${level.toLowerCase()}">${level}</span>
+                <span class="log-message">${message}</span>
+            `;
+            container.insertBefore(entry, container.firstChild);
+            
+            // Keep only last 50 entries
+            while (container.children.length > 50) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchMetrics();
+            setInterval(fetchMetrics, REFRESH_INTERVAL);
+            
+            // Demo log additions
+            setTimeout(() => addLogEntry('INFO', 'Glass Cockpit dashboard initialized'), 1000);
+        });
+    </script>
+</body>
+</html>

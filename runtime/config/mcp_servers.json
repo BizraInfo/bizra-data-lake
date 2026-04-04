@@ -1,0 +1,98 @@
+{
+  "version": "1.0",
+  "description": "BIZRA MCP Server Registry - External tool providers",
+  "mcpServers": {
+    "bizra-data-lake": {
+      "name": "BIZRA Data Lake",
+      "description": "Unified memory hypergraph with 709k nodes",
+      "url": "https://localhost:8443",
+      "transport": "http",
+      "tls": true,
+      "verifyTls": false,
+      "timeout": 30000,
+      "retries": 3,
+      "tools": [
+        {
+          "name": "knowledge_retrieve",
+          "description": "Query the BIZRA Data Lake Hypergraph for technical context, project history, and architectural decisions",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "Semantic search query for the knowledge graph"
+              }
+            },
+            "required": ["query"]
+          }
+        }
+      ],
+      "capabilities": {
+        "memoryTiers": ["M1", "M2", "M3", "M4", "M5", "M6"],
+        "sovereignAccess": true,
+        "bidirectional": true
+      }
+    },
+    "agentic-flow": {
+      "name": "Agentic Flow Swarm Intelligence",
+      "description": "66 self-learning agents with SONA, ReasoningBank, and 213 MCP tools",
+      "url": "http://localhost:3100",
+      "transport": "http",
+      "tls": false,
+      "timeout": 30000,
+      "retries": 2,
+      "tools": [
+        {
+          "name": "swarm_init",
+          "description": "Initialize a swarm of self-learning agents for parallel task execution",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "task": { "type": "string", "description": "Task description for the swarm" },
+              "topology": { "type": "string", "enum": ["hierarchical", "mesh", "hierarchical-mesh", "star"] },
+              "agent_count": { "type": "number", "default": 5 }
+            },
+            "required": ["task"]
+          }
+        },
+        {
+          "name": "reasoning_bank_query",
+          "description": "Query learned patterns from ReasoningBank for cross-agent knowledge",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": { "type": "string", "description": "Semantic search query for patterns" },
+              "limit": { "type": "number", "default": 10 }
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "worker_dispatch",
+          "description": "Dispatch a background worker for autonomous operations",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "worker_type": { "type": "string", "enum": ["audit", "optimize", "consolidate", "document", "deepdive", "ultralearn"] },
+              "directive": { "type": "string", "description": "Task directive for the worker" }
+            },
+            "required": ["worker_type", "directive"]
+          }
+        }
+      ],
+      "capabilities": {
+        "swarmTopologies": ["hierarchical", "mesh", "hierarchical-mesh", "star"],
+        "selfLearning": true,
+        "agentCount": 66,
+        "mcpToolCount": 213,
+        "reasoningBank": true,
+        "sona": true
+      }
+    }
+  },
+  "defaults": {
+    "timeout": 30000,
+    "retries": 3,
+    "verifyTls": true
+  }
+}

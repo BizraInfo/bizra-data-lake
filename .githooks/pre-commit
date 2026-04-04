@@ -10,10 +10,10 @@
 
 set -e
 
-# Only check staged Python files
-STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+# Only check staged Python files (exclude runtime/ — pre-omega historical workspace)
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' | grep -v '^runtime/' || true)
 STAGED_RS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.rs$' || true)
-STAGED_TS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.tsx\?$' || true)
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.tsx\?$' | grep -v '^runtime/' || true)
 
 FAIL=0
 
