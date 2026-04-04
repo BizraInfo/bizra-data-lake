@@ -23,6 +23,8 @@ pub struct Header<'a> {
     active_view: ActiveView,
     lmstudio_connected: bool,
     voice_active: bool,
+    trust_sovereign: bool,
+    model_count: usize,
 }
 
 impl<'a> Header<'a> {
@@ -32,6 +34,8 @@ impl<'a> Header<'a> {
             active_view,
             lmstudio_connected: false,
             voice_active: false,
+            trust_sovereign: false,
+            model_count: 0,
         }
     }
 
@@ -42,6 +46,16 @@ impl<'a> Header<'a> {
 
     pub fn voice(mut self, active: bool) -> Self {
         self.voice_active = active;
+        self
+    }
+
+    pub fn trust(mut self, sovereign: bool) -> Self {
+        self.trust_sovereign = sovereign;
+        self
+    }
+
+    pub fn models(mut self, count: usize) -> Self {
+        self.model_count = count;
         self
     }
 }
@@ -93,28 +107,26 @@ impl Widget for Header<'_> {
             ));
         }
 
-        // Right side: Status indicators with improved visuals
-        let lm_indicator = if self.lmstudio_connected {
+        // Right side: Status indicators
+        let trust_indicator = if self.trust_sovereign {
             Span::styled(
-                " ● LM Studio ",
+                "● SOVEREIGN ",
                 Style::default()
-                    .fg(colors::EMERALD)
+                    .fg(colors::GOLD)
                     .add_modifier(Modifier::BOLD),
             )
         } else {
-            Span::styled(" ○ LM Studio ", Theme::muted())
+            Span::styled("⚠ DEGRADED ", Theme::warning())
         };
 
-        let voice_indicator = if self.voice_active {
-            Span::styled(
-                "◉ Voice ",
-                Style::default()
-                    .fg(colors::VOICE_ACTIVE)
-                    .add_modifier(Modifier::BOLD),
-            )
-        } else {
-            Span::styled("○ Voice ", Theme::muted())
-        };
+        let model_indicator = Span::styled(
+            format!("{} models ", self.model_count),
+            if self.model_count > 0 {
+                Theme::text()
+            } else {
+                Theme::error()
+            },
+        );
 
         // Build the line
         let mut spans = vec![logo, version, node];
@@ -122,7 +134,7 @@ impl Widget for Header<'_> {
 
         // Calculate remaining space for right-aligned items
         let left_len: usize = spans.iter().map(|s| s.content.len()).sum();
-        let right_len = 26; // Approximate length of status indicators
+        let right_len = 30;
 
         if area.width as usize > left_len + right_len + 2 {
             let padding = area.width as usize - left_len - right_len - 2;
@@ -130,8 +142,8 @@ impl Widget for Header<'_> {
         }
 
         spans.push(Span::styled("│", Style::default().fg(colors::MUTED)));
-        spans.push(lm_indicator);
-        spans.push(voice_indicator);
+        spans.push(trust_indicator);
+        spans.push(model_indicator);
 
         let line = Line::from(spans);
         let para = Paragraph::new(line);

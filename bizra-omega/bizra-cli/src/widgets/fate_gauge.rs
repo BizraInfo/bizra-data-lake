@@ -14,6 +14,8 @@ use crate::{
     theme::{metric_style, symbols, Theme},
 };
 
+// TUI scaffolding -- used when FATE gauge panel is re-wired to expanded dashboard
+#[allow(dead_code)]
 pub struct FateGauge<'a> {
     gates: &'a FATEGates,
     // TUI scaffolding -- used when label toggle is wired to UI settings
@@ -22,6 +24,7 @@ pub struct FateGauge<'a> {
 }
 
 impl<'a> FateGauge<'a> {
+    #[allow(dead_code)]
     pub fn new(gates: &'a FATEGates) -> Self {
         Self {
             gates,

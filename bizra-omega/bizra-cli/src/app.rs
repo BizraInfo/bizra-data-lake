@@ -3,9 +3,12 @@
 //! Central state management for the TUI application.
 
 use std::collections::HashMap;
+use std::time::Instant;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+use crate::commands::genesis_spine::DashboardData;
 
 /// PAT Agent roles
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -245,6 +248,8 @@ pub struct App {
     /// Currently selected agent
     pub selected_agent: Option<PATRole>,
 
+    // TUI scaffolding -- FATE gauge used when dashboard is expanded
+    #[allow(dead_code)]
     /// FATE gate metrics
     pub fate_gates: FATEGates,
 
@@ -265,9 +270,12 @@ pub struct App {
     #[allow(dead_code)]
     pub selected_task: Option<usize>,
 
+    // TUI scaffolding -- used when node identity panel is wired
+    #[allow(dead_code)]
     /// Node info
     pub node_id: String,
     pub node_name: String,
+    #[allow(dead_code)]
     pub genesis_hash: String,
 
     /// LM Studio status
@@ -287,6 +295,12 @@ pub struct App {
 
     /// Status message
     pub status_message: Option<(String, chrono::DateTime<Utc>)>,
+
+    /// Dashboard live data (refreshed periodically in TUI mode)
+    pub dashboard_data: Option<DashboardData>,
+
+    /// Last dashboard data refresh
+    pub last_refresh: Option<Instant>,
 }
 
 impl Default for App {
@@ -326,6 +340,8 @@ impl App {
             voice_listening: false,
             should_quit: false,
             status_message: None,
+            dashboard_data: None,
+            last_refresh: None,
         }
     }
 

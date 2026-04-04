@@ -319,8 +319,10 @@ fn run_tui() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    // Create app state
+    // Create app state with initial data gather
     let mut app = app::App::new();
+    app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+    app.last_refresh = Some(std::time::Instant::now());
 
     // Welcome message with clean ASCII art
     app.add_message(
@@ -402,6 +404,12 @@ where
                         KeyCode::Char('k') | KeyCode::Up => {
                             app.prev_agent();
                         }
+                        KeyCode::Char('r') => {
+                            app.dashboard_data =
+                                Some(commands::genesis_spine::gather_dashboard_data());
+                            app.last_refresh = Some(std::time::Instant::now());
+                            app.set_status("Dashboard refreshed");
+                        }
                         KeyCode::Char('1') => app.active_view = app::ActiveView::Dashboard,
                         KeyCode::Char('2') => app.active_view = app::ActiveView::Agents,
                         KeyCode::Char('3') => app.active_view = app::ActiveView::Chat,
@@ -458,6 +466,16 @@ where
             }
         }
 
+        // Periodic dashboard refresh (every 5 seconds)
+        if app
+            .last_refresh
+            .map(|t| t.elapsed() > Duration::from_secs(5))
+            .unwrap_or(true)
+        {
+            app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+            app.last_refresh = Some(std::time::Instant::now());
+        }
+
         // Clear expired status messages
         app.clear_expired_status();
 
@@ -491,10 +509,23 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
         ])
         .split(size);
 
-    // Header
+    // Header — augmented with trust verdict + model count
+    let (trust_ok, model_ct) = app
+        .dashboard_data
+        .as_ref()
+        .map(|d| {
+            (
+                d.trust_verdict == commands::genesis_spine::TrustVerdict::Sovereign,
+                d.model_count,
+            )
+        })
+        .unwrap_or((false, 0));
+
     let header = Header::new(&app.node_name, app.active_view)
         .lmstudio(app.lmstudio_connected)
-        .voice(app.voice_active);
+        .voice(app.voice_active)
+        .trust(trust_ok)
+        .models(model_ct);
     f.render_widget(header, chunks[0]);
 
     // Content based on active view
@@ -507,10 +538,19 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
         app::ActiveView::Settings => render_settings(f, app, chunks[1]),
     }
 
-    // Status bar
+    // Status bar — augmented with manifest summary
+    let manifest_text = app.dashboard_data.as_ref().map(|d| {
+        format!(
+            "{}/{}{}",
+            d.today_count,
+            d.today_complete,
+            crate::theme::symbols::SUCCESS
+        )
+    });
     let status = StatusBar::new(app.input_mode)
         .agent(app.selected_agent.map(|a| a.name()))
-        .message(app.status_message.as_ref().map(|(m, _)| m.as_str()));
+        .message(app.status_message.as_ref().map(|(m, _)| m.as_str()))
+        .manifest(manifest_text.as_deref());
     f.render_widget(status, chunks[2]);
 
     // Input box (when in editing mode)
@@ -550,88 +590,60 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
 fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
     use ratatui::layout::{Constraint, Direction, Layout};
 
-    use crate::{
-        theme::Theme,
-        widgets::{AgentCard, FateGauge},
+    use crate::widgets::{GhostFeed, ParliamentPanel, ReceiptRail, SubstratePanel, TrustRail};
+
+    // Guard: need data to render
+    let Some(data) = &app.dashboard_data else {
+        use ratatui::widgets::{Block, Borders, Paragraph};
+        let block = Block::default()
+            .title(" Dashboard ")
+            .borders(Borders::ALL)
+            .style(crate::theme::Theme::panel());
+        let msg = Paragraph::new("Gathering sovereign intelligence...").block(block);
+        f.render_widget(msg, area);
+        return;
     };
 
-    // Split into left (agents) and right (FATE + info)
-    let chunks = Layout::default()
+    // ── 3-Column Layout ──
+    let columns = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+        .constraints([
+            Constraint::Percentage(30), // Left: Parliament + Substrate
+            Constraint::Percentage(35), // Center: Ghost + Receipt
+            Constraint::Percentage(35), // Right: Trust
+        ])
         .split(area);
 
-    // Left: Agent grid (2 columns)
-    let agent_rows = Layout::default()
+    // ── Left Column: Parliament (60%) + Substrate (40%) ──
+    let left = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Ratio(1, 4),
-            Constraint::Ratio(1, 4),
-            Constraint::Ratio(1, 4),
-            Constraint::Ratio(1, 4),
-        ])
-        .split(chunks[0]);
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+        .split(columns[0]);
 
-    let roles: Vec<_> = app::PATRole::all().to_vec();
-    for (i, row) in agent_rows.iter().enumerate() {
-        let cols = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(*row);
+    // Zone 2: Parliament
+    f.render_widget(
+        ParliamentPanel::new(&data.pat_agents, &data.sat_agents),
+        left[0],
+    );
 
-        for (j, col) in cols.iter().enumerate() {
-            let idx = i * 2 + j;
-            if idx < roles.len() {
-                let role = roles[idx];
-                if let Some(state) = app.agents.get(&role) {
-                    let selected = app.selected_agent == Some(role);
-                    let card = AgentCard::new(state).selected(selected).compact(true);
-                    f.render_widget(card, *col);
-                }
-            }
-        }
-    }
+    // Zone 5: Substrate
+    f.render_widget(SubstratePanel::from_data(data), left[1]);
 
-    // Right: FATE gates and node info
-    let right_chunks = Layout::default()
+    // ── Center Column: Ghost (50%) + Receipt (50%) ──
+    let center = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(10), Constraint::Min(5)])
-        .split(chunks[1]);
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(columns[1]);
 
-    // FATE gauge
-    let fate = FateGauge::new(&app.fate_gates);
-    f.render_widget(fate, right_chunks[0]);
+    // Zone 3: Ghost Feed
+    f.render_widget(GhostFeed::from_data(data), center[0]);
 
-    // Node info
-    use ratatui::{
-        text::{Line, Span},
-        widgets::{Block, Borders, Paragraph},
-    };
+    // Zone 6: Receipt Rail
+    f.render_widget(ReceiptRail::from_data(data), center[1]);
 
-    let info_block = Block::default()
-        .title(Span::styled(" Node Info ", Theme::title()))
-        .borders(Borders::ALL)
-        .border_style(Theme::panel_border())
-        .style(Theme::panel());
-
-    let info_text = vec![
-        Line::from(vec![
-            Span::styled("ID: ", Theme::muted()),
-            Span::styled(&app.node_id, Theme::text()),
-        ]),
-        Line::from(vec![
-            Span::styled("Name: ", Theme::muted()),
-            Span::styled(&app.node_name, Theme::highlight()),
-        ]),
-        Line::from(vec![
-            Span::styled("Genesis: ", Theme::muted()),
-            Span::styled(&app.genesis_hash[..16], Theme::text()),
-            Span::styled("...", Theme::muted()),
-        ]),
-    ];
-
-    let info = Paragraph::new(info_text).block(info_block);
-    f.render_widget(info, right_chunks[1]);
+    // ── Right Column: Trust Rail (full height) ──
+    // Zone 4: Trust Rail
+    f.render_widget(TrustRail::from_data(data), columns[2]);
 }
 
 fn render_agents(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
@@ -858,4 +870,155 @@ fn render_settings(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layou
 
     let para = Paragraph::new(lines).block(block);
     f.render_widget(para, area);
+}
+
+// ── Phase 6 TUI Smoke Tests (Headless) ───────────────────
+#[cfg(test)]
+mod tests {
+    use ratatui::{backend::TestBackend, Terminal};
+
+    use super::*;
+
+    #[test]
+    fn test_app_with_dashboard_data_no_panic() {
+        // Construct App with live dashboard data — must not panic
+        let mut app = app::App::new();
+        app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+        app.last_refresh = Some(std::time::Instant::now());
+
+        // Verify state
+        assert!(app.dashboard_data.is_some());
+        assert_eq!(app.active_view, app::ActiveView::Dashboard);
+        assert!(!app.should_quit);
+    }
+
+    #[test]
+    fn test_render_dashboard_headless() {
+        // Render the full dashboard to a test backend — must not panic
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = app::App::new();
+        app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+        app.last_refresh = Some(std::time::Instant::now());
+
+        terminal.draw(|f| ui(f, &app)).unwrap();
+
+        // Verify the buffer was written to (not blank)
+        let buffer = terminal.backend().buffer();
+        let content: String = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol().chars().next().unwrap_or(' '))
+            .collect();
+        assert!(
+            content.contains("BIZRA"),
+            "Dashboard must render BIZRA header"
+        );
+        assert!(
+            content.contains("Parliament"),
+            "Dashboard must render Parliament panel"
+        );
+        assert!(
+            content.contains("Ghost"),
+            "Dashboard must render Ghost feed"
+        );
+        assert!(
+            content.contains("Trust"),
+            "Dashboard must render Trust rail"
+        );
+        assert!(
+            content.contains("Substrate"),
+            "Dashboard must render Substrate panel"
+        );
+        assert!(
+            content.contains("Receipts"),
+            "Dashboard must render Receipt rail"
+        );
+    }
+
+    #[test]
+    fn test_render_all_views_headless() {
+        // Every view must render without panic
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = app::App::new();
+        app.dashboard_data = Some(commands::genesis_spine::gather_dashboard_data());
+        app.last_refresh = Some(std::time::Instant::now());
+
+        for view in app::ActiveView::all() {
+            app.active_view = *view;
+            terminal
+                .draw(|f| ui(f, &app))
+                .unwrap_or_else(|e| panic!("Render failed for {:?}: {}", view, e));
+        }
+    }
+
+    #[test]
+    fn test_view_navigation_cycle() {
+        let mut app = app::App::new();
+        assert_eq!(app.active_view, app::ActiveView::Dashboard);
+
+        // Cycle through all views
+        let views = app::ActiveView::all();
+        for i in 0..views.len() {
+            app.next_view();
+            assert_eq!(app.active_view, views[(i + 1) % views.len()]);
+        }
+
+        // Back to Dashboard after full cycle
+        assert_eq!(app.active_view, app::ActiveView::Dashboard);
+    }
+
+    #[test]
+    fn test_agent_navigation_cycle() {
+        let mut app = app::App::new();
+        let initial = app.selected_agent;
+
+        // Cycle through all agents
+        for _ in 0..7 {
+            app.next_agent();
+        }
+        // After 7 next_agent calls, should be back to initial
+        assert_eq!(app.selected_agent, initial);
+    }
+
+    #[test]
+    fn test_dashboard_no_data_renders_loading() {
+        // When dashboard_data is None, should show loading message
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let app = app::App::new(); // No dashboard_data set
+        terminal.draw(|f| ui(f, &app)).unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let content: String = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol().chars().next().unwrap_or(' '))
+            .collect();
+        assert!(
+            content.contains("Gathering"),
+            "No-data dashboard must show loading message"
+        );
+    }
+
+    #[test]
+    fn test_status_message_lifecycle() {
+        let mut app = app::App::new();
+        assert!(app.status_message.is_none());
+
+        app.set_status("Dashboard refreshed");
+        assert!(app.status_message.is_some());
+        assert_eq!(
+            app.status_message.as_ref().unwrap().0,
+            "Dashboard refreshed"
+        );
+
+        // Status should not clear within 5 seconds
+        app.clear_expired_status();
+        assert!(app.status_message.is_some());
+    }
 }

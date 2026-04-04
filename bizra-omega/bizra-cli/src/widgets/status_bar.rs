@@ -19,6 +19,7 @@ pub struct StatusBar<'a> {
     mode: InputMode,
     message: Option<&'a str>,
     selected_agent: Option<&'a str>,
+    manifest_summary: Option<&'a str>,
 }
 
 impl<'a> StatusBar<'a> {
@@ -27,6 +28,7 @@ impl<'a> StatusBar<'a> {
             mode,
             message: None,
             selected_agent: None,
+            manifest_summary: None,
         }
     }
 
@@ -37,6 +39,11 @@ impl<'a> StatusBar<'a> {
 
     pub fn agent(mut self, agent: Option<&'a str>) -> Self {
         self.selected_agent = agent;
+        self
+    }
+
+    pub fn manifest(mut self, summary: Option<&'a str>) -> Self {
+        self.manifest_summary = summary;
         self
     }
 }
@@ -74,11 +81,20 @@ impl Widget for StatusBar<'_> {
 
         // Help hints based on mode
         let hints = match self.mode {
-            InputMode::Normal => "q:Quit  Tab:View  j/k:Nav  i:Insert  /:Command",
+            InputMode::Normal => "q:Quit Tab:View r:Refresh j/k:Nav i:Insert",
             InputMode::Editing => "Esc:Normal  Enter:Send  ↑↓:History",
             InputMode::Command => "Esc:Cancel  Enter:Execute  Tab:Complete",
         };
         spans.push(Span::styled(hints, Theme::muted()));
+
+        // Manifest summary
+        if let Some(manifest) = self.manifest_summary {
+            spans.push(Span::styled(" │ ", Theme::muted()));
+            spans.push(Span::styled(
+                format!("Manifest: {manifest}"),
+                Theme::ihsan(),
+            ));
+        }
 
         // Status message (right-aligned)
         if let Some(msg) = self.message {

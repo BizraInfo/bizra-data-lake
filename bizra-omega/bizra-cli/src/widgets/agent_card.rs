@@ -34,6 +34,8 @@ impl<'a> AgentCard<'a> {
         self
     }
 
+    // TUI scaffolding -- used when compact agent list view is wired
+    #[allow(dead_code)]
     pub fn compact(mut self, compact: bool) -> Self {
         self.compact = compact;
         self

@@ -1,4 +1,4 @@
-//! Genesis Spine — CLI command handlers (Phases 1-3)
+//! Genesis Spine — CLI command handlers (Phases 1-6)
 //!
 //! Authoritative ingress commands backed by the frozen constitutional spine:
 //!   init     — substrate discovery + Ed25519 identity generation
@@ -9,6 +9,8 @@
 //!   receipt  — receipt display + BLAKE3/Ed25519 verification (disk-persisted)
 //!   trust    — constitutional compliance surface
 //!   manifest — daily receipt manifest (proof-of-life artifact)
+//!   brief    — sovereign morning briefing (Ghost layer)
+//!   dashboard — data layer for TUI mission control (Phase 6)
 //!
 //! Standing on Giants: Bernstein (Ed25519) · Aumasson (BLAKE3) · Al-Ghazali (Ihsan)
 
@@ -79,6 +81,426 @@ fn load_ledger() -> Result<Vec<LedgerEntry>> {
         }
     }
     Ok(entries)
+}
+
+// ── Dashboard Data Layer (Phase 6) ─────────────────────────
+//
+// Single-pass data collection for the TUI mission control cockpit.
+// Consumes the same backends as the CLI commands — no shadow state.
+
+/// GPU information for dashboard display.
+pub struct GpuInfo {
+    pub name: String,
+    pub used_mb: u64,
+    pub total_mb: u64,
+    pub used_pct: f64,
+}
+
+/// Summary of a single receipt for dashboard display.
+pub struct ReceiptSummary {
+    pub id_short: String,
+    pub objective: String,
+    pub state_label: &'static str,
+    pub is_success: bool,
+    pub is_degraded: bool,
+    // Scaffolding — used when receipt rail shows signature badges
+    #[allow(dead_code)]
+    pub signed: bool,
+}
+
+/// A single trust surface check.
+pub struct TrustCheck {
+    pub name: String,
+    pub passed: bool,
+    pub detail: String,
+}
+
+/// Constitutional trust verdict.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrustVerdict {
+    Sovereign,
+    Degraded,
+}
+
+/// Agent info for parliament display.
+pub struct AgentInfo {
+    pub index: u8,
+    pub callsign: String,
+    pub role: String,
+    pub icon: &'static str,
+    // Scaffolding — used when parliament panel shows team badges
+    #[allow(dead_code)]
+    pub team: &'static str,
+}
+
+/// All data needed to render the TUI dashboard — gathered in one pass.
+pub struct DashboardData {
+    // Substrate
+    pub cpu_name: String,
+    pub cpu_cores: u32,
+    pub ram_total_gb: f64,
+    pub ram_used_pct: f64,
+    pub gpu: Option<GpuInfo>,
+    pub model_count: usize,
+    pub text_models: Vec<String>,
+    pub vision_models: Vec<String>,
+    // Scaffolding — used when substrate panel shows runtime breakdown
+    #[allow(dead_code)]
+    pub runtime_count: usize,
+    pub platform: String,
+
+    // Runtime health
+    pub runtime_state: String,
+    pub reflex_mode: String,
+    pub reflex_rules: usize,
+    pub agents_active: usize,
+    pub agents_registered: usize,
+
+    // Receipt chain
+    pub total_receipts: usize,
+    // Scaffolding — used when receipt rail shows category breakdown
+    #[allow(dead_code)]
+    pub complete_count: usize,
+    #[allow(dead_code)]
+    pub degraded_count: usize,
+    #[allow(dead_code)]
+    pub failed_count: usize,
+    pub chain_valid: bool,
+    pub recent_receipts: Vec<ReceiptSummary>,
+
+    // Today's manifest
+    pub today_count: usize,
+    pub today_complete: usize,
+    pub manifest_seal: Option<String>,
+
+    // Trust surface
+    pub trust_checks: Vec<TrustCheck>,
+    pub receipt_chain_checks: Vec<TrustCheck>,
+    pub trust_verdict: TrustVerdict,
+
+    // Parliament
+    pub pat_agents: Vec<AgentInfo>,
+    pub sat_agents: Vec<AgentInfo>,
+
+    // Ghost / Recommendations
+    pub greeting: String,
+    pub recommendations: Vec<String>,
+}
+
+/// Collect all dashboard data in a single pass.
+/// Same backends as CLI commands — no new authority.
+pub fn gather_dashboard_data() -> DashboardData {
+    use chrono::Timelike;
+
+    let now = chrono::Local::now();
+
+    // ── 1. Substrate ──
+    let manifest = ResourceManifest::discover();
+    let hw = &manifest.hardware;
+    let ram_used_pct = if hw.ram_total_gb > 0.0 {
+        ((hw.ram_total_gb - hw.ram_available_gb) / hw.ram_total_gb) * 100.0
+    } else {
+        0.0
+    };
+
+    let gpu = hw.gpus.first().map(|g| {
+        let used_pct = if g.vram_total_mb > 0 {
+            (g.vram_used_mb as f64 / g.vram_total_mb as f64) * 100.0
+        } else {
+            0.0
+        };
+        GpuInfo {
+            name: g.name.clone(),
+            used_mb: g.vram_used_mb,
+            total_mb: g.vram_total_mb,
+            used_pct,
+        }
+    });
+
+    // ── 2. Models ──
+    let model_names = mission_bridge::extract_model_names(&manifest);
+    let is_vision = |m: &str| m.contains("moondream") || m.contains("VL") || m.contains("vision");
+    let text_models: Vec<String> = model_names
+        .iter()
+        .filter(|m| !is_vision(m))
+        .cloned()
+        .collect();
+    let vision_models: Vec<String> = model_names
+        .iter()
+        .filter(|m| is_vision(m))
+        .cloned()
+        .collect();
+    let model_count = model_names.len();
+
+    // ── 3. Runtime health ──
+    let runtime = AgentRuntime::new();
+    let health = runtime.health();
+    let runtime_state = match health.state {
+        bizra_node::RuntimeState::Ready => "Ready",
+        bizra_node::RuntimeState::Degraded => "Degraded",
+        bizra_node::RuntimeState::Processing => "Processing",
+        bizra_node::RuntimeState::Stopped => "Stopped",
+        bizra_node::RuntimeState::Uninitialized => "Uninitialized",
+    }
+    .to_string();
+
+    // ── 4. Receipt chain ──
+    let entries = load_ledger().unwrap_or_default();
+    let total_receipts = entries.len();
+    let complete_count = entries.iter().filter(|e| e.receipt.is_success()).count();
+    let degraded_count = entries.iter().filter(|e| e.receipt.is_degraded()).count();
+    let failed_count = total_receipts - complete_count - degraded_count;
+    let chain_valid = entries.iter().all(|e| e.receipt.verify_hash());
+
+    let recent_receipts: Vec<ReceiptSummary> = entries
+        .iter()
+        .rev()
+        .take(10)
+        .map(|e| {
+            let state_label = if e.receipt.is_success() {
+                "Complete"
+            } else if e.receipt.is_degraded() {
+                "Degraded"
+            } else {
+                "Failed"
+            };
+            ReceiptSummary {
+                id_short: e.receipt.id_hex().chars().take(16).collect(),
+                objective: truncate_str(&e.objective, 40),
+                state_label,
+                is_success: e.receipt.is_success(),
+                is_degraded: e.receipt.is_degraded(),
+                signed: e.receipt.is_signed(),
+            }
+        })
+        .collect();
+
+    // ── 5. Today's manifest ──
+    let now_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let day_start = now_secs - (now_secs % 86400);
+
+    let today: Vec<&LedgerEntry> = entries
+        .iter()
+        .filter(|e| e.receipt.completed_at >= day_start)
+        .collect();
+    let today_count = today.len();
+    let today_complete = today.iter().filter(|e| e.receipt.is_success()).count();
+    let manifest_seal = if !today.is_empty() {
+        let mut hasher = blake3::Hasher::new();
+        for e in &today {
+            hasher.update(&e.receipt.receipt_id);
+        }
+        Some(
+            hex::encode(hasher.finalize().as_bytes())
+                .chars()
+                .take(16)
+                .collect(),
+        )
+    } else {
+        None
+    };
+
+    // ── 6. Trust surface ──
+    let mut trust_checks = Vec::new();
+    let mut all_trust_pass = true;
+
+    // Constitutional law (5 checks)
+    let law_checks: [(&str, f64, f64); 5] = [
+        ("Ihsan (prod)", bizra_core::IHSAN_THRESHOLD, 0.95),
+        ("SNR (min)", bizra_core::SNR_THRESHOLD, 0.85),
+        ("Gini (ceil)", bizra_core::omega::ADL_GINI_THRESHOLD, 0.35),
+        ("Strict Ihsan", bizra_core::STRICT_IHSAN_THRESHOLD, 0.99),
+        ("Runtime Ihsan", bizra_core::RUNTIME_IHSAN_THRESHOLD, 1.0),
+    ];
+    for (name, actual, expected) in &law_checks {
+        let ok = (actual - expected).abs() < f64::EPSILON;
+        if !ok {
+            all_trust_pass = false;
+        }
+        trust_checks.push(TrustCheck {
+            name: name.to_string(),
+            passed: ok,
+            detail: format!("{:.2} = {:.2}", actual, expected),
+        });
+    }
+
+    // Topology (3 checks)
+    let pat_ok = TopologyCanon::PAT_COUNT == 7;
+    let sat_ok = TopologyCanon::SAT_COUNT == 5;
+    let gate_ok = TopologyCanon::GATE_ORDER.len() == 3;
+    if !pat_ok || !sat_ok || !gate_ok {
+        all_trust_pass = false;
+    }
+    trust_checks.push(TrustCheck {
+        name: "PAT-7".into(),
+        passed: pat_ok,
+        detail: format!("{}", TopologyCanon::PAT_COUNT),
+    });
+    trust_checks.push(TrustCheck {
+        name: "SAT-5".into(),
+        passed: sat_ok,
+        detail: format!("{}", TopologyCanon::SAT_COUNT),
+    });
+    trust_checks.push(TrustCheck {
+        name: "3-gate chain".into(),
+        passed: gate_ok,
+        detail: format!("{}", TopologyCanon::GATE_ORDER.len()),
+    });
+
+    // Genesis seal (1 check)
+    let seal = GenesisSeal::node0_default(now_secs * 1000);
+    let seal_ok = seal.seal_hash != [0u8; 32];
+    if !seal_ok {
+        all_trust_pass = false;
+    }
+    trust_checks.push(TrustCheck {
+        name: "Genesis Seal".into(),
+        passed: seal_ok,
+        detail: "computable".into(),
+    });
+
+    // Substrate (2 checks)
+    let model_ok = model_count > 0;
+    let ram_ok = hw.ram_total_gb >= 8.0;
+    if !model_ok || !ram_ok {
+        all_trust_pass = false;
+    }
+    trust_checks.push(TrustCheck {
+        name: "LLM models".into(),
+        passed: model_ok,
+        detail: format!("{}", model_count),
+    });
+    trust_checks.push(TrustCheck {
+        name: "RAM >= 8 GB".into(),
+        passed: ram_ok,
+        detail: format!("{:.0} GB", hw.ram_total_gb),
+    });
+
+    // Receipt chain checks (separate for TrustRail grouping)
+    let signed_count = entries.iter().filter(|e| e.receipt.is_signed()).count();
+    let receipt_chain_checks = vec![
+        TrustCheck {
+            name: format!("{} receipts", total_receipts),
+            passed: chain_valid || total_receipts == 0,
+            detail: if chain_valid { "all valid" } else { "BROKEN" }.into(),
+        },
+        TrustCheck {
+            name: "signed".into(),
+            passed: signed_count == total_receipts || total_receipts == 0,
+            detail: format!("{}/{}", signed_count, total_receipts),
+        },
+    ];
+
+    let trust_verdict = if all_trust_pass {
+        TrustVerdict::Sovereign
+    } else {
+        TrustVerdict::Degraded
+    };
+
+    // ── 7. Parliament ──
+    let pat_agents: Vec<AgentInfo> = PatAgent::ALL
+        .iter()
+        .map(|a| {
+            let (icon, role_desc) = pat_display(a);
+            AgentInfo {
+                index: a.index(),
+                callsign: a.callsign().to_string(),
+                role: role_desc.to_string(),
+                icon,
+                team: "PAT",
+            }
+        })
+        .collect();
+
+    let sat_agents: Vec<AgentInfo> = SatAgent::ALL
+        .iter()
+        .map(|a| {
+            let (icon, role_desc) = sat_display(a);
+            AgentInfo {
+                index: a.index(),
+                callsign: a.callsign().to_string(),
+                role: role_desc.to_string(),
+                icon,
+                team: "SAT",
+            }
+        })
+        .collect();
+
+    // ── 8. Ghost / Recommendations ──
+    let greeting = match now.hour() {
+        5..=11 => "Good morning, MoMo.",
+        12..=16 => "Good afternoon, MoMo.",
+        17..=21 => "Good evening, MoMo.",
+        _ => "Sovereign briefing, MoMo.",
+    }
+    .to_string();
+
+    let mut recommendations: Vec<String> = Vec::new();
+    if entries.is_empty() {
+        recommendations.push("Run your first mission: bizra mission \"<objective>\"".into());
+    }
+    if model_count == 0 {
+        recommendations.push("Install a model: ollama pull qwen2.5:3b".into());
+    }
+    if text_models.is_empty() && model_count > 0 {
+        recommendations.push("Install a text model — only vision models detected".into());
+    }
+    if !chain_valid && !entries.is_empty() {
+        recommendations
+            .push("Receipt chain has invalid hashes — run: bizra receipt --verify".into());
+    }
+    if recommendations.is_empty() {
+        recommendations.push("System healthy. Ready for sovereign missions.".into());
+    }
+
+    // ── Assemble ──
+    DashboardData {
+        cpu_name: hw.cpu_name.clone(),
+        cpu_cores: hw.cpu_cores,
+        ram_total_gb: hw.ram_total_gb,
+        ram_used_pct,
+        gpu,
+        model_count,
+        text_models,
+        vision_models,
+        runtime_count: manifest.model_count_by_runtime.len(),
+        platform: manifest.platform.to_string(),
+        runtime_state,
+        reflex_mode: health.reflex_mode.as_str().to_string(),
+        reflex_rules: health.reflex_rules,
+        agents_active: health.agents_active,
+        agents_registered: health.agents_registered,
+        total_receipts,
+        complete_count,
+        degraded_count,
+        failed_count,
+        chain_valid,
+        recent_receipts,
+        today_count,
+        today_complete,
+        manifest_seal,
+        trust_checks,
+        receipt_chain_checks,
+        trust_verdict,
+        pat_agents,
+        sat_agents,
+        greeting,
+        recommendations,
+    }
+}
+
+/// Truncate a string to max_len, adding "..." if truncated.
+fn truncate_str(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else if max_len > 3 {
+        format!("{}...", &s[..max_len - 3])
+    } else {
+        s[..max_len].to_string()
+    }
 }
 
 // ── bizra init ──────────────────────────────────────────────
@@ -1519,4 +1941,169 @@ pub fn exec_brief() -> Result<()> {
     println!();
 
     Ok(())
+}
+
+// ── Phase 6 Acceptance Tests ──────────────────────────────
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gather_dashboard_data_returns_valid_substrate() {
+        let data = gather_dashboard_data();
+        // CPU must be detected
+        assert!(!data.cpu_name.is_empty(), "CPU name must be populated");
+        assert!(data.cpu_cores > 0, "CPU cores must be > 0");
+        // RAM must be detected
+        assert!(data.ram_total_gb > 0.0, "RAM must be > 0");
+        assert!(
+            data.ram_used_pct >= 0.0 && data.ram_used_pct <= 100.0,
+            "RAM usage % must be 0-100"
+        );
+        // Platform must be detected
+        assert!(!data.platform.is_empty(), "Platform must be populated");
+    }
+
+    #[test]
+    fn test_gather_dashboard_data_trust_surface() {
+        let data = gather_dashboard_data();
+        // Must have all 11 trust checks (5 law + 3 topology + 1 genesis + 2 substrate)
+        assert_eq!(
+            data.trust_checks.len(),
+            11,
+            "Expected 11 trust checks, got {}",
+            data.trust_checks.len()
+        );
+        // Receipt chain checks are separate
+        assert_eq!(
+            data.receipt_chain_checks.len(),
+            2,
+            "Expected 2 receipt chain checks"
+        );
+        // Constitutional law checks should all pass (thresholds are compiled-in)
+        for check in &data.trust_checks[..5] {
+            assert!(
+                check.passed,
+                "Constitutional law check '{}' must pass — detail: {}",
+                check.name, check.detail
+            );
+        }
+        // Topology checks should all pass (compiled-in constants)
+        for check in &data.trust_checks[5..8] {
+            assert!(check.passed, "Topology check '{}' must pass", check.name);
+        }
+        // Genesis seal must be computable
+        assert!(
+            data.trust_checks[8].passed,
+            "Genesis seal must be computable"
+        );
+    }
+
+    #[test]
+    fn test_gather_dashboard_data_verdict_sovereign() {
+        let data = gather_dashboard_data();
+        // On this machine with models and RAM ≥ 8GB, verdict should be Sovereign
+        if data.model_count > 0 && data.ram_total_gb >= 8.0 {
+            assert_eq!(
+                data.trust_verdict,
+                TrustVerdict::Sovereign,
+                "With models and sufficient RAM, verdict must be Sovereign"
+            );
+        }
+    }
+
+    #[test]
+    fn test_gather_dashboard_data_parliament() {
+        let data = gather_dashboard_data();
+        assert_eq!(data.pat_agents.len(), 7, "PAT-7 must have exactly 7 agents");
+        assert_eq!(data.sat_agents.len(), 5, "SAT-5 must have exactly 5 agents");
+        // Verify PAT indices are 1-7 (P1-P7 canonical)
+        for (i, agent) in data.pat_agents.iter().enumerate() {
+            assert_eq!(agent.index as usize, i + 1, "PAT agent index mismatch");
+            assert!(!agent.callsign.is_empty(), "PAT agent must have callsign");
+            assert!(!agent.role.is_empty(), "PAT agent must have role");
+            assert!(!agent.icon.is_empty(), "PAT agent must have icon");
+        }
+        // Verify SAT indices are 1-5 (S1-S5 canonical)
+        for (i, agent) in data.sat_agents.iter().enumerate() {
+            assert_eq!(agent.index as usize, i + 1, "SAT agent index mismatch");
+        }
+    }
+
+    #[test]
+    fn test_gather_dashboard_data_runtime_health() {
+        let data = gather_dashboard_data();
+        // Runtime state must be a known value
+        let valid_states = [
+            "Ready",
+            "Degraded",
+            "Processing",
+            "Stopped",
+            "Uninitialized",
+        ];
+        assert!(
+            valid_states.contains(&data.runtime_state.as_str()),
+            "Runtime state '{}' must be one of {:?}",
+            data.runtime_state,
+            valid_states
+        );
+        assert!(data.agents_registered > 0, "Must have registered agents");
+        assert!(data.reflex_rules > 0, "Must have reflex rules");
+    }
+
+    #[test]
+    fn test_gather_dashboard_data_greeting() {
+        let data = gather_dashboard_data();
+        assert!(!data.greeting.is_empty(), "Greeting must be populated");
+        assert!(data.greeting.contains("MoMo"), "Greeting must address MoMo");
+    }
+
+    #[test]
+    fn test_gather_dashboard_data_recommendations() {
+        let data = gather_dashboard_data();
+        assert!(
+            !data.recommendations.is_empty(),
+            "Must have at least one recommendation"
+        );
+    }
+
+    #[test]
+    fn test_gather_dashboard_data_receipt_chain_consistency() {
+        let data = gather_dashboard_data();
+        // Count invariants
+        assert!(
+            data.complete_count + data.degraded_count + data.failed_count == data.total_receipts,
+            "Receipt counts must sum to total: {} + {} + {} != {}",
+            data.complete_count,
+            data.degraded_count,
+            data.failed_count,
+            data.total_receipts
+        );
+        assert!(
+            data.today_complete <= data.today_count,
+            "Today complete ({}) must be <= today count ({})",
+            data.today_complete,
+            data.today_count
+        );
+        assert!(
+            data.recent_receipts.len() <= 10,
+            "Recent receipts capped at 10"
+        );
+    }
+
+    #[test]
+    fn test_truncate_str() {
+        assert_eq!(truncate_str("hello", 10), "hello");
+        assert_eq!(truncate_str("hello world", 8), "hello...");
+        assert_eq!(truncate_str("ab", 2), "ab");
+        assert_eq!(truncate_str("abc", 3), "abc");
+        assert_eq!(truncate_str("", 5), "");
+    }
+
+    #[test]
+    fn test_trust_verdict_eq() {
+        assert_eq!(TrustVerdict::Sovereign, TrustVerdict::Sovereign);
+        assert_eq!(TrustVerdict::Degraded, TrustVerdict::Degraded);
+        assert_ne!(TrustVerdict::Sovereign, TrustVerdict::Degraded);
+    }
 }
