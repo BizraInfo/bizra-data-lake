@@ -1,0 +1,30 @@
+
+  [36m╔════════════════════════════════════════════════════════════╗[0m
+  [36m║[0m          [1mBIZRA Sovereign Agent Parliament[0m                  [36m║[0m
+  [36m╚════════════════════════════════════════════════════════════╝[0m
+
+  [33m┌─────────────────────────────────────────────────────────┐[0m
+  [33m│[0m  [1mPersonal Agentic Team (PAT-7)[0m — Your Mastermind Council [33m│[0m
+  [33m└─────────────────────────────────────────────────────────┘[0m
+    P1 ♟ [1mATLAS       [0m Strategy & planning
+    P2 🔍 [1mORACLE      [0m Research & knowledge
+    P3 ⚙ [1mFORGE       [0m Code & implementation
+    P4 📊 [1mJUDGE       [0m Quality & scoring
+    P5 ✓ [1mCROWN       [0m Constitutional verification
+    P6 ▶ [1mHERALD      [0m Publishing & delivery
+    P7 🛡 [1mNEXUS       [0m Orchestration & integration
+
+  [35m┌─────────────────────────────────────────────────────────┐[0m
+  [35m│[0m  [1mShared Agentic Team (SAT-5)[0m — System Immune System     [35m│[0m
+  [35m└─────────────────────────────────────────────────────────┘[0m
+    S1 🔒 [1mSENTINEL    [0m Security & threat detection
+    S2 ⚖ [1mORACLE_SAT  [0m Quality scoring & Ihsan
+    S3 📜 [1mLEDGER      [0m Receipt chain & ledger
+    S4 ⚡ [1mCONDUCTOR   [0m Task routing & coordination
+    S5 🔮 [1mAMBASSADOR  [0m Federation & external comms
+
+  [32mTopology:[0m 7 PAT + 5 SAT = 12 agents (frozen)
+  [32mGates:[0m    3 in chain
+
+    Next: [1mbizra node[0m — view sovereign node health
+

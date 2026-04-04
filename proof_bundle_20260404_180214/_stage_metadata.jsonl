@@ -1,0 +1,10 @@
+{"stage":"GENESIS","exit_code":0,"started":"2026-04-04T14:02:14Z","finished":"2026-04-04T14:02:14Z"}
+{"stage":"AGENTS","exit_code":0,"started":"2026-04-04T14:02:14Z","finished":"2026-04-04T14:02:14Z"}
+{"stage":"NODE","exit_code":0,"started":"2026-04-04T14:02:14Z","finished":"2026-04-04T14:02:14Z"}
+{"stage":"MISSION_OUTPUT","exit_code":0,"started":"2026-04-04T14:02:14Z","finished":"2026-04-04T14:02:14Z"}
+{"stage":"RECEIPT_VERIFY","exit_code":0,"started":"2026-04-04T14:02:15Z","finished":"2026-04-04T14:02:15Z"}
+{"stage":"replay","exit_code":-1,"started":"2026-04-04T14:02:15Z","finished":"2026-04-04T14:02:15Z"}
+{"stage":"TRUST","exit_code":0,"started":"2026-04-04T14:02:15Z","finished":"2026-04-04T14:02:15Z"}
+{"stage":"MANIFEST","exit_code":0,"started":"2026-04-04T14:02:15Z","finished":"2026-04-04T14:02:15Z"}
+{"stage":"BRIEF","exit_code":0,"started":"2026-04-04T14:02:15Z","finished":"2026-04-04T14:02:15Z"}
+{"stage":"REPLAY","exit_code":0,"started":"2026-04-04T14:03:11Z","finished":"2026-04-04T14:03:11Z"}

@@ -1,0 +1,28 @@
+
+  [36m╔════════════════════════════════════════════════════════════╗[0m
+  [36m║[0m             [1mBIZRA Mission Replay[0m                            [36m║[0m
+  [36m╚════════════════════════════════════════════════════════════╝[0m
+
+  [33mOriginal Receipt:[0m f7cc2bbe83e9d8a3…
+  [33mObjective:[0m       Analyze my system health and recommend the single highest-priority improvement for Node0
+  [33mOriginal State:[0m  Complete
+
+  [33m[1/3][0m Discovering substrate models...
+  [33m[2/3][0m Re-executing with chain link to original...
+  [33m[3/3][0m Replay receipt emitted.
+
+  [32m╔════════════════════════════════════════════════════════════╗[0m
+  [32m║[0m  REPLAY RECEIPT                                            [32m║[0m
+  [32m╚════════════════════════════════════════════════════════════╝[0m
+    New ID:       02b8e673d9f3e562e53d98393ff256b60133ebcf682649035f813777bea57574
+    Original:     f7cc2bbe83e9d8a3…
+    State:        [32mComplete[0m
+    Ihsan:        0.96
+    Model:        qwen2.5:3b
+    Chained To:   f7cc2bbe83e9d8a37eefa7c8fe40bca9465b913097128d0928f8efaf59e631e5
+    Signed:       [32mYes (Ed25519)[0m
+    Hash Valid:   [32mYes (BLAKE3)[0m
+    [32mLedger:[0m   Persisted (chain length: 4)
+
+  [33mDeterminism:[0m [32mSame final state as original — replay consistent[0m
+

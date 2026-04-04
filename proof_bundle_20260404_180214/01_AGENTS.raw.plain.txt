@@ -1,0 +1,30 @@
+
+  ╔════════════════════════════════════════════════════════════╗
+  ║          BIZRA Sovereign Agent Parliament                  ║
+  ╚════════════════════════════════════════════════════════════╝
+
+  ┌─────────────────────────────────────────────────────────┐
+  │  Personal Agentic Team (PAT-7) — Your Mastermind Council │
+  └─────────────────────────────────────────────────────────┘
+    P1 ♟ ATLAS        Strategy & planning
+    P2 🔍 ORACLE       Research & knowledge
+    P3 ⚙ FORGE        Code & implementation
+    P4 📊 JUDGE        Quality & scoring
+    P5 ✓ CROWN        Constitutional verification
+    P6 ▶ HERALD       Publishing & delivery
+    P7 🛡 NEXUS        Orchestration & integration
+
+  ┌─────────────────────────────────────────────────────────┐
+  │  Shared Agentic Team (SAT-5) — System Immune System     │
+  └─────────────────────────────────────────────────────────┘
+    S1 🔒 SENTINEL     Security & threat detection
+    S2 ⚖ ORACLE_SAT   Quality scoring & Ihsan
+    S3 📜 LEDGER       Receipt chain & ledger
+    S4 ⚡ CONDUCTOR    Task routing & coordination
+    S5 🔮 AMBASSADOR   Federation & external comms
+
+  Topology: 7 PAT + 5 SAT = 12 agents (frozen)
+  Gates:    3 in chain
+
+    Next: bizra node — view sovereign node health
+

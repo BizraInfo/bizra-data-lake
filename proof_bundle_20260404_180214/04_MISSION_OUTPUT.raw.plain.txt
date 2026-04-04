@@ -1,0 +1,34 @@
+
+  ╔════════════════════════════════════════════════════════════╗
+  ║           BIZRA Governed Mission Execution                 ║
+  ╚════════════════════════════════════════════════════════════╝
+
+  Objective: Analyze my system health and recommend the single highest-priority improvement for Node0
+
+  [1/4] Discovering substrate models...
+        14 models available
+  [2/4] Generating Ed25519 signing key...
+  [3/4] Executing through constitutional pipeline...
+        Gate chain: ["Schema", "Ihsan", "SNR"]
+  [4/4] Receipt emitted.
+
+  ╔════════════════════════════════════════════════════════════╗
+  ║  MISSION RECEIPT                                           ║
+  ╚════════════════════════════════════════════════════════════╝
+    Receipt ID:  f7cc2bbe83e9d8a37eefa7c8fe40bca9465b913097128d0928f8efaf59e631e5
+    State:       Complete
+    Ihsan:       0.96
+    Guardian:    APPROVED
+    Model:       qwen2.5:3b
+    Signed:      Yes (Ed25519)
+    Hash Valid:  Yes (BLAKE3)
+    Sig Valid:   Yes
+    Tier:        0
+    States:      Queued → WarmingRetrieval → WarmingModel → Retrieving → Routing → Running → Scoring → Persisting → Complete
+
+  Response:
+    Response generated without personalization
+    Ledger:  Persisted to /root/.bizra/receipts.jsonl
+
+    Next: bizra receipt --verify — verify receipt integrity
+

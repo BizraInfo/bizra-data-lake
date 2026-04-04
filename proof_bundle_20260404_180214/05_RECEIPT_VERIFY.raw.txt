@@ -1,0 +1,30 @@
+
+  [36m╔════════════════════════════════════════════════════════════╗[0m
+  [36m║[0m             [1mBIZRA Receipt Verification[0m                     [36m║[0m
+  [36m╚════════════════════════════════════════════════════════════╝[0m
+
+  [33mReceipt[0m (3 of 3 in ledger):
+    ID:          f7cc2bbe83e9d8a37eefa7c8fe40bca9465b913097128d0928f8efaf59e631e5
+    Objective:   Analyze my system health and recommend the single highest-priority improvement for Node0
+    State:       Complete
+    Ihsan:       0.96
+    Model:       qwen2.5:3b
+    Tier:        0
+    Signed:      true
+    Chain Link:  genesis (no predecessor)
+    Ledger:      /root/.bizra/receipts.jsonl
+
+  [33mVerification:[0m
+    [[32m✓[0m] BLAKE3 hash integrity
+    [[32m✓[0m] Ed25519 signature
+    [[31m✗[0m] Full integrity (hash + sig + chain)
+
+  [31m✗ Receipt verification FAILED[0m
+
+  [33mChain Integrity (3 receipts):[0m
+    [[32m✓[0m] #1: 26b0ed752ee8134a… Complete
+    [[32m✓[0m] #2: 7eac8e46c3bb59ac… Complete
+    [[32m✓[0m] #3: f7cc2bbe83e9d8a3… Complete
+
+  [32m✓ All 3 receipts have valid BLAKE3 hashes[0m
+

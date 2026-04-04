@@ -1,0 +1,25 @@
+
+  [36m╔════════════════════════════════════════════════════════════╗[0m
+  [36m║[0m             [1mBIZRA Genesis Seal Ceremony[0m                   [36m║[0m
+  [36m╚════════════════════════════════════════════════════════════╝[0m
+
+  [33mConstitutional Parameters:[0m
+    Ihsan Threshold:     0.95
+    SNR Threshold:       0.85
+    Gini Ceiling:        0.35
+    PAT Count:           7
+    SAT Count:           5
+    Constitution:        ihsan_v1
+
+  [32m╔════════════════════════════════════════════════════════════╗[0m
+  [32m║[0m  GENESIS SEAL                                              [32m║[0m
+  [32m║[0m  Hash: [1ma8d1169ddf0e2fd90e71a42b917d16c6a20fda7df0f66ec9b663c157424e4d4a[0m  [32m║[0m
+  [32m║[0m  Time: 1775311334717                                        [32m║[0m
+  [32m╚════════════════════════════════════════════════════════════╝[0m
+
+    Algorithm:    BLAKE3 (Aumasson et al.)
+    Determinism:  Same params + time = same seal (replayable)
+    Binding:      Every receipt chains back to this root
+
+    Next: [1mbizra agents[0m — view your sovereign agent council
+

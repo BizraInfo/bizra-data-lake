@@ -1,0 +1,34 @@
+
+  [36m╔════════════════════════════════════════════════════════════╗[0m
+  [36m║[0m  [1mGood evening, MoMo.[0m                               [36m║[0m
+  [36m║[0m  BIZRA Sovereign Node — Daily Brief                        [36m║[0m
+  [36m║[0m  Saturday, April  4, 2026 • 18:02                        [36m║[0m
+  [36m╚════════════════════════════════════════════════════════════╝[0m
+
+  [33m[Substrate][0m
+    Intel(R) Core(TM) i9-14900HX • 12 cores • 63 GB RAM (15% used)
+    NVIDIA GeForce RTX 4090 Laptop GPU • 4833/16376 MB VRAM (30%)
+    14 models across 2 runtime(s)
+
+  [33m[Runtime][0m
+    State: [32mReady[0m  •  Reflex: disabled  •  Rules: 4
+    Agents: 7/7  •  Vetoes: 0  •  Knows-Me: 0.00
+
+  [33m[Receipts][0m
+    3 total  •  [32m3 complete[0m  •  [33m0 degraded[0m  •  [31m0 failed[0m
+    Chain: [32m✓ All hashes valid[0m
+    Last:  f7cc2bbe83e9…  [32mComplete[0m  Analyze my system health and recommend the single highest-priority improvement for Node0
+
+  [33m[Constitution][0m
+    Ihsan: 0.95  SNR: 0.85  Gini: 0.35  PAT/SAT: 7/5  Gates: 3
+    Trust: [32mSOVEREIGN[0m
+
+  [33m[Models][0m
+    Text:   13 (qwen2.5:3b, phi3:mini, mistral:latest)
+    Vision: 1 (moondream:1.8b)
+
+  [33m[Recommendations][0m
+    → System healthy. Ready for sovereign missions.
+
+  [2m"Every human is a node. Every node is a seed." — بذرة[0m
+
