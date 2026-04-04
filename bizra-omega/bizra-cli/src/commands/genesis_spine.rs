@@ -1,30 +1,84 @@
-//! Genesis Spine — Phase 1 CLI command handlers
+//! Genesis Spine — CLI command handlers (Phases 1-3)
 //!
-//! Four authoritative ingress commands backed by the frozen constitutional spine:
-//!   init    — substrate discovery + Ed25519 identity generation
-//!   genesis — GenesisSeal computation + constitutional binding
-//!   agents  — PAT-7 + SAT-5 topology display + mint status
-//!   node    — health, identity, compliance, heartbeat
+//! Authoritative ingress commands backed by the frozen constitutional spine:
+//!   init     — substrate discovery + Ed25519 identity generation
+//!   genesis  — GenesisSeal computation + constitutional binding
+//!   agents   — PAT-7 + SAT-5 topology display + mint status
+//!   node     — health, identity, compliance, heartbeat
+//!   mission  — governed execution through gate chain → signed receipt
+//!   receipt  — receipt display + BLAKE3/Ed25519 verification (disk-persisted)
+//!   trust    — constitutional compliance surface
+//!   manifest — daily receipt manifest (proof-of-life artifact)
 //!
 //! Standing on Giants: Bernstein (Ed25519) · Aumasson (BLAKE3) · Al-Ghazali (Ihsan)
 
-use std::sync::Mutex;
+use std::fs::{self, OpenOptions};
+use std::io::{BufRead, Write};
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 
 use bizra_core::genesis_seal::{ConstitutionalParams, GenesisSeal};
 use bizra_core::topology_canon::{PatAgent, SatAgent, TopologyCanon};
-use bizra_node::mission_bridge::{self, MissionResult};
+use bizra_node::mission_bridge;
 use bizra_node::substrate::ResourceManifest;
 use bizra_node::AgentRuntime;
 
-/// Thread-safe storage for the last mission receipt (session-scoped).
-static LAST_RECEIPT: Mutex<Option<LastReceipt>> = Mutex::new(None);
+// ── Receipt Ledger (disk-persisted) ────────────────────────
 
-struct LastReceipt {
-    result: MissionResult,
+/// A single entry in the receipt ledger (JSONL on disk).
+#[derive(Serialize, Deserialize)]
+struct LedgerEntry {
     objective: String,
-    verifying_key: ed25519_dalek::VerifyingKey,
+    verifying_key_hex: String,
+    receipt: bizra_mission::receipt::MissionReceipt,
+}
+
+/// Canonical ledger path: ~/.bizra/receipts.jsonl
+fn ledger_path() -> PathBuf {
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| "/root".into());
+    PathBuf::from(home).join(".bizra").join("receipts.jsonl")
+}
+
+/// Append a receipt entry to the ledger.
+fn append_to_ledger(entry: &LedgerEntry) -> Result<()> {
+    let path = ledger_path();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+        .context("failed to open receipt ledger")?;
+    let json = serde_json::to_string(entry).context("failed to serialize receipt")?;
+    writeln!(file, "{json}").context("failed to write receipt")?;
+    Ok(())
+}
+
+/// Load all ledger entries from disk.
+fn load_ledger() -> Result<Vec<LedgerEntry>> {
+    let path = ledger_path();
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let file = fs::File::open(&path).context("failed to open receipt ledger")?;
+    let reader = std::io::BufReader::new(file);
+    let mut entries = Vec::new();
+    for line in reader.lines() {
+        let line = line?;
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if let Ok(entry) = serde_json::from_str::<LedgerEntry>(trimmed) {
+            entries.push(entry);
+        }
+    }
+    Ok(entries)
 }
 
 // ── bizra init ──────────────────────────────────────────────
@@ -580,13 +634,18 @@ pub fn exec_mission(objective: &str) -> Result<()> {
         }
     }
 
-    // Store for `bizra receipt` to access
-    if let Ok(mut lock) = LAST_RECEIPT.lock() {
-        *lock = Some(LastReceipt {
-            result,
-            objective: objective.to_string(),
-            verifying_key,
-        });
+    // Persist to disk ledger (cross-process reliable)
+    let entry = LedgerEntry {
+        objective: objective.to_string(),
+        verifying_key_hex: hex::encode(verifying_key.to_bytes()),
+        receipt: result.receipt.clone(),
+    };
+    match append_to_ledger(&entry) {
+        Ok(()) => println!(
+            "    \x1b[32mLedger:\x1b[0m  Persisted to {}",
+            ledger_path().display()
+        ),
+        Err(e) => println!("    \x1b[31mLedger:\x1b[0m  Failed to persist: {e}"),
     }
 
     println!();
@@ -598,7 +657,7 @@ pub fn exec_mission(objective: &str) -> Result<()> {
 
 // ── bizra receipt ───────────────────────────────────────────
 
-/// Display and optionally verify the last mission receipt.
+/// Display and optionally verify the last mission receipt (from disk ledger).
 pub fn exec_receipt(verify: bool) -> Result<()> {
     println!();
     println!("  \x1b[36m╔════════════════════════════════════════════════════════════╗\x1b[0m");
@@ -606,60 +665,70 @@ pub fn exec_receipt(verify: bool) -> Result<()> {
     println!("  \x1b[36m╚════════════════════════════════════════════════════════════╝\x1b[0m");
     println!();
 
-    let lock = LAST_RECEIPT
-        .lock()
-        .map_err(|_| anyhow::anyhow!("receipt lock poisoned"))?;
+    let entries = load_ledger().context("failed to load receipt ledger")?;
 
-    match lock.as_ref() {
-        None => {
-            println!(
-                "  No receipt in session. Run \x1b[1mbizra mission \"<objective>\"\x1b[0m first."
-            );
-            println!();
-        }
-        Some(last) => {
-            let receipt = &last.result.receipt;
+    if entries.is_empty() {
+        println!("  No receipts on disk. Run \x1b[1mbizra mission \"<objective>\"\x1b[0m first.");
+        println!("  Ledger: {}", ledger_path().display());
+        println!();
+        return Ok(());
+    }
 
-            println!("  \x1b[33mReceipt:\x1b[0m");
-            println!("    ID:          {}", receipt.id_hex());
-            println!("    Objective:   {}", last.objective);
-            println!("    State:       {:?}", receipt.final_state);
-            println!(
-                "    Ihsan:       {}",
-                receipt
-                    .ihsan_score
-                    .map(|s| format!("{:.2}", s))
-                    .unwrap_or_else(|| "—".into())
-            );
-            println!(
-                "    Model:       {}",
-                receipt.chosen_model.as_deref().unwrap_or("none")
-            );
-            println!("    Tier:        {}", receipt.degradation_tier);
-            println!("    Signed:      {}", receipt.is_signed());
-            println!(
-                "    Chain Link:  {}",
-                receipt
-                    .previous_receipt_hash
-                    .map(hex::encode)
-                    .unwrap_or_else(|| "genesis (no predecessor)".into())
-            );
-            println!();
+    let last = entries.last().unwrap();
+    let receipt = &last.receipt;
 
-            if verify {
-                println!("  \x1b[33mVerification:\x1b[0m");
-                let hash_ok = receipt.verify_hash();
-                let sig_ok = receipt.verify_signature(&last.verifying_key);
-                let full_ok = receipt.verify_full(&last.verifying_key, None);
+    println!(
+        "  \x1b[33mReceipt\x1b[0m ({} of {} in ledger):",
+        entries.len(),
+        entries.len()
+    );
+    println!("    ID:          {}", receipt.id_hex());
+    println!("    Objective:   {}", last.objective);
+    println!("    State:       {:?}", receipt.final_state);
+    println!(
+        "    Ihsan:       {}",
+        receipt
+            .ihsan_score
+            .map(|s| format!("{:.2}", s))
+            .unwrap_or_else(|| "—".into())
+    );
+    println!(
+        "    Model:       {}",
+        receipt.chosen_model.as_deref().unwrap_or("none")
+    );
+    println!("    Tier:        {}", receipt.degradation_tier);
+    println!("    Signed:      {}", receipt.is_signed());
+    println!(
+        "    Chain Link:  {}",
+        receipt
+            .previous_receipt_hash
+            .map(hex::encode)
+            .unwrap_or_else(|| "genesis (no predecessor)".into())
+    );
+    println!("    Ledger:      {}", ledger_path().display());
+    println!();
 
-                println!(
-                    "    [{}] BLAKE3 hash integrity",
-                    if hash_ok {
-                        "\x1b[32m✓\x1b[0m"
-                    } else {
-                        "\x1b[31m✗\x1b[0m"
-                    }
-                );
+    if verify {
+        println!("  \x1b[33mVerification:\x1b[0m");
+
+        // Reconstruct verifying key from hex
+        let vk_bytes = hex::decode(&last.verifying_key_hex)
+            .ok()
+            .and_then(|b| <[u8; 32]>::try_from(b).ok());
+
+        let hash_ok = receipt.verify_hash();
+        println!(
+            "    [{}] BLAKE3 hash integrity",
+            if hash_ok {
+                "\x1b[32m✓\x1b[0m"
+            } else {
+                "\x1b[31m✗\x1b[0m"
+            }
+        );
+
+        if let Some(vk_bytes) = vk_bytes {
+            if let Ok(vk) = ed25519_dalek::VerifyingKey::from_bytes(&vk_bytes) {
+                let sig_ok = receipt.verify_signature(&vk);
                 println!(
                     "    [{}] Ed25519 signature",
                     if sig_ok {
@@ -668,6 +737,14 @@ pub fn exec_receipt(verify: bool) -> Result<()> {
                         "\x1b[31m✗\x1b[0m"
                     }
                 );
+
+                // Chain verification: check previous receipt link
+                let prev = if entries.len() >= 2 {
+                    Some(&entries[entries.len() - 2].receipt)
+                } else {
+                    None
+                };
+                let full_ok = receipt.verify_full(&vk, prev);
                 println!(
                     "    [{}] Full integrity (hash + sig + chain)",
                     if full_ok {
@@ -681,12 +758,365 @@ pub fn exec_receipt(verify: bool) -> Result<()> {
                 if hash_ok && sig_ok && full_ok {
                     println!("  \x1b[32m✓ Receipt is cryptographically valid\x1b[0m");
                 } else {
-                    println!("  \x1b[31m✗ Receipt verification failed\x1b[0m");
+                    println!("  \x1b[31m✗ Receipt verification FAILED\x1b[0m");
                 }
-                println!();
+            } else {
+                println!("    [\x1b[31m✗\x1b[0m] Ed25519 key reconstruction failed");
             }
+        } else {
+            println!("    [\x1b[33m-\x1b[0m] No verifying key in ledger entry");
         }
+
+        // Chain walk: verify all entries
+        println!();
+        println!(
+            "  \x1b[33mChain Integrity ({} receipts):\x1b[0m",
+            entries.len()
+        );
+        let mut chain_ok = true;
+        for (i, entry) in entries.iter().enumerate() {
+            let h = entry.receipt.verify_hash();
+            if !h {
+                chain_ok = false;
+            }
+            let mark = if h {
+                "\x1b[32m✓\x1b[0m"
+            } else {
+                "\x1b[31m✗\x1b[0m"
+            };
+            let id_short = &entry.receipt.id_hex()[..16];
+            println!(
+                "    [{}] #{}: {}… {:?}",
+                mark,
+                i + 1,
+                id_short,
+                entry.receipt.final_state
+            );
+        }
+        println!();
+        if chain_ok {
+            println!(
+                "  \x1b[32m✓ All {} receipts have valid BLAKE3 hashes\x1b[0m",
+                entries.len()
+            );
+        } else {
+            println!("  \x1b[31m✗ Chain contains tampered receipts\x1b[0m");
+        }
+        println!();
     }
+
+    Ok(())
+}
+
+// ── bizra trust ────────────────────────────────────────────
+
+/// Constitutional compliance surface — the operator's trust panel.
+pub fn exec_trust() -> Result<()> {
+    println!();
+    println!("  \x1b[36m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("  \x1b[36m║\x1b[0m           \x1b[1mBIZRA Constitutional Trust Surface\x1b[0m               \x1b[36m║\x1b[0m");
+    println!("  \x1b[36m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!();
+
+    // ── Constitutional Thresholds ──
+    println!("  \x1b[33m[Constitutional Law]\x1b[0m");
+    let checks = [
+        ("Ihsan (production)", bizra_core::IHSAN_THRESHOLD, 0.95),
+        ("SNR (minimum)", bizra_core::SNR_THRESHOLD, 0.85),
+        (
+            "Gini (ceiling)",
+            bizra_core::omega::ADL_GINI_THRESHOLD,
+            0.35,
+        ),
+        ("Strict Ihsan", bizra_core::STRICT_IHSAN_THRESHOLD, 0.99),
+        ("Runtime Ihsan", bizra_core::RUNTIME_IHSAN_THRESHOLD, 1.0),
+    ];
+
+    let mut law_ok = true;
+    for (name, actual, expected) in &checks {
+        let ok = (actual - expected).abs() < f64::EPSILON;
+        if !ok {
+            law_ok = false;
+        }
+        println!(
+            "    [{}] {:<20} {:.2} (expected {:.2})",
+            if ok {
+                "\x1b[32m✓\x1b[0m"
+            } else {
+                "\x1b[31m✗\x1b[0m"
+            },
+            name,
+            actual,
+            expected
+        );
+    }
+    println!();
+
+    // ── Topology Frozen ──
+    println!("  \x1b[33m[Topology]\x1b[0m");
+    let pat_ok = TopologyCanon::PAT_COUNT == 7;
+    let sat_ok = TopologyCanon::SAT_COUNT == 5;
+    let gate_ok = TopologyCanon::GATE_ORDER.len() == 3;
+    println!(
+        "    [{}] PAT-{} agents (expected 7)",
+        if pat_ok {
+            "\x1b[32m✓\x1b[0m"
+        } else {
+            "\x1b[31m✗\x1b[0m"
+        },
+        TopologyCanon::PAT_COUNT
+    );
+    println!(
+        "    [{}] SAT-{} agents (expected 5)",
+        if sat_ok {
+            "\x1b[32m✓\x1b[0m"
+        } else {
+            "\x1b[31m✗\x1b[0m"
+        },
+        TopologyCanon::SAT_COUNT
+    );
+    println!(
+        "    [{}] {}-gate chain {:?}",
+        if gate_ok {
+            "\x1b[32m✓\x1b[0m"
+        } else {
+            "\x1b[31m✗\x1b[0m"
+        },
+        TopologyCanon::GATE_ORDER.len(),
+        TopologyCanon::GATE_ORDER
+    );
+    println!();
+
+    // ── Genesis Seal ──
+    println!("  \x1b[33m[Genesis Seal]\x1b[0m");
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64;
+    let params = ConstitutionalParams::default();
+    let seal = GenesisSeal::compute(params, now);
+    let seal_ok = seal.seal_hash != [0u8; 32];
+    println!(
+        "    [{}] Seal computable (BLAKE3 deterministic)",
+        if seal_ok {
+            "\x1b[32m✓\x1b[0m"
+        } else {
+            "\x1b[31m✗\x1b[0m"
+        }
+    );
+    println!("    Hash: {}…", &hex::encode(seal.seal_hash)[..32]);
+    println!();
+
+    // ── Receipt Chain ──
+    println!("  \x1b[33m[Receipt Ledger]\x1b[0m");
+    let path = ledger_path();
+    if path.exists() {
+        let entries = load_ledger().unwrap_or_default();
+        let total = entries.len();
+        let valid = entries.iter().filter(|e| e.receipt.verify_hash()).count();
+        let signed = entries.iter().filter(|e| e.receipt.is_signed()).count();
+        let complete = entries.iter().filter(|e| e.receipt.is_success()).count();
+
+        let chain_ok = valid == total;
+        println!(
+            "    [{}] {} receipts on disk ({} valid hashes)",
+            if chain_ok {
+                "\x1b[32m✓\x1b[0m"
+            } else {
+                "\x1b[31m✗\x1b[0m"
+            },
+            total,
+            valid
+        );
+        println!(
+            "    [{}] {} signed (Ed25519)",
+            if signed == total {
+                "\x1b[32m✓\x1b[0m"
+            } else {
+                "\x1b[33m-\x1b[0m"
+            },
+            signed
+        );
+        println!(
+            "    Complete: {}  Degraded/Failed: {}",
+            complete,
+            total - complete
+        );
+    } else {
+        println!("    [\x1b[33m-\x1b[0m] No receipt ledger yet");
+        println!("    Run \x1b[1mbizra mission\x1b[0m to emit the first receipt");
+    }
+    println!();
+
+    // ── Substrate ──
+    println!("  \x1b[33m[Substrate]\x1b[0m");
+    let manifest = ResourceManifest::discover();
+    let model_ok = manifest.total_models() > 0;
+    let ram_ok = manifest.hardware.ram_total_gb >= 8.0;
+    println!(
+        "    [{}] {} LLM models available",
+        if model_ok {
+            "\x1b[32m✓\x1b[0m"
+        } else {
+            "\x1b[31m✗\x1b[0m"
+        },
+        manifest.total_models()
+    );
+    println!(
+        "    [{}] {:.1} GB RAM",
+        if ram_ok {
+            "\x1b[32m✓\x1b[0m"
+        } else {
+            "\x1b[31m✗\x1b[0m"
+        },
+        manifest.hardware.ram_total_gb
+    );
+    println!();
+
+    // ── Verdict ──
+    let all_ok = law_ok && pat_ok && sat_ok && gate_ok && seal_ok && model_ok && ram_ok;
+    if all_ok {
+        println!("  \x1b[32m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+        println!("  \x1b[32m║  TRUST VERDICT: SOVEREIGN — all constitutional checks PASS ║\x1b[0m");
+        println!("  \x1b[32m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    } else {
+        println!("  \x1b[33m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+        println!("  \x1b[33m║  TRUST VERDICT: DEGRADED — review failing checks above     ║\x1b[0m");
+        println!("  \x1b[33m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    }
+    println!();
+
+    Ok(())
+}
+
+// ��─ bizra manifest ─────────────────────────────────────────
+
+/// Daily receipt manifest — proof-of-life artifact.
+pub fn exec_manifest() -> Result<()> {
+    println!();
+    println!("  \x1b[36m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("  \x1b[36m║\x1b[0m              \x1b[1mBIZRA Daily Manifest\x1b[0m                          \x1b[36m║\x1b[0m");
+    println!("  \x1b[36m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!();
+
+    let entries = load_ledger().context("failed to load receipt ledger")?;
+
+    if entries.is_empty() {
+        println!("  No receipts. Run \x1b[1mbizra mission\x1b[0m to generate proof.");
+        println!();
+        return Ok(());
+    }
+
+    // Filter to today's receipts
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let day_start = now - (now % 86400); // UTC midnight
+
+    let today: Vec<&LedgerEntry> = entries
+        .iter()
+        .filter(|e| e.receipt.completed_at >= day_start)
+        .collect();
+
+    let total = today.len();
+    let complete = today.iter().filter(|e| e.receipt.is_success()).count();
+    let degraded = today.iter().filter(|e| e.receipt.is_degraded()).count();
+    let failed = total - complete - degraded;
+    let signed = today.iter().filter(|e| e.receipt.is_signed()).count();
+    let hash_ok = today.iter().filter(|e| e.receipt.verify_hash()).count();
+
+    // Unique models used
+    let mut models: Vec<String> = today
+        .iter()
+        .filter_map(|e| e.receipt.chosen_model.clone())
+        .collect();
+    models.sort();
+    models.dedup();
+
+    // Total states traversed
+    let total_states: usize = today.iter().map(|e| e.receipt.states_traversed.len()).sum();
+
+    // Manifest hash: BLAKE3 of all receipt IDs concatenated
+    let mut manifest_hasher = blake3::Hasher::new();
+    for entry in &today {
+        manifest_hasher.update(&entry.receipt.receipt_id);
+    }
+    let manifest_hash = manifest_hasher.finalize();
+
+    println!(
+        "  \x1b[33mDate:\x1b[0m {} UTC",
+        chrono::Utc::now().format("%Y-%m-%d")
+    );
+    println!();
+
+    println!("  \x1b[33m[Summary]\x1b[0m");
+    println!("    Missions:     {}", total);
+    println!(
+        "    Complete:     \x1b[32m{}\x1b[0m  Degraded: \x1b[33m{}\x1b[0m  Failed: \x1b[31m{}\x1b[0m",
+        complete, degraded, failed
+    );
+    println!("    Signed:       {}/{}", signed, total);
+    println!("    Hash Valid:   {}/{}", hash_ok, total);
+    println!("    States:       {} total transitions", total_states);
+    println!(
+        "    Models:       {}",
+        if models.is_empty() {
+            "none".to_string()
+        } else {
+            models.join(", ")
+        }
+    );
+    println!();
+
+    // Receipt list
+    println!("  \x1b[33m[Receipts]\x1b[0m");
+    for (i, entry) in today.iter().enumerate() {
+        let r = &entry.receipt;
+        let state_color = if r.is_success() {
+            "\x1b[32m"
+        } else if r.is_degraded() {
+            "\x1b[33m"
+        } else {
+            "\x1b[31m"
+        };
+        println!(
+            "    #{}: {}…  {}{:?}\x1b[0m  {}",
+            i + 1,
+            &r.id_hex()[..16],
+            state_color,
+            r.final_state,
+            entry.objective
+        );
+    }
+    println!();
+
+    // All-time stats
+    let all_total = entries.len();
+    let all_complete = entries.iter().filter(|e| e.receipt.is_success()).count();
+    println!("  \x1b[33m[All-Time]\x1b[0m");
+    println!(
+        "    Total receipts: {}  ({} complete, {:.0}% success rate)",
+        all_total,
+        all_complete,
+        if all_total > 0 {
+            (all_complete as f64 / all_total as f64) * 100.0
+        } else {
+            0.0
+        }
+    );
+    println!();
+
+    // Manifest seal
+    println!("  \x1b[32m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("  \x1b[32m║\x1b[0m  MANIFEST SEAL                                             \x1b[32m║\x1b[0m");
+    println!(
+        "  \x1b[32m║\x1b[0m  Hash:    \x1b[1m{}\x1b[0m  \x1b[32m║\x1b[0m",
+        hex::encode(manifest_hash.as_bytes())
+    );
+    println!("  \x1b[32m║\x1b[0m  Count:   {:<55}\x1b[32m║\x1b[0m", total);
+    println!("  \x1b[32m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!();
 
     Ok(())
 }

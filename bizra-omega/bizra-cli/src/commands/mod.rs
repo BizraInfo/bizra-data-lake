@@ -56,12 +56,18 @@ pub enum Commands {
         objective: String,
     },
 
-    /// View and verify the last mission receipt
+    /// View and verify the last mission receipt (from disk ledger)
     Receipt {
-        /// Verify BLAKE3 hash integrity
+        /// Verify BLAKE3 hash + Ed25519 signature + chain integrity
         #[arg(short = 'k', long)]
         verify: bool,
     },
+
+    /// Show constitutional trust surface — verify all invariants
+    Trust,
+
+    /// Show daily receipt manifest — proof-of-life artifact
+    Manifest,
 
     /// Interact with PAT agents
     #[command(subcommand)]

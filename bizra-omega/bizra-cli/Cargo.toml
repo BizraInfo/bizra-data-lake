@@ -42,6 +42,9 @@ bizra-core = { path = "../bizra-core" }
 # BIZRA Node — Substrate discovery, identity registry, node state
 bizra-node = { path = "../bizra-node" }
 
+# BIZRA Mission — Receipt type for ledger serialization
+bizra-mission = { path = "../bizra-mission" }
+
 # Cryptographic signing
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 rand = "0.8"

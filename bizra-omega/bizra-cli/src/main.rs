@@ -79,6 +79,8 @@ fn main() -> Result<()> {
         Some(Commands::Node { watch }) => commands::genesis_spine::exec_node(watch),
         Some(Commands::Mission { objective }) => commands::genesis_spine::exec_mission(&objective),
         Some(Commands::Receipt { verify }) => commands::genesis_spine::exec_receipt(verify),
+        Some(Commands::Trust) => commands::genesis_spine::exec_trust(),
+        Some(Commands::Manifest) => commands::genesis_spine::exec_manifest(),
 
         Some(Commands::Agent(cmd)) => match cmd {
             AgentCommands::List => commands::exec_agent_list(),
