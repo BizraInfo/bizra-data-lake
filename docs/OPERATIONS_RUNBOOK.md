@@ -1,8 +1,21 @@
 # BIZRA Operations Runbook
 
-Last updated: 2026-04-03
+Last updated: 2026-04-05
 
 This runbook is the operator-focused guide for starting, validating, and troubleshooting BIZRA services.
+
+## SEED Economic Settlement (Phase 91)
+
+Every governed mission now settles SEED tokens via `bizra-node/src/seed_ledger.rs`. The settlement runs synchronously after `execute_governed_mission()` in the handler. Key constants:
+
+| Parameter | Value | Source |
+|-----------|-------|--------|
+| Zakat rate | 2.5% at mint | `ZAKAT_RATE` in seed_ledger.rs |
+| Ihsan floor | 0.95 minimum | `IHSAN_FLOOR` in seed_ledger.rs |
+| Adl Gini max | 0.35 hard gate | `ADL_GINI_MAX` (enforced at URP level) |
+| Emission decay | TTRL-style (cache efficiency) | `compute_emission_decay()` |
+
+API token verification now uses constant-time comparison (`bizra-api/src/middleware/auth.rs`).
 
 ## Unified Stack Orchestration (Phase 89)
 
