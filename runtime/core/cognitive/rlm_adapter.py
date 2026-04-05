@@ -275,7 +275,7 @@ class BizraRLMAdapter:
                 backend_kwargs={
                     "model_name": model_name,
                     "base_url": base_url,
-                    "api_key": "lmstudio-local",  # Dummy key for local servers
+                    "api_key": os.environ.get("LM_API_TOKEN", "not-needed"),  # Local servers
                 },
                 environment="local",
                 max_iterations=self.config.max_iterations,

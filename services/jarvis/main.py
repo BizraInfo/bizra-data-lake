@@ -67,16 +67,15 @@ class Settings(BaseSettings):
     environment: str = "production"
     host: str = "0.0.0.0"
     port: int = 8080
-    jwt_secret: str = Field(default="dev-secret-change-in-prod", env="JWT_SECRET")
+    jwt_secret: str = Field(
+        default="", env="JWT_SECRET"
+    )  # SEC-002: must be set via env
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if (
-            self.environment == "production"
-            and self.jwt_secret == "dev-secret-change-in-prod"
-        ):
+        if self.environment == "production" and not self.jwt_secret:
             raise ValueError(
-                "JWT_SECRET must be set in production — do not use the default"
+                "JWT_SECRET must be set via environment variable in production"
             )
 
     jwt_algorithm: str = "HS256"
