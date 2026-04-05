@@ -86,7 +86,11 @@ impl SeedLedger {
     /// so post-mint Gini is always 0.0 for a single-node ledger. The Gini gate
     /// becomes meaningful when the settlement propagates to the ResourcePool (URP)
     /// via federation. At that point, the URP's `check_adl()` enforces the hard gate.
-    pub fn settle(&mut self, receipt: &MissionReceipt, was_cache_hit: bool) -> Option<SettlementResult> {
+    pub fn settle(
+        &mut self,
+        receipt: &MissionReceipt,
+        was_cache_hit: bool,
+    ) -> Option<SettlementResult> {
         // Gate 1: Only successful missions earn SEED
         if !receipt.is_success() {
             return None;
@@ -187,13 +191,17 @@ mod tests {
 
         // Walk through the constitutional state machine
         m.transition(MissionState::Queued, t + 1, "test").unwrap();
-        m.transition(MissionState::WarmingRetrieval, t + 2, "test").unwrap();
-        m.transition(MissionState::WarmingModel, t + 3, "test").unwrap();
-        m.transition(MissionState::Retrieving, t + 4, "test").unwrap();
+        m.transition(MissionState::WarmingRetrieval, t + 2, "test")
+            .unwrap();
+        m.transition(MissionState::WarmingModel, t + 3, "test")
+            .unwrap();
+        m.transition(MissionState::Retrieving, t + 4, "test")
+            .unwrap();
         m.transition(MissionState::Routing, t + 5, "test").unwrap();
         m.transition(MissionState::Running, t + 6, "test").unwrap();
         m.transition(MissionState::Scoring, t + 7, "test").unwrap();
-        m.transition(MissionState::Persisting, t + 8, "test").unwrap();
+        m.transition(MissionState::Persisting, t + 8, "test")
+            .unwrap();
 
         if success {
             m.complete(t + 9).unwrap();
@@ -203,13 +211,17 @@ mod tests {
             let mut m2 = Mission::new(content_hash, t);
             m2.ihsan_score = Some(ihsan);
             m2.transition(MissionState::Queued, t + 1, "test").unwrap();
-            m2.transition(MissionState::WarmingRetrieval, t + 2, "test").unwrap();
-            m2.transition(MissionState::WarmingModel, t + 3, "test").unwrap();
-            m2.transition(MissionState::Retrieving, t + 4, "test").unwrap();
+            m2.transition(MissionState::WarmingRetrieval, t + 2, "test")
+                .unwrap();
+            m2.transition(MissionState::WarmingModel, t + 3, "test")
+                .unwrap();
+            m2.transition(MissionState::Retrieving, t + 4, "test")
+                .unwrap();
             m2.transition(MissionState::Routing, t + 5, "test").unwrap();
             m2.transition(MissionState::Running, t + 6, "test").unwrap();
             m2.transition(MissionState::Scoring, t + 7, "test").unwrap();
-            m2.degrade(vec![DegradationReason::GuardianVeto], t + 8).unwrap();
+            m2.degrade(vec![DegradationReason::GuardianVeto], t + 8)
+                .unwrap();
             return m2.receipt.unwrap();
         }
 
