@@ -583,6 +583,50 @@ mod tests {
         assert_eq!(default.policy, GatePolicy::Observe);
     }
 
+    /// Wire 2 regression: BIZRA_ENV=prod → GateConfig::default() selects Reject policy.
+    /// Without env override, default selects Observe (development mode).
+    /// This proves the fail-closed membrane activates in production.
+    #[test]
+    fn test_env_gate_default_is_observe_without_prod_env() {
+        // Clear any stale env to ensure we test the "no BIZRA_ENV" path
+        std::env::remove_var("BIZRA_ENV");
+        let config = GateConfig::default();
+        assert_eq!(
+            config.policy,
+            GatePolicy::Observe,
+            "Without BIZRA_ENV=prod, default should be Observe (development)"
+        );
+    }
+
+    /// Wire 2 regression: BIZRA_ENV=prod activates fail-closed Reject policy.
+    #[test]
+    fn test_env_gate_prod_selects_reject() {
+        std::env::set_var("BIZRA_ENV", "prod");
+        let config = GateConfig::default();
+        // Restore immediately to avoid poisoning other tests
+        std::env::remove_var("BIZRA_ENV");
+
+        assert_eq!(
+            config.policy,
+            GatePolicy::Reject,
+            "BIZRA_ENV=prod must select Reject (fail-closed)"
+        );
+    }
+
+    /// Wire 2 regression: BIZRA_ENV=production (long form) also activates Reject.
+    #[test]
+    fn test_env_gate_production_long_form_selects_reject() {
+        std::env::set_var("BIZRA_ENV", "production");
+        let config = GateConfig::default();
+        std::env::remove_var("BIZRA_ENV");
+
+        assert_eq!(
+            config.policy,
+            GatePolicy::Reject,
+            "BIZRA_ENV=production must also select Reject"
+        );
+    }
+
     #[test]
     fn stability_tracking() {
         let mut gate = IhsanGate::new();

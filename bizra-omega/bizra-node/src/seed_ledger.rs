@@ -318,4 +318,37 @@ mod tests {
         assert!(result.gini_passed);
         assert_eq!(result.post_gini, Some(0.0));
     }
+
+    /// Wire 1 regression: System1 (cache hit) yields lower emission than System2 (cache miss).
+    /// This proves the N=1 flywheel: learned patterns earn less SEED, incentivizing exploration.
+    #[test]
+    fn test_system1_cache_hit_decays_emission_vs_system2() {
+        // Ledger A: 20 consecutive cache hits (System1 reflex path)
+        let mut ledger_s1 = SeedLedger::new(1.0);
+        for _ in 0..20 {
+            ledger_s1.settle(&mock_receipt(0.96, true), true); // was_cache_hit = true
+        }
+        let r_s1 = ledger_s1
+            .settle(&mock_receipt(0.96, true), true)
+            .unwrap();
+
+        // Ledger B: 20 consecutive cache misses (System2 full inference path)
+        let mut ledger_s2 = SeedLedger::new(1.0);
+        for _ in 0..20 {
+            ledger_s2.settle(&mock_receipt(0.96, true), false); // was_cache_hit = false
+        }
+        let r_s2 = ledger_s2
+            .settle(&mock_receipt(0.96, true), false)
+            .unwrap();
+
+        // System1 path should have lower emission (node has "learned")
+        assert!(
+            r_s1.emission_multiplier < r_s2.emission_multiplier,
+            "System1 emission {} should be < System2 emission {}",
+            r_s1.emission_multiplier,
+            r_s2.emission_multiplier
+        );
+        // System1 should earn less SEED per mission
+        assert!(r_s1.seed_net < r_s2.seed_net);
+    }
 }
