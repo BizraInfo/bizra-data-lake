@@ -175,6 +175,9 @@ pub struct OmniKernel {
     engram_cache: EngramCache,
     ttrl_engine: TtrlEngine,
     metabolic_ledger: MetabolicLedger,
+    /// Wire 3: Autopoietic pattern memory — learns from past cycles.
+    /// Not yet wired into the recall path (Wire 4) or maturation (Wire 5).
+    pattern_memory: bizra_autopoiesis::PatternMemory,
 }
 
 impl OmniKernel {
@@ -183,10 +186,12 @@ impl OmniKernel {
         let sso = SpectralSphereConstraint::new(config.sso_epsilon);
         let mut reflex_cache = ReflexCache::new(2048);
         reflex_cache.load_bootstrap_rules();
+        let node_id = bizra_core::NodeId("omni-kernel-default".into());
         Self {
             metabolic_ledger: MetabolicLedger::new(config.base_seed_per_action),
             engram_cache: EngramCache::new(),
             ttrl_engine: TtrlEngine::new(sso),
+            pattern_memory: bizra_autopoiesis::PatternMemory::in_memory(node_id),
             reflex_mode: ReflexMode::Active,
             policy_hash: BOOTSTRAP_POLICY_HASH,
             reflex_cache,
@@ -491,6 +496,16 @@ impl OmniKernel {
         &self.metabolic_ledger.stats
     }
 
+    /// Wire 3: Read-only access to pattern memory.
+    pub fn pattern_memory(&self) -> &bizra_autopoiesis::PatternMemory {
+        &self.pattern_memory
+    }
+
+    /// Wire 3: Mutable access to pattern memory for learning.
+    pub fn pattern_memory_mut(&mut self) -> &mut bizra_autopoiesis::PatternMemory {
+        &mut self.pattern_memory
+    }
+
     pub fn ttrl_stats(&self) -> &bizra_ttrl::ttrl_engine::TtrlStats {
         &self.ttrl_engine.stats
     }
@@ -626,5 +641,33 @@ mod tests {
         }
         // After 10 cache misses, hit_rate ≈ 0 → emission multiplier ≈ 1.0
         assert!(k.metabolic_stats().avg_multiplier > 0.9);
+    }
+
+    // ── Wire 3: PatternMemory availability ───────────────────
+    #[test]
+    fn test_pattern_memory_accessible_and_functional() {
+        let mut k = make_kernel();
+
+        // Starts empty
+        assert_eq!(k.pattern_memory().count(), 0);
+
+        // Learn a pattern through the kernel accessor
+        let embedding = vec![0.1_f32, 0.2, 0.3, 0.4];
+        let id = k
+            .pattern_memory_mut()
+            .learn(
+                "test pattern: sovereignty first".into(),
+                embedding,
+                vec!["wire3".into(), "test".into()],
+            )
+            .expect("learn should succeed");
+
+        assert!(!id.is_empty(), "learn should return a non-empty pattern id");
+        assert_eq!(k.pattern_memory().count(), 1);
+
+        // Recall is reachable (Wire 4 will wire this into the cycle path)
+        let results = k.pattern_memory().recall(&[0.1, 0.2, 0.3, 0.4], 5);
+        assert_eq!(results.len(), 1);
+        assert!(results[0].content.contains("sovereignty"));
     }
 }

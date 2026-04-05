@@ -16,6 +16,8 @@ bizra-memory   = { path = "../bizra-memory"   }
 bizra-telescript = { path = "../bizra-telescript" }
 bizra-action   = { path = "../bizra-action"   }
 bizra-ttrl     = { path = "../bizra-ttrl"     }
+bizra-autopoiesis = { path = "../bizra-autopoiesis" }
+bizra-core     = { path = "../bizra-core"     }
 blake3      = { workspace = true }
 serde       = { workspace = true }
 serde_json  = { workspace = true }
