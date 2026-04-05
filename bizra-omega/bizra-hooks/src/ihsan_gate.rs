@@ -94,9 +94,16 @@ impl GateConfig {
 
 impl Default for GateConfig {
     fn default() -> Self {
-        // Default is development mode for backward compatibility.
-        // Production deployments MUST use GateConfig::production().
-        Self::development()
+        // BIZRA_ENV=prod → fail-closed (Reject). Otherwise → development (Observe).
+        // Standing on Giants: Al-Ghazali — Ihsan is not optional in production.
+        let is_prod = std::env::var("BIZRA_ENV")
+            .map(|v| v == "prod" || v == "production")
+            .unwrap_or(false);
+        if is_prod {
+            Self::production()
+        } else {
+            Self::development()
+        }
     }
 }
 

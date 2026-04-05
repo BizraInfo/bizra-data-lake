@@ -305,8 +305,14 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
     );
 
     // ── SEED Settlement: mint tokens for successful missions ──
-    // was_cache_hit: false for now — real signal comes from OmniKernel tier routing
-    let _settlement = state.seed_ledger.settle(&mission_result.receipt, false);
+    // System1 (reflex hit) → cache_hit=true → emission decays (node is trained)
+    // System2 (full inference) → cache_hit=false → full emission (node is learning)
+    let was_cache_hit = mission_result
+        .runtime_response
+        .as_ref()
+        .map(|r| matches!(r.decision_mode, bizra_agent::CognitiveMode::System1))
+        .unwrap_or(false);
+    let _settlement = state.seed_ledger.settle(&mission_result.receipt, was_cache_hit);
 
     // Extract runtime response (may be None if preflight failed)
     let result = mission_result.runtime_response.as_ref();
@@ -753,7 +759,12 @@ fn handle_mission_receive(
     );
 
     // ── SEED Settlement: mint tokens for successful governed missions ──
-    let _settlement = state.seed_ledger.settle(&result.receipt, false);
+    let was_cache_hit = result
+        .runtime_response
+        .as_ref()
+        .map(|r| matches!(r.decision_mode, bizra_agent::CognitiveMode::System1))
+        .unwrap_or(false);
+    let _settlement = state.seed_ledger.settle(&result.receipt, was_cache_hit);
 
     // Update the chain — next mission links to this receipt
     *state.last_receipt_id = Some(result.receipt.receipt_id);
