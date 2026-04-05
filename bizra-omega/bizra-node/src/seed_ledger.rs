@@ -328,18 +328,14 @@ mod tests {
         for _ in 0..20 {
             ledger_s1.settle(&mock_receipt(0.96, true), true); // was_cache_hit = true
         }
-        let r_s1 = ledger_s1
-            .settle(&mock_receipt(0.96, true), true)
-            .unwrap();
+        let r_s1 = ledger_s1.settle(&mock_receipt(0.96, true), true).unwrap();
 
         // Ledger B: 20 consecutive cache misses (System2 full inference path)
         let mut ledger_s2 = SeedLedger::new(1.0);
         for _ in 0..20 {
             ledger_s2.settle(&mock_receipt(0.96, true), false); // was_cache_hit = false
         }
-        let r_s2 = ledger_s2
-            .settle(&mock_receipt(0.96, true), false)
-            .unwrap();
+        let r_s2 = ledger_s2.settle(&mock_receipt(0.96, true), false).unwrap();
 
         // System1 path should have lower emission (node has "learned")
         assert!(

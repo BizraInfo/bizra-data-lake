@@ -312,7 +312,9 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
         .as_ref()
         .map(|r| matches!(r.decision_mode, bizra_agent::CognitiveMode::System1))
         .unwrap_or(false);
-    let _settlement = state.seed_ledger.settle(&mission_result.receipt, was_cache_hit);
+    let _settlement = state
+        .seed_ledger
+        .settle(&mission_result.receipt, was_cache_hit);
 
     // Extract runtime response (may be None if preflight failed)
     let result = mission_result.runtime_response.as_ref();
