@@ -26,7 +26,10 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    ZAKAT_RATE as _ZAKAT_RATE,
+)
 
 # =============================================================================
 # CONSTANTS (from genesis.json token_system)
@@ -50,7 +53,7 @@ FOUNDER_GENESIS_ALLOCATION = 100_000
 SYSTEM_TREASURY_ALLOCATION = 50_000
 
 # Computational Zakat — 2.5% of all mints go to community fund
-ZAKAT_RATE = 0.025
+ZAKAT_RATE = _ZAKAT_RATE
 
 # Minimum Ihsan score for token operations
 IHSAN_THRESHOLD = UNIFIED_IHSAN_THRESHOLD

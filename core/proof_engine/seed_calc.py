@@ -19,10 +19,10 @@ Constitutional gates:
 
 import math
 
-# Constitutional constants (from core/integration/constants.py)
-IHSAN_FLOOR = 0.95
+from core.integration.constants import IHSAN_THRESHOLD, ZAKAT_RATE
+
+# Local constants
 SEED_PER_IMPACT_UNIT = 10  # Base SEED per unit of proven impact
-ZAKAT_RATE = 0.025  # 2.5% deducted at earn time
 
 
 def calculate_seed_reward(
@@ -38,14 +38,14 @@ def calculate_seed_reward(
     Returns dict with: gross, zakat, net, impact, efficiency, reason
     """
     # Constitutional gates
-    if ihsan_score < IHSAN_FLOOR:
+    if ihsan_score < IHSAN_THRESHOLD:
         return {
             "gross": 0,
             "zakat": 0,
             "net": 0,
             "impact": 0.0,
             "efficiency": 0.0,
-            "reason": f"Ihsan {ihsan_score:.3f} < {IHSAN_FLOOR} floor",
+            "reason": f"Ihsan {ihsan_score:.3f} < {IHSAN_THRESHOLD} floor",
         }
 
     if not signed:

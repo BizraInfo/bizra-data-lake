@@ -19,9 +19,9 @@ import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 
-# Constitutional constants — must match Rust (bizra-core/src/lib.rs)
-IHSAN_THRESHOLD: float = 0.95
-SNR_THRESHOLD: float = 0.85
+# Constitutional constants — single source of truth
+from core.integration.constants import IHSAN_THRESHOLD, SNR_THRESHOLD
+
 SKELETON_DOMAIN: bytes = b"bizra-walking-skeleton-v1:"
 AUTOPOIESIS_DOMAIN: bytes = b"bizra-autopoiesis-v1:"
 CANONICAL_DOMAIN: bytes = b"bizra-canonical-v1:"

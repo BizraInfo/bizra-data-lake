@@ -17,14 +17,11 @@ Standing on Giants: Ostrom (commons governance), Al-Ghazali (إحسان ethics)
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 logger = logging.getLogger("bizra.token.bloom")
 
@@ -33,12 +30,13 @@ logger = logging.getLogger("bizra.token.bloom")
 # CONSTANTS (from core/integration/constants.py)
 # ═══════════════════════════════════════════════════════════════════
 
-TOKEN_ZAKAT_RATE = 0.025  # 2.5% annual Zakat
+from core.integration.constants import ADL_GINI_THRESHOLD, IHSAN_THRESHOLD, ZAKAT_RATE
+
+TOKEN_ZAKAT_RATE = ZAKAT_RATE  # Alias for local usage
 COMMUNITY_POOL_SPLIT = 0.50  # 50% — البذرة page 19, HARDCODED, NOT A PARAMETER
 BLOOM_DECAY_RATE = 0.02  # 2% monthly decay (prevents plutocracy)
 BLOOM_MINT_FLOOR = 0.90  # Minimum Ihsān for BLOOM eligibility
-SEED_MINT_FLOOR = 0.95  # Minimum Ihsān for SEED minting
-ADL_GINI_THRESHOLD = 0.35  # Justice invariant
+SEED_MINT_FLOOR = IHSAN_THRESHOLD  # Minimum Ihsān for SEED minting
 
 
 class TokenType(str, Enum):

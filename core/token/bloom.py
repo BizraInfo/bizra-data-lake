@@ -30,13 +30,13 @@ logger = logging.getLogger("bizra.token.bloom")
 # CONSTANTS — ADL_GINI from SSOT, token-specific constants local
 # ═══════════════════════════════════════════════════════════════════
 
-from core.integration.constants import ADL_GINI_THRESHOLD
+from core.integration.constants import ADL_GINI_THRESHOLD, IHSAN_THRESHOLD, ZAKAT_RATE
 
-TOKEN_ZAKAT_RATE = 0.025  # 2.5% annual Zakat
+TOKEN_ZAKAT_RATE = ZAKAT_RATE  # 2.5% annual Zakat — derived from SSOT
 COMMUNITY_POOL_SPLIT = 0.50  # 50% — البذرة page 19, HARDCODED, NOT A PARAMETER
 BLOOM_DECAY_RATE = 0.02  # 2% monthly decay (prevents plutocracy)
 BLOOM_MINT_FLOOR = 0.90  # Minimum Ihsān for BLOOM eligibility
-SEED_MINT_FLOOR = 0.95  # Minimum Ihsān for SEED minting
+SEED_MINT_FLOOR = IHSAN_THRESHOLD  # Minimum Ihsān for SEED minting — derived from SSOT
 
 
 class TokenType(str, Enum):
