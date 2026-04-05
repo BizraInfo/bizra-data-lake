@@ -28,6 +28,7 @@ pub mod mission_bridge;
 pub mod node;
 pub mod persistence;
 pub mod protocol;
+pub mod seed_ledger;
 pub mod substrate;
 
 // Legacy alias — code referencing resource_manifest gets the new substrate module

@@ -142,6 +142,11 @@ pub struct Node {
     /// Receipts are only valid if signed by a registered, active agent.
     /// Genesis review P0: "no claim without identity-bound proof."
     identity_registry: crate::identity_registry::IdentityRegistry,
+    // ── Phase 91: SEED Economics ──────────────────────────────────────────────
+    /// SEED ledger — tracks economic settlement for governed missions.
+    /// Every successful mission that passes Ihsan floor earns SEED tokens.
+    /// Standing on: Nakamoto (PoW→PoI), Al-Ghazali (Ihsan gate), TTRL (emission decay).
+    seed_ledger: crate::seed_ledger::SeedLedger,
     // ── Sprint 4: Federation ────────────────────────────────────────────────
     /// Federation node — gossip, consensus, peer discovery.
     /// NODE0 is the bootstrap seed. Other nodes connect via gossip_addr.
@@ -179,6 +184,7 @@ impl Node {
             last_synthesis_ms: 0,
             event_bridge: crate::heartbeat::EventBridge::default(),
             experience_ledger: bizra_core::ExperienceLedger::new(),
+            seed_ledger: crate::seed_ledger::SeedLedger::new(1.0),
             identity_registry: {
                 let mut reg = crate::identity_registry::IdentityRegistry::new();
                 reg.mint_genesis_agents(); // 12 founding agents with Ed25519 keys
@@ -310,6 +316,7 @@ impl Node {
                 last_receipt_id: &mut self.last_receipt_id,
                 signing_key: self.identity_registry.node_signing_key(),
                 experience_ledger: &mut self.experience_ledger,
+                seed_ledger: &mut self.seed_ledger,
             };
             handler::handle(cmd, &mut internals)
         };
@@ -359,6 +366,7 @@ impl Node {
                 last_receipt_id: &mut self.last_receipt_id,
                 signing_key: self.identity_registry.node_signing_key(),
                 experience_ledger: &mut self.experience_ledger,
+                seed_ledger: &mut self.seed_ledger,
             };
             handler::handle(cmd, &mut internals)
         };
