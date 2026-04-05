@@ -7,9 +7,10 @@
 //
 //   EVENT BUS  →  HHMM cortex (intent)
 //              →  Chain of Reasoning (decision pivots)
-//              →  Tier-1 Reflex Cache   (O(1) system hit)
-//              →  Tier-2 Engram Cache   (O(1) model fact hit)
-//              →  PAT Agents            (GPU inference, miss path)
+//              →  Tier-1  Reflex Cache    (O(1) system hit)
+//              →  Tier-1b Pattern Recall  (cosine similarity, Wire 4)
+//              →  Tier-2  Engram Cache    (O(1) model fact hit)
+//              →  PAT Agents              (GPU inference, miss path)
 //              →  ConstitutionalGate    (İhsān ≥ 0.95)
 //              →  SSO stability check   (after TTRL update)
 //              →  Receipt Chain append
@@ -120,6 +121,8 @@ impl OmniCycle {
 pub enum CyclePath {
     /// Tier-1 Reflex Cache hit — compiled rule executed, no inference.
     ReflexHit,
+    /// Tier-1b Pattern Recall hit — learned pattern matched (Wire 4).
+    PatternHit,
     /// Tier-2 Engram hit — factual lookup, no GPU inference.
     EngramHit,
     /// Tier-3 full PAT inference — cache miss, GPU involved.
@@ -159,6 +162,15 @@ pub struct CacheHitResult {
     pub response: String,
 }
 
+// ─── Wire 4 helper ───────────────────────────────────────────────────────────
+
+/// Convert BLAKE3 intent hash to a pseudo-embedding for pattern recall.
+/// Each byte maps to \[0.0, 1.0\] — a 32-dimensional content-addressed vector.
+/// When a real encoder is wired, callers will supply actual embeddings.
+fn intent_to_embedding(intent_bytes: &[u8]) -> Vec<f32> {
+    intent_bytes.iter().map(|&b| b as f32 / 255.0).collect()
+}
+
 // ─── The Omni-Kernel ─────────────────────────────────────────────────────────
 
 /// The BIZRA Ghost Reign Omni-Kernel.
@@ -175,8 +187,8 @@ pub struct OmniKernel {
     engram_cache: EngramCache,
     ttrl_engine: TtrlEngine,
     metabolic_ledger: MetabolicLedger,
-    /// Wire 3: Autopoietic pattern memory — learns from past cycles.
-    /// Not yet wired into the recall path (Wire 4) or maturation (Wire 5).
+    /// Wire 3+4: Autopoietic pattern memory — learns from past cycles.
+    /// Recall path wired into Tier-1b (Wire 4). Maturation is Wire 5.
     pattern_memory: bizra_autopoiesis::PatternMemory,
 }
 
@@ -282,6 +294,24 @@ impl OmniKernel {
                 poi_yield: Some(poi),
                 ttrl_queued: false,
                 response: rule.action_template.route_signature.clone(),
+            };
+        }
+
+        // ─── Line 2a: Tier-1b Pattern Recall (Wire 4) ─────────────────────────
+        let embedding = intent_to_embedding(&cycle.intent_bytes);
+        if let Some(pattern) = self.pattern_memory.recall(&embedding, 1).into_iter().next() {
+            tracing::debug!("Omni-Kernel: Tier-1b pattern recall hit");
+            let poi =
+                self.metabolic_ledger
+                    .mint_poi_yield(true, self.config.network_size, cycle.now_ms);
+            return CycleReceipt {
+                path: CyclePath::PatternHit,
+                ihsan_score,
+                pivot_chain_hash: reasoning_chain.tail_hash(),
+                gate_passed: ihsan_score >= self.config.ihsan_threshold,
+                poi_yield: Some(poi),
+                ttrl_queued: false,
+                response: pattern.content,
             };
         }
 
@@ -403,7 +433,7 @@ impl OmniKernel {
 
     // ─── Two-Phase Read/Write Split ──────────────────────────────────────────
 
-    /// Attempt a read-only cache hit (Tier-1 Reflex or Tier-2 Engram).
+    /// Attempt a read-only cache hit (Tier-1 Reflex, Tier-1b Pattern, or Tier-2 Engram).
     ///
     /// This method takes `&self`, enabling concurrent access when the kernel
     /// is wrapped in an `RwLock`. Returns `Some(CacheHitResult)` on hit,
@@ -438,6 +468,17 @@ impl OmniKernel {
             });
         }
 
+        // Line 2a: Tier-1b Pattern Recall (read-only, Wire 4)
+        let embedding = intent_to_embedding(&cycle.intent_bytes);
+        if let Some(pattern) = self.pattern_memory.recall(&embedding, 1).into_iter().next() {
+            return Some(CacheHitResult {
+                path: CyclePath::PatternHit,
+                ihsan_score: self.config.ihsan_threshold,
+                pivot_chain_hash: reasoning_chain.tail_hash(),
+                response: pattern.content,
+            });
+        }
+
         // Line 2b: Tier-2 Engram Cache (read-only)
         match self
             .engram_cache
@@ -457,16 +498,18 @@ impl OmniKernel {
     /// This requires `&mut self` because it updates the MetabolicLedger and
     /// cache telemetry counters.
     pub fn complete_cache_hit(&mut self, hit: CacheHitResult, cycle: &OmniCycle) -> CycleReceipt {
-        let is_reflex = matches!(hit.path, CyclePath::ReflexHit);
-        let poi =
-            self.metabolic_ledger
-                .mint_poi_yield(is_reflex, self.config.network_size, cycle.now_ms);
+        let is_fast_path = matches!(hit.path, CyclePath::ReflexHit | CyclePath::PatternHit);
+        let poi = self.metabolic_ledger.mint_poi_yield(
+            is_fast_path,
+            self.config.network_size,
+            cycle.now_ms,
+        );
 
         // Update mutable cache stats to keep telemetry accurate
-        if is_reflex {
-            self.reflex_cache.record_hit();
-        } else {
-            self.engram_cache.record_hit();
+        match hit.path {
+            CyclePath::ReflexHit => self.reflex_cache.record_hit(),
+            CyclePath::PatternHit => {} // PatternMemory has no hit counter yet
+            _ => self.engram_cache.record_hit(),
         }
 
         tracing::debug!(
@@ -665,9 +708,66 @@ mod tests {
         assert!(!id.is_empty(), "learn should return a non-empty pattern id");
         assert_eq!(k.pattern_memory().count(), 1);
 
-        // Recall is reachable (Wire 4 will wire this into the cycle path)
+        // Recall is reachable (Wire 4 wires this into the cycle path)
         let results = k.pattern_memory().recall(&[0.1, 0.2, 0.3, 0.4], 5);
         assert_eq!(results.len(), 1);
         assert!(results[0].content.contains("sovereignty"));
+    }
+
+    // ── Wire 4: Pattern recall in cycle path ────────────────
+    #[test]
+    fn test_pattern_recall_fires_in_run_cycle() {
+        let mut k = make_kernel();
+        let c = cycle("what is sovereignty");
+
+        // Teach a pattern using the same embedding the cycle will generate
+        let embedding = super::intent_to_embedding(&c.intent_bytes);
+        k.pattern_memory_mut()
+            .learn(
+                "sovereignty means user-owned data".into(),
+                embedding,
+                vec!["wire4".into()],
+            )
+            .unwrap();
+
+        // Run cycle — should hit Tier-1b PatternHit, NOT FullInference
+        let receipt = k.run_cycle(&c, &[], 0.97, &[], None, None);
+        assert_eq!(receipt.path, CyclePath::PatternHit);
+        assert!(receipt.gate_passed);
+        assert!(receipt.poi_yield.is_some());
+        assert!(receipt.response.contains("sovereignty"));
+    }
+
+    #[test]
+    fn test_pattern_recall_fires_in_try_cache_hit() {
+        let mut k = make_kernel();
+        let c = cycle("what is sovereignty");
+
+        let embedding = super::intent_to_embedding(&c.intent_bytes);
+        k.pattern_memory_mut()
+            .learn("sovereignty: self-rule".into(), embedding, vec![])
+            .unwrap();
+
+        // Read-only path should also find it
+        let hit = k.try_cache_hit(&c, &[]);
+        assert!(hit.is_some());
+        let hit = hit.unwrap();
+        assert_eq!(hit.path, CyclePath::PatternHit);
+        assert!(hit.response.contains("sovereignty"));
+
+        // Finalize via complete_cache_hit
+        let receipt = k.complete_cache_hit(hit, &c);
+        assert_eq!(receipt.path, CyclePath::PatternHit);
+        assert!(receipt.poi_yield.is_some());
+    }
+
+    #[test]
+    fn test_pattern_miss_falls_through_to_inference() {
+        let mut k = make_kernel();
+        let c = cycle("completely novel question");
+
+        // No patterns learned — should fall through to FullInference
+        let receipt = k.run_cycle(&c, &["answer".into()], 0.97, &[], None, None);
+        assert_eq!(receipt.path, CyclePath::FullInference);
     }
 }
