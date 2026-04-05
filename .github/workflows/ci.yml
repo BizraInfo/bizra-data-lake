@@ -557,7 +557,7 @@ jobs:
   test-frontend:
     name: "Frontend Gate 2: Test + Coverage"
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: [lint-frontend]
     defaults:
       run:

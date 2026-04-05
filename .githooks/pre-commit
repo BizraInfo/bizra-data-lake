@@ -45,8 +45,10 @@ fi
 # TypeScript: eslint (only if .ts/.tsx files staged)
 if [ -n "$STAGED_TS" ] && [ -d "frontend" ]; then
     if command -v npx &>/dev/null && [ -f "frontend/node_modules/.bin/eslint" ]; then
+        # Strip frontend/ prefix since we cd into frontend/
+        TS_REL=$(echo "$STAGED_TS" | sed 's|^frontend/||g')
         cd frontend
-        if ! npx eslint --max-warnings 0 --quiet $STAGED_TS 2>/dev/null; then
+        if ! npx eslint --max-warnings 0 --quiet --no-warn-ignored $TS_REL 2>/dev/null; then
             echo "pre-commit: ESLint failed. Run: cd frontend && npm run lint"
             FAIL=1
         fi

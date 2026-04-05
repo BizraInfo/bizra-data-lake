@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
+from core.integration.constants import ADL_GINI_THRESHOLD, UNIFIED_IHSAN_THRESHOLD
+
 try:
     import blake3
 
@@ -31,7 +33,9 @@ try:
 except ImportError:
 
     def blake3_hash(data: bytes) -> str:
-        return hashlib.sha256(b"BLAKE3_FALLBACK:" + data).hexdigest()
+        return hashlib.sha256(
+            b"BLAKE3_FALLBACK:" + data
+        ).hexdigest()  # noqa: SEC-001 — degradation fallback when blake3 unavailable
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -40,8 +44,8 @@ except ImportError:
 
 ZANN_ZERO: bool = True  # No unverified claims propagated
 RIBA_ZERO: bool = True  # No extractive economic patterns
-GINI_CEILING: float = 0.35
-IHSAN_FLOOR: float = 0.95
+GINI_CEILING: float = ADL_GINI_THRESHOLD
+IHSAN_FLOOR: float = UNIFIED_IHSAN_THRESHOLD
 
 
 # ═══════════════════════════════════════════════════════════════════
