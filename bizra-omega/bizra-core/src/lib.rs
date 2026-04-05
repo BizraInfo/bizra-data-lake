@@ -26,6 +26,8 @@ pub mod canonical;
 pub mod canonical_receipt;
 /// Constitutional governance — Ihsan thresholds, SNR rules, enforcement policies.
 pub mod constitution;
+/// Constitutional Gate Policy — unified enforcement for all threshold violations.
+pub mod gate_policy;
 /// Genesis primitives — BLAKE3 hashing, cryptographic manifests, execution receipts.
 pub mod genesis;
 /// GenesisSeal v1 — deterministic root of trust binding receipts to constitution.
@@ -66,6 +68,7 @@ pub use canonical::{
     DOMAIN_POLICY, DOMAIN_RECEIPT,
 };
 pub use constitution::{Constitution, IhsanThreshold};
+pub use gate_policy::{apply_gate, env_gate_policy, GateAction, GatePolicy, GateVerdict};
 pub use genesis::{
     blake3_domain_hash, blake3_hash, CryptoManifest, ExecutionContext, GenesisError,
     GenesisReceipt, GenesisReceiptBuilder, GenesisResult,

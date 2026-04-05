@@ -16,6 +16,10 @@
 use crate::types::*;
 
 /// Gate enforcement policy — what happens when إحسان is violated?
+///
+/// NOTE: The canonical definition lives in `bizra_core::gate_policy::GatePolicy`.
+/// This copy exists because `bizra-hooks` is intentionally zero-dependency.
+/// New consumers outside `bizra-hooks` should import from `bizra_core`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum GatePolicy {
     /// Log warning but allow event (observation mode)
