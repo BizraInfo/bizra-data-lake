@@ -20,6 +20,7 @@
 //   omni_kernel.rs (MetabolicLedger already mints PoI)
 // ============================================================
 
+use bizra_core::{ADL_GINI_THRESHOLD, IHSAN_THRESHOLD, ZAKAT_RATE};
 use bizra_mission::receipt::MissionReceipt;
 
 /// Result of economic settlement for a completed mission.
@@ -58,11 +59,8 @@ pub struct SeedLedger {
     base_seed_per_mission: f64,
 }
 
-/// Constitutional constants.
-const ZAKAT_RATE: f64 = 0.025; // 2.5%
-const ADL_GINI_MAX: f64 = 0.35; // Adl hard gate
-const IHSAN_FLOOR: f64 = 0.95; // Minimum Ihsan for SEED eligibility
-const EMA_ALPHA: f64 = 0.05; // Cache hit rate smoothing
+/// EMA smoothing factor for cache hit rate.
+const EMA_ALPHA: f64 = 0.05;
 
 impl SeedLedger {
     /// Create a new ledger with the given base SEED rate.
@@ -98,7 +96,7 @@ impl SeedLedger {
 
         // Gate 2: Ihsan floor — constitutional minimum for economic participation
         let ihsan = receipt.ihsan_score.unwrap_or(0.0) as f64;
-        if ihsan < IHSAN_FLOOR {
+        if ihsan < IHSAN_THRESHOLD {
             return None;
         }
 
@@ -132,7 +130,7 @@ impl SeedLedger {
             zakat_deducted: zakat,
             seed_net,
             post_gini: Some(post_gini),
-            gini_passed: post_gini <= ADL_GINI_MAX,
+            gini_passed: post_gini <= ADL_GINI_THRESHOLD,
             emission_multiplier,
         })
     }
