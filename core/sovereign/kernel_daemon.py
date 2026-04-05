@@ -459,15 +459,20 @@ def _check_existing_daemon() -> bool:
             # PID exists — verify it's actually kernel_daemon (not recycled PID)
             try:
                 import subprocess
+
                 result = subprocess.run(
                     ["ps", "-p", str(old_pid), "-o", "args="],
-                    capture_output=True, text=True, timeout=3,
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
                 )
                 if "kernel_daemon" in result.stdout:
                     return True
                 # PID recycled to a different process — stale
                 PID_FILE.unlink(missing_ok=True)
-                log.info("Cleaned stale PID file (PID %d is not kernel_daemon)", old_pid)
+                log.info(
+                    "Cleaned stale PID file (PID %d is not kernel_daemon)", old_pid
+                )
                 return False
             except Exception:
                 return True  # Can't verify — assume running (safe default)
@@ -1404,6 +1409,7 @@ class KernelHandler(SimpleHTTPRequestHandler):
             # SEED balance
             try:
                 from core.proof_engine.seed_ledger import balance, history
+
                 live["seed"]["balance"] = balance()
                 live["seed"]["total_missions"] = len(history(limit=9999))
             except Exception:
@@ -1411,6 +1417,7 @@ class KernelHandler(SimpleHTTPRequestHandler):
             # URP state
             try:
                 from core.urp.persistence import load_urp_state
+
                 urp_state = load_urp_state()
                 if urp_state:
                     pool = urp_state.get("resource_pool", {})
@@ -1422,6 +1429,7 @@ class KernelHandler(SimpleHTTPRequestHandler):
             # Home base hardware
             try:
                 from core.sovereign.home_base import load_home_base
+
                 hb = load_home_base()
                 if hb:
                     live["hardware"] = {
