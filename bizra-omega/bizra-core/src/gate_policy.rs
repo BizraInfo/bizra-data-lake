@@ -115,6 +115,97 @@ pub fn apply_gate(score: f64, threshold: f64, policy: GatePolicy) -> GateVerdict
     }
 }
 
+// ─── Wire 5: Gate Maturation ─────────────────────────────────────────────────
+
+/// Maturation thresholds — cycle counts at which the policy auto-promotes.
+///
+/// Standing on Giants: Deming (PDCA maturation) · Lamport (safety liveness)
+#[derive(Debug, Clone, Copy)]
+pub struct MaturationThresholds {
+    /// Cycles before Observe → Flag
+    pub observe_to_flag: u64,
+    /// Cycles before Flag → Throttle(5)
+    pub flag_to_throttle: u64,
+    /// Cycles before Throttle → Reject
+    pub throttle_to_reject: u64,
+}
+
+impl Default for MaturationThresholds {
+    fn default() -> Self {
+        Self {
+            observe_to_flag: 100,
+            flag_to_throttle: 500,
+            throttle_to_reject: 1000,
+        }
+    }
+}
+
+/// Auto-promoting gate policy that hardens with accumulated evidence.
+///
+/// Starts at `Observe` and promotes through the GatePolicy ladder:
+///   Observe → Flag → Throttle(5) → Reject
+///
+/// Each `tick()` increments the cycle counter. When a threshold is crossed,
+/// the policy promotes to the next level. Promotion is monotonic — a gate
+/// never softens once hardened.
+#[derive(Debug, Clone)]
+pub struct GateMaturationPolicy {
+    thresholds: MaturationThresholds,
+    cycle_count: u64,
+    current: GatePolicy,
+}
+
+impl GateMaturationPolicy {
+    /// Create a maturation policy with the given thresholds, starting at Observe.
+    pub fn new(thresholds: MaturationThresholds) -> Self {
+        Self {
+            thresholds,
+            cycle_count: 0,
+            current: GatePolicy::Observe,
+        }
+    }
+
+    /// Record one cycle and auto-promote if a threshold is crossed.
+    /// Returns the (possibly new) active policy.
+    pub fn tick(&mut self) -> GatePolicy {
+        self.cycle_count += 1;
+        self.current = match self.current {
+            GatePolicy::Observe if self.cycle_count >= self.thresholds.observe_to_flag => {
+                GatePolicy::Flag
+            }
+            GatePolicy::Flag if self.cycle_count >= self.thresholds.flag_to_throttle => {
+                GatePolicy::Throttle(5)
+            }
+            GatePolicy::Throttle(_) if self.cycle_count >= self.thresholds.throttle_to_reject => {
+                GatePolicy::Reject
+            }
+            other => other,
+        };
+        self.current
+    }
+
+    /// Current active policy.
+    pub fn current(&self) -> GatePolicy {
+        self.current
+    }
+
+    /// Total cycles recorded.
+    pub fn cycle_count(&self) -> u64 {
+        self.cycle_count
+    }
+
+    /// Whether the gate has reached its terminal (Reject) state.
+    pub fn is_mature(&self) -> bool {
+        matches!(self.current, GatePolicy::Reject)
+    }
+}
+
+impl Default for GateMaturationPolicy {
+    fn default() -> Self {
+        Self::new(MaturationThresholds::default())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,5 +306,85 @@ mod tests {
         assert!(!v.passed);
         assert_eq!(v.policy, GatePolicy::Reject);
         assert_eq!(v.action, GateAction::Rejected);
+    }
+
+    // ── Wire 5: Maturation tests ─────────────────────────────
+
+    #[test]
+    fn test_maturation_starts_at_observe() {
+        let m = GateMaturationPolicy::default();
+        assert_eq!(m.current(), GatePolicy::Observe);
+        assert_eq!(m.cycle_count(), 0);
+        assert!(!m.is_mature());
+    }
+
+    #[test]
+    fn test_maturation_promotes_through_all_stages() {
+        let thresholds = MaturationThresholds {
+            observe_to_flag: 3,
+            flag_to_throttle: 6,
+            throttle_to_reject: 10,
+        };
+        let mut m = GateMaturationPolicy::new(thresholds);
+
+        // Cycles 1-2: still Observe
+        for _ in 0..2 {
+            assert_eq!(m.tick(), GatePolicy::Observe);
+        }
+
+        // Cycle 3: promotes to Flag
+        assert_eq!(m.tick(), GatePolicy::Flag);
+
+        // Cycles 4-5: still Flag
+        for _ in 0..2 {
+            assert_eq!(m.tick(), GatePolicy::Flag);
+        }
+
+        // Cycle 6: promotes to Throttle(5)
+        assert_eq!(m.tick(), GatePolicy::Throttle(5));
+        assert!(!m.is_mature());
+
+        // Cycles 7-9: still Throttle
+        for _ in 0..3 {
+            assert_eq!(m.tick(), GatePolicy::Throttle(5));
+        }
+
+        // Cycle 10: promotes to Reject (terminal)
+        assert_eq!(m.tick(), GatePolicy::Reject);
+        assert!(m.is_mature());
+        assert_eq!(m.cycle_count(), 10);
+
+        // Further ticks stay at Reject (monotonic)
+        assert_eq!(m.tick(), GatePolicy::Reject);
+    }
+
+    #[test]
+    fn test_maturation_never_softens() {
+        let thresholds = MaturationThresholds {
+            observe_to_flag: 1,
+            flag_to_throttle: 2,
+            throttle_to_reject: 3,
+        };
+        let mut m = GateMaturationPolicy::new(thresholds);
+
+        // Rapid promotion to Reject
+        for _ in 0..5 {
+            m.tick();
+        }
+        assert_eq!(m.current(), GatePolicy::Reject);
+        assert!(m.is_mature());
+
+        // 100 more ticks — still Reject
+        for _ in 0..100 {
+            assert_eq!(m.tick(), GatePolicy::Reject);
+        }
+    }
+
+    #[test]
+    fn test_default_thresholds() {
+        let t = MaturationThresholds::default();
+        assert_eq!(t.observe_to_flag, 100);
+        assert_eq!(t.flag_to_throttle, 500);
+        assert_eq!(t.throttle_to_reject, 1000);
     }
 }

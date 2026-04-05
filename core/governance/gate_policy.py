@@ -104,3 +104,69 @@ def apply_gate(
         policy=policy,
         action=action,
     )
+
+
+# ── Wire 5: Gate Maturation ──────────────────────────────────────────────────
+
+
+@dataclass
+class MaturationThresholds:
+    """Cycle counts at which the policy auto-promotes.
+
+    Standing on Giants: Deming (PDCA maturation) · Lamport (safety liveness)
+    """
+
+    observe_to_flag: int = 100
+    flag_to_throttle: int = 500
+    throttle_to_reject: int = 1000
+
+
+class GateMaturationPolicy:
+    """Auto-promoting gate policy that hardens with accumulated evidence.
+
+    Starts at OBSERVE and promotes through the GatePolicy ladder:
+      OBSERVE → FLAG → THROTTLE → REJECT
+
+    Each tick() increments the cycle counter. Promotion is monotonic —
+    a gate never softens once hardened.
+    """
+
+    def __init__(self, thresholds: MaturationThresholds | None = None) -> None:
+        self._thresholds = thresholds or MaturationThresholds()
+        self._cycle_count = 0
+        self._current = GatePolicy.OBSERVE
+
+    def tick(self) -> GatePolicy:
+        """Record one cycle and auto-promote if a threshold is crossed."""
+        self._cycle_count += 1
+        if (
+            self._current == GatePolicy.OBSERVE
+            and self._cycle_count >= self._thresholds.observe_to_flag
+        ):
+            self._current = GatePolicy.FLAG
+        elif (
+            self._current == GatePolicy.FLAG
+            and self._cycle_count >= self._thresholds.flag_to_throttle
+        ):
+            self._current = GatePolicy.THROTTLE
+        elif (
+            self._current == GatePolicy.THROTTLE
+            and self._cycle_count >= self._thresholds.throttle_to_reject
+        ):
+            self._current = GatePolicy.REJECT
+        return self._current
+
+    @property
+    def current(self) -> GatePolicy:
+        """Current active policy."""
+        return self._current
+
+    @property
+    def cycle_count(self) -> int:
+        """Total cycles recorded."""
+        return self._cycle_count
+
+    @property
+    def is_mature(self) -> bool:
+        """Whether the gate has reached its terminal (REJECT) state."""
+        return self._current == GatePolicy.REJECT

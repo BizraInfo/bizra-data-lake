@@ -68,7 +68,10 @@ pub use canonical::{
     DOMAIN_POLICY, DOMAIN_RECEIPT,
 };
 pub use constitution::{Constitution, IhsanThreshold};
-pub use gate_policy::{apply_gate, env_gate_policy, GateAction, GatePolicy, GateVerdict};
+pub use gate_policy::{
+    apply_gate, env_gate_policy, GateAction, GateMaturationPolicy, GatePolicy, GateVerdict,
+    MaturationThresholds,
+};
 pub use genesis::{
     blake3_domain_hash, blake3_hash, CryptoManifest, ExecutionContext, GenesisError,
     GenesisReceipt, GenesisReceiptBuilder, GenesisResult,
