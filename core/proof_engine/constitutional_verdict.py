@@ -33,9 +33,7 @@ try:
 except ImportError:
 
     def blake3_hash(data: bytes) -> str:
-        return hashlib.sha256(
-            b"BLAKE3_FALLBACK:" + data
-        ).hexdigest()  # noqa: SEC-001 — degradation fallback when blake3 unavailable
+        return hashlib.sha256(b"BLAKE3_FALLBACK:" + data).hexdigest()  # noqa: SEC-001
 
 
 # ═══════════════════════════════════════════════════════════════════
