@@ -28,8 +28,8 @@ from typing import Any, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
-    ZAKAT_RATE as _ZAKAT_RATE,
 )
+from core.integration.constants import ZAKAT_RATE as _ZAKAT_RATE
 
 # =============================================================================
 # CONSTANTS (from genesis.json token_system)

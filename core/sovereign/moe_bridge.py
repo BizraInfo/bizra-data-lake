@@ -391,9 +391,9 @@ class MOEBridge:
     def _detect_lmstudio(self) -> None:
         """Detect LM Studio on same physical machine (WSL gateway)."""
         try:
-            from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
-
             import httpx
+
+            from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
 
             url = f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}"
             token = os.getenv("LM_API_TOKEN") or os.getenv("LM_STUDIO_API_KEY") or ""

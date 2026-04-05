@@ -17,12 +17,12 @@ import os
 import signal
 import time
 from collections import OrderedDict, deque
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import (
     Any,
 )
-from collections.abc import AsyncIterator
 
 from .genesis_identity import GenesisState, load_and_validate_genesis
 from .memory_coordinator import (
