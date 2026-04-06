@@ -111,7 +111,15 @@ except Exception as e:
 
 # Pick the fastest model for genesis proof
 fast_model = None
-for preferred in ["llama3.1:8b", "qwen2.5:3b", "phi3:mini", "mistral"]:
+for preferred in [
+    "gemma4:e4b",
+    "gemma4:e2b",
+    "gemma3:1b",
+    "llama3.1:8b",
+    "qwen2.5:3b",
+    "phi3:mini",
+    "mistral",
+]:
     if preferred in model_names:
         fast_model = preferred
         break

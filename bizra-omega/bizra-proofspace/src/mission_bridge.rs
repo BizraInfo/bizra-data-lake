@@ -512,7 +512,8 @@ pub mod mock_proofspace {
     }
 
     /// IHSAN excellence threshold — the civilization-grade quality floor. [VERIFIED]
-    pub const IHSAN_THRESHOLD: f64 = 0.95;
+    /// Re-exported from bizra-core (single source of truth).
+    pub const IHSAN_THRESHOLD: f64 = bizra_core::IHSAN_THRESHOLD;
 
     /// Builder for constructing [`UnsignedBlock`] instances.
     ///

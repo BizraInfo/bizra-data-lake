@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**BIZRA-DATA-LAKE** is the primary codebase of the BIZRA ecosystem — a proof-native constitutional intelligence system. The repo contains a Python sovereignty infrastructure (`core/`, 628 files, 249K LOC) and a high-performance Rust workspace (`bizra-omega/`, 27 crates, 108K LOC, 1,603+ tests).
+**BIZRA-DATA-LAKE** is the primary codebase of the BIZRA ecosystem — a proof-native constitutional intelligence system. The repo contains a Python sovereignty infrastructure (`core/`, 628 files, 249K LOC) and a high-performance Rust workspace (`bizra-omega/`, 25 crates, 108K LOC, 1,603+ tests).
 
 **Environment:** WSL Ubuntu on Windows | Python 3.11+ | Rust stable (1.91+)
 
@@ -96,7 +96,7 @@ Gateway: `services/node_gateway/app/routers.py` — `POST /v1/mission` emits can
 ### Python (`core/`) and Rust (`bizra-omega/`) Mirror
 
 ```
-Python (core/)                          Rust (bizra-omega/ — 27 crates)
+Python (core/)                          Rust (bizra-omega/ — 25 crates)
 ├── pci/        Proof-Carrying Inference    bizra-core/        Constitution + FATE + Identity
 ├── federation/ P2P gossip + BFT consensus  bizra-federation/  Gossip + signed messages
 ├── inference/  Tiered LLM gateway          bizra-inference/   Inference backends
@@ -140,7 +140,7 @@ Python (core/)                          Rust (bizra-omega/ — 27 crates)
 
 **Unified Concurrency Fabric (UCF)** — Sharded EventBus (8 namespace shards via FNV-1a) in `bizra-hooks`, two-phase OmniKernel (try_cache_hit + complete_cache_hit) in `bizra-agent`, and PyO3 event bridge (`PyEventBridge` Rust → `RustEventBridge` Python wrapper). Bridge gracefully returns None when PyO3 isn't built.
 
-**Kernel API** — Python kernel daemon (`core/sovereign/`) exposes REST endpoints on port 8010:
+**Kernel API** — Python kernel daemon (`core/sovereign/`) exposes REST endpoints on port 9740:
 - `GET /health` — liveness check
 - `GET /api/knowledge` — GOLD corpus stats + FAISS semantic search
 - `POST /api/mission` — knowledge-enriched PAT execution pipeline (OBSERVE→DECOMPOSE→EXECUTE→SYNTHESIZE→GATE→EVIDENCE)
@@ -226,7 +226,7 @@ tests/
 
 ## Rust Workspace (bizra-omega/)
 
-24 crates in a unified workspace (v2.0.0). Seven layers:
+25 crates in a unified workspace (v2.0.0). Eight layers:
 
 - **Platform** (14): bizra-core, hypergraph, inference, autopoiesis, federation, installer, python, api, tests, hunter, telescript, proofspace, resourcepool, cli
 - **Cognitive** (2): bizra-hooks (nervous system), bizra-memory (synthesis pipeline)
@@ -235,6 +235,7 @@ tests/
 - **Desktop** (2): bizra-agent (OmniKernel), bizra-node (sovereign binary + substrate platform abstraction)
 - **Mission** (1): bizra-mission (Mission Control Plane — preflight, state machine, receipts)
 - **Numeric** (1): bizra-sippar (exact regular number arithmetic for token splits)
+- **Protocol** (1): bizra-protocol (trust boundary + autopoiesis — wires all organs into one living system)
 - **Bindings** (2): fate-binding (Z3 + Dilithium post-quantum), iceoryx-bridge (zero-copy IPC)
 
 Key deps: `ed25519-dalek` 2.2 (receipt signing + node identity), `tokio` (async), `blake3` (hashing+rayon), `z3` (formal verification), `pyo3` (Python bindings), `iceoryx2` (IPC), `pqcrypto-mldsa` (post-quantum).

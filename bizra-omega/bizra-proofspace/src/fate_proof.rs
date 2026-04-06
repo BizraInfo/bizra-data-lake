@@ -42,7 +42,8 @@
 // ---------------------------------------------------------------------------
 
 /// Ihsan quality floor: blocks scoring below this MUST be rejected. [VERIFIED]
-pub const IHSAN_THRESHOLD: f64 = 0.95;
+/// Re-exported from bizra-core (single source of truth).
+pub const IHSAN_THRESHOLD: f64 = bizra_core::IHSAN_THRESHOLD;
 
 /// Adl Gini inequality maximum: Gini coefficient of resource distribution. [VERIFIED]
 pub const ADL_GINI_MAX: f64 = 0.35;

@@ -393,7 +393,8 @@ impl RegularNumber {
 // ──────────────────────────────────────────────────────────────────────────────
 
 /// Minimum ihsan quality threshold to pass ProofSpace validation [VERIFIED].
-pub const IHSAN_THRESHOLD: f64 = 0.95;
+/// Re-exported from bizra-core (single source of truth).
+pub const IHSAN_THRESHOLD: f64 = bizra_core::IHSAN_THRESHOLD;
 /// Maximum permissible Gini coefficient for ADL score distribution [VERIFIED].
 pub const ADL_GINI_MAX: f64 = 0.35;
 /// Maximum permissible harm score [VERIFIED].

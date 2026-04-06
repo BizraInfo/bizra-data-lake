@@ -35,6 +35,11 @@ use crate::IHSAN_THRESHOLD;
 /// Transactions pushing Gini above this are REJECTED.
 pub const ADL_GINI_THRESHOLD: f64 = 0.35;
 
+/// Constitutional upper bound on Gini coefficient.
+/// Cross-repo alignment: Python core/integration/constants.py = 0.45
+/// Beyond this threshold, the system is constitutionally inequitable.
+pub const CONSTITUTIONAL_GINI_THRESHOLD: f64 = 0.45;
+
 /// Emergency Gini threshold (triggers redistribution)
 pub const ADL_GINI_EMERGENCY: f64 = 0.60;
 

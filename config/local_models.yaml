@@ -1,89 +1,138 @@
 # BIZRA Local Model Configuration
-# Your LM Studio setup — WSL gateway auto-detected at runtime
-# Override with env: LMSTUDIO_HOST / LMSTUDIO_PORT
+# ═══════════════════════════════════════════════════════════════════════
+# Two inference backends: LM Studio (WSL gateway) and Ollama (localhost).
+# The system auto-detects which is available and falls back gracefully.
+# Override with env: LMSTUDIO_HOST / LMSTUDIO_PORT / OLLAMA_URL
+# ═════════════��══════════════════════════���══════════════════════════════
 
-# API Configuration (WSL gateway IP — use `ip route show default | awk '/via/ {print $3}'`)
+# API Configuration (WSL gateway IP — auto-detected at runtime)
 LM_STUDIO_URL: "http://172.22.48.1:1234"
 LM_API_TOKEN: "${LM_API_TOKEN}"
 
-# Model Routing by Task Type
+# ── Ollama Fleet (Gemma 4 backbone — April 2026) ──────────────────────
+# Primary fleet for Node0 + Node1. All models pulled via `ollama pull`.
+# Gemma 4: multimodal, function calling, thinking modes, 128K/256K context.
+ollama_fleet:
+  # Tier 3 — Heavy reasoning (L3 Inference in OmniKernel)
+  reasoning:
+    id: "gemma4:e4b"
+    role: "Deep reasoning, complex analysis, agentic planning"
+    parameters: "4B effective"
+    context: 128K
+    capabilities: [multimodal, function_calling, thinking]
+
+  # Tier 2 — Standard tasks (L2 Engram tier)
+  standard:
+    id: "gemma4:e4b"
+    role: "General-purpose multimodal understanding"
+    parameters: "4B effective"
+    context: 128K
+    capabilities: [multimodal, function_calling]
+
+  # Tier 1 — Fast reflex (L1 Pattern / L0 Reflex tiers)
+  fast:
+    id: "gemma4:e2b"
+    role: "Quick responses, evaluation, classification, formatting"
+    parameters: "2B effective"
+    context: 128K
+    capabilities: [multimodal]
+
+  # Tier 0 — Ultra-light (routing, constitutional checks)
+  nano:
+    id: "gemma3:1b"
+    role: "Constitutional reasoning, fast classification, routing"
+    parameters: 1B
+    context: 32K
+    capabilities: [text]
+
+  # Vision — native in Gemma 4 (no separate model needed)
+  vision:
+    id: "gemma4:e4b"
+    role: "Image understanding, document analysis (native multimodal)"
+    parameters: "4B effective"
+    capabilities: [multimodal, function_calling]
+
+  # Embedding — unchanged (dedicated embedding model)
+  embedding:
+    id: "nomic-embed-text:latest"
+    role: "Text embeddings for RAG/search"
+    type: "embedding"
+
+# ── LM Studio Fleet (Windows host — heavier models) ────��─────────────
+# Used when LM Studio is available on the WSL gateway.
+# These models are larger and require LM Studio's VRAM management.
 models:
-  # Primary Reasoning Model (DeepSeek R1 8B)
   reasoning:
     id: "deepseek/deepseek-r1-0528-qwen3-8b"
     role: "Deep reasoning, complex analysis, multi-step thinking"
     parameters: 8B
-    
-  # Planning Model (AgentFlow 7B)
+
   planning:
     id: "agentflow-planner-7b-i1"
     role: "Task decomposition, strategy, coordination"
     parameters: 7B
-    
-  # Vision Models
+
   vision_large:
     id: "qwen/qwen3-vl-8b"
     role: "Complex visual analysis, document understanding"
     parameters: 8B
-    
+
   vision_fast:
     id: "qwen/qwen3-vl-4b"
     role: "Quick visual checks, simple image processing"
     parameters: 4B
-    
-  # Fast/Lightweight Models
+
   fast:
     id: "liquid/lfm2.5-1.2b"
     role: "Quick responses, simple tasks, low latency"
     parameters: 1.2B
-    
+
   nano:
     id: "nvidia/nemotron-3-nano"
     role: "Ultra-fast, edge inference"
     parameters: ~1B
-    
-  # Additional Models
+
   uncensored:
     id: "qwen2.5-14b_uncensored_instruct"
     role: "Unrestricted generation, creative tasks"
     parameters: 14B
-    
+
   moe_champion:
     id: "llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b"
     role: "MoE for diverse tasks"
     parameters: "18.4B (8x3B MoE)"
-    
+
   thinking:
     id: "qwen/qwen3-4b-thinking-2507"
     role: "Explicit thinking/reasoning traces"
     parameters: 4B
-    
+
   embedding:
     id: "text-embedding-nomic-embed-text-v1.5"
     role: "Text embeddings for RAG/search"
     type: "embedding"
 
-# Task-to-Model Routing
+# ── Task-to-Model Routing ─────────────────────────────────────────────
+# Maps task complexity to model tier.
+# System checks Ollama first, falls back to LM Studio.
 routing:
-  # Query complexity → model selection
-  trivial: "fast"           # Simple queries → liquid 1.2B
-  simple: "fast"            # Basic questions → liquid 1.2B
-  moderate: "reasoning"     # Analysis → DeepSeek R1 8B
-  complex: "reasoning"      # Deep thinking → DeepSeek R1 8B
-  frontier: "moe_champion"  # Hardest tasks → MoE 18.4B
-  
-  # Intent-based routing
-  planning: "planning"      # Task planning → AgentFlow 7B
-  creative: "uncensored"    # Creative → Qwen 14B uncensored
-  vision: "vision_large"    # Image analysis → Qwen VL 8B
+  trivial: "fast"           # Simple queries → Gemma 4 E2B / liquid 1.2B
+  simple: "fast"            # Basic questions → Gemma 4 E2B / liquid 1.2B
+  moderate: "standard"      # Analysis → Gemma 4 E4B / DeepSeek R1
+  complex: "reasoning"      # Deep thinking → Gemma 4 E4B / DeepSeek R1
+  frontier: "reasoning"     # Hardest tasks → Gemma 4 E4B / MoE 18.4B
+
+  planning: "reasoning"     # Task planning → Gemma 4 E4B
+  creative: "standard"      # Creative → Gemma 4 E4B
+  vision: "vision"          # Image analysis → Gemma 4 E4B (native multimodal)
   embedding: "embedding"    # Vector search → Nomic
 
-# PAT Team Agent Assignments
+# ── PAT Team Agent Assignments ────────────────────────────────────────
 pat_agents:
-  strategist: "planning"    # AgentFlow for strategy
-  researcher: "reasoning"   # DeepSeek for research
-  analyst: "reasoning"      # DeepSeek for analysis
-  creator: "uncensored"     # Qwen 14B for creation
-  executor: "fast"          # Liquid for quick execution
-  guardian: "reasoning"     # DeepSeek for safety checks
-  coordinator: "planning"   # AgentFlow for coordination
+  strategist: "reasoning"   # P1 — Gemma 4 E4B for strategy
+  researcher: "reasoning"   # P2 — Gemma 4 E4B for research
+  analyst: "reasoning"      # P4 — Gemma 4 E4B for analysis
+  creator: "standard"       # P3 — Gemma 4 E4B for creation
+  executor: "fast"          # P6 — Gemma 4 E2B for quick execution
+  guardian: "nano"          # S2 — Gemma 3 1B for constitutional checks
+  coordinator: "reasoning"  # P7 — Gemma 4 E4B for coordination

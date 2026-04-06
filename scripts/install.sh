@@ -34,7 +34,7 @@ SEED_NODE=""
 NODE_NAME=""
 BIZRA_HOME="${BIZRA_HOME:-$HOME/bizra}"
 SKIP_OLLAMA=false
-MODEL="${BIZRA_MODEL:-qwen2.5:3b}"
+MODEL="${BIZRA_MODEL:-gemma4:e4b}"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -113,23 +113,27 @@ echo -e "  ${D}[2/6]${R} Ollama setup..."
 
 if [ "$SKIP_OLLAMA" = true ]; then
     echo -e "  ${DIM}○${R} Skipped (--skip-ollama)"
-elif command -v ollama &>/dev/null; then
-    echo -e "  ${G}●${R} Ollama already installed"
 else
-    echo -e "  ${DIM}○${R} Installing Ollama..."
+    # Always install/upgrade to latest (Gemma 4 requires Ollama >= 0.20)
+    echo -e "  ${DIM}○${R} Installing/upgrading Ollama (latest)..."
+    if [ "$OS" = "Linux" ] && ! command -v zstd &>/dev/null; then
+        sudo apt-get install -y -qq zstd 2>/dev/null
+    fi
     curl -fsSL https://ollama.com/install.sh | sh
-    echo -e "  ${G}●${R} Ollama installed"
+    echo -e "  ${G}●${R} Ollama: $(ollama --version 2>&1 | head -1)"
 fi
 
-# Pull model
+# Pull Gemma 4 fleet
 if ! [ "$SKIP_OLLAMA" = true ]; then
-    if ollama list 2>/dev/null | grep -q "$MODEL"; then
-        echo -e "  ${G}●${R} Model $MODEL ready"
-    else
-        echo -e "  ${DIM}○${R} Pulling $MODEL (this takes a few minutes)..."
-        ollama pull "$MODEL"
-        echo -e "  ${G}●${R} Model $MODEL pulled"
-    fi
+    for m in "gemma4:e4b" "gemma4:e2b" "gemma3:1b" "nomic-embed-text:latest"; do
+        if ollama list 2>/dev/null | grep -q "${m%%:*}"; then
+            echo -e "  ${G}●${R} $m ready"
+        else
+            echo -e "  ${DIM}○${R} Pulling $m..."
+            ollama pull "$m"
+            echo -e "  ${G}●${R} $m pulled"
+        fi
+    done
 fi
 
 # ── Step 3: Clone repo ─────────────────────────────────

@@ -11,6 +11,7 @@ Standing on: Boyd (OODA complete), Maturana (autopoiesis acts).
 from __future__ import annotations
 
 import logging
+import shlex
 import subprocess
 import time
 from dataclasses import dataclass
@@ -50,7 +51,7 @@ def plan_actions_from_home_base(home_base: Any) -> List[ProactiveAction]:
                     ProactiveAction(
                         action_type="convert_paper",
                         description=f"Convert {d['name']} to PDF",
-                        command=f"pandoc '{paper_path}' -o '{html_path}' --standalone && wkhtmltopdf '{html_path}' '{pdf_path}'",
+                        command=f"pandoc {shlex.quote(str(paper_path))} -o {shlex.quote(str(html_path))} --standalone && wkhtmltopdf {shlex.quote(str(html_path))} {shlex.quote(str(pdf_path))}",
                         requires_approval=False,  # Non-destructive
                     )
                 )
@@ -82,7 +83,7 @@ def plan_actions_from_home_base(home_base: Any) -> List[ProactiveAction]:
                     ProactiveAction(
                         action_type="organize_files",
                         description=a.get("suggestion", f"Organize {target}"),
-                        command=f"python3 -c \"from core.skills.file_organizer import scan_directory, generate_plan, execute_plan; files=scan_directory('{target}'); plan=generate_plan(files, '{target}'); result=execute_plan(plan); print(f'Moved {{result[\\\"moved\\\"]}} files')\"",
+                        command=f'python3 -c "from core.skills.file_organizer import scan_directory, generate_plan, execute_plan; files=scan_directory({shlex.quote(str(target))}); plan=generate_plan(files, {shlex.quote(str(target))}); result=execute_plan(plan); print(f\'Moved {{result[\\"moved\\"]}} files\')"',
                         requires_approval=True,
                     )
                 )

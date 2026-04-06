@@ -368,24 +368,26 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:
 # load_fleet_from_yaml() overrides with config/local_models.yaml IDs.
 # Vision and embedding are shared capabilities, not agents — routed via task type.
 _OLLAMA_FLEET_DEFAULTS: Dict[str, str] = {
-    # 7 PAT agents
-    "P1-Planner": "deepseek-r1:14b",  # Deep reasoning for strategic planning
-    "P2-Researcher": "qwen2.5:3b",  # Knowledge + multilingual
-    "P3-Coder": "mistral:latest",  # 7B code generation (LM Studio: agentflow-7b)
-    "P4-Evaluator": "phi3:mini",  # Fast evaluation + scoring
+    # 7 PAT agents — Gemma 4 backbone (April 2026)
+    # E4B: multimodal, 128K ctx, function calling, thinking modes, 4B effective
+    # E2B: lightweight reflex tier, 2B effective, fast inference
+    "P1-Planner": "gemma4:e4b",  # Deep reasoning + agentic planning (4B effective)
+    "P2-Researcher": "gemma4:e4b",  # Multimodal research + knowledge (128K context)
+    "P3-Coder": "gemma4:e4b",  # Code generation (LiveCodeBench 52%, AIME 42.5%)
+    "P4-Evaluator": "gemma4:e2b",  # Fast evaluation + scoring (2B, low latency)
     "P5-Ethicist": "frozen",  # Constitutional gate — no LLM, pure Ihsan logic
-    "P6-Publisher": "phi3:mini",  # Communication formatting
-    "P7-DEMA": "deephat-v1-7b",  # Integrator + voice (NVIDIA PersonaPlex 7B)
-    # 5 SAT agents
+    "P6-Publisher": "gemma4:e2b",  # Communication formatting (2B, fast)
+    "P7-DEMA": "gemma4:e4b",  # Integrator + multimodal understanding
+    # 5 SAT agents — governance (no LLM needed, pure-code)
     "S1-Sentinel": "pure-code",  # Threat detection — no LLM needed
-    "S2-Oracle": "phi3:mini",  # Constitutional reasoning (lightweight)
+    "S2-Oracle": "gemma3:1b",  # Constitutional reasoning (lightweight, fast)
     "S3-Ledger": "pure-code",  # Evidence chain — no LLM needed
     "S4-Conductor": "pure-code",  # Event routing — no LLM needed
     "S5-Ambassador": "pure-code",  # Federation — no LLM needed
     # Shared capabilities (not agents — routed by task type)
-    "vision": "moondream:1.8b",  # Visual analysis capability
+    "vision": "gemma4:e4b",  # Multimodal vision (native in Gemma 4)
     "embedding": "nomic-embed-text:latest",  # Vector embedding capability
-    "default": "phi3:mini",  # Fallback for unrouted queries
+    "default": "gemma4:e2b",  # Fallback — fast, capable, multimodal
 }
 
 # Agent ID → local_models.yaml lookup key.

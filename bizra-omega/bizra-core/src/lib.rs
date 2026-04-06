@@ -144,6 +144,7 @@ pub use omega::{
     // Constants
     ADL_GINI_THRESHOLD,
     BFT_QUORUM_FRACTION,
+    CONSTITUTIONAL_GINI_THRESHOLD,
     LANDAUER_LIMIT_JOULES,
 };
 pub use pat::{
