@@ -857,81 +857,38 @@ def _ensure_faiss_loaded() -> bool:
 
 
 def _search_knowledge(query: str, limit: int = 10) -> dict[str, Any]:
-    """Search GOLD — FAISS semantic if available, keyword fallback.
+    """Search GOLD — Hybrid RRF (FAISS ∪ RuVector), keyword fallback.
 
-    Standing on Giants: Johnson (FAISS) · Shannon (retrieval) · Reimers (SBERT)
+    Standing on Giants: Cormack (RRF) · Johnson (FAISS) · Malkov (HNSW) · Shannon (1948)
     """
     if not _ensure_knowledge_loaded():
         return {"results": [], "error": _knowledge_cache.get("error", "unknown")}
 
     t0 = time.monotonic()
 
-    # FAISS semantic search path
-    if _ensure_faiss_loaded() and _knowledge_cache.get("faiss_encoder_ok"):
-        try:
-            import faiss
-            import numpy as np  # noqa: F401 — used by faiss.normalize_L2
-
-            encoder = _knowledge_cache["encoder"]
-            index = _knowledge_cache["faiss_index"]
-            chunk_ids = _knowledge_cache["faiss_ids"]
-            chunks_df = _knowledge_cache.get("df:chunks.parquet")
-
-            qvec = encoder.encode([query]).astype("float32")
-            faiss.normalize_L2(qvec)
-            index.nprobe = 16
-            D, I = index.search(qvec, limit)
-
-            results: list[dict[str, Any]] = []
-            for score, idx in zip(D[0], I[0]):
-                if idx < 0 or idx >= len(chunk_ids):
-                    continue
-                cid = chunk_ids[idx]
-                if chunks_df is not None:
-                    row = chunks_df[chunks_df["chunk_id"] == cid]
-                    if len(row) > 0:
-                        text = str(row.iloc[0]["chunk_text"])
-                        results.append(
-                            {
-                                "source": "chunks",
-                                "chunk_id": cid,
-                                "text": text[:500] + ("..." if len(text) > 500 else ""),
-                                "similarity": round(float(score), 4),
-                                "snr_score": (
-                                    float(row.iloc[0]["snr_score"])
-                                    if "snr_score" in row.columns
-                                    else None
-                                ),
-                            }
-                        )
-
-            return {
-                "query": query,
-                "results": results,
-                "count": len(results),
-                "search_type": "faiss_semantic",
-                "search_ms": round((time.monotonic() - t0) * 1000),
-            }
-        except Exception as e:
-            log.warning("FAISS search failed, trying RuVector: %s", e)
-
-    # RuVector HNSW fallback — uses EmbeddingService (Ollama or local)
+    # Hybrid semantic search — FAISS + RuVector fused via Reciprocal Rank Fusion
     try:
-        from core.search.ruvector_search import RuVectorSearchEngine
+        from core.search.hybrid_search import HybridSearchEngine
 
-        rv = RuVectorSearchEngine(root=PROJECT_ROOT)
-        if rv.is_available:
-            rv_results = rv.search(query, top_k=limit)
-            if rv_results:
-                results = []
-                for sr in rv_results:
+        hybrid = _knowledge_cache.get("hybrid_engine")
+        if hybrid is None:
+            hybrid = HybridSearchEngine()
+            _knowledge_cache["hybrid_engine"] = hybrid
+
+        if hybrid.is_loaded:
+            sr_results = hybrid.search(query, top_k=limit)
+            if sr_results:
+                results: list[dict[str, Any]] = []
+                for sr in sr_results:
                     text = sr.record.content
                     results.append(
                         {
-                            "source": "ruvector_hnsw",
+                            "source": sr.record.source or "hybrid",
                             "chunk_id": sr.record.source_id or "",
                             "text": text[:500] + ("..." if len(text) > 500 else ""),
                             "similarity": round(sr.score, 4),
+                            "rrf_score": sr.record.metadata.get("rrf_score"),
+                            "engine": sr.record.metadata.get("engine", "hybrid_rrf"),
                             "snr_score": None,
                         }
                     )
@@ -939,11 +896,12 @@ def _search_knowledge(query: str, limit: int = 10) -> dict[str, Any]:
                     "query": query,
                     "results": results,
                     "count": len(results),
-                    "search_type": "ruvector_hnsw",
+                    "search_type": "hybrid_rrf",
+                    "engines": hybrid.available_engines,
                     "search_ms": round((time.monotonic() - t0) * 1000),
                 }
     except Exception as e:
-        log.warning("RuVector search failed, keyword fallback: %s", e)
+        log.warning("Hybrid search failed, keyword fallback: %s", e)
 
     # Keyword fallback
     results = []
