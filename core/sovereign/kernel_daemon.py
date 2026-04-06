@@ -915,39 +915,35 @@ def _search_knowledge(query: str, limit: int = 10) -> dict[str, Any]:
         except Exception as e:
             log.warning("FAISS search failed, trying RuVector: %s", e)
 
-    # RuVector HNSW fallback — lightweight, no encoder import required
-    if _knowledge_cache.get("faiss_encoder_ok"):
-        try:
-            from core.search.ruvector_search import RuVectorSearchEngine
+    # RuVector HNSW fallback — uses EmbeddingService (Ollama or local)
+    try:
+        from core.search.ruvector_search import RuVectorSearchEngine
 
-            rv = RuVectorSearchEngine(root=PROJECT_ROOT)
-            if rv.is_available:
-                encoder = _knowledge_cache["encoder"]
-
-                qvec = encoder.encode([query]).astype("float32")[0]
-                rv_results = rv.search_by_vector(qvec.tolist(), top_k=limit)
-                if rv_results:
-                    results = []
-                    for sr in rv_results:
-                        text = sr.record.content
-                        results.append(
-                            {
-                                "source": "ruvector_hnsw",
-                                "chunk_id": sr.record.source_id or "",
-                                "text": text[:500] + ("..." if len(text) > 500 else ""),
-                                "similarity": round(sr.score, 4),
-                                "snr_score": None,
-                            }
-                        )
-                    return {
-                        "query": query,
-                        "results": results,
-                        "count": len(results),
-                        "search_type": "ruvector_hnsw",
-                        "search_ms": round((time.monotonic() - t0) * 1000),
-                    }
-        except Exception as e:
-            log.warning("RuVector search failed, keyword fallback: %s", e)
+        rv = RuVectorSearchEngine(root=PROJECT_ROOT)
+        if rv.is_available:
+            rv_results = rv.search(query, top_k=limit)
+            if rv_results:
+                results = []
+                for sr in rv_results:
+                    text = sr.record.content
+                    results.append(
+                        {
+                            "source": "ruvector_hnsw",
+                            "chunk_id": sr.record.source_id or "",
+                            "text": text[:500] + ("..." if len(text) > 500 else ""),
+                            "similarity": round(sr.score, 4),
+                            "snr_score": None,
+                        }
+                    )
+                return {
+                    "query": query,
+                    "results": results,
+                    "count": len(results),
+                    "search_type": "ruvector_hnsw",
+                    "search_ms": round((time.monotonic() - t0) * 1000),
+                }
+    except Exception as e:
+        log.warning("RuVector search failed, keyword fallback: %s", e)
 
     # Keyword fallback
     results = []
