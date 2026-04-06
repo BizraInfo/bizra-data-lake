@@ -1,7 +1,9 @@
-"""BIZRA Vector Search — bridges FAISS index into sovereign runtime.
-Standing on Giants: Johnson (FAISS, 2021) · Shannon (information theory, 1948)
+"""BIZRA Vector Search — hybrid retrieval with Reciprocal Rank Fusion.
+Standing on Giants: Johnson (FAISS) · Malkov (HNSW) · Cormack (RRF) · Shannon (1948)
 """
 
+from core.search.hybrid_search import HybridSearchEngine
+from core.search.ruvector_search import RuVectorSearchEngine
 from core.search.vector_search import VectorSearchEngine
 
-__all__ = ["VectorSearchEngine"]
+__all__ = ["HybridSearchEngine", "RuVectorSearchEngine", "VectorSearchEngine"]

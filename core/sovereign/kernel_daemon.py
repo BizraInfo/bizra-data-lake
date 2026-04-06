@@ -1116,10 +1116,11 @@ def _generate_briefing(state: "SovereignState") -> dict[str, Any]:
         recs.append("System critical — investigate anomalies before starting work")
     elif latest.get("health") == "degraded":
         recs.append("System degraded — check backend status")
-    if not _knowledge_cache.get("faiss_loaded"):
-        recs.append(
-            "FAISS not loaded — semantic search unavailable, keyword fallback active"
-        )
+    if (
+        not _knowledge_cache.get("faiss_loaded")
+        and not (PROJECT_ROOT / "04_GOLD" / "ruvector_bizra").exists()
+    ):
+        recs.append("No semantic search — neither FAISS nor RuVector available")
     if anomaly_count > 5:
         recs.append(
             f"{anomaly_count}/10 recent heartbeats had anomalies — review trends"
