@@ -66,6 +66,23 @@ case "$OS" in
     *)      echo -e "  ${RD}✗${R} Unsupported OS: $OS"; exit 1 ;;
 esac
 
+# Install system dependencies (Linux only)
+if [ "$OS" = "Linux" ]; then
+    NEED_PKGS=""
+    for pkg in build-essential pkg-config libssl-dev libz3-dev python3-venv; do
+        if ! dpkg -s "$pkg" &>/dev/null; then
+            NEED_PKGS="$NEED_PKGS $pkg"
+        fi
+    done
+    if [ -n "$NEED_PKGS" ]; then
+        echo -e "  ${DIM}○${R} Installing system deps:$NEED_PKGS"
+        sudo apt-get update -qq && sudo apt-get install -y -qq $NEED_PKGS
+        echo -e "  ${G}●${R} System deps installed"
+    else
+        echo -e "  ${G}●${R} System deps present"
+    fi
+fi
+
 # Check Rust
 if command -v cargo &>/dev/null; then
     echo -e "  ${G}●${R} Rust: $(rustc --version 2>/dev/null | head -1)"
@@ -74,6 +91,15 @@ else
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
     source "$HOME/.cargo/env"
     echo -e "  ${G}●${R} Rust installed"
+fi
+
+# Check Python 3.11+
+if command -v python3 &>/dev/null; then
+    PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    echo -e "  ${G}●${R} Python: $PY_VER"
+else
+    echo -e "  ${RD}✗${R} Python 3 not found. Install python3 first."
+    exit 1
 fi
 
 # Check git
@@ -136,6 +162,15 @@ if [ ! -f "$BINARY" ]; then
 fi
 echo -e "  ${G}●${R} Binary: $(ls -lh "$BINARY" | awk '{print $5}')"
 
+# Python environment
+echo -e "  ${DIM}○${R} Setting up Python environment..."
+if [ ! -d ".venv" ]; then
+    python3 -m venv .venv
+fi
+source .venv/bin/activate
+pip install -q -e ".[dev]" 2>&1 | tail -1
+echo -e "  ${G}●${R} Python venv ready"
+
 # ── Step 5: Configure ─────────────────────────────────
 echo -e "  ${D}[5/6]${R} Configure node..."
 
@@ -177,8 +212,8 @@ echo ""
 echo -e "  ${G}╔═══════════════════════════════════════════════════════╗${R}"
 echo -e "  ${G}║${R}  ${B}INSTALLATION COMPLETE${R}                                ${G}║${R}"
 echo -e "  ${G}╠═══════════════════════════════════════════════════════╣${R}"
-echo -e "  ${G}║${R}  ${DIM}Run:${R}   cd $BIZRA_HOME/bizra-data-lake           ${G}║${R}"
-echo -e "  ${G}║${R}         ./scripts/bizra                                ${G}║${R}"
+echo -e "  ${G}║${R}  ${DIM}Verify:${R} ./scripts/verify-install.sh                 ${G}║${R}"
+echo -e "  ${G}║${R}  ${DIM}Run:${R}    ./scripts/bizra                              ${G}║${R}"
 echo -e "  ${G}║${R}                                                        ${G}║${R}"
 echo -e "  ${G}║${R}  ${DIM}Your 7 agents are waiting.${R}                          ${G}║${R}"
 echo -e "  ${G}║${R}  ${DIM}بذرة واحدة تصنع غابة${R}                               ${G}║${R}"
