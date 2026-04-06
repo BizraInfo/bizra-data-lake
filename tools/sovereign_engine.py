@@ -1272,6 +1272,7 @@ class CommandBus:
 
         chain = execute
         for mw in reversed(self._middleware):
+
             def chain(c=chain, m=mw):
                 return m(command, c)
 
@@ -1989,7 +1990,7 @@ class SovereignEngine:
         ihsan_score = passed / total if total > 0 else 0
 
         checks["ihsan_score"] = ihsan_score
-        checks["status"] = "healthy" if ihsan_score >= 0.85 else "degraded"
+        checks["status"] = "healthy" if ihsan_score >= 0.95 else "degraded"
 
         return checks
 

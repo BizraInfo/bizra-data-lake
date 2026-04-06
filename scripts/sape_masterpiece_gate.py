@@ -537,7 +537,7 @@ async def _check_control_plane_latency() -> GateCheck:
 async def _check_snr_contract() -> GateCheck:
     from core.sovereign.snr_maximizer import SNRMaximizer
 
-    result = await SNRMaximizer(ihsan_threshold=0.85).optimize(
+    result = await SNRMaximizer(ihsan_threshold=0.95).optimize(
         "Structured grounded analysis with coherent steps and explicit evidence."
     )
     tags = result.get("claim_tags", {})

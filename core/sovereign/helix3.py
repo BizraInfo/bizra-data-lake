@@ -137,8 +137,8 @@ class IhsanTensor8D:
 
     @property
     def verified_count(self) -> int:
-        """Number of dimensions above the minimum gate (0.85)."""
-        return sum(1 for v in self.dimensions.values() if v >= 0.85)
+        """Number of dimensions above the constitutional floor (0.95)."""
+        return sum(1 for v in self.dimensions.values() if v >= 0.95)
 
     @classmethod
     def from_scores(cls, scores: Dict[str, float]) -> IhsanTensor8D:
@@ -341,7 +341,7 @@ class Helix3Scheduler:
                 boundary_quality_multiplier
             )
 
-        passing = [r for r in constitutionally_approved if _effective_ihsan(r) >= 0.85]
+        passing = [r for r in constitutionally_approved if _effective_ihsan(r) >= 0.95]
         excellent = [
             r for r in passing if _effective_ihsan(r) >= UNIFIED_IHSAN_THRESHOLD
         ]

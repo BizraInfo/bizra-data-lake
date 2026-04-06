@@ -2555,7 +2555,8 @@ def create_fastapi_app(runtime: Any) -> Any:
                         "ihsan_score": ihsan,
                         "snr_score": snr,
                         "agent_id": "api",
-                        "gate_passed": ihsan >= 0.85,
+                        "gate_passed": ihsan
+                        >= 0.95,  # Constitutional standard, not degradation floor
                         "duration_ms": getattr(mission_result, "duration_ms", 0.0)
                         or 0.0,
                     }

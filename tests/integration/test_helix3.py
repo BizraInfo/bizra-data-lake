@@ -76,7 +76,7 @@ class TestIhsanTensor8D:
             resilience=0.87,
             efficiency=0.93,
         )
-        assert t.verified_count == 6  # 2 below threshold
+        assert t.verified_count == 2  # 6 below 0.95 threshold
 
     def test_from_scores(self):
         scores = {"moral_clarity": 0.95, "efficiency": 0.90}

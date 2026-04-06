@@ -261,7 +261,8 @@ all_ok = (
     stats["forwarded"] >= 2  # at least intent + receipt
     and stats["failed"] == 0
     and bus.verify_chain()
-    and ihsan_composite >= 0.85
+    and ihsan_composite
+    >= 0.95  # Constitutional floor — not the degradation floor (0.85)
     and len(llm_response) > 10
 )
 
@@ -288,7 +289,7 @@ else:
         print(f"    bridge failures: {stats['failed']}")
     if not bus.verify_chain():
         print("    chain integrity broken")
-    if ihsan_composite < 0.85:
+    if ihsan_composite < 0.95:
         print(f"    ihsan below floor: {ihsan_composite}")
 
 print(f"{'=' * 60}")

@@ -197,7 +197,7 @@ URP available   → SAT attests, value settles, federation amplifies
 | ZANN_ZERO | No speculation, no guessing | البذرة |
 | RIBA_ZERO | No extractive interest | البذرة |
 | Gini cap | ≤ 0.35 | الرسالة |
-| Ihsān floor | ≥ 0.95 | الرسالة (NOTE: SeedOS page shows 0.85 — must update to 0.95) |
+| Ihsān floor | ≥ 0.95 | الرسالة (RESOLVED: all code paths corrected to ≥ 0.95) |
 | Harberger | 5% idle asset tax | Enforceable Spine |
 | Zakat | 2.5% annual obligatory | Enforceable Spine |
 | P5+S2 | Permanently frozen | Authority hierarchy |
