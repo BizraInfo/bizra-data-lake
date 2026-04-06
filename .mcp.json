@@ -1,7 +1,7 @@
 {
   "_comment": "BIZRA Team MCP Configuration — checked into repo for team-wide consistency",
-  "_version": "1.3.0",
-  "_updated": "2026-04-06 — Added claude-flow/ruflo v3.5.58 MCP server (11 servers total)",
+  "_version": "1.4.0",
+  "_updated": "2026-04-07 — Added neo4j-cypher MCP server (12 servers total)",
 
   "mcpServers": {
     "context7": {
@@ -68,6 +68,18 @@
       "command": "python",
       "args": ["tools/mcp/ecosystem_mcp_server.py", "--stdio"],
       "description": "BIZRA Ecosystem health, status, and monitoring"
+    },
+
+    "neo4j-cypher": {
+      "command": "uvx",
+      "args": ["mcp-neo4j-cypher"],
+      "env": {
+        "NEO4J_URL": "bolt://localhost:7687",
+        "NEO4J_USERNAME": "neo4j",
+        "NEO4J_PASSWORD": "${NEO4J_PASSWORD}",
+        "NEO4J_DATABASE": "neo4j"
+      },
+      "description": "Neo4j Cypher graph queries — wisdom graph (bolt://localhost:7687)"
     },
 
     "claude-flow": {
