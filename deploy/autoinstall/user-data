@@ -1,0 +1,152 @@
+#cloud-config
+autoinstall:
+  version: 1
+
+  # ── Identity ──────────────────────────────────────────────────────
+  # IMPORTANT: Change password before install! This is a placeholder.
+  # Generate hash: openssl passwd -6 -stdin <<< 'YOUR_PASSWORD'
+  identity:
+    hostname: bizra-node0
+    username: mumo
+    # Placeholder — MUST be replaced before install
+    # This is 'changeme' hashed with SHA-512
+    password: "$6$rounds=4096$PLACEHOLDER$REPLACE_THIS_BEFORE_INSTALL"
+
+  # ── Locale & Keyboard ────────────────────────────────────────────
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+
+  # ── Timezone ──────────────────────────────────────────────────────
+  timezone: Asia/Dubai
+
+  # ── Network ───────────────────────────────────────────────────────
+  # DHCP on all ethernet interfaces — simple and robust
+  network:
+    version: 2
+    ethernets:
+      id0:
+        match:
+          name: "en*"
+        dhcp4: true
+      id1:
+        match:
+          name: "eth*"
+        dhcp4: true
+
+  # ── Storage ───────────────────────────────────────────────────────
+  # Target: 3rd M.2 NVMe slot (dedicated Ubuntu drive)
+  # When NVMe is installed, it will likely appear as /dev/nvme2n1
+  # (nvme0n1 and nvme1n1 are the RAID 0 pair)
+  #
+  # STRATEGY: Use entire NVMe for Ubuntu. Do NOT touch existing drives.
+  # The installer will show available disks — select the new NVMe only.
+  #
+  # Layout:
+  #   512 MB  — EFI System Partition (/boot/efi)
+  #   2 GB    — /boot (ext4)
+  #   Rest    — LVM volume group
+  #     64 GB   — root (/)
+  #     128 GB  — /home (BIZRA data lake, repos, models)
+  #     32 GB   — swap (for GPU workloads + hibernation)
+  #     Rest    — /data (GOLD corpus, FAISS indexes, model cache)
+  #
+  # NOTE: This config uses 'match by size' to avoid hardcoding device names.
+  # If your NVMe is 1TB or 2TB, adjust the /data partition accordingly.
+  # Set storage to 'lvm' layout for flexibility.
+  storage:
+    layout:
+      name: lvm
+      # CRITICAL: This must match only the NEW NVMe, not RAID drives
+      # The installer will present disk selection — verify before confirming
+      match:
+        size: largest
+
+  # ── SSH ───────────────────────────────────────────────────────────
+  ssh:
+    install-server: true
+    allow-pw: true
+    # Add your SSH public key for passwordless access
+    # authorized-keys:
+    #   - "ssh-ed25519 AAAA... mumo@bizra-node0"
+
+  # ── Packages ──────────────────────────────────────────────────────
+  # Minimal base + everything needed for BIZRA bootstrap
+  packages:
+    # Build essentials
+    - build-essential
+    - git
+    - curl
+    - wget
+    - unzip
+    - cmake
+    - ninja-build
+    - pkg-config
+    - libssl-dev
+    - libffi-dev
+    # Python
+    - python3.12
+    - python3.12-venv
+    - python3.12-dev
+    - python3-pip
+    # Z3 solver (required for fate-binding crate)
+    - libz3-dev
+    # BLAS/LAPACK (FAISS, numpy, scipy)
+    - libopenblas-dev
+    - libomp-dev
+    # Terminal tools
+    - htop
+    - tmux
+    - ripgrep
+    - fd-find
+    - jq
+    - tree
+    - neofetch
+    # Networking
+    - openssh-server
+    - net-tools
+    # Docker prerequisites
+    - ca-certificates
+    - gnupg
+    - lsb-release
+    # Firmware
+    - linux-firmware
+
+  # ── Late Commands ─────────────────────────────────────────────────
+  # Run after install, before first boot
+  late-commands:
+    # Copy BIZRA bootstrap script to target
+    - cp /cdrom/bizra-payload/migrate-to-linux.sh /target/home/mumo/
+    - chmod +x /target/home/mumo/migrate-to-linux.sh
+    - chown 1000:1000 /target/home/mumo/migrate-to-linux.sh
+
+    # Copy backup tarball if present
+    - test -f /cdrom/bizra-payload/bizra-backup.tar.gz && cp /cdrom/bizra-payload/bizra-backup.tar.gz /target/home/mumo/ || true
+
+    # Enable systemd-resolved for DNS
+    - curtin in-target -- systemctl enable systemd-resolved
+
+    # Set BIZRA env vars
+    - |
+      cat >> /target/home/mumo/.bashrc << 'BIZRA_ENV'
+
+      # ── BIZRA Node0 Environment ──────────────────────────────────
+      export BIZRA_DATA_LAKE_ROOT="$HOME/bizra-data-lake"
+      export OLLAMA_HOST="http://localhost:11434"
+      export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+      bizra() {
+          cd "$BIZRA_DATA_LAKE_ROOT"
+          source .venv/bin/activate
+          ./scripts/bizra "$@"
+      }
+      # ── End BIZRA ────────────────────────────────────────────────
+      BIZRA_ENV
+
+    # Set timezone
+    - curtin in-target -- timedatectl set-timezone Asia/Dubai
+
+  # ── Updates ───────────────────────────────────────────────────────
+  updates: security
+
+  # ── Shutdown after install ────────────────────────────────────────
+  shutdown: reboot

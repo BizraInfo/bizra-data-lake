@@ -104,13 +104,15 @@ sleep 3
 # Pull models
 log "Pulling Ollama models (this may take a while)..."
 MODELS=(
-    "qwen2.5:3b"
-    "llama3.1:8b"
+    "gemma4:latest"
+    "gemma4:e4b"
+    "gemma4:e2b"
+    "gemma3:1b"
+    "qwen3:4b"
+    "qwen3:8b"
     "deepseek-r1:14b"
-    "phi3:mini"
-    "mistral:latest"
     "nomic-embed-text:latest"
-    "moondream:1.8b"
+    "gemma3:4b"
 )
 
 for model in "${MODELS[@]}"; do
