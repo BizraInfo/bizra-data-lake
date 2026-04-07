@@ -326,25 +326,27 @@ def test_recall_benchmark(bizra_root: Path) -> None:
     except Exception as exc:
         logger.warning("FAISS benchmark skipped: %s", exc)
 
-    # RuVector
+    # HNSW (native hnswlib — replaces RuVector subprocess bridge)
     try:
-        from core.search.ruvector_search import RuVectorSearchEngine
+        from core.search.hnsw_search import HnswSearchEngine
 
-        rv_engine = RuVectorSearchEngine(root=bizra_root)
-        if rv_engine.is_available:
-            rv_result = _run_engine_benchmark(rv_engine, "RuVector", queries)
-            results.append(rv_result)
+        hnsw_engine = HnswSearchEngine(root=bizra_root)
+        if hnsw_engine.is_available:
+            hnsw_engine._ensure_loaded()
+            logger.info("HNSW engine loaded: %d vectors", hnsw_engine.vector_count)
+            hnsw_result = _run_engine_benchmark(hnsw_engine, "HNSW", queries)
+            results.append(hnsw_result)
             logger.info(
-                "RuVector: R@1=%.4f R@5=%.4f R@10=%.4f MRR=%.4f",
-                rv_result.recall_at[1],
-                rv_result.recall_at[5],
-                rv_result.recall_at[10],
-                rv_result.mrr,
+                "HNSW: R@1=%.4f R@5=%.4f R@10=%.4f MRR=%.4f",
+                hnsw_result.recall_at[1],
+                hnsw_result.recall_at[5],
+                hnsw_result.recall_at[10],
+                hnsw_result.mrr,
             )
         else:
-            logger.warning("RuVector benchmark skipped: DB not available")
+            logger.warning("HNSW benchmark skipped: chunks.parquet not found")
     except Exception as exc:
-        logger.warning("RuVector benchmark skipped: %s", exc)
+        logger.warning("HNSW benchmark skipped: %s", exc)
 
     # Hybrid RRF
     if len(results) >= 1:
