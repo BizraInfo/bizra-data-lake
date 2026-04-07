@@ -3,14 +3,15 @@ autoinstall:
   version: 1
 
   # ── Identity ──────────────────────────────────────────────────────
-  # IMPORTANT: Change password before install! This is a placeholder.
-  # Generate hash: openssl passwd -6 -stdin <<< 'YOUR_PASSWORD'
+  # BEFORE INSTALL: You MUST set a real password hash.
+  # Generate: openssl passwd -6 -stdin  (type password, Ctrl+D)
+  # Then replace the password line below with the output.
   identity:
     hostname: bizra-node0
     username: mumo
-    # Placeholder — MUST be replaced before install
-    # This is 'changeme' hashed with SHA-512
-    password: "$6$rounds=4096$PLACEHOLDER$REPLACE_THIS_BEFORE_INSTALL"
+    # NO PASSWORD SET — autoinstall will fail until you provide a real hash.
+    # This is intentional. Never commit a real password hash to a public repo.
+    password: "SET_PASSWORD_HASH_BEFORE_INSTALL"
 
   # ── Locale & Keyboard ────────────────────────────────────────────
   locale: en_US.UTF-8
@@ -36,13 +37,12 @@ autoinstall:
 
   # ── Storage ───────────────────────────────────────────────────────
   # Target: 3rd M.2 NVMe slot (dedicated Ubuntu drive)
-  # When NVMe is installed, it will likely appear as /dev/nvme2n1
-  # (nvme0n1 and nvme1n1 are the RAID 0 pair)
+  # The new NVMe will appear as /dev/nvme2n1 (or similar).
+  # nvme0n1 + nvme1n1 are the existing RAID 0 pair (3.73 TB) — DO NOT TOUCH.
   #
-  # STRATEGY: Use entire NVMe for Ubuntu. Do NOT touch existing drives.
-  # The installer will show available disks — select the new NVMe only.
+  # STRATEGY: Use entire new NVMe for Ubuntu. Do NOT touch RAID drives.
   #
-  # Layout:
+  # Layout (LVM on the new NVMe):
   #   512 MB  — EFI System Partition (/boot/efi)
   #   2 GB    — /boot (ext4)
   #   Rest    — LVM volume group
@@ -51,16 +51,20 @@ autoinstall:
   #     32 GB   — swap (for GPU workloads + hibernation)
   #     Rest    — /data (GOLD corpus, FAISS indexes, model cache)
   #
-  # NOTE: This config uses 'match by size' to avoid hardcoding device names.
-  # If your NVMe is 1TB or 2TB, adjust the /data partition accordingly.
-  # Set storage to 'lvm' layout for flexibility.
+  # ⚠️  SAFETY: match: smallest targets the NEW NVMe (2 TB), not the
+  #     existing RAID 0 (3.73 TB). This is the ONLY safe default.
+  #     If your NVMe is larger than the RAID, use interactive install instead.
+  #
+  # BEFORE INSTALL: Verify with `lsblk` in the live session that the
+  # smallest disk is indeed the new NVMe, not a USB or recovery partition.
+  # For maximum safety, replace 'smallest' with the exact device path:
+  #   match:
+  #     path: /dev/nvme2n1
   storage:
     layout:
       name: lvm
-      # CRITICAL: This must match only the NEW NVMe, not RAID drives
-      # The installer will present disk selection — verify before confirming
       match:
-        size: largest
+        size: smallest
 
   # ── SSH ───────────────────────────────────────────────────────────
   ssh:
