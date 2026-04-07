@@ -2,7 +2,8 @@
   "spearpoint_id": "BIZRA-STS-001",
   "spearpoint_seal": "b08f2208",
   "day": 3,
-  "date": "2026-04-09",
+  "date": "2026-04-07",
+  "date_correction": "Originally filed as 2026-04-09 (ba30c4b2). Days 1-3 executed in a single calendar day due to sprint compression. Corrected to 2026-04-07 per operator ground truth. Drift originated in Claude Opus 4.6 session inference, caught by GPT-5.4 cross-session audit.",
   "timezone": "Asia/Dubai",
   "chain_to": "cd3daa59",
   "chain_to_hash": "149bb4239758344cd38c274fa24ffa8b1165620bb906a0d8ca77fb64fe6afda3",
@@ -11,7 +12,7 @@
     "dev_layer": "WSL2 Ubuntu 24.04",
     "gpu_passthrough": "partial (LM Studio on Windows host, Ollama on WSL2 limited)",
     "receipt_chain_location": "C:\\BIZRA-DATA-LAKE on Intel RAID 0",
-    "substrate_sovereignty": "PARTIAL — native substrate not yet established, NVMe not yet ordered",
+    "substrate_sovereignty": "PARTIAL \u2014 native substrate not yet established, NVMe not yet ordered",
     "asterisk_open": true
   },
   "infrastructure_health": {
@@ -24,61 +25,73 @@
   },
   "deliverables_advanced": {
     "D4_cli_bridge": {
-      "status": "SHIPPED — fdd6a67b",
+      "status": "SHIPPED \u2014 fdd6a67b",
       "evidence": [
         "bizra_cli_bridge.py: Python bridge with cmd_status() + cmd_health()",
         "app.rs: refresh_live_state() wires LM Studio + FATE gates from bridge JSON",
         "commands/mod.rs: BIZRA_DATA_LAKE_ROOT env var, venv python fallback chain",
         "main.rs: refresh_live_state() called after dashboard data refresh",
         "kernel_daemon.py: /health + /healthz aliases for K8s/Docker/CLI probes",
-        "Build verified: cargo check -p bizra-cli — clean compile, 0 errors",
+        "Build verified: cargo check -p bizra-cli \u2014 clean compile, 0 errors",
         "Bridge tested: cmd_status() returns JSON, cmd_health() confirmed kernel alive",
         "Design principle: no claims without an authoritative source you can query"
       ]
     },
     "D5_dependabot_triage": {
-      "status": "CLOSED — 9 alerts → 1 remaining (P1)",
+      "status": "CLOSED \u2014 9 alerts \u2192 1 remaining (P1)",
       "evidence": [
         "8 phantom alerts dismissed: manifest paths runtime/ and filedfs/ do not exist in repo",
         "Active workspace bizra-omega/ has ALL patched versions: pyo3 0.24.2, bytes 1.11.1, time 0.3.47, rustls-webpki 0.103.10, tar NOT IN TREE",
         "cargo audit: 0 vulnerabilities (594 crate deps, 1027 advisories checked)",
-        "Remaining: alert #30 vite in frontend/package-lock.json — vitest transitive, P1-FRONTEND-TOOLCHAIN-UPGRADE",
-        "Triage evidence: evidence/p1_triage/dependabot_triage_2026-04-09.md"
+        "Remaining: alert #30 vite in frontend/package-lock.json \u2014 vitest transitive, P1-FRONTEND-TOOLCHAIN-UPGRADE",
+        "Triage evidence: evidence/p1_triage/dependabot_triage_2026-04-07.md"
       ]
     },
     "D7_daily_manifest_chain": {
-      "status": "ACTIVE — Day 3 of 30",
+      "status": "ACTIVE \u2014 Day 3 of 30",
       "evidence": "This receipt is entry 3 of 30. Chain unbroken. Chained to Day 2 (cd3daa59) via BLAKE3."
     },
     "infrastructure_updates": {
-      "status": "SHIPPED — c34947f1",
+      "status": "SHIPPED \u2014 c34947f1",
       "evidence": [
         "Ollama fleet: added Qwen 3 (4B/8B thinking), DeepSeek R1 14B, Gemma 3 4B fallback",
         "Gemma 4 parameters corrected (E4B=8B, E2B=5.1B), capabilities expanded (vision, audio, tools)",
-        "Routing table: frontier→DeepSeek R1, planning→Qwen 3 thinking, analyst→Qwen 3",
-        "RuVector timeout log message corrected 10s→30s"
+        "Routing table: frontier\u2192DeepSeek R1, planning\u2192Qwen 3 thinking, analyst\u2192Qwen 3",
+        "RuVector timeout log message corrected 10s\u219230s"
       ]
     },
     "preparatory_work_for_D1_D2_D3": {
-      "status": "STAGED — unchanged from Day 2",
+      "status": "STAGED \u2014 unchanged from Day 2",
       "evidence": "NVMe not yet ordered. Ubuntu Live USB prepared but not booted. Hardware inventory complete."
     }
   },
   "receipts_emitted_today": [
-    {"commit": "fdd6a67b", "type": "feat", "name": "D4 CLI bridge", "purpose": "Python reads system truth, Rust renders it"},
-    {"commit": "c34947f1", "type": "chore", "name": "Ollama fleet + RuVector timeout", "purpose": "model fleet expansion + search fix"}
+    {
+      "commit": "fdd6a67b",
+      "type": "feat",
+      "name": "D4 CLI bridge",
+      "purpose": "Python reads system truth, Rust renders it"
+    },
+    {
+      "commit": "c34947f1",
+      "type": "chore",
+      "name": "Ollama fleet + RuVector timeout",
+      "purpose": "model fleet expansion + search fix"
+    }
   ],
   "cross_model_authorship": {
-    "models_engaged": ["Claude Opus 4.6 (execution + verification + DevOps triage)"],
+    "models_engaged": [
+      "Claude Opus 4.6 (execution + verification + DevOps triage)"
+    ],
     "convergence_points": [
       "Phantom manifest discovery: 8/9 Dependabot alerts target non-existent paths (runtime/, filedfs/)",
       "CLI bridge verified end-to-end: bridge callable, Rust compiles, kernel responds",
       "cargo audit as authoritative source over Dependabot for Rust vulnerability state"
     ],
-    "routing_insight": "Dependabot manifest_path field is the first thing to check — stale manifests from deleted directories create false alert burden."
+    "routing_insight": "Dependabot manifest_path field is the first thing to check \u2014 stale manifests from deleted directories create false alert burden."
   },
   "honest_gaps_today": [
-    "NVMe drive not yet ordered — D1 hardware procurement still pending (Day 1 gap persists)",
+    "NVMe drive not yet ordered \u2014 D1 hardware procurement still pending (Day 1 gap persists)",
     "Ubuntu Live USB not yet booted on Titan (Day 1 gap persists)",
     "Cross-OS receipt verification (D2) blocked on D1",
     "First bizra.efi boot (D3) blocked on D1",
@@ -86,23 +99,23 @@
     "24-hour heartbeat (P0-HEARTBEAT) not yet started",
     "1 Dependabot alert remaining: #30 vite vitest transitive (P1-FRONTEND-TOOLCHAIN-UPGRADE)"
   ],
-  "gaps_closed_since_yesterday": [
-    "D4 CLI bridge: Python→Rust bridge shipped with env var paths and venv fallback",
-    "Dependabot: 9 open → 1 remaining (8 phantom alerts cleared, 0 real Rust vulnerabilities)",
+  "gaps_closed_since_prior_entry": [
+    "D4 CLI bridge: Python\u2192Rust bridge shipped with env var paths and venv fallback",
+    "Dependabot: 9 open \u2192 1 remaining (8 phantom alerts cleared, 0 real Rust vulnerabilities)",
     "Kernel daemon: /health and /healthz aliases (CLI + K8s + Docker probe compatible)",
-    "Ollama fleet expanded: 4 tiers → 7 tiers (Qwen 3 thinking, DeepSeek R1 deep, Gemma 3 fallback)"
+    "Ollama fleet expanded: 4 tiers \u2192 7 tiers (Qwen 3 thinking, DeepSeek R1 deep, Gemma 3 fallback)"
   ],
   "next_day_actions": [
-    "Order NVMe drive — shipping clock is the critical path for D1",
-    "Boot Ubuntu 24.04 LTS Live USB on MSI Titan — neofetch + nvidia-smi + lscpu screenshots",
+    "Order NVMe drive \u2014 shipping clock is the critical path for D1",
+    "Boot Ubuntu 24.04 LTS Live USB on MSI Titan \u2014 neofetch + nvidia-smi + lscpu screenshots",
     "Begin P0-HEARTBEAT 24-hour heartbeat process",
     "Start Recall@k benchmark design (D6)",
-    "Assess vitest 2→4 upgrade path (P1-FRONTEND-TOOLCHAIN-UPGRADE)",
+    "Assess vitest 2\u21924 upgrade path (P1-FRONTEND-TOOLCHAIN-UPGRADE)",
     "Day 4 manifest entry before 23:59 GST"
   ],
   "ihsan_score": 0.96,
   "ihsan_grounding": "D4 CLI bridge shipped with verified tests. Dependabot fully triaged (phantom alert discovery is high-value hygiene). Infrastructure all green (31 containers, 3 K8s nodes). Not higher because NVMe still not ordered (Day 1 gap persists into Day 3) and P0-HEARTBEAT and Recall@k not yet started.",
   "signed_by": "Mumo, BIZRA Foundation",
-  "manifest_hash": "039b2b5381b943745dc1897f8d7b756349f9f88af13703f4d2bc3547beb1d777",
+  "manifest_hash": "4d410d150b9b4609760ee3a9a9710d5c50659fe1ea62278c89f94af55872fcfb",
   "manifest_hash_rule": "BLAKE3 of canonical sorted JSON with manifest_hash set to empty string and manifest_hash_rule excluded"
 }
