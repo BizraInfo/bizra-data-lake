@@ -1,7 +1,7 @@
 {
   "_comment": "BIZRA Team MCP Configuration — checked into repo for team-wide consistency",
-  "_version": "1.4.0",
-  "_updated": "2026-04-07 — Added neo4j-cypher MCP server (12 servers total)",
+  "_version": "1.5.0",
+  "_updated": "2026-04-07 — Optimized: removed filesystem (redundant), sequential-thinking (built-in better), claude-flow-sqlite (use CLI). 12→9 servers.",
 
   "mcpServers": {
     "context7": {
@@ -10,22 +10,10 @@
       "description": "Live documentation lookup for libraries (tokio, pyo3, pydantic, fastapi, etc.)"
     },
 
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem@latest", "."],
-      "description": "Local filesystem access for the repo"
-    },
-
     "memory": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory@latest"],
       "description": "Cross-session persistent memory"
-    },
-
-    "sequential-thinking": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking@latest"],
-      "description": "Multi-step reasoning and problem decomposition"
     },
 
     "github": {
@@ -50,12 +38,6 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-sqlite@latest", "--db-path", "/mnt/c/BIZRA-DATA-LAKE/04_GOLD/bizra.db"],
       "description": "Structured query access to the primary BIZRA SQLite knowledge base"
-    },
-
-    "claude-flow-sqlite": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sqlite@latest", "--db-path", "/mnt/c/BIZRA-DATA-LAKE/.swarm/memory.db"],
-      "description": "Structured query access to Claude-Flow memory.db for sessions, patterns, and memory entries"
     },
 
     "bizra-sovereign": {
@@ -93,7 +75,7 @@
         "REDIS_SYNAPSE_URL": "redis://127.0.0.1:6380",
         "OLLAMA_HOST": "http://127.0.0.1:11434"
       },
-      "description": "ruflo/claude-flow v3.5.58 — swarm orchestration, HNSW memory, Q-learning routing, 40+ MCP tools"
+      "description": "ruflo/claude-flow v3.5.58 — swarm orchestration, HNSW memory, Q-learning routing, 254 tools (deferred loading)"
     }
   }
 }
