@@ -1,0 +1,39 @@
+{
+  "date": "2026-04-07",
+  "version": "v3_ef200",
+  "spearpoint": "BIZRA-STS-001",
+  "deliverable": "D6",
+  "sample_size": 100,
+  "seed": 42,
+  "hnsw_ef_search": 200,
+  "corpus_chunks": 84795,
+  "engines": [
+    {
+      "name": "FAISS",
+      "recall_at_1": 0.37,
+      "recall_at_5": 0.56,
+      "recall_at_10": 0.58,
+      "mrr": 0.4428452380952381,
+      "ndcg_at_10": 0.4814909167929429,
+      "avg_latency_ms": 805.85
+    },
+    {
+      "name": "HNSW",
+      "recall_at_1": 0.33,
+      "recall_at_5": 0.47,
+      "recall_at_10": 0.55,
+      "mrr": 0.38671428571428573,
+      "ndcg_at_10": 0.43238708765968953,
+      "avg_latency_ms": 39.63
+    },
+    {
+      "name": "Hybrid RRF",
+      "recall_at_1": 0.23,
+      "recall_at_5": 0.52,
+      "recall_at_10": 0.61,
+      "mrr": 0.3500238095238095,
+      "ndcg_at_10": 0.4126511699739963,
+      "avg_latency_ms": 85.88
+    }
+  ]
+}

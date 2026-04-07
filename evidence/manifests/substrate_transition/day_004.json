@@ -11,7 +11,7 @@
     "dev_layer": "WSL2 Ubuntu 24.04",
     "gpu_passthrough": "partial (LM Studio on Windows host, Ollama on WSL2 limited)",
     "receipt_chain_location": "C:\\BIZRA-DATA-LAKE on Intel RAID 0",
-    "substrate_sovereignty": "PARTIAL \u2014 native substrate not yet established, NVMe ordered (Path A)",
+    "substrate_sovereignty": "PARTIAL — native substrate not yet established, NVMe ordered (Path A)",
     "asterisk_open": true
   },
   "infrastructure_health": {
@@ -23,9 +23,9 @@
   },
   "deliverables_advanced": {
     "D1_install_runbook": {
-      "status": "FROZEN \u2014 D1_INSTALL_RUNBOOK.md created with VMD preflight",
+      "status": "FROZEN — D1_INSTALL_RUNBOOK.md created with VMD preflight",
       "evidence": [
-        "docs/canon/D1_INSTALL_RUNBOOK.md \u2014 7-step preflight checklist",
+        "docs/canon/D1_INSTALL_RUNBOOK.md — 7-step preflight checklist",
         "VMD research: MSI Titan has ALL-OR-NOTHING VMD control (no per-slot)",
         "Two BIOS paths documented: Option A (keep VMD, use vmd.enable=1) or Option B (disable VMD)",
         "Storage matcher fix documented: replace match:size:smallest with exact device path",
@@ -33,14 +33,14 @@
       ]
     },
     "D3_bizra_efi": {
-      "status": "BOOTS IN QEMU \u2014 bizra.efi PoC verified",
+      "status": "BOOTS IN QEMU — bizra.efi PoC verified",
       "evidence": [
         "bizra-omega/bizra-efi/ crate: no_std, no_main, uefi 0.37",
         "26K EFI binary: target/x86_64-unknown-uefi/release/bizra-efi.efi",
         "QEMU boot: banner printed, witness JSON emitted to console",
         "Witness hash: 335f148326b61ac0 (FNV-1a, no_std compatible)",
         "WITNESS_JSON: {\"event\":\"substrate_genesis\",\"hash\":\"335f148326b61ac0\",\"node\":\"Node0\",\"chain\":\"BIZRA-STS-001\"}",
-        "evidence/d3_efi_boot/qemu_serial_output.txt \u2014 full serial capture",
+        "evidence/d3_efi_boot/qemu_serial_output.txt — full serial capture",
         "Workspace Cargo.toml updated: bizra-efi in exclude[] (different target)"
       ]
     },
@@ -55,24 +55,24 @@
       ]
     },
     "D6_recall_benchmark": {
-      "status": "COMPLETE \u2014 PARTIAL verdict (honest)",
+      "status": "COMPLETE — PARTIAL verdict (honest), v2 optimized",
       "evidence": [
         "Known-item search: 100 queries, seed=42, corpus=84795 chunks (384-dim)",
-        "FAISS: R@1=0.3700 R@5=0.5600 R@10=0.5800 MRR=0.4428 nDCG@10=0.4815",
-        "Hybrid (FAISS-only): R@1=0.2700 R@5=0.4400 R@10=0.5900 MRR=0.3533 nDCG@10=0.4086",
-        "RuVector: UNAVAILABLE \u2014 Node.js subprocess timeout (30s/query)",
-        "Verdict: PARTIAL \u2014 R@10=0.58 between overclaim (0.50) and verified (0.70)",
-        "No prior SNR claims invalidated, but system does not yet achieve 0.70 target",
-        "evidence/d6_recall_benchmark/recall_benchmark_results.json",
-        "docs/canon/METRICS_CANONICAL.md updated with full results + methodology"
+        "v2: Native HNSW replaces RuVector subprocess bridge (250x speedup: 10032ms→40ms)",
+        "v2 FAISS: R@1=0.3700 R@5=0.5600 R@10=0.5800 MRR=0.4428 (826ms)",
+        "v2 HNSW (native, ef=200): R@1=0.3300 R@5=0.4700 R@10=0.5500 MRR=0.3867 (40ms)",
+        "v2 Hybrid RRF: R@1=0.2300 R@5=0.5200 R@10=0.6100 MRR=0.3500 (86ms)",
+        "Verdict: PARTIAL — Hybrid R@10=0.61, needs BM25 or cross-encoder for 0.70",
+        "core/search/hnsw_search.py — native hnswlib engine",
+        "evidence/d6_recall_benchmark/recall_benchmark_v3_ef200.json"
       ]
     },
     "D7_daily_manifest_chain": {
-      "status": "ACTIVE \u2014 Day 4 of 30",
+      "status": "ACTIVE — Day 4 of 30",
       "evidence": "This receipt is entry 4 of 30. Chain unbroken. Chained to Day 3 (25d15525) via BLAKE3."
     },
     "P0_HEARTBEAT": {
-      "status": "RUNNING \u2014 65 ticks logged, 0 anomalies",
+      "status": "RUNNING — 65 ticks logged, 0 anomalies",
       "evidence": [
         "scripts/heartbeat_evidence_logger.py: polls /api/heartbeat every 60s",
         "evidence/heartbeat/heartbeat_log_20260407_130851.jsonl: 65 entries",
@@ -102,7 +102,7 @@
     {
       "type": "bench",
       "name": "D6 Recall@k benchmark",
-      "purpose": "Honest retrieval quality measurement \u2014 PARTIAL verdict"
+      "purpose": "Honest retrieval quality measurement — PARTIAL verdict"
     },
     {
       "type": "ops",
@@ -116,17 +116,18 @@
     ],
     "convergence_points": [
       "VMD research: MSI Titan confirmed all-or-nothing VMD (no per-slot control)",
-      "Recall@k: PARTIAL verdict \u2014 honest gap between 0.50 and 0.70",
+      "Recall@k: PARTIAL verdict — honest gap between 0.50 and 0.70",
       "bizra.efi: FNV-1a hash used for no_std compatibility (BLAKE3 requires alloc features)",
-      "RuVector timeout: subprocess bridge is the bottleneck, not the HNSW algorithm"
+      "RuVector bottleneck RESOLVED: native HNSW replaces subprocess bridge (250x speedup)",
+      "Same-embedding RRF ceiling: FAISS+HNSW both use all-MiniLM-L6-v2, limiting fusion gain to R@10=0.61"
     ]
   },
   "honest_gaps_today": [
     "NVMe drive not yet physically installed (ordered Path A, awaiting delivery)",
     "Ubuntu Live USB not yet booted on Titan (blocked on NVMe)",
     "Cross-OS receipt verification (D2) blocked on D1",
-    "Recall@10 = 0.58 \u2014 below 0.70 VERIFIED threshold (PARTIAL)",
-    "RuVector subprocess bridge times out \u2014 hybrid RRF untested with dual engines",
+    "Recall@10 = 0.61 — below 0.70 VERIFIED threshold (PARTIAL, improved from 0.58)",
+    "Same-embedding RRF ceiling — need BM25 sparse retrieval or cross-encoder re-ranking for 0.70",
     "Heartbeat logged 65 ticks but not yet 24h (need ~1440 ticks for full gate)",
     "1 Dependabot alert remaining: #30 vite vitest transitive (P1)"
   ],
@@ -139,16 +140,16 @@
     "no_std audit: 2/26 crates, 3 migration candidates identified"
   ],
   "next_day_actions": [
-    "NVMe physically installed \u2192 boot Ubuntu Live USB \u2192 run VMD preflight",
-    "If preflight PASS \u2192 proceed with autoinstall (fix storage matcher first)",
+    "NVMe physically installed → boot Ubuntu Live USB → run VMD preflight",
+    "If preflight PASS → proceed with autoinstall (fix storage matcher first)",
     "Continue heartbeat to 24h (need ~1375 more ticks)",
-    "Investigate RuVector subprocess timeout \u2192 rerun recall@k with dual engines",
+    "Add BM25 sparse retrieval to hybrid engine → push R@10 past 0.70",
     "Run cargo test -p bizra-cli to verify receipt verify path",
     "Day 5 manifest entry before 23:59 GST"
   ],
   "ihsan_score": 0.93,
-  "ihsan_grounding": "Five deliverables advanced (D1 runbook, D3 EFI boot, D4 CLI, D6 benchmark, heartbeat). All evidence collected honestly. Recall@k PARTIAL verdict is truthful \u2014 no overclaim. Docked for: NVMe still not physically installed (persistent D1 gap), RuVector bridge broken (hybrid untested), heartbeat not yet 24h.",
+  "ihsan_grounding": "Six deliverables advanced (D1 runbook, D3 EFI boot, D4 CLI, D6 benchmark v2, HNSW native engine, heartbeat). RuVector subprocess bottleneck resolved (250x speedup). Recall@k PARTIAL verdict truthful — R@10=0.61, honestly short of 0.70. Docked for: NVMe not installed (D1 gap), same-embedding RRF ceiling (need BM25 for 0.70), heartbeat not yet 24h.",
   "signed_by": "Mumo, BIZRA Foundation",
-  "manifest_hash": "cb99d56dcd87f615b8c94917a2765b29b5f68ad7a216d8c3224961f5a9a82e05",
+  "manifest_hash": "ce2440494b678708e7cd3379af67c24288160c9e28f4d30f9a154e66cf6eae7a",
   "manifest_hash_rule": "BLAKE3 of canonical sorted JSON with manifest_hash set to empty string and manifest_hash_rule excluded"
 }

@@ -1,4 +1,4 @@
-"""Hybrid Search Engine — Reciprocal Rank Fusion over FAISS + RuVector HNSW.
+"""Hybrid Search Engine — Reciprocal Rank Fusion over FAISS + native HNSW.
 
 Runs two independent retrieval engines in parallel and fuses results using
 RRF (Cormack, Clarke & Buettcher, 2009). Two independent ranking signals
@@ -6,8 +6,8 @@ yield strictly higher recall than either alone — Shannon-optimal retrieval.
 
 Architecture:
     query → EmbeddingService → vector
-                                 ├── FAISS (flat L2, exact) → ranked list A
-                                 └── RuVector (HNSW, approximate) → ranked list B
+                                 ├── FAISS (IVF, exact) → ranked list A
+                                 └── HNSW (native hnswlib) → ranked list B
                                                                        ↓
                                               Reciprocal Rank Fusion (k=60)
                                                                        ↓
@@ -42,7 +42,7 @@ def _rrf_score(rank: int, k: int = RRF_K) -> float:
 
 
 class HybridSearchEngine:
-    """Fuses FAISS and RuVector results via Reciprocal Rank Fusion.
+    """Fuses FAISS and native HNSW results via Reciprocal Rank Fusion.
 
     When both engines are available, runs searches in parallel threads
     and merges results. Gracefully degrades to whichever engine is
@@ -82,16 +82,16 @@ class HybridSearchEngine:
 
         if self._ruvector is None:
             try:
-                from core.search.ruvector_search import RuVectorSearchEngine
+                from core.search.hnsw_search import HnswSearchEngine
 
-                engine = RuVectorSearchEngine()
+                engine = HnswSearchEngine()
                 if engine.is_available:
                     self._ruvector = engine
-                    logger.info("HybridSearch: RuVector engine ready")
+                    logger.info("HybridSearch: HNSW native engine ready")
                 else:
-                    logger.info("HybridSearch: RuVector DB not found")
+                    logger.info("HybridSearch: HNSW chunks.parquet not found")
             except Exception as e:
-                logger.info("HybridSearch: RuVector unavailable: %s", e)
+                logger.info("HybridSearch: HNSW unavailable: %s", e)
                 self._ruvector = None
 
         self._initialized = True
@@ -104,7 +104,7 @@ class HybridSearchEngine:
         if self._faiss is not None:
             engines.append("faiss")
         if self._ruvector is not None:
-            engines.append("ruvector")
+            engines.append("hnsw")
         return engines
 
     def _fuse_results(
@@ -187,7 +187,7 @@ class HybridSearchEngine:
             return self._ruvector.search(query, top_k=top_k, min_score=min_score)
 
         # Parallel execution — both engines available
-        fetch_k = top_k * 3  # Over-fetch for better fusion
+        fetch_k = top_k * 3  # Over-fetch for RRF fusion
         result_lists: Dict[str, List[SearchResult]] = {}
 
         with ThreadPoolExecutor(max_workers=2, thread_name_prefix="hybrid") as pool:
@@ -196,7 +196,7 @@ class HybridSearchEngine:
                 futures[pool.submit(self._faiss.search, query, fetch_k, 0.0)] = "faiss"
             if self._ruvector:
                 futures[pool.submit(self._ruvector.search, query, fetch_k, 0.0)] = (
-                    "ruvector"
+                    "hnsw"
                 )
 
             for future in as_completed(futures, timeout=30):
@@ -250,7 +250,7 @@ class HybridSearchEngine:
             if self._ruvector:
                 futures[
                     pool.submit(self._ruvector.search_by_vector, vector, fetch_k, 0.0)
-                ] = "ruvector"
+                ] = "hnsw"
 
             for future in as_completed(futures, timeout=30):
                 engine_name = futures[future]
