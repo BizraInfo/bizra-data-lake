@@ -6,28 +6,36 @@
   "seed": 42,
   "corpus_chunks": 84795,
   "corpus_docs": 1437,
-  "ruvector_status": "UNAVAILABLE \u2014 Node.js subprocess timeout (30s/query)",
   "engines": [
     {
       "name": "FAISS",
       "recall_at_1": 0.37,
       "recall_at_5": 0.56,
       "recall_at_10": 0.58,
-      "mrr": 0.4428,
-      "ndcg_at_10": 0.4815,
-      "avg_latency_ms": 974.69,
+      "mrr": 0.4428452380952381,
+      "ndcg_at_10": 0.4814909167929429,
+      "avg_latency_ms": 921.34,
       "queries_run": 100
     },
     {
-      "name": "Hybrid (FAISS-only)",
-      "recall_at_1": 0.27,
-      "recall_at_5": 0.44,
-      "recall_at_10": 0.59,
-      "mrr": 0.3533,
-      "ndcg_at_10": 0.4086,
-      "avg_latency_ms": 233.3,
+      "name": "RuVector",
+      "recall_at_1": 0.19,
+      "recall_at_5": 0.3,
+      "recall_at_10": 0.37,
+      "mrr": 0.23373412698412696,
+      "ndcg_at_10": 0.2653954874792583,
+      "avg_latency_ms": 10032.13,
+      "queries_run": 100
+    },
+    {
+      "name": "Hybrid RRF",
+      "recall_at_1": 0.28,
+      "recall_at_5": 0.5,
+      "recall_at_10": 0.6,
+      "mrr": 0.3660079365079365,
+      "ndcg_at_10": 0.4211486992473843,
+      "avg_latency_ms": 4885.98,
       "queries_run": 100
     }
-  ],
-  "verdict": "PARTIAL \u2014 Recall@10=0.58 (between 0.50-0.70). Pipeline functional, not elite. RuVector fusion untestable."
+  ]
 }
