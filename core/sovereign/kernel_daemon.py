@@ -1351,6 +1351,10 @@ class KernelHandler(SimpleHTTPRequestHandler):
         if path.startswith("/v1/"):
             path = "/api/" + path[4:]  # /v1/health → /api/health
 
+        # Standard health check aliases (K8s, Docker, CLI all use these)
+        if path in ("/health", "/healthz"):
+            path = "/api/health"
+
         if path == "/api/health":
             self._json_response(
                 {"status": "alive", "version": KERNEL_VERSION, "uptime_s": _uptime()}

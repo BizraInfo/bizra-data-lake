@@ -185,12 +185,24 @@ pub fn exec_status() -> Result<()> {
     println!("  └─────────────────────────────────────────────┘");
     println!();
 
-    // Check LM Studio via Python bridge (uses MultiModelManager)
-    let bridge_path = "/mnt/c/BIZRA-DATA-LAKE/bizra_cli_bridge.py";
-    let python_path = "/mnt/c/BIZRA-DATA-LAKE/.venv/bin/python";
+    // Check LM Studio via Python bridge (auto-detects WSL gateway)
+    let root = std::env::var("BIZRA_DATA_LAKE_ROOT")
+        .unwrap_or_else(|_| "/mnt/c/BIZRA-DATA-LAKE".to_string());
+    let bridge_path = format!("{root}/bizra_cli_bridge.py");
 
-    let mut cmd = Command::new(python_path);
-    cmd.args([bridge_path, "status"]);
+    // Try Linux venv first, then system python3
+    let python_candidates = [
+        format!("{root}/.venv-linux/bin/python3"),
+        "python3".to_string(),
+    ];
+    let python_path = python_candidates
+        .iter()
+        .find(|p| std::path::Path::new(p).exists() || !p.contains('/'))
+        .cloned()
+        .unwrap_or_else(|| "python3".to_string());
+
+    let mut cmd = Command::new(&python_path);
+    cmd.args([bridge_path.as_str(), "status"]);
     if let Ok(key) = std::env::var("LM_STUDIO_API_KEY") {
         cmd.env("LM_STUDIO_API_KEY", key);
     }

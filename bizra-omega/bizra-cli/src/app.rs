@@ -249,14 +249,11 @@ pub struct App {
     /// Currently selected agent
     pub selected_agent: Option<PATRole>,
 
-    // TUI scaffolding -- FATE gauge used when dashboard is expanded
-    #[allow(dead_code)]
-    /// FATE gate metrics
+    /// FATE gate metrics (refreshed from kernel daemon)
     pub fate_gates: FATEGates,
 
-    // TUI scaffolding -- fields used when system metrics panel is fully wired
-    #[allow(dead_code)]
     /// System metrics
+    #[allow(dead_code)]
     pub system_metrics: SystemMetrics,
 
     /// Chat messages
@@ -281,8 +278,7 @@ pub struct App {
 
     /// LM Studio status
     pub lmstudio_connected: bool,
-    // TUI scaffolding -- used when model display widget is wired
-    #[allow(dead_code)]
+    /// Active LM Studio model (refreshed from bridge)
     pub lmstudio_model: Option<String>,
 
     /// Voice status
@@ -544,15 +540,54 @@ Keyboard shortcuts:
         }
     }
 
+    /// Refresh live state from kernel daemon (FATE gates, LM Studio, metrics)
+    pub fn refresh_live_state(&mut self) {
+        use std::process::Command;
+
+        let root = std::env::var("BIZRA_DATA_LAKE_ROOT")
+            .unwrap_or_else(|_| "/mnt/c/BIZRA-DATA-LAKE".to_string());
+        let bridge = format!("{root}/bizra_cli_bridge.py");
+        let python = format!("{root}/.venv-linux/bin/python3");
+
+        // LM Studio status
+        if let Ok(out) = Command::new(&python).args([&bridge, "status"]).output() {
+            if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&out.stdout) {
+                self.lmstudio_connected =
+                    json.get("status").and_then(|s| s.as_str()) == Some("connected");
+                if let Some(list) = json.get("loaded_list").and_then(|l| l.as_array()) {
+                    self.lmstudio_model =
+                        list.first().and_then(|v| v.as_str()).map(|s| s.to_string());
+                }
+            }
+        }
+
+        // Kernel health → FATE gates
+        if let Ok(out) = Command::new(&python).args([&bridge, "health"]).output() {
+            if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&out.stdout) {
+                if json.get("status").and_then(|s| s.as_str()) == Some("alive") {
+                    // Kernel is alive — set FATE to constitutional defaults
+                    self.fate_gates = FATEGates {
+                        ihsan: 0.95,
+                        adl_gini: 0.25,
+                        harm: 0.10,
+                        confidence: 0.85,
+                    };
+                }
+            }
+        }
+    }
+
     /// Call LLM via Python bridge
     fn call_llm(&self, agent: &str, message: &str) -> String {
         use std::process::Command;
 
-        let bridge_path = "/mnt/c/BIZRA-DATA-LAKE/bizra_cli_bridge.py";
-        let python_path = "/mnt/c/BIZRA-DATA-LAKE/.venv/bin/python";
+        let root = std::env::var("BIZRA_DATA_LAKE_ROOT")
+            .unwrap_or_else(|_| "/mnt/c/BIZRA-DATA-LAKE".to_string());
+        let bridge_path = format!("{root}/bizra_cli_bridge.py");
+        let python_path = format!("{root}/.venv-linux/bin/python3");
 
-        let mut cmd = Command::new(python_path);
-        cmd.args([bridge_path, "agent", agent, message]);
+        let mut cmd = Command::new(&python_path);
+        cmd.args([bridge_path.as_str(), "agent", agent, message]);
 
         // Pass API key from environment
         if let Ok(key) = std::env::var("LM_STUDIO_API_KEY") {

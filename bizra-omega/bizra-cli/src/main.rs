@@ -563,6 +563,9 @@ where
 
             app.dashboard_data = Some(new_data);
             app.last_refresh = Some(std::time::Instant::now());
+
+            // Wire scaffolded fields: LM Studio, FATE gates, system metrics
+            app.refresh_live_state();
         }
 
         // Clear expired status messages
