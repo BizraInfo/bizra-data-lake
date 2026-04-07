@@ -1,0 +1,10 @@
+[package]
+name = "bizra-efi"
+version = "0.1.0"
+edition = "2021"
+description = "BIZRA Node0 UEFI substrate genesis — minimal EFI app that boots, prints banner, emits witness"
+license = "AGPL-3.0-or-later"
+publish = false
+
+[dependencies]
+uefi = { version = "0.37", features = ["alloc", "panic_handler", "global_allocator"] }

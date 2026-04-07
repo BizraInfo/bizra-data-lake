@@ -1,0 +1,33 @@
+{
+  "date": "2026-04-07",
+  "spearpoint": "BIZRA-STS-001",
+  "deliverable": "D6",
+  "sample_size": 100,
+  "seed": 42,
+  "corpus_chunks": 84795,
+  "corpus_docs": 1437,
+  "ruvector_status": "UNAVAILABLE \u2014 Node.js subprocess timeout (30s/query)",
+  "engines": [
+    {
+      "name": "FAISS",
+      "recall_at_1": 0.37,
+      "recall_at_5": 0.56,
+      "recall_at_10": 0.58,
+      "mrr": 0.4428,
+      "ndcg_at_10": 0.4815,
+      "avg_latency_ms": 974.69,
+      "queries_run": 100
+    },
+    {
+      "name": "Hybrid (FAISS-only)",
+      "recall_at_1": 0.27,
+      "recall_at_5": 0.44,
+      "recall_at_10": 0.59,
+      "mrr": 0.3533,
+      "ndcg_at_10": 0.4086,
+      "avg_latency_ms": 233.3,
+      "queries_run": 100
+    }
+  ],
+  "verdict": "PARTIAL \u2014 Recall@10=0.58 (between 0.50-0.70). Pipeline functional, not elite. RuVector fusion untestable."
+}

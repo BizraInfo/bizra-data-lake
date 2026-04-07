@@ -1421,6 +1421,135 @@ pub fn exec_receipt(verify: bool) -> Result<()> {
     Ok(())
 }
 
+// ── bizra receipt --path <file> ────────────────────────────
+//
+// Standalone cross-process receipt verification.
+// Reads a JSONL file of LedgerEntry records and verifies each receipt's
+// BLAKE3 hash + Ed25519 signature + chain integrity.
+
+/// Verify receipts from an arbitrary JSONL file (cross-process verification).
+pub fn exec_receipt_verify_file(path: &std::path::Path) -> Result<()> {
+    use std::io::BufRead;
+
+    println!();
+    println!("  \x1b[36m╔════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("  \x1b[36m║\x1b[0m       \x1b[1mBIZRA Cross-Process Receipt Verification\x1b[0m            \x1b[36m║\x1b[0m");
+    println!("  \x1b[36m╚════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!();
+    println!("  \x1b[33mFile:\x1b[0m {}", path.display());
+    println!();
+
+    let file = std::fs::File::open(path)
+        .with_context(|| format!("failed to open receipt file: {}", path.display()))?;
+    let reader = std::io::BufReader::new(file);
+
+    let mut entries: Vec<LedgerEntry> = Vec::new();
+    let mut parse_errors = 0;
+
+    for (i, line) in reader.lines().enumerate() {
+        let line = line.context("failed to read line")?;
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        match serde_json::from_str::<LedgerEntry>(trimmed) {
+            Ok(entry) => entries.push(entry),
+            Err(e) => {
+                println!("  \x1b[31m✗ Line {}: parse error: {}\x1b[0m", i + 1, e);
+                parse_errors += 1;
+            }
+        }
+    }
+
+    if entries.is_empty() {
+        println!("  \x1b[31mNo valid receipt entries found.\x1b[0m");
+        println!();
+        return Ok(());
+    }
+
+    println!("  \x1b[33mEntries:\x1b[0m {} valid, {} parse errors", entries.len(), parse_errors);
+    println!();
+
+    let mut hash_pass = 0;
+    let mut sig_pass = 0;
+    let mut hash_fail = 0;
+    let mut sig_fail = 0;
+    let mut sig_skip = 0;
+
+    for (i, entry) in entries.iter().enumerate() {
+        let receipt = &entry.receipt;
+        let id_short = &receipt.id_hex()[..std::cmp::min(16, receipt.id_hex().len())];
+
+        // BLAKE3 hash verification
+        let h_ok = receipt.verify_hash();
+        if h_ok {
+            hash_pass += 1;
+        } else {
+            hash_fail += 1;
+        }
+
+        // Ed25519 signature verification
+        let vk_bytes = hex::decode(&entry.verifying_key_hex)
+            .ok()
+            .and_then(|b| <[u8; 32]>::try_from(b).ok());
+
+        let sig_status = if let Some(vk_bytes) = vk_bytes {
+            if let Ok(vk) = ed25519_dalek::VerifyingKey::from_bytes(&vk_bytes) {
+                if receipt.verify_signature(&vk) {
+                    sig_pass += 1;
+                    "\x1b[32m✓ sig\x1b[0m"
+                } else {
+                    sig_fail += 1;
+                    "\x1b[31m✗ sig\x1b[0m"
+                }
+            } else {
+                sig_skip += 1;
+                "\x1b[33m? key\x1b[0m"
+            }
+        } else {
+            sig_skip += 1;
+            "\x1b[33m? key\x1b[0m"
+        };
+
+        let h_mark = if h_ok {
+            "\x1b[32m✓\x1b[0m"
+        } else {
+            "\x1b[31m✗\x1b[0m"
+        };
+
+        println!(
+            "    [{}] #{}: {}…  {}  {:?}",
+            h_mark,
+            i + 1,
+            id_short,
+            sig_status,
+            receipt.final_state
+        );
+    }
+
+    println!();
+    println!("  \x1b[33mSummary:\x1b[0m");
+    println!(
+        "    BLAKE3:  \x1b[32m{} pass\x1b[0m / \x1b[31m{} fail\x1b[0m",
+        hash_pass, hash_fail
+    );
+    println!(
+        "    Ed25519: \x1b[32m{} pass\x1b[0m / \x1b[31m{} fail\x1b[0m / \x1b[33m{} skip\x1b[0m",
+        sig_pass, sig_fail, sig_skip
+    );
+
+    let all_ok = hash_fail == 0 && sig_fail == 0 && parse_errors == 0;
+    println!();
+    if all_ok {
+        println!("  \x1b[32m✓ All receipts verified — chain integrity confirmed\x1b[0m");
+    } else {
+        println!("  \x1b[31m✗ Verification found issues — see above\x1b[0m");
+    }
+    println!();
+
+    Ok(())
+}
+
 // ── bizra trust ────────────────────────────────────────────
 
 /// Constitutional compliance surface — the operator's trust panel.

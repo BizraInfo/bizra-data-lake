@@ -36,6 +36,10 @@ members = [
     # ━━━ Protocol Layer (the 26th crate — wires 25 organs into one living system) ━━━
     "bizra-protocol",
 ]
+exclude = [
+    # UEFI crate — different target (x86_64-unknown-uefi), built standalone
+    "bizra-efi",
+]
 
 [workspace.package]
 version = "2.0.0"

@@ -61,6 +61,10 @@ pub enum Commands {
         /// Verify BLAKE3 hash + Ed25519 signature + chain integrity
         #[arg(short = 'k', long)]
         verify: bool,
+
+        /// Path to a receipt JSONL file for standalone cross-process verification
+        #[arg(short, long)]
+        path: Option<std::path::PathBuf>,
     },
 
     /// Replay a mission from its receipt ID (re-execute + chain)

@@ -1,0 +1,9 @@
+  Node0 - Genesis Substrate
+  BIZRA Substrate Genesis Witness
+  event: substrate_genesis
+  hash:  335f148326b61ac0
+  node:  Node0 (MSI Titan i9-14900HX)
+  proof: UEFI boot sequence completed
+  chain: BIZRA-STS-001 D3
+WITNESS_JSON: {"event":"substrate_genesis","hash":"335f148326b61ac0","node":"Node0","chain":"BIZRA-STS-001"}
+  Genesis substrate verified.
