@@ -1,332 +1,157 @@
-<div align="center">
+# BIZRA Sovereign Node (SeedOS)
 
-# BIZRA
+> بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
 
-**Proof-Native Constitutional Intelligence**
-
-<br>
-
-<img src="docs/assets/bizra-seed.svg" width="120" alt="BIZRA Seed">
-
-<br><br>
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Rust](https://img.shields.io/badge/Rust-stable-DEA584?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![CI Status](https://github.com/BizraInfo/bizra-data-lake/actions/workflows/ci.yml/badge.svg?style=for-the-badge)](https://github.com/BizraInfo/bizra-data-lake/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Tests-CI_Verified-success?style=for-the-badge)](#testing)
-[![Discord](https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/bizra)
-[![Roadmap](https://img.shields.io/badge/Roadmap-Public-blue?style=for-the-badge)](ROADMAP.md)
-
-<br>
-
-BIZRA is a proof-native constitutional intelligence system in which sovereign local agency acts through a fail-closed membrane, emits receipted evidence for all externally visible effects, uses frozen ethical anchors and claim admissibility to bound reasoning, and improves recursively through a local N=1 flywheel before any network-scale amplification.
-
-[Architecture](#architecture) | [Quick Start](#quick-start) | [Documentation](#documentation) | [Contributing](CONTRIBUTING.md)
-
-</div>
+**Your Sovereign Work OS** — The first personal operating system where your agents think, act on your machine, prove what they did, turn repeated work into reflexes, and mint value from verified impact.
 
 ---
 
-## What is BIZRA?
+## What BIZRA Is
 
-**BIZRA** (Arabic: بذرة, "seed") is an open-source framework for building sovereign AI agents that operate under constitutional constraints. It combines:
+BIZRA is not "AI + blockchain." It is four interlocking systems in one: a **Personal Operating System** that runs entirely on your hardware; an **Agent Market** where skills become composable, tradeable objects; an **Impact Economy** where value is minted from verified work rather than extracted from data or debt; and a **Constitutional Trust Layer** that enforces ethical constraints in code, not policy. Every agent action is signed, receipted, and auditable. The machine works for the human — not the platform.
 
-- **Proof-Carrying Inference (PCI):** Every AI inference carries a cryptographic proof of its inputs, model, and ethical compliance
-- **FATE Gates:** Fairness, Accountability, Transparency, and Ethics gates that constrain all agent actions
-- **Ihsan Constraint:** A quality threshold (Signal-to-Noise Ratio >= 0.95) that enforces excellence as a hard requirement, not a suggestion
-- **Federation Protocol:** Byzantine fault-tolerant gossip protocol for peer-to-peer agent coordination
-- **Constitutional Governance:** Agents are bound by an immutable constitution that cannot be overridden at runtime
-
-### Design Philosophy
-
-> **We do not assume.** Every claim has provenance. Every inference has proof. Every agent has a constitution.
-
-BIZRA stands on the shoulders of giants: Shannon (information theory), Lamport (distributed consensus), Vaswani (attention mechanisms), Al-Ghazali (ethical reasoning), and General Magic (mobile agents, 1990).
+The governance fabric has three tiers. **PAT-7** is a seven-member council of agents that lives on the user's local machine and handles day-to-day task delegation. **SAT-5** is a five-member system governance council that enforces constitutional constraints across the full node. The **FATE Gate** is a judicial layer backed by Z3 SMT formal verification, requiring Ihsan ≥ 0.95 and hard zeros on ZANN and RIBA before any consequential action is committed. Together, PAT-7 + SAT-5 form a 12-agent parliament. Two agents — P5 Ethicist and S2 Oracle — are permanently frozen as a Gödelian escape valve: they cannot be modified by any runtime instruction.
 
 ---
 
 ## Architecture
 
+### 5-Layer Governed Stack
+
 ```
-                         BIZRA Sovereign Architecture
- ┌──────────────────────────────────────────────────────────────────────┐
- │                        Constitutional Layer                          │
- │   Immutable rules ─ FATE gates ─ Ihsan threshold ─ ADL invariants   │
- └──────────────────────────────┬───────────────────────────────────────┘
-                                │
- ┌──────────────────────────────┴───────────────────────────────────────┐
- │                        Sovereign Runtime                             │
- │   Graph-of-Thoughts ─ SNR Maximizer ─ Omega Engine ─ Treasury       │
- └──────────────┬───────────────────────────────────┬───────────────────┘
-                │                                   │
- ┌──────────────┴───────────┐       ┌───────────────┴───────────────────┐
- │   Inference Gateway      │       │   Federation Layer                │
- │   Local-first ─ Tiered   │       │   Gossip ─ Consensus ─ PCI       │
- │   Edge/Local/Pool        │       │   BFT ─ Propagation              │
- └──────────────────────────┘       └───────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 5 — Proof Surface                                    │
+│  Signed receipts · Manifests · Benchmark campaigns         │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 4 — Operator Surface                                 │
+│  CLI · TUI · MCP / A2A protocol endpoints                  │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 3 — Runtime Kernel Bridge                            │
+│  PyO3 bridge (3.2 MB) · BYOB LLM router · Sippar ledger   │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 2 — Sovereign Cognition                              │
+│  PAT-7 council · SAT-5 governance · FATE judiciary         │
+│  72 Python subpackages · HDA memory · SkillNFT engine      │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 1 — Constitutional Core (Rust)                       │
+│  6 frozen objects · 2,111 LOC · Constitutional membrane    │
+│  Fail-closed · Outward-facing · Monotonic gate maturation  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Core Modules
+### 4-Tier Cognitive Cascade
 
-| Module | Purpose | Language |
-|--------|---------|----------|
-| `core/pci/` | Proof-Carrying Inference protocol (Ed25519 signatures, envelopes, gates) | Python |
-| `core/proof_engine/` | Receipt builder, Ed25519 signer, BLAKE3 evidence ledger | Python |
-| `core/federation/` | P2P federation (gossip, BFT consensus, secure transport) | Python |
-| `core/inference/` | Tiered inference gateway (edge/local/pool backends) | Python |
-| `core/sovereign/` | Sovereign runtime (Graph-of-Thoughts, treasury, autonomy) | Python |
-| `core/spearpoint/` | Autonomous research engine (15 Sci-Reasoning patterns, RDVE) | Python |
-| `core/bridges/` | Desktop Bridge (TCP 9742), Sci-Reasoning, Rust lifecycle | Python |
-| `core/skills/` | Skill router + registry (Smart Files, RDVE, 43 skills) | Python |
-| `core/token/` | Token ledger, minting, Ed25519-signed transactions | Python |
-| `bizra-omega/` | High-performance core (25 Rust crates) | Rust |
-| `bizra-omega/bizra-core/` | Constitution, identity, FATE gates, Islamic finance | Rust |
-| `bizra-omega/bizra-federation/` | Federation protocol with gossip and signed messages | Rust |
-| `bizra-omega/bizra-cli/` | Terminal UI with real-time dashboards | Rust |
+```
+L0  Reflex   ──  O(1) hash lookup            (< 1 ms)
+L1  Pattern  ──  Cosine similarity index     (< 10 ms)
+L2  Engram   ──  Confidence-gated retrieval  (< 50 ms)
+L3  Full PAT ──  GPU inference (PAT-7)       (full context)
+```
+
+Gate maturation is monotonic: **Observe → Flag → Throttle (×5) → Reject**. A gate that tightens never softens.
+
+**BYOB LLM support:** LM Studio (deepseek-r1-32b, qwen2.5-32b, llava-7b, qwen2.5-coder-32b) with Ollama fallback. No cloud dependency required.
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-- Python 3.11+ with pip
-- Rust stable toolchain (for the Omega workspace)
-- An LLM backend: [LM Studio](https://lmstudio.ai/), [Ollama](https://ollama.ai/), or any OpenAI-compatible API
-
-### Install
-
 ```bash
-# Clone the repository
+# Clone
 git clone https://github.com/BizraInfo/bizra-data-lake.git
 cd bizra-data-lake
 
-# Create a Python virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-# WSL users: use .venv-linux instead of .venv (which may be a Windows venv)
+# Build Rust workspace
+cd bizra-omega && cargo build --workspace --release
 
-# Install core dependencies
-pip install -e ".[dev]"
+# Build Python environment
+python3.12 -m venv .venv-linux && source .venv-linux/bin/activate
+pip install -r requirements.txt
 
-# Build Rust workspace (optional, for high-performance features)
-cd bizra-omega && cargo build --release && cd ..
-```
-
-### Configure
-
-```bash
-# Copy the example environment file
-cp .env.example .env
-
-# Edit .env with your LLM backend settings:
-#   LM_STUDIO_API_KEY=your_key
-#   LM_STUDIO_BASE_URL=http://localhost:1234
-```
-
-### Run
-
-```bash
-# Interactive sovereign terminal (recommended)
-./scripts/bizra
-
-# Run a mission directly
-./scripts/bizra mission "What is BIZRA?"
-
-# Start the sovereign stack (kernel + bridge)
-./scripts/bizra start
-
-# Check system health
-./scripts/bizra status
+# Run the sovereign binary
+./bizra-omega/target/release/bizra-node --genesis
 ```
 
 ---
 
-## Verify It Yourself
+## System Metrics
 
-Don't trust claims. Run these commands and see the evidence:
+Full detail in [METRICS_CANONICAL.md](./METRICS_CANONICAL.md). Key numbers:
 
-```bash
-# 1. Run 1,500+ Rust tests (zero failures)
-cd bizra-omega && cargo test --workspace --release
-#    → 1,539 passed, 0 failed
-
-# 2. Run Python PCI tests (117 proof-carrying inference tests)
-cd .. && pytest tests/core/pci/ -q
-#    → 117 passed
-
-# 3. Count the Rust crates
-ls bizra-omega/*/Cargo.toml | wc -l
-#    → 24 crates
-
-# 4. Run a real mission through the full pipeline
-./scripts/bizra mission "Explain the Ihsan principle"
-#    → LLM response + BLAKE3 receipt + SEED earned + 4/8 stages fired
-
-# 5. Check the receipt chain
-cat ~/.bizra/node-1/chain_head
-#    → 64-char hex hash (BLAKE3, cross-session chained)
-
-# 6. Check the SEED ledger
-python3 -c "from core.proof_engine.seed_ledger import balance; print(f'{balance()} SEED')"
-#    → Real accumulated balance
-
-# 7. Verify FAISS vector index (84,795 embeddings)
-python3 -c "from core.proof_engine.faiss_search import load_index; ok,n=load_index(); print(f'{n} vectors')"
-#    → 84795 vectors
-
-# 8. Cross-language constant sync (Python ↔ Rust)
-python3 -c "from core.integration.constants import CANONICAL_THRESHOLDS; print(CANONICAL_THRESHOLDS)"
-grep "IHSAN_THRESHOLD" bizra-omega/bizra-core/src/lib.rs
-#    → Both show 0.95
-```
-
-Every claim in this README is verifiable by running code. No promises — only receipts.
+| Dimension        | Value                           |
+|------------------|---------------------------------|
+| Total LOC        | 556K+ (251K Python, 116K Rust)  |
+| Test suite       | 12,537 (1,122 Rust + 11,415 Python) |
+| Rust crates      | 25 in bizra-omega workspace     |
+| CI workflows     | 21 active gates                 |
+| Commits          | 763                             |
+| Release binaries | bizra-node 2.8 MB · bizra-api 5.1 MB |
 
 ---
 
-## Testing
+## Standing on the Shoulders of Giants
 
-```bash
-# Run all tests (Python)
-pytest tests/ -m "not requires_ollama and not requires_gpu and not slow"
+BIZRA is built on published research, not invented from nothing. See [GIANTS.md](./GIANTS.md) for the full academic and industry lineage.
 
-# Run Rust tests
-cd bizra-omega && cargo test --workspace
+Seven key papers that directly shaped the system:
 
-# Run with coverage
-pytest tests/ --cov=core --cov-report=term-missing
-
-# Run the Phase 56 autonomous hardening gate
-# (Graph-of-Thought execution + weighted SNR report)
-./scripts/phase56_security_gate.sh
-
-# Audit branch protection policy (requires GitHub token with repo admin scope)
-python scripts/ops/branch_protection_guard.py audit \
-  --policy .github/branch_protection_policy.json \
-  --repo <owner>/<repo>
-
-# Build full-workspace interdisciplinary atlas + SNR ranking
-python scripts/atlas/workspace_masterpiece_engine.py \
-  --files-manifest artifacts/inventory/files_all.txt \
-  --dirs-manifest artifacts/inventory/dirs_all.txt \
-  --out-json artifacts/atlas/workspace_masterpiece_report.json \
-  --out-md artifacts/atlas/workspace_masterpiece_report.md
-```
-
-### Test Markers
-
-| Marker | Description |
-|--------|-------------|
-| `@pytest.mark.slow` | Long-running tests (>30s) |
-| `@pytest.mark.integration` | Requires external services |
-| `@pytest.mark.requires_ollama` | Requires Ollama running |
-| `@pytest.mark.requires_gpu` | Requires CUDA GPU |
-| `@pytest.mark.requires_network` | Requires network access |
+1. Bera et al. (Apr 2025) — Hardware-Accelerated Reflex Memory — 7.55× speedup
+2. FormalJudge, Zhou et al. (Feb 2026) — Neuro-symbolic oversight via Z3 SMT
+3. Krishnamoorthy (Oct 2024) — Cryptographic seal chains for AI lifecycle integrity
+4. Aegis Governance (Mar 2026) — Runtime cryptographic policy enforcement
+5. LifeBench (Mar 2026) — Multi-source memory benchmark
+6. DeepSeek-V3 (Dec 2024) — Aux-loss-free MoE load balancing
+7. Wright (Jun 2025) — Epistemic Integrity in AI Reasoning Systems
 
 ---
 
 ## Constitutional Thresholds
 
-BIZRA enforces quality and ethics as hard constraints, not optional checks:
+These values are enforced in code. No runtime instruction can override them.
 
-| Threshold | Value | Purpose |
-|-----------|-------|---------|
-| Ihsan (Excellence) | >= 0.95 | Minimum quality for any output |
-| SNR (Signal-to-Noise) | >= 0.85 | Information quality filter |
-| ADL (Justice) Gini | <= 0.35 | Resource distribution fairness |
-| Harm Score | <= 0.30 | Maximum allowable harm potential |
-| Confidence | >= 0.80 | Minimum inference confidence |
+| Parameter    | Threshold | Meaning                                     |
+|--------------|-----------|---------------------------------------------|
+| IHSAN        | ≥ 0.95    | Minimum excellence score for commitment     |
+| SNR          | ≥ 0.85    | Signal-to-noise floor for agent reasoning   |
+| ADL_GINI     | ≤ 0.35    | Maximum wealth concentration (Gini ceiling) |
+| ZANN_ZERO    | = 0       | No speculative/unjust transactions          |
+| RIBA_ZERO    | = 0       | No interest-bearing debt or extraction      |
 
-These thresholds are defined in [`core/integration/constants.py`](core/integration/constants.py) as the single source of truth.
-
----
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [Documentation Portal](docs/README.md) | Canonical docs entrypoint (role-based reading paths) |
-| [Quick Start](docs/QUICK-START.md) | First-time setup and data ingestion |
-| [Operations Runbook](docs/OPERATIONS_RUNBOOK.md) | Startup, health checks, incident handling |
-| [Testing Guide](docs/TESTING.md) | Local gates, markers, coverage, CI alignment |
-| [Architecture Blueprint](docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md) | Full system architecture |
-| [Desktop Bridge](docs/DESKTOP_BRIDGE.md) | AHK hotkey integration, JSON-RPC protocol |
-| [Spearpoint (RDVE)](docs/SPEARPOINT.md) | Autonomous research engine, 15 thinking patterns |
-| [DevOps Blueprint](docs/DEVOPS_BLUEPRINT.md) | CI/CD pipeline, K8s deployment, rollback |
-| [Elite Full-Stack Blueprint](docs/ELITE_FULLSTACK_BLUEPRINT.md) | PMBOK + DevOps + CI/CD + QA executable baseline |
-| [Enterprise Implementation Blueprint](docs/ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md) | architecture, roadmap, compliance, release model |
-| [The Constitutional Seed](docs/CONSTITUTIONAL_SEED.md) | formal narrative root for the Three Facts, three epochs, and kernel invariants |
-| [Front-End Master Spec](docs/FRONTEND_MASTER_SPEC.md) | public web, onboarding wizard, daily dashboard, contributor client, operator split |
-| [Quality Assurance Strategy](docs/QUALITY_ASSURANCE_STRATEGY.md) | testing hierarchy, quality gates, performance/security verification |
-| [Risk Management Plan](docs/RISK_MANAGEMENT_PLAN.md) | risk register, mitigation, contingency ownership |
-| [Tool and Technology Matrix](docs/TOOL_TECHNOLOGY_MATRIX.md) | recommended stack, versions, and licensing notes |
-| [Constitution](docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | Immutable constitutional rules |
-| [Security Policy](SECURITY.md) | Vulnerability reporting and security architecture |
-| [Contributing Guide](CONTRIBUTING.md) | How to contribute |
-| [Public Roadmap](ROADMAP.md) | Delivery milestones and status updates |
-| [Community Guide](COMMUNITY.md) | Contributor channels, norms, and recognition |
-| [Commit Style Guide](COMMIT_STYLE_GUIDE.md) | High-signal commit message conventions |
-| [Discord CI Setup](DISCORD_CI_SETUP.md) | Webhook-based CI notifications |
+The constitutional membrane is outward-facing and fail-closed: any breach halts the action, generates a signed rejection receipt, and escalates to SAT-5.
 
 ---
 
-## Community
+## Build Order
 
-- Discord: [discord.gg/bizra](https://discord.gg/bizra)
-- Discussions: [GitHub Discussions](https://github.com/BizraInfo/bizra-data-lake/discussions)
-- Public roadmap: [ROADMAP.md](ROADMAP.md)
-- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Community norms: [COMMUNITY.md](COMMUNITY.md)
+| Phase | Goal |
+|-------|------|
+| Phase 1 | Win one user on one machine — HDA + PAT-7 + FATE + local wallet |
+| Phase 2 | Turn skills into market objects — SkillNFT + Proof of Impact + SEED settlement |
+| Phase 3 | Turn nodes into ecosystem — A2A + URP leases + capability tokens |
+| Phase 4 | Universalize for 8B reach — 3-tap installer + mobile + multilingual |
 
 ---
 
-## Project Structure
+## Economic Model
 
-```
-bizra-data-lake/
-├── core/                   # Python sovereign infrastructure
-│   ├── pci/                # Proof-Carrying Inference protocol
-│   ├── proof_engine/       # Receipt builder, Ed25519 signer, evidence ledger
-│   ├── federation/         # P2P federation layer
-│   ├── inference/          # Tiered inference gateway
-│   ├── sovereign/          # Sovereign runtime engine
-│   ├── spearpoint/         # Autonomous research (RDVE, 15 patterns)
-│   ├── bridges/            # Desktop Bridge, Sci-Reasoning, Rust bridge
-│   ├── skills/             # Skill router + Smart File Management
-│   ├── token/              # Token ledger, minting, transactions
-│   ├── benchmark/          # CLEAR framework, dominance loop, ablation
-│   ├── integration/        # Cross-module constants and bridges
-│   └── iaas/               # Information-as-a-Service (SNR)
-├── bizra-omega/            # Rust high-performance workspace
-│   ├── bizra-core/         # Constitution, identity, FATE
-│   ├── bizra-federation/   # Gossip + consensus protocol
-│   ├── bizra-cli/          # Terminal UI dashboard
-│   ├── bizra-api/          # REST API server
-│   ├── bizra-inference/    # Inference backends
-│   └── 9 more crates...   # Telescript, proofspace, hunter, etc.
-├── tests/                  # Comprehensive test suite
-├── docs/                   # Architecture and specifications
-├── deploy/                 # Docker and Kubernetes configs
-└── .github/workflows/      # CI/CD pipelines
-```
+- **Dual-token:** SEED (transferable utility) + BLOOM (soulbound governance)
+- **Proof of Impact (PoI):** Value derived from verified work, never from lending or extraction
+- **Anti-RIBA:** No interest-bearing debt, no data harvesting, no rent-seeking subscriptions
+- **Zakat:** 2.5% annual obligation, enforced constitutionally
+- **Sippar ledger:** Exact arithmetic via Babylonian regular numbers (485 LOC Rust crate)
 
 ---
 
 ## License
 
-[MIT](LICENSE) -- Copyright 2026 BIZRA Sovereign
+MIT
 
 ---
 
-<div align="center">
-<br>
+## Contact
 
-*Every seed carries within it the memory of the forest it will become.*
+**Mohamed Beshr** — m.beshr@bizra.info — Dubai, UAE
 
-<br>
+*Solo developer. 3+ years. 15,000+ hours. Started Ramadan 2023.*
 
-Built with Ihsan in Dubai
-
-</div>
+> بذرة واحدة تصنع غابة — One seed makes a forest.
