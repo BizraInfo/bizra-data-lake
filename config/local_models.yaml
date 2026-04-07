@@ -3,39 +3,40 @@
 # Two inference backends: LM Studio (WSL gateway) and Ollama (localhost).
 # The system auto-detects which is available and falls back gracefully.
 # Override with env: LMSTUDIO_HOST / LMSTUDIO_PORT / OLLAMA_URL
-# ═════════════��══════════════════════════���══════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
 
 # API Configuration (WSL gateway IP — auto-detected at runtime)
 LM_STUDIO_URL: "http://172.22.48.1:1234"
 LM_API_TOKEN: "${LM_API_TOKEN}"
 
-# ── Ollama Fleet (Gemma 4 backbone — April 2026) ──────────────────────
+# ── Ollama Fleet (Gemma 4 + Qwen 3 backbone — April 2026) ────────────
 # Primary fleet for Node0 + Node1. All models pulled via `ollama pull`.
-# Gemma 4: multimodal, function calling, thinking modes, 128K/256K context.
+# Gemma 4: multimodal (vision+audio), function calling, thinking, 128K ctx.
+# Qwen 3: tools + thinking, 256K ctx (4B) / 40K ctx (8B).
 ollama_fleet:
   # Tier 3 — Heavy reasoning (L3 Inference in OmniKernel)
   reasoning:
-    id: "gemma4:e4b"
+    id: "gemma4:latest"
     role: "Deep reasoning, complex analysis, agentic planning"
-    parameters: "4B effective"
+    parameters: "8B"
     context: 128K
-    capabilities: [multimodal, function_calling, thinking]
+    capabilities: [multimodal, vision, audio, tools, thinking]
 
   # Tier 2 — Standard tasks (L2 Engram tier)
   standard:
     id: "gemma4:e4b"
     role: "General-purpose multimodal understanding"
-    parameters: "4B effective"
+    parameters: "8B"
     context: 128K
-    capabilities: [multimodal, function_calling]
+    capabilities: [multimodal, vision, audio]
 
   # Tier 1 — Fast reflex (L1 Pattern / L0 Reflex tiers)
   fast:
     id: "gemma4:e2b"
     role: "Quick responses, evaluation, classification, formatting"
-    parameters: "2B effective"
+    parameters: "5.1B"
     context: 128K
-    capabilities: [multimodal]
+    capabilities: [multimodal, vision, audio]
 
   # Tier 0 — Ultra-light (routing, constitutional checks)
   nano:
@@ -45,20 +46,52 @@ ollama_fleet:
     context: 32K
     capabilities: [text]
 
+  # Thinking — Qwen 3 with explicit reasoning traces
+  thinking:
+    id: "qwen3:4b"
+    role: "Explicit thinking/reasoning traces, tool use"
+    parameters: "4B"
+    context: 256K
+    capabilities: [tools, thinking]
+
+  # Reasoning (Qwen) — Qwen 3 deep reasoning
+  reasoning_qwen:
+    id: "qwen3:8b"
+    role: "Deep reasoning with thinking, tool use"
+    parameters: "8.2B"
+    context: 40K
+    capabilities: [tools, thinking]
+
+  # Deep Reasoning — DeepSeek R1 (heaviest local model)
+  deep:
+    id: "deepseek-r1:14b"
+    role: "Frontier-class reasoning, chain-of-thought"
+    parameters: "14B"
+    context: 64K
+    capabilities: [thinking]
+
   # Vision — native in Gemma 4 (no separate model needed)
   vision:
-    id: "gemma4:e4b"
-    role: "Image understanding, document analysis (native multimodal)"
-    parameters: "4B effective"
-    capabilities: [multimodal, function_calling]
+    id: "gemma4:latest"
+    role: "Image understanding, audio, document analysis (native multimodal)"
+    parameters: "8B"
+    capabilities: [multimodal, vision, audio, tools, thinking]
 
-  # Embedding — unchanged (dedicated embedding model)
+  # Embedding — dedicated embedding model
   embedding:
     id: "nomic-embed-text:latest"
-    role: "Text embeddings for RAG/search"
+    role: "Text embeddings for RAG/search (384-dim)"
     type: "embedding"
 
-# ── LM Studio Fleet (Windows host — heavier models) ────��─────────────
+  # Fallback — Gemma 3 mid-range
+  fallback:
+    id: "gemma3:4b"
+    role: "Fallback when larger models are busy or OOM"
+    parameters: "4B"
+    context: 32K
+    capabilities: [text]
+
+# ── LM Studio Fleet (Windows host — heavier models) ──────────────────
 # Used when LM Studio is available on the WSL gateway.
 # These models are larger and require LM Studio's VRAM management.
 models:
@@ -116,23 +149,24 @@ models:
 # Maps task complexity to model tier.
 # System checks Ollama first, falls back to LM Studio.
 routing:
-  trivial: "fast"           # Simple queries → Gemma 4 E2B / liquid 1.2B
-  simple: "fast"            # Basic questions → Gemma 4 E2B / liquid 1.2B
-  moderate: "standard"      # Analysis → Gemma 4 E4B / DeepSeek R1
-  complex: "reasoning"      # Deep thinking → Gemma 4 E4B / DeepSeek R1
-  frontier: "reasoning"     # Hardest tasks → Gemma 4 E4B / MoE 18.4B
+  trivial: "fast"           # Simple queries → Gemma 4 E2B
+  simple: "fast"            # Basic questions → Gemma 4 E2B
+  moderate: "standard"      # Analysis → Gemma 4 E4B
+  complex: "reasoning"      # Deep thinking → Gemma 4 8B (tools+thinking)
+  frontier: "deep"          # Hardest tasks → DeepSeek R1 14B
 
-  planning: "reasoning"     # Task planning → Gemma 4 E4B
+  planning: "thinking"      # Task planning → Qwen 3 4B (thinking mode)
   creative: "standard"      # Creative → Gemma 4 E4B
-  vision: "vision"          # Image analysis → Gemma 4 E4B (native multimodal)
+  vision: "vision"          # Image/audio → Gemma 4 (native multimodal)
   embedding: "embedding"    # Vector search → Nomic
+  thinking: "thinking"      # Explicit CoT → Qwen 3 4B
 
 # ── PAT Team Agent Assignments ────────────────────────────────────────
 pat_agents:
-  strategist: "reasoning"   # P1 — Gemma 4 E4B for strategy
-  researcher: "reasoning"   # P2 — Gemma 4 E4B for research
-  analyst: "reasoning"      # P4 — Gemma 4 E4B for analysis
+  strategist: "reasoning"   # P1 — Gemma 4 8B for strategy (tools+thinking)
+  researcher: "reasoning"   # P2 — Gemma 4 8B for research
+  analyst: "thinking"       # P4 — Qwen 3 4B for analytical thinking
   creator: "standard"       # P3 — Gemma 4 E4B for creation
   executor: "fast"          # P6 — Gemma 4 E2B for quick execution
-  guardian: "nano"          # S2 — Gemma 3 1B for constitutional checks
-  coordinator: "reasoning"  # P7 — Gemma 4 E4B for coordination
+  guardian: "nano"           # S2 — Gemma 3 1B for constitutional checks
+  coordinator: "reasoning"  # P7 — Gemma 4 8B for coordination

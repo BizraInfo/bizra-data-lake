@@ -104,7 +104,7 @@ class RuVectorSearchEngine:
                 return []
             return json.loads(result.stdout.decode())
         except subprocess.TimeoutExpired:
-            logger.warning("RuVector query timed out (10s)")
+            logger.warning("RuVector query timed out (30s)")
             return []
         except (json.JSONDecodeError, OSError) as e:
             logger.warning("RuVector query error: %s", e)
