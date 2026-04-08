@@ -2661,8 +2661,11 @@ def create_fastapi_app(runtime: Any) -> Any:
         return JSONResponse(content=result, status_code=status_code)
 
     @app.get("/v1/health/deep")
-    async def health_deep():
-        """Deep health — full 11-subsystem audit, <500ms. For startup probes."""
+    async def health_deep(request: Request):
+        """Deep health — full 11-subsystem audit, <500ms. Auth required (topology leak fix)."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         status = runtime.status()
         strict_gate = status.get("health", {}).get("strict_gate", {})
         pat_sat_chain = status.get("pat_sat", {}).get("negotiation_receipt_chain", {})
@@ -2721,12 +2724,16 @@ def create_fastapi_app(runtime: Any) -> Any:
         tags=["health"],
         summary="Constitutional Membrane Network invariant status",
     )
-    async def health_constitutional():
+    async def health_constitutional(request: Request):
         """CMN invariant check — validates S∧M∧Z∧R constitutional properties.
 
         Returns the four invariants (Sovereignty, Membrane, Zann Zero, Riba Zero),
         composite Ihsan score, and the BLAKE3-chained health receipt hash.
+        Auth required (topology leak fix).
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         cmn = getattr(runtime, "_cmn_runtime", None)
         if cmn is None:
             return {
@@ -2738,12 +2745,18 @@ def create_fastapi_app(runtime: Any) -> Any:
         return cmn.constitutional_health()
 
     @app.get("/v1/health", tags=["health"])
-    async def health():
-        """Terminal read model for Dashboard and Settings surfaces."""
+    async def health(request: Request):
+        """Terminal read model for Dashboard and Settings surfaces. Auth required."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         return _health_snapshot()
 
     @app.get("/v1/status", tags=["health"], summary="Runtime status snapshot")
-    async def status():
+    async def status(request: Request):
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         base = runtime.status()
         # Enrich with ReflexCompiler telemetry when available
         if _reflex_compiler is not None:
@@ -2774,7 +2787,10 @@ def create_fastapi_app(runtime: Any) -> Any:
         return _reflex_compiler.get_status()
 
     @app.get("/v1/metrics", tags=["health"], summary="Prometheus metrics")
-    async def metrics():
+    async def metrics(request: Request):
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         m = runtime.metrics
         return PlainTextResponse(m.to_prometheus(include_help=False))
 
@@ -3802,14 +3818,18 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
 
     @app.get("/v1/gate-chain/stats")
-    async def gate_chain_stats():
+    async def gate_chain_stats(request: Request):
         """Get GateChain evaluation statistics.
 
         Returns pass/fail rates, failure distribution by gate,
         and average SNR across evaluations.
+        Auth required (topology leak fix).
 
         Standing on: Lamport (fail-closed), BIZRA Spearpoint (6-gate chain).
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         stats = runtime.get_gate_chain_stats()
         if stats is None:
             return JSONResponse(
@@ -3821,11 +3841,15 @@ def create_fastapi_app(runtime: Any) -> Any:
     # ─── PoI (Proof-of-Impact) Endpoints ────────────────────────────
 
     @app.get("/v1/poi/stats")
-    async def poi_stats():
+    async def poi_stats(request: Request):
         """Get Proof-of-Impact engine statistics.
+        Auth required (topology leak fix).
 
         Standing on: Nakamoto (PoW), Page & Brin (PageRank), Gini (inequality).
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         stats = runtime.get_poi_stats()
         if stats is None:
             return JSONResponse(
@@ -3854,8 +3878,11 @@ def create_fastapi_app(runtime: Any) -> Any:
         return result
 
     @app.get("/v1/poi/contributor/{contributor_id}")
-    async def poi_contributor(contributor_id: str):
-        """Get the most recent PoI for a specific contributor."""
+    async def poi_contributor(contributor_id: str, request: Request):
+        """Get the most recent PoI for a specific contributor. Auth required."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         poi = runtime.get_contributor_poi(contributor_id)
         if poi is None:
             return JSONResponse(
@@ -3867,12 +3894,16 @@ def create_fastapi_app(runtime: Any) -> Any:
     # ─── SAT Controller Endpoints ───────────────────────────────
 
     @app.get("/v1/sat/stats")
-    async def sat_stats():
+    async def sat_stats(request: Request):
         """Get SAT Controller statistics.
+        Auth required (topology leak fix).
 
         Returns Gini coefficient, rebalancing history, credit distribution.
         Standing on: Ostrom (commons governance), Gini (inequality).
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
         stats = runtime.get_sat_stats()
         if stats is None:
             return JSONResponse(

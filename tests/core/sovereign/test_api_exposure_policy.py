@@ -77,7 +77,7 @@ def test_selected_route_exposure_decisions_remain_stable() -> None:
         ("/v1/memory/stats", "GET", RouteExposure.AUTHENTICATED),
         ("/v1/memory/profile", "GET", RouteExposure.AUTHENTICATED),
         ("/v1/auth/register", "POST", RouteExposure.BOOTSTRAP_PUBLIC),
-        ("/v1/status", "GET", RouteExposure.PUBLIC),
+        ("/v1/status", "GET", RouteExposure.AUTHENTICATED),
         ("/v1/verify/receipt", "POST", RouteExposure.PUBLIC),
         ("/v1/token/verify", "GET", RouteExposure.PUBLIC),
         (
@@ -106,7 +106,7 @@ def test_api_exposure_summary_is_fully_accounted_for(
 
     summary = summarize_api_exposure(app)
 
-    assert sum(summary.values()) == 66
-    assert summary[RouteExposure.PUBLIC] == 24
+    assert sum(summary.values()) == 67
+    assert summary[RouteExposure.PUBLIC] == 16
     assert summary[RouteExposure.BOOTSTRAP_PUBLIC] == 3
-    assert summary[RouteExposure.AUTHENTICATED] == 39
+    assert summary[RouteExposure.AUTHENTICATED] == 48

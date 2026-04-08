@@ -726,10 +726,8 @@ class ZeroPointKernel:
                     rollback_used=rollback_used,
                 )
             except (
-                asyncio.CancelledError,
-                RuntimeError,
-                OSError,
-            ) as e:  # SEC-003 — async boundary
+                Exception
+            ) as e:  # noqa: BLE001 — governed failure: every worker exception MUST produce a receipt
                 last_error = str(e)
                 logger.warning("worker attempt %d failed: %s", attempt, e)
 

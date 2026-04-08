@@ -27,8 +27,10 @@ import hmac
 import json
 import logging
 import os
+import sqlite3
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Optional
 
 logger = logging.getLogger("bizra.auth.jwt")
@@ -106,6 +108,7 @@ class JWTAuth:
         secret: Optional[str] = None,
         access_expiry: int = ACCESS_TOKEN_EXPIRY,
         refresh_expiry: int = REFRESH_TOKEN_EXPIRY,
+        db_path: Optional[Path] = None,
     ):
         # Generate secret if not provided
         self._secret = (secret or os.environ.get("BIZRA_JWT_SECRET", "")).encode(
@@ -122,11 +125,14 @@ class JWTAuth:
         self._access_expiry = access_expiry
         self._refresh_expiry = refresh_expiry
 
-        # Token blacklist (in-memory; for production, use Redis/DB)
+        # Token blacklist — SQLite-backed with in-memory cache.
         # Bounded: stores (jti, expiry) tuples; evicts expired entries
         # when size exceeds _BLACKLIST_MAX to prevent unbounded growth (SAPE-011).
-        self._blacklist: dict[str, int] = {}  # jti -> expiry timestamp
+        self._blacklist: dict[str, int] = {}  # jti -> expiry timestamp (cache)
         self._BLACKLIST_MAX = 10_000
+        self._db_path = db_path or Path("sovereign_state/jwt_blacklist.db")
+        self._ensure_blacklist_schema()
+        self._load_blacklist_from_db()
 
     # --------------------------------------------------------------------------
     # TOKEN ISSUANCE
@@ -247,16 +253,97 @@ class JWTAuth:
     def _blacklist_add(self, jti: str, exp: int) -> None:
         """Add JTI to blacklist with bounded eviction (SAPE-011)."""
         self._blacklist[jti] = exp
+        self._persist_blacklist_entry(jti, exp)
         if len(self._blacklist) > self._BLACKLIST_MAX:
             now = int(time.time())
             expired = [k for k, v in self._blacklist.items() if v <= now]
             for k in expired:
                 del self._blacklist[k]
+            self._purge_expired_from_db(now)
         overflow = len(self._blacklist) - self._BLACKLIST_MAX
         if overflow > 0:
             oldest_expiry = sorted(self._blacklist.items(), key=lambda item: item[1])
             for key, _ in oldest_expiry[:overflow]:
                 del self._blacklist[key]
+
+    # --------------------------------------------------------------------------
+    # DURABLE BLACKLIST (SQLite-backed)
+    # --------------------------------------------------------------------------
+
+    def _blacklist_connect(self) -> sqlite3.Connection:
+        """Create connection to blacklist DB with WAL mode."""
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(str(self._db_path))
+        conn.execute("PRAGMA journal_mode=WAL")
+        return conn
+
+    def _ensure_blacklist_schema(self) -> None:
+        """Create blacklist table if it doesn't exist."""
+        try:
+            with self._blacklist_connect() as conn:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS token_blacklist (
+                        jti TEXT PRIMARY KEY,
+                        expires_at INTEGER NOT NULL,
+                        revoked_at INTEGER NOT NULL
+                    )
+                """)
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_blacklist_expires "
+                    "ON token_blacklist(expires_at)"
+                )
+                conn.commit()
+        except sqlite3.Error as e:
+            logger.warning(
+                "Blacklist DB init failed (falling back to memory-only): %s", e
+            )
+
+    def _load_blacklist_from_db(self) -> None:
+        """Load non-expired blacklist entries from SQLite into memory cache."""
+        now = int(time.time())
+        try:
+            with self._blacklist_connect() as conn:
+                rows = conn.execute(
+                    "SELECT jti, expires_at FROM token_blacklist WHERE expires_at > ?",
+                    (now,),
+                ).fetchall()
+                for jti, exp in rows:
+                    self._blacklist[jti] = exp
+                if rows:
+                    logger.info(
+                        "Loaded %d revoked tokens from durable blacklist", len(rows)
+                    )
+                # Purge expired while we're here
+                conn.execute(
+                    "DELETE FROM token_blacklist WHERE expires_at <= ?", (now,)
+                )
+                conn.commit()
+        except sqlite3.Error as e:
+            logger.warning("Blacklist DB load failed (starting empty): %s", e)
+
+    def _persist_blacklist_entry(self, jti: str, exp: int) -> None:
+        """Persist a single blacklist entry to SQLite."""
+        try:
+            with self._blacklist_connect() as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO token_blacklist (jti, expires_at, revoked_at) "
+                    "VALUES (?, ?, ?)",
+                    (jti, exp, int(time.time())),
+                )
+                conn.commit()
+        except sqlite3.Error as e:
+            logger.warning("Blacklist persist failed for jti=%s: %s", jti, e)
+
+    def _purge_expired_from_db(self, now: int) -> None:
+        """Remove expired entries from SQLite."""
+        try:
+            with self._blacklist_connect() as conn:
+                conn.execute(
+                    "DELETE FROM token_blacklist WHERE expires_at <= ?", (now,)
+                )
+                conn.commit()
+        except sqlite3.Error as e:
+            logger.warning("Blacklist purge failed: %s", e)
 
     # --------------------------------------------------------------------------
     # JWT ENCODING / DECODING (RFC 7519 compliant)
