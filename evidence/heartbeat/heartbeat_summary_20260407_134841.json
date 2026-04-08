@@ -1,0 +1,10 @@
+{
+  "start_time": "2026-04-07T14:00:59.097381+00:00",
+  "end_time": "2026-04-08T14:01:08.895697+00:00",
+  "duration_s": 86409.8,
+  "total_ticks": 1440,
+  "total_errors": 0,
+  "first_beat": 1211,
+  "log_file": "evidence/heartbeat/heartbeat_log_20260407_134841.jsonl",
+  "gate_pass": true
+}
