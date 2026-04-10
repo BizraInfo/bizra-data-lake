@@ -88,6 +88,7 @@ _SUBPACKAGES = frozenset(
         "rdve",
         "reasoning",
         "rollout",
+        "sape",
         "sdpo",
         "search",
         "skills",
