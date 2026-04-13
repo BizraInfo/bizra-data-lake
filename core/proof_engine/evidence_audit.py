@@ -78,7 +78,10 @@ def _verify_git_log(query: str, repo_root: Path) -> Tuple[bool, str]:
     try:
         result = subprocess.run(
             ["git", "log", "--oneline", "--all", "--grep", query, "-n", "1"],
-            capture_output=True, text=True, timeout=10, cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(repo_root),
         )
         if result.stdout.strip():
             return True, f"found: {result.stdout.strip()[:80]}"
@@ -91,7 +94,10 @@ def _verify_git_show(commit_ref: str, repo_root: Path) -> Tuple[bool, str]:
     try:
         result = subprocess.run(
             ["git", "cat-file", "-t", commit_ref],
-            capture_output=True, text=True, timeout=10, cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(repo_root),
         )
         if result.returncode == 0:
             return True, f"object type: {result.stdout.strip()}"

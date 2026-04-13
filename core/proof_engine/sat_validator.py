@@ -34,7 +34,9 @@ OLLAMA_URL = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 EVIDENCE_MIN_COUNT = int(os.getenv("BIZRA_EVIDENCE_MIN_COUNT", "1"))
 
 # Allowed verdicts — strict enum, no freeform
-VALID_VERDICTS = frozenset({"PASS", "BLOCKED_BY_IHSAN", "BLOCKED_BY_EVIDENCE", "DEGRADED"})
+VALID_VERDICTS = frozenset(
+    {"PASS", "BLOCKED_BY_IHSAN", "BLOCKED_BY_EVIDENCE", "DEGRADED"}
+)
 
 # Constitutional governance prompt — the core of the SAT boundary
 _SAT_SYSTEM_PROMPT = (
@@ -138,15 +140,17 @@ def _call_sat_model(pat_output: PatOutput) -> dict:
         "Evaluate now. Return JSON only."
     )
 
-    payload = json.dumps({
-        "model": SAT_MODEL,
-        "messages": [
-            {"role": "system", "content": _SAT_SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt},
-        ],
-        "stream": False,
-        "options": {"temperature": 0.1, "num_predict": 1024},
-    }).encode()
+    payload = json.dumps(
+        {
+            "model": SAT_MODEL,
+            "messages": [
+                {"role": "system", "content": _SAT_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            "stream": False,
+            "options": {"temperature": 0.1, "num_predict": 1024},
+        }
+    ).encode()
 
     req = urllib.request.Request(
         f"{OLLAMA_URL}/api/chat",

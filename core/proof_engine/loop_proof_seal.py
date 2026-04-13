@@ -50,8 +50,16 @@ class SealStatus:
             "state": self.state,
             "is_canonical": self.is_canonical,
             "manifest_hash": self.manifest_hash,
-            "signature_hex": self.signature_hex[:32] + "..." if len(self.signature_hex) > 32 else self.signature_hex,
-            "pubkey_hex": self.pubkey_hex[:32] + "..." if len(self.pubkey_hex) > 32 else self.pubkey_hex,
+            "signature_hex": (
+                self.signature_hex[:32] + "..."
+                if len(self.signature_hex) > 32
+                else self.signature_hex
+            ),
+            "pubkey_hex": (
+                self.pubkey_hex[:32] + "..."
+                if len(self.pubkey_hex) > 32
+                else self.pubkey_hex
+            ),
             "proof_path": self.proof_path,
             "sidecar_path": self.sidecar_path,
             "error": self.error,
@@ -116,11 +124,17 @@ def verify_seal(proof_path: Path) -> SealStatus:
     try:
         proof = json.loads(proof_path.read_text())
     except (json.JSONDecodeError, OSError) as e:
-        return SealStatus(state="missing_proof", proof_path=str(proof_path), error=str(e))
+        return SealStatus(
+            state="missing_proof", proof_path=str(proof_path), error=str(e)
+        )
 
     manifest_hash = proof.get("manifest_hash", "")
     if not manifest_hash:
-        return SealStatus(state="unsigned", proof_path=str(proof_path), error="No manifest_hash in proof")
+        return SealStatus(
+            state="unsigned",
+            proof_path=str(proof_path),
+            error="No manifest_hash in proof",
+        )
 
     sidecar = sidecar_path_for(proof_path)
     if not sidecar.exists():

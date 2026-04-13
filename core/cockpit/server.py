@@ -26,7 +26,9 @@ from fastapi.responses import HTMLResponse
 
 app = FastAPI(title="BIZRA Glass Cockpit", version="0.1.0")
 
-TELEMETRY_PATH = Path(os.getenv("BIZRA_FATE_TELEMETRY", "/data/bizra/logs/fate-telemetry.jsonl"))
+TELEMETRY_PATH = Path(
+    os.getenv("BIZRA_FATE_TELEMETRY", "/data/bizra/logs/fate-telemetry.jsonl")
+)
 ADVERSARIAL_LEDGER = Path("/data/bizra/logs/mvda-adversarial-ledger.jsonl")
 DEV_LEDGER = Path("/data/bizra/logs/mvda-dev-ledger.jsonl")
 REPO_ROOT = Path(os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake"))
@@ -62,11 +64,22 @@ def _fate_summary() -> Dict[str, Any]:
 
 
 def _health_summary() -> Dict[str, Any]:
-    health = {"gpu": "unknown", "ollama": "unknown", "disk": "unknown", "tests": "unknown"}
+    health = {
+        "gpu": "unknown",
+        "ollama": "unknown",
+        "disk": "unknown",
+        "tests": "unknown",
+    }
     try:
         r = subprocess.run(
-            ["nvidia-smi", "--query-gpu=memory.used,memory.free", "--format=csv,noheader"],
-            capture_output=True, text=True, timeout=5,
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.used,memory.free",
+                "--format=csv,noheader",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if r.returncode == 0:
             health["gpu"] = r.stdout.strip()
@@ -75,14 +88,19 @@ def _health_summary() -> Dict[str, Any]:
 
     try:
         import urllib.request
-        with urllib.request.urlopen("http://127.0.0.1:11434/api/version", timeout=3) as resp:
+
+        with urllib.request.urlopen(
+            "http://127.0.0.1:11434/api/version", timeout=3
+        ) as resp:
             data = json.loads(resp.read())
             health["ollama"] = data.get("version", "unknown")
     except Exception:
         health["ollama"] = "offline"
 
     try:
-        r = subprocess.run(["df", "-h", "/data"], capture_output=True, text=True, timeout=5)
+        r = subprocess.run(
+            ["df", "-h", "/data"], capture_output=True, text=True, timeout=5
+        )
         if r.returncode == 0:
             health["disk"] = r.stdout.strip().split("\n")[-1]
     except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -94,6 +112,7 @@ def _health_summary() -> Dict[str, Any]:
 def _model_routing() -> Dict[str, str]:
     try:
         from core.proof_engine.model_routing import routing_table_summary
+
         return routing_table_summary()
     except ImportError:
         return {}
@@ -110,12 +129,14 @@ def _recent_activity(n: int = 15) -> List[dict]:
 def _seal_status() -> Dict[str, Any]:
     """Check seal status of the latest loop proof."""
     import glob
+
     proofs = sorted(glob.glob("/data/bizra/logs/loop-proof-*.json"))
     if not proofs:
         return {"state": "no_proofs", "latest": None}
     latest = Path(proofs[-1])
     try:
         from core.proof_engine.loop_proof_seal import verify_seal
+
         status = verify_seal(latest)
         return status.to_dict()
     except ImportError:
@@ -155,15 +176,21 @@ def dashboard():
     activity = _recent_activity(10)
     seal = _seal_status()
 
-    verdict_rows = "".join(
-        f"<tr><td>{v}</td><td>{c}</td></tr>"
-        for v, c in sorted(fate.get("verdicts", {}).items())
-    ) or "<tr><td colspan=2>No telemetry yet</td></tr>"
+    verdict_rows = (
+        "".join(
+            f"<tr><td>{v}</td><td>{c}</td></tr>"
+            for v, c in sorted(fate.get("verdicts", {}).items())
+        )
+        or "<tr><td colspan=2>No telemetry yet</td></tr>"
+    )
 
-    routing_rows = "".join(
-        f"<tr><td>{k}</td><td>{v.get('model','')}</td><td>{v.get('tier','')}</td></tr>"
-        for k, v in sorted(routing.items())
-    ) or "<tr><td colspan=3>Routing unavailable</td></tr>"
+    routing_rows = (
+        "".join(
+            f"<tr><td>{k}</td><td>{v.get('model','')}</td><td>{v.get('tier','')}</td></tr>"
+            for k, v in sorted(routing.items())
+        )
+        or "<tr><td colspan=3>Routing unavailable</td></tr>"
+    )
 
     activity_rows = ""
     for e in activity:
@@ -175,7 +202,11 @@ def dashboard():
         css = "blocked" if "BLOCK" in verdict else "pass" if verdict == "PASS" else ""
         activity_rows += f'<tr class="{css}"><td>{ts}</td><td>{actor}</td><td>{verdict}</td><td>{ihsan}</td><td>{reason}</td></tr>'
 
-    latest_ts = fate.get("latest", {}).get("timestamp", "none") if fate.get("latest") else "none"
+    latest_ts = (
+        fate.get("latest", {}).get("timestamp", "none")
+        if fate.get("latest")
+        else "none"
+    )
 
     html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>BIZRA Glass Cockpit</title>
@@ -237,4 +268,5 @@ BIZRA Glass Cockpit v0.1 | {datetime.now(timezone.utc).isoformat()[:19]}Z</foote
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=8420, log_level="warning")

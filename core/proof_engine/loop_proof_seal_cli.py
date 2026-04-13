@@ -55,19 +55,29 @@ def cmd_show_hash(proof_path: Path):
     print(f"Manifest hash: {manifest}")
     print()
     print("To sign (example with openssl):")
-    print(f"  echo -n '{manifest}' | openssl pkeyutl -sign -inkey key.pem | xxd -p -c 64")
+    print(
+        f"  echo -n '{manifest}' | openssl pkeyutl -sign -inkey key.pem | xxd -p -c 64"
+    )
     print()
     print("Then provide signature:")
-    print(f"  python -m core.proof_engine.loop_proof_seal_cli write-sidecar {proof_path} <signature_hex> <pubkey_hex>")
+    print(
+        f"  python -m core.proof_engine.loop_proof_seal_cli write-sidecar {proof_path} <signature_hex> <pubkey_hex>"
+    )
 
 
 def main():
     if len(sys.argv) < 3:
         print("Usage:")
         print("  python -m core.proof_engine.loop_proof_seal_cli verify <proof.json>")
-        print("  python -m core.proof_engine.loop_proof_seal_cli show-hash <proof.json>")
-        print("  python -m core.proof_engine.loop_proof_seal_cli write-sidecar <proof.json> <sig_hex> <pubkey_hex>")
-        print("  python -m core.proof_engine.loop_proof_seal_cli canonicalize <proof.json>")
+        print(
+            "  python -m core.proof_engine.loop_proof_seal_cli show-hash <proof.json>"
+        )
+        print(
+            "  python -m core.proof_engine.loop_proof_seal_cli write-sidecar <proof.json> <sig_hex> <pubkey_hex>"
+        )
+        print(
+            "  python -m core.proof_engine.loop_proof_seal_cli canonicalize <proof.json>"
+        )
         sys.exit(1)
 
     cmd = sys.argv[1]

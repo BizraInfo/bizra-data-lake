@@ -35,11 +35,11 @@ class PatRole(Enum):
 class SatRole(Enum):
     """SAT-5 governance roles."""
 
-    SENTINEL = "sentinel"        # Layer 1: Structural integrity
-    ORACLE_S = "oracle_s"        # Layer 2: Constitutional compliance
-    LEDGER = "ledger"            # Layer 3: Economic soundness
-    CONDUCTOR = "conductor"      # Layer 4: Operational readiness
-    AMBASSADOR = "ambassador"    # Layer 5: Human verification
+    SENTINEL = "sentinel"  # Layer 1: Structural integrity
+    ORACLE_S = "oracle_s"  # Layer 2: Constitutional compliance
+    LEDGER = "ledger"  # Layer 3: Economic soundness
+    CONDUCTOR = "conductor"  # Layer 4: Operational readiness
+    AMBASSADOR = "ambassador"  # Layer 5: Human verification
 
 
 @dataclass
@@ -47,9 +47,9 @@ class ModelAssignment:
     """Model assignment for a role."""
 
     model: str
-    tier: str          # "fast" (e4b/7b) | "deep" (26b) | "embed"
-    tok_s: float       # Measured throughput on NODE0
-    reason: str        # Why this model for this role
+    tier: str  # "fast" (e4b/7b) | "deep" (26b) | "embed"
+    tok_s: float  # Measured throughput on NODE0
+    reason: str  # Why this model for this role
 
 
 # ── PAT-7 Routing Table ──────────────────────────────────────────

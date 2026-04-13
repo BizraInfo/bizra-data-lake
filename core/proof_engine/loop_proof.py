@@ -56,13 +56,16 @@ class LoopStep:
     hash: str = ""
 
     def compute_hash(self, prev_hash: str) -> str:
-        payload = json.dumps({
-            "seq": self.seq,
-            "actor": self.actor,
-            "action": self.action,
-            "status": self.status,
-            "prev_hash": prev_hash,
-        }, sort_keys=True).encode()
+        payload = json.dumps(
+            {
+                "seq": self.seq,
+                "actor": self.actor,
+                "action": self.action,
+                "status": self.status,
+                "prev_hash": prev_hash,
+            },
+            sort_keys=True,
+        ).encode()
         self.hash = hashlib.blake2b(payload, digest_size=32).hexdigest()
         return self.hash
 
@@ -84,7 +87,9 @@ class LoopProof:
     genesis_hash: str = "0" * 64
     signature: str = ""  # Empty until Ed25519 seal
 
-    def add_step(self, actor: str, action: str, status: str, evidence: Dict[str, Any] = None) -> LoopStep:
+    def add_step(
+        self, actor: str, action: str, status: str, evidence: Dict[str, Any] = None
+    ) -> LoopStep:
         prev = self.steps[-1].hash if self.steps else self.genesis_hash
         step = LoopStep(
             seq=len(self.steps),
@@ -99,13 +104,16 @@ class LoopProof:
         return step
 
     def compute_manifest_hash(self) -> str:
-        chain = json.dumps({
-            "version": self.version,
-            "node_id": self.node_id,
-            "mission": self.mission,
-            "step_hashes": [s.hash for s in self.steps],
-            "genesis_hash": self.genesis_hash,
-        }, sort_keys=True).encode()
+        chain = json.dumps(
+            {
+                "version": self.version,
+                "node_id": self.node_id,
+                "mission": self.mission,
+                "step_hashes": [s.hash for s in self.steps],
+                "genesis_hash": self.genesis_hash,
+            },
+            sort_keys=True,
+        ).encode()
         self.manifest_hash = hashlib.blake2b(chain, digest_size=32).hexdigest()
         return self.manifest_hash
 
@@ -130,13 +138,19 @@ class LoopProof:
     def verify_chain(self) -> bool:
         prev = self.genesis_hash
         for step in self.steps:
-            expected = hashlib.blake2b(json.dumps({
-                "seq": step.seq,
-                "actor": step.actor,
-                "action": step.action,
-                "status": step.status,
-                "prev_hash": prev,
-            }, sort_keys=True).encode(), digest_size=32).hexdigest()
+            expected = hashlib.blake2b(
+                json.dumps(
+                    {
+                        "seq": step.seq,
+                        "actor": step.actor,
+                        "action": step.action,
+                        "status": step.status,
+                        "prev_hash": prev,
+                    },
+                    sort_keys=True,
+                ).encode(),
+                digest_size=32,
+            ).hexdigest()
             if step.hash != expected:
                 return False
             prev = step.hash
@@ -231,7 +245,10 @@ def execute_loop_proof(
         actor="fate_gate",
         action="fate_crossing_complete",
         status="pass" if fate_result.passed else "blocked",
-        evidence={"passed": fate_result.passed, "telemetry": fate_result.telemetry_summary},
+        evidence={
+            "passed": fate_result.passed,
+            "telemetry": fate_result.telemetry_summary,
+        },
     )
 
     # Step 4: Receipt emission

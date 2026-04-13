@@ -59,7 +59,9 @@ class FateResult:
         }
 
 
-def validate_with_evidence(pat_output: PatOutput, *, emit_telemetry: bool = True) -> FateResult:
+def validate_with_evidence(
+    pat_output: PatOutput, *, emit_telemetry: bool = True
+) -> FateResult:
     """Run a full FATE crossing: evidence audit then SAT validation.
 
     This is the canonical entry point for governed PAT output validation.
@@ -81,6 +83,7 @@ def validate_with_evidence(pat_output: PatOutput, *, emit_telemetry: bool = True
     telem = None
     try:
         from core.proof_engine.fate_telemetry import FateTelemetry
+
         telem = FateTelemetry()
     except ImportError:
         pass
