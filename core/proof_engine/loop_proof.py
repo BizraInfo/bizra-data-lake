@@ -251,16 +251,19 @@ def execute_loop_proof(
         },
     )
 
-    # Step 4: Receipt emission
+    # Step 4: Seal step + manifest hash
     proof.fate_result = fate_result.to_dict()
-    proof.compute_manifest_hash()
 
     proof.add_step(
         actor="loop_proof",
         action="manifest_sealed",
         status="unsigned",  # becomes "signed" after Ed25519 seal
-        evidence={"manifest_hash": proof.manifest_hash, "step_count": len(proof.steps)},
+        evidence={"step_count": len(proof.steps)},
     )
+
+    # Compute manifest hash AFTER all steps (covers entire chain)
+    proof.compute_manifest_hash()
+    proof.steps[-1].evidence["manifest_hash"] = proof.manifest_hash
 
     # Write artifact
     if output_path:

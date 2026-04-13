@@ -107,7 +107,24 @@ def _verify_git_show(commit_ref: str, repo_root: Path) -> Tuple[bool, str]:
 
 
 def _verify_git_ancestry(ref: str, repo_root: Path) -> Tuple[bool, str]:
-    return _verify_git_show("b08f2208", repo_root)
+    """Verify that a commit ref is an ancestor of HEAD (reachable)."""
+    # If ref looks like a commit hash (hex, 7+ chars), verify it directly.
+    # Otherwise it's a meta-label (e.g. "ancestry-check") — verify Spearpoint.
+    is_commit_hash = len(ref) >= 7 and all(c in "0123456789abcdef" for c in ref.lower())
+    commit = ref if is_commit_hash else "b08f2208"
+    try:
+        result = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", commit, "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(repo_root),
+        )
+        if result.returncode == 0:
+            return True, f"{commit} is ancestor of HEAD"
+        return False, f"{commit} is not ancestor of HEAD"
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False, "git unavailable"
 
 
 def _verify_file(filename: str, repo_root: Path) -> Tuple[bool, str]:

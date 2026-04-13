@@ -710,6 +710,10 @@ class SovereignResult:
     # Error handling
     error: Optional[str] = None
 
+    # FATE Bridge fields (STAGE 2.5 evidence auditing + SAT verdict)
+    fate_verdict: Optional[str] = None
+    fate_evidence_valid: Optional[bool] = None
+
     # Week 3: Structured reasoning trace for transparent decision-making
     reasoning_summary: Optional[ReasoningSummary] = None
 

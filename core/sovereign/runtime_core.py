@@ -3569,8 +3569,8 @@ class SovereignRuntime:
                     confidence="high" if confidence > 0.7 else "medium",
                 )
                 if fate_bridge_result.enabled:
-                    result.fate_verdict = fate_bridge_result.verdict  # type: ignore[attr-defined]
-                    result.fate_evidence_valid = fate_bridge_result.evidence_valid  # type: ignore[attr-defined]
+                    result.fate_verdict = fate_bridge_result.verdict
+                    result.fate_evidence_valid = fate_bridge_result.evidence_valid
                     if not fate_bridge_result.passed:
                         self.logger.warning(
                             "FATE bridge BLOCKED: %s (ihsan=%.2f, evidence_valid=%s)",
