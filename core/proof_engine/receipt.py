@@ -189,6 +189,12 @@ class Receipt:
     # Timestamp
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
+    # FATE fields (promoted from MVDA v0.3 — evidence auditing + SAT verdict)
+    fate_verdict: Optional[str] = None  # PASS | BLOCKED_BY_IHSAN | BLOCKED_BY_EVIDENCE | DEGRADED
+    evidence_refs: List[str] = field(default_factory=list)
+    evidence_sufficient: Optional[bool] = None
+    actor: Optional[str] = None  # pat_researcher | sat_validator | evidence_auditor | fate_crossing
+
     def body_bytes(self) -> bytes:
         """
         Get the receipt body for signing.
@@ -207,6 +213,10 @@ class Receipt:
             "reason": self.reason,
             "metrics": self.metrics.to_dict(),
             "timestamp": self.timestamp.isoformat(),
+            "fate_verdict": self.fate_verdict,
+            "evidence_refs": self.evidence_refs,
+            "evidence_sufficient": self.evidence_sufficient,
+            "actor": self.actor,
         }
         return canonical_bytes(data)
 
@@ -249,6 +259,10 @@ class Receipt:
             "signer_pubkey": self.signer_pubkey.hex(),
             "timestamp": self.timestamp.isoformat(),
             "receipt_digest": self.hex_digest(),
+            "fate_verdict": self.fate_verdict,
+            "evidence_refs": self.evidence_refs,
+            "evidence_sufficient": self.evidence_sufficient,
+            "actor": self.actor,
         }
 
 

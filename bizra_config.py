@@ -71,7 +71,12 @@ INTAKE_PATH = DATA_LAKE_ROOT / "00_INTAKE"
 RAW_PATH = DATA_LAKE_ROOT / "01_RAW"
 PROCESSED_PATH = DATA_LAKE_ROOT / "02_PROCESSED"
 INDEXED_PATH = DATA_LAKE_ROOT / "03_INDEXED"
-GOLD_PATH = DATA_LAKE_ROOT / "04_GOLD"
+
+# GOLD_PATH: On Node0 native Linux the corpus lives at /data/bizra/04_GOLD
+# (outside the repo), not at DATA_LAKE_ROOT/04_GOLD. BIZRA_GOLD_DIR env var
+# provides the override; falls back to repo-internal path for other platforms.
+_gold_override = os.getenv("BIZRA_GOLD_DIR")
+GOLD_PATH = Path(_gold_override) if _gold_override else DATA_LAKE_ROOT / "04_GOLD"
 
 
 # External Sources & Sovereign Domains (environment-configurable)

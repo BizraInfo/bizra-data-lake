@@ -3555,6 +3555,45 @@ class SovereignRuntime:
         # Update reasoning metrics
         self.metrics.update_reasoning_stats(result.reasoning_depth)
 
+        # STAGE 2.5: FATE Bridge — evidence auditing + SAT validation
+        # Runs only when evidence_refs are available (e.g., from RAG/retrieval).
+        # Fail-open: if FATE gate is unavailable, pipeline continues.
+        try:
+            from core.sovereign.fate_bridge import run_fate_bridge
+
+            evidence_refs = query.context.get("evidence_refs", [])
+            if evidence_refs and is_real_inference:
+                fate_bridge_result = run_fate_bridge(
+                    answer=result.response or "",
+                    evidence_refs=evidence_refs,
+                    confidence="high" if confidence > 0.7 else "medium",
+                )
+                if fate_bridge_result.enabled:
+                    result.fate_verdict = fate_bridge_result.verdict  # type: ignore[attr-defined]
+                    result.fate_evidence_valid = fate_bridge_result.evidence_valid  # type: ignore[attr-defined]
+                    if not fate_bridge_result.passed:
+                        self.logger.warning(
+                            "FATE bridge BLOCKED: %s (ihsan=%.2f, evidence_valid=%s)",
+                            fate_bridge_result.reason,
+                            fate_bridge_result.ihsan_score,
+                            fate_bridge_result.evidence_valid,
+                        )
+                        result.success = False
+                        result.response = (
+                            f"Response blocked by FATE gate: {fate_bridge_result.reason}"
+                        )
+                        result.validation_passed = False
+                        result.processing_time_ms = (
+                            time.perf_counter() - start_time
+                        ) * 1000
+                        self.metrics.update_query_stats(
+                            False, result.processing_time_ms
+                        )
+                        self._emit_query_receipt(result, query)
+                        return result
+        except ImportError:
+            pass  # Graceful degradation — FATE bridge not available
+
         # STAGE 3: Optimize SNR
         optimized_content, snr_score, claim_tags = await self._optimize_snr(
             result.response
