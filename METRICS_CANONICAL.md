@@ -1,153 +1,115 @@
-# BIZRA Node0 — Canonical Metrics (April 6, 2026)
+# BIZRA Node0 — Canonical Metrics
 
 > بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
 
-These numbers are truth-labeled. Every metric was derived from the live codebase, CI pipeline, or git history on Node0. No rounding. No inflation.
+These numbers are truth-labeled. Every metric was MEASURED or VERIFIED on the live
+codebase on Node0. No rounding. No inflation.
 
-**Status labels used in this document:**
-
-| Label | Meaning |
-|-------|---------|
-| `VERIFIED` | Tested and gated in CI; a failing value blocks the build |
-| `MEASURED` | Produced by `cargo test`, `pytest`, or an automated benchmark run |
-| `COUNTED` | Derived by `wc -l`, `git log`, `ls`, or equivalent deterministic shell command |
+**Last measured:** 2026-04-13, Node0 (MSI Titan 18 HX, RTX 4090 Mobile)
+**Rule:** All docs, investor materials, and landing pages MUST import from this file.
 
 ---
 
-## Codebase Scale
+## Test Counts
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| Total lines of code | 556,000+ | `COUNTED` |
-| Python LOC | 251,000 | `COUNTED` |
-| Rust LOC | 116,000 | `COUNTED` |
-| TypeScript LOC | 10,000 | `COUNTED` |
-| Test LOC (all languages) | 179,000 | `COUNTED` |
-| Rust crates (bizra-omega workspace) | 25 | `COUNTED` |
-| Python subpackages (core/) | 72 | `COUNTED` |
+| Suite | Count | Status | Evidence |
+|-------|-------|--------|----------|
+| proof_engine (core) | 703 | GREEN | MEASURED |
+| cockpit | 8 | GREEN | MEASURED |
+| sovereign (fate_bridge) | 7 | GREEN | MEASURED |
+| **Total core** | **718** | **GREEN** | **MEASURED** |
 
----
+## Codebase
 
-## Test Health
+| Metric | Value | Evidence |
+|--------|-------|----------|
+| Python LOC (core/) | ~256,000 | MEASURED |
+| Rust LOC (bizra-omega/) | ~151,000 | MEASURED |
+| Rust crates | 26 | MEASURED |
+| CI workflow files | 21 | MEASURED |
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| Rust tests passing | 1,122 | `MEASURED` |
-| Rust test failures | 0 | `VERIFIED` |
-| Python tests collected | 11,415 | `MEASURED` |
-| Combined test count | 12,537 | `MEASURED` |
+## Constitutional Thresholds
 
----
+| Anchor | Value | Source | Evidence |
+|--------|-------|--------|----------|
+| UNIFIED_IHSAN_THRESHOLD | 0.95 | core/integration/constants.py | VERIFIED |
+| UNIFIED_SNR_THRESHOLD | 0.85 | core/integration/constants.py | VERIFIED |
+| ZANN_ZERO | true | core/proof_engine/constitutional_verdict.py | VERIFIED |
+| RIBA_ZERO | true | core/proof_engine/constitutional_verdict.py | VERIFIED |
 
-## Constitutional Spine
+## Runtime
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| Frozen Rust objects | 6 | `VERIFIED` |
-| Constitutional spine LOC | 2,111 | `COUNTED` |
-| Sippar crate LOC (exact arithmetic) | 485 | `COUNTED` |
-| Frozen agents (immutable at runtime) | 2 (P5 Ethicist · S2 Oracle) | `VERIFIED` |
-| IHSAN threshold | ≥ 0.95 | `VERIFIED` |
-| SNR floor | ≥ 0.85 | `VERIFIED` |
-| ADL_GINI ceiling | ≤ 0.35 | `VERIFIED` |
-| ZANN constraint | = 0 (zero) | `VERIFIED` |
-| RIBA constraint | = 0 (zero) | `VERIFIED` |
+| Component | Value | Evidence |
+|-----------|-------|----------|
+| Ollama models | 6 | MEASURED |
+| Governance model | gemma4:26b-bizra-16k (19.83 tok/s) | MEASURED |
+| Fast model | gemma4:e4b (61 tok/s) | MEASURED |
+| Coder model | qwen2.5-coder:14b (28.5 tok/s) | MEASURED |
+| Reasoning model | deepseek-r1:7b (54 tok/s) | MEASURED |
+| Embedding model | nomic-embed-text | MEASURED |
+| GPU | RTX 4090 Mobile 16GB VRAM | VERIFIED |
+| VRAM headroom (governance) | ~2.2 GB | MEASURED |
 
----
+## Proof Pipeline
 
-## CI Pipeline
+| Component | Status | Evidence |
+|-----------|--------|----------|
+| Evidence Auditor | Promoted to core | VERIFIED |
+| SAT Validator | Promoted to core | VERIFIED |
+| FATE Gate | Promoted to core | VERIFIED |
+| FATE Bridge (SovereignRuntime STAGE 2.5) | Wired | VERIFIED |
+| Loop Proof artifact (6-step hash-chained) | Operational | VERIFIED |
+| Ed25519 seal/verify/canonicalize gate | Operational | VERIFIED |
+| Glass Cockpit v0.1 (port 8420) | Operational | VERIFIED |
+| FATE Telemetry (append-only JSONL) | Operational | VERIFIED |
+| PAT-7/SAT-5 model routing table | Defined | VERIFIED |
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| Active CI workflows | 21 | `COUNTED` |
-| Gate maturation stages | 4 (Observe → Flag → Throttle → Reject) | `VERIFIED` |
-| Throttle multiplier | ×5 before Reject | `VERIFIED` |
-| Gate direction | Monotonic (tightens only, never softens) | `VERIFIED` |
+## PAT-7 Agent Status
 
----
+| Agent | Model | Status | Evidence |
+|-------|-------|--------|----------|
+| Researcher | gemma4:e4b | **EXERCISED** in loop proof | VERIFIED |
+| Strategist | gemma4:26b-bizra-16k | Routed, not exercised | DERIVED |
+| Analyst | qwen2.5-coder:14b | Routed, not exercised | DERIVED |
+| Creator | gemma4:e4b | Routed, not exercised | DERIVED |
+| Executor | deepseek-r1:7b | Routed, not exercised | DERIVED |
+| Guardian | gemma4:26b-bizra-16k | Routed, not exercised | DERIVED |
+| Coordinator | gemma4:26b-bizra-16k | Routed, not exercised | DERIVED |
 
-## Binary Artifacts
+## SAT-5 Gate Status
 
-| Binary | Size | Build Flags | Status |
-|--------|------|-------------|--------|
-| bizra-node | 2.8 MB | release · LTO · strip | `MEASURED` |
-| bizra-api | 5.1 MB | release · LTO · strip | `MEASURED` |
-| PyO3 bridge | 3.2 MB | release | `MEASURED` |
+| Gate | Status | Evidence |
+|------|--------|----------|
+| Sentinel (structural integrity) | Coded, not wired to loop proof | DERIVED |
+| Oracle-S (constitutional compliance) | **Exercised** via SAT Validator | VERIFIED |
+| Ledger (economic soundness) | Coded, not wired | DERIVED |
+| Conductor (operational readiness) | Coded, not wired | DERIVED |
+| Ambassador (human verification) | Coded, not wired | DERIVED |
 
----
+## Canon Chain
 
-## Evidence Chain
-
-| Artifact | Count | Status |
-|----------|-------|--------|
-| Signed receipts | 7+ | `COUNTED` |
-| Manifests | 2 | `COUNTED` |
-| Benchmark campaigns | 3 | `COUNTED` |
-
----
-
-## Git History
-
-| Metric | Value | Status |
-|--------|-------|--------|
-| Total commits | 763 | `COUNTED` |
-| Pre-release tags | 5 (v0.87.0 through v0.89.1) | `COUNTED` |
-| HEAD commit | `0115016b` | `COUNTED` |
-| HEAD commit message | "P0 Ihsan 0.85→0.95 constitutional fix" | `COUNTED` |
-
----
-
-## Agent Parliament
-
-| Component | Members | Status |
-|-----------|---------|--------|
-| PAT-7 (user-local council) | 7 agents | `VERIFIED` |
-| SAT-5 (system governance) | 5 agents | `VERIFIED` |
-| Total parliament size | 12 agents | `VERIFIED` |
+| Anchor | Value | Evidence |
+|--------|-------|----------|
+| Spearpoint seal | b08f2208 | VERIFIED |
+| Reachable from HEAD | YES | VERIFIED |
 
 ---
 
-## BYOB LLM Router
-
-| Model | Backend | Status |
-|-------|---------|--------|
-| deepseek-r1-32b | LM Studio | `MEASURED` |
-| qwen2.5-32b | LM Studio | `MEASURED` |
-| llava-7b | LM Studio | `MEASURED` |
-| qwen2.5-coder-32b | LM Studio | `MEASURED` |
-| Fallback | Ollama | `VERIFIED` |
+*Every value labeled VERIFIED was directly observed on running hardware.*
+*Every value labeled MEASURED was quantified by tool output.*
+*Every value labeled DERIVED was inferred from verified/measured evidence.*
+*No value labeled PLANNED appears in this file — PLANNED items belong in roadmap docs, not metrics.*
 
 ---
 
-## Node0 Hardware
+## Changelog
 
-| Component | Specification | Status |
-|-----------|--------------|--------|
-| Machine | MSI Titan 18 HX | `COUNTED` |
-| CPU | i9-14900HX · 24 cores | `COUNTED` |
-| GPU | RTX 4090 · 16 GB VRAM | `COUNTED` |
-| RAM | 128 GB DDR5 | `COUNTED` |
-| Evidence drive | B:\BIZRA-SOVEREIGN | `COUNTED` |
-| Runtime drive | C:\BIZRA-DATA-LAKE | `COUNTED` |
+### v1.1 (2026-04-13) — Post-MVDA promotion session
+- **Test count:** Redefined from "all Python tests" (v0: 12,537) to "core proof/cockpit/sovereign" (v1.1: 718). The v0 count included all tests across the entire repo including legacy, tools, and examples. The v1.1 count covers only the governed proof pipeline surface — the metric that matters for CLAIM_MUST_BIND.
+- **PAT-7 agent status:** Added honest per-agent status. 1 EXERCISED (Researcher), 6 DERIVED (routed but not exercised through full loop proof).
+- **SAT-5 gate status:** Added honest per-gate status. 1 VERIFIED (Oracle-S via SAT Validator), 4 DERIVED (coded but not wired to loop proof).
+- **Proof pipeline:** Added 9 components with evidence classes. All VERIFIED on running hardware.
+- **Previous version:** v0 (2026-04-06) — initial metrics file with whole-repo counts.
 
----
-
-## Benchmark Highlights (from academic lineage)
-
-| Benchmark | Result | Source |
-|-----------|--------|--------|
-| Reflex memory speedup | 7.55× over baseline | Bera et al., Apr 2025 |
-| FormalJudge vs. LLM-as-Judge | +16.6% improvement | Zhou et al., Feb 2026 |
-| Aegis alignment retention | 98.2% under adversarial prompts | Aegis Governance, Mar 2026 |
-| LifeBench top-system recall | 55.2% (industry ceiling) | LifeBench, Mar 2026 |
-
----
-
-Every metric in this document is reproducible from the canonical workspace at `C:\BIZRA-DATA-LAKE`. Run `cargo test --workspace` for Rust counts, `pytest --collect-only` for Python counts, and `git log --oneline | wc -l` for commit history. Numbers that cannot be reproduced by these commands are not in this document.
-
----
-
-*BIZRA Sovereign Node · Node0 · April 6, 2026*
-*Mohamed Beshr · m.beshr@bizra.info · Dubai, UAE*
-
-> بذرة واحدة تصنع غابة — One seed makes a forest.
+### v0 (2026-04-06) — Initial canonical metrics
+- First version. Whole-repo test counts. Pre-MVDA promotion.
