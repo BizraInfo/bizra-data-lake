@@ -190,10 +190,14 @@ class Receipt:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # FATE fields (promoted from MVDA v0.3 — evidence auditing + SAT verdict)
-    fate_verdict: Optional[str] = None  # PASS | BLOCKED_BY_IHSAN | BLOCKED_BY_EVIDENCE | DEGRADED
+    fate_verdict: Optional[str] = (
+        None  # PASS | BLOCKED_BY_IHSAN | BLOCKED_BY_EVIDENCE | DEGRADED
+    )
     evidence_refs: List[str] = field(default_factory=list)
     evidence_sufficient: Optional[bool] = None
-    actor: Optional[str] = None  # pat_researcher | sat_validator | evidence_auditor | fate_crossing
+    actor: Optional[str] = (
+        None  # pat_researcher | sat_validator | evidence_auditor | fate_crossing
+    )
 
     def body_bytes(self) -> bytes:
         """

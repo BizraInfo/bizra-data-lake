@@ -3579,9 +3579,7 @@ class SovereignRuntime:
                             fate_bridge_result.evidence_valid,
                         )
                         result.success = False
-                        result.response = (
-                            f"Response blocked by FATE gate: {fate_bridge_result.reason}"
-                        )
+                        result.response = f"Response blocked by FATE gate: {fate_bridge_result.reason}"
                         result.validation_passed = False
                         result.processing_time_ms = (
                             time.perf_counter() - start_time
