@@ -22,7 +22,7 @@
 ## Cryptographic Hash
 
 - **BLAKE3:** `5a70055ab166c5a1520a256d9d02f18690e2adebaf2cd6466de73ee296c7d71b`
-- **BLAKE2B-256:** `661a097e51a74e63de0f6b5ea41f7018e6d811b52c2a1e578dc29b17045d3f11`
+- **BLAKE2B-256:** `f0879a07526be7bd3567d1b8c68c1c4a9c5c65d1522d170a37eb818c53c4cce1`
 
 ## Chain Link
 

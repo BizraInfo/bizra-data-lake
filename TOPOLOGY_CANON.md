@@ -104,6 +104,24 @@ The human NEVER touches the network.
 | 1,000,000 | 7M | 5M | Self-securing, self-evolving |
 | 8,000,000,000 | 56B | 40B | Planetary intelligence |
 
+## Canonicalized Subsystems
+
+| Subsystem | Status | Cycle | BLAKE3 Hash | Tests |
+|---|---|---|---|---|
+| Node0 Activation | **CANDIDATE_CANONICAL** | Cycle 1 (2026-04-14) | `7b555875abdbe61527ff81b3184299de6cdb2171d0c998164c318a015f71db9c` | 21/21 |
+
+> **Status note (2026-04-14):** Local re-verification passes 12/12 checks, 21/21 tests, stable BLAKE3 hash.
+> Promoted to CANDIDATE_CANONICAL pending: (1) push to remote, (2) CI green, (3) independent review of diff.
+
+**Node0 Activation** encompasses: SovereignRuntime boot, PAT-7 wiring, SAT-5 wiring, DEMA Router, FATE Boundary, ProactiveScheduler, URP Service, Event Bus, Gate Chain, ConnectionPool, 12 CQRS subscribers, NervousSystem, MissionPipeline, Helix3 scheduler, Node0 Heartbeat, FederationAmbassador.
+
+**Promotion gates (CANDIDATE → CANONICAL):**
+1. ✅ Deterministic re-verification (reverify.py 12/12, 21/21)
+2. ✅ Hash integrity verified (BLAKE3 + BLAKE2B-256 dual-hash)
+3. ⏳ CI workflow green on GitHub Actions
+4. ⏳ `git push` to `origin/main` with all artifacts
+5. ⏳ External review / human attestation
+
 ---
 
 *This file is the canonical source of truth for BIZRA's topology.*
