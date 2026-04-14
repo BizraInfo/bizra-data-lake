@@ -631,6 +631,74 @@ Keyboard shortcuts:
 
             self.cockpit = Some(snapshot);
         }
+
+        // Merge cockpit data into DashboardData so widgets pick it up automatically
+        self.merge_cockpit_into_dashboard();
+    }
+
+    /// Overlay cockpit telemetry onto DashboardData fields.
+    /// This enriches the ghost feed, receipt rail, and trust rail
+    /// with live data from the Python cockpit server.
+    fn merge_cockpit_into_dashboard(&mut self) {
+        let cockpit = match &self.cockpit {
+            Some(c) if c.reachable => c.clone(),
+            _ => return,
+        };
+
+        let data = match self.dashboard_data.as_mut() {
+            Some(d) => d,
+            None => return,
+        };
+
+        // ── Ghost Feed: inject daemon health as recommendations ──
+        if let Some(ref rt) = cockpit.runtime {
+            let mut daemons_up = 0u32;
+            let mut daemons_total = 0u32;
+            let checks = [
+                ("PAT Runtime", &rt.pat_runtime),
+                ("SAT Runtime", &rt.sat_runtime),
+                ("DEMA Router", &rt.dema_router),
+                ("FATE Boundary", &rt.fate_boundary),
+            ];
+            for (name, status) in &checks {
+                daemons_total += 1;
+                if status.as_deref() == Some("ok") {
+                    daemons_up += 1;
+                } else {
+                    data.recommendations
+                        .push(format!("{name}: offline — restart recommended"));
+                }
+            }
+
+            // Update runtime_state based on daemon health
+            if daemons_up == daemons_total {
+                data.runtime_state = "Ready".to_string();
+            } else if daemons_up > 0 {
+                data.runtime_state = "Degraded".to_string();
+            }
+        }
+
+        // ── Receipt Rail: merge cockpit receipt count ──
+        if let Some(ref receipts) = cockpit.receipts {
+            if receipts.error.is_none() && receipts.count > data.total_receipts {
+                data.total_receipts = receipts.count;
+            }
+        }
+
+        // ── Trust Rail: add activation status check ──
+        if let Some(ref activation) = cockpit.activation {
+            if activation.error.is_none() {
+                data.trust_checks.push(crate::commands::genesis_spine::TrustCheck {
+                    name: "Activation Chain".to_string(),
+                    passed: activation.activated,
+                    detail: if activation.activated {
+                        format!("Chain verified ({} receipts)", activation.receipt_count)
+                    } else {
+                        "Node not activated".to_string()
+                    },
+                });
+            }
+        }
     }
 
     /// Call LLM via Python bridge
