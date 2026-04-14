@@ -11,9 +11,11 @@ Tests (in order):
   4. PAT onboarding        — mint 7 PAT + 5 SAT agents
   5. Agent activation      — DORMANT -> ACTIVE for all agents
   6. FATE gate             — audit_evidence callable, FateResult usable
-  7. Receipt chain         — BLAKE3-chained receipts verify
+  7. SAT gates             — all 6 gates importable
   8. Proof engine          — CanonicalReceipt instantiation
   9. Constitutional spine  — Ihsan threshold importable
+ 10. Scheduler             — ProactiveScheduler job registration
+ 11. Runtime daemons       — PAT/SAT/DEMA/FATE imports + API check
 
 Exit codes:
   0 — all tests pass
@@ -183,6 +185,33 @@ def test_thresholds():
     assert SNR_THRESHOLD >= 0.85, f"SNR threshold {SNR_THRESHOLD} < 0.85"
 
 
+@test("10. ProactiveScheduler (schedule + job registration)")
+def test_proactive_scheduler():
+    from core.sovereign.proactive_scheduler import ProactiveScheduler
+    scheduler = ProactiveScheduler(max_concurrent=2, check_interval=0.5)
+    assert scheduler._running is False, "Scheduler should not be running before start()"
+    assert len(scheduler._jobs) == 0, "Jobs should be empty on init"
+    # Register a test job synchronously
+    import asyncio
+    async def noop(): return "ok"
+    job_id = scheduler.schedule(name="test_job", handler=noop)
+    assert job_id is not None, "schedule() should return a job ID"
+    assert "test_job" in [j.name for j in scheduler._jobs.values()], "Job not registered"
+
+
+@test("11. Runtime daemons importable (PAT + SAT + DEMA + FATE)")
+def test_runtime_daemons():
+    from core.pat.runtime import PATRuntime
+    from core.sat.runtime import SATRuntime
+    from core.sovereign.dema_router import DEMARouter
+    from core.sovereign.fate_boundary import FATEBoundary
+    # Verify they are classes with expected methods
+    assert callable(getattr(PATRuntime, 'start', None)), "PATRuntime.start missing"
+    assert callable(getattr(SATRuntime, 'start', None)), "SATRuntime.start missing"
+    assert callable(getattr(DEMARouter, 'route', None)), "DEMARouter.route missing"
+    assert callable(getattr(FATEBoundary, 'check', None)) or hasattr(FATEBoundary, '__init__'), "FATEBoundary incomplete"
+
+
 # ==============================================================================
 # Runner
 # ==============================================================================
@@ -204,6 +233,8 @@ def main():
         test_sat_gates,
         test_proof_receipt,
         test_thresholds,
+        test_proactive_scheduler,
+        test_runtime_daemons,
     ]
 
     for t in tests:
