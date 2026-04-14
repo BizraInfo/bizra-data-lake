@@ -375,6 +375,15 @@ class SovereignRuntime:
         # Phase 71: Seed Engine (DDAGI growth trajectory + self-RLVR)
         self._seed_engine: object | None = None  # SeedEngine
 
+        # Phase 80: Runtime Daemons (PAT + SAT + DEMA + FATE Boundary)
+        self._pat_runtime: object | None = None  # PATRuntime
+        self._sat_runtime: object | None = None  # SATRuntime
+        self._dema_router: object | None = None  # DEMARouter
+        self._fate_boundary: object | None = None  # FATEBoundary
+        self._urp_service: object | None = None  # URPService
+        self._proactive_scheduler: object | None = None  # ProactiveScheduler
+        self._proactive_scheduler_task: asyncio.Task[Any] | None = None
+
         # PERF FIX: Use deque for O(1) bounded storage
         self._query_times: deque[float] = deque(maxlen=100)
 
@@ -1112,6 +1121,15 @@ class SovereignRuntime:
         # Runtime-canonical organism authority — one organism, one Node0, one signer.
         await self._init_canonical_organism_stack()
         self._init_autopoiesis_stack()
+
+        # Phase 80: Runtime Daemons — PAT loop, SAT loop, DEMA routing, FATE boundary
+        self._init_urp_service()
+        self._init_fate_boundary()
+        await self._init_pat_runtime()
+        await self._init_sat_runtime()
+        self._init_dema_router()
+        self._activate_genesis_agents()
+        self._init_proactive_scheduler()
 
         self._initialized = True
         self._running = True
@@ -3100,6 +3118,166 @@ class SovereignRuntime:
         except (NotImplementedError, RuntimeError):
             pass  # Windows doesn't support add_signal_handler
 
+    # ─── Phase 80: Runtime Daemon Init Methods ─────────────────────────
+
+    def _init_urp_service(self) -> None:
+        """Initialize URP Service as in-process singleton."""
+        try:
+            from core.urp.service import URPService
+
+            self._urp_service = URPService()
+            self.logger.info("✓ URPService initialized (in-process)")
+        except (ImportError, RuntimeError, TypeError, ValueError, OSError) as e:
+            self.logger.warning(f"URPService init skipped: {e}")
+
+    def _init_fate_boundary(self) -> None:
+        """Initialize FATE boundary membrane (PAT↔URP crossing gate)."""
+        try:
+            from core.sovereign.fate_boundary import FATEBoundary
+
+            self._fate_boundary = FATEBoundary(
+                fate_gate=self._fate_gate,
+                ihsan_threshold=self.config.ihsan_threshold,
+                receipt_dir=self.config.state_dir / "receipts",
+            )
+            self.logger.info(
+                "✓ FATE Boundary initialized "
+                f"(ihsan≥{self.config.ihsan_threshold}, "
+                f"fate_gate={'online' if self._fate_gate else 'degraded'})"
+            )
+        except (ImportError, RuntimeError, TypeError, ValueError, OSError) as e:
+            self.logger.warning(f"FATE Boundary init skipped: {e}")
+
+    async def _init_pat_runtime(self) -> None:
+        """Initialize PAT-7 agent runtime daemon."""
+        try:
+            from core.pat.runtime import PATRuntime
+
+            pat_team = []
+            if self._genesis and hasattr(self._genesis, "pat_team"):
+                pat_team = list(self._genesis.pat_team)
+
+            self._pat_runtime = PATRuntime(
+                agents=pat_team,
+                query_fn=self.query if hasattr(self, "query") else None,
+                receipt_dir=self.config.state_dir / "receipts",
+                fate_boundary=self._fate_boundary,
+            )
+            await self._pat_runtime.start()
+            self.logger.info(
+                f"✓ PAT Runtime started ({self._pat_runtime.agent_count} agents, "
+                f"{self._pat_runtime.active_count} active)"
+            )
+        except (ImportError, RuntimeError, TypeError, ValueError, OSError) as e:
+            self.logger.warning(f"PAT Runtime init skipped: {e}")
+
+    async def _init_sat_runtime(self) -> None:
+        """Initialize SAT-5 validation runtime daemon."""
+        try:
+            from core.sat.runtime import SATRuntime
+
+            sat_team = []
+            if self._genesis and hasattr(self._genesis, "sat_team"):
+                sat_team = list(self._genesis.sat_team)
+
+            self._sat_runtime = SATRuntime(
+                agents=sat_team,
+                receipt_dir=self.config.state_dir / "receipts",
+                ihsan_threshold=self.config.ihsan_threshold,
+            )
+            await self._sat_runtime.start()
+            self.logger.info(
+                f"✓ SAT Runtime started ({len(sat_team)} agents, "
+                f"{len(self._sat_runtime._gates_loaded)} gates)"
+            )
+        except (ImportError, RuntimeError, TypeError, ValueError, OSError) as e:
+            self.logger.warning(f"SAT Runtime init skipped: {e}")
+
+    def _init_dema_router(self) -> None:
+        """Initialize DEMA Router (user directive → PAT agent routing)."""
+        try:
+            from core.sovereign.dema_router import DEMARouter
+
+            pat_team = []
+            if self._genesis and hasattr(self._genesis, "pat_team"):
+                pat_team = list(self._genesis.pat_team)
+
+            select_fn = None
+            if self._user_context and hasattr(self._user_context, "select_pat_agent"):
+                select_fn = self._user_context.select_pat_agent
+
+            self._dema_router = DEMARouter(
+                pat_runtime=self._pat_runtime,
+                select_agent_fn=select_fn,
+                pat_team=pat_team,
+            )
+            self.logger.info("✓ DEMA Router initialized")
+        except (ImportError, RuntimeError, TypeError, ValueError, OSError) as e:
+            self.logger.warning(f"DEMA Router init skipped: {e}")
+
+    def _activate_genesis_agents(self) -> None:
+        """Activate all genesis PAT + SAT agents (DORMANT → ACTIVE)."""
+        if not self._genesis:
+            return
+        activated = 0
+        for team_name, team in [
+            ("PAT", self._genesis.pat_team),
+            ("SAT", self._genesis.sat_team),
+        ]:
+            for agent_id in team:
+                agent = agent_id  # AgentIdentity objects
+                if hasattr(agent, "activate") and callable(agent.activate):
+                    try:
+                        if agent.activate():
+                            activated += 1
+                    except (RuntimeError, TypeError, ValueError):
+                        pass
+        if activated > 0:
+            self.logger.info(f"✓ {activated} genesis agents activated (DORMANT → ACTIVE)")
+
+    def _init_proactive_scheduler(self) -> None:
+        """Initialize ProactiveScheduler with morning briefing mission."""
+        try:
+            from core.sovereign.proactive_scheduler import (
+                ProactiveScheduler,
+                ScheduleType,
+            )
+
+            self._proactive_scheduler = ProactiveScheduler(
+                check_interval=30.0,
+                max_concurrent=3,
+            )
+
+            # Register morning briefing (Dubai 07:00 GST = 03:00 UTC, daily)
+            async def morning_briefing() -> str:
+                """Generate morning briefing via DEMA router."""
+                if self._dema_router:
+                    self._dema_router.route(
+                        "Generate morning briefing: summarize yesterday's activity, "
+                        "active missions, node health, and priority items for today.",
+                        requester_id="scheduler",
+                    )
+                return "Morning briefing dispatched"
+
+            self._proactive_scheduler.schedule(
+                name="morning_briefing",
+                handler=morning_briefing,
+                schedule_type=ScheduleType.RECURRING,
+                interval_seconds=86400,
+                priority=2,
+            )
+
+            # Start scheduler as background task
+            self._proactive_scheduler_task = asyncio.create_task(
+                self._proactive_scheduler.start(),
+                name="proactive_scheduler",
+            )
+            self.logger.info(
+                "✓ ProactiveScheduler started (morning_briefing registered, 24h cycle)"
+            )
+        except (ImportError, RuntimeError, TypeError, ValueError, OSError) as e:
+            self.logger.warning(f"ProactiveScheduler init skipped: {e}")
+
     async def shutdown(self) -> None:
         """Gracefully shutdown the runtime."""
         if not self._running:
@@ -3113,6 +3291,29 @@ class SovereignRuntime:
 
         await self._stop_autopoiesis_tasks()
         await self._stop_event_bus_task()
+
+        # Stop Phase 80 runtime daemons (PAT → SAT → Scheduler)
+        if self._pat_runtime and hasattr(self._pat_runtime, "stop"):
+            try:
+                await self._pat_runtime.stop()
+            except (RuntimeError, ValueError, TypeError, AttributeError, OSError):
+                self.logger.debug("PAT Runtime stop failed", exc_info=True)
+        if self._sat_runtime and hasattr(self._sat_runtime, "stop"):
+            try:
+                await self._sat_runtime.stop()
+            except (RuntimeError, ValueError, TypeError, AttributeError, OSError):
+                self.logger.debug("SAT Runtime stop failed", exc_info=True)
+        if self._proactive_scheduler and hasattr(self._proactive_scheduler, "stop"):
+            try:
+                self._proactive_scheduler.stop()
+            except (RuntimeError, ValueError, TypeError, AttributeError, OSError):
+                self.logger.debug("Scheduler stop failed", exc_info=True)
+        if self._proactive_scheduler_task:
+            self._proactive_scheduler_task.cancel()
+            try:
+                await self._proactive_scheduler_task
+            except asyncio.CancelledError:
+                pass
 
         if self._pek and hasattr(self._pek, "stop"):
             try:

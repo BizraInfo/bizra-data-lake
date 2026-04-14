@@ -316,3 +316,4 @@ vendor/
 04_GOLD/ruvector_bizra/
 ruvector.db
 bizra-omega/ruvector.db
+.env

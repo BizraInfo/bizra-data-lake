@@ -60,6 +60,17 @@ COPY bizra-action/Cargo.toml bizra-action/
 # Desktop Node Layer
 COPY bizra-agent/Cargo.toml bizra-agent/
 COPY bizra-node/Cargo.toml bizra-node/
+# TTRL Layer
+COPY bizra-ttrl/Cargo.toml bizra-ttrl/
+# Exact Arithmetic (Sippar Protocol)
+COPY bizra-sippar/Cargo.toml bizra-sippar/
+# Mission Control Plane
+COPY bizra-mission/Cargo.toml bizra-mission/
+# Advanced Bindings
+COPY fate-binding/Cargo.toml fate-binding/
+COPY iceoryx-bridge/Cargo.toml iceoryx-bridge/
+# Protocol Layer (26th crate)
+COPY bizra-protocol/Cargo.toml bizra-protocol/
 
 # --------------------------------------------------------------------------
 # Create dummy source files so cargo can resolve the dependency graph and
@@ -75,7 +86,9 @@ RUN set -eux && \
     # Library crates (lib.rs only)
     for crate in bizra-core bizra-hypergraph bizra-inference bizra-federation \
                  bizra-autopoiesis bizra-python bizra-hunter bizra-telescript \
-                 bizra-proofspace bizra-hooks bizra-memory bizra-action bizra-agent; do \
+                 bizra-proofspace bizra-hooks bizra-memory bizra-action bizra-agent \
+                 bizra-ttrl bizra-sippar bizra-mission bizra-protocol \
+                 fate-binding iceoryx-bridge; do \
         mkdir -p "$crate/src" && \
         echo "pub fn _dummy() {}" > "$crate/src/lib.rs"; \
     done && \
@@ -140,6 +153,17 @@ COPY bizra-action/src bizra-action/src/
 COPY bizra-action/tests bizra-action/tests/
 COPY bizra-agent/src bizra-agent/src/
 COPY bizra-node/src bizra-node/src/
+COPY bizra-ttrl/src bizra-ttrl/src/
+COPY bizra-sippar/src bizra-sippar/src/
+COPY bizra-mission/src bizra-mission/src/
+COPY bizra-protocol/src bizra-protocol/src/
+COPY fate-binding/src fate-binding/src/
+COPY iceoryx-bridge/src iceoryx-bridge/src/
+COPY bizra-hunter/benches bizra-hunter/benches/
+COPY bizra-proofspace/benches bizra-proofspace/benches/
+COPY bizra-resourcepool/benches bizra-resourcepool/benches/
+COPY bizra-telescript/benches bizra-telescript/benches/
+COPY iceoryx-bridge/benches iceoryx-bridge/benches/
 COPY bizra-tests/tests bizra-tests/tests/
 COPY bizra-tests/benches bizra-tests/benches/
 
@@ -206,7 +230,7 @@ CMD ["bizra-api", "--host", "0.0.0.0", "--port", "3001"]
 # =============================================================================
 # Stage 3: Runtime Environment (CUDA)
 # =============================================================================
-FROM nvidia/cuda:12.2-runtime-ubuntu22.04 AS runtime-cuda
+FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04 AS runtime-cuda
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \

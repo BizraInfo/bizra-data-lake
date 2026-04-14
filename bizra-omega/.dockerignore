@@ -16,8 +16,8 @@ target/
 *.md
 docs/
 
-# Test files
-bizra-tests/
+# Test files (needed for build)
+# bizra-tests/
 
 # Python cache
 __pycache__/
@@ -40,9 +40,9 @@ __pycache__/
 # Sovereign state (generated at runtime)
 sovereign_state/
 
-# Benchmarks
-benches/
-benchmark/
+# Benchmarks (needed for build)
+# benches/
+# benchmark/
 
 # K8s manifests (not needed in container)
 k8s/

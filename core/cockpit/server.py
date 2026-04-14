@@ -32,6 +32,7 @@ TELEMETRY_PATH = Path(
 ADVERSARIAL_LEDGER = Path("/data/bizra/logs/mvda-adversarial-ledger.jsonl")
 DEV_LEDGER = Path("/data/bizra/logs/mvda-dev-ledger.jsonl")
 REPO_ROOT = Path(os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake"))
+RECEIPT_DIR = REPO_ROOT / "sovereign_state" / "receipts"
 
 
 def _read_jsonl_tail(path: Path, n: int = 20) -> List[dict]:
@@ -143,6 +144,95 @@ def _seal_status() -> Dict[str, Any]:
         return {"state": "seal_module_unavailable", "latest": str(latest)}
 
 
+def _agent_status() -> Dict[str, Any]:
+    """Read genesis identity and return agent roster with status."""
+    state_dir = REPO_ROOT / "sovereign_state"
+    genesis_file = state_dir / "genesis_identity.json"
+    if not genesis_file.exists():
+        return {"agents": [], "error": "No genesis identity file"}
+    try:
+        data = json.loads(genesis_file.read_text())
+        agents = []
+        for team_key in ("pat_team", "sat_team"):
+            team = data.get(team_key, [])
+            for agent in team:
+                agents.append({
+                    "agent_id": agent.get("agent_id", ""),
+                    "role": agent.get("role", ""),
+                    "team": "PAT" if team_key == "pat_team" else "SAT",
+                    "status": agent.get("status", "unknown"),
+                })
+        return {"agents": agents, "pat_count": len(data.get("pat_team", [])),
+                "sat_count": len(data.get("sat_team", []))}
+    except (json.JSONDecodeError, OSError) as e:
+        return {"agents": [], "error": str(e)}
+
+
+def _receipt_chain(n: int = 20) -> Dict[str, Any]:
+    """Read the most recent receipts from sovereign_state/receipts/."""
+    if not RECEIPT_DIR.exists():
+        return {"receipts": [], "count": 0}
+    try:
+        receipt_files = sorted(
+            RECEIPT_DIR.glob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True
+        )[:n]
+        receipts = []
+        for rf in receipt_files:
+            try:
+                data = json.loads(rf.read_text())
+                data["_filename"] = rf.name
+                receipts.append(data)
+            except (json.JSONDecodeError, OSError):
+                continue
+        return {"receipts": receipts, "count": len(list(RECEIPT_DIR.glob("*.json")))}
+    except OSError as e:
+        return {"receipts": [], "count": 0, "error": str(e)}
+
+
+def _activation_status() -> Dict[str, Any]:
+    """Read activation chain receipt and return status."""
+    if not RECEIPT_DIR.exists():
+        return {"activated": False, "steps": []}
+    chain_files = sorted(RECEIPT_DIR.glob("activation_chain_*.json"))
+    if not chain_files:
+        return {"activated": False, "steps": []}
+    try:
+        latest = json.loads(chain_files[-1].read_text())
+        return {
+            "activated": True,
+            "chain_file": chain_files[-1].name,
+            "receipt_count": len(latest) if isinstance(latest, list) else 1,
+            "chain_data": latest,
+        }
+    except (json.JSONDecodeError, OSError) as e:
+        return {"activated": False, "error": str(e)}
+
+
+def _runtime_status() -> Dict[str, Any]:
+    """Attempt to get status from runtime daemons if importable."""
+    status = {"pat_runtime": None, "sat_runtime": None, "dema_router": None,
+              "proactive_scheduler": None, "fate_boundary": None, "urp_service": None}
+    # Runtime daemons are in-process — check if module exists
+    for key, module_path in [
+        ("pat_runtime", "core.pat.runtime"),
+        ("sat_runtime", "core.sat.runtime"),
+        ("dema_router", "core.sovereign.dema_router"),
+        ("fate_boundary", "core.sovereign.fate_boundary"),
+    ]:
+        try:
+            __import__(module_path)
+            status[key] = "module_available"
+        except ImportError:
+            status[key] = "module_missing"
+    try:
+        from core.urp.service import URPService
+        svc = URPService()
+        status["urp_service"] = svc.status()
+    except (ImportError, RuntimeError, TypeError):
+        status["urp_service"] = "unavailable"
+    return status
+
+
 @app.get("/api/seal")
 def api_seal():
     return _seal_status()
@@ -168,6 +258,30 @@ def api_activity():
     return _recent_activity()
 
 
+@app.get("/api/agents")
+def api_agents():
+    """Live PAT-7 + SAT-5 agent status from genesis identity."""
+    return _agent_status()
+
+
+@app.get("/api/receipts")
+def api_receipts():
+    """Recent receipts from the sovereign receipt chain."""
+    return _receipt_chain()
+
+
+@app.get("/api/activation")
+def api_activation():
+    """Current activation ledger status."""
+    return _activation_status()
+
+
+@app.get("/api/runtime")
+def api_runtime():
+    """Runtime daemon status (PAT loop, SAT loop, scheduler)."""
+    return _runtime_status()
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
     fate = _fate_summary()
@@ -175,6 +289,9 @@ def dashboard():
     routing = _model_routing()
     activity = _recent_activity(10)
     seal = _seal_status()
+    agents = _agent_status()
+    receipts = _receipt_chain(10)
+    activation = _activation_status()
 
     verdict_rows = (
         "".join(

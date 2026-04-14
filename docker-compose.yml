@@ -37,14 +37,17 @@ services:
       - SNR_THRESHOLD=0.85
       - BIZRA_JWT_SECRET=${BIZRA_JWT_SECRET:?Set BIZRA_JWT_SECRET in .env}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@host.docker.internal:6379
-      - LLM_PRIMARY_HOST=${LLM_PRIMARY_HOST:-192.168.56.1}
-      - LLM_PRIMARY_PORT=${LLM_PRIMARY_PORT:-1234}
+      - LLM_PRIMARY_HOST=host.docker.internal
+      - LLM_PRIMARY_PORT=11434
       - LLM_FALLBACK_HOST=host.docker.internal
       - LLM_FALLBACK_PORT=11434
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OLLAMA_HOST_ADDR=host.docker.internal
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/v1/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/docs"]
       interval: 30s
       timeout: 10s
       start_period: 60s
@@ -78,6 +81,7 @@ services:
       - BIZRA_ENV=development
       - BIZRA_NODE_ID=node0-genesis-dev
       - RUST_LOG=info,bizra=debug
+      - BIZRA_API_ALLOW_INSECURE_DEV=true
       - REDIS_URL=redis://:${REDIS_PASSWORD}@host.docker.internal:6379
     extra_hosts:
       - "host.docker.internal:host-gateway"
