@@ -301,6 +301,12 @@ pub struct App {
 
     /// Selected receipt index in the scrollable receipt list (Sprint 7.2)
     pub selected_receipt: Option<usize>,
+
+    /// Live cockpit snapshot (Python cockpit at :8420)
+    pub cockpit: Option<crate::cockpit_client::CockpitSnapshot>,
+
+    /// Whether the Python cockpit server is reachable
+    pub cockpit_reachable: bool,
 }
 
 impl Default for App {
@@ -343,6 +349,8 @@ impl App {
             dashboard_data: None,
             last_refresh: None,
             selected_receipt: None,
+            cockpit: None,
+            cockpit_reachable: false,
         }
     }
 
@@ -574,6 +582,54 @@ Keyboard shortcuts:
                     };
                 }
             }
+        }
+
+        // ── Cockpit HTTP refresh (Python cockpit at :8420) ──
+        let snapshot = crate::cockpit_client::fetch_snapshot();
+        self.cockpit_reachable = snapshot.reachable;
+
+        if snapshot.reachable {
+            // Merge FATE telemetry from cockpit into gate display
+            if let Some(ref fate) = snapshot.fate {
+                let total = fate.total_checks;
+                let pass_count = fate.verdicts.get("PASS").copied().unwrap_or(0);
+                if total > 0 {
+                    let pass_ratio = pass_count as f64 / total as f64;
+                    self.fate_gates.ihsan = pass_ratio.max(self.fate_gates.ihsan);
+                }
+            }
+
+            // Update agent count from live cockpit data
+            if let Some(ref agents) = snapshot.agents {
+                if agents.error.is_none() && !agents.agents.is_empty() {
+                    // Sync agent status from cockpit into App.agents map
+                    for ca in &agents.agents {
+                        if ca.team == "PAT" {
+                            if let Some(role) = match ca.role.as_str() {
+                                "Strategist" => Some(PATRole::Strategist),
+                                "Researcher" => Some(PATRole::Researcher),
+                                "Developer" => Some(PATRole::Developer),
+                                "Analyst" => Some(PATRole::Analyst),
+                                "Reviewer" => Some(PATRole::Reviewer),
+                                "Executor" => Some(PATRole::Executor),
+                                "Guardian" => Some(PATRole::Guardian),
+                                _ => None,
+                            } {
+                                if let Some(agent) = self.agents.get_mut(&role) {
+                                    agent.status = match ca.status.as_str() {
+                                        "active" | "ready" => AgentStatus::Idle,
+                                        "thinking" | "processing" => AgentStatus::Thinking,
+                                        "error" | "failed" => AgentStatus::Error,
+                                        _ => agent.status,
+                                    };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            self.cockpit = Some(snapshot);
         }
     }
 

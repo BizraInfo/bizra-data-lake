@@ -21,6 +21,7 @@
 //! ```
 
 pub mod app;
+pub mod cockpit_client;
 pub mod commands;
 pub mod config;
 pub mod inference;

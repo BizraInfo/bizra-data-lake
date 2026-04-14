@@ -12,6 +12,7 @@ use anyhow::Result;
 use clap::Parser;
 
 mod app;
+mod cockpit_client;
 mod commands;
 // TUI scaffolding -- inference module used when direct Rust-to-LMStudio path replaces Python bridge
 #[allow(dead_code)]
@@ -648,7 +649,8 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
     let status = StatusBar::new(app.input_mode)
         .agent(app.selected_agent.map(|a| a.name()))
         .message(app.status_message.as_ref().map(|(m, _)| m.as_str()))
-        .manifest(manifest_text.as_deref());
+        .manifest(manifest_text.as_deref())
+        .cockpit(app.cockpit_reachable);
     f.render_widget(status, chunks[2]);
 
     // Input box (when in editing mode)

@@ -20,6 +20,7 @@ pub struct StatusBar<'a> {
     message: Option<&'a str>,
     selected_agent: Option<&'a str>,
     manifest_summary: Option<&'a str>,
+    cockpit_reachable: bool,
 }
 
 impl<'a> StatusBar<'a> {
@@ -29,6 +30,7 @@ impl<'a> StatusBar<'a> {
             message: None,
             selected_agent: None,
             manifest_summary: None,
+            cockpit_reachable: false,
         }
     }
 
@@ -44,6 +46,11 @@ impl<'a> StatusBar<'a> {
 
     pub fn manifest(mut self, summary: Option<&'a str>) -> Self {
         self.manifest_summary = summary;
+        self
+    }
+
+    pub fn cockpit(mut self, reachable: bool) -> Self {
+        self.cockpit_reachable = reachable;
         self
     }
 }
@@ -96,6 +103,14 @@ impl Widget for StatusBar<'_> {
                 format!("Manifest: {manifest}"),
                 Theme::ihsan(),
             ));
+        }
+
+        // Cockpit connectivity
+        spans.push(Span::styled(" │ ", Theme::muted()));
+        if self.cockpit_reachable {
+            spans.push(Span::styled("Cockpit:ON", Theme::success()));
+        } else {
+            spans.push(Span::styled("Cockpit:OFF", Theme::muted()));
         }
 
         // Status message (right-aligned)
