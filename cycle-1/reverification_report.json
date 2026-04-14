@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-04-14T16:31:19+0400",
+  "python": "3.12.3",
+  "checks": [
+    {
+      "check": "py_compile _connection_pool.py",
+      "status": "PASS"
+    },
+    {
+      "check": "Smoke test (11/11 passed)",
+      "status": "PASS"
+    },
+    {
+      "check": "Integration test (10/10 passed)",
+      "status": "PASS"
+    },
+    {
+      "check": "Total tests: 21/21",
+      "status": "PASS"
+    },
+    {
+      "check": "Artifact: niyyah.md",
+      "status": "PASS"
+    },
+    {
+      "check": "Artifact: bayyinah_report.md",
+      "status": "PASS"
+    },
+    {
+      "check": "Artifact: hadd.md",
+      "status": "PASS"
+    },
+    {
+      "check": "Artifact: execution_trace.md",
+      "status": "PASS"
+    },
+    {
+      "check": "Artifact: reward_report.md",
+      "status": "PASS"
+    },
+    {
+      "check": "Artifact: manifest.md",
+      "status": "PASS"
+    },
+    {
+      "check": "Artifact: retrospective.md",
+      "status": "PASS"
+    },
+    {
+      "check": "Hash computed",
+      "status": "PASS"
+    }
+  ],
+  "passed": 12,
+  "failed": 0,
+  "total_tests": 21,
+  "hash_blake2b_256": "661a097e51a74e63de0f6b5ea41f7018e6d811b52c2a1e578dc29b17045d3f11",
+  "hash_blake3": "5a70055ab166c5a1520a256d9d02f18690e2adebaf2cd6466de73ee296c7d71b",
+  "verdict": "CANONICAL"
+}
