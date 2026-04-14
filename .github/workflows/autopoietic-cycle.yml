@@ -1,0 +1,46 @@
+name: Autopoietic Cycle Verification
+
+on:
+  push:
+    paths:
+      - 'cycle-*/**'
+      - 'core/proof_engine/**'
+      - 'core/sat/**'
+      - 'core/adk/**'
+  pull_request:
+    paths:
+      - 'cycle-*/**'
+
+jobs:
+  verify-cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install blake3 pynacl
+
+      - name: Run Cycle 1 re-verification
+        run: |
+          python cycle-1/reverify.py
+        env:
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
+
+      - name: Verify hash stability
+        run: |
+          # Extract hash from reverify output and compare to manifest
+          HASH=$(python cycle-1/reverify.py 2>&1 | grep "BLAKE3:" | awk '{print $2}')
+          MANIFEST_HASH=$(grep "hash" cycle-1/manifest.md 2>/dev/null | grep -oP '[a-f0-9]{64}' | head -1)
+          if [ -n "$MANIFEST_HASH" ] && [ "$HASH" != "$MANIFEST_HASH" ]; then
+            echo "HASH DRIFT DETECTED: $HASH != $MANIFEST_HASH"
+            exit 1
+          fi
+          echo "Hash stable: $HASH"
