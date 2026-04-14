@@ -56,7 +56,7 @@ The AI industry extracts **$4.4 trillion annually** from humanity while deliveri
 | Hallucination | **0% tolerance** via ZANN_ZERO kernel invariant | `verify_falsification.py` |
 | Data extraction | **100% sovereignty** — data never leaves node | Constitution Article I |
 | Centralized control | **8B nodes possible** — every human is a node | NODE0 Genesis Covenant |
-| No ethical gate | **Ihsān threshold ≥ 0.99** for all operations | `peak_masterpiece.py` |
+| No ethical gate | **Ihsān threshold ≥ 0.95** for all operations | `core/integration/constants.py:IHSAN_THRESHOLD` |
 | Interest-based exploitation | **RIBA_ZERO** — impossible by design | Kernel Invariant #1 |
 
 ---

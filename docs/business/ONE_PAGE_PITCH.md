@@ -22,18 +22,17 @@ You get **7 personal AI agents** (PAT) that work for you 24/7. Navigate, researc
 
 ## Traction (Verified — Run `cargo test` Yourself)
 
-| Evidence | Number |
-|----------|--------|
-| Lines of code | **768,086** |
-| Passing tests | **12,644** |
-| Rust crates | **26** |
-| Research papers | **150** |
-| Formal proofs (peer-reviewed 95.2/100) | **6** |
-| Vertical deployments | **3** (Software, Medical, Desktop) |
-| Genesis missions (live Ollama inference) | **10/10 PASS** |
-| Block 0 | **Minted, on chain, 12 agents** |
-| Funding received | **$0** |
-| Solo founder duration | **31 months** |
+| Evidence | Number | Verified |
+|----------|--------|----------|
+| Python production code | **259,000 LOC** | `find core/ -name "*.py" \| wc -l` |
+| Constitutional proof tests | **983** | proof_engine + pci + token + sat + urp + zpk |
+| Total test suite | **11,605** | `pytest --co -q` |
+| Rust crates | **24** (compiles clean) | `cargo check --workspace` |
+| PAT-7 agents exercised | **7/7** through FATE gate | All ≤157 LOC |
+| SAT-5 gates active | **5/5**, 59 checks | Sentinel + Oracle + Ledger + Conductor + Ambassador |
+| Minting ceremony | Ed25519 keypair + 12 agents | `onboard_user()` verified |
+| Funding received | **$0** | |
+| Solo founder duration | **35 months** (Ramadan 2023) | البذرة dated 2023-06-29 |
 
 ## Market
 

@@ -54,21 +54,20 @@ The result: humanity's most powerful technology is controlled by the few, profit
 
 BIZRA is not a whitepaper. It is a working system.
 
-| Metric | Value |
-|---|---|
-| Codebase | **242,000 lines** of production code (Python + Rust) |
-| Test Suite | **12,948 tests passing**, all green, zero failures |
-| Architecture | **24 Rust crates** in a unified workspace, 58+ Python subpackages |
-| CI/CD | **24-gate pipeline**, all GitHub Actions SHA-pinned (supply chain hardened) |
-| Sovereign Binary | **2.7 MB**, zero runtime dependencies, cross-platform |
-| Knowledge Base | **102,714 vectors** indexed with FAISS AVX2, semantic search at boot |
-| Uptime | Proactive daemon: **10+ hours continuous run, 0 errors** |
-| Mobile | React Native v2.2.0-rc1 + Rust sovereign binary running on Termux |
-| Inference | Multi-model: **16 LM Studio models + 7 Ollama models**, tiered local-first |
-| Federation | Gossip protocol + BFT consensus crate, ready for multi-node deployment |
-| Self-Improvement | Autopoietic loop + on-device reinforcement learning (TTRL with SSO spectral norm) |
+| Metric | Value | Verification |
+|---|---|---|
+| Codebase | **259,000 lines** of production Python + 24 Rust crates | `find core/ -name "*.py" \| wc -l` |
+| Test Suite | **11,605 tests** collected, **983 constitutional proof surface** | `pytest --co -q` |
+| PAT-7 Agents | **7/7 EXERCISED** through FATE-gated loop proof | All ≤157 LOC, 51 ADK tests |
+| SAT-5 Gates | **5/5 active**, 59 checks, fail-closed composite | `core/sat/composite_evaluator.py` |
+| Sovereign Binary | **3.3 MB**, cross-platform (Linux, WSL, ARM64) | `bizra-omega/target/release/bizra` |
+| Knowledge Base | **FAISS AVX2** indexed vectors, semantic search at boot | `/data/bizra/04_GOLD/` |
+| Infrastructure | Docker: 4 services, Ollama: 6 models, RTX 4090 GPU | Node0 operational |
+| Cryptography | Ed25519 signatures, BLAKE3 hashing, RFC 8785 canonical JSON | 122 PCI tests |
+| Token Economics | SEED/BLOOM ledger, Zakat 2.5%, Gini cap 0.35, Harberger 5% | 92 token tests |
+| Federation | Gossip protocol + BFT consensus crate, ready for multi-node | `bizra-omega/bizra-federation` |
 
-**Key differentiator:** Every number above is verified by the CI pipeline. No metric is aspirational -- every claim is a test that runs on every commit.
+**Key differentiator:** Every number above is verified on Node0 and documented in `docs/METRICS_CANONICAL.md`. Run `pytest` yourself -- every claim binds to a test.
 
 ---
 
