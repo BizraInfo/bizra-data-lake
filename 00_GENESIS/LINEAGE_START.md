@@ -1,4 +1,4 @@
-# LINEAGE START — Origin Seed (2019‑2022)
+# LINEAGE START — Origin Seed (2023)
 
 **Sources**
 - `C:\Users\BIZRA-OS\Downloads\the massage.pdf`
