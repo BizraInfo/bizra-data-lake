@@ -6,9 +6,7 @@ This is the ADK's sole new orchestration logic.
 
 from __future__ import annotations
 
-import json
 import os
-import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -33,7 +31,6 @@ async def execute_agent_lifecycle(agent: "Agent", mission: Mission) -> AgentResu
     7. RETROSPECTIVE — loop proof chain finalized
     """
     agent._active_mission = mission
-    start_time = time.monotonic()
 
     try:
         # ── Step 1: NIYYAH (intent / charter check) ──

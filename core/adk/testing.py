@@ -68,7 +68,7 @@ def assert_receipt_valid(result) -> None:
 
 def assert_blocked(result, expected_verdict: str) -> None:
     """Verify an AgentResult was correctly blocked."""
-    assert not result.success, f"Expected block but got success"
+    assert not result.success, "Expected block but got success"
     assert result.verdict == expected_verdict, (
         f"Expected {expected_verdict}, got {result.verdict}"
     )

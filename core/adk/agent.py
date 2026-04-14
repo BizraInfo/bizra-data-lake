@@ -11,11 +11,10 @@ from __future__ import annotations
 
 import hashlib
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from core.adk.mission import (
-    BudgetExhausted,
     GovernanceClass,
     Mission,
 )
