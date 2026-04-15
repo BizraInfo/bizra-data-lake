@@ -385,12 +385,12 @@ class TestHealth:
         """
         h = booted_heartbeat.health()
         rcs = h["reflex_compilation_status"]
-        assert rcs["truth_label"] == "OPTIMIZATION: WIRED"
-        assert rcs["feature_flag"] == "BIZRA_CLOSED_LOOP_ENABLED"
+        assert rcs["truth_label"] == "OPTIMIZATION: DEFAULT-LIVE"
+        assert rcs["feature_flag"] == "BIZRA_DISABLE_REFLEX"
         assert isinstance(rcs["enabled"], bool)
         assert isinstance(rcs["reflex_bridge_wired"], bool)
         assert isinstance(rcs["learning_loop_wired"], bool)
-        assert "opt-in" in rcs["note"].lower()
+        assert "default-live" in rcs["note"].lower()
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1708,7 +1708,9 @@ class TestLearningLoopIntegration:
 
             status = hb._get_reflex_compilation_status()
             assert status["learning_loop_wired"] is True
-            assert status["truth_label"] == "OPTIMIZATION: WIRED"
+            # Impl migrated from opt-in WIRED → opt-out DEFAULT-LIVE pattern.
+            # See feedback_impl_test_sync.md for the drift lineage.
+            assert status["truth_label"] == "OPTIMIZATION: DEFAULT-LIVE"
 
     def test_learning_loop_disabled_dry_run(self, data_dir):
         """When BIZRA_CLOSED_LOOP_ENABLED=0, loop runs but doesn't compile."""
