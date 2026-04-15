@@ -267,5 +267,15 @@ pub const IHSAN_THRESHOLD_CI: f64 = 0.90;
 /// Dev Ihsan — development environment threshold (local iteration)
 pub const IHSAN_THRESHOLD_DEV: f64 = 0.80;
 
+/// Minimum acceptable confidence for FATE-gated admission. Hard floor, not a
+/// rating tier. Aligned with Python `core/integration/constants.py::MIN_CONFIDENCE`.
+/// Promoted from test-local constant 2026-04-15 after cross-lang-sync audit.
+pub const MIN_CONFIDENCE: f64 = 0.80;
+
+/// Maximum harm score — FATE rejects any proposed action with harm > this.
+/// Aligned with Python `core/integration/constants.py::MAX_HARM_SCORE`.
+/// Promoted from test-local constant 2026-04-15 after cross-lang-sync audit.
+pub const MAX_HARM_SCORE: f64 = 0.30;
+
 /// Maximum envelope TTL in seconds
 pub const MAX_TTL_SECONDS: u64 = 3600;

@@ -46,13 +46,16 @@
 pub const IHSAN_THRESHOLD: f64 = bizra_core::IHSAN_THRESHOLD;
 
 /// Adl Gini inequality maximum: Gini coefficient of resource distribution. [VERIFIED]
-pub const ADL_GINI_MAX: f64 = 0.35;
+/// Re-exported from bizra_core::omega (single source of truth).
+pub const ADL_GINI_MAX: f64 = bizra_core::omega::ADL_GINI_THRESHOLD;
 
 /// Maximum permissible harm score. [VERIFIED]
-pub const MAX_HARM_SCORE: f64 = 0.30;
+/// Re-exported from bizra_core (single source of truth).
+pub const MAX_HARM_SCORE: f64 = bizra_core::MAX_HARM_SCORE;
 
 /// Minimum confidence score for a block to pass validation. [VERIFIED]
-pub const MIN_CONFIDENCE: f64 = 0.80;
+/// Re-exported from bizra_core (single source of truth).
+pub const MIN_CONFIDENCE: f64 = bizra_core::MIN_CONFIDENCE;
 
 /// Signal-to-noise ratio floor (not yet enforced upstream but declared here). [DERIVED]
 pub const SNR_FLOOR: f64 = 0.85;

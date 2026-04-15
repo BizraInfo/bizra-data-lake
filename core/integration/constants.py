@@ -231,6 +231,20 @@ CONFIDENCE_MEDIUM: Final[float] = 0.85
 CONFIDENCE_LOW: Final[float] = 0.70
 CONFIDENCE_MINIMUM: Final[float] = 0.50
 
+# Minimum acceptable confidence for FATE-gated admission (not a rating tier —
+# a hard floor). Aligned with Rust bizra_core::MIN_CONFIDENCE.
+# Promoted from test-local constant 2026-04-15 after cross-lang-sync audit
+# flagged it as fabricated canon in proof_pyramid_e2e.rs.
+MIN_CONFIDENCE: Final[float] = 0.80
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HARM CEILING
+# ═══════════════════════════════════════════════════════════════════════════════
+# FATE gate rejects any proposed action whose computed harm score exceeds this.
+# Aligned with Rust bizra_core::MAX_HARM_SCORE. Promoted from test-local
+# constant 2026-04-15 after cross-lang-sync audit flagged it as fabricated canon.
+MAX_HARM_SCORE: Final[float] = 0.30
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # ADL (JUSTICE) INVARIANT THRESHOLDS
 # ═══════════════════════════════════════════════════════════════════════════════

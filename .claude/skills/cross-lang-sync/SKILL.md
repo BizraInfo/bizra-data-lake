@@ -22,7 +22,9 @@ You are the Cross-Language Sync Auditor for the BIZRA ecosystem. Your mission is
 - `IHSAN_THRESHOLD` — Python: 0.95, Rust: must be 0.95
 - `SNR_THRESHOLD` — Python: 0.85, Rust: must be 0.85
 - `ADL_GINI_THRESHOLD` — Python: 0.35, Rust: must be 0.35
-- `ADL_HARBERGER_TAX_RATE` — Python: 0.07, Rust: must be 0.07
+- `ADL_HARBERGER_TAX_RATE` — Python: 0.05, Rust: must be 0.05
+- `MIN_CONFIDENCE` — Python: 0.80, Rust: must be 0.80 *(promoted from test-local 2026-04-15)*
+- `MAX_HARM_SCORE` — Python: 0.30, Rust: must be 0.30 *(promoted from test-local 2026-04-15)*
 
 ### Tier 2 — Operational (should match)
 - `STRICT_IHSAN_THRESHOLD` — Python: 0.99
@@ -51,6 +53,10 @@ You are the Cross-Language Sync Auditor for the BIZRA ecosystem. Your mission is
    - `grep -rn "IHSAN_THRESHOLD\s*=" core/ --include="*.py" | grep -v constants.py`
    - `grep -rn "IHSAN_THRESHOLD\|SNR_THRESHOLD" bizra-omega/ --include="*.rs" | grep -v "use crate\|pub const\|lib.rs\|omega.rs"`
 
+4. **Proofspace sweep** — the ProofSpace runtime is the primary enforcement consumer; audit must verify no hardcoded copies:
+   - `grep -nE "MAX_HARM_SCORE|MIN_CONFIDENCE|ADL_GINI_MAX|IHSAN_THRESHOLD" bizra-omega/bizra-proofspace/src/*.rs bizra-omega/bizra-proofspace/benches/*.rs`
+   - Every `pub const` or `const` in these files must either re-export from `bizra_core::*` / `bizra_core::omega::*` or fail the audit.
+
 ## Output Format
 
 ```
@@ -63,11 +69,11 @@ You are the Cross-Language Sync Auditor for the BIZRA ecosystem. Your mission is
 |----------|--------|------|--------|
 | IHSAN_THRESHOLD | 0.95 | 0.95 | ALIGNED |
 | SNR_THRESHOLD | 0.85 | 0.85 | ALIGNED |
-| ADL_GINI_THRESHOLD | 0.35 | 0.40 | DRIFT |
+| ADL_GINI_THRESHOLD | 0.35 | 0.35 | ALIGNED |
 
 ### Drift Details
-- ADL_GINI_THRESHOLD: Python=0.35 (constants.py:167), Rust=0.40 (omega.rs:33)
-  Recommendation: Align Rust to Python (authoritative source)
+- *(example)* If a mismatch is detected, list it here with
+  `Constant: Python=X (file:line), Rust=Y (file:line)` and recommended fix.
 
 ### Rogue Definitions
 [List any constants defined outside canonical files]
@@ -76,12 +82,17 @@ You are the Cross-Language Sync Auditor for the BIZRA ecosystem. Your mission is
 [Specific file:line fixes needed]
 ```
 
-## Known Drift (as of Phase 56)
+## Known Drift (as of 2026-04-15)
 
-**ADL_GINI_THRESHOLD** is drifted:
-- Python `core/integration/constants.py:167` → `0.35`
-- Rust `bizra-omega/bizra-core/src/omega.rs:33` → `0.40`
-- Action: Rust should be updated to `0.35` to match Python authoritative source
+**None.** All Tier 1 constitutional constants are ALIGNED across Python and Rust, and all downstream Rust consumers re-export from `bizra_core` rather than hardcoding literals.
+
+Audit must include `bizra-proofspace` (runtime + benches) in addition to `bizra-core` and `bizra-tests` — this is the primary ProofSpace enforcement path and the highest-severity drift surface in the repo.
+
+History:
+- *Phase 56:* `ADL_GINI_THRESHOLD` drifted Python=0.35 vs Rust=0.40 — **RESOLVED** (Rust now 0.35).
+- *2026-04-15:* `MIN_CONFIDENCE` and `MAX_HARM_SCORE` promoted from test-local (`proof_pyramid_e2e.rs`) to canonical in both `constants.py` and `bizra-core/src/lib.rs`. Test file now re-exports via `bizra_core::{MIN_CONFIDENCE, MAX_HARM_SCORE}`.
+- *2026-04-15:* `IHSAN_THRESHOLD` in `proof_pyramid_e2e.rs` was hardcoded `0.95`; patched to re-export `bizra_core::IHSAN_THRESHOLD` — drift-risk surface closed.
+- *2026-04-15 (correction):* Initial canon-promotion missed `bizra-proofspace` runtime copies at `src/lib.rs:40-46`, `src/fate_proof.rs:49-55`, `src/receipt_chain.rs:399-401`, and `benches/proof_pyramid_bench.rs:154-157`. All four sites now re-export from `bizra_core::*`. `cargo test -p bizra-proofspace --lib` → 42/42 pass. Audit protocol updated to sweep proofspace explicitly.
 
 ## When to Run
 

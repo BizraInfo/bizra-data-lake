@@ -396,9 +396,11 @@ impl RegularNumber {
 /// Re-exported from bizra-core (single source of truth).
 pub const IHSAN_THRESHOLD: f64 = bizra_core::IHSAN_THRESHOLD;
 /// Maximum permissible Gini coefficient for ADL score distribution [VERIFIED].
-pub const ADL_GINI_MAX: f64 = 0.35;
+/// Re-exported from bizra_core::omega (single source of truth).
+pub const ADL_GINI_MAX: f64 = bizra_core::omega::ADL_GINI_THRESHOLD;
 /// Maximum permissible harm score [VERIFIED].
-pub const MAX_HARM_SCORE: f64 = 0.3;
+/// Re-exported from bizra_core (single source of truth).
+pub const MAX_HARM_SCORE: f64 = bizra_core::MAX_HARM_SCORE;
 
 /// Floating-point epsilon used for ihsan comparisons throughout this module [DERIVED].
 const F64_IHSAN_EPS: f64 = 1e-9;

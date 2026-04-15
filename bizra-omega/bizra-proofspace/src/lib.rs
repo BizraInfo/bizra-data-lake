@@ -36,14 +36,14 @@ pub const SCHEMA_VERSION: &str = "1.0.0";
 /// Ihsān threshold: 0.95 excellence constraint (canonical: bizra_core)
 pub use bizra_core::IHSAN_THRESHOLD;
 
-/// Maximum Adl Gini coefficient
-pub const ADL_GINI_MAX: f64 = 0.35;
+/// Maximum Adl Gini coefficient (canonical: bizra_core::omega)
+pub const ADL_GINI_MAX: f64 = bizra_core::omega::ADL_GINI_THRESHOLD;
 
-/// Maximum harm score allowed for acceptance
-pub const MAX_HARM_SCORE: f64 = 0.3;
+/// Maximum harm score allowed for acceptance (canonical: bizra_core)
+pub const MAX_HARM_SCORE: f64 = bizra_core::MAX_HARM_SCORE;
 
-/// Minimum confidence for acceptance
-pub const MIN_CONFIDENCE: f64 = 0.8;
+/// Minimum confidence for acceptance (canonical: bizra_core)
+pub const MIN_CONFIDENCE: f64 = bizra_core::MIN_CONFIDENCE;
 
 /// Minimum verifier signatures for acceptance
 pub const MIN_VERIFIER_SIGNATURES: usize = 2;

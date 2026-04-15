@@ -1109,14 +1109,15 @@ pub mod proof_pyramid {
     // § 5 — Layer 5: FateBindingEngine + FateProof  (mirrors WBS 1.4)
     // =========================================================================
 
-    /// Constitutional threshold constants (single source of truth). [VERIFIED]
-    pub const IHSAN_THRESHOLD: f64 = 0.95;
-    /// Maximum Gini coefficient for adl. [VERIFIED]
-    pub const ADL_GINI_MAX: f64 = 0.35;
-    /// Maximum harm score. [VERIFIED]
-    pub const MAX_HARM_SCORE: f64 = 0.30;
-    /// Minimum confidence score. [VERIFIED]
-    pub const MIN_CONFIDENCE: f64 = 0.80;
+    /// Constitutional threshold constants — re-exported from bizra_core to prevent
+    /// silent drift if the canonical value changes. [VERIFIED]
+    pub const IHSAN_THRESHOLD: f64 = bizra_core::IHSAN_THRESHOLD;
+    /// Maximum Gini coefficient for adl — re-exported from bizra_core::omega. [VERIFIED]
+    pub const ADL_GINI_MAX: f64 = bizra_core::omega::ADL_GINI_THRESHOLD;
+    /// Maximum harm score — re-exported from bizra_core. [VERIFIED]
+    pub const MAX_HARM_SCORE: f64 = bizra_core::MAX_HARM_SCORE;
+    /// Minimum confidence score — re-exported from bizra_core. [VERIFIED]
+    pub const MIN_CONFIDENCE: f64 = bizra_core::MIN_CONFIDENCE;
 
     /// Which constitutional gate a given SMT-LIB2 assertion enforces. [VERIFIED]
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]

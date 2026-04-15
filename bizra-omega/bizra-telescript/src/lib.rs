@@ -47,10 +47,12 @@ use uuid::Uuid;
 pub const IHSAN_THRESHOLD: u32 = (bizra_core::IHSAN_THRESHOLD * 1000.0) as u32;
 
 /// Maximum Gini coefficient for Adl (justice) enforcement
-pub const ADL_GINI_MAX: f64 = 0.35;
+/// Re-exported from bizra_core::omega (single source of truth).
+pub const ADL_GINI_MAX: f64 = bizra_core::omega::ADL_GINI_THRESHOLD;
 
 /// SNR minimum for signal quality
-pub const SNR_MINIMUM: f64 = 0.85;
+/// Re-exported from bizra_core (single source of truth).
+pub const SNR_MINIMUM: f64 = bizra_core::SNR_THRESHOLD;
 
 /// Maximum permit delegation depth
 pub const MAX_DELEGATION_DEPTH: u8 = 7;

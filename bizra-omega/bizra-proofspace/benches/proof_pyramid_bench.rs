@@ -151,10 +151,12 @@ struct FateProof {
 /// The CI performance gate measures script assembly; the PP-004 gate
 /// measures Z3 satisfiability separately.
 fn generate_fate_proof_script(scores: &FateScores) -> FateProof {
-    const IHSAN_THRESHOLD: f64 = 0.95;
-    const ADL_GINI_MAX: f64 = 0.35;
-    const MAX_HARM_SCORE: f64 = 0.30;
-    const MIN_CONFIDENCE: f64 = 0.80;
+    // Canonical thresholds — re-exported from bizra_core so bench stays
+    // drift-proof against constants.py authoritative source.
+    const IHSAN_THRESHOLD: f64 = bizra_core::IHSAN_THRESHOLD;
+    const ADL_GINI_MAX: f64 = bizra_core::omega::ADL_GINI_THRESHOLD;
+    const MAX_HARM_SCORE: f64 = bizra_core::MAX_HARM_SCORE;
+    const MIN_CONFIDENCE: f64 = bizra_core::MIN_CONFIDENCE;
 
     let assertions = vec![
         format!(
