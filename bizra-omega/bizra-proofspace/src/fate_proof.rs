@@ -57,8 +57,8 @@ pub const MAX_HARM_SCORE: f64 = bizra_core::MAX_HARM_SCORE;
 /// Re-exported from bizra_core (single source of truth).
 pub const MIN_CONFIDENCE: f64 = bizra_core::MIN_CONFIDENCE;
 
-/// Signal-to-noise ratio floor (not yet enforced upstream but declared here). [DERIVED]
-pub const SNR_FLOOR: f64 = 0.85;
+/// Signal-to-noise ratio floor. Re-exported from bizra_core (single source of truth). [VERIFIED]
+pub const SNR_FLOOR: f64 = bizra_core::SNR_THRESHOLD;
 
 // ---------------------------------------------------------------------------
 // FateScores — mirrors bizra-proofspace/src/lib.rs exactly [VERIFIED]

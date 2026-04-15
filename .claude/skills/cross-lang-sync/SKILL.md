@@ -54,8 +54,12 @@ You are the Cross-Language Sync Auditor for the BIZRA ecosystem. Your mission is
    - `grep -rn "IHSAN_THRESHOLD\|SNR_THRESHOLD" bizra-omega/ --include="*.rs" | grep -v "use crate\|pub const\|lib.rs\|omega.rs"`
 
 4. **Proofspace sweep** — the ProofSpace runtime is the primary enforcement consumer; audit must verify no hardcoded copies:
-   - `grep -nE "MAX_HARM_SCORE|MIN_CONFIDENCE|ADL_GINI_MAX|IHSAN_THRESHOLD" bizra-omega/bizra-proofspace/src/*.rs bizra-omega/bizra-proofspace/benches/*.rs`
+   - `grep -nE "MAX_HARM_SCORE|MIN_CONFIDENCE|ADL_GINI_MAX|IHSAN_THRESHOLD|SNR_FLOOR|SNR_MINIMUM|SNR_THRESHOLD" bizra-omega/bizra-proofspace/src/*.rs bizra-omega/bizra-proofspace/benches/*.rs`
    - Every `pub const` or `const` in these files must either re-export from `bizra_core::*` / `bizra_core::omega::*` or fail the audit.
+
+5. **Full workspace sweep** — catch constants in crates not explicitly listed above:
+   - `grep -rnE "^[[:space:]]*(pub )?const (IHSAN_THRESHOLD|ADL_GINI_MAX|MAX_HARM_SCORE|MIN_CONFIDENCE|SNR_THRESHOLD|SNR_FLOOR|SNR_MINIMUM)[[:space:]]*:[[:space:]]*(f64|u32)[[:space:]]*=[[:space:]]*[0-9]" bizra-omega/ --include="*.rs" | grep -v "bizra-core/src/" | grep -v "bizra-node0/"`
+   - Any match is a rogue hardcode and fails the audit.
 
 ## Output Format
 
@@ -84,7 +88,7 @@ You are the Cross-Language Sync Auditor for the BIZRA ecosystem. Your mission is
 
 ## Known Drift (as of 2026-04-15)
 
-**None.** All Tier 1 constitutional constants are ALIGNED across Python and Rust, and all downstream Rust consumers re-export from `bizra_core` rather than hardcoding literals.
+**None.** All Tier 1 constitutional constants are ALIGNED across Python and Rust. All downstream Rust consumers re-export from `bizra_core` — verified by full workspace sweep (step 5).
 
 Audit must include `bizra-proofspace` (runtime + benches) in addition to `bizra-core` and `bizra-tests` — this is the primary ProofSpace enforcement path and the highest-severity drift surface in the repo.
 
@@ -93,6 +97,7 @@ History:
 - *2026-04-15:* `MIN_CONFIDENCE` and `MAX_HARM_SCORE` promoted from test-local (`proof_pyramid_e2e.rs`) to canonical in both `constants.py` and `bizra-core/src/lib.rs`. Test file now re-exports via `bizra_core::{MIN_CONFIDENCE, MAX_HARM_SCORE}`.
 - *2026-04-15:* `IHSAN_THRESHOLD` in `proof_pyramid_e2e.rs` was hardcoded `0.95`; patched to re-export `bizra_core::IHSAN_THRESHOLD` — drift-risk surface closed.
 - *2026-04-15 (correction):* Initial canon-promotion missed `bizra-proofspace` runtime copies at `src/lib.rs:40-46`, `src/fate_proof.rs:49-55`, `src/receipt_chain.rs:399-401`, and `benches/proof_pyramid_bench.rs:154-157`. All four sites now re-export from `bizra_core::*`. `cargo test -p bizra-proofspace --lib` → 42/42 pass. Audit protocol updated to sweep proofspace explicitly.
+- *2026-04-15 (final):* `SNR_FLOOR` in `fate_proof.rs:61` was last hardcoded Tier-1 constant — patched to `bizra_core::SNR_THRESHOLD`. Audit protocol widened to cover full Tier-1 set (SNR_FLOOR, SNR_MINIMUM, SNR_THRESHOLD) and codified workspace-wide sweep as step 5.
 
 ## When to Run
 
