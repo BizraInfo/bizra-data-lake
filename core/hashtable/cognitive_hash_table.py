@@ -38,10 +38,16 @@ class CognitiveHashTable:
         self._max_displacements = 50  # Prevent infinite loops during re-insertion
 
     def _hash1(self, key: str) -> int:
-        return int(hashlib.md5(key.encode()).hexdigest(), 16) % self._capacity
+        return (
+            int(hashlib.md5(key.encode(), usedforsecurity=False).hexdigest(), 16)
+            % self._capacity
+        )
 
     def _hash2(self, key: str) -> int:
-        return int(hashlib.sha1(key.encode()).hexdigest(), 16) % self._capacity
+        return (
+            int(hashlib.sha1(key.encode(), usedforsecurity=False).hexdigest(), 16)
+            % self._capacity
+        )
 
     def put(self, key: str, value: Any) -> None:
         """Insert or update a key-value pair."""

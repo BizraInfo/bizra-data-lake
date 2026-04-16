@@ -71,7 +71,9 @@ class CanaryRouter:
 
         # Gate 2: Deterministic hash routing
         hash_input = f"{self._salt}:{component}:{request_key}"
-        digest = hashlib.md5(hash_input.encode()).hexdigest()  # noqa: S324
+        digest = hashlib.md5(
+            hash_input.encode(), usedforsecurity=False
+        ).hexdigest()  # noqa: S324
         bucket = int(digest[:8], 16) % 100  # 0-99
 
         routed = bucket < percent

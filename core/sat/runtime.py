@@ -171,7 +171,9 @@ class SATRuntime:
                     self._gates_loaded[gate_name] = func
                     logger.debug(f"SAT gate loaded: {gate_name}")
                 else:
-                    logger.warning(f"SAT gate function not found: {module_path}.{func_name}")
+                    logger.warning(
+                        f"SAT gate function not found: {module_path}.{func_name}"
+                    )
             except (ImportError, AttributeError) as e:
                 logger.warning(f"SAT gate load failed: {gate_name}: {e}")
 
@@ -212,17 +214,14 @@ class SATRuntime:
             import blake3
 
             content = json.dumps(result.to_dict(), sort_keys=True).encode()
-            receipt_hash = blake3.blake3(
-                self._prev_hash.encode() + content
-            ).hexdigest()
+            receipt_hash = blake3.blake3(self._prev_hash.encode() + content).hexdigest()
             self._prev_hash = receipt_hash
             self._receipt_count += 1
 
             if self._receipt_dir:
                 self._receipt_dir.mkdir(parents=True, exist_ok=True)
                 receipt_path = (
-                    self._receipt_dir
-                    / f"sat_validation_{result.request_id}.json"
+                    self._receipt_dir / f"sat_validation_{result.request_id}.json"
                 )
                 receipt_doc = {
                     "event": "sat_validation",
@@ -242,9 +241,7 @@ class SATRuntime:
             self._prev_hash = receipt_hash
             return receipt_hash
 
-    async def _process_validation(
-        self, request: ValidationRequest
-    ) -> ValidationResult:
+    async def _process_validation(self, request: ValidationRequest) -> ValidationResult:
         """Process a single validation through all gates."""
         verdicts: List[GateVerdict] = []
 

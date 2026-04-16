@@ -18,7 +18,9 @@ from core.adk.agent import Agent, charter
 from core.adk.mission import Mission
 from core.adk.tools import tool
 
-DATA_LAKE_ROOT = Path(os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake"))
+DATA_LAKE_ROOT = Path(
+    os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake")
+)
 OLLAMA_URL = os.getenv("BIZRA_OLLAMA_URL", "http://127.0.0.1:11434")
 MODEL = os.getenv("BIZRA_ANALYST_MODEL", "qwen2.5-coder:14b")
 
@@ -44,7 +46,9 @@ class AnalystAgent(Agent):
         try:
             r = subprocess.run(
                 [".venv/bin/python", "-m", "pytest", "--co", "-q"],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True,
+                text=True,
+                timeout=30,
                 cwd=str(DATA_LAKE_ROOT),
             )
             if r.stdout.strip():
@@ -55,14 +59,36 @@ class AnalystAgent(Agent):
             pass
 
         # LOC counts for key modules
-        for module in ["proof_engine", "pat", "sat", "urp", "adk", "pci", "token", "zpk"]:
+        for module in [
+            "proof_engine",
+            "pat",
+            "sat",
+            "urp",
+            "adk",
+            "pci",
+            "token",
+            "zpk",
+        ]:
             mod_path = DATA_LAKE_ROOT / "core" / module
             if mod_path.is_dir():
                 try:
                     r = subprocess.run(
-                        ["find", str(mod_path), "-name", "*.py", "-not", "-path", "*__pycache__*",
-                         "-exec", "cat", "{}", "+"],
-                        capture_output=True, text=True, timeout=15,
+                        [
+                            "find",
+                            str(mod_path),
+                            "-name",
+                            "*.py",
+                            "-not",
+                            "-path",
+                            "*__pycache__*",
+                            "-exec",
+                            "cat",
+                            "{}",
+                            "+",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=15,
                     )
                     loc = len(r.stdout.split("\n"))
                     files = len(list(mod_path.glob("**/*.py")))
@@ -74,7 +100,10 @@ class AnalystAgent(Agent):
         # Constitutional constants
         try:
             from core.integration.constants import IHSAN_THRESHOLD, SNR_THRESHOLD
-            evidence_parts.append(f"IHSAN_THRESHOLD={IHSAN_THRESHOLD}, SNR_THRESHOLD={SNR_THRESHOLD}")
+
+            evidence_parts.append(
+                f"IHSAN_THRESHOLD={IHSAN_THRESHOLD}, SNR_THRESHOLD={SNR_THRESHOLD}"
+            )
             refs.append("const:ihsan+snr")
         except ImportError:
             pass
@@ -83,7 +112,9 @@ class AnalystAgent(Agent):
         try:
             r = subprocess.run(
                 ["cargo", "check", "--workspace", "--message-format=short"],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True,
+                text=True,
+                timeout=60,
                 cwd=str(DATA_LAKE_ROOT / "bizra-omega"),
             )
             status = "PASS" if r.returncode == 0 else "FAIL"
@@ -96,7 +127,9 @@ class AnalystAgent(Agent):
         try:
             r = subprocess.run(
                 ["git", "rev-list", "--count", "HEAD"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
                 cwd=str(DATA_LAKE_ROOT),
             )
             commits = r.stdout.strip()
@@ -130,15 +163,17 @@ class AnalystAgent(Agent):
 
 
 def _call_ollama(prompt: str, system: str, model: str) -> str:
-    payload = json.dumps({
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ],
-        "stream": False,
-        "options": {"temperature": 0.2, "num_predict": 1536},
-    }).encode()
+    payload = json.dumps(
+        {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+            "options": {"temperature": 0.2, "num_predict": 1536},
+        }
+    ).encode()
     req = urllib.request.Request(
         f"{OLLAMA_URL}/api/chat",
         data=payload,

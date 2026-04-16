@@ -156,14 +156,19 @@ def _agent_status() -> Dict[str, Any]:
         for team_key in ("pat_team", "sat_team"):
             team = data.get(team_key, [])
             for agent in team:
-                agents.append({
-                    "agent_id": agent.get("agent_id", ""),
-                    "role": agent.get("role", ""),
-                    "team": "PAT" if team_key == "pat_team" else "SAT",
-                    "status": agent.get("status", "unknown"),
-                })
-        return {"agents": agents, "pat_count": len(data.get("pat_team", [])),
-                "sat_count": len(data.get("sat_team", []))}
+                agents.append(
+                    {
+                        "agent_id": agent.get("agent_id", ""),
+                        "role": agent.get("role", ""),
+                        "team": "PAT" if team_key == "pat_team" else "SAT",
+                        "status": agent.get("status", "unknown"),
+                    }
+                )
+        return {
+            "agents": agents,
+            "pat_count": len(data.get("pat_team", [])),
+            "sat_count": len(data.get("sat_team", [])),
+        }
     except (json.JSONDecodeError, OSError) as e:
         return {"agents": [], "error": str(e)}
 
@@ -210,8 +215,14 @@ def _activation_status() -> Dict[str, Any]:
 
 def _runtime_status() -> Dict[str, Any]:
     """Attempt to get status from runtime daemons if importable."""
-    status = {"pat_runtime": None, "sat_runtime": None, "dema_router": None,
-              "proactive_scheduler": None, "fate_boundary": None, "urp_service": None}
+    status = {
+        "pat_runtime": None,
+        "sat_runtime": None,
+        "dema_router": None,
+        "proactive_scheduler": None,
+        "fate_boundary": None,
+        "urp_service": None,
+    }
     # Runtime daemons are in-process — check if module exists
     for key, module_path in [
         ("pat_runtime", "core.pat.runtime"),
@@ -226,6 +237,7 @@ def _runtime_status() -> Dict[str, Any]:
             status[key] = "module_missing"
     try:
         from core.urp.service import URPService
+
         svc = URPService()
         status["urp_service"] = svc.status()
     except (ImportError, RuntimeError, TypeError):

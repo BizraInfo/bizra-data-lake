@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CompositeVerdict:
     """Unified SAT-5 verdict from all gates."""
+
     passed: bool
     gate_results: Dict[str, GateResult] = field(default_factory=dict)
     blocking_gates: List[str] = field(default_factory=list)
@@ -55,11 +56,11 @@ def evaluate_all_gates(
     Returns:
         CompositeVerdict with all gate results and unified pass/fail.
     """
-    from core.sat.sentinel_gate import sentinel_verify
-    from core.sat.oracle_s_gate import oracle_s_verify
-    from core.sat.ledger_gate import ledger_verify
-    from core.sat.conductor_gate import conductor_verify
     from core.sat.ambassador_gate import ambassador_verify
+    from core.sat.conductor_gate import conductor_verify
+    from core.sat.ledger_gate import ledger_verify
+    from core.sat.oracle_s_gate import oracle_s_verify
+    from core.sat.sentinel_gate import sentinel_verify
 
     gates = {
         "sentinel": lambda: sentinel_verify(skip_slow=skip_slow),
@@ -85,11 +86,13 @@ def evaluate_all_gates(
             # Gate failure = fail-closed
             error_result = GateResult(
                 gate_name=name,
-                checks=[CheckResult(
-                    name=f"{name}_error",
-                    status=CheckStatus.FAIL,
-                    message=f"Gate raised exception: {e}",
-                )],
+                checks=[
+                    CheckResult(
+                        name=f"{name}_error",
+                        status=CheckStatus.FAIL,
+                        message=f"Gate raised exception: {e}",
+                    )
+                ],
             )
             results[name] = error_result
             blocking.append(name)
@@ -110,7 +113,9 @@ def evaluate_all_gates(
         if ihsan == 0.0 and oracle_result.passed:
             ihsan = 0.95  # Oracle passed but no explicit ihsan check
 
-    reason = "All 5 SAT gates passed" if all_passed else f"Blocked by: {', '.join(blocking)}"
+    reason = (
+        "All 5 SAT gates passed" if all_passed else f"Blocked by: {', '.join(blocking)}"
+    )
 
     return CompositeVerdict(
         passed=all_passed,
@@ -150,8 +155,12 @@ def evaluate_gates_for_receipt(
         if sat_verdict.verdict != "PASS":
             verdict.passed = False
             verdict.blocking_gates.append("oracle_s_llm")
-            verdict.reason = f"Oracle-S LLM: {sat_verdict.verdict} (ihsan={sat_verdict.ihsan_score})"
+            verdict.reason = (
+                f"Oracle-S LLM: {sat_verdict.verdict} (ihsan={sat_verdict.ihsan_score})"
+            )
     except Exception as e:
-        logger.warning("Oracle-S LLM evaluation failed: %s — using gate-only verdict", e)
+        logger.warning(
+            "Oracle-S LLM evaluation failed: %s — using gate-only verdict", e
+        )
 
     return verdict

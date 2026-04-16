@@ -123,6 +123,7 @@ def generate(schema: dict) -> str:
                 .replace("/", "_")
                 .replace("{", "")
                 .replace("}", "")
+                .replace("-", "_")
             )
             const_name = f"{method.upper()}_{clean}"
             lines.append(

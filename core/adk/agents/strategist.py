@@ -18,7 +18,9 @@ from core.adk.agent import Agent, charter
 from core.adk.mission import Mission
 from core.adk.tools import tool
 
-DATA_LAKE_ROOT = Path(os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake"))
+DATA_LAKE_ROOT = Path(
+    os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake")
+)
 OLLAMA_URL = os.getenv("BIZRA_OLLAMA_URL", "http://127.0.0.1:11434")
 MODEL = os.getenv("BIZRA_STRATEGIST_MODEL", "gemma4:26b-bizra-16k")
 
@@ -70,7 +72,9 @@ class StrategistAgent(Agent):
         try:
             r = subprocess.run(
                 ["git", "log", "--oneline", "--all", "-n", "10", "--format=%h %s"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
                 cwd=str(DATA_LAKE_ROOT),
             )
             if r.stdout.strip():
@@ -96,7 +100,9 @@ class StrategistAgent(Agent):
         refs = self.gather_strategic_context(mission.question)
 
         if len(refs) < 3:
-            return self.refuse(reason=f"Insufficient strategic context ({len(refs)} sources, need >= 3)")
+            return self.refuse(
+                reason=f"Insufficient strategic context ({len(refs)} sources, need >= 3)"
+            )
 
         system = (
             "You are a BIZRA Strategist agent. Produce ranked strategic options "
@@ -117,15 +123,17 @@ class StrategistAgent(Agent):
 
 
 def _call_ollama(prompt: str, system: str, model: str) -> str:
-    payload = json.dumps({
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ],
-        "stream": False,
-        "options": {"temperature": 0.4, "num_predict": 1536},
-    }).encode()
+    payload = json.dumps(
+        {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+            "options": {"temperature": 0.4, "num_predict": 1536},
+        }
+    ).encode()
     req = urllib.request.Request(
         f"{OLLAMA_URL}/api/chat",
         data=payload,

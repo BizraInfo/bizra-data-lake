@@ -1467,7 +1467,11 @@ pub fn exec_receipt_verify_file(path: &std::path::Path) -> Result<()> {
         return Ok(());
     }
 
-    println!("  \x1b[33mEntries:\x1b[0m {} valid, {} parse errors", entries.len(), parse_errors);
+    println!(
+        "  \x1b[33mEntries:\x1b[0m {} valid, {} parse errors",
+        entries.len(),
+        parse_errors
+    );
     println!();
 
     let mut hash_pass = 0;

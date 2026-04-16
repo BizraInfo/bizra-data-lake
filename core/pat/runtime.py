@@ -196,17 +196,14 @@ class PATRuntime:
             import blake3
 
             content = json.dumps(result.to_dict(), sort_keys=True).encode()
-            receipt_hash = blake3.blake3(
-                self._prev_hash.encode() + content
-            ).hexdigest()
+            receipt_hash = blake3.blake3(self._prev_hash.encode() + content).hexdigest()
             self._prev_hash = receipt_hash
             self._receipt_count += 1
 
             if self._receipt_dir:
                 self._receipt_dir.mkdir(parents=True, exist_ok=True)
                 receipt_path = (
-                    self._receipt_dir
-                    / f"pat_mission_{result.mission_id}.json"
+                    self._receipt_dir / f"pat_mission_{result.mission_id}.json"
                 )
                 receipt_doc = {
                     "event": "pat_mission_complete",
@@ -311,9 +308,7 @@ class PATRuntime:
         logger.info(f"PAT runtime loop started ({self.active_count} active agents)")
         while self._running:
             try:
-                request = await asyncio.wait_for(
-                    self._mission_queue.get(), timeout=1.0
-                )
+                request = await asyncio.wait_for(self._mission_queue.get(), timeout=1.0)
             except asyncio.TimeoutError:
                 continue
             except asyncio.CancelledError:
