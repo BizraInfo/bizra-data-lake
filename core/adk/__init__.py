@@ -5,7 +5,7 @@ Every agent is born receipt-correct, FATE-gated, and constitutionally bound
 """
 
 from core.adk.agent import Agent, charter
-from core.adk.mission import Mission, Budget, GovernanceClass
+from core.adk.mission import Budget, GovernanceClass, Mission
 from core.adk.tools import tool
 
 __all__ = [

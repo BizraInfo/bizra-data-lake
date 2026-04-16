@@ -98,8 +98,8 @@ def execute_action(action: ProactiveAction) -> bool:
 
     try:
         result = subprocess.run(
-            action.command,
-            shell=True,
+            shlex.split(action.command),
+            shell=False,  # nosec B603
             capture_output=True,
             text=True,
             timeout=60,

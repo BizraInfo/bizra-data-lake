@@ -18,10 +18,10 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from .types import (
     ALL_CHECKS,
-    IntentSlots,
     MODE_MODULES,
     MODE_PASSES,
     MODE_PROBES,
+    IntentSlots,
 )
 
 # ═══════════════════════════════════════════════════════════════
@@ -109,7 +109,9 @@ def compile_sape_v2_prompt(
     active_passes = MODE_PASSES[mode]
     active_probes = MODE_PROBES[mode]
 
-    chosen_lenses = (lenses or ["Systems Architect", "Pragmatic Engineer", "Ethicist"])[:3]
+    chosen_lenses = (lenses or ["Systems Architect", "Pragmatic Engineer", "Ethicist"])[
+        :3
+    ]
 
     sections = ["/SAPE-v2-Activate", ""]
 

@@ -32,14 +32,15 @@ from .engine import SAPE_VERSION, SAPEv2Engine
 from .prompt import SAPE_SYSTEM_PROMPT_V2, compile_sape_v2_prompt
 from .types import (
     ALL_CHECKS,
+    MODE_MODULES,
+    MODE_PASSES,
+    MODE_PROBES,
+    STAKES_TO_MODE,
     Check,
     CheckResult,
     EvidenceLevel,
     ExecutionMode,
     IntentSlots,
-    MODE_MODULES,
-    MODE_PASSES,
-    MODE_PROBES,
     Module,
     ModuleResult,
     Pass,
@@ -47,7 +48,6 @@ from .types import (
     Probe,
     ProbeResult,
     SAPEv2Result,
-    STAKES_TO_MODE,
     Stakes,
 )
 

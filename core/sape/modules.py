@@ -385,4 +385,6 @@ def _heuristic_snr(text: str) -> float:
     unique_ratio = len(set(words)) / len(words)
     avg_word_len = sum(len(w) for w in words) / len(words)
     structure = min(text.count(".") / max(len(words) / 10, 1), 1.0)
-    return min(0.4 * unique_ratio + 0.3 * min(avg_word_len / 8, 1.0) + 0.3 * structure, 1.0)
+    return min(
+        0.4 * unique_ratio + 0.3 * min(avg_word_len / 8, 1.0) + 0.3 * structure, 1.0
+    )

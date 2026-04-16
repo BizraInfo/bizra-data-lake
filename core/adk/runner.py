@@ -103,9 +103,7 @@ async def execute_agent_lifecycle(agent: "Agent", mission: Mission) -> AgentResu
         receipt = _step_iisal(agent, mission, output, ihsan, verdict_str, is_pass)
 
         # ── Step 7: RETROSPECTIVE (loop proof) ──
-        loop_proof = _step_retrospective(
-            mission, output, agent, fate_result, is_pass
-        )
+        loop_proof = _step_retrospective(mission, output, agent, fate_result, is_pass)
 
         return AgentResult(
             success=is_pass,
@@ -113,7 +111,11 @@ async def execute_agent_lifecycle(agent: "Agent", mission: Mission) -> AgentResu
             evidence_refs=output.evidence_refs,
             ihsan_score=ihsan,
             verdict=verdict_str,
-            reason=fate_result.verdict.reason if hasattr(fate_result.verdict, "reason") else "",
+            reason=(
+                fate_result.verdict.reason
+                if hasattr(fate_result.verdict, "reason")
+                else ""
+            ),
             receipt=receipt,
             loop_proof=loop_proof,
             mission_id=mission.id,
@@ -127,20 +129,28 @@ def _step_niyyah(agent: "Agent", mission: Mission) -> AgentResult | None:
     """Step 1: Verify charter integrity and governance class match."""
     if not agent._charter_hash:
         return AgentResult(
-            success=False, content="", evidence_refs=[],
-            ihsan_score=0.0, verdict="BLOCKED_BY_CHARTER",
-            reason="Agent has no charter", mission_id=mission.id,
+            success=False,
+            content="",
+            evidence_refs=[],
+            ihsan_score=0.0,
+            verdict="BLOCKED_BY_CHARTER",
+            reason="Agent has no charter",
+            mission_id=mission.id,
         )
 
     # Recompute charter hash to detect drift
     import hashlib
+
     current_hash = hashlib.blake2b(
         agent._charter_text.encode(), digest_size=32
     ).hexdigest()
     if current_hash != agent._charter_hash:
         return AgentResult(
-            success=False, content="", evidence_refs=[],
-            ihsan_score=0.0, verdict="BLOCKED_BY_CHARTER",
+            success=False,
+            content="",
+            evidence_refs=[],
+            ihsan_score=0.0,
+            verdict="BLOCKED_BY_CHARTER",
             reason=f"Charter drift: expected {agent._charter_hash[:16]}..., got {current_hash[:16]}...",
             mission_id=mission.id,
         )
@@ -151,6 +161,7 @@ def _step_niyyah(agent: "Agent", mission: Mission) -> AgentResult | None:
 def _step_bayyinah(evidence_refs: list[str]):
     """Step 2: Audit evidence via existing proof_engine."""
     from core.proof_engine.evidence_audit import audit_evidence
+
     return audit_evidence(evidence_refs)
 
 
@@ -160,20 +171,19 @@ def _step_thamara(output: _DraftOutput, agent: "Agent"):
 
     class _PatBridge:
         """Adapts ADK draft output to the PatOutput protocol."""
+
         def __init__(self, draft: _DraftOutput, confidence: float = 0.95):
             self.answer = draft.content
             self.evidence_refs = draft.evidence_refs
             self.confidence = confidence
 
-    return validate_with_evidence(
-        _PatBridge(output), emit_telemetry=False
-    )
+    return validate_with_evidence(_PatBridge(output), emit_telemetry=False)
 
 
 def _step_iisal(agent, mission, output, ihsan, verdict_str, is_pass):
     """Step 6: Build and optionally seal receipt."""
+    from core.proof_engine.canonical import CanonPolicy, CanonQuery
     from core.proof_engine.receipt import ReceiptBuilder, SimpleSigner
-    from core.proof_engine.canonical import CanonQuery, CanonPolicy
 
     signer = SimpleSigner(secret=os.urandom(32))
     builder = ReceiptBuilder(signer=signer)
@@ -194,14 +204,21 @@ def _step_iisal(agent, mission, output, ihsan, verdict_str, is_pass):
 
     if is_pass:
         receipt = builder.accepted(
-            query=query, policy=policy, payload=payload,
-            snr=0.95, ihsan_score=ihsan, gate_passed="fate",
+            query=query,
+            policy=policy,
+            payload=payload,
+            snr=0.95,
+            ihsan_score=ihsan,
+            gate_passed="fate",
         )
     else:
         receipt = builder.rejected(
-            query=query, policy=policy,
-            snr=0.0, ihsan_score=ihsan,
-            gate_failed="fate", reason=verdict_str,
+            query=query,
+            policy=policy,
+            snr=0.0,
+            ihsan_score=ihsan,
+            gate_failed="fate",
+            reason=verdict_str,
             payload=payload,
         )
 

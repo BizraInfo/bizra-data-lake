@@ -3233,7 +3233,9 @@ class SovereignRuntime:
                     except (RuntimeError, TypeError, ValueError):
                         pass
         if activated > 0:
-            self.logger.info(f"✓ {activated} genesis agents activated (DORMANT → ACTIVE)")
+            self.logger.info(
+                f"✓ {activated} genesis agents activated (DORMANT → ACTIVE)"
+            )
 
     def _init_proactive_scheduler(self) -> None:
         """Initialize ProactiveScheduler with morning briefing mission."""
