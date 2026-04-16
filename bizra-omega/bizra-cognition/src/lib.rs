@@ -14,7 +14,11 @@
 
 pub mod canonical_hasher;
 pub mod receipts;
+pub mod receipt_freeze_v1;
+pub mod admissibility_freeze_v1;
+pub mod mission_freeze_v1;
 pub mod thought_graph;
 pub mod configure_cognition;
 pub mod runtime;
 pub mod eval_v1_integrated;
+pub mod eval_v1;

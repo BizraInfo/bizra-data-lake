@@ -694,4 +694,5 @@ impl GraphNode for ValuationNodeStub {
 ///     Shutdown,
 /// }
 /// ```
-/// (stub: integration with CognitionEvent deferred to runtime wiring)
+// stub: integration with CognitionEvent deferred to runtime wiring
+const _EVAL_INTEGRATION_STUB: () = ();

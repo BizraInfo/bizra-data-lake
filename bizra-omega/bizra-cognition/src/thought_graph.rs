@@ -21,7 +21,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::canonical_hasher::{blake3_domain, blake3_chain};
-use crate::receipts::{
+pub use crate::receipts::{
     ReceiptPayload, ReceiptPayloadDecode, ReceiptKind,
     ByteReader, DecodeError, Blake3Hash,
 };
@@ -40,6 +40,12 @@ pub struct AgentCtx {
 
 #[derive(Debug, Clone)]
 pub struct Thought;
+
+impl Thought {
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        vec![0u8; 0]
+    }
+}
 
 // ============================================================================
 // Errors
@@ -251,8 +257,8 @@ impl QuarantineState {
         if n == 0 { return 1.0; }
         let mut mismatches = 0;
         for i in 0..n {
-            let s2_hash = blake3_chain(&self.s2_observations[i].1);
-            let s1_hash = blake3_chain(&self.s1_predictions[i]);
+            let s2_hash = hash_thoughts(&self.s2_observations[i].1);
+            let s1_hash = hash_thoughts(&self.s1_predictions[i]);
             if s2_hash != s1_hash { mismatches += 1; }
         }
         mismatches as f64 / n as f64
@@ -438,7 +444,7 @@ impl ThoughtGraph {
             *self.hit_counts.entry(*root).or_insert(0) += 1;
         }
 
-        let session_hash = blake3_chain(&result);
+        let session_hash = hash_thoughts(&result);
         ctx.receipt_chain = session_hash;
         Ok(result)
     }
@@ -487,7 +493,7 @@ impl ThoughtGraph {
             let compiled = CompiledReflex::compile_from(source_node.as_ref(), policy.policy_version);
             let compiled_hash = compiled.hash();
             let evidence: Vec<Blake3Hash> = quarantine.s2_observations.iter()
-                .map(|(_, thoughts)| blake3_chain(thoughts))
+                .map(|(_, thoughts)| hash_thoughts(thoughts))
                 .collect();
 
             let receipt = MyelinationReceipt {
@@ -562,4 +568,13 @@ impl ThoughtGraph {
         }
         receipts
     }
+}
+
+fn hash_thoughts(thoughts: &[Thought]) -> Blake3Hash {
+    let mut buf = Vec::with_capacity(thoughts.len() * 8);
+    buf.extend_from_slice(&(thoughts.len() as u64).to_le_bytes());
+    for t in thoughts {
+        buf.extend_from_slice(&t.canonical_bytes());
+    }
+    crate::canonical_hasher::blake3_chain(&buf)
 }

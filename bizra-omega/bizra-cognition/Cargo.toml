@@ -6,3 +6,8 @@ description = "BIZRA cognition substrate — dual-rate thought graph, receipted 
 
 [dependencies]
 blake3 = { version = "1.5", features = ["rayon"] }
+sled = { version = "0.34", optional = true }
+
+[features]
+default = []
+sled-store = ["sled"]
