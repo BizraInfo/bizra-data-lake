@@ -35,6 +35,8 @@ members = [
     "bizra-mission",
     # ━━━ Protocol Layer (the 26th crate — wires 25 organs into one living system) ━━━
     "bizra-protocol",
+    # ━━━ Cognition Substrate (dual-rate thought graph + receipted runtime) ━━━
+    "bizra-cognition",
 ]
 exclude = [
     # UEFI crate — different target (x86_64-unknown-uefi), built standalone

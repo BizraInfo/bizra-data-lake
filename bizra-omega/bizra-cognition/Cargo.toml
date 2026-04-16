@@ -1,0 +1,8 @@
+[package]
+name = "bizra-cognition"
+version = "0.1.0"
+edition = "2021"
+description = "BIZRA cognition substrate — dual-rate thought graph, receipted myelination, and replay-from-chain runtime"
+
+[dependencies]
+blake3 = { version = "1.5", features = ["rayon"] }
