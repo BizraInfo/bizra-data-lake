@@ -8,6 +8,8 @@
 **Authority:** Founding covenant (البذرة + الرسالة) → Manifest v0.2 Canon → Enforceable Spine → Shipped code on `origin/main`
 **Purpose:** The single authoritative document for anyone onboarding to BIZRA Node0 — investor, auditor, engineer, partner, or operator.
 
+> ⚠ **SCOPE CORRECTION (added 2026-04-17 post-integrator audit):** This handover covers the **Cycle-5 Rust-native chain-bridge slice** (bizra-omega workspace + gateway + dema CLI + doctrine). The full `bizra-data-lake` repo is substantially larger — **polyglot, multi-workspace, multi-CLI**. For the honest, complete map of all subsystems (3,217 Python files, 74 `core/` subsystems, 2 Rust workspaces, 3 services, 5 constitution variants, 22 CI workflows, persistent `sovereign_state/` with 2,512 files), see companion document **`docs/BIZRA-Repo-Inventory-v1.md`**. Anyone onboarding should read both.
+
 ---
 
 ## Section 0 — Invocation and Founding
