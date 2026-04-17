@@ -72,6 +72,10 @@ pub trait ReceiptPayload: Send + Sync + 'static {
     fn kind(&self) -> ReceiptKind;
     fn canonical_bytes(&self) -> Vec<u8>;
     fn hash(&self) -> Blake3Hash;
+    /// Nanoseconds since UNIX epoch, as embedded in the payload.
+    /// Default is 0 ("not present"); payloads that carry a timestamp override.
+    /// Consumed by ReceiptChain to expose chain-level latest-timestamp metadata.
+    fn timestamp_ns(&self) -> u64 { 0 }
 }
 
 #[derive(Debug, Clone)]
@@ -221,16 +225,22 @@ pub struct ReceiptChain {
     records: Vec<Receipt>,
     head: Blake3Hash,
     store: Box<dyn PayloadStore>,
+    last_timestamp_ns: Option<u64>,
 }
 
 impl ReceiptChain {
     pub fn new(genesis: Blake3Hash, store: Box<dyn PayloadStore>) -> Self {
-        Self { records: Vec::new(), head: genesis, store }
+        Self { records: Vec::new(), head: genesis, store, last_timestamp_ns: None }
     }
 
     pub fn head(&self) -> Blake3Hash { self.head }
     pub fn len(&self) -> usize { self.records.len() }
     pub fn is_empty(&self) -> bool { self.records.is_empty() }
+
+    /// Most recent payload timestamp observed during append, if any.
+    /// Returns None when the chain is empty, or when no appended payload
+    /// reported a non-zero timestamp_ns via the ReceiptPayload trait.
+    pub fn latest_timestamp(&self) -> Option<u64> { self.last_timestamp_ns }
 
     pub fn append_with_payload<T: ReceiptPayload>(
         &mut self,
@@ -239,6 +249,7 @@ impl ReceiptChain {
         let kind = payload.kind();
         let bytes = payload.canonical_bytes();
         let computed_hash = payload.hash();
+        let ts_ns = payload.timestamp_ns();
 
         // Step 3: persist payload FIRST
         self.store.put(computed_hash, bytes)?;
@@ -248,6 +259,9 @@ impl ReceiptChain {
         let record = Receipt { kind, hash: computed_hash, prev };
         self.records.push(record);
         self.head = computed_hash;
+        if ts_ns > 0 {
+            self.last_timestamp_ns = Some(ts_ns);
+        }
 
         Ok(computed_hash)
     }
@@ -343,6 +357,54 @@ mod tests {
         }
 
         assert!(chain.verify_continuity(genesis).is_ok());
+    }
+
+    #[test]
+    fn latest_timestamp_tracks_non_zero_and_ignores_zero() {
+        struct StampedPayload { ts_ns: u64, data: Vec<u8> }
+        impl ReceiptPayload for StampedPayload {
+            fn kind(&self) -> ReceiptKind { ReceiptKind::ReasoningSession }
+            fn canonical_bytes(&self) -> Vec<u8> { self.data.clone() }
+            fn hash(&self) -> Blake3Hash {
+                let mut h = [0u8; 32];
+                for (i, b) in self.data.iter().take(32).enumerate() { h[i] = *b; }
+                h
+            }
+            fn timestamp_ns(&self) -> u64 { self.ts_ns }
+        }
+
+        let store = Box::new(InMemoryPayloadStore::new());
+        let mut chain = ReceiptChain::new([0u8; 32], store);
+        assert_eq!(chain.latest_timestamp(), None, "empty chain has no timestamp");
+
+        // Default ReceiptPayload (timestamp_ns() = 0) must not shift the accessor.
+        chain.append_with_payload(DummyPayload {
+            kind: ReceiptKind::CognitionBoot,
+            data: vec![10, 11, 12, 13],
+        }).unwrap();
+        assert_eq!(chain.latest_timestamp(), None, "zero-timestamp payloads do not set latest");
+
+        // Real timestamp propagates.
+        chain.append_with_payload(StampedPayload {
+            ts_ns: 1_700_000_000_000_000_000,
+            data: vec![20, 21, 22, 23],
+        }).unwrap();
+        assert_eq!(chain.latest_timestamp(), Some(1_700_000_000_000_000_000));
+
+        // Subsequent zero-timestamp append does NOT erase the last known.
+        chain.append_with_payload(DummyPayload {
+            kind: ReceiptKind::NodeLifecycle,
+            data: vec![30, 31, 32, 33],
+        }).unwrap();
+        assert_eq!(chain.latest_timestamp(), Some(1_700_000_000_000_000_000),
+            "zero-timestamp payloads must not clear the last real timestamp");
+
+        // Later real timestamp advances.
+        chain.append_with_payload(StampedPayload {
+            ts_ns: 1_800_000_000_000_000_000,
+            data: vec![40, 41, 42, 43],
+        }).unwrap();
+        assert_eq!(chain.latest_timestamp(), Some(1_800_000_000_000_000_000));
     }
 
     #[test]

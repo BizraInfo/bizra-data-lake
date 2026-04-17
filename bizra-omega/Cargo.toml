@@ -37,6 +37,8 @@ members = [
     "bizra-protocol",
     # ━━━ Cognition Substrate (dual-rate thought graph + receipted runtime) ━━━
     "bizra-cognition",
+    # ━━━ Cognition Gateway (read-only HTTP projection for Dema Console) ━━━
+    "bizra-cognition-gateway",
 ]
 exclude = [
     # UEFI crate — different target (x86_64-unknown-uefi), built standalone

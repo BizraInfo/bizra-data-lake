@@ -1,0 +1,23 @@
+[package]
+name = "bizra-cognition-gateway"
+version = "0.1.0"
+edition = "2021"
+description = "Read-only HTTP projection of bizra-cognition runtime state for the Dema Console UI"
+
+[dependencies]
+bizra-cognition = { path = "../bizra-cognition" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+hex = { workspace = true }
+axum = "0.7"
+
+[dev-dependencies]
+tower = { version = "0.4", features = ["util"] }
+serde_json = { workspace = true }
+
+[[bin]]
+name = "bizra-cognition-gateway"
+path = "src/main.rs"

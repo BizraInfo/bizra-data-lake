@@ -106,6 +106,7 @@ impl DegradedPathReceipt {
 
 impl ReceiptPayload for DegradedPathReceipt {
     fn kind(&self) -> ReceiptKind { ReceiptKind::DegradedPath }
+    fn timestamp_ns(&self) -> u64 { self.timestamp_ns }
     fn canonical_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(256);
         buf.push(self.occasion_discriminant());
@@ -148,6 +149,7 @@ pub struct ReasoningSessionReceipt {
 
 impl ReceiptPayload for ReasoningSessionReceipt {
     fn kind(&self) -> ReceiptKind { ReceiptKind::ReasoningSession }
+    fn timestamp_ns(&self) -> u64 { self.timestamp_ns }
     fn canonical_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(128);
         buf.extend_from_slice(&self.request_id);
