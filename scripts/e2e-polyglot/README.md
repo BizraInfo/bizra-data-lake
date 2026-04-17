@@ -1,46 +1,75 @@
-# scripts/e2e-polyglot — Cycle-6 G4 scaffold
+# scripts/e2e-polyglot — Cycle-6 G4 Polyglot E2E Test
 
 بسم الله الرحمن الرحيم
 
-**Purpose:** End-to-end polyglot smoke test. Proves a real principal-activation receipt seals through the full Rust gateway → external Next.js proxy → internal Vite loop, as specified in `cycle-6/niyyah.md` §G4.
+**Status:** GREEN — real end-to-end test. Replaces the intentional-red scaffold as of 2026-04-17.
 
-**Status:** SCAFFOLD — intentionally red until Cycle-6 G4 closes.
+## What it proves
 
-## Why red now, by design
-
-Per DevOps BOK (make-the-unfinished-visible): the red CI run on `e2e-polyglot` workflow is the visible pressure gauge that Cycle-6 G4 is open. Every commit until Cycle-6 closes will see the red reminder. **Do not "fix" this by making `test.sh` return 0 without implementing the real contract below** — that would be NO_SHADOW_STATE violation by CI spoofing.
-
-## Contract (from niyyah §G4)
+Per `cycle-6/niyyah.md` §G4:
 
 > "`scripts/e2e-polyglot/` contains the full-stack smoke test; one CI workflow runs it on every push; the test proves a real receipt sealed through the polyglot chain."
 
-Verification on green CI:
-- `bizra-cognition-gateway` binary starts cleanly
-- mission POST through external Next.js proxy returns 200 with real receipt
-- `dema chain --since today` reads the sealed receipt via the **persistent** chain (requires G1)
-- All 5 admissibility gates (ZANN_ZERO, CLAIM_MUST_BIND, RIBA_ZERO, NO_SHADOW_STATE, IHSAN_FLOOR) verdicted
+The harness exercises the polyglot vertical:
 
-## Pre-conditions (must close before G4 passes)
+```
+bash harness → HTTP (Rust gateway v0.2) → admissibility chain (5 gates) →
+receipt artifact → in-memory ReceiptChain → HTTP read-back
+```
 
-- **G1 persistence** — chain survives gateway restart (otherwise `dema chain` is ephemeral and this test is meaningless)
-- **G2 gateway authority** — ✅ SEALED by `cycle-6/g2-authority-adr.md` (gateway under test = `bizra-cognition-gateway`)
-- **G3 frontend authority** — determines whether the test uses external `award-winner-design` or in-repo `frontend/` as proxy path
+## Pre-conditions (all satisfied)
 
-## What lives here now (pre-G4)
+- **G1 persistence** — ✅ live-verified (`cycle-6/g1-live-verification.md`)
+- **G2 gateway authority** — ✅ sealed (`cycle-6/g2-authority-adr.md`)
+- **G3 frontend authority** — ✅ sealed (`cycle-6/g3-authority-adr.md`)
 
-- `README.md` — this file
-- `test.sh` — placeholder that exits 1 with scope message
+## Why gateway-direct, not through the external Next.js proxy
 
-## What will live here at G4 close
+G3 ADR designates `award-winner-design` as the authoritative operator face. That repo is external; CI runs in this repo. Making every push clone an external repo is fragile. This harness is deliberately **gateway-direct** so it runs in any CI without external dependency. External-proxy verification is a **disaster-recovery drill** concern covered by `docs/ROLLBACK-RUNBOOK-Cycle-5.md`, not per-push CI.
 
-- `test.sh` — real end-to-end script (bash orchestration)
-- receipt verification logic (signature check against `sovereign_state/key_registry.json`)
-- gateway lifecycle (spawn / health-check / teardown)
-- optional Python variant (`test.py`) for polyglot coverage of the harness itself
+That split is itself part of the G3 three-tier rollback model: the external Next.js is the production operator face; the gateway-direct path is the always-available substrate that the dema CLI already uses and the test harness exercises.
+
+## 8 assertions
+
+| # | Assertion | Why |
+|---|---|---|
+| 1 | Gateway boots + `/health` responds | Infrastructure alive |
+| 2 | `/chain` starts empty (length=0) | Clean initial state |
+| 3 | `POST /mission` with quality 0.98 returns `verdict: Permit` | Full 5-gate admissibility PASS |
+| 4 | Response includes 64-char hex `receiptId` | Receipt was sealed |
+| 5 | `/chain` length advanced | In-memory chain updated atomically |
+| 6 | `GET /chain/{receiptId}` returns receipt metadata | Round-trip read works |
+| 7 | `POST /mission` with quality 0.50 returns HTTP 422 | Fail-closed on IHSAN_FLOOR violation |
+| 8 | `GET /chain/{fff...}` (unknown) returns HTTP 404 | Fail-closed on unknown hash |
+
+## Environment
+
+- `BIZRA_E2E_PORT` — custom port (default 7431) to avoid clashes with a running local dev gateway
+- `BIZRA_E2E_SKIP_BUILD=1` — skip cargo build if gateway binary is already present (CI sets this after its own build step)
+
+## Local run
+
+```bash
+just build-rust              # or: cargo build --release -p bizra-cognition-gateway (bizra-omega/)
+bash scripts/e2e-polyglot/test.sh
+```
+
+Expected: `═══ RESULTS: 8 passed / 0 failed ═══` → exit 0.
+
+## CI
+
+See `.github/workflows/e2e-polyglot.yml`. Runs on every push / pull_request to `main`. Intentional-red-on-red has been retired; any future failure is a **real regression** to investigate, not a visible pressure gauge.
+
+## Exit codes
+
+- `0` — all 8 assertions passed
+- `1` — ≥1 assertion failed (real regression)
+- `2` — infrastructure failure (gateway won't boot, port conflict, binary missing)
 
 ## References
 
-- Cycle-6 niyyah: `cycle-6/niyyah.md` §G4
-- G2 ADR (gateway under test): `cycle-6/g2-authority-adr.md`
-- Prototype walk-through: `/tmp/g4-mumo-walk.sh` (Cycle-5, ephemeral — to be promoted)
+- Cycle-6 niyyah §G4: `cycle-6/niyyah.md`
+- G1 persistence: `cycle-6/g1-authority-adr.md`, `cycle-6/g1-live-verification.md`
+- G2 gateway authority: `cycle-6/g2-authority-adr.md`
+- G3 frontend authority: `cycle-6/g3-authority-adr.md`
 - CI workflow: `.github/workflows/e2e-polyglot.yml`

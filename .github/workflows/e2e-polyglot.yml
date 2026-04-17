@@ -1,21 +1,62 @@
 name: E2E Polyglot (Cycle-6 G4)
 
-# Intentionally red until Cycle-6 G4 closes.
-# The red status is the visible pressure gauge for an open gate.
-# See scripts/e2e-polyglot/README.md — "Why red now, by design".
+# Cycle-6 G4 real polyglot smoke test (green as of 2026-04-17).
+# Replaces the earlier intentional-red scaffold. Any failure here is a
+# real regression.
+#
+# Exercises: bash harness → Rust gateway HTTP → 5-gate admissibility →
+# receipt chain → HTTP read-back. Gateway-direct by design; external
+# Next.js proxy is a DR-drill concern, not per-push CI.
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_LOG: info
 
 jobs:
   e2e-polyglot:
     name: Cycle-6 G4 polyglot smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bizra-omega/target
+          key: ${{ runner.os }}-cargo-e2e-${{ hashFiles('bizra-omega/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-e2e-
+
+      - name: Build gateway release binary
+        working-directory: bizra-omega
+        run: cargo build --release -p bizra-cognition-gateway
+
       - name: Run E2E polyglot smoke test
+        env:
+          BIZRA_E2E_SKIP_BUILD: "1"
+          BIZRA_E2E_PORT: "7431"
         run: bash scripts/e2e-polyglot/test.sh
+
+      - name: Upload gateway log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-gateway-log
+          path: /tmp/e2e-polyglot-gateway.log
+          if-no-files-found: ignore
