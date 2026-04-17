@@ -21,21 +21,22 @@ use axum::{
     Json, Router,
 };
 use bizra_cognition::admissibility_freeze_v1::{
-    AdmissibilityClaim, AdmissibilityResult, Verdict,
+    AdmissibilityClaim, AdmissibilityResult, EconomicPattern, StateMutation, Verdict,
 };
 use bizra_cognition::mission_freeze_v1::{
-    MissionEnvelope, Originator, StateSnapshot,
+    MissionEnvelope, MissionStage, Originator, StateSnapshot,
 };
 use bizra_cognition::receipts::{
     Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind,
 };
-use bizra_cognition::runtime::{CognitionRuntime, MissionRuntimeError};
+use bizra_cognition::runtime::{
+    CognitionRuntime, MissionReplayResult, MissionRuntimeError, MissionRuntimeRecord,
+};
 use bizra_cognition::thought_graph::{AgentCtx, ThoughtGraph};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 const DOMAIN: &str = "bizra-cognition-gateway-v1";
-const DEFAULT_QUALITY_SCORE: f64 = 0.98;
 
 #[derive(Clone)]
 struct AppState {
@@ -71,8 +72,7 @@ struct ReceiptDto {
 
 #[derive(Deserialize)]
 struct StateSnapshotDto {
-    #[serde(default)]
-    hash: Option<String>,
+    hash: String,
     summary: String,
     metric: f64,
 }
@@ -80,14 +80,24 @@ struct StateSnapshotDto {
 #[derive(Deserialize)]
 struct SubmitMissionRequest {
     intent: String,
+    #[serde(rename = "operatorSessionId")]
+    operator_session_id: String,
     #[serde(rename = "currentState")]
     current_state: StateSnapshotDto,
     #[serde(rename = "idealState")]
     ideal_state: StateSnapshotDto,
-    #[serde(default)]
-    originator: Option<String>,
-    #[serde(rename = "qualityScore", default)]
-    quality_score: Option<f64>,
+    #[serde(rename = "evidenceHash")]
+    evidence_hash: String,
+    #[serde(rename = "qualityScore")]
+    quality_score: f64,
+    #[serde(rename = "derivesFromCanonical")]
+    derives_from_canonical: bool,
+    #[serde(rename = "faceOnly")]
+    face_only: bool,
+    #[serde(rename = "economicPattern", default)]
+    economic_pattern: Option<String>,
+    #[serde(rename = "timestampNs", default)]
+    timestamp_ns: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -136,6 +146,36 @@ struct SubmitMissionResponse {
 }
 
 #[derive(Serialize)]
+struct GetMissionResponse {
+    #[serde(rename = "missionId")]
+    mission_id: String,
+    intent: String,
+    stage: &'static str,
+    rejected: bool,
+    #[serde(rename = "timestampNs")]
+    timestamp_ns: u64,
+    admissibility: AdmissibilityResultDto,
+    #[serde(rename = "receiptId", skip_serializing_if = "Option::is_none")]
+    receipt_id: Option<String>,
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+}
+
+#[derive(Serialize)]
+struct ReplayMissionResponse {
+    #[serde(rename = "missionId")]
+    mission_id: String,
+    #[serde(rename = "replayResult")]
+    replay_result: &'static str,
+    #[serde(rename = "replayScope")]
+    replay_scope: &'static str,
+    #[serde(rename = "matchesPrevious")]
+    matches_previous: bool,
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+}
+
+#[derive(Serialize)]
 struct ErrorResponse {
     error: ErrorBody,
 }
@@ -173,8 +213,7 @@ fn verdict_name(v: Verdict) -> &'static str {
     }
 }
 
-fn stage_name(s: bizra_cognition::mission_freeze_v1::MissionStage) -> &'static str {
-    use bizra_cognition::mission_freeze_v1::MissionStage;
+fn stage_name(s: MissionStage) -> &'static str {
     match s {
         MissionStage::Intent => "Intent",
         MissionStage::Mission => "Mission",
@@ -202,17 +241,24 @@ fn parse_hex32(s: &str) -> Option<[u8; 32]> {
     Some(out)
 }
 
-fn state_snapshot_from_dto(dto: StateSnapshotDto, default_hash: u8) -> StateSnapshot {
-    let hash = dto
-        .hash
-        .as_deref()
-        .and_then(parse_hex32)
-        .unwrap_or([default_hash; 32]);
-    StateSnapshot {
-        hash,
-        summary: dto.summary,
-        metric: dto.metric,
-    }
+fn state_snapshot_from_dto(
+    dto: StateSnapshotDto,
+    field: &'static str,
+) -> Result<StateSnapshot, (StatusCode, Json<ErrorResponse>)> {
+    let hash = parse_hex32(&dto.hash).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "INVALID_STATE_HASH",
+                    message: format!("{} '{}' is not a 64-char hex string", field, dto.hash),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    Ok(StateSnapshot { hash, summary: dto.summary, metric: dto.metric })
 }
 
 fn now_ns() -> Result<u64, (StatusCode, Json<ErrorResponse>)> {
@@ -232,6 +278,38 @@ fn now_ns() -> Result<u64, (StatusCode, Json<ErrorResponse>)> {
                 }),
             )
         })
+}
+
+fn parse_economic_pattern(
+    value: Option<&str>,
+) -> Result<Option<EconomicPattern>, (StatusCode, Json<ErrorResponse>)> {
+    match value {
+        None => Ok(None),
+        Some("none") => Ok(Some(EconomicPattern::None)),
+        Some("peer_exchange") => Ok(Some(EconomicPattern::PeerExchange)),
+        Some("profit_sharing") => Ok(Some(EconomicPattern::ProfitSharing)),
+        Some("fixed_return_lending") => Ok(Some(EconomicPattern::FixedReturnLending)),
+        Some("hidden_fee_extraction") => Ok(Some(EconomicPattern::HiddenFeeExtraction)),
+        Some("asymmetric_exploitation") => Ok(Some(EconomicPattern::AsymmetricExploitation)),
+        Some(other) => Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "INVALID_ECONOMIC_PATTERN",
+                    message: format!("unsupported economicPattern '{}'", other),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+    }
+}
+
+fn replay_result_name(result: MissionReplayResult) -> &'static str {
+    match result {
+        MissionReplayResult::Match => "MATCH",
+        MissionReplayResult::Divergent => "DIVERGENT",
+    }
 }
 
 fn admissibility_to_dto(result: &AdmissibilityResult) -> AdmissibilityResultDto {
@@ -259,7 +337,62 @@ fn admissibility_to_dto(result: &AdmissibilityResult) -> AdmissibilityResultDto 
     }
 }
 
+fn mission_record_to_dto(record: &MissionRuntimeRecord) -> GetMissionResponse {
+    GetMissionResponse {
+        mission_id: hex32(&record.envelope.mission_id),
+        intent: record.envelope.intent_text.clone(),
+        stage: stage_name(record.stage),
+        rejected: record.rejected,
+        timestamp_ns: record.timestamp_ns,
+        admissibility: admissibility_to_dto(&record.admissibility),
+        receipt_id: record.receipt_id.map(|id| hex32(&id)),
+        chain_head: hex32(&record.chain_head),
+    }
+}
+
 fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
+    // Cycle-6 G1 Phase 1 — try sovereign_state bootstrap if BIZRA_SOVEREIGN_STATE_PATH is set.
+    //   - env unset       → in-memory bootstrap (dev mode, preserves Cycle-5 behavior)
+    //   - env set, path missing → warn, fall back to in-memory
+    //   - env set, path present, load OK → attach snapshot, serve durable-read
+    //   - env set, path present, load FAILED → fail-closed startup (exit 1)
+    if let Ok(path_str) = std::env::var("BIZRA_SOVEREIGN_STATE_PATH") {
+        let p = std::path::Path::new(&path_str);
+        if p.exists() {
+            match CognitionRuntime::from_sovereign_state(p) {
+                Ok(rt) => {
+                    if let Some(snap) = rt.sovereign_snapshot() {
+                        tracing::info!(
+                            target: DOMAIN,
+                            envelopes = snap.envelopes_count(),
+                            entries = snap.total_entries(),
+                            block_zero = snap.block_zero_present,
+                            path = %p.display(),
+                            "bootstrap from sovereign_state OK (durable-read enabled)"
+                        );
+                    }
+                    return rt;
+                }
+                Err(e) => {
+                    tracing::error!(
+                        target: DOMAIN,
+                        error = %e,
+                        path = %p.display(),
+                        "BIZRA_SOVEREIGN_STATE_PATH load FAILED — aborting startup (fail-closed per Cycle-6 G1 canon)"
+                    );
+                    std::process::exit(1);
+                }
+            }
+        } else {
+            tracing::warn!(
+                target: DOMAIN,
+                path = %p.display(),
+                "BIZRA_SOVEREIGN_STATE_PATH set but path missing; falling back to in-memory bootstrap"
+            );
+        }
+    }
+
+    // Default in-memory bootstrap (dev / no env var / missing path).
     // Empty-graph bootstrap. submit_mission only touches self.chain + self.missions
     // + admissibility evaluation — no graph traversal. This is the minimum viable
     // runtime for the G3 activation surface. Future arcs will attach PAT-7/SAT-5
@@ -352,17 +485,58 @@ async fn post_mission(
         ));
     }
 
-    // v0.2: gateway does not yet carry operator session identity end-to-end.
-    // All missions are attributed to Originator::System until auth-session
-    // propagation is added (future arc). The request's "originator" hint is
-    // retained but not authoritative at this layer.
-    let _originator_hint = req.originator.as_deref();
-    let originator = Originator::System;
-    let quality_score = req.quality_score.unwrap_or(DEFAULT_QUALITY_SCORE);
+    let operator_session_id = parse_hex32(&req.operator_session_id).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "INVALID_OPERATOR_SESSION_ID",
+                    message: format!(
+                        "operatorSessionId '{}' is not a 64-char hex string",
+                        req.operator_session_id
+                    ),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    let evidence_hash = parse_hex32(&req.evidence_hash).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "INVALID_EVIDENCE_HASH",
+                    message: format!(
+                        "evidenceHash '{}' is not a 64-char hex string",
+                        req.evidence_hash
+                    ),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    let originator = Originator::Operator {
+        session_id: operator_session_id,
+    };
+    if req.timestamp_ns.is_some() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "TIMESTAMP_RUNTIME_OWNED",
+                    message: "timestampNs is runtime-owned and cannot be supplied by the caller".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
     let ts_ns = now_ns()?;
 
-    let current = state_snapshot_from_dto(req.current_state, 0x11);
-    let ideal = state_snapshot_from_dto(req.ideal_state, 0x22);
+    let current = state_snapshot_from_dto(req.current_state, "currentState.hash")?;
+    let ideal = state_snapshot_from_dto(req.ideal_state, "idealState.hash")?;
 
     let envelope = MissionEnvelope::from_intent(
         req.intent.clone(),
@@ -376,10 +550,13 @@ async fn post_mission(
     let claim = AdmissibilityClaim {
         claim_id,
         has_evidence: true,
-        evidence_hash: Some(envelope.mission_id),
-        economic_pattern: None,
-        state_mutation: None,
-        quality_score,
+        evidence_hash: Some(evidence_hash),
+        economic_pattern: parse_economic_pattern(req.economic_pattern.as_deref())?,
+        state_mutation: Some(StateMutation {
+            derives_from_canonical: req.derives_from_canonical,
+            face_only: req.face_only,
+        }),
+        quality_score: req.quality_score,
         timestamp_ns: ts_ns,
     };
 
@@ -408,7 +585,7 @@ async fn post_mission(
                 admissibility: admissibility_to_dto(&record.admissibility),
                 receipt_id: hex32(&receipt_id),
                 final_stage: stage_name(record.stage),
-                chain_head: hex32(&rt.chain.head()),
+                chain_head: hex32(&record.chain_head),
             }))
         }
         Ok(record) => {
@@ -489,12 +666,139 @@ async fn post_mission(
     }
 }
 
+async fn get_mission(
+    State(state): State<AppState>,
+    Path(hash_hex): Path<String>,
+) -> Result<Json<GetMissionResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let mission_id = parse_hex32(&hash_hex).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "INVALID_MISSION_ID",
+                    message: format!("mission id '{}' is not a 64-char hex string", hash_hex),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    let rt = state.runtime.read().await;
+    let record = rt.mission_by_id(&mission_id).ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "MISSION_NOT_FOUND",
+                    message: format!("mission {} not found", hash_hex),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    Ok(Json(mission_record_to_dto(record)))
+}
+
+async fn replay_mission(
+    State(state): State<AppState>,
+    Path(hash_hex): Path<String>,
+) -> Result<Json<ReplayMissionResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let mission_id = parse_hex32(&hash_hex).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "INVALID_MISSION_ID",
+                    message: format!("mission id '{}' is not a 64-char hex string", hash_hex),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    let rt = state.runtime.read().await;
+    match rt.rehydrate_mission(&mission_id) {
+        Ok(report) => Ok(Json(ReplayMissionResponse {
+            mission_id: hex32(&report.mission_id),
+            replay_result: replay_result_name(report.replay_result),
+            replay_scope: "CLAIM_ADMISSIBILITY_ONLY",
+            matches_previous: report.matches_previous,
+            chain_head: hex32(&report.chain_head),
+        })),
+        Err(MissionRuntimeError::MissionNotFound(_)) => Err((
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "MISSION_NOT_FOUND",
+                    message: format!("mission {} not found", hash_hex),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        Err(MissionRuntimeError::Clock(msg)) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "CLOCK_FAILURE",
+                    message: msg,
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        Err(MissionRuntimeError::Chain(e)) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "CHAIN_ERROR",
+                    message: format!("{:?}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        Err(MissionRuntimeError::ClaimMismatch { expected, got }) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "CLAIM_MISMATCH",
+                    message: format!(
+                        "claim_id mismatch (expected {} got {})",
+                        hex32(&expected),
+                        hex32(&got)
+                    ),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        Err(MissionRuntimeError::DuplicateMission(id)) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "DUPLICATE_MISSION",
+                    message: format!("mission {} already exists", hex32(&id)),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+    }
+}
+
 fn router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/chain", get(get_chain))
         .route("/chain/:hash", get(get_chain_receipt))
         .route("/mission", post(post_mission))
+        .route("/missions", post(post_mission))
+        .route("/missions/:hash", get(get_mission))
+        .route("/missions/:hash/replay", post(replay_mission))
         .with_state(state)
 }
 
@@ -544,16 +848,21 @@ mod tests {
     fn activation_request() -> serde_json::Value {
         serde_json::json!({
             "intent": "activate my dual agentic system",
+            "operatorSessionId": "11".repeat(32),
             "currentState": {
+                "hash": "22".repeat(32),
                 "summary": "Principal not yet activated",
                 "metric": 0.0
             },
             "idealState": {
+                "hash": "33".repeat(32),
                 "summary": "Principal activated, PAT-7 and SAT-5 reachable through Dema",
                 "metric": 1.0
             },
-            "originator": "Operator",
-            "qualityScore": 0.98
+            "evidenceHash": "44".repeat(32),
+            "qualityScore": 0.98,
+            "derivesFromCanonical": true,
+            "faceOnly": false
         })
     }
 
@@ -590,7 +899,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/mission")
+                    .uri("/missions")
                     .header("content-type", "application/json")
                     .body(axum::body::Body::from(body))
                     .unwrap(),
@@ -616,6 +925,121 @@ mod tests {
         let chain_body = to_bytes(chain_res.into_body(), 1024).await.unwrap();
         let chain: serde_json::Value = serde_json::from_slice(&chain_body).unwrap();
         assert_eq!(chain["length"], 7);
+
+        let mission_id = v["missionId"].as_str().unwrap();
+
+        let mission_res = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/missions/{}", mission_id))
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(mission_res.status(), StatusCode::OK);
+        let mission_body = to_bytes(mission_res.into_body(), 4096).await.unwrap();
+        let mission: serde_json::Value = serde_json::from_slice(&mission_body).unwrap();
+        assert_eq!(mission["missionId"], mission_id);
+        assert_eq!(mission["stage"], "Replayability");
+        assert_eq!(mission["rejected"], false);
+        assert_eq!(mission["receiptId"], v["receiptId"]);
+        assert_eq!(mission["chainHead"], v["receiptId"]);
+
+        let replay_res = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!("/missions/{}/replay", mission_id))
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(replay_res.status(), StatusCode::OK);
+        let replay_body = to_bytes(replay_res.into_body(), 4096).await.unwrap();
+        let replay: serde_json::Value = serde_json::from_slice(&replay_body).unwrap();
+        assert_eq!(replay["missionId"], mission_id);
+        assert_eq!(replay["replayResult"], "MATCH");
+        assert_eq!(replay["replayScope"], "CLAIM_ADMISSIBILITY_ONLY");
+        assert_eq!(replay["matchesPrevious"], true);
+    }
+
+    #[tokio::test]
+    async fn get_mission_preserves_original_chain_head_after_later_submissions() {
+        let state = new_state();
+
+        let first_res = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/missions")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(
+                        serde_json::to_vec(&activation_request()).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(first_res.status(), StatusCode::OK);
+        let first_body = to_bytes(first_res.into_body(), 4096).await.unwrap();
+        let first: serde_json::Value = serde_json::from_slice(&first_body).unwrap();
+
+        let mut second_request = activation_request();
+        second_request["intent"] = serde_json::json!("activate a second lawful mission");
+        let second_res = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/missions")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(
+                        serde_json::to_vec(&second_request).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(second_res.status(), StatusCode::OK);
+
+        let mission_res = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/missions/{}", first["missionId"].as_str().unwrap()))
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(mission_res.status(), StatusCode::OK);
+        let mission_body = to_bytes(mission_res.into_body(), 4096).await.unwrap();
+        let mission: serde_json::Value = serde_json::from_slice(&mission_body).unwrap();
+        assert_eq!(mission["chainHead"], first["receiptId"]);
+    }
+
+    #[tokio::test]
+    async fn post_mission_rejects_caller_supplied_timestamp() {
+        let mut req_body = activation_request();
+        req_body["timestampNs"] = serde_json::json!(123u64);
+
+        let body = serde_json::to_vec(&req_body).unwrap();
+        let res = router(new_state())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/missions")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "TIMESTAMP_RUNTIME_OWNED");
     }
 
     #[tokio::test]
@@ -630,7 +1054,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/mission")
+                    .uri("/missions")
                     .header("content-type", "application/json")
                     .body(axum::body::Body::from(body))
                     .unwrap(),
@@ -657,7 +1081,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/mission")
+                    .uri("/missions")
                     .header("content-type", "application/json")
                     .body(axum::body::Body::from(body))
                     .unwrap(),

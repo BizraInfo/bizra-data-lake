@@ -34,7 +34,7 @@ use crate::thought_graph::{
 use crate::mission_freeze_v1::{MissionEnvelope, MissionStage};
 use crate::receipts::{
     ReceiptChain, ReceiptPayload, ReceiptKind,
-    ChainError, Blake3Hash,
+    ChainError, Blake3Hash, InMemoryPayloadStore,
 };
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
@@ -115,6 +115,10 @@ pub struct MissionRuntimeRecord {
     pub final_receipt: Option<ReceiptArtifact>,
     /// Convenience copy of `final_receipt.as_ref().map(|r| r.receipt_id)`.
     pub receipt_id: Option<Blake3Hash>,
+    /// Immutable chain head at mission conclusion. For permitted missions this is
+    /// the sealed receipt head; for rejected missions it is the unchanged head
+    /// that existed when admissibility completed.
+    pub chain_head: Blake3Hash,
     /// `true` iff admissibility returned a non-Permit verdict. Mirrors
     /// `admissibility.verdict != Verdict::Permit`.
     pub rejected: bool,
@@ -240,6 +244,33 @@ pub struct CognitionRuntime {
     pub ctx: AgentCtx,
     missions: HashMap<Blake3Hash, MissionRuntimeRecord>,
     session_counter: u64,
+    // Cycle-6 G1 Phase 1 — optional read-only durable projection loaded
+    // via `from_sovereign_state`. None means in-memory bootstrap (dev).
+    // Some(snap) means the gateway served its last pre-restart truth
+    // and the chain is anchored to Python-authoritative persistence.
+    sovereign_snapshot: Option<crate::sovereign_state::SovereignStateSnapshot>,
+}
+
+/// Errors produced by CognitionRuntime bootstrap constructors.
+#[derive(Debug)]
+pub enum BootstrapError {
+    SovereignState(crate::sovereign_state::SovereignStateError),
+}
+
+impl std::fmt::Display for BootstrapError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SovereignState(e) => write!(f, "sovereign_state bootstrap: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for BootstrapError {}
+
+impl From<crate::sovereign_state::SovereignStateError> for BootstrapError {
+    fn from(e: crate::sovereign_state::SovereignStateError) -> Self {
+        Self::SovereignState(e)
+    }
 }
 
 impl CognitionRuntime {
@@ -250,7 +281,51 @@ impl CognitionRuntime {
             ctx,
             missions: HashMap::new(),
             session_counter: 0,
+            sovereign_snapshot: None,
         }
+    }
+
+    /// Cycle-6 G1 Phase 1 — bootstrap from the Python-authoritative
+    /// `sovereign_state/` directory on disk. Returns a runtime with
+    /// an empty ThoughtGraph + in-memory ReceiptChain (for new
+    /// activity this session) PLUS an attached `SovereignStateSnapshot`
+    /// that carries the verified read-only projection of durable history.
+    ///
+    /// Gateway handlers query the snapshot via `sovereign_snapshot()` to
+    /// serve durable-chain answers that survive restart.
+    ///
+    /// Read-only: this constructor never writes to `path`.
+    /// Fails closed: any snapshot integrity error is returned; caller
+    /// decides whether to fall back (dev) or abort (production).
+    pub fn from_sovereign_state(path: &std::path::Path) -> Result<Self, BootstrapError> {
+        let snapshot = crate::sovereign_state::SovereignStateSnapshot::load(path)?;
+
+        let genesis: Blake3Hash = [0u8; 32];
+        let graph = ThoughtGraph::from_parts(
+            HashMap::new(),
+            Vec::new(),
+            HashMap::new(),
+            genesis,
+        );
+        let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
+        let ctx = AgentCtx { receipt_chain: genesis };
+
+        Ok(Self {
+            graph,
+            chain,
+            ctx,
+            missions: HashMap::new(),
+            session_counter: 0,
+            sovereign_snapshot: Some(snapshot),
+        })
+    }
+
+    /// Access the attached sovereign-state snapshot (if this runtime
+    /// was bootstrapped via `from_sovereign_state`).
+    pub fn sovereign_snapshot(
+        &self,
+    ) -> Option<&crate::sovereign_state::SovereignStateSnapshot> {
+        self.sovereign_snapshot.as_ref()
     }
 
     /// Rehydrate a runtime by replaying the chain.
@@ -289,6 +364,7 @@ impl CognitionRuntime {
             ctx: AgentCtx { receipt_chain: [0u8; 32] },
             missions: HashMap::new(),
             session_counter: 0,
+            sovereign_snapshot: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -395,6 +471,7 @@ impl CognitionRuntime {
                 gate_receipt_hashes: Vec::new(),
                 final_receipt: None,
                 receipt_id: None,
+                chain_head: self.chain.head(),
                 rejected: true,
                 stage: MissionStage::Admissibility,
                 timestamp_ns,
@@ -459,6 +536,7 @@ impl CognitionRuntime {
             gate_receipt_hashes,
             final_receipt: Some(final_receipt),
             receipt_id: Some(receipt_id),
+            chain_head: self.chain.head(),
             rejected: false,
             stage: final_stage,
             timestamp_ns,
@@ -1054,5 +1132,84 @@ mod tests {
         assert!(replay.matches_previous);
         assert_eq!(replay.chain_head, pre_head);
         assert_eq!(rt.chain.head(), pre_head, "rehydrate_mission must be pure");
+    }
+
+    // ========================================================================
+    // Cycle-6 G1 Phase 1 Commit C — from_sovereign_state constructor tests
+    // ========================================================================
+
+    mod sovereign_state_bootstrap {
+        use super::*;
+        use crate::sovereign_state::{chain_entry_hash, hex_digest, GENESIS_PREV_HEX};
+        use serde_json::json;
+        use std::fs;
+        use tempfile::TempDir;
+
+        fn write_minimal_valid_fixture(root: &std::path::Path) {
+            let receipts = root.join("receipts");
+            fs::create_dir_all(&receipts).unwrap();
+            let r = json!({"event": "bootstrap_test", "n": 1});
+            fs::write(
+                receipts.join("bootstrap_test_2026.json"),
+                serde_json::to_vec(&r).unwrap(),
+            )
+            .unwrap();
+            let h = hex_digest(&chain_entry_hash(GENESIS_PREV_HEX, &r).unwrap());
+            let env = json!({
+                "chain_type": "runtime_test",
+                "node_id": "RT-TEST",
+                "timestamp": "2026-01-01T00:00:00Z",
+                "receipts": 1,
+                "chain": [{
+                    "file": "bootstrap_test_2026.json",
+                    "event": "bootstrap_test",
+                    "hash": h,
+                    "prev_hash": GENESIS_PREV_HEX
+                }],
+                "head_hash": h
+            });
+            fs::write(
+                receipts.join("activation_chain_2026-01-01T00:00:00Z.json"),
+                serde_json::to_vec(&env).unwrap(),
+            )
+            .unwrap();
+        }
+
+        #[test]
+        fn from_sovereign_state_with_valid_fixture_attaches_snapshot() {
+            let td = TempDir::new().unwrap();
+            write_minimal_valid_fixture(td.path());
+
+            let rt = CognitionRuntime::from_sovereign_state(td.path())
+                .expect("valid fixture should bootstrap");
+
+            let snap = rt.sovereign_snapshot().expect("snapshot should be attached");
+            assert_eq!(snap.envelopes_count(), 1);
+            assert_eq!(snap.total_entries(), 1);
+            assert_eq!(snap.envelopes[0].entries[0].event, "bootstrap_test");
+        }
+
+        #[test]
+        fn from_sovereign_state_missing_root_returns_bootstrap_error() {
+            let td = TempDir::new().unwrap();
+            let missing = td.path().join("does_not_exist");
+            match CognitionRuntime::from_sovereign_state(&missing) {
+                Err(BootstrapError::SovereignState(_)) => {}
+                Ok(_) => panic!("expected error for missing root"),
+            }
+        }
+
+        #[test]
+        fn new_runtime_has_no_sovereign_snapshot() {
+            // Regression: the existing `::new()` constructor must continue to
+            // produce a runtime with sovereign_snapshot == None (dev mode).
+            let genesis: Blake3Hash = [0u8; 32];
+            let graph =
+                ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
+            let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
+            let ctx = AgentCtx { receipt_chain: genesis };
+            let rt = CognitionRuntime::new(graph, chain, ctx);
+            assert!(rt.sovereign_snapshot().is_none());
+        }
     }
 }
