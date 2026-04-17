@@ -34,23 +34,16 @@ use std::collections::BTreeMap;
 // Types — these map to the kernel's existing type system
 // ────────────────────────────────────────────────────────────
 
-/// Stand-in for the kernel's Blake3Hash type.
-/// In integration: `use crate::canonical_hasher::Blake3Hash;`
+/// Production-width Blake3Hash using real blake3 crate.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct Blake3Hash([u8; 8]); // 8-byte prefix for display; full 32 in production
+pub struct Blake3Hash([u8; 32]);
 
 impl Blake3Hash {
     pub fn from_bytes(b: &[u8]) -> Self {
-        let mut h = [0u8; 8];
-        // In production: blake3::hash(b).as_bytes()[..8]
-        // Here: simple hash for compilability
-        for (i, byte) in b.iter().enumerate() {
-            h[i % 8] ^= byte;
-        }
-        Blake3Hash(h)
+        Blake3Hash(*blake3::hash(b).as_bytes())
     }
 
-    pub fn as_bytes(&self) -> &[u8; 8] {
+    pub fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
 
@@ -58,17 +51,14 @@ impl Blake3Hash {
         self.0.iter().map(|b| format!("{:02x}", b)).collect()
     }
 
-    pub const ZERO: Blake3Hash = Blake3Hash([0u8; 8]);
+    pub const ZERO: Blake3Hash = Blake3Hash([0u8; 32]);
 }
 
-/// Domain-separated hashing.
-/// In integration: `use crate::canonical_hasher::blake3_domain;`
 fn blake3_domain(domain: &str, data: &[u8]) -> Blake3Hash {
-    let mut buf = Vec::with_capacity(domain.len() + 1 + data.len());
-    buf.extend_from_slice(domain.as_bytes());
-    buf.push(0xff); // domain separator
-    buf.extend_from_slice(data);
-    Blake3Hash::from_bytes(&buf)
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(domain.as_bytes());
+    hasher.update(data);
+    Blake3Hash(*hasher.finalize().as_bytes())
 }
 
 /// Receipt types — maps to kernel's receipts.rs
