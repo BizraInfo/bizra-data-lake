@@ -19,17 +19,24 @@
 //! → same final state, byte-for-byte. This is what makes Node1 reproducibility
 //! and crash recovery work.
 
+use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::admissibility_freeze_v1::{
+    AdmissibilityChain, AdmissibilityClaim, AdmissibilityResult, GateVerdict,
+    RejectedClaim, Verdict,
+};
 use crate::thought_graph::{
     ThoughtGraph, AgentCtx, Thought, ReasoningError, ShadowMode,
     MyelinationReceipt, DemyelinationReceipt, DemyelinationReason,
     CompiledReflex,
 };
+use crate::mission_freeze_v1::{MissionEnvelope, MissionStage};
 use crate::receipts::{
     ReceiptChain, ReceiptPayload, ReceiptKind,
     ChainError, Blake3Hash,
 };
+use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
 // ============================================================================
@@ -70,6 +77,49 @@ pub enum RehydrateError {
 
 impl From<ChainError> for RehydrateError {
     fn from(e: ChainError) -> Self { RehydrateError::ChainFetch(e) }
+}
+
+#[derive(Debug)]
+pub enum MissionRuntimeError {
+    Chain(ChainError),
+    Clock(String),
+    DuplicateMission(Blake3Hash),
+    MissionNotFound(Blake3Hash),
+    ClaimMismatch { expected: Blake3Hash, got: Blake3Hash },
+    /// Admissibility returned a non-Permit verdict. The mission envelope was
+    /// appended to the chain (claim-must-bind), but no gate verdicts and no
+    /// final receipt were emitted. Caller receives the full AdmissibilityResult
+    /// so the rejection can be surfaced to the operator without any shadow
+    /// canonicalization being implied.
+    Rejected(AdmissibilityResult),
+}
+
+impl From<ChainError> for MissionRuntimeError {
+    fn from(e: ChainError) -> Self { MissionRuntimeError::Chain(e) }
+}
+
+#[derive(Debug)]
+pub struct MissionRuntimeRecord {
+    pub envelope: MissionEnvelope,
+    pub claim: AdmissibilityClaim,
+    pub admissibility: AdmissibilityResult,
+    pub mission_payload_hash: Blake3Hash,
+    pub gate_receipt_hashes: Vec<Blake3Hash>,
+    pub final_receipt: ReceiptArtifact,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MissionReplayResult {
+    Match,
+    Divergent,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct MissionReplayReport {
+    pub mission_id: Blake3Hash,
+    pub replay_result: MissionReplayResult,
+    pub matches_previous: bool,
+    pub chain_head: Blake3Hash,
 }
 
 // ============================================================================
@@ -172,12 +222,19 @@ pub struct CognitionRuntime {
     pub graph: ThoughtGraph,
     pub chain: ReceiptChain,
     pub ctx: AgentCtx,
+    missions: HashMap<Blake3Hash, MissionRuntimeRecord>,
     session_counter: u64,
 }
 
 impl CognitionRuntime {
     pub fn new(graph: ThoughtGraph, chain: ReceiptChain, ctx: AgentCtx) -> Self {
-        Self { graph, chain, ctx, session_counter: 0 }
+        Self {
+            graph,
+            chain,
+            ctx,
+            missions: HashMap::new(),
+            session_counter: 0,
+        }
     }
 
     /// Rehydrate a runtime by replaying the chain.
@@ -214,6 +271,7 @@ impl CognitionRuntime {
             graph,
             chain,
             ctx: AgentCtx { receipt_chain: [0u8; 32] },
+            missions: HashMap::new(),
             session_counter: 0,
         };
 
@@ -261,6 +319,119 @@ impl CognitionRuntime {
         rt.graph.set_chain_head(head);
 
         Ok(rt)
+    }
+
+    pub fn submit_mission(
+        &mut self,
+        mut envelope: MissionEnvelope,
+        claim: AdmissibilityClaim,
+    ) -> Result<Blake3Hash, MissionRuntimeError> {
+        let expected_claim = envelope.extract_claim_id();
+        if expected_claim != claim.claim_id {
+            return Err(MissionRuntimeError::ClaimMismatch {
+                expected: expected_claim,
+                got: claim.claim_id,
+            });
+        }
+
+        if self.missions.contains_key(&envelope.mission_id) {
+            return Err(MissionRuntimeError::DuplicateMission(envelope.mission_id));
+        }
+
+        let mission_payload_hash = self.chain.append_with_payload(envelope.clone())?;
+        envelope.advance_stage(); // S2 -> S3 claim extraction
+
+        let admissibility = AdmissibilityChain::canonical().evaluate(&claim);
+        envelope.advance_stage(); // S3 -> S4 admissibility
+
+        // PATCH A (2026-04-17, Cycle-5 G2): hard reject gate. If admissibility does
+        // not PERMIT, do NOT emit gate verdicts and do NOT canonicalize. The envelope
+        // already on the chain (line above) is the evidence of the rejected claim;
+        // emitting a success-shaped final receipt would mask a reject under
+        // NodeLifecycle kind and violate NO_SHADOW_STATE at the operator-visible face.
+        if admissibility.verdict != Verdict::Permit {
+            return Err(MissionRuntimeError::Rejected(admissibility));
+        }
+
+        let mut gate_receipt_hashes = Vec::with_capacity(admissibility.gate_verdicts.len());
+        for verdict in &admissibility.gate_verdicts {
+            gate_receipt_hashes.push(self.chain.append_with_payload(verdict.clone())?);
+        }
+
+        // PATCH B (2026-04-17, Cycle-5 G2): walk the §6 nine-stage sequence
+        // explicitly. Mission submission IS the execution for self-activating
+        // kernel missions (no external executor), receipt minting happens next,
+        // chain append canonicalizes, and rehydrate_mission provides replayability.
+        envelope.advance_stage(); // S4 -> S5 Execution (submission is the act)
+        envelope.advance_stage(); // S5 -> S6 Receipt (next line mints it)
+
+        let final_receipt = ReceiptArtifact::new(
+            ReceiptKind::NodeLifecycle,
+            envelope.mission_id,
+            claim.evidence_hash.unwrap_or(envelope.intent_hash),
+            {
+                let mut lineage = Vec::with_capacity(1 + gate_receipt_hashes.len());
+                lineage.push(mission_payload_hash);
+                lineage.extend(gate_receipt_hashes.iter().copied());
+                lineage
+            },
+            self.chain.head(),
+            self.now_ns_mission()?,
+        );
+        self.chain.append_artifact(final_receipt.clone())?;
+
+        envelope.advance_stage(); // S6 -> S7 Canonicalization (chain append confirmed)
+        envelope.advance_stage(); // S7 -> S8 Replayability (rehydrate_mission is the proof)
+
+        let mission_id = envelope.mission_id;
+        self.missions.insert(
+            mission_id,
+            MissionRuntimeRecord {
+                envelope,
+                claim,
+                admissibility,
+                mission_payload_hash,
+                gate_receipt_hashes,
+                final_receipt,
+            },
+        );
+
+        Ok(mission_id)
+    }
+
+    pub fn mission_by_id(&self, mission_id: &Blake3Hash) -> Option<&MissionRuntimeRecord> {
+        self.missions.get(mission_id)
+    }
+
+    pub fn rehydrate_mission(
+        &self,
+        mission_id: &Blake3Hash,
+    ) -> Result<MissionReplayReport, MissionRuntimeError> {
+        let record = self
+            .missions
+            .get(mission_id)
+            .ok_or(MissionRuntimeError::MissionNotFound(*mission_id))?;
+
+        let pre_head = self.chain.head();
+        let replay = AdmissibilityChain::canonical().evaluate(&record.claim);
+        let chain_head = self.chain.head();
+        let matches_previous =
+            pre_head == chain_head && admissibility_result_matches(&record.admissibility, &replay);
+
+        Ok(MissionReplayReport {
+            mission_id: *mission_id,
+            replay_result: if matches_previous {
+                MissionReplayResult::Match
+            } else {
+                MissionReplayResult::Divergent
+            },
+            matches_previous,
+            chain_head,
+        })
+    }
+
+    pub fn mission_count(&self) -> usize {
+        self.missions.len()
     }
 
     /// Single event handler.
@@ -399,6 +570,54 @@ impl CognitionRuntime {
             .map(|d| d.as_nanos() as u64)
             .map_err(|e| LoopError::Clock(e.to_string()))
     }
+
+    fn now_ns_mission(&self) -> Result<u64, MissionRuntimeError> {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .map_err(|e| MissionRuntimeError::Clock(e.to_string()))
+    }
+}
+
+fn admissibility_result_matches(
+    left: &AdmissibilityResult,
+    right: &AdmissibilityResult,
+) -> bool {
+    left.verdict == right.verdict
+        && left.gate_verdicts.len() == right.gate_verdicts.len()
+        && left
+            .gate_verdicts
+            .iter()
+            .zip(right.gate_verdicts.iter())
+            .all(|(a, b)| gate_verdict_matches(a, b))
+        && rejected_claim_matches(left.rejected.as_ref(), right.rejected.as_ref())
+}
+
+fn gate_verdict_matches(left: &GateVerdict, right: &GateVerdict) -> bool {
+    left.verdict == right.verdict
+        && left.reason == right.reason
+        && left.scorer_id == right.scorer_id
+        && left.chain_ref == right.chain_ref
+        && left.timestamp_ns == right.timestamp_ns
+        && left.invariant == right.invariant
+        && left.score == right.score
+}
+
+fn rejected_claim_matches(
+    left: Option<&RejectedClaim>,
+    right: Option<&RejectedClaim>,
+) -> bool {
+    match (left, right) {
+        (None, None) => true,
+        (Some(a), Some(b)) => {
+            a.claim_ref == b.claim_ref
+                && a.invariant == b.invariant
+                && a.reject_reason == b.reject_reason
+                && a.remediation_path == b.remediation_path
+                && a.escalation_allowed == b.escalation_allowed
+        }
+        _ => false,
+    }
 }
 
 // ============================================================================
@@ -408,8 +627,11 @@ impl CognitionRuntime {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::admissibility_freeze_v1::{
+        AdmissibilityClaim, EconomicPattern, StateMutation, Verdict,
+    };
+    use crate::mission_freeze_v1::{Originator, StateSnapshot};
     use crate::receipts::InMemoryPayloadStore;
-    use std::collections::HashMap;
     use crate::thought_graph::{GraphNode, MyelinationPolicy};
 
     struct NoopNode;
@@ -432,6 +654,56 @@ mod tests {
         let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
         let ctx = AgentCtx { receipt_chain: genesis };
         CognitionRuntime::new(graph, chain, ctx)
+    }
+
+    fn current_state() -> StateSnapshot {
+        StateSnapshot {
+            hash: [0x11; 32],
+            summary: "Current: principal activation not yet canonical".into(),
+            metric: 0.0,
+        }
+    }
+
+    fn ideal_state() -> StateSnapshot {
+        StateSnapshot {
+            hash: [0x22; 32],
+            summary: "Ideal: principal activation receipted and canonical".into(),
+            metric: 1.0,
+        }
+    }
+
+    fn test_mission(now_ns: u64) -> MissionEnvelope {
+        MissionEnvelope::from_intent(
+            "Activate my dual-agentic system".into(),
+            current_state(),
+            ideal_state(),
+            Originator::Operator {
+                session_id: [0x33; 32],
+            },
+            now_ns,
+        )
+    }
+
+    fn permit_claim(env: &MissionEnvelope, now_ns: u64) -> AdmissibilityClaim {
+        AdmissibilityClaim {
+            claim_id: env.extract_claim_id(),
+            has_evidence: true,
+            evidence_hash: Some([0x44; 32]),
+            economic_pattern: Some(EconomicPattern::None),
+            state_mutation: Some(StateMutation {
+                derives_from_canonical: true,
+                face_only: false,
+            }),
+            quality_score: 0.98,
+            timestamp_ns: now_ns,
+        }
+    }
+
+    fn reject_claim(env: &MissionEnvelope, now_ns: u64) -> AdmissibilityClaim {
+        AdmissibilityClaim {
+            quality_score: 0.40,
+            ..permit_claim(env, now_ns)
+        }
     }
 
     #[test]
@@ -586,7 +858,7 @@ mod tests {
 
         // Build an equivalent chain from scratch
         let (graph_b, _) = minimal_graph();
-        let mut chain_b = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
+        let chain_b = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
         let ctx_b = AgentCtx { receipt_chain: genesis };
         let mut rt_b = CognitionRuntime::new(graph_b, chain_b, ctx_b);
         rt_b.chain.append_with_payload(myel).unwrap();
@@ -598,5 +870,102 @@ mod tests {
         assert_eq!(rehydrated_a.graph.chain_head(), rehydrated_b.graph.chain_head());
         assert_eq!(rehydrated_a.graph.has_reflex(&edge),
                    rehydrated_b.graph.has_reflex(&edge));
+    }
+
+    #[test]
+    fn submit_mission_records_chain_backed_runtime_state() {
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(10_000);
+        let claim = permit_claim(&envelope, 10_500);
+
+        let mission_id = rt.submit_mission(envelope, claim).unwrap();
+        let record = rt.mission_by_id(&mission_id).unwrap();
+
+        // PATCH B (2026-04-17, Cycle-5 G2): permitted mission ends at S8
+        // Replayability — the envelope must reflect the full §6 stage walk
+        // including canonicalization-via-chain and rehydrate_mission availability.
+        assert_eq!(record.envelope.stage, MissionStage::Replayability);
+        assert_eq!(record.admissibility.verdict, Verdict::Permit);
+        assert_eq!(record.gate_receipt_hashes.len(), 5);
+        assert_eq!(record.final_receipt.kind, ReceiptKind::NodeLifecycle);
+        assert_eq!(record.final_receipt.claim_ref, mission_id);
+        assert_eq!(rt.mission_count(), 1);
+        assert_eq!(rt.chain.len(), 7, "1 mission + 5 gates + 1 final receipt");
+        assert_eq!(rt.chain.head(), record.final_receipt.receipt_id);
+    }
+
+    #[test]
+    fn submit_mission_rejects_claim_id_mismatch_before_persisting() {
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(20_000);
+        let mut claim = permit_claim(&envelope, 20_100);
+        claim.claim_id = [0x99; 32];
+
+        let err = rt.submit_mission(envelope, claim).unwrap_err();
+        assert!(matches!(err, MissionRuntimeError::ClaimMismatch { .. }));
+        assert_eq!(rt.mission_count(), 0);
+        assert_eq!(rt.chain.len(), 0);
+    }
+
+    #[test]
+    fn submit_mission_rejects_without_canonicalizing() {
+        // PATCH A verification (Cycle-5 G2): a REJECT verdict must NOT produce a
+        // final receipt or a Canonicalization stage stamp. The envelope stays on
+        // the chain (claim-must-bind), but no gate verdicts or success receipt
+        // are emitted, and the method returns Err(Rejected(..)) so the operator
+        // path sees the failure honestly.
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(30_000);
+        let pre_chain_len = rt.chain.len();
+        let claim = reject_claim(&envelope, 30_100);
+
+        let result = rt.submit_mission(envelope, claim);
+
+        match result {
+            Err(MissionRuntimeError::Rejected(admissibility)) => {
+                assert_eq!(admissibility.verdict, Verdict::Reject);
+                assert!(admissibility.rejected.is_some());
+            }
+            other => panic!("expected Err(Rejected(..)), got {:?}", other),
+        }
+
+        // Only the MissionEnvelope should have been appended (pre-evaluation, for
+        // claim-must-bind evidence). No gate verdicts, no final receipt.
+        assert_eq!(rt.chain.len(), pre_chain_len + 1,
+            "chain must advance only by the mission envelope append");
+        assert_eq!(rt.mission_count(), 0,
+            "rejected missions must NOT be indexed in the missions registry");
+    }
+
+    #[test]
+    fn submit_mission_advances_to_replayability_on_permit() {
+        // PATCH B verification (Cycle-5 G2): permitted mission ends at S8
+        // Replayability, not S7 Canonicalization, because rehydrate_mission is
+        // the proof of replay-ability and must be reachable.
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(50_000);
+        let claim = permit_claim(&envelope, 50_100);
+
+        let mission_id = rt.submit_mission(envelope, claim).unwrap();
+        let record = rt.mission_by_id(&mission_id).unwrap();
+
+        assert_eq!(record.envelope.stage, MissionStage::Replayability,
+            "permitted mission must end at S8 Replayability");
+    }
+
+    #[test]
+    fn rehydrate_mission_is_pure_and_matches_previous_verdict() {
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(40_000);
+        let claim = permit_claim(&envelope, 40_050);
+        let mission_id = rt.submit_mission(envelope, claim).unwrap();
+        let pre_head = rt.chain.head();
+
+        let replay = rt.rehydrate_mission(&mission_id).unwrap();
+
+        assert_eq!(replay.replay_result, MissionReplayResult::Match);
+        assert!(replay.matches_previous);
+        assert_eq!(replay.chain_head, pre_head);
+        assert_eq!(rt.chain.head(), pre_head, "rehydrate_mission must be pure");
     }
 }
