@@ -86,26 +86,42 @@ pub enum MissionRuntimeError {
     DuplicateMission(Blake3Hash),
     MissionNotFound(Blake3Hash),
     ClaimMismatch { expected: Blake3Hash, got: Blake3Hash },
-    /// Admissibility returned a non-Permit verdict. The mission envelope was
-    /// appended to the chain (claim-must-bind), but no gate verdicts and no
-    /// final receipt were emitted. Caller receives the full AdmissibilityResult
-    /// so the rejection can be surfaced to the operator without any shadow
-    /// canonicalization being implied.
-    Rejected(AdmissibilityResult),
 }
 
 impl From<ChainError> for MissionRuntimeError {
     fn from(e: ChainError) -> Self { MissionRuntimeError::Chain(e) }
 }
 
-#[derive(Debug)]
+/// The full record of a mission's passage through the lawful loop.
+///
+/// G2-hardening (Cycle-5, 2026-04-17 per spec g2-patches-abc.md):
+/// - `rejected` explicitly distinguishes denied claims from permitted ones
+/// - `receipt_id` is None for rejected missions (§10: "chain reflects what
+///   actually happened by ABSENCE, not by presence of a rejection receipt")
+/// - `stage` is the authoritative final stage (Admissibility on reject,
+///   Canonicalization if replay decode fails, Replayability on full success)
+/// - `final_receipt` is Option so reject can carry no receipt without lying
+#[derive(Debug, Clone)]
 pub struct MissionRuntimeRecord {
     pub envelope: MissionEnvelope,
     pub claim: AdmissibilityClaim,
     pub admissibility: AdmissibilityResult,
-    pub mission_payload_hash: Blake3Hash,
+    /// Hash of the MissionEnvelope chain record (permit path only).
+    /// `None` on reject: nothing was appended to the chain.
+    pub mission_payload_hash: Option<Blake3Hash>,
+    /// Hashes of gate verdict chain records (permit path only). Empty on reject.
     pub gate_receipt_hashes: Vec<Blake3Hash>,
-    pub final_receipt: ReceiptArtifact,
+    /// Final `NodeLifecycle` ReceiptArtifact (permit path only). `None` on reject.
+    pub final_receipt: Option<ReceiptArtifact>,
+    /// Convenience copy of `final_receipt.as_ref().map(|r| r.receipt_id)`.
+    pub receipt_id: Option<Blake3Hash>,
+    /// `true` iff admissibility returned a non-Permit verdict. Mirrors
+    /// `admissibility.verdict != Verdict::Permit`.
+    pub rejected: bool,
+    /// Authoritative final stage of the envelope.
+    pub stage: MissionStage,
+    /// Nanosecond timestamp of submission (monotonic, not wall-clock).
+    pub timestamp_ns: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -321,11 +337,31 @@ impl CognitionRuntime {
         Ok(rt)
     }
 
+    /// Submit a mission through the lawful loop.
+    ///
+    /// Returns a `MissionRuntimeRecord` always (on both Permit and Reject). The
+    /// caller branches on `record.rejected`:
+    /// - `rejected == false`: receipt_id populated, stage=Replayability (or
+    ///   Canonicalization if decode round-trip failed), chain advanced by
+    ///   mission envelope + 5 gate verdicts + final NodeLifecycle receipt.
+    /// - `rejected == true`: receipt_id=None, stage=Admissibility, chain
+    ///   UNCHANGED. The rejection is recorded in the `missions` registry
+    ///   (derived state per §10) so it remains queryable via `mission_by_id`,
+    ///   but it does not enter the chain of source truth.
+    ///
+    /// Errors are reserved for STRUCTURAL failures (claim mismatch, duplicate,
+    /// chain append error, clock failure). Admissibility rejection is NOT an
+    /// error — it is a structured outcome.
+    ///
+    /// G2-hardening (2026-04-17 per g2-patches-abc.md):
+    /// - A: eval-first ordering; rejected claims do not enter the chain
+    /// - B: S8 Replayability only confirmed via decode round-trip
+    /// - C: (applied separately in manifest_artifact.rs)
     pub fn submit_mission(
         &mut self,
         mut envelope: MissionEnvelope,
         claim: AdmissibilityClaim,
-    ) -> Result<Blake3Hash, MissionRuntimeError> {
+    ) -> Result<MissionRuntimeRecord, MissionRuntimeError> {
         let expected_claim = envelope.extract_claim_id();
         if expected_claim != claim.claim_id {
             return Err(MissionRuntimeError::ClaimMismatch {
@@ -338,30 +374,45 @@ impl CognitionRuntime {
             return Err(MissionRuntimeError::DuplicateMission(envelope.mission_id));
         }
 
-        let mission_payload_hash = self.chain.append_with_payload(envelope.clone())?;
+        // PATCH A (2026-04-17, Cycle-5 G2-hardening): evaluate admissibility
+        // BEFORE any chain mutation. Rejected claims do not enter the chain at
+        // all — their rejection is recorded in derived state (missions registry)
+        // per §10 Proof Law. "Chain reflects what actually happened by ABSENCE,
+        // not by presence of a rejection receipt."
         envelope.advance_stage(); // S2 -> S3 claim extraction
-
         let admissibility = AdmissibilityChain::canonical().evaluate(&claim);
         envelope.advance_stage(); // S3 -> S4 admissibility
 
-        // PATCH A (2026-04-17, Cycle-5 G2): hard reject gate. If admissibility does
-        // not PERMIT, do NOT emit gate verdicts and do NOT canonicalize. The envelope
-        // already on the chain (line above) is the evidence of the rejected claim;
-        // emitting a success-shaped final receipt would mask a reject under
-        // NodeLifecycle kind and violate NO_SHADOW_STATE at the operator-visible face.
+        let timestamp_ns = self.now_ns_mission()?;
+
         if admissibility.verdict != Verdict::Permit {
-            return Err(MissionRuntimeError::Rejected(admissibility));
+            let mission_id = envelope.mission_id;
+            let record = MissionRuntimeRecord {
+                envelope,
+                claim,
+                admissibility,
+                mission_payload_hash: None,
+                gate_receipt_hashes: Vec::new(),
+                final_receipt: None,
+                receipt_id: None,
+                rejected: true,
+                stage: MissionStage::Admissibility,
+                timestamp_ns,
+            };
+            self.missions.insert(mission_id, record.clone());
+            return Ok(record);
         }
+
+        // PERMIT path: now safe to mutate the chain. Append the mission
+        // envelope first (CLAIM_MUST_BIND evidence), then each gate verdict
+        // as a separate receipt, then the final NodeLifecycle ReceiptArtifact.
+        let mission_payload_hash = self.chain.append_with_payload(envelope.clone())?;
 
         let mut gate_receipt_hashes = Vec::with_capacity(admissibility.gate_verdicts.len());
         for verdict in &admissibility.gate_verdicts {
             gate_receipt_hashes.push(self.chain.append_with_payload(verdict.clone())?);
         }
 
-        // PATCH B (2026-04-17, Cycle-5 G2): walk the §6 nine-stage sequence
-        // explicitly. Mission submission IS the execution for self-activating
-        // kernel missions (no external executor), receipt minting happens next,
-        // chain append canonicalizes, and rehydrate_mission provides replayability.
         envelope.advance_stage(); // S4 -> S5 Execution (submission is the act)
         envelope.advance_stage(); // S5 -> S6 Receipt (next line mints it)
 
@@ -378,25 +429,42 @@ impl CognitionRuntime {
             self.chain.head(),
             self.now_ns_mission()?,
         );
+        let receipt_id = final_receipt.receipt_id;
         self.chain.append_artifact(final_receipt.clone())?;
 
         envelope.advance_stage(); // S6 -> S7 Canonicalization (chain append confirmed)
-        envelope.advance_stage(); // S7 -> S8 Replayability (rehydrate_mission is the proof)
 
+        // PATCH B (2026-04-17, Cycle-5 G2-hardening): advance to S8 Replayability
+        // ONLY if decode round-trip verifies. If the appended payload cannot be
+        // decoded back to an equivalent ReceiptArtifact, the mission stays at S7.
+        // This prevents over-claiming replayability on a corrupted encode/decode.
+        let replay_ok = match self.chain.fetch_payload_bytes(&receipt_id) {
+            Ok(Some(bytes)) => match <ReceiptArtifact as crate::receipts::ReceiptPayloadDecode>::from_canonical_bytes(&bytes) {
+                Ok(decoded) => decoded.receipt_id == receipt_id,
+                Err(_) => false,
+            }
+            _ => false,
+        };
+        if replay_ok {
+            envelope.advance_stage(); // S7 -> S8 Replayability
+        }
+
+        let final_stage = envelope.stage;
         let mission_id = envelope.mission_id;
-        self.missions.insert(
-            mission_id,
-            MissionRuntimeRecord {
-                envelope,
-                claim,
-                admissibility,
-                mission_payload_hash,
-                gate_receipt_hashes,
-                final_receipt,
-            },
-        );
-
-        Ok(mission_id)
+        let record = MissionRuntimeRecord {
+            envelope,
+            claim,
+            admissibility,
+            mission_payload_hash: Some(mission_payload_hash),
+            gate_receipt_hashes,
+            final_receipt: Some(final_receipt),
+            receipt_id: Some(receipt_id),
+            rejected: false,
+            stage: final_stage,
+            timestamp_ns,
+        };
+        self.missions.insert(mission_id, record.clone());
+        Ok(record)
     }
 
     pub fn mission_by_id(&self, mission_id: &Blake3Hash) -> Option<&MissionRuntimeRecord> {
@@ -878,20 +946,28 @@ mod tests {
         let envelope = test_mission(10_000);
         let claim = permit_claim(&envelope, 10_500);
 
-        let mission_id = rt.submit_mission(envelope, claim).unwrap();
-        let record = rt.mission_by_id(&mission_id).unwrap();
+        let record = rt.submit_mission(envelope, claim).unwrap();
 
-        // PATCH B (2026-04-17, Cycle-5 G2): permitted mission ends at S8
-        // Replayability — the envelope must reflect the full §6 stage walk
-        // including canonicalization-via-chain and rehydrate_mission availability.
+        // G2-hardening: record is returned directly; receipt_id and stage fields
+        // are authoritative; registry lookup yields the same record.
+        assert!(!record.rejected);
         assert_eq!(record.envelope.stage, MissionStage::Replayability);
+        assert_eq!(record.stage, MissionStage::Replayability);
         assert_eq!(record.admissibility.verdict, Verdict::Permit);
         assert_eq!(record.gate_receipt_hashes.len(), 5);
-        assert_eq!(record.final_receipt.kind, ReceiptKind::NodeLifecycle);
-        assert_eq!(record.final_receipt.claim_ref, mission_id);
+        let final_receipt = record.final_receipt.as_ref().expect("permit must have final receipt");
+        assert_eq!(final_receipt.kind, ReceiptKind::NodeLifecycle);
+        assert_eq!(final_receipt.claim_ref, record.envelope.mission_id);
+        assert_eq!(record.receipt_id, Some(final_receipt.receipt_id));
+        assert_eq!(record.mission_payload_hash, Some(final_receipt.claim_ref).map(|_| record.mission_payload_hash.unwrap()));
         assert_eq!(rt.mission_count(), 1);
         assert_eq!(rt.chain.len(), 7, "1 mission + 5 gates + 1 final receipt");
-        assert_eq!(rt.chain.head(), record.final_receipt.receipt_id);
+        assert_eq!(rt.chain.head(), final_receipt.receipt_id);
+
+        // Registry lookup returns an equivalent record.
+        let from_registry = rt.mission_by_id(&record.envelope.mission_id).unwrap();
+        assert_eq!(from_registry.receipt_id, record.receipt_id);
+        assert!(!from_registry.rejected);
     }
 
     #[test]
@@ -908,49 +984,59 @@ mod tests {
     }
 
     #[test]
-    fn submit_mission_rejects_without_canonicalizing() {
-        // PATCH A verification (Cycle-5 G2): a REJECT verdict must NOT produce a
-        // final receipt or a Canonicalization stage stamp. The envelope stays on
-        // the chain (claim-must-bind), but no gate verdicts or success receipt
-        // are emitted, and the method returns Err(Rejected(..)) so the operator
-        // path sees the failure honestly.
+    fn submit_mission_rejects_without_canonicalizing_and_preserves_in_registry() {
+        // G2-hardening (Patch A, per spec g2-patches-abc.md): a REJECT verdict
+        // does NOT produce a final receipt, does NOT append the envelope to the
+        // chain, and does NOT raise an error. Instead, the method returns
+        // Ok(record) with rejected=true, stage=Admissibility, receipt_id=None.
+        // The chain stays CLEAN of rejected missions (§10 "chain is truth =
+        // only lawful completions"). The rejection is recorded in the missions
+        // registry as derived state — queryable via mission_by_id().
         let mut rt = minimal_runtime();
         let envelope = test_mission(30_000);
+        let mission_id = envelope.mission_id;
         let pre_chain_len = rt.chain.len();
         let claim = reject_claim(&envelope, 30_100);
 
-        let result = rt.submit_mission(envelope, claim);
+        let record = rt.submit_mission(envelope, claim).unwrap();
 
-        match result {
-            Err(MissionRuntimeError::Rejected(admissibility)) => {
-                assert_eq!(admissibility.verdict, Verdict::Reject);
-                assert!(admissibility.rejected.is_some());
-            }
-            other => panic!("expected Err(Rejected(..)), got {:?}", other),
-        }
+        assert!(record.rejected, "verdict was Reject — record must be marked rejected");
+        assert!(record.receipt_id.is_none(), "rejected mission must have no receipt_id");
+        assert!(record.final_receipt.is_none(), "rejected mission must have no final receipt");
+        assert!(record.mission_payload_hash.is_none(),
+            "rejected mission envelope was NOT appended to chain");
+        assert_eq!(record.stage, MissionStage::Admissibility,
+            "rejected mission stops at S4 Admissibility");
+        assert_eq!(record.admissibility.verdict, Verdict::Reject);
+        assert!(record.admissibility.rejected.is_some(),
+            "reject must carry RejectedClaim with remediation path");
 
-        // Only the MissionEnvelope should have been appended (pre-evaluation, for
-        // claim-must-bind evidence). No gate verdicts, no final receipt.
-        assert_eq!(rt.chain.len(), pre_chain_len + 1,
-            "chain must advance only by the mission envelope append");
-        assert_eq!(rt.mission_count(), 0,
-            "rejected missions must NOT be indexed in the missions registry");
+        // Chain UNCHANGED on reject (§10 chain-is-truth).
+        assert_eq!(rt.chain.len(), pre_chain_len,
+            "rejected mission must NOT advance the chain at all");
+
+        // Registry PRESERVES the rejection (derived state per §10).
+        assert_eq!(rt.mission_count(), 1,
+            "rejected mission must be queryable via mission_by_id");
+        let from_registry = rt.mission_by_id(&mission_id).unwrap();
+        assert!(from_registry.rejected);
+        assert_eq!(from_registry.stage, MissionStage::Admissibility);
     }
 
     #[test]
     fn submit_mission_advances_to_replayability_on_permit() {
-        // PATCH B verification (Cycle-5 G2): permitted mission ends at S8
-        // Replayability, not S7 Canonicalization, because rehydrate_mission is
-        // the proof of replay-ability and must be reachable.
+        // G2-hardening (Patch B): permitted mission ends at S8 Replayability
+        // ONLY when decode round-trip verifies. For InMemoryPayloadStore with
+        // a well-formed ReceiptArtifact the round-trip must succeed.
         let mut rt = minimal_runtime();
         let envelope = test_mission(50_000);
         let claim = permit_claim(&envelope, 50_100);
 
-        let mission_id = rt.submit_mission(envelope, claim).unwrap();
-        let record = rt.mission_by_id(&mission_id).unwrap();
+        let record = rt.submit_mission(envelope, claim).unwrap();
 
         assert_eq!(record.envelope.stage, MissionStage::Replayability,
-            "permitted mission must end at S8 Replayability");
+            "permit + decode-verified replay must reach S8");
+        assert_eq!(record.stage, MissionStage::Replayability);
     }
 
     #[test]
@@ -958,7 +1044,8 @@ mod tests {
         let mut rt = minimal_runtime();
         let envelope = test_mission(40_000);
         let claim = permit_claim(&envelope, 40_050);
-        let mission_id = rt.submit_mission(envelope, claim).unwrap();
+        let record = rt.submit_mission(envelope, claim).unwrap();
+        let mission_id = record.envelope.mission_id;
         let pre_head = rt.chain.head();
 
         let replay = rt.rehydrate_mission(&mission_id).unwrap();

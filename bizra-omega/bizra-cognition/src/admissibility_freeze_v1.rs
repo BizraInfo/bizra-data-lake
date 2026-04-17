@@ -579,7 +579,7 @@ impl InvariantGate for IhsanFloorGate {
 // ════════════════════════════════════════════════════════════
 
 /// Result of running the full admissibility chain.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AdmissibilityResult {
     /// The aggregate verdict. PERMIT only if ALL gates PERMIT.
     pub verdict: Verdict,

@@ -364,7 +364,7 @@ async fn post_mission(
     let current = state_snapshot_from_dto(req.current_state, 0x11);
     let ideal = state_snapshot_from_dto(req.ideal_state, 0x22);
 
-    let mut envelope = MissionEnvelope::from_intent(
+    let envelope = MissionEnvelope::from_intent(
         req.intent.clone(),
         current,
         ideal,
@@ -372,7 +372,6 @@ async fn post_mission(
         ts_ns,
     );
     let claim_id = envelope.extract_claim_id();
-    envelope.advance_stage(); // S2 -> S3 (matches submit_mission's expectation)
 
     let claim = AdmissibilityClaim {
         claim_id,
@@ -384,21 +383,19 @@ async fn post_mission(
         timestamp_ns: ts_ns,
     };
 
-    // Reset envelope stage so submit_mission can advance it correctly.
-    // from_intent() returns S2 Mission; submit_mission advances to S3 via its own
-    // advance_stage call. We must pass the envelope at stage=Mission.
-    envelope.stage = bizra_cognition::mission_freeze_v1::MissionStage::Mission;
-
+    // G2-hardening contract: submit_mission returns a MissionRuntimeRecord
+    // on BOTH permit and reject paths. Rejection is not an error — it is
+    // structured state. Branch on record.rejected to surface to the operator.
     let mut rt = state.runtime.write().await;
     match rt.submit_mission(envelope, claim) {
-        Ok(mission_id) => {
-            let record = rt.mission_by_id(&mission_id).ok_or_else(|| {
+        Ok(record) if !record.rejected => {
+            let receipt_id = record.receipt_id.ok_or_else(|| {
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ErrorResponse {
                         error: ErrorBody {
-                            code: "POST_SUBMIT_LOOKUP_FAILED",
-                            message: "mission submitted but not retrievable".into(),
+                            code: "PERMIT_WITHOUT_RECEIPT",
+                            message: "permit record missing receipt_id — runtime invariant violated".into(),
                             domain: DOMAIN,
                             admissibility: None,
                         },
@@ -407,24 +404,29 @@ async fn post_mission(
             })?;
 
             Ok(Json(SubmitMissionResponse {
-                mission_id: hex32(&mission_id),
+                mission_id: hex32(&record.envelope.mission_id),
                 admissibility: admissibility_to_dto(&record.admissibility),
-                receipt_id: hex32(&record.final_receipt.receipt_id),
-                final_stage: stage_name(record.envelope.stage),
+                receipt_id: hex32(&receipt_id),
+                final_stage: stage_name(record.stage),
                 chain_head: hex32(&rt.chain.head()),
             }))
         }
-        Err(MissionRuntimeError::Rejected(result)) => Err((
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json(ErrorResponse {
-                error: ErrorBody {
-                    code: "ADMISSIBILITY_REJECTED",
-                    message: "mission rejected by admissibility chain".into(),
-                    domain: DOMAIN,
-                    admissibility: Some(admissibility_to_dto(&result)),
-                },
-            }),
-        )),
+        Ok(record) => {
+            // record.rejected == true: structured rejection. Chain NOT advanced.
+            // Rejection preserved in missions registry; caller receives HTTP 422
+            // with full admissibility detail + RejectedClaim remediation path.
+            Err((
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(ErrorResponse {
+                    error: ErrorBody {
+                        code: "ADMISSIBILITY_REJECTED",
+                        message: "mission rejected by admissibility chain".into(),
+                        domain: DOMAIN,
+                        admissibility: Some(admissibility_to_dto(&record.admissibility)),
+                    },
+                }),
+            ))
+        }
         Err(MissionRuntimeError::ClaimMismatch { expected, got }) => Err((
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {

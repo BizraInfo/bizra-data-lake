@@ -2,11 +2,10 @@
 //!
 //! بسم الله الرحمن الرحيم
 //!
-//! File: bizra-omega/bizra-cognition/src/manifest_artifact.rs
+//! File: crates/bizra-kernel/src/manifest_artifact.rs
 //! Authority: Manifest v0.2 Canon, §7 (Canonical Contracts)
 //! Build Step: 7 of 8 (§17)
 //! Depends on: Step 2 (ReceiptArtifact)
-//! Landed: 2026-04-17 Cycle-5 G2 (Patch C)
 //!
 //! §7 Table 7-1:
 //!   Contract: ManifestArtifact
@@ -68,8 +67,12 @@ impl ManifestArtifact {
         mut receipt_refs: Vec<Blake3Hash>,
         chain_head: Blake3Hash,
     ) -> Self {
-        // Canonical sort for deterministic integrity hash
+        // Canonical sort + dedup for deterministic integrity hash.
+        // Fix C: duplicate receipt_refs are removed. A receipt appearing
+        // twice in a manifest would be semantically meaningless and
+        // would inflate receipt_count dishonestly.
         receipt_refs.sort();
+        receipt_refs.dedup();
 
         // Compute integrity hash
         let mut integrity_buf = Vec::with_capacity(receipt_refs.len() * 32);
@@ -81,11 +84,15 @@ impl ManifestArtifact {
             &integrity_buf,
         );
 
-        // Compute manifest_id
-        let mut id_buf = Vec::with_capacity(48);
+        // Compute manifest_id — includes ALL fields that affect identity.
+        // Fix A: chain_head_at_generation and receipt_count are now bound
+        // into the identity hash, not just operational metadata.
+        let mut id_buf = Vec::with_capacity(112);
         id_buf.extend_from_slice(&window_start.to_le_bytes());
         id_buf.extend_from_slice(&window_end.to_le_bytes());
         id_buf.extend_from_slice(&integrity_hash);
+        id_buf.extend_from_slice(&chain_head);
+        id_buf.extend_from_slice(&(receipt_refs.len() as u32).to_le_bytes());
         let manifest_id = blake3_domain("bizra-manifest-id-v1", &id_buf);
 
         let receipt_count = receipt_refs.len() as u32;
@@ -121,10 +128,10 @@ impl ReceiptPayload for ManifestArtifact {
         ReceiptKind::NodeLifecycle
     }
 
+    /// Fix B: Override timestamp_ns so manifests advance the chain's
+    /// latest_timestamp() when appended. window_end is the cleanest
+    /// semantics — "this manifest covers up to this point in time."
     fn timestamp_ns(&self) -> u64 {
-        // A manifest covers a window; its authoritative timestamp is window_end.
-        // This lets ReceiptChain::latest_timestamp() reflect manifest activity
-        // per the Cycle-4 accessor (receipts.rs:latest_timestamp).
         self.window_end
     }
 
