@@ -757,16 +757,14 @@ mod tests {
                 size_metric: 350,
             });
 
-            // Documentation every 2 months
-            if month % 2 == 0 {
-                actions.push(HashedAction {
-                    hash: Blake3Hash::from_bytes(
-                        &format!("docs-{}", month).as_bytes()),
-                    timestamp_unix: ts + 259200,
-                    category: ActionCategory::Documentation,
-                    size_metric: 100,
-                });
-            }
+            // Documentation every month (reflects real BIZRA doc discipline)
+            actions.push(HashedAction {
+                hash: Blake3Hash::from_bytes(
+                    &format!("docs-{}", month).as_bytes()),
+                timestamp_unix: ts + 259200,
+                category: ActionCategory::Documentation,
+                size_metric: 100,
+            });
 
             // Constitutional design every 3 months
             if month % 3 == 0 {
@@ -787,6 +785,48 @@ mod tests {
                     timestamp_unix: ts + 432000,
                     category: ActionCategory::SpiritualFoundation,
                     size_metric: 200,
+                });
+            }
+
+            // TypeScript code every 2 months (frontend)
+            if month % 2 == 0 {
+                actions.push(HashedAction {
+                    hash: Blake3Hash::from_bytes(
+                        &format!("ts-{}", month).as_bytes()),
+                    timestamp_unix: ts + 518400,
+                    category: ActionCategory::TypeScriptCode,
+                    size_metric: 200,
+                });
+            }
+
+            // Architecture docs every month
+            actions.push(HashedAction {
+                hash: Blake3Hash::from_bytes(
+                    &format!("arch-{}", month).as_bytes()),
+                timestamp_unix: ts + 604800,
+                category: ActionCategory::Architecture,
+                size_metric: 80,
+            });
+
+            // Infrastructure ops every 4 months
+            if month % 4 == 0 {
+                actions.push(HashedAction {
+                    hash: Blake3Hash::from_bytes(
+                        &format!("infra-{}", month).as_bytes()),
+                    timestamp_unix: ts + 691200,
+                    category: ActionCategory::InfrastructureOps,
+                    size_metric: 60,
+                });
+            }
+
+            // Research every 3 months
+            if month % 3 == 0 {
+                actions.push(HashedAction {
+                    hash: Blake3Hash::from_bytes(
+                        &format!("research-{}", month).as_bytes()),
+                    timestamp_unix: ts + 777600,
+                    category: ActionCategory::Research,
+                    size_metric: 150,
                 });
             }
         }

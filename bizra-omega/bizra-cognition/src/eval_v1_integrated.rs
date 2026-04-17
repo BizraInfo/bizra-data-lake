@@ -681,7 +681,7 @@ impl GraphNode for ValuationNodeStub {
 
 /// To integrate, add to runtime.rs CognitionEvent:
 ///
-/// ```rust
+/// ```rust,ignore
 /// pub enum CognitionEvent {
 ///     ReasoningRequest { request_id: Blake3Hash },
 ///     ConsolidationTick,
