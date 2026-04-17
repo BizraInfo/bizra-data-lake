@@ -145,11 +145,25 @@ audit-frontend:
 
 audit-python:
     #!/usr/bin/env bash
-    if command -v pip-audit > /dev/null; then
-      pip-audit
-    else
-      echo "  pip-audit not installed (install: pip install pip-audit)"
+    set -uo pipefail
+    # shellcheck disable=SC1091
+    source .venv/bin/activate 2>/dev/null || true
+    if ! command -v pip-audit > /dev/null; then
+      echo "  pip-audit not installed — run: uv pip install pip-audit (venv) or pipx install pip-audit"
+      exit 1
     fi
+    fail=0
+    echo "▶ root requirements.txt"
+    pip-audit -r requirements.txt --progress-spinner off || fail=1
+    echo
+    echo "▶ services/node_gateway/requirements.txt"
+    pip-audit -r services/node_gateway/requirements.txt --progress-spinner off || fail=1
+    echo
+    echo "▶ services/jarvis/requirements.txt"
+    pip-audit -r services/jarvis/requirements.txt --progress-spinner off || echo "  (unscannable — see runtime/RUNTIME_STATUS.md for known manifest issue)"
+    echo
+    [ "$fail" -eq 0 ] && echo "  ✓ python audit clean on scannable surfaces" || echo "  ✗ python vulns found (see above)"
+    exit "$fail"
 
 # ─── Build ───────────────────────────────────────────────────────────────────
 

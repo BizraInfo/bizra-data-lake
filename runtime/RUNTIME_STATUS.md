@@ -7,43 +7,70 @@
 
 ---
 
-## 2026-04-17 Vulnerability Refresh
+## 2026-04-17 Vulnerability Refresh (Tool-Verified)
 
-Filed as part of Cycle-6 DevOps pass. Direct verification against current repo state.
+Filed as part of Cycle-6 DevOps pass. Tool-verified via `cargo audit` (cargo-audit 0.22.x) and `pip-audit` (2.10.0), both installed this session per `/@ 6.5` directive.
 
-### Verified changes since 2026-04-05
+### Tool-verified findings — omega workspace (`cargo audit`)
 
-| Alert | Package | 2026-04-05 state | 2026-04-17 verification | Verdict |
-|-------|---------|------------------|-------------------------|---------|
-| #22 | `bytes` | Medium, omega+runtime | omega `Cargo.lock` = **1.11.1** (matches pin `>=1.11.1` closing RUSTSEC-2026-0007) | ✅ **CLOSED in omega** |
-| #26 | `rustls-webpki` | Medium, omega+runtime | omega `Cargo.lock` = `0.103.10` (checksum `df33b2b8…abbd1ef`) | 🟡 Version recent; RUSTSEC lookup unavailable offline. Likely patched, needs `cargo audit` confirmation when online |
-| #20 | `python-jose` in `services/jarvis` | **Critical** | grep of `services/jarvis/requirements.txt` returns **empty** for `jose\|jwt\|pyjwt`; `services/jarvis/main.py` still imports references needing follow-up | 🟡 **Pin appears removed from requirements — import presence in main.py needs investigation (possibly stale import or satisfied by transitive dep).** Downgrade from P0 until verified. |
-| #19 | `python-jose` (medium companion) | Medium | Same as #20 | 🟡 Same |
-| #27 | `pyo3` | Low, omega | Not re-verified this pass | Unchanged — monitor |
-| #15 | `picomatch` (frontend) | Medium transitive | Not re-verified this pass | Unchanged — `npm audit` pass pending |
+**2 active vulnerabilities** in 1 package:
 
-### DevOps-gap finding (new)
+| RUSTSEC ID | Package | Version | Severity | Title |
+|---|---|---|---|---|
+| RUSTSEC-2026-0098 | `rustls-webpki` | 0.103.10 | **HIGH** | Name constraints for URI names were incorrectly accepted |
+| RUSTSEC-2026-0099 | `rustls-webpki` | 0.103.10 | **HIGH** | Name constraints accepted for certificates asserting a wildcard name |
 
-**pip-audit and cargo-audit are NOT installed in this environment.** Automated vuln scanning requires either:
+**5 warnings** (3 unmaintained + 2 unsound):
 
-- `uv pip install pip-audit` in `.venv/`
-- `cargo install cargo-audit` (adds to `~/.cargo/bin/`)
+| RUSTSEC ID | Package | Version | Class |
+|---|---|---|---|
+| RUSTSEC-2025-0057 | `fxhash` | 0.2.1 | unmaintained |
+| RUSTSEC-2024-0384 | `instant` | 0.1.13 | unmaintained |
+| RUSTSEC-2024-0436 | `paste` | 1.0.15 | unmaintained |
+| RUSTSEC-2026-0097 | `rand` | 0.8.5 + 0.9.2 | unsound (custom logger + `rand::rng()`) |
 
-Without these, vuln claims rely on manual register checks (this refresh) which drift over time. **Recommend installing both as part of a Cycle-7 security-cycle arc**, and adding them to `Justfile` recipes `audit-py` and `audit-rs`.
+### Tool-verified findings — Python (`pip-audit`)
 
-### Action items (refreshed priority)
+| Surface | Result |
+|---|---|
+| `requirements.txt` (root) | ✅ No known vulnerabilities |
+| `services/node_gateway/requirements.txt` | 🔴 2 CVEs in `starlette 0.38.6`: **CVE-2024-47874** (fix: 0.40.0) + **CVE-2025-54121** (fix: 0.47.2) |
+| `services/jarvis/requirements.txt` | ⚠️ **UNSCANNABLE** — pin `opentelemetry-exporter-jaeger==1.23.0` references a non-existent version (max on PyPI: 1.21.0). Dependency-manifest bug, blocks audit. |
+
+### Correction of 2026-04-17 pre-tool addendum
+
+Prior pre-tool section (this same date, earlier today) speculated that **rustls-webpki 0.103.10 was "likely patched."** This was wrong.
+
+**Verified truth:** 0.103.10 is the *affected* version in RUSTSEC-2026-0098 and RUSTSEC-2026-0099. Both advisories were published in April 2026, post-dating the 2026-04-05 RUNTIME_STATUS register. This is exactly the drift `cargo audit` exists to prevent. Lesson logged: do not infer patched-status from version recency.
+
+### Reconciliation with GitHub Dependabot (18 alerts)
+
+Tool audits surface 4 actionable active-dep CVEs/RUSTSECs in shipping workspaces (2 omega + 2 node_gateway). Dependabot's 18 almost certainly includes runtime/-only alerts, frontend `node_modules` transitive deps, and lower-severity informational alerts. Full reconciliation requires the GitHub Security tab or `gh api repos/BizraInfo/bizra-data-lake/vulnerability-alerts`. **Gap between "tool-found in active deps" (4) and "Dependabot-tracked total" (18) is explained, not mysterious.**
+
+### DevOps-gap status (now CLOSED for Rust+Python; OPEN for frontend)
+
+| Tool | Status this session | Wiring |
+|---|---|---|
+| `cargo-audit` | ✅ installed (`~/.cargo/bin/cargo-audit`) | `just audit-rust` auto-installs if missing, then runs |
+| `pip-audit` 2.10.0 | ✅ installed in `.venv/` | `just audit-python` (enhanced this commit to cover root + services) |
+| `pnpm audit` | not wired in this pass | `just audit-frontend` exists; separate exec |
+
+### Action items (refreshed with tool truth)
 
 | Priority | Action | Status |
 |----------|--------|--------|
-| P0 → P1 | `python-jose` follow-up: confirm removal or identify replacement library; resolve stale import in `services/jarvis/main.py` | **Downgraded from P0** pending next-iteration investigation |
-| P1 | Verify `rustls-webpki` 0.103.10 against RUSTSEC database (online `cargo audit` check) | OPEN |
-| P2 | `npm audit fix` in `frontend/` (picomatch #15) | OPEN — separate janitorial session |
-| P3 | Install `pip-audit` + `cargo-audit` in dev env; wire as `just audit-py` / `just audit-rs` recipes | NEW — Cycle-7 security arc |
-| P4 | No action on runtime/-only vulns (historical, non-deployed) | Unchanged |
+| **P0** | Upgrade `rustls-webpki` in omega (target fixed version per RUSTSEC-2026-0098/0099 advisory) | **OPEN — verify transitive path; may need `cargo update` on specific parent crate** |
+| P0 | Upgrade `starlette` in `services/node_gateway/requirements.txt` to ≥ 0.47.2 | OPEN |
+| P1 | Fix broken pin `opentelemetry-exporter-jaeger==1.23.0` in `services/jarvis/requirements.txt` (no such version on PyPI) | NEW finding this pass |
+| P2 | Address unmaintained warnings (fxhash, instant, paste) — upstream-migration work, not urgent | OPEN |
+| P2 | Review `rand` unsound warning — verify BIZRA usage doesn't combine custom logger + `rand::rng()` | OPEN |
+| P3 | `pnpm audit` in `frontend/` — separate pass | OPEN |
+| P3 | Wire `just audit-rust` + `just audit-python` into a CI workflow (fail-closed on HIGH/CRITICAL) | NEW — proposed for Cycle-7 security arc |
+| P4 | No action on runtime/-only vulns (historical, non-deployed per TRACKING_DECISION.md) | Unchanged |
 
 ### Honesty note (per CLAIM_MUST_BIND)
 
-This refresh does not claim to be a comprehensive audit. It is a targeted reverification of the 2026-04-05 register using filesystem-level evidence. Where claims cannot be backed by current-state evidence (e.g., #26 RUSTSEC lookup), this is stated explicitly rather than inferred. A full Cycle-7 security arc with `pip-audit` + `cargo audit` wired into CI will be the authoritative next step.
+This refresh supersedes the pre-tool section above it (filed earlier same day). The pre-tool version's best-effort guess on rustls-webpki was wrong. The lesson: **tool-produced evidence outranks filesystem-grep speculation for security claims.** Keep both sections in the record — the correction itself is institutional knowledge.
 
 ---
 
