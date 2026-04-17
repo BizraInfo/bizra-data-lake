@@ -1,0 +1,20 @@
+{
+  "chain_length": 1,
+  "created_at": "2026-04-17T07:44:32+00:00",
+  "latest_hash": "e0b3142742b07150085855e121853fb7bcf25d87d3ac510730c173866d3e6e95",
+  "receipts": [
+    {
+      "artifact_count": 23,
+      "chain_position": 11,
+      "confidence_label": "Solid",
+      "confidence_level": 3,
+      "description": "Cycle-5 Principal Activation \u2014 14 commits: runtime, gateway, CLI, doctrine",
+      "evidence_hash": "ea15823193a2974948fc03b9a1385ff7f74799b44fd9dff2ffe4de3438b9e891",
+      "generated_at": "2026-04-17T07:44:32+00:00",
+      "previous_hash": "5f40748340c501cf7f3e0a269b4c5cd0f88b3ff88689eaf7474b45bc8e42d189",
+      "receipt_hash": "e0b3142742b07150085855e121853fb7bcf25d87d3ac510730c173866d3e6e95"
+    }
+  ],
+  "updated_at": "2026-04-17T07:44:32+00:00",
+  "version": "proof-forge-v1"
+}

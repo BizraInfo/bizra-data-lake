@@ -1,0 +1,255 @@
+{
+  "artifact_count": 23,
+  "artifacts": [
+    {
+      "kind": "config",
+      "mtime_iso": "2026-04-17T06:35:39+00:00",
+      "path": "bizra-omega/Cargo.lock",
+      "sha256": "4607e256308fb6d0f7438402e3085dac4ce8134bb4facc387ed78e8f2711bcb9",
+      "size_bytes": 150524
+    },
+    {
+      "kind": "config",
+      "mtime_iso": "2026-04-17T00:55:49+00:00",
+      "path": "bizra-omega/Cargo.toml",
+      "sha256": "f5d38dd8649ebf5b9c4c52c586131fa54968091316c39a811f1833ec8335c4d7",
+      "size_bytes": 3600
+    },
+    {
+      "kind": "config",
+      "mtime_iso": "2026-04-17T06:34:47+00:00",
+      "path": "bizra-omega/bizra-cognition-gateway/Cargo.toml",
+      "sha256": "5f608efcb52764069095841399c610a265753b88743a7961c33d3c112da63eaa",
+      "size_bytes": 766
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T07:35:56+00:00",
+      "path": "bizra-omega/bizra-cognition-gateway/README.md",
+      "sha256": "5c0f7c85cda7de46b9509b8d067ee09871814b535c5624e0e250597ef4dcd920",
+      "size_bytes": 7951
+    },
+    {
+      "kind": "code",
+      "mtime_iso": "2026-04-17T06:35:55+00:00",
+      "path": "bizra-omega/bizra-cognition-gateway/src/bin/dema.rs",
+      "sha256": "86b65de9fc624be955cd055a7d33729908b2944ce71d8574f289cf3d0f665aee",
+      "size_bytes": 13397
+    },
+    {
+      "kind": "code",
+      "mtime_iso": "2026-04-17T06:00:56+00:00",
+      "path": "bizra-omega/bizra-cognition-gateway/src/main.rs",
+      "sha256": "affe8e26d882f00be80acc9d5602fb21f7475348340a6096ec0d20e17e6f8d20",
+      "size_bytes": 24029
+    },
+    {
+      "kind": "code",
+      "mtime_iso": "2026-04-17T05:58:57+00:00",
+      "path": "bizra-omega/bizra-cognition/src/admissibility_freeze_v1.rs",
+      "sha256": "c26fc21c6b23a33fadc7436d08e066c0c7bddba4ca95d3ef8818b1e93ac2f1fc",
+      "size_bytes": 34443
+    },
+    {
+      "kind": "code",
+      "mtime_iso": "2026-04-17T05:26:16+00:00",
+      "path": "bizra-omega/bizra-cognition/src/lib.rs",
+      "sha256": "6fbe09150dbc9c2328f44479f53857d32bfe04cd28d78f652af701e19ef71a9c",
+      "size_bytes": 914
+    },
+    {
+      "kind": "code",
+      "mtime_iso": "2026-04-17T06:00:21+00:00",
+      "path": "bizra-omega/bizra-cognition/src/manifest_artifact.rs",
+      "sha256": "d93ae84ac45cfbfa8e22306005355a426d2c9c8a66f12231666318d3ea2fa2d1",
+      "size_bytes": 8528
+    },
+    {
+      "kind": "code",
+      "mtime_iso": "2026-04-17T00:54:46+00:00",
+      "path": "bizra-omega/bizra-cognition/src/receipts.rs",
+      "sha256": "81f2f216e0f9b83a623b965d762bce2bc19651d9bfc39fb1e6e350f9ac28e0ea",
+      "size_bytes": 14383
+    },
+    {
+      "kind": "code",
+      "mtime_iso": "2026-04-17T06:00:00+00:00",
+      "path": "bizra-omega/bizra-cognition/src/runtime.rs",
+      "sha256": "0fe7474f3a3ac0d81506dfa17378f93bf28589cbb677fe62ce9b4dd1f3e8e82c",
+      "size_bytes": 41745
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T03:45:59+00:00",
+      "path": "cycle-4/retrospective.md",
+      "sha256": "b554fc764f5c9ee1ac04798b68e47cf2ab22ac46070997fcac31625a8d22a8cc",
+      "size_bytes": 18823
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T04:25:13+00:00",
+      "path": "cycle-5/d5-acceptance-note.md",
+      "sha256": "5aadfbe2e4096c3372ec33ed58a0e097d4b17b49e52adbe8ade7aef8bf82ad66",
+      "size_bytes": 4969
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T05:32:08+00:00",
+      "path": "cycle-5/g2-acceptance-note.md",
+      "sha256": "668c391225795caf5024a75a81443383b7baa83c17a596a162f4dc9e68285891",
+      "size_bytes": 5910
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T06:07:30+00:00",
+      "path": "cycle-5/g2-hardening-acceptance-note.md",
+      "sha256": "0cceab9938e6868b8b8f80dd04f9b40c2434e9573f2dba72d7152fde80ee1422",
+      "size_bytes": 8993
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T05:52:03+00:00",
+      "path": "cycle-5/g3-acceptance-note.md",
+      "sha256": "e998e7635a9f2859c0418b85aa81d21036d4a6ab4073cdef65aa505a247ca6e7",
+      "size_bytes": 7072
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T07:35:07+00:00",
+      "path": "cycle-5/retrospective.md",
+      "sha256": "6be24b1061b40766d9e09ec9a532804dffcee1125e314e55af2f7bcb30da88b2",
+      "size_bytes": 21119
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T07:19:33+00:00",
+      "path": "docs/bizra-trust-compiler-thesis.md",
+      "sha256": "e45343d36f5e7c5d428b379e32395ec5c14029388e53f13fbf3f6e80b9862516",
+      "size_bytes": 9939
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T06:59:25+00:00",
+      "path": "docs/dema-cli-manifesto-v0.md",
+      "sha256": "50dd2c3f14672f2f6acadc6ebffdc54e60af1440d123db8ef2be2ed41633e36e",
+      "size_bytes": 13334
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T07:21:05+00:00",
+      "path": "docs/dema-cli-manifesto-v1.md",
+      "sha256": "bf82576b2c8e7c1af351e760a0cc7c5c0c6310872771a91968c239c87f61bff2",
+      "size_bytes": 7882
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T07:20:15+00:00",
+      "path": "docs/ftap-function-registry-rfc-seed.md",
+      "sha256": "16172f657189aefee4a09d7cbe187c9de002b3d2eae397f2a28fa3e0c6f3f12e",
+      "size_bytes": 6963
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T07:21:40+00:00",
+      "path": "docs/manifesto-amendments/v0-to-v1.md",
+      "sha256": "fba41a35334b7c13c83c593c02c62ebecbad80c1b9315325932c4745862eabf0",
+      "size_bytes": 4731
+    },
+    {
+      "kind": "doc",
+      "mtime_iso": "2026-04-17T07:40:55+00:00",
+      "path": "docs/why-dema-wins.md",
+      "sha256": "6ceb1899e566188048c85f9f7363fe132f39143bd1d7fd061254c2258cedb4cf",
+      "size_bytes": 4040
+    }
+  ],
+  "chain_position": 11,
+  "description": "Cycle-5 Principal Activation \u2014 14 commits: runtime, gateway, CLI, doctrine",
+  "evidence_hash": "ea15823193a2974948fc03b9a1385ff7f74799b44fd9dff2ffe4de3438b9e891",
+  "generated_at": "2026-04-17T07:44:32+00:00",
+  "previous_hash": "5f40748340c501cf7f3e0a269b4c5cd0f88b3ff88689eaf7474b45bc8e42d189",
+  "project_dir": "/data/bizra/repos/bizra-data-lake",
+  "receipt_hash": "e0b3142742b07150085855e121853fb7bcf25d87d3ac510730c173866d3e6e95",
+  "session_commits": [
+    {
+      "date": "2026-04-17 05:04:44 +0400",
+      "hash": "ad303bb2b42f100d7637d0ea8fd0149cc1304375",
+      "subject": "feat(cognition): latest_timestamp accessor + gateway crate"
+    },
+    {
+      "date": "2026-04-17 07:48:59 +0400",
+      "hash": "afe9cc302ee7864b109b9bb7e2ac710b6075ffcb",
+      "subject": "docs(cycle-4): file retrospective with tightenings applied"
+    },
+    {
+      "date": "2026-04-17 09:31:20 +0400",
+      "hash": "80c4160255547b917433a92e96e78df0030cd4f0",
+      "subject": "feat(cognition): land mission-runtime + manifest_artifact (Cycle-5 G2)"
+    },
+    {
+      "date": "2026-04-17 09:40:07 +0400",
+      "hash": "1b2bccc511df85d4c931c3b50d66faad39785fe2",
+      "subject": "docs(cycle-5): seal G1 and G2 acceptance records"
+    },
+    {
+      "date": "2026-04-17 09:47:26 +0400",
+      "hash": "b031fec89308fa9efb8ceb986dbbebc42dacd32d",
+      "subject": "feat(gateway): v0.2 \u2014 POST /mission for principal activation (Cycle-5 G3)"
+    },
+    {
+      "date": "2026-04-17 10:02:57 +0400",
+      "hash": "8b16762a5bede625b513dd71ba7c5fbf6044fa6c",
+      "subject": "fix(cognition): G2-hardening per g2-patches-abc.md authoritative spec"
+    },
+    {
+      "date": "2026-04-17 10:07:35 +0400",
+      "hash": "229bd323280053462cb533d0568061e3e9273d43",
+      "subject": "docs(cycle-5): seal G2-hardening acceptance note"
+    },
+    {
+      "date": "2026-04-17 10:08:23 +0400",
+      "hash": "77721f42e87aa042966e8e551460352c4bae8a17",
+      "subject": "docs(cycle-5): file G3 acceptance note (integrator gap fix)"
+    },
+    {
+      "date": "2026-04-17 10:37:15 +0400",
+      "hash": "f3f2c7740d1f3d290c71bcb9a898c5603c6a73cf",
+      "subject": "feat(gateway): dema CLI \u2014 BIZRA Principal terminal face"
+    },
+    {
+      "date": "2026-04-17 10:59:30 +0400",
+      "hash": "1bf5dbb047f3bafa208c07559e7677cb23fdd0c8",
+      "subject": "docs(manifesto): Dema CLI v0 \u2014 strategic founding draft"
+    },
+    {
+      "date": "2026-04-17 11:21:58 +0400",
+      "hash": "8b7adec939e3f2bc74aac703606457aaebe9bcfb",
+      "subject": "docs(doctrine): two-layer split + manifesto v0 \u2192 v1 per Mumo Cycle-5 verdict"
+    },
+    {
+      "date": "2026-04-17 11:36:11 +0400",
+      "hash": "b40650251f5520a3c759c798962261ee575d27b5",
+      "subject": "docs(cycle-5): formal retrospective + gateway/CLI README"
+    },
+    {
+      "date": "2026-04-17 11:41:00 +0400",
+      "hash": "24346b672292aa62745d48c0118871f5b7457b82",
+      "subject": "docs(product): Why Dema Wins \u2014 1-page killer product thesis"
+    }
+  ],
+  "verification_report": {
+    "checks": [
+      {
+        "command": "cargo test --workspace 2>&1 | grep -E 'test result: ok|FAILED|error\\[' | tail -40",
+        "duration_s": 5.19,
+        "exit_code": 0,
+        "scope": "bizra-omega",
+        "stderr_tail": "",
+        "stdout_tail": "test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\ntest result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\ntest result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s\ntest result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.05s\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n",
+        "type": "rust_workspace_test"
+      }
+    ],
+    "generated_at": "2026-04-17T07:44:26+00:00"
+  },
+  "version": "proof-forge-v1"
+}
