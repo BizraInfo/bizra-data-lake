@@ -23,3 +23,4 @@ pub mod configure_cognition;
 pub mod runtime;
 pub mod eval_v1_integrated;
 pub mod eval_v1;
+pub mod sovereign_state;
