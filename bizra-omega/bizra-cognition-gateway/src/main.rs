@@ -57,17 +57,33 @@ struct ReceiptChainHeadDto {
     length: usize,
     #[serde(rename = "latestTimestamp")]
     latest_timestamp: Option<u64>,
+    /// Cycle-6 G1 Phase 2 — count of verified envelopes in the attached
+    /// sovereign_state snapshot (0 if no snapshot or in-memory mode).
+    #[serde(rename = "sovereignEnvelopes", skip_serializing_if = "is_zero_usize")]
+    sovereign_envelopes: usize,
+    /// Total entries across all sovereign_state envelopes.
+    #[serde(rename = "sovereignEntries", skip_serializing_if = "is_zero_usize")]
+    sovereign_entries: usize,
+}
+
+fn is_zero_usize(n: &usize) -> bool {
+    *n == 0
 }
 
 #[derive(Serialize)]
 struct ReceiptDto {
     id: String,
-    kind: &'static str,
+    kind: String,
     timestamp: Option<u64>,
     #[serde(rename = "prevChain")]
     prev_chain: String,
     #[serde(rename = "payloadHash")]
     payload_hash: String,
+    /// Cycle-6 G1 Phase 2 — true when this receipt came from the
+    /// Python-authoritative sovereign_state/ durable projection
+    /// rather than the in-memory ReceiptChain populated this session.
+    #[serde(rename = "durable", skip_serializing_if = "std::ops::Not::not")]
+    durable: bool,
 }
 
 #[derive(Deserialize)]
@@ -416,10 +432,20 @@ async fn health() -> Json<HealthResponse> {
 
 async fn get_chain(State(state): State<AppState>) -> Json<ReceiptChainHeadDto> {
     let rt = state.runtime.read().await;
+    // Cycle-6 G1 Phase 2 — if a sovereign_state snapshot is attached, report
+    // the durable entry count alongside the in-memory length. The head stays
+    // the in-memory head (most recent activity this session); durable entries
+    // are pre-restart history accessible via /chain/{hash} fall-through.
+    let (sovereign_envelopes, sovereign_entries) = match rt.sovereign_snapshot() {
+        Some(snap) => (snap.envelopes_count(), snap.total_entries()),
+        None => (0, 0),
+    };
     Json(ReceiptChainHeadDto {
         head: hex32(&rt.chain.head()),
         length: rt.chain.len(),
         latest_timestamp: rt.chain.latest_timestamp(),
+        sovereign_envelopes,
+        sovereign_entries,
     })
 }
 
@@ -442,14 +468,33 @@ async fn get_chain_receipt(
     })?;
 
     let rt = state.runtime.read().await;
+    // Check in-memory chain first (newest activity this session).
     for record in rt.chain.records() {
         if record.hash == target {
             return Ok(Json(ReceiptDto {
                 id: hex32(&record.hash),
-                kind: kind_name(record.kind),
+                kind: kind_name(record.kind).to_string(),
                 timestamp: None,
                 prev_chain: hex32(&record.prev),
                 payload_hash: hex32(&record.hash),
+                durable: false,
+            }));
+        }
+    }
+
+    // Cycle-6 G1 Phase 2 — fall through to sovereign_state snapshot if attached.
+    // This closes the niyyah §G1 verification: seal receipt X -> restart gateway
+    // -> /chain/X still returns the receipt. After restart, the in-memory chain
+    // is empty but the snapshot holds the Python-authored durable history.
+    if let Some(snap) = rt.sovereign_snapshot() {
+        if let Some(entry) = snap.find_entry_by_hash(&hash_hex) {
+            return Ok(Json(ReceiptDto {
+                id: entry.hash.clone(),
+                kind: entry.event.clone(),
+                timestamp: None,
+                prev_chain: entry.prev_hash.clone(),
+                payload_hash: entry.hash.clone(),
+                durable: true,
             }));
         }
     }
@@ -845,6 +890,55 @@ mod tests {
         }
     }
 
+    /// Build an AppState whose CognitionRuntime was bootstrapped from a
+    /// live sovereign_state/ tempdir. Used to exercise Phase 2 durable-read
+    /// fall-through without touching process env vars.
+    fn new_state_with_sovereign(root: &std::path::Path) -> AppState {
+        let rt = CognitionRuntime::from_sovereign_state(root)
+            .expect("valid sovereign_state fixture should bootstrap");
+        AppState {
+            runtime: Arc::new(RwLock::new(rt)),
+        }
+    }
+
+    fn write_two_entry_fixture(root: &std::path::Path) -> (String, String) {
+        use bizra_cognition::sovereign_state::{chain_entry_hash, hex_digest, GENESIS_PREV_HEX};
+        use std::fs;
+        let receipts = root.join("receipts");
+        fs::create_dir_all(&receipts).unwrap();
+        let r_a = serde_json::json!({"event": "step_a", "n": 1});
+        let r_b = serde_json::json!({"event": "step_b", "n": 2});
+        fs::write(
+            receipts.join("step_a_2026.json"),
+            serde_json::to_vec(&r_a).unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            receipts.join("step_b_2026.json"),
+            serde_json::to_vec(&r_b).unwrap(),
+        )
+        .unwrap();
+        let h_a = hex_digest(&chain_entry_hash(GENESIS_PREV_HEX, &r_a).unwrap());
+        let h_b = hex_digest(&chain_entry_hash(&h_a, &r_b).unwrap());
+        let env = serde_json::json!({
+            "chain_type": "gateway_phase2_test",
+            "node_id": "GW-TEST",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "receipts": 2,
+            "chain": [
+                {"file": "step_a_2026.json", "event": "step_a", "hash": h_a, "prev_hash": GENESIS_PREV_HEX},
+                {"file": "step_b_2026.json", "event": "step_b", "hash": h_b, "prev_hash": h_a}
+            ],
+            "head_hash": h_b
+        });
+        fs::write(
+            receipts.join("activation_chain_2026-01-01T00:00:00Z.json"),
+            serde_json::to_vec(&env).unwrap(),
+        )
+        .unwrap();
+        (h_a, h_b)
+    }
+
     fn activation_request() -> serde_json::Value {
         serde_json::json!({
             "intent": "activate my dual agentic system",
@@ -887,6 +981,69 @@ mod tests {
         assert_eq!(v["head"], "0".repeat(64));
         assert_eq!(v["length"], 0);
         assert!(v["latestTimestamp"].is_null());
+        // Phase 2: no snapshot attached → sovereignEntries omitted via skip_serializing_if
+        assert!(v.get("sovereignEntries").is_none());
+    }
+
+    // ========================================================================
+    // Cycle-6 G1 Phase 2 — durable-read fall-through tests
+    // niyyah §G1: seal receipt X -> restart gateway -> /chain/X still returns.
+    // ========================================================================
+
+    #[tokio::test]
+    async fn phase2_chain_summary_exposes_sovereign_counts_when_attached() {
+        let td = tempfile::TempDir::new().unwrap();
+        write_two_entry_fixture(td.path());
+        let state = new_state_with_sovereign(td.path());
+
+        let res = router(state)
+            .oneshot(Request::builder().uri("/chain").body(axum::body::Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 2048).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        // in-memory chain is still empty (no missions submitted this session)
+        assert_eq!(v["length"], 0);
+        // but the snapshot is exposed
+        assert_eq!(v["sovereignEnvelopes"], 1);
+        assert_eq!(v["sovereignEntries"], 2);
+    }
+
+    #[tokio::test]
+    async fn phase2_chain_receipt_fallthrough_returns_durable_entry() {
+        let td = tempfile::TempDir::new().unwrap();
+        let (hash_a, hash_b) = write_two_entry_fixture(td.path());
+        let state = new_state_with_sovereign(td.path());
+
+        // Query by hash_b — the head of the snapshot chain
+        let uri = format!("/chain/{}", hash_b);
+        let res = router(state.clone())
+            .oneshot(Request::builder().uri(&uri).body(axum::body::Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK, "durable receipt should be served from snapshot");
+        let body = to_bytes(res.into_body(), 2048).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["id"], hash_b);
+        assert_eq!(v["kind"], "step_b");
+        assert_eq!(v["prevChain"], hash_a);
+        assert_eq!(v["durable"], true);
+    }
+
+    #[tokio::test]
+    async fn phase2_unknown_hash_with_sovereign_still_returns_404() {
+        let td = tempfile::TempDir::new().unwrap();
+        write_two_entry_fixture(td.path());
+        let state = new_state_with_sovereign(td.path());
+
+        let uri = format!("/chain/{}", "f".repeat(64));
+        let res = router(state)
+            .oneshot(Request::builder().uri(&uri).body(axum::body::Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
