@@ -142,6 +142,22 @@ The constitutional membrane is outward-facing and fail-closed: any breach halts 
 
 ---
 
+## Documentation
+
+| Document | Role |
+|---|---|
+| [docs/README.md](docs/README.md) | Documentation index |
+| [docs/OPERATIONS_RUNBOOK.md](docs/OPERATIONS_RUNBOOK.md) | Operator runbook |
+| [docs/TESTING.md](docs/TESTING.md) | Testing guide |
+| [docs/BIZRA-Handover-v1.md](docs/BIZRA-Handover-v1.md) | Production handover (Cycle-5 scope) |
+| [docs/BIZRA-Repo-Inventory-v1.md](docs/BIZRA-Repo-Inventory-v1.md) | Full polyglot repo inventory |
+| [docs/bizra-trust-compiler-thesis.md](docs/bizra-trust-compiler-thesis.md) | Category thesis (Verificative AI) |
+| [docs/dema-cli-manifesto-v1.md](docs/dema-cli-manifesto-v1.md) | Dema CLI manifesto |
+| [docs/why-dema-wins.md](docs/why-dema-wins.md) | Product thesis (1 page) |
+| [docs/CI-POLICY-AUDIT-v1.md](docs/CI-POLICY-AUDIT-v1.md) | Fail-closed CI audit (22 workflows) |
+
+---
+
 ## License
 
 MIT
