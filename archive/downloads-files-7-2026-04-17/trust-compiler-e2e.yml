@@ -1,0 +1,80 @@
+# .github/workflows/trust-compiler-e2e.yml
+#
+# بسم الله الرحمن الرحيم
+#
+# Cycle-6 E2E gate: verify the full trust compilation pipeline
+# from gateway startup through filesystem execution to chain verification.
+#
+# Fail-closed: any test failure blocks the pipeline.
+
+name: Trust Compiler E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bizra-omega/bizra-cognition/src/trust_compiler.rs'
+      - 'bizra-omega/bizra-cognition/src/runtime.rs'
+      - 'bizra-omega/bizra-cognition/src/receipts.rs'
+      - 'bizra-omega/bizra-cognition/src/admissibility_freeze_v1.rs'
+      - 'bizra-omega/bizra-cognition-gateway/**'
+      - 'scripts/e2e-trust-compiler-test.sh'
+      - '.github/workflows/trust-compiler-e2e.yml'
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_LOG: info
+
+jobs:
+  trust-compiler-e2e:
+    name: Trust Compiler — Full Vertical
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bizra-omega/target
+          key: ${{ runner.os }}-cargo-e2e-${{ hashFiles('bizra-omega/Cargo.lock') }}
+
+      - name: Build gateway + dema (release)
+        working-directory: bizra-omega
+        run: |
+          cargo build --release -p bizra-cognition-gateway
+          echo "Gateway binary: $(ls -la target/release/bizra-cognition-gateway)"
+          echo "Dema binary: $(ls -la target/release/dema)"
+
+      - name: Run unit tests (trust_compiler)
+        working-directory: bizra-omega
+        run: cargo test -p bizra-cognition --lib trust_compiler -- --nocapture
+
+      - name: Run unit tests (full cognition)
+        working-directory: bizra-omega
+        run: cargo test -p bizra-cognition --lib
+
+      - name: Run unit tests (gateway)
+        working-directory: bizra-omega
+        run: cargo test -p bizra-cognition-gateway
+
+      - name: Run E2E trust compilation test
+        run: |
+          chmod +x scripts/e2e-trust-compiler-test.sh
+          scripts/e2e-trust-compiler-test.sh
+
+      - name: Upload gateway log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-gateway-log
+          path: /tmp/e2e-gateway.log
