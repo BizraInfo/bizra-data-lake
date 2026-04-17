@@ -38,6 +38,9 @@ pub enum ReceiptKind {
     ReasoningSession   = 0x30,
     GovernanceDecision = 0x40,
     NodeLifecycle      = 0x50,
+    // Cycle-7 G1 — dedicated kind for ManifestArtifact (was previously
+    // reusing NodeLifecycle). Non-breaking: new byte; old variants unchanged.
+    Manifest           = 0x60,
     DegradedPath       = 0xF0,
 }
 
@@ -51,6 +54,7 @@ impl ReceiptKind {
             0x30 => Some(Self::ReasoningSession),
             0x40 => Some(Self::GovernanceDecision),
             0x50 => Some(Self::NodeLifecycle),
+            0x60 => Some(Self::Manifest),
             0xF0 => Some(Self::DegradedPath),
             _ => None,
         }

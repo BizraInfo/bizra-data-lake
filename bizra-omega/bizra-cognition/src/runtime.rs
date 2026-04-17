@@ -36,6 +36,7 @@ use crate::receipts::{
     ReceiptChain, ReceiptPayload, ReceiptKind,
     ChainError, Blake3Hash, InMemoryPayloadStore,
 };
+use crate::manifest_artifact::ManifestArtifact;
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -126,6 +127,12 @@ pub struct MissionRuntimeRecord {
     pub stage: MissionStage,
     /// Nanosecond timestamp of submission (monotonic, not wall-clock).
     pub timestamp_ns: u64,
+    /// Cycle-7 G1 — ManifestArtifact binding this mission's full chain
+    /// footprint (mission_payload + gate verdicts + final receipt) into
+    /// one queryable object. `None` on reject (§10 Proof Law: rejected
+    /// missions never produce a manifest). `Some` only when stage reaches
+    /// Replayability (S8) under Patch B discipline from Cycle-5.
+    pub manifest: Option<ManifestArtifact>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -396,11 +403,15 @@ impl CognitionRuntime {
                     rt.graph.remove_reflex_from_replay(&receipt.reflex);
                 }
                 // All other kinds do not affect reflex truth-state.
+                // ReceiptKind::Manifest (Cycle-7 G1) is summary-only: a
+                // manifest binds mission receipts into one queryable object
+                // but does not itself install/remove reflexes.
                 ReceiptKind::Genesis
                 | ReceiptKind::CognitionBoot
                 | ReceiptKind::ReasoningSession
                 | ReceiptKind::GovernanceDecision
                 | ReceiptKind::NodeLifecycle
+                | ReceiptKind::Manifest
                 | ReceiptKind::DegradedPath => {}
             }
         }
@@ -475,6 +486,7 @@ impl CognitionRuntime {
                 rejected: true,
                 stage: MissionStage::Admissibility,
                 timestamp_ns,
+                manifest: None, // §10 Proof Law: rejected missions produce no manifest
             };
             self.missions.insert(mission_id, record.clone());
             return Ok(record);
@@ -522,8 +534,36 @@ impl CognitionRuntime {
             }
             _ => false,
         };
+        let mut manifest: Option<ManifestArtifact> = None;
         if replay_ok {
             envelope.advance_stage(); // S7 -> S8 Replayability
+
+            // Cycle-7 G1 — emit ManifestArtifact binding this mission's full
+            // chain footprint (mission_payload + gate verdicts + final
+            // receipt) into one queryable, chain-sealed artifact.
+            //
+            // Permit-only: rejected missions never reach this branch (§10
+            // Proof Law). Only reaches this point if S8 Replayability was
+            // confirmed via decode round-trip (Patch B discipline).
+            //
+            // Mission-binding (caution #2 from Cycle-7 niyyah review):
+            // receipt_refs includes this mission's receipt_id, so
+            // manifest_for_mission lookup is unambiguous: "find the
+            // manifest whose refs contain this mission's receipt_id."
+            let mut manifest_refs: Vec<Blake3Hash> =
+                Vec::with_capacity(2 + gate_receipt_hashes.len());
+            manifest_refs.push(mission_payload_hash);
+            manifest_refs.extend(gate_receipt_hashes.iter().copied());
+            manifest_refs.push(receipt_id);
+
+            let m = ManifestArtifact::from_window(
+                timestamp_ns,            // window_start: mission submission time
+                self.now_ns_mission()?,  // window_end: post-replay-verify time
+                manifest_refs,
+                self.chain.head(),       // chain_head: post-ReceiptArtifact append
+            );
+            self.chain.append_with_payload(m.clone())?;
+            manifest = Some(m);
         }
 
         let final_stage = envelope.stage;
@@ -540,9 +580,24 @@ impl CognitionRuntime {
             rejected: false,
             stage: final_stage,
             timestamp_ns,
+            manifest,
         };
         self.missions.insert(mission_id, record.clone());
         Ok(record)
+    }
+
+    /// Cycle-7 G1 — accessor for the mission's bound `ManifestArtifact`.
+    ///
+    /// Returns `Some(&ManifestArtifact)` when the mission reached
+    /// Replayability (S8) and a manifest was sealed into the chain;
+    /// `None` for rejected missions or if the mission_id is unknown.
+    pub fn manifest_for_mission(
+        &self,
+        mission_id: &Blake3Hash,
+    ) -> Option<&ManifestArtifact> {
+        self.missions
+            .get(mission_id)
+            .and_then(|r| r.manifest.as_ref())
     }
 
     pub fn mission_by_id(&self, mission_id: &Blake3Hash) -> Option<&MissionRuntimeRecord> {
@@ -1039,8 +1094,13 @@ mod tests {
         assert_eq!(record.receipt_id, Some(final_receipt.receipt_id));
         assert_eq!(record.mission_payload_hash, Some(final_receipt.claim_ref).map(|_| record.mission_payload_hash.unwrap()));
         assert_eq!(rt.mission_count(), 1);
-        assert_eq!(rt.chain.len(), 7, "1 mission + 5 gates + 1 final receipt");
-        assert_eq!(rt.chain.head(), final_receipt.receipt_id);
+        // Cycle-7 G1: chain now carries 8 records per permitted mission —
+        // 1 envelope + 5 gates + 1 final ReceiptArtifact + 1 ManifestArtifact.
+        // Head advances to the manifest hash (the manifest is the LAST thing
+        // appended on the permit path).
+        assert_eq!(rt.chain.len(), 8, "1 mission + 5 gates + 1 final receipt + 1 manifest");
+        let manifest = record.manifest.as_ref().expect("permit must carry a manifest");
+        assert_eq!(rt.chain.head(), manifest.manifest_id);
 
         // Registry lookup returns an equivalent record.
         let from_registry = rt.mission_by_id(&record.envelope.mission_id).unwrap();
@@ -1132,6 +1192,133 @@ mod tests {
         assert!(replay.matches_previous);
         assert_eq!(replay.chain_head, pre_head);
         assert_eq!(rt.chain.head(), pre_head, "rehydrate_mission must be pure");
+    }
+
+    // ========================================================================
+    // Cycle-7 G1 — ManifestArtifact emission + binding tests
+    // ========================================================================
+
+    #[test]
+    fn c7_submit_mission_produces_manifest_on_permit_replayability() {
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(50_000);
+        let claim = permit_claim(&envelope, 50_050);
+
+        let record = rt.submit_mission(envelope, claim).unwrap();
+
+        // Permit → Replayability → manifest present.
+        assert!(!record.rejected);
+        assert_eq!(record.stage, MissionStage::Replayability);
+        let manifest = record
+            .manifest
+            .as_ref()
+            .expect("permitted mission at Replayability must carry a manifest");
+
+        // Manifest fields are deterministic and mission-bound.
+        assert_eq!(manifest.receipt_count as usize, manifest.receipt_refs.len());
+        assert!(manifest.verify_integrity(), "integrity hash must round-trip");
+
+        // chain_head_at_generation captures the PRE-manifest-append head —
+        // i.e., the final ReceiptArtifact (NodeLifecycle) hash. The manifest
+        // itself is then appended, so post-append chain.head() == manifest_id,
+        // NOT chain_head_at_generation.
+        let receipt_id = record.receipt_id.expect("permit has receipt_id");
+        assert_eq!(
+            manifest.chain_head_at_generation, receipt_id,
+            "chain_head_at_generation captures pre-manifest head (the ReceiptArtifact)"
+        );
+        assert_eq!(
+            rt.chain.head(),
+            manifest.manifest_id,
+            "post-append chain head must be the manifest itself"
+        );
+
+        // Mission's receipt_id is bound into the manifest's refs
+        // (caution #2 from Cycle-7 niyyah review — unambiguous mission-binding).
+        assert!(
+            manifest.receipt_refs.contains(&receipt_id),
+            "manifest must bind the mission's receipt_id"
+        );
+    }
+
+    #[test]
+    fn c7_submit_mission_rejected_emits_no_manifest_proof_law_s10() {
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(51_000);
+        // Set quality BELOW IHSAN_FLOOR to force reject.
+        let mut claim = permit_claim(&envelope, 51_050);
+        claim.quality_score = 0.50;
+
+        let record = rt.submit_mission(envelope, claim).unwrap();
+
+        // §10 Proof Law: rejected missions do NOT emit manifests.
+        assert!(record.rejected);
+        assert_eq!(record.stage, MissionStage::Admissibility);
+        assert!(
+            record.manifest.is_none(),
+            "§10 Proof Law: rejected mission must not emit a manifest"
+        );
+    }
+
+    #[test]
+    fn c7_manifest_for_mission_accessor_queryable_post_commit() {
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(52_000);
+        let claim = permit_claim(&envelope, 52_050);
+        let record = rt.submit_mission(envelope, claim).unwrap();
+        let mission_id = record.envelope.mission_id;
+
+        // Accessor returns Some for the known mission_id.
+        let via_accessor = rt
+            .manifest_for_mission(&mission_id)
+            .expect("accessor must find manifest for permitted mission");
+        let in_record = record.manifest.as_ref().unwrap();
+        assert_eq!(via_accessor.manifest_id, in_record.manifest_id);
+
+        // Accessor returns None for an unknown mission_id.
+        let unknown: Blake3Hash = [0xCD; 32];
+        assert!(rt.manifest_for_mission(&unknown).is_none());
+    }
+
+    #[test]
+    fn c7_manifest_appears_in_chain_as_receipt_payload_with_manifest_kind() {
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(53_000);
+        let claim = permit_claim(&envelope, 53_050);
+        let record = rt.submit_mission(envelope, claim).unwrap();
+
+        let manifest = record.manifest.as_ref().unwrap();
+
+        // The manifest payload is the LAST record on chain (appended after
+        // ReceiptArtifact), and it carries the dedicated ReceiptKind::Manifest.
+        let last = rt
+            .chain
+            .records()
+            .last()
+            .expect("chain must be non-empty");
+        assert_eq!(last.kind, ReceiptKind::Manifest);
+        assert_eq!(last.hash, manifest.manifest_id);
+    }
+
+    #[test]
+    fn c7_rehydrate_mission_is_pure_when_manifest_is_appended() {
+        // Regression: Cycle-7 G1 adds a record to the chain per permitted
+        // mission. rehydrate_mission must remain pure (zero mutation).
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(54_000);
+        let claim = permit_claim(&envelope, 54_050);
+        let record = rt.submit_mission(envelope, claim).unwrap();
+        let mission_id = record.envelope.mission_id;
+        let pre_head = rt.chain.head();
+        let pre_len = rt.chain.len();
+
+        let replay = rt.rehydrate_mission(&mission_id).unwrap();
+
+        assert_eq!(replay.replay_result, MissionReplayResult::Match);
+        assert_eq!(rt.chain.head(), pre_head, "rehydrate must not mutate head");
+        assert_eq!(rt.chain.len(), pre_len, "rehydrate must not mutate length");
+        // Manifest is still accessible after rehydrate.
+        assert!(rt.manifest_for_mission(&mission_id).is_some());
     }
 
     // ========================================================================
