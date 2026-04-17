@@ -14,7 +14,12 @@ slowapi==0.1.9
 structlog==24.1.0
 opentelemetry-api==1.23.0
 opentelemetry-sdk==1.23.0
-opentelemetry-exporter-jaeger==1.23.0
+# opentelemetry-exporter-jaeger's last available release is 1.21.0 — it was
+# deprecated upstream in favor of OTLP. Pinned to 1.21.0 so this service
+# resolves cleanly and becomes pip-audit'able. Migration to
+# opentelemetry-exporter-otlp belongs to a dedicated observability arc
+# (polyglot blueprint §5), explicitly out of Cycle-6 scope.
+opentelemetry-exporter-jaeger==1.21.0
 langchain-ollama==0.1.0
 PyJWT[crypto]>=2.8.0
 passlib[bcrypt]==1.7.4
