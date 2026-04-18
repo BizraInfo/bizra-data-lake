@@ -6,45 +6,39 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
-  rules: {
-    // TypeScript rules
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/ban-ts-comment": "off",
-    "@typescript-eslint/prefer-as-const": "off",
-    "@typescript-eslint/no-unused-disable-directive": "off",
-    
-    // React rules
-    "react-hooks/exhaustive-deps": "off",
-    "react-hooks/purity": "off",
-    "react/no-unescaped-entities": "off",
-    "react/display-name": "off",
-    "react/prop-types": "off",
-    "react-compiler/react-compiler": "off",
-    
-    // Next.js rules
-    "@next/next/no-img-element": "off",
-    "@next/next/no-html-link-for-pages": "off",
-    
-    // General JavaScript rules
-    "prefer-const": "off",
-    "no-unused-vars": "off",
-    "no-console": "off",
-    "no-debugger": "off",
-    "no-empty": "off",
-    "no-irregular-whitespace": "off",
-    "no-case-declarations": "off",
-    "no-fallthrough": "off",
-    "no-mixed-spaces-and-tabs": "off",
-    "no-redeclare": "off",
-    "no-undef": "off",
-    "no-unreachable": "off",
-    "no-useless-escape": "off",
+// BIZRA Dema Console — strict ESLint, no blanket rule disabling.
+//
+// The Z.ai upstream disabled ~30 rules to ship fast. BIZRA operates
+// under Ihsān discipline; the Face must not silently hide type errors,
+// unused code, or unsafe patterns.
+//
+// One rule is deliberately loosened here:
+//   - @typescript-eslint/no-unused-vars: downgraded from "error" to
+//     "warn" + argsIgnorePattern "^_" — Zustand/React-hook factory
+//     patterns legitimately produce unused captures. warn keeps the
+//     signal without breaking CI on scaffolded code.
+//
+// Every other rule stays at its next-config-next default. When a real
+// exception is needed it lands next to the offending line with a
+// per-file // eslint-disable-next-line and a reason comment.
+const eslintConfig = [
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
   },
-}, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
-}];
+  {
+    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"],
+  },
+];
 
 export default eslintConfig;

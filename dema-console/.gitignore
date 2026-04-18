@@ -40,15 +40,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# editor / local state
 local-*
 .claude
-.z-ai-config
+
+# dev runtime
 *.log
 dev.log
 dev.out.log
-test
-prompt
-
 server.log
-# Skills directory
+
+# Prisma local dev db
+db/custom.db
+
+# Legacy Z.ai (upstream): these dirs were deleted during vendor-lock
+# strip. Pattern kept so stray files from npm init flows stay out.
 /skills/
+/.zscripts/
+/mini-services/
