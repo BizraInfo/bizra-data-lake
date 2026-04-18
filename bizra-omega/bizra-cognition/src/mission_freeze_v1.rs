@@ -24,10 +24,7 @@
 //! intermediate steps."
 
 use crate::canonical_hasher::blake3_domain;
-use crate::receipts::{
-    Blake3Hash, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
-    ByteReader, DecodeError,
-};
+use crate::receipts::{Blake3Hash, ReceiptKind, ReceiptPayload};
 
 // ════════════════════════════════════════════════════════════
 // MissionEnvelope — §7 Frozen Contract
@@ -50,7 +47,6 @@ use crate::receipts::{
 #[derive(Debug, Clone)]
 pub struct MissionEnvelope {
     // ── §7 required fields ──
-
     /// Unique identifier for this mission.
     /// Computed as blake3 of (intent_hash || bounds_hash || timestamp).
     pub mission_id: Blake3Hash,
@@ -72,12 +68,10 @@ pub struct MissionEnvelope {
     pub timestamp_ns: u64,
 
     // ── State Migration (§9) ──
-
     /// The four-state model governing this mission's progression.
     pub state: FourStateModel,
 
     // ── Lifecycle ──
-
     /// Current stage in the nine-stage runtime flow (§6).
     pub stage: MissionStage,
 
@@ -126,10 +120,10 @@ impl Default for MissionBounds {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Plane {
-    Kernel = 0x01,  // Defines law
-    Graph  = 0x02,  // Interprets
-    Proof  = 0x03,  // Enforces
-    Face   = 0x04,  // Reveals
+    Kernel = 0x01, // Defines law
+    Graph = 0x02,  // Interprets
+    Proof = 0x03,  // Enforces
+    Face = 0x04,   // Reveals
 }
 
 impl Plane {
@@ -149,13 +143,13 @@ impl Plane {
 #[repr(u8)]
 pub enum MissionPriority {
     /// Background task. Yields to all others.
-    Low       = 0x01,
+    Low = 0x01,
     /// Standard priority. Default for user intents.
-    Normal    = 0x02,
+    Normal = 0x02,
     /// Elevated priority. Time-sensitive user requests.
-    High      = 0x03,
+    High = 0x03,
     /// Constitutional. Invariant enforcement, governance.
-    Critical  = 0x04,
+    Critical = 0x04,
 }
 
 impl MissionPriority {
@@ -256,15 +250,15 @@ impl FourStateModel {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum MissionStage {
-    Intent         = 0x01,  // S1: Raw intent captured
-    Mission        = 0x02,  // S2: Intent bounded into MissionEnvelope
-    Claim          = 0x03,  // S3: Specific claim extracted
-    Admissibility  = 0x04,  // S4: Gate chain evaluates
-    Execution      = 0x05,  // S5: Permitted claim executes
-    Receipt        = 0x06,  // S6: Immutable proof created
+    Intent = 0x01,           // S1: Raw intent captured
+    Mission = 0x02,          // S2: Intent bounded into MissionEnvelope
+    Claim = 0x03,            // S3: Specific claim extracted
+    Admissibility = 0x04,    // S4: Gate chain evaluates
+    Execution = 0x05,        // S5: Permitted claim executes
+    Receipt = 0x06,          // S6: Immutable proof created
     Canonicalization = 0x07, // S7: Receipt added to chain
-    Replayability  = 0x08,  // S8: Replay reproduces original
-    Reflex         = 0x09,  // S9: Optional pattern promotion
+    Replayability = 0x08,    // S8: Replay reproduces original
+    Reflex = 0x09,           // S9: Optional pattern promotion
 }
 
 impl MissionStage {
@@ -287,15 +281,15 @@ impl MissionStage {
     /// S9 (Reflex) is terminal — no stage after it.
     pub fn next(&self) -> Option<MissionStage> {
         match self {
-            Self::Intent         => Some(Self::Mission),
-            Self::Mission        => Some(Self::Claim),
-            Self::Claim          => Some(Self::Admissibility),
-            Self::Admissibility  => Some(Self::Execution),
-            Self::Execution      => Some(Self::Receipt),
-            Self::Receipt        => Some(Self::Canonicalization),
+            Self::Intent => Some(Self::Mission),
+            Self::Mission => Some(Self::Claim),
+            Self::Claim => Some(Self::Admissibility),
+            Self::Admissibility => Some(Self::Execution),
+            Self::Execution => Some(Self::Receipt),
+            Self::Receipt => Some(Self::Canonicalization),
             Self::Canonicalization => Some(Self::Replayability),
-            Self::Replayability  => Some(Self::Reflex),
-            Self::Reflex         => None, // terminal
+            Self::Replayability => Some(Self::Reflex),
+            Self::Reflex => None, // terminal
         }
     }
 }
@@ -314,17 +308,11 @@ impl MissionEnvelope {
         originator: Originator,
         timestamp_ns: u64,
     ) -> Self {
-        let intent_hash = blake3_domain(
-            "bizra-mission-intent-v1",
-            intent_text.as_bytes(),
-        );
+        let intent_hash = blake3_domain("bizra-mission-intent-v1", intent_text.as_bytes());
 
         let bounds = MissionBounds::default();
 
-        let bounds_hash = blake3_domain(
-            "bizra-mission-bounds-v1",
-            &bounds.max_cost.to_le_bytes(),
-        );
+        let bounds_hash = blake3_domain("bizra-mission-bounds-v1", &bounds.max_cost.to_le_bytes());
 
         // mission_id = hash(intent || bounds || timestamp)
         let mut id_buf = Vec::new();
@@ -352,7 +340,10 @@ impl MissionEnvelope {
     /// Returns false if already at terminal stage.
     pub fn advance_stage(&mut self) -> bool {
         match self.stage.next() {
-            Some(next) => { self.stage = next; true }
+            Some(next) => {
+                self.stage = next;
+                true
+            }
             None => false,
         }
     }
@@ -426,7 +417,9 @@ mod tests {
             "Organize my Downloads folder into project folders".into(),
             current_state(),
             ideal_state(),
-            Originator::Operator { session_id: [99u8; 32] },
+            Originator::Operator {
+                session_id: [99u8; 32],
+            },
             1_000_000,
         )
     }
@@ -450,12 +443,18 @@ mod tests {
     #[test]
     fn test_mission_id_deterministic() {
         let e1 = MissionEnvelope::from_intent(
-            "Same intent".into(), current_state(), ideal_state(),
-            Originator::System, 500,
+            "Same intent".into(),
+            current_state(),
+            ideal_state(),
+            Originator::System,
+            500,
         );
         let e2 = MissionEnvelope::from_intent(
-            "Same intent".into(), current_state(), ideal_state(),
-            Originator::System, 500,
+            "Same intent".into(),
+            current_state(),
+            ideal_state(),
+            Originator::System,
+            500,
         );
 
         assert_eq!(e1.mission_id, e2.mission_id);
@@ -466,12 +465,18 @@ mod tests {
     #[test]
     fn test_different_intents_different_ids() {
         let e1 = MissionEnvelope::from_intent(
-            "Intent A".into(), current_state(), ideal_state(),
-            Originator::System, 500,
+            "Intent A".into(),
+            current_state(),
+            ideal_state(),
+            Originator::System,
+            500,
         );
         let e2 = MissionEnvelope::from_intent(
-            "Intent B".into(), current_state(), ideal_state(),
-            Originator::System, 500,
+            "Intent B".into(),
+            current_state(),
+            ideal_state(),
+            Originator::System,
+            500,
         );
 
         assert_ne!(e1.mission_id, e2.mission_id);
@@ -558,7 +563,10 @@ mod tests {
     #[test]
     fn test_default_bounds_include_all_invariants() {
         let bounds = MissionBounds::default();
-        assert_eq!(bounds.required_invariants.len(), 5,
-            "Default bounds must require all five invariants");
+        assert_eq!(
+            bounds.required_invariants.len(),
+            5,
+            "Default bounds must require all five invariants"
+        );
     }
 }

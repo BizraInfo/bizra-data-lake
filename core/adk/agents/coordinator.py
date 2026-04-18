@@ -52,7 +52,7 @@ class CoordinatorAgent(Agent):
             "You are a mission coordinator. Given a question, determine which "
             "specialist agents should handle it. Available agents:\n"
             + "\n".join(f"- {name}: {desc}" for name, desc in PAT_ROSTER.items())
-            + "\n\nRespond with JSON: {\"plan\": [{\"agent\": \"name\", \"sub_question\": \"...\"}]}"
+            + '\n\nRespond with JSON: {"plan": [{"agent": "name", "sub_question": "..."}]}'
         )
         prompt = f"QUESTION: {question}\n\nDELEGATION PLAN (JSON):"
 
@@ -114,15 +114,17 @@ class CoordinatorAgent(Agent):
 
 
 def _call_ollama(prompt: str, system: str, model: str) -> str:
-    payload = json.dumps({
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ],
-        "stream": False,
-        "options": {"temperature": 0.3, "num_predict": 1024},
-    }).encode()
+    payload = json.dumps(
+        {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+            "options": {"temperature": 0.3, "num_predict": 1024},
+        }
+    ).encode()
     req = urllib.request.Request(
         f"{OLLAMA_URL}/api/chat",
         data=payload,

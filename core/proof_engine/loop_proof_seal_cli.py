@@ -5,9 +5,7 @@ import sys
 from pathlib import Path
 
 from core.proof_engine.loop_proof_seal import (
-    SealStatus,
     canonicalize_proof,
-    sidecar_path_for,
     verify_seal,
     write_sidecar,
 )
@@ -43,7 +41,7 @@ def cmd_canonicalize(proof_path: Path):
     if ok:
         print(f"Canonicalized: {proof_path}")
     else:
-        print(f"Failed to canonicalize. Run 'verify' first.")
+        print("Failed to canonicalize. Run 'verify' first.")
         sys.exit(1)
 
 

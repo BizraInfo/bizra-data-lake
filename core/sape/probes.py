@@ -100,7 +100,14 @@ def _probe_boundary(
 ) -> ProbeResult:
     """Probe 2: What happens at the edges?"""
     # Check for boundary-aware language
-    boundary_markers = ["edge case", "limit", "overflow", "underflow", "maximum", "minimum"]
+    boundary_markers = [
+        "edge case",
+        "limit",
+        "overflow",
+        "underflow",
+        "maximum",
+        "minimum",
+    ]
     lower = content.lower()
     has_boundary_awareness = any(m in lower for m in boundary_markers)
 
@@ -144,7 +151,18 @@ def _probe_formalization(
 ) -> ProbeResult:
     """Probe 4: Can we express this mathematically?"""
     # Check for formal/mathematical language
-    formal_markers = ["∀", "∃", "→", "⇒", "≤", "≥", "proof", "theorem", "lemma", "invariant"]
+    formal_markers = [
+        "∀",
+        "∃",
+        "→",
+        "⇒",
+        "≤",
+        "≥",
+        "proof",
+        "theorem",
+        "lemma",
+        "invariant",
+    ]
     lower = content.lower()
     has_formalism = any(m in lower or m in content for m in formal_markers)
 

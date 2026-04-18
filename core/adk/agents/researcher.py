@@ -18,8 +18,9 @@ from core.adk.agent import Agent, charter
 from core.adk.mission import Mission
 from core.adk.tools import tool
 
-
-DATA_LAKE_ROOT = Path(os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake"))
+DATA_LAKE_ROOT = Path(
+    os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake")
+)
 OLLAMA_URL = os.getenv("BIZRA_OLLAMA_URL", "http://127.0.0.1:11434")
 MODEL = os.getenv("BIZRA_PAT_MODEL", "gemma4:26b-bizra-16k")
 
@@ -44,8 +45,18 @@ class ResearcherAgent(Agent):
         for grep_term in ["spearpoint", "proof", "receipt", "fate"]:
             try:
                 r = subprocess.run(
-                    ["git", "log", "--oneline", "--all", f"--grep={grep_term}", "-n", "3"],
-                    capture_output=True, text=True, timeout=10,
+                    [
+                        "git",
+                        "log",
+                        "--oneline",
+                        "--all",
+                        f"--grep={grep_term}",
+                        "-n",
+                        "3",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                     cwd=str(DATA_LAKE_ROOT),
                 )
                 if r.stdout.strip():
@@ -58,7 +69,9 @@ class ResearcherAgent(Agent):
         try:
             r = subprocess.run(
                 ["git", "log", "--format=%H %s", "-1", "b08f2208"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
                 cwd=str(DATA_LAKE_ROOT),
             )
             if r.stdout.strip():
@@ -109,15 +122,17 @@ class ResearcherAgent(Agent):
 
 def _call_ollama(prompt: str, system: str, model: str) -> str:
     """Call Ollama chat API."""
-    payload = json.dumps({
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ],
-        "stream": False,
-        "options": {"temperature": 0.3, "num_predict": 1024},
-    }).encode()
+    payload = json.dumps(
+        {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+            "options": {"temperature": 0.3, "num_predict": 1024},
+        }
+    ).encode()
 
     req = urllib.request.Request(
         f"{OLLAMA_URL}/api/chat",

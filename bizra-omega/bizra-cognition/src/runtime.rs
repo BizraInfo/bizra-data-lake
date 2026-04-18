@@ -9,11 +9,12 @@
 //! receipts, and produces a graph consistent with the chain's decisions.
 //!
 //! Rehydrate contract:
-//!   - Input: a ThoughtGraph in its fresh-boot state (no reflexes installed)
-//!            and a ReceiptChain whose records have been loaded (but whose
-//!            derived state the graph has not yet applied).
-//!   - Output: a runtime whose graph has the exact reflex set the chain
-//!            records commit to, with no side effects beyond state.
+//!
+//! - Input: a ThoughtGraph in its fresh-boot state (no reflexes installed)
+//!   and a ReceiptChain whose records have been loaded (but whose derived
+//!   state the graph has not yet applied).
+//! - Output: a runtime whose graph has the exact reflex set the chain
+//!   records commit to, with no side effects beyond state.
 //!
 //! Determinism: rehydrate is pure replay. Same chain + same graph skeleton
 //! → same final state, byte-for-byte. This is what makes Node1 reproducibility
@@ -23,21 +24,19 @@ use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::admissibility_freeze_v1::{
-    AdmissibilityChain, AdmissibilityClaim, AdmissibilityResult, GateVerdict,
-    RejectedClaim, Verdict,
+    AdmissibilityChain, AdmissibilityClaim, AdmissibilityResult, GateVerdict, RejectedClaim,
+    Verdict,
+};
+use crate::canonical_hasher::blake3_domain;
+use crate::mission_freeze_v1::{MissionEnvelope, MissionStage};
+use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
+use crate::receipts::{
+    Blake3Hash, ChainError, InMemoryPayloadStore, ReceiptChain, ReceiptKind, ReceiptPayload,
 };
 use crate::thought_graph::{
-    ThoughtGraph, AgentCtx, Thought, ReasoningError, ShadowMode,
-    MyelinationReceipt, DemyelinationReceipt, DemyelinationReason,
-    CompiledReflex,
+    AgentCtx, CompiledReflex, DemyelinationReason, DemyelinationReceipt, MyelinationReceipt,
+    ReasoningError, ShadowMode, Thought, ThoughtGraph,
 };
-use crate::mission_freeze_v1::{MissionEnvelope, MissionStage};
-use crate::receipts::{
-    ReceiptChain, ReceiptPayload, ReceiptKind,
-    ChainError, Blake3Hash, InMemoryPayloadStore,
-};
-use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
-use crate::canonical_hasher::blake3_domain;
 
 // ============================================================================
 // Events
@@ -45,9 +44,14 @@ use crate::canonical_hasher::blake3_domain;
 
 #[derive(Debug, Clone)]
 pub enum CognitionEvent {
-    ReasoningRequest { request_id: Blake3Hash },
+    ReasoningRequest {
+        request_id: Blake3Hash,
+    },
     ConsolidationTick,
-    GovernanceDemyelination { edge: Blake3Hash, decision: Blake3Hash },
+    GovernanceDemyelination {
+        edge: Blake3Hash,
+        decision: Blake3Hash,
+    },
     Shutdown,
 }
 
@@ -65,7 +69,9 @@ pub enum LoopError {
 }
 
 impl From<ChainError> for LoopError {
-    fn from(e: ChainError) -> Self { LoopError::Chain(e) }
+    fn from(e: ChainError) -> Self {
+        LoopError::Chain(e)
+    }
 }
 
 #[derive(Debug)]
@@ -76,7 +82,9 @@ pub enum RehydrateError {
 }
 
 impl From<ChainError> for RehydrateError {
-    fn from(e: ChainError) -> Self { RehydrateError::ChainFetch(e) }
+    fn from(e: ChainError) -> Self {
+        RehydrateError::ChainFetch(e)
+    }
 }
 
 #[derive(Debug)]
@@ -85,11 +93,16 @@ pub enum MissionRuntimeError {
     Clock(String),
     DuplicateMission(Blake3Hash),
     MissionNotFound(Blake3Hash),
-    ClaimMismatch { expected: Blake3Hash, got: Blake3Hash },
+    ClaimMismatch {
+        expected: Blake3Hash,
+        got: Blake3Hash,
+    },
 }
 
 impl From<ChainError> for MissionRuntimeError {
-    fn from(e: ChainError) -> Self { MissionRuntimeError::Chain(e) }
+    fn from(e: ChainError) -> Self {
+        MissionRuntimeError::Chain(e)
+    }
 }
 
 /// The full record of a mission's passage through the lawful loop.
@@ -165,18 +178,22 @@ pub enum DegradedOccasion {
 impl DegradedPathReceipt {
     fn occasion_discriminant(&self) -> u8 {
         match self.occasion {
-            DegradedOccasion::MyelinationPersistFailed { .. }   => 0x01,
+            DegradedOccasion::MyelinationPersistFailed { .. } => 0x01,
             DegradedOccasion::DemyelinationPersistFailed { .. } => 0x02,
-            DegradedOccasion::ReasoningFailed { .. }            => 0x03,
-            DegradedOccasion::ConsolidationDivergence { .. }    => 0x04,
-            DegradedOccasion::ClockFailure { .. }               => 0x05,
+            DegradedOccasion::ReasoningFailed { .. } => 0x03,
+            DegradedOccasion::ConsolidationDivergence { .. } => 0x04,
+            DegradedOccasion::ClockFailure { .. } => 0x05,
         }
     }
 }
 
 impl ReceiptPayload for DegradedPathReceipt {
-    fn kind(&self) -> ReceiptKind { ReceiptKind::DegradedPath }
-    fn timestamp_ns(&self) -> u64 { self.timestamp_ns }
+    fn kind(&self) -> ReceiptKind {
+        ReceiptKind::DegradedPath
+    }
+    fn timestamp_ns(&self) -> u64 {
+        self.timestamp_ns
+    }
     fn canonical_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(256);
         buf.push(self.occasion_discriminant());
@@ -218,8 +235,12 @@ pub struct ReasoningSessionReceipt {
 }
 
 impl ReceiptPayload for ReasoningSessionReceipt {
-    fn kind(&self) -> ReceiptKind { ReceiptKind::ReasoningSession }
-    fn timestamp_ns(&self) -> u64 { self.timestamp_ns }
+    fn kind(&self) -> ReceiptKind {
+        ReceiptKind::ReasoningSession
+    }
+    fn timestamp_ns(&self) -> u64 {
+        self.timestamp_ns
+    }
     fn canonical_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(128);
         buf.extend_from_slice(&self.request_id);
@@ -301,14 +322,11 @@ impl CognitionRuntime {
         let snapshot = crate::sovereign_state::SovereignStateSnapshot::load(path)?;
 
         let genesis: Blake3Hash = [0u8; 32];
-        let graph = ThoughtGraph::from_parts(
-            HashMap::new(),
-            Vec::new(),
-            HashMap::new(),
-            genesis,
-        );
+        let graph = ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
         let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx = AgentCtx { receipt_chain: genesis };
+        let ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
 
         Ok(Self {
             graph,
@@ -322,9 +340,7 @@ impl CognitionRuntime {
 
     /// Access the attached sovereign-state snapshot (if this runtime
     /// was bootstrapped via `from_sovereign_state`).
-    pub fn sovereign_snapshot(
-        &self,
-    ) -> Option<&crate::sovereign_state::SovereignStateSnapshot> {
+    pub fn sovereign_snapshot(&self) -> Option<&crate::sovereign_state::SovereignStateSnapshot> {
         self.sovereign_snapshot.as_ref()
     }
 
@@ -354,14 +370,13 @@ impl CognitionRuntime {
     /// correctness. Reflex installation IS truth-state and must be rebuilt.
     /// Hit counts and quarantines are observation-state and will repopulate
     /// naturally as the runtime processes new events.
-    pub fn rehydrate(
-        graph: ThoughtGraph,
-        chain: ReceiptChain,
-    ) -> Result<Self, RehydrateError> {
+    pub fn rehydrate(graph: ThoughtGraph, chain: ReceiptChain) -> Result<Self, RehydrateError> {
         let mut rt = Self {
             graph,
             chain,
-            ctx: AgentCtx { receipt_chain: [0u8; 32] },
+            ctx: AgentCtx {
+                receipt_chain: [0u8; 32],
+            },
             missions: HashMap::new(),
             session_counter: 0,
             sovereign_snapshot: None,
@@ -370,14 +385,15 @@ impl CognitionRuntime {
         // Collect replay actions in order. We iterate records oldest-to-newest.
         // For each Myelination, we must decode the payload to recover the
         // CompiledReflex's policy_version and source hash.
-        let records: Vec<(ReceiptKind, Blake3Hash)> = rt.chain.records()
-            .map(|r| (r.kind, r.hash))
-            .collect();
+        let records: Vec<(ReceiptKind, Blake3Hash)> =
+            rt.chain.records().map(|r| (r.kind, r.hash)).collect();
 
         for (kind, hash) in records {
             match kind {
                 ReceiptKind::Myelination => {
-                    let receipt: MyelinationReceipt = rt.chain.fetch_and_decode(&hash)
+                    let receipt: MyelinationReceipt = rt
+                        .chain
+                        .fetch_and_decode(&hash)
                         .map_err(RehydrateError::ChainFetch)?;
 
                     // Reconstruct the CompiledReflex. In production this calls
@@ -388,10 +404,13 @@ impl CognitionRuntime {
                         source_s2: receipt.source_s2,
                         policy_version: receipt.policy_version,
                     };
-                    rt.graph.install_reflex_from_replay(receipt.source_s2, reflex);
+                    rt.graph
+                        .install_reflex_from_replay(receipt.source_s2, reflex);
                 }
                 ReceiptKind::Demyelination => {
-                    let receipt: DemyelinationReceipt = rt.chain.fetch_and_decode(&hash)
+                    let receipt: DemyelinationReceipt = rt
+                        .chain
+                        .fetch_and_decode(&hash)
                         .map_err(RehydrateError::ChainFetch)?;
                     rt.graph.remove_reflex_from_replay(&receipt.reflex);
                 }
@@ -581,10 +600,7 @@ impl CognitionRuntime {
     }
 
     /// Single event handler.
-    pub fn handle(
-        &mut self,
-        event: CognitionEvent,
-    ) -> Result<Option<Vec<Thought>>, LoopError> {
+    pub fn handle(&mut self, event: CognitionEvent) -> Result<Option<Vec<Thought>>, LoopError> {
         match event {
             CognitionEvent::ReasoningRequest { request_id } => {
                 self.handle_reasoning(request_id).map(Some)
@@ -612,10 +628,8 @@ impl CognitionRuntime {
             }
         };
 
-        let thoughts_digest = blake3_domain(
-            "bizra-thoughts-v1",
-            &(thoughts.len() as u32).to_le_bytes(),
-        );
+        let thoughts_digest =
+            blake3_domain("bizra-thoughts-v1", &(thoughts.len() as u32).to_le_bytes());
 
         let receipt = ReasoningSessionReceipt {
             request_id,
@@ -643,9 +657,13 @@ impl CognitionRuntime {
             let (receipt, compiled) = match proposal {
                 Ok(pair) => pair,
                 Err(ReasoningError::ImmutableS2Violation(_)) => continue,
-                Err(ReasoningError::QuarantineDivergence { candidate, divergence }) => {
+                Err(ReasoningError::QuarantineDivergence {
+                    candidate,
+                    divergence,
+                }) => {
                     self.emit_degraded(DegradedOccasion::ConsolidationDivergence {
-                        edge: candidate, divergence,
+                        edge: candidate,
+                        divergence,
                     })?;
                     continue;
                 }
@@ -659,12 +677,14 @@ impl CognitionRuntime {
 
             match self.chain.append_with_payload(receipt) {
                 Ok(receipt_hash) => {
-                    self.graph.commit_myelination(edge_hash, compiled, receipt_hash);
+                    self.graph
+                        .commit_myelination(edge_hash, compiled, receipt_hash);
                 }
                 Err(chain_err) => {
                     self.graph.abort_myelination(edge_hash);
                     self.emit_degraded(DegradedOccasion::MyelinationPersistFailed {
-                        edge: edge_hash, cause: format!("{:?}", chain_err),
+                        edge: edge_hash,
+                        cause: format!("{:?}", chain_err),
                     })?;
                 }
             }
@@ -678,10 +698,10 @@ impl CognitionRuntime {
         edge: Blake3Hash,
         decision: Blake3Hash,
     ) -> Result<(), LoopError> {
-        let receipt = match self.graph.propose_demyelination(
-            edge,
-            DemyelinationReason::GovernanceDecision(decision),
-        ) {
+        let receipt = match self
+            .graph
+            .propose_demyelination(edge, DemyelinationReason::GovernanceDecision(decision))
+        {
             Some(r) => r,
             None => return Ok(()),
         };
@@ -693,7 +713,8 @@ impl CognitionRuntime {
             }
             Err(chain_err) => {
                 self.emit_degraded(DegradedOccasion::DemyelinationPersistFailed {
-                    edge, cause: format!("{:?}", chain_err),
+                    edge,
+                    cause: format!("{:?}", chain_err),
                 })?;
                 Ok(())
             }
@@ -725,10 +746,7 @@ impl CognitionRuntime {
     }
 }
 
-fn admissibility_result_matches(
-    left: &AdmissibilityResult,
-    right: &AdmissibilityResult,
-) -> bool {
+fn admissibility_result_matches(left: &AdmissibilityResult, right: &AdmissibilityResult) -> bool {
     left.verdict == right.verdict
         && left.gate_verdicts.len() == right.gate_verdicts.len()
         && left
@@ -749,10 +767,7 @@ fn gate_verdict_matches(left: &GateVerdict, right: &GateVerdict) -> bool {
         && left.score == right.score
 }
 
-fn rejected_claim_matches(
-    left: Option<&RejectedClaim>,
-    right: Option<&RejectedClaim>,
-) -> bool {
+fn rejected_claim_matches(left: Option<&RejectedClaim>, right: Option<&RejectedClaim>) -> bool {
     match (left, right) {
         (None, None) => true,
         (Some(a), Some(b)) => {
@@ -782,7 +797,9 @@ mod tests {
 
     struct NoopNode;
     impl GraphNode for NoopNode {
-        fn traverse(&self, _ctx: &mut AgentCtx) -> Vec<Thought> { vec![Thought] }
+        fn traverse(&self, _ctx: &mut AgentCtx) -> Vec<Thought> {
+            vec![Thought]
+        }
     }
 
     fn minimal_graph() -> (ThoughtGraph, Blake3Hash) {
@@ -792,13 +809,18 @@ mod tests {
         let mut policies = HashMap::new();
         policies.insert(root_hash, MyelinationPolicy::standard());
         let genesis = [0u8; 32];
-        (ThoughtGraph::from_parts(nodes, vec![root_hash], policies, genesis), genesis)
+        (
+            ThoughtGraph::from_parts(nodes, vec![root_hash], policies, genesis),
+            genesis,
+        )
     }
 
     fn minimal_runtime() -> CognitionRuntime {
         let (graph, genesis) = minimal_graph();
         let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx = AgentCtx { receipt_chain: genesis };
+        let ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
         CognitionRuntime::new(graph, chain, ctx)
     }
 
@@ -856,9 +878,11 @@ mod tests {
     fn reasoning_request_produces_thoughts_and_advances_chain() {
         let mut rt = minimal_runtime();
         let initial_head = rt.chain.head();
-        let result = rt.handle(CognitionEvent::ReasoningRequest {
-            request_id: [42u8; 32],
-        }).unwrap();
+        let result = rt
+            .handle(CognitionEvent::ReasoningRequest {
+                request_id: [42u8; 32],
+            })
+            .unwrap();
         assert!(result.is_some());
         assert_ne!(rt.chain.head(), initial_head);
         assert_eq!(rt.chain.len(), 1);
@@ -888,7 +912,10 @@ mod tests {
         let mut rt = minimal_runtime();
         let genesis = [0u8; 32];
         for i in 0..10u8 {
-            rt.handle(CognitionEvent::ReasoningRequest { request_id: [i; 32] }).unwrap();
+            rt.handle(CognitionEvent::ReasoningRequest {
+                request_id: [i; 32],
+            })
+            .unwrap();
         }
         assert_eq!(rt.chain.len(), 10);
         rt.chain.verify_continuity(genesis).unwrap();
@@ -904,7 +931,9 @@ mod tests {
     fn rehydrate_reconstructs_reflex_state_from_chain() {
         let (graph, genesis) = minimal_graph();
         let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx = AgentCtx { receipt_chain: genesis };
+        let ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
         let mut rt = CognitionRuntime::new(graph, chain, ctx);
 
         // Directly construct a MyelinationReceipt and write it to the chain —
@@ -929,8 +958,10 @@ mod tests {
         // Move the chain into the rehydrate call
         let rehydrated = CognitionRuntime::rehydrate(fresh_graph, rt.chain).unwrap();
 
-        assert!(rehydrated.graph.has_reflex(&edge),
-                "rehydrate must reconstruct reflex from Myelination receipt");
+        assert!(
+            rehydrated.graph.has_reflex(&edge),
+            "rehydrate must reconstruct reflex from Myelination receipt"
+        );
     }
 
     /// Prove that Myelination followed by Demyelination leaves no reflex
@@ -939,7 +970,9 @@ mod tests {
     fn rehydrate_respects_demyelination() {
         let (graph, genesis) = minimal_graph();
         let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx = AgentCtx { receipt_chain: genesis };
+        let ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
         let mut rt = CognitionRuntime::new(graph, chain, ctx);
 
         let edge = [1u8; 32];
@@ -969,8 +1002,10 @@ mod tests {
         let (fresh_graph, _) = minimal_graph();
         let rehydrated = CognitionRuntime::rehydrate(fresh_graph, rt.chain).unwrap();
 
-        assert!(!rehydrated.graph.has_reflex(&edge),
-                "rehydrate must respect demyelination — chain final state wins");
+        assert!(
+            !rehydrated.graph.has_reflex(&edge),
+            "rehydrate must respect demyelination — chain final state wins"
+        );
     }
 
     /// The operational proof of R1: two nodes starting from the same chain
@@ -979,7 +1014,9 @@ mod tests {
     fn rehydrate_is_deterministic() {
         let (graph_a, genesis) = minimal_graph();
         let chain_a = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx_a = AgentCtx { receipt_chain: genesis };
+        let ctx_a = AgentCtx {
+            receipt_chain: genesis,
+        };
         let mut rt_a = CognitionRuntime::new(graph_a, chain_a, ctx_a);
 
         let edge = [1u8; 32];
@@ -1005,7 +1042,9 @@ mod tests {
         // Build an equivalent chain from scratch
         let (graph_b, _) = minimal_graph();
         let chain_b = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx_b = AgentCtx { receipt_chain: genesis };
+        let ctx_b = AgentCtx {
+            receipt_chain: genesis,
+        };
         let mut rt_b = CognitionRuntime::new(graph_b, chain_b, ctx_b);
         rt_b.chain.append_with_payload(myel).unwrap();
 
@@ -1013,9 +1052,14 @@ mod tests {
         let rehydrated_b = CognitionRuntime::rehydrate(fresh_b, rt_b.chain).unwrap();
 
         assert_eq!(rehydrated_a.graph.chain_head(), chain_a_head);
-        assert_eq!(rehydrated_a.graph.chain_head(), rehydrated_b.graph.chain_head());
-        assert_eq!(rehydrated_a.graph.has_reflex(&edge),
-                   rehydrated_b.graph.has_reflex(&edge));
+        assert_eq!(
+            rehydrated_a.graph.chain_head(),
+            rehydrated_b.graph.chain_head()
+        );
+        assert_eq!(
+            rehydrated_a.graph.has_reflex(&edge),
+            rehydrated_b.graph.has_reflex(&edge)
+        );
     }
 
     #[test]
@@ -1033,11 +1077,17 @@ mod tests {
         assert_eq!(record.stage, MissionStage::Replayability);
         assert_eq!(record.admissibility.verdict, Verdict::Permit);
         assert_eq!(record.gate_receipt_hashes.len(), 5);
-        let final_receipt = record.final_receipt.as_ref().expect("permit must have final receipt");
+        let final_receipt = record
+            .final_receipt
+            .as_ref()
+            .expect("permit must have final receipt");
         assert_eq!(final_receipt.kind, ReceiptKind::NodeLifecycle);
         assert_eq!(final_receipt.claim_ref, record.envelope.mission_id);
         assert_eq!(record.receipt_id, Some(final_receipt.receipt_id));
-        assert_eq!(record.mission_payload_hash, Some(final_receipt.claim_ref).map(|_| record.mission_payload_hash.unwrap()));
+        assert_eq!(
+            record.mission_payload_hash,
+            Some(final_receipt.claim_ref).map(|_| record.mission_payload_hash.unwrap())
+        );
         assert_eq!(rt.mission_count(), 1);
         assert_eq!(rt.chain.len(), 7, "1 mission + 5 gates + 1 final receipt");
         assert_eq!(rt.chain.head(), final_receipt.receipt_id);
@@ -1078,24 +1128,46 @@ mod tests {
 
         let record = rt.submit_mission(envelope, claim).unwrap();
 
-        assert!(record.rejected, "verdict was Reject — record must be marked rejected");
-        assert!(record.receipt_id.is_none(), "rejected mission must have no receipt_id");
-        assert!(record.final_receipt.is_none(), "rejected mission must have no final receipt");
-        assert!(record.mission_payload_hash.is_none(),
-            "rejected mission envelope was NOT appended to chain");
-        assert_eq!(record.stage, MissionStage::Admissibility,
-            "rejected mission stops at S4 Admissibility");
+        assert!(
+            record.rejected,
+            "verdict was Reject — record must be marked rejected"
+        );
+        assert!(
+            record.receipt_id.is_none(),
+            "rejected mission must have no receipt_id"
+        );
+        assert!(
+            record.final_receipt.is_none(),
+            "rejected mission must have no final receipt"
+        );
+        assert!(
+            record.mission_payload_hash.is_none(),
+            "rejected mission envelope was NOT appended to chain"
+        );
+        assert_eq!(
+            record.stage,
+            MissionStage::Admissibility,
+            "rejected mission stops at S4 Admissibility"
+        );
         assert_eq!(record.admissibility.verdict, Verdict::Reject);
-        assert!(record.admissibility.rejected.is_some(),
-            "reject must carry RejectedClaim with remediation path");
+        assert!(
+            record.admissibility.rejected.is_some(),
+            "reject must carry RejectedClaim with remediation path"
+        );
 
         // Chain UNCHANGED on reject (§10 chain-is-truth).
-        assert_eq!(rt.chain.len(), pre_chain_len,
-            "rejected mission must NOT advance the chain at all");
+        assert_eq!(
+            rt.chain.len(),
+            pre_chain_len,
+            "rejected mission must NOT advance the chain at all"
+        );
 
         // Registry PRESERVES the rejection (derived state per §10).
-        assert_eq!(rt.mission_count(), 1,
-            "rejected mission must be queryable via mission_by_id");
+        assert_eq!(
+            rt.mission_count(),
+            1,
+            "rejected mission must be queryable via mission_by_id"
+        );
         let from_registry = rt.mission_by_id(&mission_id).unwrap();
         assert!(from_registry.rejected);
         assert_eq!(from_registry.stage, MissionStage::Admissibility);
@@ -1112,8 +1184,11 @@ mod tests {
 
         let record = rt.submit_mission(envelope, claim).unwrap();
 
-        assert_eq!(record.envelope.stage, MissionStage::Replayability,
-            "permit + decode-verified replay must reach S8");
+        assert_eq!(
+            record.envelope.stage,
+            MissionStage::Replayability,
+            "permit + decode-verified replay must reach S8"
+        );
         assert_eq!(record.stage, MissionStage::Replayability);
     }
 
@@ -1183,7 +1258,9 @@ mod tests {
             let rt = CognitionRuntime::from_sovereign_state(td.path())
                 .expect("valid fixture should bootstrap");
 
-            let snap = rt.sovereign_snapshot().expect("snapshot should be attached");
+            let snap = rt
+                .sovereign_snapshot()
+                .expect("snapshot should be attached");
             assert_eq!(snap.envelopes_count(), 1);
             assert_eq!(snap.total_entries(), 1);
             assert_eq!(snap.envelopes[0].entries[0].event, "bootstrap_test");
@@ -1207,7 +1284,9 @@ mod tests {
             let graph =
                 ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
             let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-            let ctx = AgentCtx { receipt_chain: genesis };
+            let ctx = AgentCtx {
+                receipt_chain: genesis,
+            };
             let rt = CognitionRuntime::new(graph, chain, ctx);
             assert!(rt.sovereign_snapshot().is_none());
         }

@@ -18,7 +18,9 @@ from core.adk.agent import Agent, charter
 from core.adk.mission import Mission
 from core.adk.tools import tool
 
-DATA_LAKE_ROOT = Path(os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake"))
+DATA_LAKE_ROOT = Path(
+    os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake")
+)
 OLLAMA_URL = os.getenv("BIZRA_OLLAMA_URL", "http://127.0.0.1:11434")
 MODEL = os.getenv("BIZRA_EXECUTOR_MODEL", "deepseek-r1:7b")
 
@@ -64,8 +66,11 @@ class ExecutorAgent(Agent):
 
         try:
             r = subprocess.run(
-                cmd, capture_output=True, text=True,
-                timeout=120, cwd=cwd,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=cwd,
             )
             output = r.stdout[-2000:] if r.stdout else ""
             stderr = r.stderr[-500:] if r.stderr else ""
@@ -134,15 +139,17 @@ class ExecutorAgent(Agent):
 
 
 def _call_ollama(prompt: str, system: str, model: str) -> str:
-    payload = json.dumps({
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ],
-        "stream": False,
-        "options": {"temperature": 0.1, "num_predict": 512},
-    }).encode()
+    payload = json.dumps(
+        {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+            "options": {"temperature": 0.1, "num_predict": 512},
+        }
+    ).encode()
     req = urllib.request.Request(
         f"{OLLAMA_URL}/api/chat",
         data=payload,

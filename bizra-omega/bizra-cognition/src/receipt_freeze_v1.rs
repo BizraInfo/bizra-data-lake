@@ -30,11 +30,14 @@
 //!   ReceiptEnvelope<T> (payload)    = Layer 2 (internal, mutable impl)
 
 use crate::canonical_hasher::blake3_domain;
+#[cfg(test)]
+use crate::receipts::InMemoryPayloadStore;
 use crate::receipts::{
-    Blake3Hash, Receipt, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
-    ReceiptChain, PayloadStore, StoreError, ByteReader, DecodeError,
-    InMemoryPayloadStore,
+    Blake3Hash, ByteReader, DecodeError, Receipt, ReceiptChain, ReceiptKind, ReceiptPayload,
+    ReceiptPayloadDecode,
 };
+#[cfg(feature = "sled-store")]
+use crate::receipts::{PayloadStore, StoreError};
 
 // ════════════════════════════════════════════════════════════
 // ReceiptArtifact — The §7 Frozen Contract
@@ -58,7 +61,6 @@ use crate::receipts::{
 #[derive(Debug, Clone)]
 pub struct ReceiptArtifact {
     // ── §7 required fields ──
-
     /// Unique identifier for this receipt. Computed as blake3 of canonical_bytes.
     pub receipt_id: Blake3Hash,
 
@@ -85,7 +87,6 @@ pub struct ReceiptArtifact {
     pub blake3_chain: Blake3Hash,
 
     // ── Operational extensions (serve §7 contract without altering identity) ──
-
     /// Receipt kind discriminant.
     pub kind: ReceiptKind,
 
@@ -205,11 +206,10 @@ impl ReceiptPayloadDecode for ReceiptArtifact {
         let blake3_chain = r.read_hash()?;
 
         let kind_byte = r.read_u8()?;
-        let kind = ReceiptKind::from_byte(kind_byte)
-            .ok_or(DecodeError::UnknownDiscriminant {
-                field: "ReceiptArtifact.kind",
-                byte: kind_byte,
-            })?;
+        let kind = ReceiptKind::from_byte(kind_byte).ok_or(DecodeError::UnknownDiscriminant {
+            field: "ReceiptArtifact.kind",
+            byte: kind_byte,
+        })?;
 
         let timestamp_ns = r.read_u64()?;
         let prev = r.read_hash()?;
@@ -257,14 +257,14 @@ impl SledPayloadStore {
     ///
     /// Recommended path: /data/bizra/receipts/payload_store
     pub fn open(path: &str) -> Result<Self, StoreError> {
-        let db = sled::open(path)
-            .map_err(|e| StoreError::IoError(format!("sled open: {}", e)))?;
+        let db = sled::open(path).map_err(|e| StoreError::IoError(format!("sled open: {}", e)))?;
         Ok(SledPayloadStore { db })
     }
 
     /// Flush all pending writes to disk. Called after critical receipts.
     pub fn flush(&self) -> Result<(), StoreError> {
-        self.db.flush()
+        self.db
+            .flush()
             .map_err(|e| StoreError::IoError(format!("sled flush: {}", e)))?;
         Ok(())
     }
@@ -273,10 +273,12 @@ impl SledPayloadStore {
 #[cfg(feature = "sled-store")]
 impl PayloadStore for SledPayloadStore {
     fn put(&self, hash: Blake3Hash, bytes: Vec<u8>) -> Result<(), StoreError> {
-        self.db.insert(&hash, bytes.as_slice())
+        self.db
+            .insert(&hash, bytes.as_slice())
             .map_err(|e| StoreError::IoError(format!("sled put: {}", e)))?;
         // fsync after every put for durability
-        self.db.flush()
+        self.db
+            .flush()
             .map_err(|e| StoreError::IoError(format!("sled flush: {}", e)))?;
         Ok(())
     }
@@ -290,7 +292,8 @@ impl PayloadStore for SledPayloadStore {
     }
 
     fn contains(&self, hash: &Blake3Hash) -> Result<bool, StoreError> {
-        self.db.contains_key(hash)
+        self.db
+            .contains_key(hash)
             .map_err(|e| StoreError::IoError(format!("sled contains: {}", e)))
     }
 }
@@ -399,16 +402,30 @@ mod tests {
         let prev = genesis_hash();
 
         let a1 = ReceiptArtifact::new(
-            ReceiptKind::CognitionBoot, claim, evidence, vec![prev], prev, 500,
+            ReceiptKind::CognitionBoot,
+            claim,
+            evidence,
+            vec![prev],
+            prev,
+            500,
         );
         let a2 = ReceiptArtifact::new(
-            ReceiptKind::CognitionBoot, claim, evidence, vec![prev], prev, 500,
+            ReceiptKind::CognitionBoot,
+            claim,
+            evidence,
+            vec![prev],
+            prev,
+            500,
         );
 
-        assert_eq!(a1.receipt_id, a2.receipt_id,
-            "Same inputs must produce same receipt_id");
-        assert_eq!(a1.blake3_chain, a2.blake3_chain,
-            "Same inputs must produce same blake3_chain");
+        assert_eq!(
+            a1.receipt_id, a2.receipt_id,
+            "Same inputs must produce same receipt_id"
+        );
+        assert_eq!(
+            a1.blake3_chain, a2.blake3_chain,
+            "Same inputs must produce same blake3_chain"
+        );
     }
 
     // ── Test 3: Different inputs produce different receipt_ids ──
@@ -418,14 +435,26 @@ mod tests {
         let prev = genesis_hash();
 
         let a1 = ReceiptArtifact::new(
-            ReceiptKind::Myelination, [5u8; 32], [6u8; 32], vec![prev], prev, 100,
+            ReceiptKind::Myelination,
+            [5u8; 32],
+            [6u8; 32],
+            vec![prev],
+            prev,
+            100,
         );
         let a2 = ReceiptArtifact::new(
-            ReceiptKind::Myelination, [7u8; 32], [6u8; 32], vec![prev], prev, 100,
+            ReceiptKind::Myelination,
+            [7u8; 32],
+            [6u8; 32],
+            vec![prev],
+            prev,
+            100,
         );
 
-        assert_ne!(a1.receipt_id, a2.receipt_id,
-            "Different claim_ref must produce different receipt_id");
+        assert_ne!(
+            a1.receipt_id, a2.receipt_id,
+            "Different claim_ref must produce different receipt_id"
+        );
     }
 
     // ── Test 4: Canonical bytes round-trip ──
@@ -477,8 +506,10 @@ mod tests {
         }
 
         assert_eq!(chain.len(), 10);
-        assert!(chain.verify_continuity(genesis).is_ok(),
-            "Chain continuity must hold after 10 appends");
+        assert!(
+            chain.verify_continuity(genesis).is_ok(),
+            "Chain continuity must hold after 10 appends"
+        );
     }
 
     // ── Test 6: REPLAY VERIFICATION (§16 success condition #4) ──
@@ -526,24 +557,34 @@ mod tests {
         }
 
         assert_eq!(chain.len(), 50);
-        assert!(chain.verify_continuity(genesis).is_ok(),
-            "Chain continuity must hold for 50 receipts");
+        assert!(
+            chain.verify_continuity(genesis).is_ok(),
+            "Chain continuity must hold for 50 receipts"
+        );
 
         // REPLAY: fetch each payload, decode, verify hash match
         for (idx, id) in receipt_ids.iter().enumerate() {
-            let bytes = chain.fetch_payload_bytes(id).unwrap()
-                .expect(&format!("Payload missing for receipt {}", idx));
+            let bytes = chain
+                .fetch_payload_bytes(id)
+                .unwrap()
+                .unwrap_or_else(|| panic!("Payload missing for receipt {}", idx));
 
             let decoded = ReceiptArtifact::from_canonical_bytes(&bytes).unwrap();
 
             // The decoded artifact's receipt_id must match
-            assert_eq!(&decoded.receipt_id, id,
-                "Replay mismatch at receipt {}: decoded id != stored id", idx);
+            assert_eq!(
+                &decoded.receipt_id, id,
+                "Replay mismatch at receipt {}: decoded id != stored id",
+                idx
+            );
 
             // Re-encode and verify bytes are identical (canonical stability)
             let re_encoded = decoded.canonical_bytes();
-            assert_eq!(bytes, re_encoded,
-                "Canonical bytes not stable at receipt {}", idx);
+            assert_eq!(
+                bytes, re_encoded,
+                "Canonical bytes not stable at receipt {}",
+                idx
+            );
         }
     }
 

@@ -33,8 +33,7 @@
 
 use crate::canonical_hasher::blake3_domain;
 use crate::receipts::{
-    Blake3Hash, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
-    ByteReader, DecodeError,
+    Blake3Hash, ByteReader, DecodeError, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
 };
 
 // ════════════════════════════════════════════════════════════
@@ -47,13 +46,13 @@ use crate::receipts::{
 #[repr(u8)]
 pub enum Verdict {
     /// Claim is admissible. Proceeds to execution (S5).
-    Permit     = 0x01,
+    Permit = 0x01,
     /// Claim is denied. RejectedClaim emitted. Does NOT proceed.
-    Reject     = 0x02,
+    Reject = 0x02,
     /// Claim requires human or higher-layer review. Paused.
-    Review     = 0x03,
+    Review = 0x03,
     /// Non-binding assessment. Does not affect claim lifecycle.
-    ScoreOnly  = 0x04,
+    ScoreOnly = 0x04,
 }
 
 impl Verdict {
@@ -87,7 +86,6 @@ impl Verdict {
 #[derive(Debug, Clone)]
 pub struct GateVerdict {
     // ── §7 required fields ──
-
     /// The verdict: PERMIT, REJECT, REVIEW, or SCORE_ONLY.
     pub verdict: Verdict,
 
@@ -108,7 +106,6 @@ pub struct GateVerdict {
     pub timestamp_ns: u64,
 
     // ── Operational extensions ──
-
     /// Which invariant (if any) caused the verdict.
     pub invariant: Option<Invariant>,
 
@@ -163,10 +160,10 @@ impl ReceiptPayloadDecode for GateVerdict {
         let mut r = ByteReader::new(bytes);
 
         let verdict_byte = r.read_u8()?;
-        let verdict = Verdict::from_byte(verdict_byte)
-            .ok_or(DecodeError::UnknownDiscriminant {
-                field: "GateVerdict.verdict", byte: verdict_byte,
-            })?;
+        let verdict = Verdict::from_byte(verdict_byte).ok_or(DecodeError::UnknownDiscriminant {
+            field: "GateVerdict.verdict",
+            byte: verdict_byte,
+        })?;
 
         let reason_bytes = r.read_length_prefixed()?;
         let reason = std::str::from_utf8(reason_bytes)
@@ -184,10 +181,12 @@ impl ReceiptPayloadDecode for GateVerdict {
         let inv_disc = r.read_u8()?;
         let invariant = if inv_disc == 0x01 {
             let inv_byte = r.read_u8()?;
-            Some(Invariant::from_byte(inv_byte)
-                .ok_or(DecodeError::UnknownDiscriminant {
-                    field: "GateVerdict.invariant", byte: inv_byte,
-                })?)
+            Some(
+                Invariant::from_byte(inv_byte).ok_or(DecodeError::UnknownDiscriminant {
+                    field: "GateVerdict.invariant",
+                    byte: inv_byte,
+                })?,
+            )
         } else {
             None
         };
@@ -200,8 +199,13 @@ impl ReceiptPayloadDecode for GateVerdict {
         };
 
         Ok(GateVerdict {
-            verdict, reason, scorer_id, chain_ref,
-            timestamp_ns, invariant, score,
+            verdict,
+            reason,
+            scorer_id,
+            chain_ref,
+            timestamp_ns,
+            invariant,
+            score,
         })
     }
 }
@@ -243,11 +247,11 @@ pub struct RejectedClaim {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Invariant {
-    IhsanFloor     = 0x01,  // P1: excellence ≥ 0.95
-    ZannZero       = 0x02,  // P2: no claim without evidence
-    RibaZero       = 0x03,  // P3: no extractive economic pattern
-    ClaimMustBind  = 0x04,  // P4: no claim without receipt/artifact
-    NoShadowState  = 0x05,  // P5: no UI simulates truth independently
+    IhsanFloor = 0x01,    // P1: excellence ≥ 0.95
+    ZannZero = 0x02,      // P2: no claim without evidence
+    RibaZero = 0x03,      // P3: no extractive economic pattern
+    ClaimMustBind = 0x04, // P4: no claim without receipt/artifact
+    NoShadowState = 0x05, // P5: no UI simulates truth independently
 }
 
 impl Invariant {
@@ -264,9 +268,9 @@ impl Invariant {
 
     pub fn name(&self) -> &'static str {
         match self {
-            Self::IhsanFloor    => "IHSAN_FLOOR",
-            Self::ZannZero      => "ZANN_ZERO",
-            Self::RibaZero      => "RIBA_ZERO",
+            Self::IhsanFloor => "IHSAN_FLOOR",
+            Self::ZannZero => "ZANN_ZERO",
+            Self::RibaZero => "RIBA_ZERO",
             Self::ClaimMustBind => "CLAIM_MUST_BIND",
             Self::NoShadowState => "NO_SHADOW_STATE",
         }
@@ -275,11 +279,11 @@ impl Invariant {
 
 // All five, in evaluation order (fail-closed: first REJECT stops chain)
 pub const INVARIANT_ORDER: [Invariant; 5] = [
-    Invariant::ZannZero,       // Check evidence first — no point evaluating rest if unbound
-    Invariant::ClaimMustBind,  // Then check artifact binding
-    Invariant::RibaZero,       // Then economic pattern
-    Invariant::NoShadowState,  // Then shadow state
-    Invariant::IhsanFloor,     // Ihsan last — it's the quality floor after structural checks pass
+    Invariant::ZannZero, // Check evidence first — no point evaluating rest if unbound
+    Invariant::ClaimMustBind, // Then check artifact binding
+    Invariant::RibaZero, // Then economic pattern
+    Invariant::NoShadowState, // Then shadow state
+    Invariant::IhsanFloor, // Ihsan last — it's the quality floor after structural checks pass
 ];
 
 // ════════════════════════════════════════════════════════════
@@ -337,10 +341,11 @@ pub enum EconomicPattern {
 
 impl EconomicPattern {
     pub fn is_extractive(&self) -> bool {
-        matches!(self,
+        matches!(
+            self,
             EconomicPattern::FixedReturnLending
-            | EconomicPattern::HiddenFeeExtraction
-            | EconomicPattern::AsymmetricExploitation
+                | EconomicPattern::HiddenFeeExtraction
+                | EconomicPattern::AsymmetricExploitation
         )
     }
 }
@@ -381,7 +386,9 @@ pub trait InvariantGate: Send + Sync {
 pub struct ZannZeroGate;
 
 impl InvariantGate for ZannZeroGate {
-    fn invariant(&self) -> Invariant { Invariant::ZannZero }
+    fn invariant(&self) -> Invariant {
+        Invariant::ZannZero
+    }
 
     fn evaluate(&self, claim: &AdmissibilityClaim) -> GateVerdict {
         if claim.has_evidence {
@@ -412,7 +419,9 @@ impl InvariantGate for ZannZeroGate {
 pub struct ClaimMustBindGate;
 
 impl InvariantGate for ClaimMustBindGate {
-    fn invariant(&self) -> Invariant { Invariant::ClaimMustBind }
+    fn invariant(&self) -> Invariant {
+        Invariant::ClaimMustBind
+    }
 
     fn evaluate(&self, claim: &AdmissibilityClaim) -> GateVerdict {
         let bound = match &claim.evidence_hash {
@@ -448,7 +457,9 @@ impl InvariantGate for ClaimMustBindGate {
 pub struct RibaZeroGate;
 
 impl InvariantGate for RibaZeroGate {
-    fn invariant(&self) -> Invariant { Invariant::RibaZero }
+    fn invariant(&self) -> Invariant {
+        Invariant::RibaZero
+    }
 
     fn evaluate(&self, claim: &AdmissibilityClaim) -> GateVerdict {
         match &claim.economic_pattern {
@@ -472,7 +483,10 @@ impl InvariantGate for RibaZeroGate {
             },
             Some(pattern) => GateVerdict {
                 verdict: Verdict::Reject,
-                reason: format!("RIBA_ZERO violation: extractive pattern {:?} detected", pattern),
+                reason: format!(
+                    "RIBA_ZERO violation: extractive pattern {:?} detected",
+                    pattern
+                ),
                 scorer_id: "RIBA_ZERO".into(),
                 chain_ref: claim.claim_id,
                 timestamp_ns: claim.timestamp_ns,
@@ -487,7 +501,9 @@ impl InvariantGate for RibaZeroGate {
 pub struct NoShadowStateGate;
 
 impl InvariantGate for NoShadowStateGate {
-    fn invariant(&self) -> Invariant { Invariant::NoShadowState }
+    fn invariant(&self) -> Invariant {
+        Invariant::NoShadowState
+    }
 
     fn evaluate(&self, claim: &AdmissibilityClaim) -> GateVerdict {
         match &claim.state_mutation {
@@ -544,13 +560,18 @@ impl IhsanFloorGate {
 }
 
 impl InvariantGate for IhsanFloorGate {
-    fn invariant(&self) -> Invariant { Invariant::IhsanFloor }
+    fn invariant(&self) -> Invariant {
+        Invariant::IhsanFloor
+    }
 
     fn evaluate(&self, claim: &AdmissibilityClaim) -> GateVerdict {
         if claim.quality_score >= self.floor {
             GateVerdict {
                 verdict: Verdict::Permit,
-                reason: format!("Ihsan score {:.4} ≥ floor {:.4}", claim.quality_score, self.floor),
+                reason: format!(
+                    "Ihsan score {:.4} ≥ floor {:.4}",
+                    claim.quality_score, self.floor
+                ),
                 scorer_id: "IHSAN_FLOOR".into(),
                 chain_ref: claim.claim_id,
                 timestamp_ns: claim.timestamp_ns,
@@ -639,8 +660,10 @@ impl AdmissibilityChain {
                     invariant,
                     reject_reason: last.reason.clone(),
                     remediation_path: Self::remediation_for(invariant),
-                    escalation_allowed: matches!(invariant,
-                        Invariant::IhsanFloor | Invariant::NoShadowState),
+                    escalation_allowed: matches!(
+                        invariant,
+                        Invariant::IhsanFloor | Invariant::NoShadowState
+                    ),
                 };
 
                 return AdmissibilityResult {
@@ -662,29 +685,24 @@ impl AdmissibilityChain {
     /// Suggested remediation path for each invariant violation.
     fn remediation_for(inv: Invariant) -> String {
         match inv {
-            Invariant::ZannZero => {
-                "Attach binding evidence to the claim before resubmitting. \
-                 Evidence must be hashable and verifiable.".into()
-            }
-            Invariant::ClaimMustBind => {
-                "Provide a non-zero evidence_hash linking the claim to a \
-                 ReceiptArtifact or other canonical proof artifact.".into()
-            }
-            Invariant::RibaZero => {
-                "Remove the extractive economic pattern from the claim. \
+            Invariant::ZannZero => "Attach binding evidence to the claim before resubmitting. \
+                 Evidence must be hashable and verifiable."
+                .into(),
+            Invariant::ClaimMustBind => "Provide a non-zero evidence_hash linking the claim to a \
+                 ReceiptArtifact or other canonical proof artifact."
+                .into(),
+            Invariant::RibaZero => "Remove the extractive economic pattern from the claim. \
                  Use PeerExchange or ProfitSharing (mudarabah) instead of \
-                 FixedReturnLending or HiddenFeeExtraction.".into()
-            }
-            Invariant::NoShadowState => {
-                "Ensure the state mutation derives from canonical runtime \
+                 FixedReturnLending or HiddenFeeExtraction."
+                .into(),
+            Invariant::NoShadowState => "Ensure the state mutation derives from canonical runtime \
                  truth (Proof plane), not from Face-only computation. \
-                 The UI must reveal, never simulate.".into()
-            }
-            Invariant::IhsanFloor => {
-                "Improve claim quality score to ≥ 0.95 before resubmitting. \
+                 The UI must reveal, never simulate."
+                .into(),
+            Invariant::IhsanFloor => "Improve claim quality score to ≥ 0.95 before resubmitting. \
                  Add tests, documentation, or constitutional alignment evidence \
-                 to raise the Ihsan score.".into()
-            }
+                 to raise the Ihsan score."
+                .into(),
         }
     }
 }
@@ -722,8 +740,12 @@ mod tests {
         assert!(result.rejected.is_none());
 
         for gv in &result.gate_verdicts {
-            assert_eq!(gv.verdict, Verdict::Permit,
-                "Gate {} should PERMIT clean claim", gv.scorer_id);
+            assert_eq!(
+                gv.verdict,
+                Verdict::Permit,
+                "Gate {} should PERMIT clean claim",
+                gv.scorer_id
+            );
         }
     }
 
@@ -738,9 +760,15 @@ mod tests {
         let result = chain.evaluate(&claim);
 
         assert_eq!(result.verdict, Verdict::Reject);
-        assert_eq!(result.gate_verdicts.len(), 1,
-            "Chain should stop at first REJECT (ZANN_ZERO is gate 1)");
-        assert_eq!(result.rejected.as_ref().unwrap().invariant, Invariant::ZannZero);
+        assert_eq!(
+            result.gate_verdicts.len(),
+            1,
+            "Chain should stop at first REJECT (ZANN_ZERO is gate 1)"
+        );
+        assert_eq!(
+            result.rejected.as_ref().unwrap().invariant,
+            Invariant::ZannZero
+        );
     }
 
     // ── Test 3: CLAIM_MUST_BIND rejects zero evidence hash ──
@@ -754,7 +782,10 @@ mod tests {
         let result = chain.evaluate(&claim);
 
         assert_eq!(result.verdict, Verdict::Reject);
-        assert_eq!(result.rejected.as_ref().unwrap().invariant, Invariant::ClaimMustBind);
+        assert_eq!(
+            result.rejected.as_ref().unwrap().invariant,
+            Invariant::ClaimMustBind
+        );
     }
 
     // ── Test 4: RIBA_ZERO rejects fixed-return lending ──
@@ -768,7 +799,10 @@ mod tests {
         let result = chain.evaluate(&claim);
 
         assert_eq!(result.verdict, Verdict::Reject);
-        assert_eq!(result.rejected.as_ref().unwrap().invariant, Invariant::RibaZero);
+        assert_eq!(
+            result.rejected.as_ref().unwrap().invariant,
+            Invariant::RibaZero
+        );
     }
 
     // ── Test 5: RIBA_ZERO permits profit-sharing (mudarabah) ──
@@ -797,7 +831,10 @@ mod tests {
         let result = chain.evaluate(&claim);
 
         assert_eq!(result.verdict, Verdict::Reject);
-        assert_eq!(result.rejected.as_ref().unwrap().invariant, Invariant::NoShadowState);
+        assert_eq!(
+            result.rejected.as_ref().unwrap().invariant,
+            Invariant::NoShadowState
+        );
     }
 
     // ── Test 7: NO_SHADOW_STATE permits canonical mutation ──
@@ -826,9 +863,14 @@ mod tests {
         let result = chain.evaluate(&claim);
 
         assert_eq!(result.verdict, Verdict::Reject);
-        assert_eq!(result.rejected.as_ref().unwrap().invariant, Invariant::IhsanFloor);
-        assert!(result.rejected.as_ref().unwrap().escalation_allowed,
-            "Ihsan rejection should allow escalation to REVIEW");
+        assert_eq!(
+            result.rejected.as_ref().unwrap().invariant,
+            Invariant::IhsanFloor
+        );
+        assert!(
+            result.rejected.as_ref().unwrap().escalation_allowed,
+            "Ihsan rejection should allow escalation to REVIEW"
+        );
     }
 
     // ── Test 9: IHSAN_FLOOR permits exactly 0.95 ──
@@ -858,10 +900,16 @@ mod tests {
 
         assert_eq!(result.verdict, Verdict::Reject);
         // Only 1 gate should have evaluated (ZANN_ZERO stops the chain)
-        assert_eq!(result.gate_verdicts.len(), 1,
-            "Fail-closed: must stop at first REJECT, not evaluate remaining gates");
-        assert_eq!(result.rejected.as_ref().unwrap().invariant, Invariant::ZannZero,
-            "First gate (ZANN_ZERO) should be the rejector, not IHSAN_FLOOR");
+        assert_eq!(
+            result.gate_verdicts.len(),
+            1,
+            "Fail-closed: must stop at first REJECT, not evaluate remaining gates"
+        );
+        assert_eq!(
+            result.rejected.as_ref().unwrap().invariant,
+            Invariant::ZannZero,
+            "First gate (ZANN_ZERO) should be the rejector, not IHSAN_FLOOR"
+        );
     }
 
     // ── Test 11: GateVerdict round-trip ──
