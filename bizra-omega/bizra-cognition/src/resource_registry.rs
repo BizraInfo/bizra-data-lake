@@ -189,6 +189,74 @@ pub enum RegisterOutcome {
 }
 
 // ════════════════════════════════════════════════════════════════════
+// URP (Universal Resource Pattern) view — §Cycle-7 G4 Commit-2
+// ════════════════════════════════════════════════════════════════════
+//
+// Canonical projection of the resource registry grouped by kind with
+// deterministic ordering. G5's `dema organize` consults this to locate
+// allowlisted filesystem paths; future mission kinds consult their own
+// bucket.
+//
+// Stability contract: kinds in `buckets` appear in canonical string
+// order ascending. Resources within each bucket appear in id order
+// ascending. Counts reflect the snapshot used to build the view.
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UrpView {
+    pub buckets: Vec<UrpBucket>,
+    pub total_count: usize,
+    pub allowlisted_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UrpBucket {
+    pub kind: ResourceKind,
+    pub resources: Vec<TypedResource>,
+}
+
+impl UrpView {
+    /// Build a URP view from a flat list of TypedResource. Groups by
+    /// kind canonical string; sorts buckets ASC by kind; sorts
+    /// resources within each bucket ASC by id.
+    pub fn from_resources(resources: Vec<TypedResource>) -> Self {
+        let total_count = resources.len();
+        let allowlisted_count = resources.iter().filter(|r| r.allowlisted).count();
+
+        use std::collections::BTreeMap;
+        let mut by_kind: BTreeMap<String, (ResourceKind, Vec<TypedResource>)> =
+            BTreeMap::new();
+        for r in resources {
+            let key = r.kind.as_str().to_string();
+            let entry = by_kind
+                .entry(key)
+                .or_insert_with(|| (r.kind.clone(), Vec::new()));
+            entry.1.push(r);
+        }
+        let mut buckets: Vec<UrpBucket> = by_kind
+            .into_iter()
+            .map(|(_key, (kind, mut resources))| {
+                resources.sort_by(|a, b| a.id.cmp(&b.id));
+                UrpBucket { kind, resources }
+            })
+            .collect();
+        // BTreeMap already iterates by key ascending; buckets vec is
+        // therefore already in canonical order.
+        buckets.shrink_to_fit();
+
+        UrpView {
+            buckets,
+            total_count,
+            allowlisted_count,
+        }
+    }
+
+    /// Find the bucket for a specific kind, if any.
+    pub fn bucket(&self, kind: &ResourceKind) -> Option<&UrpBucket> {
+        self.buckets.iter().find(|b| b.kind == *kind)
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════
 // Tests
 // ════════════════════════════════════════════════════════════════════
 
@@ -284,5 +352,89 @@ mod tests {
         let e = t.to_cache_entry();
         let back = TypedResource::from(&e);
         assert_eq!(back.kind, ResourceKind::Custom("telescope-mount".into()));
+    }
+
+    // ─── URP view ────────────────────────────────────────────────
+
+    fn mk(kind: ResourceKind, id: &str, allowlisted: bool) -> TypedResource {
+        TypedResource::new(kind, id.into(), format!("s-{}", id), allowlisted).unwrap()
+    }
+
+    #[test]
+    fn urp_empty_list_yields_empty_view() {
+        let v = UrpView::from_resources(vec![]);
+        assert!(v.buckets.is_empty());
+        assert_eq!(v.total_count, 0);
+        assert_eq!(v.allowlisted_count, 0);
+    }
+
+    #[test]
+    fn urp_single_resource_produces_one_bucket() {
+        let v = UrpView::from_resources(vec![mk(ResourceKind::FilesystemPath, "/a", true)]);
+        assert_eq!(v.buckets.len(), 1);
+        assert_eq!(v.buckets[0].kind, ResourceKind::FilesystemPath);
+        assert_eq!(v.buckets[0].resources.len(), 1);
+        assert_eq!(v.total_count, 1);
+        assert_eq!(v.allowlisted_count, 1);
+    }
+
+    #[test]
+    fn urp_buckets_ordered_alphabetically_by_kind_string() {
+        let v = UrpView::from_resources(vec![
+            mk(ResourceKind::ProcessHandle, "pid-1", false),
+            mk(ResourceKind::FilesystemPath, "/a", true),
+            mk(ResourceKind::NetworkEndpoint, "host:80", true),
+            mk(ResourceKind::Credential, "cred-1", false),
+        ]);
+        // alphabetical by canonical string: credential, filesystem, network, process
+        let kinds: Vec<&str> = v.buckets.iter().map(|b| b.kind.as_str()).collect();
+        assert_eq!(kinds, vec!["credential", "filesystem", "network", "process"]);
+    }
+
+    #[test]
+    fn urp_resources_within_bucket_ordered_by_id() {
+        let v = UrpView::from_resources(vec![
+            mk(ResourceKind::FilesystemPath, "/zz", true),
+            mk(ResourceKind::FilesystemPath, "/aa", true),
+            mk(ResourceKind::FilesystemPath, "/mm", false),
+        ]);
+        assert_eq!(v.buckets.len(), 1);
+        let ids: Vec<&str> = v.buckets[0].resources.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(ids, vec!["/aa", "/mm", "/zz"]);
+    }
+
+    #[test]
+    fn urp_counts_reflect_allowlisted_subset() {
+        let v = UrpView::from_resources(vec![
+            mk(ResourceKind::FilesystemPath, "/a", true),
+            mk(ResourceKind::FilesystemPath, "/b", false),
+            mk(ResourceKind::FilesystemPath, "/c", true),
+        ]);
+        assert_eq!(v.total_count, 3);
+        assert_eq!(v.allowlisted_count, 2);
+    }
+
+    #[test]
+    fn urp_custom_kinds_get_their_own_buckets() {
+        let v = UrpView::from_resources(vec![
+            mk(ResourceKind::Custom("scroll".into()), "t1", true),
+            mk(ResourceKind::FilesystemPath, "/a", true),
+            mk(ResourceKind::Custom("armillary".into()), "m1", false),
+        ]);
+        assert_eq!(v.buckets.len(), 3);
+        // alphabetical: "armillary" < "filesystem" < "scroll"
+        let kinds: Vec<&str> = v.buckets.iter().map(|b| b.kind.as_str()).collect();
+        assert_eq!(kinds, vec!["armillary", "filesystem", "scroll"]);
+    }
+
+    #[test]
+    fn urp_bucket_lookup_by_kind() {
+        let v = UrpView::from_resources(vec![
+            mk(ResourceKind::FilesystemPath, "/a", true),
+            mk(ResourceKind::NetworkEndpoint, "host:80", true),
+        ]);
+        assert!(v.bucket(&ResourceKind::FilesystemPath).is_some());
+        assert!(v.bucket(&ResourceKind::NetworkEndpoint).is_some());
+        assert!(v.bucket(&ResourceKind::ProcessHandle).is_none());
     }
 }

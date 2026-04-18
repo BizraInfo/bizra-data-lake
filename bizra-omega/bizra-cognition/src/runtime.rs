@@ -60,7 +60,7 @@ use crate::resource_registry_cache::{
     ResourceRegistryCache, ResourceRegistryCacheError, ResourceRegistrySnapshot,
 };
 use crate::resource_registry::{
-    RegisterOutcome, ResourceKind, ResourceRegistryError, TypedResource,
+    RegisterOutcome, ResourceKind, ResourceRegistryError, TypedResource, UrpView,
 };
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
@@ -1284,6 +1284,14 @@ impl CognitionRuntime {
             .resources
             .iter()
             .any(|r| r.kind == kind_str && r.id == id && r.allowlisted))
+    }
+
+    /// Cycle-7 G4 Commit-2 — build the Universal Resource Pattern view.
+    /// Canonical projection of the registry grouped by kind with
+    /// deterministic ordering. G5's `dema organize` consults the
+    /// FilesystemPath bucket to locate allowlisted targets.
+    pub fn urp_view(&self) -> Result<UrpView, ResourceRegistryError> {
+        Ok(UrpView::from_resources(self.list_resources()?))
     }
 
     pub fn rehydrate_mission(
@@ -3154,6 +3162,44 @@ mod tests {
             assert!(!rt
                 .is_allowlisted(&ResourceKind::FilesystemPath, "/anything")
                 .unwrap());
+        }
+
+        // ─── URP view via runtime ────────────────────────────────
+
+        #[test]
+        fn urp_view_on_unattached_runtime_is_empty() {
+            let rt = minimal_runtime();
+            let v = rt.urp_view().unwrap();
+            assert!(v.buckets.is_empty());
+            assert_eq!(v.total_count, 0);
+        }
+
+        #[test]
+        fn urp_view_reflects_registered_resources() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            rt.register_resource(fs_resource("/a", true)).unwrap();
+            rt.register_resource(fs_resource("/b", false)).unwrap();
+            rt.register_resource(
+                TypedResource::new(
+                    ResourceKind::NetworkEndpoint,
+                    "host:80".into(),
+                    "web".into(),
+                    true,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+
+            let v = rt.urp_view().unwrap();
+            assert_eq!(v.total_count, 3);
+            assert_eq!(v.allowlisted_count, 2);
+            assert_eq!(v.buckets.len(), 2);
+            let fs = v.bucket(&ResourceKind::FilesystemPath).unwrap();
+            assert_eq!(fs.resources.len(), 2);
+            let net = v.bucket(&ResourceKind::NetworkEndpoint).unwrap();
+            assert_eq!(net.resources.len(), 1);
         }
     }
 }
