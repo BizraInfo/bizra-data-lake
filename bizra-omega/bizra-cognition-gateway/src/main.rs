@@ -522,6 +522,23 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                 "receipt_history cache malformed — will rebuild from chain on next advance"
             ),
         }
+        // Cycle-7 G3 Commit-2 — manifest_history presence.
+        match rt.rehydrate_manifest_history_from_cache() {
+            Ok(Some(snap)) => tracing::info!(
+                target: DOMAIN,
+                manifests = snap.manifests.len(),
+                "manifest_history cache present from prior session"
+            ),
+            Ok(None) => tracing::info!(
+                target: DOMAIN,
+                "manifest_history cache empty; will initialize on first permitted mission"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "manifest_history cache malformed — will rebuild from missions on next permit"
+            ),
+        }
     }
     rt
 }

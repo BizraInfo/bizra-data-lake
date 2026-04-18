@@ -46,6 +46,9 @@ use crate::principal_cache::{PrincipalCacheError, PrincipalProfileCache};
 use crate::receipt_history_cache::{
     ReceiptHistoryCache, ReceiptHistoryCacheError, ReceiptHistorySnapshot,
 };
+use crate::manifest_history_cache::{
+    ManifestHistoryCache, ManifestHistoryCacheError, ManifestHistorySnapshot, ManifestSummary,
+};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -310,6 +313,12 @@ pub struct CognitionRuntime {
     // the append. Best-effort: write failures do not invalidate the
     // sealed chain. Rehydrate via `rehydrate_receipt_history_from_cache`.
     receipt_history_cache: Option<ReceiptHistoryCache>,
+    // Cycle-7 G3 Commit-2 — optional on-disk cache at
+    // sovereign_state/dema_cache/manifest_history.json. Derived from
+    // the `missions` registry (permit-path-only manifests). Refreshed
+    // on every submit_mission permit return. Best-effort; chain stays
+    // truth.
+    manifest_history_cache: Option<ManifestHistoryCache>,
 }
 
 /// Errors produced by CognitionRuntime bootstrap constructors.
@@ -346,6 +355,7 @@ impl CognitionRuntime {
             principal_profile: None,
             dema_cache: None,
             receipt_history_cache: None,
+            manifest_history_cache: None,
         }
     }
 
@@ -384,6 +394,7 @@ impl CognitionRuntime {
             principal_profile: None,
             dema_cache: None,
             receipt_history_cache: None,
+            manifest_history_cache: None,
         })
     }
 
@@ -435,6 +446,7 @@ impl CognitionRuntime {
             principal_profile: None,
             dema_cache: None,
             receipt_history_cache: None,
+            manifest_history_cache: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -560,6 +572,7 @@ impl CognitionRuntime {
             // attempt. Failure is silent — see trailing write on
             // permit-return for the same rationale.
             let _ = self.write_receipt_history_cache();
+            let _ = self.write_manifest_history_cache();
             return Ok(record);
         }
 
@@ -660,6 +673,7 @@ impl CognitionRuntime {
         // next rehydrate. Operator-visible warnings propagate via the
         // principal-activation path which carries `cache_warning`.
         let _ = self.write_receipt_history_cache();
+        let _ = self.write_manifest_history_cache();
         Ok(record)
     }
 
@@ -783,6 +797,7 @@ impl CognitionRuntime {
         // silent because the principal_profile cache write below
         // already carries the operator-visible cache_warning channel.
         let _ = self.write_receipt_history_cache();
+        let _ = self.write_manifest_history_cache();
 
         // Best-effort disk cache write. Failure does not invalidate the
         // sealed chain — the profile remains in-memory and is rebuildable
@@ -827,6 +842,8 @@ impl CognitionRuntime {
         self.dema_cache = Some(PrincipalProfileCache::at_sovereign_root(sovereign_root));
         self.receipt_history_cache =
             Some(ReceiptHistoryCache::at_sovereign_root(sovereign_root));
+        self.manifest_history_cache =
+            Some(ManifestHistoryCache::at_sovereign_root(sovereign_root));
         self
     }
 
@@ -903,6 +920,60 @@ impl CognitionRuntime {
         &self,
     ) -> Result<Option<ReceiptHistorySnapshot>, ReceiptHistoryCacheError> {
         match &self.receipt_history_cache {
+            Some(c) => c.read(),
+            None => Ok(None),
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Cycle-7 G3 Commit-2 — manifest_history cache surface
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Accessor for the attached manifest-history cache (if any).
+    pub fn manifest_history_cache(&self) -> Option<&ManifestHistoryCache> {
+        self.manifest_history_cache.as_ref()
+    }
+
+    /// Build an in-memory snapshot of all ManifestArtifacts currently
+    /// bound to permitted missions. Derived from the `missions`
+    /// registry + current chain head. Authoritative source stays the
+    /// chain; cache is a read fast-path.
+    pub fn manifest_history_snapshot(&self) -> ManifestHistorySnapshot {
+        let mut manifests: Vec<ManifestSummary> = self
+            .missions
+            .values()
+            .filter(|r| !r.rejected)
+            .filter_map(|r| r.manifest.as_ref().map(ManifestSummary::from))
+            .collect();
+        // Deterministic order by window_start then manifest_id.
+        manifests.sort_by(|a, b| {
+            a.window_start
+                .cmp(&b.window_start)
+                .then_with(|| a.manifest_id.cmp(&b.manifest_id))
+        });
+        ManifestHistorySnapshot {
+            chain_head: self.chain.head(),
+            manifests,
+        }
+    }
+
+    /// Best-effort write of the manifest-history cache. `Ok(None)` when
+    /// no cache is attached. See receipt_history counterpart for
+    /// niyyah-alignment rationale.
+    pub fn write_manifest_history_cache(
+        &self,
+    ) -> Option<Result<(), ManifestHistoryCacheError>> {
+        self.manifest_history_cache
+            .as_ref()
+            .map(|c| c.write(&self.manifest_history_snapshot()))
+    }
+
+    /// Load the manifest-history snapshot from the attached cache, if
+    /// present. Chain remains truth — this is a restart-fast-path.
+    pub fn rehydrate_manifest_history_from_cache(
+        &self,
+    ) -> Result<Option<ManifestHistorySnapshot>, ManifestHistoryCacheError> {
+        match &self.manifest_history_cache {
             Some(c) => c.read(),
             None => Ok(None),
         }
@@ -2125,6 +2196,168 @@ mod tests {
             let snap2 = rt.rehydrate_receipt_history_from_cache().unwrap().unwrap();
             assert_eq!(snap2.head, head_after_second);
             assert!(snap2.records.len() > snap1.records.len());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Cycle-7 G3 Commit-2 — manifest_history cache integration
+    // ════════════════════════════════════════════════════════════════
+    mod manifest_history_g3 {
+        use super::*;
+        use crate::manifest_history_cache::ManifestHistoryCache;
+        use crate::principal_activation::{NodeIdentityAnchor, PrincipalActivationEnvelope};
+
+        const TEST_PUBKEY_HEX: &str =
+            "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a";
+
+        fn test_envelope(now_ns: u64) -> PrincipalActivationEnvelope {
+            let a =
+                NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-18T06:00:00Z");
+            PrincipalActivationEnvelope::from_anchor(
+                "Mumo".into(),
+                "node0_principal".into(),
+                &a,
+                now_ns,
+            )
+            .unwrap()
+        }
+
+        #[test]
+        fn empty_runtime_snapshot_has_no_manifests() {
+            let rt = minimal_runtime();
+            let snap = rt.manifest_history_snapshot();
+            assert!(snap.manifests.is_empty());
+            assert_eq!(snap.chain_head, rt.chain.head());
+        }
+
+        #[test]
+        fn attach_dema_cache_also_initializes_manifest_history() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            assert!(rt.manifest_history_cache().is_some());
+        }
+
+        #[test]
+        fn permitted_mission_appends_manifest_to_cache() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let env = test_mission(100);
+            let claim = permit_claim(&env, 200);
+            let record = rt.submit_mission(env, claim).unwrap();
+            assert!(!record.rejected);
+            assert!(record.manifest.is_some(), "permit path emits manifest");
+
+            let loaded = rt
+                .rehydrate_manifest_history_from_cache()
+                .unwrap()
+                .expect("cache written after submit");
+            assert_eq!(loaded.chain_head, rt.chain.head());
+            assert_eq!(loaded.manifests.len(), 1);
+            let expected_id = record.manifest.as_ref().unwrap().manifest_id;
+            assert_eq!(loaded.manifests[0].manifest_id, expected_id);
+        }
+
+        #[test]
+        fn rejected_mission_does_not_add_to_manifest_history() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let env = test_mission(100);
+            let claim = reject_claim(&env, 200);
+            let record = rt.submit_mission(env, claim).unwrap();
+            assert!(record.rejected);
+            assert!(record.manifest.is_none(), "§10: no manifest on reject");
+
+            // Cache is written on reject path but must contain zero
+            // manifests — the missions registry holds the rejected
+            // record with manifest=None, which the snapshot filters.
+            let loaded = rt
+                .rehydrate_manifest_history_from_cache()
+                .unwrap()
+                .unwrap();
+            assert!(loaded.manifests.is_empty());
+        }
+
+        #[test]
+        fn principal_activation_populates_manifest_history() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let record = rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            assert!(!record.rejected);
+
+            let loaded = rt
+                .rehydrate_manifest_history_from_cache()
+                .unwrap()
+                .expect("cache written after activation");
+            assert_eq!(loaded.manifests.len(), 1);
+            // The activation's inner mission record must have a manifest
+            // that matches the one surfaced via the cache.
+            let expected_id = record
+                .mission_record
+                .manifest
+                .as_ref()
+                .expect("activation permit produces manifest")
+                .manifest_id;
+            assert_eq!(loaded.manifests[0].manifest_id, expected_id);
+        }
+
+        #[test]
+        fn multiple_missions_appear_in_deterministic_order() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            // Submit two permitted missions with distinct window_start
+            // (timestamp_ns) so the sort key is exercised.
+            let e1 = test_mission(1_000);
+            let c1 = permit_claim(&e1, 1_100);
+            let r1 = rt.submit_mission(e1, c1).unwrap();
+
+            let e2 = test_mission(2_000);
+            let c2 = permit_claim(&e2, 2_100);
+            let r2 = rt.submit_mission(e2, c2).unwrap();
+
+            let loaded = rt
+                .rehydrate_manifest_history_from_cache()
+                .unwrap()
+                .unwrap();
+            assert_eq!(loaded.manifests.len(), 2);
+            // window_start-ascending order.
+            assert!(
+                loaded.manifests[0].window_start < loaded.manifests[1].window_start,
+                "manifests must be sorted by window_start asc"
+            );
+            // Identity membership.
+            let ids: std::collections::HashSet<_> =
+                loaded.manifests.iter().map(|m| m.manifest_id).collect();
+            assert!(ids.contains(&r1.manifest.unwrap().manifest_id));
+            assert!(ids.contains(&r2.manifest.unwrap().manifest_id));
+        }
+
+        #[test]
+        fn restart_survival_reloads_manifest_history() {
+            let td = tempfile::TempDir::new().unwrap();
+            let expected_len;
+            let expected_id;
+            {
+                let mut rt = minimal_runtime();
+                rt.attach_dema_cache(td.path());
+                let env = test_mission(42);
+                let claim = permit_claim(&env, 84);
+                let rec = rt.submit_mission(env, claim).unwrap();
+                expected_id = rec.manifest.unwrap().manifest_id;
+                expected_len = 1;
+            }
+            let cache = ManifestHistoryCache::at_sovereign_root(td.path());
+            let loaded = cache.read().unwrap().expect("snapshot on disk");
+            assert_eq!(loaded.manifests.len(), expected_len);
+            assert_eq!(loaded.manifests[0].manifest_id, expected_id);
         }
     }
 }
