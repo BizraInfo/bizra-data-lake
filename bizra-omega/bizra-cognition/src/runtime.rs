@@ -42,6 +42,7 @@ use crate::manifest_artifact::ManifestArtifact;
 use crate::principal_activation::{
     PrincipalActivationEnvelope, PrincipalActivationReceipt, PrincipalProfile,
 };
+use crate::principal_cache::{PrincipalCacheError, PrincipalProfileCache};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -161,6 +162,12 @@ pub struct PrincipalActivationRecord {
     pub activation_receipt: Option<PrincipalActivationReceipt>,
     pub rejected: bool,
     pub remediation: Option<String>,
+    /// Cycle-7 G2 Commit-3 — on-disk cache write outcome. `None` if
+    /// no dema_cache was attached, or if write succeeded. `Some(msg)`
+    /// if write failed — the chain is still sealed and profile is
+    /// still in-memory; only the derived cache is stale. Caller may
+    /// retry cache write or rebuild from chain.
+    pub cache_warning: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -286,9 +293,14 @@ pub struct CognitionRuntime {
     sovereign_snapshot: Option<crate::sovereign_state::SovereignStateSnapshot>,
     // Cycle-7 G2 — in-memory principal profile populated by a permitted
     // submit_principal_activation call. Derived and rebuildable from
-    // chain per niyyah §"Writer authority decision (HYBRID)". Durable
-    // disk cache lives in principal_cache.rs (Commit 3).
+    // chain per niyyah §"Writer authority decision (HYBRID)".
     principal_profile: Option<PrincipalProfile>,
+    // Cycle-7 G2 Commit-3 — optional on-disk cache at
+    // sovereign_state/dema_cache/principal.json. When set, permitted
+    // activations auto-write; restart rehydration via
+    // `rehydrate_principal_from_cache`. Opt-in to preserve in-memory
+    // unit-test isolation.
+    dema_cache: Option<PrincipalProfileCache>,
 }
 
 /// Errors produced by CognitionRuntime bootstrap constructors.
@@ -323,6 +335,7 @@ impl CognitionRuntime {
             session_counter: 0,
             sovereign_snapshot: None,
             principal_profile: None,
+            dema_cache: None,
         }
     }
 
@@ -359,6 +372,7 @@ impl CognitionRuntime {
             session_counter: 0,
             sovereign_snapshot: Some(snapshot),
             principal_profile: None,
+            dema_cache: None,
         })
     }
 
@@ -408,6 +422,7 @@ impl CognitionRuntime {
             session_counter: 0,
             sovereign_snapshot: None,
             principal_profile: None,
+            dema_cache: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -711,6 +726,7 @@ impl CognitionRuntime {
                 activation_receipt: None,
                 rejected: true,
                 remediation: Some(remediation),
+                cache_warning: None,
             });
         }
 
@@ -736,6 +752,23 @@ impl CognitionRuntime {
         self.chain.append_with_payload(pa_receipt.clone())?;
         self.principal_profile = Some(profile.clone());
 
+        // Best-effort disk cache write. Failure does not invalidate the
+        // sealed chain — the profile remains in-memory and is rebuildable
+        // from the chain on the next call to rehydrate_principal_from_cache
+        // (once the underlying disk issue is resolved).
+        let cache_warning = if let Some(cache) = self.dema_cache.as_ref() {
+            match cache.write(&profile) {
+                Ok(()) => None,
+                Err(e) => Some(format!(
+                    "dema_cache write failed: {} — chain sealed, profile in-memory, \
+                     retry or rebuild from chain",
+                    e
+                )),
+            }
+        } else {
+            None
+        };
+
         Ok(PrincipalActivationRecord {
             envelope: activation_envelope,
             mission_record,
@@ -743,6 +776,7 @@ impl CognitionRuntime {
             activation_receipt: Some(pa_receipt),
             rejected: false,
             remediation: None,
+            cache_warning,
         })
     }
 
@@ -750,6 +784,45 @@ impl CognitionRuntime {
     /// Niyyah §"Writer authority decision (HYBRID)": derived, rebuildable.
     pub fn principal_profile(&self) -> Option<&PrincipalProfile> {
         self.principal_profile.as_ref()
+    }
+
+    /// Cycle-7 G2 Commit-3 — attach an on-disk dema_cache rooted at a
+    /// sovereign_state/ directory. Subsequent permitted activations will
+    /// auto-persist the PrincipalProfile to
+    /// `<root>/dema_cache/principal.json`. Returns `&mut self` for
+    /// builder-style composition.
+    pub fn attach_dema_cache(&mut self, sovereign_root: &std::path::Path) -> &mut Self {
+        self.dema_cache = Some(PrincipalProfileCache::at_sovereign_root(sovereign_root));
+        self
+    }
+
+    /// Accessor for the attached dema cache (if any). Exposed for test
+    /// harness use (inspecting the cache file path, forcing re-read).
+    pub fn dema_cache(&self) -> Option<&PrincipalProfileCache> {
+        self.dema_cache.as_ref()
+    }
+
+    /// Load an existing principal profile from the attached dema_cache,
+    /// if one is present on disk. On success, sets `self.principal_profile`.
+    /// Returns `Ok(true)` when a profile was loaded, `Ok(false)` when the
+    /// cache file is absent, and `Err` when the cache is attached but the
+    /// file is malformed.
+    ///
+    /// Niyyah §"Writer authority decision": the cache is derived and
+    /// rebuildable. If this loader errors, callers should consider
+    /// rebuilding the profile from chain rather than aborting.
+    pub fn rehydrate_principal_from_cache(&mut self) -> Result<bool, PrincipalCacheError> {
+        let cache = match &self.dema_cache {
+            Some(c) => c,
+            None => return Ok(false),
+        };
+        match cache.read()? {
+            Some(profile) => {
+                self.principal_profile = Some(profile);
+                Ok(true)
+            }
+            None => Ok(false),
+        }
     }
 
     pub fn rehydrate_mission(
@@ -1610,6 +1683,123 @@ mod tests {
             let pa_receipt = record.activation_receipt.as_ref().unwrap();
             assert_eq!(rt.chain.head(), pa_receipt.receipt_id,
                 "chain head must equal the PrincipalActivationReceipt id after permit");
+        }
+
+        // ── Cycle-7 G2 Commit-3 — disk cache integration ──
+
+        #[test]
+        fn activate_with_cache_writes_profile_to_disk() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let env = test_envelope(10_000);
+            let record = rt.submit_principal_activation(env, 0.98).unwrap();
+
+            assert!(!record.rejected);
+            assert!(record.cache_warning.is_none(), "cache write should succeed");
+            let cache = rt.dema_cache().expect("cache attached");
+            assert!(cache.principal_path().exists(),
+                "principal.json must exist on disk after permit activation");
+        }
+
+        #[test]
+        fn activate_reject_does_not_write_cache() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let env = test_envelope(11_000);
+            let record = rt.submit_principal_activation(env, 0.40).unwrap();
+
+            assert!(record.rejected);
+            let cache = rt.dema_cache().unwrap();
+            assert!(!cache.principal_path().exists(),
+                "rejected activation must not touch disk cache (§10 Proof Law)");
+        }
+
+        #[test]
+        fn activate_without_cache_skips_disk_write() {
+            let mut rt = minimal_runtime();
+            // No attach_dema_cache call.
+            let env = test_envelope(12_000);
+            let record = rt.submit_principal_activation(env, 0.98).unwrap();
+            assert!(!record.rejected);
+            assert!(record.cache_warning.is_none());
+            assert!(rt.dema_cache().is_none());
+            assert!(rt.principal_profile().is_some(),
+                "in-memory profile still set even without cache attached");
+        }
+
+        #[test]
+        fn restart_simulation_reloads_profile_from_cache() {
+            // G2 success criterion: "principal profile persisted" — verify
+            // the profile survives a fresh runtime construction pointing
+            // at the same sovereign_state root.
+            let td = tempfile::TempDir::new().unwrap();
+            let sovereign_root = td.path();
+
+            // 1. First runtime: activate + write cache.
+            {
+                let mut rt = minimal_runtime();
+                rt.attach_dema_cache(sovereign_root);
+                let env = test_envelope(20_000);
+                let record = rt.submit_principal_activation(env, 0.98).unwrap();
+                assert!(!record.rejected);
+                assert!(record.cache_warning.is_none());
+            } // drop — simulate process exit
+
+            // 2. Second runtime (empty chain, fresh state): attach same
+            //    cache, rehydrate profile from disk.
+            let mut rt2 = minimal_runtime();
+            rt2.attach_dema_cache(sovereign_root);
+            assert!(rt2.principal_profile().is_none(),
+                "fresh runtime has no in-memory profile before rehydrate");
+            let loaded = rt2.rehydrate_principal_from_cache().unwrap();
+            assert!(loaded, "profile must be readable from cache after restart");
+
+            let p = rt2.principal_profile().expect("profile now in memory");
+            assert_eq!(p.name, "Mumo");
+            assert_eq!(p.node_id, "NODE0");
+            assert_eq!(p.declared_role, "node0_principal");
+        }
+
+        #[test]
+        fn rehydrate_without_cache_attached_returns_false() {
+            let mut rt = minimal_runtime();
+            let result = rt.rehydrate_principal_from_cache().unwrap();
+            assert!(!result, "no cache attached → Ok(false)");
+            assert!(rt.principal_profile().is_none());
+        }
+
+        #[test]
+        fn rehydrate_from_empty_cache_returns_false() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let result = rt.rehydrate_principal_from_cache().unwrap();
+            assert!(!result, "cache attached but no file → Ok(false)");
+        }
+
+        #[test]
+        fn cache_roundtrip_preserves_profile_hash() {
+            // Strong invariant: writing then reading through the cache
+            // produces a profile whose profile_hash() matches the
+            // PrincipalActivationReceipt.principal_profile_hash exactly.
+            // This is what G2 binding integrity depends on.
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let env = test_envelope(30_000);
+            let record = rt.submit_principal_activation(env, 0.98).unwrap();
+            let original_hash = record.profile.as_ref().unwrap().profile_hash();
+            let receipt_hash = record.activation_receipt.as_ref().unwrap().principal_profile_hash;
+            assert_eq!(original_hash, receipt_hash);
+
+            let mut rt2 = minimal_runtime();
+            rt2.attach_dema_cache(td.path());
+            rt2.rehydrate_principal_from_cache().unwrap();
+            let reloaded_hash = rt2.principal_profile().unwrap().profile_hash();
+            assert_eq!(reloaded_hash, original_hash,
+                "profile_hash must survive disk round-trip for G2 binding integrity");
         }
 
         #[test]
