@@ -33,6 +33,7 @@ use bizra_cognition::resource_registry::{
     RegisterOutcome, ResourceKind, TypedResource, UrpView,
 };
 use bizra_cognition::runtime::OrganizeOutcome;
+use bizra_cognition::poi_ledger::PoiEntry;
 use bizra_cognition::receipts::{
     Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind,
 };
@@ -334,6 +335,84 @@ fn default_organize_quality() -> f64 {
 struct OrganizeEntryDto {
     name: String,
     kind: &'static str,
+}
+
+// ─── Cycle-7 G6 — /poi DTOs ───────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct PoiEntryDto {
+    #[serde(rename = "receiptId")]
+    receipt_id: String,
+    #[serde(rename = "receiptKindByte")]
+    receipt_kind_byte: u8,
+    #[serde(rename = "receiptKindName")]
+    receipt_kind_name: &'static str,
+    #[serde(rename = "qualityScore")]
+    quality_score: f64,
+    #[serde(rename = "gateMinScore")]
+    gate_min_score: f64,
+    #[serde(rename = "entryCount")]
+    entry_count: u32,
+    #[serde(rename = "impactScore")]
+    impact_score: f64,
+    #[serde(rename = "timestampNs")]
+    timestamp_ns: u64,
+    #[serde(rename = "principalId", skip_serializing_if = "Option::is_none")]
+    principal_id: Option<String>,
+}
+
+impl From<&PoiEntry> for PoiEntryDto {
+    fn from(e: &PoiEntry) -> Self {
+        let receipt_kind_name = match e.receipt_kind_byte {
+            0x61 => "PrincipalActivation",
+            0x70 => "MissionExecuted",
+            _ => "Unknown",
+        };
+        PoiEntryDto {
+            receipt_id: hex32(&e.receipt_id),
+            receipt_kind_byte: e.receipt_kind_byte,
+            receipt_kind_name,
+            quality_score: e.quality_score,
+            gate_min_score: e.gate_min_score,
+            entry_count: e.entry_count,
+            impact_score: e.impact_score,
+            timestamp_ns: e.timestamp_ns,
+            principal_id: e.principal_id.as_ref().map(hex32),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct PoiLedgerResponse {
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    entries: Vec<PoiEntryDto>,
+}
+
+#[derive(Serialize)]
+struct PoiPerKindDto {
+    kind: &'static str,
+    count: usize,
+    #[serde(rename = "totalImpact")]
+    total_impact: f64,
+    #[serde(rename = "avgImpact")]
+    avg_impact: f64,
+}
+
+#[derive(Serialize)]
+struct PoiSummaryResponse {
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    #[serde(rename = "totalEntries")]
+    total_entries: usize,
+    #[serde(rename = "totalImpact")]
+    total_impact: f64,
+    #[serde(rename = "avgImpact")]
+    avg_impact: f64,
+    #[serde(rename = "maxImpact")]
+    max_impact: f64,
+    #[serde(rename = "byKind")]
+    by_kind: Vec<PoiPerKindDto>,
 }
 
 #[derive(Serialize)]
@@ -704,6 +783,27 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                 "state_snapshots cache malformed — will rebuild from missions on next attempt"
             ),
         }
+        // Cycle-7 G6 — restore PoI ledger in-memory state from the
+        // disk cache so `/poi/ledger` and `/poi/summary` are correct
+        // across gateway restarts. Chain stays truth; a future
+        // rebuild-from-chain call can verify+repair if needed.
+        match rt.load_poi_entries_from_cache() {
+            Ok(true) => tracing::info!(
+                target: DOMAIN,
+                entries = rt.poi_entries().len(),
+                "poi_ledger restored from prior session"
+            ),
+            Ok(false) => tracing::info!(
+                target: DOMAIN,
+                "poi_ledger cache empty; ledger begins fresh this session"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "poi_ledger cache malformed — ledger begins fresh; rebuild from chain will repair"
+            ),
+        }
+
         // Cycle-7 G3 Commit-5 — resource_registry seed. Ensure the
         // empty file exists at boot so G4 (URP + allowlist) can assume
         // the schema is already locked.
@@ -1217,6 +1317,71 @@ async fn get_resources_list(
     }))
 }
 
+// ─── Cycle-7 G6 — /poi handlers ──────────────────────────────────────────
+
+async fn get_poi_ledger(
+    State(state): State<AppState>,
+) -> Json<PoiLedgerResponse> {
+    let rt = state.runtime.read().await;
+    let snap = rt.poi_ledger_snapshot();
+    Json(PoiLedgerResponse {
+        chain_head: hex32(&snap.chain_head),
+        entries: snap.entries.iter().map(PoiEntryDto::from).collect(),
+    })
+}
+
+async fn get_poi_summary(
+    State(state): State<AppState>,
+) -> Json<PoiSummaryResponse> {
+    let rt = state.runtime.read().await;
+    let snap = rt.poi_ledger_snapshot();
+    let total = snap.entries.len();
+    let total_impact: f64 = snap.entries.iter().map(|e| e.impact_score).sum();
+    let max_impact = snap
+        .entries
+        .iter()
+        .map(|e| e.impact_score)
+        .fold(0.0_f64, f64::max);
+    let avg_impact = if total > 0 {
+        total_impact / (total as f64)
+    } else {
+        0.0
+    };
+
+    let kinds: [(u8, &'static str); 2] = [
+        (0x61, "PrincipalActivation"),
+        (0x70, "MissionExecuted"),
+    ];
+    let mut by_kind: Vec<PoiPerKindDto> = Vec::with_capacity(kinds.len());
+    for (byte, name) in kinds {
+        let scoped: Vec<&PoiEntry> = snap
+            .entries
+            .iter()
+            .filter(|e| e.receipt_kind_byte == byte)
+            .collect();
+        let count = scoped.len();
+        if count == 0 {
+            continue;
+        }
+        let total: f64 = scoped.iter().map(|e| e.impact_score).sum();
+        by_kind.push(PoiPerKindDto {
+            kind: name,
+            count,
+            total_impact: total,
+            avg_impact: total / (count as f64),
+        });
+    }
+
+    Json(PoiSummaryResponse {
+        chain_head: hex32(&snap.chain_head),
+        total_entries: total,
+        total_impact,
+        avg_impact,
+        max_impact,
+        by_kind,
+    })
+}
+
 async fn post_organize(
     State(state): State<AppState>,
     Json(req): Json<OrganizeRequest>,
@@ -1481,6 +1646,8 @@ fn router(state: AppState) -> Router {
         .route("/resources/list", get(get_resources_list))
         .route("/resources/urp", get(get_resources_urp))
         .route("/missions/organize", post(post_organize))
+        .route("/poi/ledger", get(get_poi_ledger))
+        .route("/poi/summary", get(get_poi_summary))
         .with_state(state)
 }
 
@@ -2336,5 +2503,181 @@ mod tests {
         let body = to_bytes(res.into_body(), 4096).await.unwrap();
         let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(v["error"]["code"], "EMPTY_PATH");
+    }
+
+    // ─── Cycle-7 G6 — /poi tests ──────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_poi_ledger_empty_on_fresh_runtime() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/ledger")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["entries"].as_array().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn get_poi_summary_reports_zero_when_empty() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/summary")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["totalEntries"], 0);
+        assert_eq!(v["totalImpact"], 0.0);
+        assert_eq!(v["byKind"].as_array().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn get_poi_ledger_contains_entry_after_organize() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+        let _ = post_organize(router(state.clone()), &target.to_string_lossy(), 0.98).await;
+
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/ledger")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 16384).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let entries = v["entries"].as_array().unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0]["receiptKindName"], "MissionExecuted");
+        assert_eq!(entries[0]["entryCount"], 3);
+    }
+
+    #[tokio::test]
+    async fn get_poi_summary_aggregates_per_kind() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+        let _ = post_organize(router(state.clone()), &target.to_string_lossy(), 0.98).await;
+        // 2nd organize to get a 2nd MissionExecuted entry
+        let _ = post_organize(router(state.clone()), &target.to_string_lossy(), 0.98).await;
+
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/summary")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["totalEntries"], 2);
+        let by_kind = v["byKind"].as_array().unwrap();
+        assert_eq!(by_kind.len(), 1);
+        assert_eq!(by_kind[0]["kind"], "MissionExecuted");
+        assert_eq!(by_kind[0]["count"], 2);
+    }
+
+    #[tokio::test]
+    async fn get_poi_summary_splits_activation_and_execution_buckets() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        // Seed identity anchor so activation can run.
+        std::fs::create_dir_all(td.path().join("identity")).unwrap();
+        std::fs::write(
+            td.path().join("identity/credentials.json"),
+            br#"{"node_id":"NODE0","public_key":"0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a","created_at":"2026-04-18T08:00:00Z"}"#,
+        )
+        .unwrap();
+        let state = new_state_with_dema_cache(td.path());
+
+        // 1) activate
+        let anchor_path = td.path().join("identity/credentials.json");
+        let activate_body = serde_json::json!({
+            "principalName": "Mumo",
+            "declaredRole": "node0_principal",
+            "qualityScore": 0.98,
+            "identityAnchorPath": anchor_path.to_string_lossy(),
+        })
+        .to_string();
+        let _ = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(activate_body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // 2) register + organize
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+        let _ = post_organize(router(state.clone()), &target.to_string_lossy(), 0.98).await;
+
+        // 3) summary
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/summary")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["totalEntries"], 2);
+        let by_kind = v["byKind"].as_array().unwrap();
+        assert_eq!(by_kind.len(), 2);
+        let names: Vec<&str> = by_kind.iter().map(|b| b["kind"].as_str().unwrap()).collect();
+        assert!(names.contains(&"PrincipalActivation"));
+        assert!(names.contains(&"MissionExecuted"));
     }
 }
