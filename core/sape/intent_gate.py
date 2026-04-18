@@ -17,12 +17,12 @@ from typing import List, Optional, Tuple
 from core.integration.constants import INTENT_FLOOR
 
 from .types import (
+    STAKES_TO_MODE,
     EvidenceLevel,
     ExecutionMode,
     IntentSlots,
-    ModuleResult,
     Module,
-    STAKES_TO_MODE,
+    ModuleResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -55,9 +55,7 @@ def validate_intent(slots: IntentSlots) -> Tuple[bool, List[str]]:
         )
 
     if slots.stakes == "H" and not slots.constraints:
-        errors.append(
-            "Intent Gate: high-stakes task requires explicit constraints"
-        )
+        errors.append("Intent Gate: high-stakes task requires explicit constraints")
 
     return len(errors) == 0, errors
 

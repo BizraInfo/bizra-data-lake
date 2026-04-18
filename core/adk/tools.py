@@ -12,6 +12,7 @@ def tool(fn: Callable | None = None, *, max_results: int = 50) -> Callable:
     Decorated methods are tracked in the agent's tool registry and each
     invocation is counted against the mission's tool-call budget.
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
@@ -21,6 +22,7 @@ def tool(fn: Callable | None = None, *, max_results: int = 50) -> Callable:
             if isinstance(result, list) and len(result) > max_results:
                 result = result[:max_results]
             return result
+
         wrapper._is_bizra_tool = True
         wrapper._max_results = max_results
         wrapper._tool_name = func.__name__

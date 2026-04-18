@@ -32,6 +32,7 @@ class AgentIdentity:
 @dataclass
 class AgentResult:
     """The output of an agent run — either a receipted answer or a block."""
+
     success: bool
     content: str
     evidence_refs: list[str]
@@ -45,6 +46,7 @@ class AgentResult:
 
 class _DraftOutput:
     """Intermediate: content + evidence before FATE evaluation."""
+
     __slots__ = ("content", "evidence_refs")
 
     def __init__(self, content: str, evidence_refs: list[str]):
@@ -54,6 +56,7 @@ class _DraftOutput:
 
 class _RefuseOutput:
     """Intermediate: agent honestly refuses the mission."""
+
     __slots__ = ("reason",)
 
     def __init__(self, reason: str):
@@ -62,12 +65,14 @@ class _RefuseOutput:
 
 def charter(text: str):
     """Decorator that binds an immutable charter to an Agent class."""
+
     def decorator(cls):
         cls._charter_text = text.strip()
         cls._charter_hash = hashlib.blake2b(
             text.strip().encode(), digest_size=32
         ).hexdigest()
         return cls
+
     return decorator
 
 
@@ -79,6 +84,7 @@ class Agent(ABC):
     - set `name` and `governance_class`
     - implement `async def act(self, mission) -> self.draft(...) | self.refuse(...)`
     """
+
     name: str = "UnnamedAgent"
     governance_class: str = "PAT"
     model: str = "gemma4:26b-bizra-16k"
@@ -135,4 +141,5 @@ class Agent(ABC):
         and wraps the result in the full receipt + FATE + loop proof pipeline.
         """
         from core.adk.runner import execute_agent_lifecycle
+
         return await execute_agent_lifecycle(self, mission)

@@ -38,6 +38,7 @@ class GuardianAgent(Agent):
 
         try:
             from core.sat.composite_evaluator import evaluate_all_gates
+
             verdict = evaluate_all_gates(skip_slow=True, skip_manual=True)
 
             results_text = []
@@ -76,8 +77,13 @@ class GuardianAgent(Agent):
                 IHSAN_THRESHOLD,
                 SNR_THRESHOLD,
             )
-            checks.append(f"IHSAN_THRESHOLD={IHSAN_THRESHOLD} (must be >= 0.95): {'OK' if IHSAN_THRESHOLD >= 0.95 else 'VIOLATION'}")
-            checks.append(f"SNR_THRESHOLD={SNR_THRESHOLD} (must be >= 0.85): {'OK' if SNR_THRESHOLD >= 0.85 else 'VIOLATION'}")
+
+            checks.append(
+                f"IHSAN_THRESHOLD={IHSAN_THRESHOLD} (must be >= 0.95): {'OK' if IHSAN_THRESHOLD >= 0.95 else 'VIOLATION'}"
+            )
+            checks.append(
+                f"SNR_THRESHOLD={SNR_THRESHOLD} (must be >= 0.85): {'OK' if SNR_THRESHOLD >= 0.85 else 'VIOLATION'}"
+            )
             refs.append("const:thresholds")
         except ImportError:
             checks.append("FAILED to import constants")
@@ -111,7 +117,9 @@ class GuardianAgent(Agent):
                 f"All 5 SAT gates passed. Output is cleared for FATE crossing."
             )
         else:
-            blocking = self._gate_verdict.blocking_gates if self._gate_verdict else ["unknown"]
+            blocking = (
+                self._gate_verdict.blocking_gates if self._gate_verdict else ["unknown"]
+            )
             report = (
                 f"# SAT-5 Compliance Report\n\n"
                 f"**Verdict: BLOCKED**\n"
