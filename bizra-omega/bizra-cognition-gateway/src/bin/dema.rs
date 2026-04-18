@@ -121,6 +121,16 @@ enum Command {
     ListResources,
     /// Cycle-7 G4 — show the Universal Resource Pattern projection
     Urp,
+    /// Cycle-7 G5 — first real operator mission: read-only organize of
+    /// an allowlisted filesystem path. Registers a listing digest,
+    /// seals a MissionExecuted receipt to the chain.
+    Organize {
+        /// Absolute path to an allowlisted directory
+        path: String,
+        /// Quality score (default 0.98, must be ≥ 0.95 for IHSAN_FLOOR)
+        #[arg(long, default_value_t = DEFAULT_QUALITY_SCORE)]
+        quality: f64,
+    },
 }
 
 #[derive(Deserialize)]
@@ -279,6 +289,44 @@ struct UrpViewOk {
     #[serde(rename = "allowlistedCount")]
     allowlisted_count: usize,
     buckets: Vec<UrpBucketOk>,
+}
+
+// ─── Cycle-7 G5 — organize DTOs ────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct OrganizeReq<'a> {
+    path: &'a str,
+    #[serde(rename = "qualityScore")]
+    quality_score: f64,
+}
+
+#[derive(Deserialize)]
+struct OrganizeEntryOk {
+    name: String,
+    kind: String,
+}
+
+#[derive(Deserialize)]
+struct OrganizeOk {
+    #[serde(rename = "missionId")]
+    mission_id: String,
+    #[serde(rename = "missionReceiptId")]
+    mission_receipt_id: String,
+    #[serde(rename = "organizeReceiptId")]
+    organize_receipt_id: String,
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    path: String,
+    #[serde(rename = "listingDigest")]
+    listing_digest: String,
+    #[serde(rename = "fileCount")]
+    file_count: u32,
+    #[serde(rename = "dirCount")]
+    dir_count: u32,
+    #[serde(rename = "entryCount")]
+    entry_count: u32,
+    entries: Vec<OrganizeEntryOk>,
+    admissibility: Admissibility,
 }
 
 #[derive(Serialize)]
@@ -699,6 +747,88 @@ fn cmd_urp(json: bool) -> Result<()> {
     Ok(())
 }
 
+// ─── Cycle-7 G5 — organize CLI ─────────────────────────────────────────
+
+fn print_organize_ok(o: &OrganizeOk) {
+    println!("organize — permitted, receipted, sealed");
+    println!("  path:                {}", o.path);
+    println!("  mission_id:          {}", o.mission_id);
+    println!("  mission_receipt:     {}", o.mission_receipt_id);
+    println!("  organize_receipt:    {}", o.organize_receipt_id);
+    println!("  chain_head:          {}", o.chain_head);
+    println!("  listing_digest:      {}", o.listing_digest);
+    println!(
+        "  summary:             {} entries ({} files, {} dirs)",
+        o.entry_count, o.file_count, o.dir_count
+    );
+    if !o.entries.is_empty() {
+        println!("  entries:");
+        for e in &o.entries {
+            let marker = match e.kind.as_str() {
+                "directory" => "d",
+                "file" => "f",
+                "symlink" => "l",
+                _ => "?",
+            };
+            println!("    {} {}", marker, e.name);
+        }
+    }
+    println!("  admissibility:       verdict={}", o.admissibility.verdict);
+    if o.chain_head == o.organize_receipt_id {
+        println!("  ✓ chain head == organize receipt — sealed");
+    }
+}
+
+fn cmd_organize(path: &str, quality: f64, json: bool) -> Result<bool> {
+    let req = OrganizeReq {
+        path,
+        quality_score: quality,
+    };
+    let url = format!("{}/missions/organize", gateway_url());
+    let resp = client()?
+        .post(&url)
+        .json(&req)
+        .send()
+        .with_context(|| format!("POST {}", url))?;
+    let status = resp.status();
+    let text = resp.text().context("read response body")?;
+    if status.is_success() {
+        let body: OrganizeOk = serde_json::from_str(&text).context("decode organize OK")?;
+        if json {
+            println!("{}", text);
+        } else {
+            print_organize_ok(&body);
+        }
+        Ok(true)
+    } else if status.as_u16() == 422 {
+        // Admissibility rejection — honest outcome, not a CLI error.
+        let body: SubmitError = serde_json::from_str(&text).context("decode reject 422")?;
+        if json {
+            println!("{}", text);
+        } else {
+            print_submit_rejected(&body.error);
+        }
+        Ok(false)
+    } else if status.as_u16() == 403 {
+        // Pre-gate refusal — not allowlisted.
+        if json {
+            println!("{}", text);
+        } else {
+            let v: serde_json::Value =
+                serde_json::from_str(&text).unwrap_or_else(|_| serde_json::Value::Null);
+            let msg = v["error"]["message"].as_str().unwrap_or("not allowlisted");
+            eprintln!("dema organize REFUSED: {}", msg);
+        }
+        Ok(false)
+    } else {
+        Err(anyhow!(
+            "gateway returned HTTP {} — body: {}",
+            status,
+            &text[..text.len().min(500)]
+        ))
+    }
+}
+
 fn cmd_status(json: bool) -> Result<()> {
     // Default no-arg behavior: health + chain summary in one shot
     let h_url = format!("{}/health", gateway_url());
@@ -768,6 +898,11 @@ fn main() -> ExitCode {
         }) => cmd_register_resource(&kind, &id, &summary, allowlisted, cli.json),
         Some(Command::ListResources) => cmd_list_resources(cli.json),
         Some(Command::Urp) => cmd_urp(cli.json),
+        Some(Command::Organize { path, quality }) => match cmd_organize(&path, quality, cli.json) {
+            Ok(true) => Ok(()),
+            Ok(false) => return ExitCode::from(2),
+            Err(e) => Err(e),
+        },
     };
 
     match result {
