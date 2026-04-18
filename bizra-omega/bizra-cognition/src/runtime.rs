@@ -412,6 +412,7 @@ impl CognitionRuntime {
                 | ReceiptKind::GovernanceDecision
                 | ReceiptKind::NodeLifecycle
                 | ReceiptKind::Manifest
+                | ReceiptKind::PrincipalActivation
                 | ReceiptKind::DegradedPath => {}
             }
         }

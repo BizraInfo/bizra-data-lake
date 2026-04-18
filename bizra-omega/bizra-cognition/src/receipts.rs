@@ -41,6 +41,10 @@ pub enum ReceiptKind {
     // Cycle-7 G1 — dedicated kind for ManifestArtifact (was previously
     // reusing NodeLifecycle). Non-breaking: new byte; old variants unchanged.
     Manifest           = 0x60,
+    // Cycle-7 G2 — dedicated kind for PrincipalActivationReceipt.
+    // Binds a NodeLifecycle mission receipt to a principal profile hash,
+    // non-transferable and proof-bearing per niyyah §6 (local-only PoI).
+    PrincipalActivation = 0x61,
     DegradedPath       = 0xF0,
 }
 
@@ -55,6 +59,7 @@ impl ReceiptKind {
             0x40 => Some(Self::GovernanceDecision),
             0x50 => Some(Self::NodeLifecycle),
             0x60 => Some(Self::Manifest),
+            0x61 => Some(Self::PrincipalActivation),
             0xF0 => Some(Self::DegradedPath),
             _ => None,
         }

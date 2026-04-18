@@ -18,6 +18,7 @@ pub mod receipt_freeze_v1;
 pub mod admissibility_freeze_v1;
 pub mod mission_freeze_v1;
 pub mod manifest_artifact;
+pub mod principal_activation;
 pub mod thought_graph;
 pub mod configure_cognition;
 pub mod runtime;
