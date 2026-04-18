@@ -131,6 +131,14 @@ enum Command {
         #[arg(long, default_value_t = DEFAULT_QUALITY_SCORE)]
         quality: f64,
     },
+    /// Cycle-7 G6 — Proof-of-Impact ledger. By default prints the
+    /// operator-visible summary (totals + per-kind buckets). Use
+    /// --full to print every entry.
+    Poi {
+        /// Show every ledger entry instead of the summary.
+        #[arg(long)]
+        full: bool,
+    },
 }
 
 #[derive(Deserialize)]
@@ -304,6 +312,61 @@ struct OrganizeReq<'a> {
 struct OrganizeEntryOk {
     name: String,
     kind: String,
+}
+
+// ─── Cycle-7 G6 — poi DTOs ─────────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct PoiEntryOk {
+    #[serde(rename = "receiptId")]
+    receipt_id: String,
+    #[serde(rename = "receiptKindName")]
+    receipt_kind_name: String,
+    #[serde(rename = "qualityScore")]
+    quality_score: f64,
+    #[serde(rename = "gateMinScore")]
+    gate_min_score: f64,
+    #[serde(rename = "entryCount")]
+    entry_count: u32,
+    #[serde(rename = "impactScore")]
+    impact_score: f64,
+    #[serde(rename = "timestampNs")]
+    timestamp_ns: u64,
+    #[serde(rename = "principalId", default)]
+    principal_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct PoiLedgerOk {
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    entries: Vec<PoiEntryOk>,
+}
+
+#[derive(Deserialize)]
+struct PoiPerKindOk {
+    kind: String,
+    count: usize,
+    #[serde(rename = "totalImpact")]
+    total_impact: f64,
+    #[serde(rename = "avgImpact")]
+    avg_impact: f64,
+}
+
+#[derive(Deserialize)]
+struct PoiSummaryOk {
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    #[serde(rename = "totalEntries")]
+    total_entries: usize,
+    #[serde(rename = "totalImpact")]
+    total_impact: f64,
+    #[serde(rename = "avgImpact")]
+    avg_impact: f64,
+    #[serde(rename = "maxImpact")]
+    max_impact: f64,
+    #[serde(rename = "byKind")]
+    by_kind: Vec<PoiPerKindOk>,
 }
 
 #[derive(Deserialize)]
@@ -829,6 +892,98 @@ fn cmd_organize(path: &str, quality: f64, json: bool) -> Result<bool> {
     }
 }
 
+// ─── Cycle-7 G6 — poi CLI ──────────────────────────────────────────────
+
+fn print_poi_summary(s: &PoiSummaryOk) {
+    println!("POI ledger — {} entries", s.total_entries);
+    if s.total_entries == 0 {
+        println!("  (ledger empty)");
+        return;
+    }
+    println!("  total impact: {:.4}", s.total_impact);
+    println!("  avg impact:   {:.4}", s.avg_impact);
+    println!("  max impact:   {:.4}", s.max_impact);
+    println!("  chain head:   {}", s.chain_head);
+    println!();
+    println!("  by kind:");
+    for b in &s.by_kind {
+        println!(
+            "    [{}] count={} total={:.4} avg={:.4}",
+            b.kind, b.count, b.total_impact, b.avg_impact
+        );
+    }
+}
+
+fn print_poi_ledger(l: &PoiLedgerOk) {
+    println!("POI ledger — {} entries", l.entries.len());
+    if l.entries.is_empty() {
+        println!("  (ledger empty)");
+        return;
+    }
+    println!("  chain head: {}", l.chain_head);
+    for e in &l.entries {
+        println!();
+        println!("  [{}] impact={:.4}", e.receipt_kind_name, e.impact_score);
+        println!("    receipt:       {}", e.receipt_id);
+        println!(
+            "    quality/gate:  {:.4} / {:.4}",
+            e.quality_score, e.gate_min_score
+        );
+        println!("    entry_count:   {}", e.entry_count);
+        println!("    timestamp_ns:  {}", e.timestamp_ns);
+        if let Some(pid) = &e.principal_id {
+            println!("    principal:     {}", pid);
+        }
+    }
+}
+
+fn cmd_poi(full: bool, json: bool) -> Result<()> {
+    if full {
+        let url = format!("{}/poi/ledger", gateway_url());
+        let resp = client()?
+            .get(&url)
+            .send()
+            .with_context(|| format!("GET {}", url))?;
+        let status = resp.status();
+        let text = resp.text().context("read response body")?;
+        if !status.is_success() {
+            return Err(anyhow!(
+                "gateway returned HTTP {} — body: {}",
+                status,
+                &text[..text.len().min(500)]
+            ));
+        }
+        if json {
+            println!("{}", text);
+            return Ok(());
+        }
+        let body: PoiLedgerOk = serde_json::from_str(&text).context("decode ledger")?;
+        print_poi_ledger(&body);
+    } else {
+        let url = format!("{}/poi/summary", gateway_url());
+        let resp = client()?
+            .get(&url)
+            .send()
+            .with_context(|| format!("GET {}", url))?;
+        let status = resp.status();
+        let text = resp.text().context("read response body")?;
+        if !status.is_success() {
+            return Err(anyhow!(
+                "gateway returned HTTP {} — body: {}",
+                status,
+                &text[..text.len().min(500)]
+            ));
+        }
+        if json {
+            println!("{}", text);
+            return Ok(());
+        }
+        let body: PoiSummaryOk = serde_json::from_str(&text).context("decode summary")?;
+        print_poi_summary(&body);
+    }
+    Ok(())
+}
+
 fn cmd_status(json: bool) -> Result<()> {
     // Default no-arg behavior: health + chain summary in one shot
     let h_url = format!("{}/health", gateway_url());
@@ -903,6 +1058,7 @@ fn main() -> ExitCode {
             Ok(false) => return ExitCode::from(2),
             Err(e) => Err(e),
         },
+        Some(Command::Poi { full }) => cmd_poi(full, cli.json),
     };
 
     match result {
