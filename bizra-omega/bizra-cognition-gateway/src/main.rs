@@ -26,9 +26,7 @@ use bizra_cognition::admissibility_freeze_v1::{
 use bizra_cognition::mission_freeze_v1::{
     MissionEnvelope, MissionStage, Originator, StateSnapshot,
 };
-use bizra_cognition::receipts::{
-    Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind,
-};
+use bizra_cognition::receipts::{Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind};
 use bizra_cognition::runtime::{
     CognitionRuntime, MissionReplayResult, MissionRuntimeError, MissionRuntimeRecord,
 };
@@ -274,7 +272,11 @@ fn state_snapshot_from_dto(
             }),
         )
     })?;
-    Ok(StateSnapshot { hash, summary: dto.summary, metric: dto.metric })
+    Ok(StateSnapshot {
+        hash,
+        summary: dto.summary,
+        metric: dto.metric,
+    })
 }
 
 fn now_ns() -> Result<u64, (StatusCode, Json<ErrorResponse>)> {
@@ -413,21 +415,21 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
     // + admissibility evaluation — no graph traversal. This is the minimum viable
     // runtime for the G3 activation surface. Future arcs will attach PAT-7/SAT-5
     // factories via configure_cognition::default_pat7_sat5_config.
-    let graph = ThoughtGraph::from_parts(
-        HashMap::new(),
-        Vec::new(),
-        HashMap::new(),
-        genesis,
-    );
+    let graph = ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
     let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-    let ctx = AgentCtx { receipt_chain: genesis };
+    let ctx = AgentCtx {
+        receipt_chain: genesis,
+    };
     CognitionRuntime::new(graph, chain, ctx)
 }
 
 // ─── Handlers ───────────────────────────────────────────────────────────────
 
 async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse { status: "ok", domain: DOMAIN })
+    Json(HealthResponse {
+        status: "ok",
+        domain: DOMAIN,
+    })
 }
 
 async fn get_chain(State(state): State<AppState>) -> Json<ReceiptChainHeadDto> {
@@ -571,7 +573,8 @@ async fn post_mission(
             Json(ErrorResponse {
                 error: ErrorBody {
                     code: "TIMESTAMP_RUNTIME_OWNED",
-                    message: "timestampNs is runtime-owned and cannot be supplied by the caller".into(),
+                    message: "timestampNs is runtime-owned and cannot be supplied by the caller"
+                        .into(),
                     domain: DOMAIN,
                     admissibility: None,
                 },
@@ -583,13 +586,8 @@ async fn post_mission(
     let current = state_snapshot_from_dto(req.current_state, "currentState.hash")?;
     let ideal = state_snapshot_from_dto(req.ideal_state, "idealState.hash")?;
 
-    let envelope = MissionEnvelope::from_intent(
-        req.intent.clone(),
-        current,
-        ideal,
-        originator,
-        ts_ns,
-    );
+    let envelope =
+        MissionEnvelope::from_intent(req.intent.clone(), current, ideal, originator, ts_ns);
     let claim_id = envelope.extract_claim_id();
 
     let claim = AdmissibilityClaim {
@@ -617,7 +615,9 @@ async fn post_mission(
                     Json(ErrorResponse {
                         error: ErrorBody {
                             code: "PERMIT_WITHOUT_RECEIPT",
-                            message: "permit record missing receipt_id — runtime invariant violated".into(),
+                            message:
+                                "permit record missing receipt_id — runtime invariant violated"
+                                    .into(),
                             domain: DOMAIN,
                             admissibility: None,
                         },
@@ -858,7 +858,9 @@ async fn main() {
 
     let genesis = [0u8; 32];
     let runtime = bootstrap_runtime(genesis);
-    let state = AppState { runtime: Arc::new(RwLock::new(runtime)) };
+    let state = AppState {
+        runtime: Arc::new(RwLock::new(runtime)),
+    };
 
     let port: u16 = std::env::var("BIZRA_COGNITION_PORT")
         .ok()
@@ -963,7 +965,12 @@ mod tests {
     #[tokio::test]
     async fn health_returns_ok() {
         let res = router(new_state())
-            .oneshot(Request::builder().uri("/health").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/health")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -972,7 +979,12 @@ mod tests {
     #[tokio::test]
     async fn empty_chain_returns_zero_head_null_timestamp() {
         let res = router(new_state())
-            .oneshot(Request::builder().uri("/chain").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -997,7 +1009,12 @@ mod tests {
         let state = new_state_with_sovereign(td.path());
 
         let res = router(state)
-            .oneshot(Request::builder().uri("/chain").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -1020,10 +1037,19 @@ mod tests {
         // Query by hash_b — the head of the snapshot chain
         let uri = format!("/chain/{}", hash_b);
         let res = router(state.clone())
-            .oneshot(Request::builder().uri(&uri).body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri(&uri)
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
-        assert_eq!(res.status(), StatusCode::OK, "durable receipt should be served from snapshot");
+        assert_eq!(
+            res.status(),
+            StatusCode::OK,
+            "durable receipt should be served from snapshot"
+        );
         let body = to_bytes(res.into_body(), 2048).await.unwrap();
         let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(v["id"], hash_b);
@@ -1040,7 +1066,12 @@ mod tests {
 
         let uri = format!("/chain/{}", "f".repeat(64));
         let res = router(state)
-            .oneshot(Request::builder().uri(&uri).body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri(&uri)
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::NOT_FOUND);
@@ -1076,7 +1107,12 @@ mod tests {
 
         // Chain should now show 7: 1 mission + 5 gate verdicts + 1 final receipt.
         let chain_res = router(state.clone())
-            .oneshot(Request::builder().uri("/chain").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         let chain_body = to_bytes(chain_res.into_body(), 1024).await.unwrap();
@@ -1163,7 +1199,10 @@ mod tests {
         let mission_res = router(state.clone())
             .oneshot(
                 Request::builder()
-                    .uri(format!("/missions/{}", first["missionId"].as_str().unwrap()))
+                    .uri(format!(
+                        "/missions/{}",
+                        first["missionId"].as_str().unwrap()
+                    ))
                     .body(axum::body::Body::empty())
                     .unwrap(),
             )

@@ -31,14 +31,14 @@ pub type Blake3Hash = [u8; 32];
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ReceiptKind {
-    Genesis            = 0x00,
-    CognitionBoot      = 0x10,
-    Myelination        = 0x20,
-    Demyelination      = 0x21,
-    ReasoningSession   = 0x30,
+    Genesis = 0x00,
+    CognitionBoot = 0x10,
+    Myelination = 0x20,
+    Demyelination = 0x21,
+    ReasoningSession = 0x30,
     GovernanceDecision = 0x40,
-    NodeLifecycle      = 0x50,
-    DegradedPath       = 0xF0,
+    NodeLifecycle = 0x50,
+    DegradedPath = 0xF0,
 }
 
 impl ReceiptKind {
@@ -75,15 +75,26 @@ pub trait ReceiptPayload: Send + Sync + 'static {
     /// Nanoseconds since UNIX epoch, as embedded in the payload.
     /// Default is 0 ("not present"); payloads that carry a timestamp override.
     /// Consumed by ReceiptChain to expose chain-level latest-timestamp metadata.
-    fn timestamp_ns(&self) -> u64 { 0 }
+    fn timestamp_ns(&self) -> u64 {
+        0
+    }
 }
 
 #[derive(Debug, Clone)]
 pub enum DecodeError {
-    ShortInput { need: usize, got: usize },
-    UnknownDiscriminant { field: &'static str, byte: u8 },
+    ShortInput {
+        need: usize,
+        got: usize,
+    },
+    UnknownDiscriminant {
+        field: &'static str,
+        byte: u8,
+    },
     Utf8(String),
-    HashMismatch { expected: Blake3Hash, computed: Blake3Hash },
+    HashMismatch {
+        expected: Blake3Hash,
+        computed: Blake3Hash,
+    },
 }
 
 /// Only implemented for payloads that the rehydrate loop must decode.
@@ -111,13 +122,20 @@ pub struct ByteReader<'a> {
 }
 
 impl<'a> ByteReader<'a> {
-    pub fn new(bytes: &'a [u8]) -> Self { Self { bytes, pos: 0 } }
+    pub fn new(bytes: &'a [u8]) -> Self {
+        Self { bytes, pos: 0 }
+    }
 
-    pub fn remaining(&self) -> usize { self.bytes.len() - self.pos }
+    pub fn remaining(&self) -> usize {
+        self.bytes.len() - self.pos
+    }
 
     pub fn read_bytes(&mut self, n: usize) -> Result<&'a [u8], DecodeError> {
         if self.remaining() < n {
-            return Err(DecodeError::ShortInput { need: n, got: self.remaining() });
+            return Err(DecodeError::ShortInput {
+                need: n,
+                got: self.remaining(),
+            });
         }
         let slice = &self.bytes[self.pos..self.pos + n];
         self.pos += n;
@@ -141,7 +159,9 @@ impl<'a> ByteReader<'a> {
 
     pub fn read_u64(&mut self) -> Result<u64, DecodeError> {
         let b = self.read_bytes(8)?;
-        Ok(u64::from_le_bytes([b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]]))
+        Ok(u64::from_le_bytes([
+            b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
+        ]))
     }
 
     pub fn read_f64(&mut self) -> Result<f64, DecodeError> {
@@ -176,27 +196,39 @@ pub struct InMemoryPayloadStore {
 }
 
 impl InMemoryPayloadStore {
-    pub fn new() -> Self { Self { inner: Mutex::new(HashMap::new()) } }
+    pub fn new() -> Self {
+        Self {
+            inner: Mutex::new(HashMap::new()),
+        }
+    }
 }
 
 impl Default for InMemoryPayloadStore {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PayloadStore for InMemoryPayloadStore {
     fn put(&self, hash: Blake3Hash, bytes: Vec<u8>) -> Result<(), StoreError> {
-        self.inner.lock()
+        self.inner
+            .lock()
             .map_err(|e| StoreError::IoError(e.to_string()))?
             .insert(hash, bytes);
         Ok(())
     }
     fn get(&self, hash: &Blake3Hash) -> Result<Option<Vec<u8>>, StoreError> {
-        Ok(self.inner.lock()
+        Ok(self
+            .inner
+            .lock()
             .map_err(|e| StoreError::IoError(e.to_string()))?
-            .get(hash).cloned())
+            .get(hash)
+            .cloned())
     }
     fn contains(&self, hash: &Blake3Hash) -> Result<bool, StoreError> {
-        Ok(self.inner.lock()
+        Ok(self
+            .inner
+            .lock()
             .map_err(|e| StoreError::IoError(e.to_string()))?
             .contains_key(hash))
     }
@@ -208,17 +240,24 @@ impl PayloadStore for InMemoryPayloadStore {
 
 #[derive(Debug, Clone)]
 pub enum ChainError {
-    Discontinuity { expected_prev: Blake3Hash, got: Blake3Hash },
+    Discontinuity {
+        expected_prev: Blake3Hash,
+        got: Blake3Hash,
+    },
     PayloadPersistence(StoreError),
     PayloadMissing(Blake3Hash),
     PayloadDecode(DecodeError),
 }
 
 impl From<StoreError> for ChainError {
-    fn from(e: StoreError) -> Self { ChainError::PayloadPersistence(e) }
+    fn from(e: StoreError) -> Self {
+        ChainError::PayloadPersistence(e)
+    }
 }
 impl From<DecodeError> for ChainError {
-    fn from(e: DecodeError) -> Self { ChainError::PayloadDecode(e) }
+    fn from(e: DecodeError) -> Self {
+        ChainError::PayloadDecode(e)
+    }
 }
 
 pub struct ReceiptChain {
@@ -230,17 +269,30 @@ pub struct ReceiptChain {
 
 impl ReceiptChain {
     pub fn new(genesis: Blake3Hash, store: Box<dyn PayloadStore>) -> Self {
-        Self { records: Vec::new(), head: genesis, store, last_timestamp_ns: None }
+        Self {
+            records: Vec::new(),
+            head: genesis,
+            store,
+            last_timestamp_ns: None,
+        }
     }
 
-    pub fn head(&self) -> Blake3Hash { self.head }
-    pub fn len(&self) -> usize { self.records.len() }
-    pub fn is_empty(&self) -> bool { self.records.is_empty() }
+    pub fn head(&self) -> Blake3Hash {
+        self.head
+    }
+    pub fn len(&self) -> usize {
+        self.records.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.records.is_empty()
+    }
 
     /// Most recent payload timestamp observed during append, if any.
     /// Returns None when the chain is empty, or when no appended payload
     /// reported a non-zero timestamp_ns via the ReceiptPayload trait.
-    pub fn latest_timestamp(&self) -> Option<u64> { self.last_timestamp_ns }
+    pub fn latest_timestamp(&self) -> Option<u64> {
+        self.last_timestamp_ns
+    }
 
     pub fn append_with_payload<T: ReceiptPayload>(
         &mut self,
@@ -256,7 +308,11 @@ impl ReceiptChain {
 
         // Step 5: only after persistence succeeds, advance chain
         let prev = self.head;
-        let record = Receipt { kind, hash: computed_hash, prev };
+        let record = Receipt {
+            kind,
+            hash: computed_hash,
+            prev,
+        };
         self.records.push(record);
         self.head = computed_hash;
         if ts_ns > 0 {
@@ -275,7 +331,9 @@ impl ReceiptChain {
         &self,
         hash: &Blake3Hash,
     ) -> Result<T, ChainError> {
-        let bytes = self.store.get(hash)?
+        let bytes = self
+            .store
+            .get(hash)?
             .ok_or(ChainError::PayloadMissing(*hash))?;
         let payload = T::from_canonical_bytes(&bytes)?;
         let computed = payload.hash();
@@ -315,13 +373,22 @@ impl ReceiptChain {
 mod tests {
     use super::*;
 
-    struct DummyPayload { kind: ReceiptKind, data: Vec<u8> }
+    struct DummyPayload {
+        kind: ReceiptKind,
+        data: Vec<u8>,
+    }
     impl ReceiptPayload for DummyPayload {
-        fn kind(&self) -> ReceiptKind { self.kind }
-        fn canonical_bytes(&self) -> Vec<u8> { self.data.clone() }
+        fn kind(&self) -> ReceiptKind {
+            self.kind
+        }
+        fn canonical_bytes(&self) -> Vec<u8> {
+            self.data.clone()
+        }
         fn hash(&self) -> Blake3Hash {
             let mut h = [0u8; 32];
-            for (i, b) in self.data.iter().take(32).enumerate() { h[i] = *b; }
+            for (i, b) in self.data.iter().take(32).enumerate() {
+                h[i] = *b;
+            }
             h
         }
     }
@@ -350,10 +417,12 @@ mod tests {
         let mut chain = ReceiptChain::new(genesis, store);
 
         for i in 1..=3u8 {
-            chain.append_with_payload(DummyPayload {
-                kind: ReceiptKind::ReasoningSession,
-                data: vec![i; 5],
-            }).unwrap();
+            chain
+                .append_with_payload(DummyPayload {
+                    kind: ReceiptKind::ReasoningSession,
+                    data: vec![i; 5],
+                })
+                .unwrap();
         }
 
         assert!(chain.verify_continuity(genesis).is_ok());
@@ -361,49 +430,79 @@ mod tests {
 
     #[test]
     fn latest_timestamp_tracks_non_zero_and_ignores_zero() {
-        struct StampedPayload { ts_ns: u64, data: Vec<u8> }
+        struct StampedPayload {
+            ts_ns: u64,
+            data: Vec<u8>,
+        }
         impl ReceiptPayload for StampedPayload {
-            fn kind(&self) -> ReceiptKind { ReceiptKind::ReasoningSession }
-            fn canonical_bytes(&self) -> Vec<u8> { self.data.clone() }
+            fn kind(&self) -> ReceiptKind {
+                ReceiptKind::ReasoningSession
+            }
+            fn canonical_bytes(&self) -> Vec<u8> {
+                self.data.clone()
+            }
             fn hash(&self) -> Blake3Hash {
                 let mut h = [0u8; 32];
-                for (i, b) in self.data.iter().take(32).enumerate() { h[i] = *b; }
+                for (i, b) in self.data.iter().take(32).enumerate() {
+                    h[i] = *b;
+                }
                 h
             }
-            fn timestamp_ns(&self) -> u64 { self.ts_ns }
+            fn timestamp_ns(&self) -> u64 {
+                self.ts_ns
+            }
         }
 
         let store = Box::new(InMemoryPayloadStore::new());
         let mut chain = ReceiptChain::new([0u8; 32], store);
-        assert_eq!(chain.latest_timestamp(), None, "empty chain has no timestamp");
+        assert_eq!(
+            chain.latest_timestamp(),
+            None,
+            "empty chain has no timestamp"
+        );
 
         // Default ReceiptPayload (timestamp_ns() = 0) must not shift the accessor.
-        chain.append_with_payload(DummyPayload {
-            kind: ReceiptKind::CognitionBoot,
-            data: vec![10, 11, 12, 13],
-        }).unwrap();
-        assert_eq!(chain.latest_timestamp(), None, "zero-timestamp payloads do not set latest");
+        chain
+            .append_with_payload(DummyPayload {
+                kind: ReceiptKind::CognitionBoot,
+                data: vec![10, 11, 12, 13],
+            })
+            .unwrap();
+        assert_eq!(
+            chain.latest_timestamp(),
+            None,
+            "zero-timestamp payloads do not set latest"
+        );
 
         // Real timestamp propagates.
-        chain.append_with_payload(StampedPayload {
-            ts_ns: 1_700_000_000_000_000_000,
-            data: vec![20, 21, 22, 23],
-        }).unwrap();
+        chain
+            .append_with_payload(StampedPayload {
+                ts_ns: 1_700_000_000_000_000_000,
+                data: vec![20, 21, 22, 23],
+            })
+            .unwrap();
         assert_eq!(chain.latest_timestamp(), Some(1_700_000_000_000_000_000));
 
         // Subsequent zero-timestamp append does NOT erase the last known.
-        chain.append_with_payload(DummyPayload {
-            kind: ReceiptKind::NodeLifecycle,
-            data: vec![30, 31, 32, 33],
-        }).unwrap();
-        assert_eq!(chain.latest_timestamp(), Some(1_700_000_000_000_000_000),
-            "zero-timestamp payloads must not clear the last real timestamp");
+        chain
+            .append_with_payload(DummyPayload {
+                kind: ReceiptKind::NodeLifecycle,
+                data: vec![30, 31, 32, 33],
+            })
+            .unwrap();
+        assert_eq!(
+            chain.latest_timestamp(),
+            Some(1_700_000_000_000_000_000),
+            "zero-timestamp payloads must not clear the last real timestamp"
+        );
 
         // Later real timestamp advances.
-        chain.append_with_payload(StampedPayload {
-            ts_ns: 1_800_000_000_000_000_000,
-            data: vec![40, 41, 42, 43],
-        }).unwrap();
+        chain
+            .append_with_payload(StampedPayload {
+                ts_ns: 1_800_000_000_000_000_000,
+                data: vec![40, 41, 42, 43],
+            })
+            .unwrap();
         assert_eq!(chain.latest_timestamp(), Some(1_800_000_000_000_000_000));
     }
 

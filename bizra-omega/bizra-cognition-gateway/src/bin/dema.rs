@@ -207,7 +207,9 @@ fn print_chain(c: &ChainHead) {
     println!("  latest:   {}", ts);
     if c.length == 0 {
         println!();
-        println!("  (chain empty — submit an intent with `dema activate` or `dema submit \"...\"`)");
+        println!(
+            "  (chain empty — submit an intent with `dema activate` or `dema submit \"...\"`)"
+        );
     }
 }
 
@@ -278,16 +280,22 @@ fn print_submit_rejected(e: &ErrorBody) {
 
 fn cmd_health(json: bool) -> Result<()> {
     let url = format!("{}/health", gateway_url());
-    let resp = client()?.get(&url).send().with_context(|| format!("GET {}", url))?;
+    let resp = client()?
+        .get(&url)
+        .send()
+        .with_context(|| format!("GET {}", url))?;
     if !resp.status().is_success() {
         return Err(anyhow!("gateway returned HTTP {}", resp.status()));
     }
     let body: Health = resp.json().context("decode /health")?;
     if json {
-        println!("{}", serde_json::to_string_pretty(&serde_json::json!({
-            "status": body.status,
-            "domain": body.domain,
-        }))?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "status": body.status,
+                "domain": body.domain,
+            }))?
+        );
     } else {
         print_health(&body);
     }
@@ -296,17 +304,23 @@ fn cmd_health(json: bool) -> Result<()> {
 
 fn cmd_chain(json: bool) -> Result<ChainHead> {
     let url = format!("{}/chain", gateway_url());
-    let resp = client()?.get(&url).send().with_context(|| format!("GET {}", url))?;
+    let resp = client()?
+        .get(&url)
+        .send()
+        .with_context(|| format!("GET {}", url))?;
     if !resp.status().is_success() {
         return Err(anyhow!("gateway returned HTTP {}", resp.status()));
     }
     let body: ChainHead = resp.json().context("decode /chain")?;
     if json {
-        println!("{}", serde_json::to_string_pretty(&serde_json::json!({
-            "head": body.head,
-            "length": body.length,
-            "latestTimestamp": body.latest_timestamp,
-        }))?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "head": body.head,
+                "length": body.length,
+                "latestTimestamp": body.latest_timestamp,
+            }))?
+        );
     } else {
         print_chain(&body);
     }
@@ -315,7 +329,10 @@ fn cmd_chain(json: bool) -> Result<ChainHead> {
 
 fn cmd_receipt(hash: &str, json: bool) -> Result<()> {
     let url = format!("{}/chain/{}", gateway_url(), hash);
-    let resp = client()?.get(&url).send().with_context(|| format!("GET {}", url))?;
+    let resp = client()?
+        .get(&url)
+        .send()
+        .with_context(|| format!("GET {}", url))?;
     if resp.status().as_u16() == 404 {
         return Err(anyhow!("no receipt with hash {} in chain", hash));
     }
@@ -324,7 +341,10 @@ fn cmd_receipt(hash: &str, json: bool) -> Result<()> {
     }
     let body: Receipt = resp.json().context("decode receipt")?;
     if json {
-        println!("{}", serde_json::to_string_pretty(&body).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&body).unwrap_or_default()
+        );
     } else {
         print_receipt(&body);
     }
@@ -422,13 +442,11 @@ fn main() -> ExitCode {
                 Err(e) => Err(e),
             }
         }
-        Some(Command::Submit { intent, quality }) => {
-            match cmd_submit(&intent, quality, cli.json) {
-                Ok(true) => Ok(()),
-                Ok(false) => return ExitCode::from(2),
-                Err(e) => Err(e),
-            }
-        }
+        Some(Command::Submit { intent, quality }) => match cmd_submit(&intent, quality, cli.json) {
+            Ok(true) => Ok(()),
+            Ok(false) => return ExitCode::from(2),
+            Err(e) => Err(e),
+        },
     };
 
     match result {

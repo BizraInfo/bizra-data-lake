@@ -12,15 +12,15 @@
 //   runtime           (event loop + replay-from-chain rehydration)
 //   eval_v1_integrated (genesis valuation via Proof-of-Impact)
 
-pub mod canonical_hasher;
-pub mod receipts;
-pub mod receipt_freeze_v1;
 pub mod admissibility_freeze_v1;
-pub mod mission_freeze_v1;
-pub mod manifest_artifact;
-pub mod thought_graph;
+pub mod canonical_hasher;
 pub mod configure_cognition;
-pub mod runtime;
-pub mod eval_v1_integrated;
 pub mod eval_v1;
+pub mod eval_v1_integrated;
+pub mod manifest_artifact;
+pub mod mission_freeze_v1;
+pub mod receipt_freeze_v1;
+pub mod receipts;
+pub mod runtime;
 pub mod sovereign_state;
+pub mod thought_graph;

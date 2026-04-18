@@ -25,7 +25,7 @@ use serde::Serialize;
 use serde_json::ser::{Formatter, Serializer};
 use serde_json::Value;
 
-use crate::canonical_hasher::{Blake3Hash, blake3_chain};
+use crate::canonical_hasher::{blake3_chain, Blake3Hash};
 
 // ============================================================================
 // Custom formatter — reproduces Python json.dumps default separators
@@ -129,11 +129,28 @@ pub enum SovereignStateError {
     RootMissing(PathBuf),
     ReceiptsDirMissing(PathBuf),
     NoEnvelopes(PathBuf),
-    EnvelopeRead { path: PathBuf, msg: String },
-    EnvelopeParse { path: PathBuf, msg: String },
-    EnvelopeMalformed { path: PathBuf, reason: &'static str },
-    ReceiptRead { envelope: PathBuf, file: String, msg: String },
-    ReceiptParse { envelope: PathBuf, file: String, msg: String },
+    EnvelopeRead {
+        path: PathBuf,
+        msg: String,
+    },
+    EnvelopeParse {
+        path: PathBuf,
+        msg: String,
+    },
+    EnvelopeMalformed {
+        path: PathBuf,
+        reason: &'static str,
+    },
+    ReceiptRead {
+        envelope: PathBuf,
+        file: String,
+        msg: String,
+    },
+    ReceiptParse {
+        envelope: PathBuf,
+        file: String,
+        msg: String,
+    },
     HashMismatch {
         envelope: PathBuf,
         file: String,
@@ -159,18 +176,79 @@ impl std::fmt::Display for SovereignStateError {
         match self {
             Self::RootMissing(p) => write!(f, "sovereign_state root missing: {}", p.display()),
             Self::ReceiptsDirMissing(p) => write!(f, "receipts dir missing: {}", p.display()),
-            Self::NoEnvelopes(p) => write!(f, "no activation_chain_*.json envelopes found in {}", p.display()),
-            Self::EnvelopeRead { path, msg } => write!(f, "read envelope {}: {}", path.display(), msg),
-            Self::EnvelopeParse { path, msg } => write!(f, "parse envelope {}: {}", path.display(), msg),
-            Self::EnvelopeMalformed { path, reason } => write!(f, "envelope {} malformed: {}", path.display(), reason),
-            Self::ReceiptRead { envelope, file, msg } => write!(f, "read receipt {} (ref'd by {}): {}", file, envelope.display(), msg),
-            Self::ReceiptParse { envelope, file, msg } => write!(f, "parse receipt {} (ref'd by {}): {}", file, envelope.display(), msg),
-            Self::HashMismatch { envelope, file, expected, computed } =>
-                write!(f, "hash mismatch for {} in {}: expected {}, computed {}", file, envelope.display(), expected, computed),
-            Self::PrevHashMismatch { envelope, file, expected, actual } =>
-                write!(f, "prev_hash mismatch for {} in {}: expected {}, got {}", file, envelope.display(), expected, actual),
-            Self::HeadHashMismatch { envelope, expected, computed } =>
-                write!(f, "head_hash mismatch in {}: declared {}, computed {}", envelope.display(), expected, computed),
+            Self::NoEnvelopes(p) => write!(
+                f,
+                "no activation_chain_*.json envelopes found in {}",
+                p.display()
+            ),
+            Self::EnvelopeRead { path, msg } => {
+                write!(f, "read envelope {}: {}", path.display(), msg)
+            }
+            Self::EnvelopeParse { path, msg } => {
+                write!(f, "parse envelope {}: {}", path.display(), msg)
+            }
+            Self::EnvelopeMalformed { path, reason } => {
+                write!(f, "envelope {} malformed: {}", path.display(), reason)
+            }
+            Self::ReceiptRead {
+                envelope,
+                file,
+                msg,
+            } => write!(
+                f,
+                "read receipt {} (ref'd by {}): {}",
+                file,
+                envelope.display(),
+                msg
+            ),
+            Self::ReceiptParse {
+                envelope,
+                file,
+                msg,
+            } => write!(
+                f,
+                "parse receipt {} (ref'd by {}): {}",
+                file,
+                envelope.display(),
+                msg
+            ),
+            Self::HashMismatch {
+                envelope,
+                file,
+                expected,
+                computed,
+            } => write!(
+                f,
+                "hash mismatch for {} in {}: expected {}, computed {}",
+                file,
+                envelope.display(),
+                expected,
+                computed
+            ),
+            Self::PrevHashMismatch {
+                envelope,
+                file,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "prev_hash mismatch for {} in {}: expected {}, got {}",
+                file,
+                envelope.display(),
+                expected,
+                actual
+            ),
+            Self::HeadHashMismatch {
+                envelope,
+                expected,
+                computed,
+            } => write!(
+                f,
+                "head_hash mismatch in {}: declared {}, computed {}",
+                envelope.display(),
+                expected,
+                computed
+            ),
             Self::SerializeError(s) => write!(f, "serialize error: {}", s),
         }
     }
@@ -288,15 +366,18 @@ fn verify_envelope(
         path: env_path.to_path_buf(),
         msg: e.to_string(),
     })?;
-    let doc: Value = serde_json::from_slice(&bytes).map_err(|e| SovereignStateError::EnvelopeParse {
-        path: env_path.to_path_buf(),
-        msg: e.to_string(),
-    })?;
+    let doc: Value =
+        serde_json::from_slice(&bytes).map_err(|e| SovereignStateError::EnvelopeParse {
+            path: env_path.to_path_buf(),
+            msg: e.to_string(),
+        })?;
 
-    let obj = doc.as_object().ok_or(SovereignStateError::EnvelopeMalformed {
-        path: env_path.to_path_buf(),
-        reason: "root is not object",
-    })?;
+    let obj = doc
+        .as_object()
+        .ok_or(SovereignStateError::EnvelopeMalformed {
+            path: env_path.to_path_buf(),
+            reason: "root is not object",
+        })?;
 
     let chain_type = obj
         .get("chain_type")
@@ -321,25 +402,23 @@ fn verify_envelope(
             reason: "missing head_hash",
         })?
         .to_string();
-    let chain_arr =
-        obj.get("chain")
-            .and_then(|v| v.as_array())
-            .ok_or(SovereignStateError::EnvelopeMalformed {
-                path: env_path.to_path_buf(),
-                reason: "missing or non-array chain",
-            })?;
+    let chain_arr = obj.get("chain").and_then(|v| v.as_array()).ok_or(
+        SovereignStateError::EnvelopeMalformed {
+            path: env_path.to_path_buf(),
+            reason: "missing or non-array chain",
+        },
+    )?;
 
     let mut entries = Vec::with_capacity(chain_arr.len());
     let mut expected_prev = GENESIS_PREV_HEX.to_string();
 
     for entry_val in chain_arr.iter() {
-        let entry_obj =
-            entry_val
-                .as_object()
-                .ok_or(SovereignStateError::EnvelopeMalformed {
-                    path: env_path.to_path_buf(),
-                    reason: "chain entry not an object",
-                })?;
+        let entry_obj = entry_val
+            .as_object()
+            .ok_or(SovereignStateError::EnvelopeMalformed {
+                path: env_path.to_path_buf(),
+                reason: "chain entry not an object",
+            })?;
 
         let file = entry_obj
             .get("file")
@@ -484,10 +563,8 @@ mod tests {
     #[test]
     fn mixed_types_match_python_default() {
         // Values: null, bool, int, float, string, array, object
-        let v: Value = serde_json::from_str(
-            r#"{"n":null,"b":true,"i":7,"s":"hi","arr":[1,2]}"#,
-        )
-        .unwrap();
+        let v: Value =
+            serde_json::from_str(r#"{"n":null,"b":true,"i":7,"s":"hi","arr":[1,2]}"#).unwrap();
         let out = to_python_json_bytes(&v).unwrap();
         // Keys sorted: arr, b, i, n, s
         assert_eq!(
@@ -520,8 +597,7 @@ mod tests {
 
         // Expected hash from the envelope's chain[0].hash
         assert_eq!(
-            hex,
-            "89035bdc24d47d0549ec3667ddf66bdcd719307446d06dceeab7e1e6b2b7584b",
+            hex, "89035bdc24d47d0549ec3667ddf66bdcd719307446d06dceeab7e1e6b2b7584b",
             "Commit A: chain entry hash must match the Python writer exactly"
         );
     }
@@ -688,8 +764,7 @@ mod snapshot_tests {
         // Tamper step_a's content so its hash no longer matches the envelope
         let tampered = json!({"event": "step_a", "payload": "TAMPERED", "n": 999});
         fs::write(
-            td.path()
-                .join("receipts/step_a_2026-01-01T00:00:00Z.json"),
+            td.path().join("receipts/step_a_2026-01-01T00:00:00Z.json"),
             serde_json::to_vec(&tampered).unwrap(),
         )
         .unwrap();
@@ -742,11 +817,7 @@ mod snapshot_tests {
         write_valid_two_entry_chain(td.path());
 
         // Remove the first receipt file while envelope still references it
-        fs::remove_file(
-            td.path()
-                .join("receipts/step_a_2026-01-01T00:00:00Z.json"),
-        )
-        .unwrap();
+        fs::remove_file(td.path().join("receipts/step_a_2026-01-01T00:00:00Z.json")).unwrap();
 
         let err = SovereignStateSnapshot::load(td.path()).unwrap_err();
         assert!(matches!(err, SovereignStateError::ReceiptRead { .. }));

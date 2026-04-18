@@ -30,11 +30,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::thought_graph::{
-    ThoughtGraph, MyelinationPolicy, Blake3Hash, GraphNode, AgentCtx,
-};
 use crate::canonical_hasher::blake3_domain;
-use crate::receipts::{ReceiptPayload, ReceiptKind, ReceiptChain};
+use crate::receipts::{ReceiptChain, ReceiptKind, ReceiptPayload};
+use crate::thought_graph::{AgentCtx, Blake3Hash, GraphNode, MyelinationPolicy, ThoughtGraph};
 
 // ============================================================================
 // Errors
@@ -42,11 +40,22 @@ use crate::receipts::{ReceiptPayload, ReceiptKind, ReceiptChain};
 
 #[derive(Debug)]
 pub enum ConfigureError {
-    MissingRoot { role: &'static str },
-    PolicyConflict { edge: Blake3Hash, reason: &'static str },
+    MissingRoot {
+        role: &'static str,
+    },
+    PolicyConflict {
+        edge: Blake3Hash,
+        reason: &'static str,
+    },
     DuplicateEdge(Blake3Hash),
-    ChainDiscontinuity { expected_prev: Blake3Hash, got: Blake3Hash },
-    PolicyVersionRegression { previous: u32, proposed: u32 },
+    ChainDiscontinuity {
+        expected_prev: Blake3Hash,
+        got: Blake3Hash,
+    },
+    PolicyVersionRegression {
+        previous: u32,
+        proposed: u32,
+    },
     Clock(String),
     Factory(String),
     ReceiptEmission(String),
@@ -71,30 +80,30 @@ pub trait GraphNodeFactory: Send + Sync {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum PatAgent {
-    Atlas  = 0,
+    Atlas = 0,
     Oracle = 1,
-    Forge  = 2,
-    Judge  = 3,
-    Crown  = 4,
+    Forge = 2,
+    Judge = 3,
+    Crown = 4,
     Herald = 5,
-    Nexus  = 6,
+    Nexus = 6,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SatAgent {
     Consensus = 0,
-    Resource  = 1,
-    Proof     = 2,
-    Impact    = 3,
+    Resource = 1,
+    Proof = 2,
+    Impact = 3,
     UrpLeader = 4,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum PolicyClass {
-    Standard  = 0,
-    HotPath   = 1,
+    Standard = 0,
+    HotPath = 1,
     Sovereign = 2,
     Immutable = 3,
 }
@@ -152,11 +161,11 @@ impl EdgeRole {
 
     fn role_bytes(&self) -> [u8; 2] {
         match self {
-            EdgeRole::UserNiyyah       => [0x00, 0x00],
-            EdgeRole::PatAgent(a)      => [0x10, *a as u8],
-            EdgeRole::FateCrossing     => [0x20, 0x00],
-            EdgeRole::SatAgent(a)      => [0x30, *a as u8],
-            EdgeRole::Housekeeping     => [0x40, 0x00],
+            EdgeRole::UserNiyyah => [0x00, 0x00],
+            EdgeRole::PatAgent(a) => [0x10, *a as u8],
+            EdgeRole::FateCrossing => [0x20, 0x00],
+            EdgeRole::SatAgent(a) => [0x30, *a as u8],
+            EdgeRole::Housekeeping => [0x40, 0x00],
         }
     }
 }
@@ -188,31 +197,40 @@ pub struct CognitionBootReceipt {
     pub node_id: Blake3Hash,
     pub policy_version: u32,
     pub edge_count: u32,
-    pub roots: Vec<Blake3Hash>,        // canonical-sorted
-    pub edges_digest: Blake3Hash,      // over canonical-sorted edges
-    pub policies_digest: Blake3Hash,   // over canonical-sorted policies
-    pub factories_digest: Blake3Hash,  // over canonical-sorted factory kinds
+    pub roots: Vec<Blake3Hash>,       // canonical-sorted
+    pub edges_digest: Blake3Hash,     // over canonical-sorted edges
+    pub policies_digest: Blake3Hash,  // over canonical-sorted policies
+    pub factories_digest: Blake3Hash, // over canonical-sorted factory kinds
     pub prev_chain: Blake3Hash,
     pub previous_policy_version: Option<u32>,
     pub timestamp_ns: u64,
 }
 
 impl ReceiptPayload for CognitionBootReceipt {
-    fn kind(&self) -> ReceiptKind { ReceiptKind::CognitionBoot }
+    fn kind(&self) -> ReceiptKind {
+        ReceiptKind::CognitionBoot
+    }
     fn canonical_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(256 + self.roots.len() * 32);
         buf.extend_from_slice(&self.node_id);
         buf.extend_from_slice(&self.policy_version.to_le_bytes());
         buf.extend_from_slice(&self.edge_count.to_le_bytes());
         buf.extend_from_slice(&(self.roots.len() as u32).to_le_bytes());
-        for r in &self.roots { buf.extend_from_slice(r); }
+        for r in &self.roots {
+            buf.extend_from_slice(r);
+        }
         buf.extend_from_slice(&self.edges_digest);
         buf.extend_from_slice(&self.policies_digest);
         buf.extend_from_slice(&self.factories_digest);
         buf.extend_from_slice(&self.prev_chain);
         match self.previous_policy_version {
-            Some(v) => { buf.push(1); buf.extend_from_slice(&v.to_le_bytes()); }
-            None    => { buf.push(0); }
+            Some(v) => {
+                buf.push(1);
+                buf.extend_from_slice(&v.to_le_bytes());
+            }
+            None => {
+                buf.push(0);
+            }
         }
         buf.extend_from_slice(&self.timestamp_ns.to_le_bytes());
         buf
@@ -354,9 +372,9 @@ impl CognitionConfig {
         roots.sort(); // canonical root order
 
         // --- Compute digests ---
-        let edges_digest    = blake3_domain("bizra-configure-v1:edges",     &edges_buf);
-        let policies_digest = blake3_domain("bizra-configure-v1:policies",  &policies_buf);
-        let factories_digest= blake3_domain("bizra-configure-v1:factories", &factories_buf);
+        let edges_digest = blake3_domain("bizra-configure-v1:edges", &edges_buf);
+        let policies_digest = blake3_domain("bizra-configure-v1:policies", &policies_buf);
+        let factories_digest = blake3_domain("bizra-configure-v1:factories", &factories_buf);
 
         // --- Build boot receipt ---
         let receipt = CognitionBootReceipt {
@@ -373,7 +391,8 @@ impl CognitionConfig {
         };
 
         // --- Persist payload, append chain record. Atomicity lives in ReceiptChain. ---
-        let receipt_hash = chain.append_with_payload(receipt.clone())
+        let receipt_hash = chain
+            .append_with_payload(receipt.clone())
             .map_err(|e| ConfigureError::ReceiptEmission(format!("{:?}", e)))?;
 
         // --- Construct graph with new chain head ---
@@ -434,13 +453,13 @@ pub fn default_pat7_sat5_config(
     });
 
     let pat: [(PatAgent, Arc<dyn GraphNodeFactory>, PolicyClass); 7] = [
-        (PatAgent::Atlas,  factories.atlas,  PolicyClass::HotPath),
+        (PatAgent::Atlas, factories.atlas, PolicyClass::HotPath),
         (PatAgent::Oracle, factories.oracle, PolicyClass::HotPath),
-        (PatAgent::Forge,  factories.forge,  PolicyClass::HotPath),
-        (PatAgent::Judge,  factories.judge,  PolicyClass::Sovereign),
-        (PatAgent::Crown,  factories.crown,  PolicyClass::Standard),
+        (PatAgent::Forge, factories.forge, PolicyClass::HotPath),
+        (PatAgent::Judge, factories.judge, PolicyClass::Sovereign),
+        (PatAgent::Crown, factories.crown, PolicyClass::Standard),
         (PatAgent::Herald, factories.herald, PolicyClass::HotPath),
-        (PatAgent::Nexus,  factories.nexus,  PolicyClass::HotPath),
+        (PatAgent::Nexus, factories.nexus, PolicyClass::HotPath),
     ];
     for (agent, factory, class) in pat {
         edges.push(EdgeDeclaration {
@@ -460,9 +479,9 @@ pub fn default_pat7_sat5_config(
 
     let sat: [(SatAgent, Arc<dyn GraphNodeFactory>); 5] = [
         (SatAgent::Consensus, factories.consensus),
-        (SatAgent::Resource,  factories.resource),
-        (SatAgent::Proof,     factories.proof),
-        (SatAgent::Impact,    factories.impact),
+        (SatAgent::Resource, factories.resource),
+        (SatAgent::Proof, factories.proof),
+        (SatAgent::Impact, factories.impact),
         (SatAgent::UrpLeader, factories.urp_leader),
     ];
     for (agent, factory) in sat {
@@ -494,21 +513,27 @@ fn hash_role(role: &str) -> Blake3Hash {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::thought_graph::Thought;
     use crate::receipts::InMemoryPayloadStore;
+    use crate::thought_graph::Thought;
 
     // --- Test scaffolding: a minimal GraphNode + Factory ---
     struct NoopNode;
     impl GraphNode for NoopNode {
-        fn traverse(&self, _ctx: &mut AgentCtx) -> Vec<Thought> { Vec::new() }
+        fn traverse(&self, _ctx: &mut AgentCtx) -> Vec<Thought> {
+            Vec::new()
+        }
     }
 
-    struct NoopFactory { kind: &'static str }
+    struct NoopFactory {
+        kind: &'static str,
+    }
     impl GraphNodeFactory for NoopFactory {
         fn build(&self) -> Result<Box<dyn GraphNode>, ConfigureError> {
             Ok(Box::new(NoopNode))
         }
-        fn factory_kind(&self) -> &'static str { self.kind }
+        fn factory_kind(&self) -> &'static str {
+            self.kind
+        }
     }
 
     fn noop(kind: &'static str) -> Arc<dyn GraphNodeFactory> {
@@ -524,11 +549,19 @@ mod tests {
     fn all_noop_factories() -> Pat7Sat5Factories {
         Pat7Sat5Factories {
             dema: noop("dema"),
-            atlas: noop("atlas"),  oracle: noop("oracle"),  forge: noop("forge"),
-            judge: noop("judge"),  crown: noop("crown"),    herald: noop("herald"),
-            nexus: noop("nexus"),  fate: noop("fate"),
-            consensus: noop("consensus"), resource: noop("resource"),
-            proof: noop("proof"),  impact: noop("impact"),  urp_leader: noop("urp_leader"),
+            atlas: noop("atlas"),
+            oracle: noop("oracle"),
+            forge: noop("forge"),
+            judge: noop("judge"),
+            crown: noop("crown"),
+            herald: noop("herald"),
+            nexus: noop("nexus"),
+            fate: noop("fate"),
+            consensus: noop("consensus"),
+            resource: noop("resource"),
+            proof: noop("proof"),
+            impact: noop("impact"),
+            urp_leader: noop("urp_leader"),
         }
     }
 
@@ -536,11 +569,11 @@ mod tests {
     fn fate_crossing_must_be_immutable() {
         // Construct a config where FATE is declared as Standard. Must reject.
         let (mut chain, genesis) = new_chain();
-        let mut ctx = AgentCtx { receipt_chain: genesis };
+        let mut ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
 
-        let mut cfg = default_pat7_sat5_config(
-            [1u8; 32], 1, genesis, None, all_noop_factories(),
-        );
+        let mut cfg = default_pat7_sat5_config([1u8; 32], 1, genesis, None, all_noop_factories());
         // Tamper: find the FATE edge and demote its policy class.
         for e in &mut cfg.edges {
             if e.role == EdgeRole::FateCrossing {
@@ -559,7 +592,9 @@ mod tests {
     #[test]
     fn missing_user_niyyah_root_rejects() {
         let (mut chain, genesis) = new_chain();
-        let mut ctx = AgentCtx { receipt_chain: genesis };
+        let mut ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
 
         let cfg = CognitionConfig {
             node_id: [2u8; 32],
@@ -584,7 +619,9 @@ mod tests {
     #[test]
     fn duplicate_edge_hash_rejects() {
         let (mut chain, genesis) = new_chain();
-        let mut ctx = AgentCtx { receipt_chain: genesis };
+        let mut ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
 
         let cfg = CognitionConfig {
             node_id: [3u8; 32],
@@ -616,10 +653,13 @@ mod tests {
     #[test]
     fn chain_discontinuity_rejects() {
         let (mut chain, _genesis) = new_chain();
-        let mut ctx = AgentCtx { receipt_chain: [0u8; 32] };
+        let mut ctx = AgentCtx {
+            receipt_chain: [0u8; 32],
+        };
 
         let cfg = default_pat7_sat5_config(
-            [4u8; 32], 1,
+            [4u8; 32],
+            1,
             [0xAAu8; 32], // wrong prev
             None,
             all_noop_factories(),
@@ -634,17 +674,24 @@ mod tests {
     #[test]
     fn policy_version_regression_rejects() {
         let (mut chain, genesis) = new_chain();
-        let mut ctx = AgentCtx { receipt_chain: genesis };
+        let mut ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
 
         let cfg = default_pat7_sat5_config(
-            [5u8; 32], 5, genesis,
+            [5u8; 32],
+            5,
+            genesis,
             Some(5), // proposed == previous, not strictly greater
             all_noop_factories(),
         );
 
         assert!(matches!(
             cfg.build(&mut ctx, &mut chain),
-            Err(ConfigureError::PolicyVersionRegression { previous: 5, proposed: 5 })
+            Err(ConfigureError::PolicyVersionRegression {
+                previous: 5,
+                proposed: 5
+            })
         ));
     }
 
@@ -654,36 +701,42 @@ mod tests {
         // assert the resulting edges_digest is identical.
         let (mut chain_a, genesis) = new_chain();
         let (mut chain_b, _) = new_chain();
-        let mut ctx_a = AgentCtx { receipt_chain: genesis };
-        let mut ctx_b = AgentCtx { receipt_chain: genesis };
+        let mut ctx_a = AgentCtx {
+            receipt_chain: genesis,
+        };
+        let mut ctx_b = AgentCtx {
+            receipt_chain: genesis,
+        };
 
-        let cfg_a = default_pat7_sat5_config(
-            [6u8; 32], 1, genesis, None, all_noop_factories(),
-        );
-        let mut cfg_b = default_pat7_sat5_config(
-            [6u8; 32], 1, genesis, None, all_noop_factories(),
-        );
+        let cfg_a = default_pat7_sat5_config([6u8; 32], 1, genesis, None, all_noop_factories());
+        let mut cfg_b = default_pat7_sat5_config([6u8; 32], 1, genesis, None, all_noop_factories());
         cfg_b.edges.reverse(); // different declaration order
 
         let a = cfg_a.build(&mut ctx_a, &mut chain_a).unwrap();
         let b = cfg_b.build(&mut ctx_b, &mut chain_b).unwrap();
 
-        assert_eq!(a.boot_receipt.edges_digest, b.boot_receipt.edges_digest,
-                   "edges_digest must be order-independent");
-        assert_eq!(a.boot_receipt.policies_digest, b.boot_receipt.policies_digest,
-                   "policies_digest must be order-independent");
-        assert_eq!(a.boot_receipt.roots, b.boot_receipt.roots,
-                   "roots must be sorted identically");
+        assert_eq!(
+            a.boot_receipt.edges_digest, b.boot_receipt.edges_digest,
+            "edges_digest must be order-independent"
+        );
+        assert_eq!(
+            a.boot_receipt.policies_digest, b.boot_receipt.policies_digest,
+            "policies_digest must be order-independent"
+        );
+        assert_eq!(
+            a.boot_receipt.roots, b.boot_receipt.roots,
+            "roots must be sorted identically"
+        );
     }
 
     #[test]
     fn successful_boot_appends_to_chain() {
         let (mut chain, genesis) = new_chain();
-        let mut ctx = AgentCtx { receipt_chain: genesis };
+        let mut ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
 
-        let cfg = default_pat7_sat5_config(
-            [7u8; 32], 1, genesis, None, all_noop_factories(),
-        );
+        let cfg = default_pat7_sat5_config([7u8; 32], 1, genesis, None, all_noop_factories());
 
         let configured = cfg.build(&mut ctx, &mut chain).unwrap();
 

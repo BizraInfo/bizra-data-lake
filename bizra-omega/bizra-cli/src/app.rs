@@ -688,15 +688,16 @@ Keyboard shortcuts:
         // ── Trust Rail: add activation status check ──
         if let Some(ref activation) = cockpit.activation {
             if activation.error.is_none() {
-                data.trust_checks.push(crate::commands::genesis_spine::TrustCheck {
-                    name: "Activation Chain".to_string(),
-                    passed: activation.activated,
-                    detail: if activation.activated {
-                        format!("Chain verified ({} receipts)", activation.receipt_count)
-                    } else {
-                        "Node not activated".to_string()
-                    },
-                });
+                data.trust_checks
+                    .push(crate::commands::genesis_spine::TrustCheck {
+                        name: "Activation Chain".to_string(),
+                        passed: activation.activated,
+                        detail: if activation.activated {
+                            format!("Chain verified ({} receipts)", activation.receipt_count)
+                        } else {
+                            "Node not activated".to_string()
+                        },
+                    });
             }
         }
     }

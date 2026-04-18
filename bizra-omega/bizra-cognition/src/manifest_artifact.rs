@@ -20,8 +20,7 @@
 
 use crate::canonical_hasher::blake3_domain;
 use crate::receipts::{
-    Blake3Hash, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
-    ByteReader, DecodeError,
+    Blake3Hash, ByteReader, DecodeError, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
 };
 
 /// The canonical proof-of-life summary per §7.
@@ -31,7 +30,6 @@ use crate::receipts::{
 #[derive(Debug, Clone)]
 pub struct ManifestArtifact {
     // ── §7 required fields ──
-
     /// Unique identifier. blake3(window_start || window_end || integrity_hash).
     pub manifest_id: Blake3Hash,
 
@@ -50,7 +48,6 @@ pub struct ManifestArtifact {
     pub integrity_hash: Blake3Hash,
 
     // ── Operational extensions ──
-
     /// Total receipt count (convenience; derivable from receipt_refs.len()).
     pub receipt_count: u32,
 
@@ -79,10 +76,7 @@ impl ManifestArtifact {
         for r in &receipt_refs {
             integrity_buf.extend_from_slice(r);
         }
-        let integrity_hash = blake3_domain(
-            "bizra-manifest-integrity-v1",
-            &integrity_buf,
-        );
+        let integrity_hash = blake3_domain("bizra-manifest-integrity-v1", &integrity_buf);
 
         // Compute manifest_id — includes ALL fields that affect identity.
         // Fix A: chain_head_at_generation and receipt_count are now bound
@@ -174,8 +168,12 @@ impl ReceiptPayloadDecode for ManifestArtifact {
         let chain_head_at_generation = r.read_hash()?;
 
         Ok(ManifestArtifact {
-            manifest_id, window_start, window_end,
-            receipt_refs, integrity_hash, receipt_count,
+            manifest_id,
+            window_start,
+            window_end,
+            receipt_refs,
+            integrity_hash,
+            receipt_count,
             chain_head_at_generation,
         })
     }
@@ -188,9 +186,7 @@ mod tests {
     #[test]
     fn test_manifest_has_section7_fields() {
         let refs = vec![[1u8; 32], [2u8; 32], [3u8; 32]];
-        let m = ManifestArtifact::from_window(
-            1000, 2000, refs, [99u8; 32],
-        );
+        let m = ManifestArtifact::from_window(1000, 2000, refs, [99u8; 32]);
 
         assert_ne!(m.manifest_id, [0u8; 32]);
         assert_eq!(m.window_start, 1000);
@@ -202,9 +198,7 @@ mod tests {
     #[test]
     fn test_manifest_integrity_verifies() {
         let refs = vec![[10u8; 32], [20u8; 32]];
-        let m = ManifestArtifact::from_window(
-            100, 200, refs, [0u8; 32],
-        );
+        let m = ManifestArtifact::from_window(100, 200, refs, [0u8; 32]);
         assert!(m.verify_integrity());
     }
 
@@ -220,9 +214,7 @@ mod tests {
     #[test]
     fn test_manifest_roundtrip() {
         let refs = vec![[7u8; 32], [8u8; 32], [9u8; 32]];
-        let original = ManifestArtifact::from_window(
-            1000, 5000, refs, [50u8; 32],
-        );
+        let original = ManifestArtifact::from_window(1000, 5000, refs, [50u8; 32]);
         let bytes = original.canonical_bytes();
         let decoded = ManifestArtifact::from_canonical_bytes(&bytes).unwrap();
 

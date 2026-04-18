@@ -20,10 +20,9 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::canonical_hasher::{blake3_domain, blake3_chain};
+use crate::canonical_hasher::{blake3_chain, blake3_domain};
 pub use crate::receipts::{
-    ReceiptPayload, ReceiptPayloadDecode, ReceiptKind,
-    ByteReader, DecodeError, Blake3Hash,
+    Blake3Hash, ByteReader, DecodeError, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
 };
 
 // ============================================================================
@@ -54,9 +53,16 @@ impl Thought {
 #[derive(Debug, Clone)]
 pub enum ReasoningError {
     UnknownRoot(Blake3Hash),
-    QuarantineDivergence { candidate: Blake3Hash, divergence: f64 },
+    QuarantineDivergence {
+        candidate: Blake3Hash,
+        divergence: f64,
+    },
     ImmutableS2Violation(Blake3Hash),
-    StaleReflex { reflex: Blake3Hash, compiled_under: u32, current: u32 },
+    StaleReflex {
+        reflex: Blake3Hash,
+        compiled_under: u32,
+        current: u32,
+    },
 }
 
 // ============================================================================
@@ -110,15 +116,18 @@ pub struct MyelinationReceipt {
 }
 
 impl ReceiptPayload for MyelinationReceipt {
-    fn kind(&self) -> ReceiptKind { ReceiptKind::Myelination }
+    fn kind(&self) -> ReceiptKind {
+        ReceiptKind::Myelination
+    }
     fn canonical_bytes(&self) -> Vec<u8> {
-        let mut buf = Vec::with_capacity(
-            32 + 32 + 4 + self.quarantine_evidence.len() * 32 + 8 + 4 + 32 + 8
-        );
+        let mut buf =
+            Vec::with_capacity(32 + 32 + 4 + self.quarantine_evidence.len() * 32 + 8 + 4 + 32 + 8);
         buf.extend_from_slice(&self.source_s2);
         buf.extend_from_slice(&self.compiled_reflex);
         buf.extend_from_slice(&(self.quarantine_evidence.len() as u32).to_le_bytes());
-        for h in &self.quarantine_evidence { buf.extend_from_slice(h); }
+        for h in &self.quarantine_evidence {
+            buf.extend_from_slice(h);
+        }
         buf.extend_from_slice(&self.observed_divergence.to_le_bytes());
         buf.extend_from_slice(&self.policy_version.to_le_bytes());
         buf.extend_from_slice(&self.prev_chain);
@@ -145,8 +154,13 @@ impl ReceiptPayloadDecode for MyelinationReceipt {
         let prev_chain = r.read_hash()?;
         let timestamp_ns = r.read_u64()?;
         Ok(Self {
-            source_s2, compiled_reflex, quarantine_evidence,
-            observed_divergence, policy_version, prev_chain, timestamp_ns,
+            source_s2,
+            compiled_reflex,
+            quarantine_evidence,
+            observed_divergence,
+            policy_version,
+            prev_chain,
+            timestamp_ns,
         })
     }
 }
@@ -170,23 +184,28 @@ pub enum DemyelinationReason {
 impl DemyelinationReceipt {
     fn reason_discriminant(&self) -> u8 {
         match self.reason {
-            DemyelinationReason::SourceS2Updated      => 0x00,
+            DemyelinationReason::SourceS2Updated => 0x00,
             DemyelinationReason::DriftDetected { .. } => 0x01,
-            DemyelinationReason::GovernanceDecision(_)=> 0x02,
-            DemyelinationReason::PolicyVersionBump    => 0x03,
+            DemyelinationReason::GovernanceDecision(_) => 0x02,
+            DemyelinationReason::PolicyVersionBump => 0x03,
         }
     }
 }
 
 impl ReceiptPayload for DemyelinationReceipt {
-    fn kind(&self) -> ReceiptKind { ReceiptKind::Demyelination }
+    fn kind(&self) -> ReceiptKind {
+        ReceiptKind::Demyelination
+    }
     fn canonical_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(128);
         buf.extend_from_slice(&self.reflex);
         buf.push(self.reason_discriminant());
         match &self.reason {
             DemyelinationReason::SourceS2Updated => {}
-            DemyelinationReason::DriftDetected { observed, threshold } => {
+            DemyelinationReason::DriftDetected {
+                observed,
+                threshold,
+            } => {
                 buf.extend_from_slice(&observed.to_le_bytes());
                 buf.extend_from_slice(&threshold.to_le_bytes());
             }
@@ -212,17 +231,28 @@ impl ReceiptPayloadDecode for DemyelinationReceipt {
             0x01 => {
                 let observed = r.read_f64()?;
                 let threshold = r.read_f64()?;
-                DemyelinationReason::DriftDetected { observed, threshold }
+                DemyelinationReason::DriftDetected {
+                    observed,
+                    threshold,
+                }
             }
             0x02 => DemyelinationReason::GovernanceDecision(r.read_hash()?),
             0x03 => DemyelinationReason::PolicyVersionBump,
-            b => return Err(DecodeError::UnknownDiscriminant {
-                field: "DemyelinationReason", byte: b,
-            }),
+            b => {
+                return Err(DecodeError::UnknownDiscriminant {
+                    field: "DemyelinationReason",
+                    byte: b,
+                })
+            }
         };
         let prev_chain = r.read_hash()?;
         let timestamp_ns = r.read_u64()?;
-        Ok(Self { reflex, reason, prev_chain, timestamp_ns })
+        Ok(Self {
+            reflex,
+            reason,
+            prev_chain,
+            timestamp_ns,
+        })
     }
 }
 
@@ -254,17 +284,23 @@ impl QuarantineState {
 
     pub fn divergence(&self) -> f64 {
         let n = self.s2_observations.len().min(self.s1_predictions.len());
-        if n == 0 { return 1.0; }
+        if n == 0 {
+            return 1.0;
+        }
         let mut mismatches = 0;
         for i in 0..n {
             let s2_hash = hash_thoughts(&self.s2_observations[i].1);
             let s1_hash = hash_thoughts(&self.s1_predictions[i]);
-            if s2_hash != s1_hash { mismatches += 1; }
+            if s2_hash != s1_hash {
+                mismatches += 1;
+            }
         }
         mismatches as f64 / n as f64
     }
 
-    pub fn is_full(&self) -> bool { self.observations_remaining == 0 }
+    pub fn is_full(&self) -> bool {
+        self.observations_remaining == 0
+    }
 }
 
 // ============================================================================
@@ -278,10 +314,17 @@ pub struct CompiledReflex {
 
 impl CompiledReflex {
     pub fn compile_from(_node: &dyn GraphNode, policy_version: u32) -> Self {
-        Self { source_s2: [0u8; 32], policy_version }
+        Self {
+            source_s2: [0u8; 32],
+            policy_version,
+        }
     }
-    pub fn policy_version(&self) -> u32 { self.policy_version }
-    pub fn execute(&self, _ctx: &mut AgentCtx) -> Vec<Thought> { Vec::new() }
+    pub fn policy_version(&self) -> u32 {
+        self.policy_version
+    }
+    pub fn execute(&self, _ctx: &mut AgentCtx) -> Vec<Thought> {
+        Vec::new()
+    }
     pub fn hash(&self) -> Blake3Hash {
         let mut buf = Vec::with_capacity(36);
         buf.extend_from_slice(&self.source_s2);
@@ -331,7 +374,9 @@ impl ThoughtGraph {
         chain_head: Blake3Hash,
     ) -> Self {
         Self {
-            nodes, roots, policies,
+            nodes,
+            roots,
+            policies,
             hit_counts: HashMap::new(),
             quarantines: HashMap::new(),
             compiled_reflexes: HashMap::new(),
@@ -341,13 +386,25 @@ impl ThoughtGraph {
         }
     }
 
-    pub fn chain_head(&self) -> Blake3Hash { self.chain_head }
-    pub fn set_chain_head(&mut self, h: Blake3Hash) { self.chain_head = h; }
-    pub fn node_count(&self) -> usize { self.nodes.len() }
-    pub fn root_count(&self) -> usize { self.roots.len() }
+    pub fn chain_head(&self) -> Blake3Hash {
+        self.chain_head
+    }
+    pub fn set_chain_head(&mut self, h: Blake3Hash) {
+        self.chain_head = h;
+    }
+    pub fn node_count(&self) -> usize {
+        self.nodes.len()
+    }
+    pub fn root_count(&self) -> usize {
+        self.roots.len()
+    }
 
-    pub fn set_shadow_mode(&mut self, mode: ShadowMode) { self.shadow_mode = mode; }
-    pub fn shadow_mode(&self) -> ShadowMode { self.shadow_mode }
+    pub fn set_shadow_mode(&mut self, mode: ShadowMode) {
+        self.shadow_mode = mode;
+    }
+    pub fn shadow_mode(&self) -> ShadowMode {
+        self.shadow_mode
+    }
 
     pub fn has_reflex(&self, edge: &Blake3Hash) -> bool {
         self.compiled_reflexes.contains_key(edge)
@@ -374,12 +431,16 @@ impl ThoughtGraph {
         let shadow = self.shadow_mode;
 
         for root in roots.iter() {
-            let node = self.nodes.get(root)
+            let node = self
+                .nodes
+                .get(root)
                 .ok_or(ReasoningError::UnknownRoot(*root))?;
 
             // Fast path: compiled reflex available and policy-current
             if let Some(reflex) = self.compiled_reflexes.get(root) {
-                let policy = self.policies.get(root)
+                let policy = self
+                    .policies
+                    .get(root)
                     .cloned()
                     .unwrap_or_else(MyelinationPolicy::standard);
 
@@ -419,7 +480,9 @@ impl ThoughtGraph {
             let s2_out = node.traverse(ctx);
 
             if shadow == ShadowMode::On {
-                let policy = self.policies.get(root)
+                let policy = self
+                    .policies
+                    .get(root)
                     .cloned()
                     .unwrap_or_else(MyelinationPolicy::standard);
                 let input_hash = ctx.receipt_chain;
@@ -451,38 +514,55 @@ impl ThoughtGraph {
 
     pub fn propose_myelinations(
         &mut self,
-    ) -> Vec<(Blake3Hash, Result<(MyelinationReceipt, CompiledReflex), ReasoningError>)> {
+    ) -> Vec<(
+        Blake3Hash,
+        Result<(MyelinationReceipt, CompiledReflex), ReasoningError>,
+    )> {
         let mut proposals = Vec::new();
 
-        let candidates: Vec<(Blake3Hash, u32)> = self.hit_counts.iter()
-            .map(|(h, c)| (*h, *c))
-            .collect();
+        let candidates: Vec<(Blake3Hash, u32)> =
+            self.hit_counts.iter().map(|(h, c)| (*h, *c)).collect();
 
         for (edge_hash, hits) in candidates {
-            let policy = self.policies.get(&edge_hash)
+            let policy = self
+                .policies
+                .get(&edge_hash)
                 .cloned()
                 .unwrap_or_else(MyelinationPolicy::standard);
 
             if policy.immutable_s2 {
-                proposals.push((edge_hash, Err(ReasoningError::ImmutableS2Violation(edge_hash))));
+                proposals.push((
+                    edge_hash,
+                    Err(ReasoningError::ImmutableS2Violation(edge_hash)),
+                ));
                 continue;
             }
 
-            if hits < policy.hit_threshold { continue; }
+            if hits < policy.hit_threshold {
+                continue;
+            }
 
             let budget = policy.quarantine_observations;
-            let quarantine = self.quarantines.entry(edge_hash)
+            let quarantine = self
+                .quarantines
+                .entry(edge_hash)
                 .or_insert_with(|| QuarantineState::new(budget));
 
-            if !quarantine.is_full() { continue; }
+            if !quarantine.is_full() {
+                continue;
+            }
 
             let divergence = quarantine.divergence();
             if divergence > policy.max_divergence {
                 self.hit_counts.insert(edge_hash, 0);
                 self.quarantines.remove(&edge_hash);
-                proposals.push((edge_hash, Err(ReasoningError::QuarantineDivergence {
-                    candidate: edge_hash, divergence,
-                })));
+                proposals.push((
+                    edge_hash,
+                    Err(ReasoningError::QuarantineDivergence {
+                        candidate: edge_hash,
+                        divergence,
+                    }),
+                ));
                 continue;
             }
 
@@ -490,9 +570,12 @@ impl ThoughtGraph {
                 proposals.push((edge_hash, Err(ReasoningError::UnknownRoot(edge_hash))));
                 continue;
             };
-            let compiled = CompiledReflex::compile_from(source_node.as_ref(), policy.policy_version);
+            let compiled =
+                CompiledReflex::compile_from(source_node.as_ref(), policy.policy_version);
             let compiled_hash = compiled.hash();
-            let evidence: Vec<Blake3Hash> = quarantine.s2_observations.iter()
+            let evidence: Vec<Blake3Hash> = quarantine
+                .s2_observations
+                .iter()
                 .map(|(_, thoughts)| hash_thoughts(thoughts))
                 .collect();
 
@@ -547,11 +630,10 @@ impl ThoughtGraph {
         self.chain_head = new_chain_head;
     }
 
-    pub fn invalidate_stale_reflexes(
-        &mut self,
-        new_version: u32,
-    ) -> Vec<DemyelinationReceipt> {
-        let stale: Vec<Blake3Hash> = self.compiled_reflexes.iter()
+    pub fn invalidate_stale_reflexes(&mut self, new_version: u32) -> Vec<DemyelinationReceipt> {
+        let stale: Vec<Blake3Hash> = self
+            .compiled_reflexes
+            .iter()
             .filter(|(_, r)| r.policy_version() < new_version)
             .map(|(h, _)| *h)
             .collect();
