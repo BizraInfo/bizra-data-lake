@@ -456,6 +456,19 @@ jobs:
       - name: Run doc tests
         run: cargo test --doc --workspace
 
+      - name: Spearpoint A — contract drift gate
+        working-directory: bizra-omega
+        run: |
+          # ts-rs regenerated bindings/*.ts during `cargo test`. If any
+          # file differs from the committed state, a Rust DTO changed
+          # without the UI-visible contract being updated in the same
+          # commit. Fail loudly.
+          if ! git diff --exit-code -- bizra-cognition-gateway/bindings/; then
+            echo "::error::HTTP contract drift detected in bizra-cognition-gateway/bindings/"
+            echo "::error::Run 'cargo test -p bizra-cognition-gateway --bin bizra-cognition-gateway' locally and commit the regenerated .ts files."
+            exit 1
+          fi
+
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@4d137b827f4da48b11519b9c4ed64ad1ed67a705  # cargo-llvm-cov
 
