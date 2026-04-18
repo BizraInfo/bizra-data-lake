@@ -20,6 +20,7 @@ pub mod mission_freeze_v1;
 pub mod manifest_artifact;
 pub mod principal_activation;
 pub mod principal_cache;
+pub mod receipt_history_cache;
 pub mod thought_graph;
 pub mod configure_cognition;
 pub mod runtime;

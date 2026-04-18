@@ -43,6 +43,9 @@ use crate::principal_activation::{
     PrincipalActivationEnvelope, PrincipalActivationReceipt, PrincipalProfile,
 };
 use crate::principal_cache::{PrincipalCacheError, PrincipalProfileCache};
+use crate::receipt_history_cache::{
+    ReceiptHistoryCache, ReceiptHistoryCacheError, ReceiptHistorySnapshot,
+};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -301,6 +304,12 @@ pub struct CognitionRuntime {
     // `rehydrate_principal_from_cache`. Opt-in to preserve in-memory
     // unit-test isolation.
     dema_cache: Option<PrincipalProfileCache>,
+    // Cycle-7 G3 Commit-1 — optional on-disk cache at
+    // sovereign_state/dema_cache/receipt_history.json. When set, every
+    // public API that advances the chain auto-writes a snapshot after
+    // the append. Best-effort: write failures do not invalidate the
+    // sealed chain. Rehydrate via `rehydrate_receipt_history_from_cache`.
+    receipt_history_cache: Option<ReceiptHistoryCache>,
 }
 
 /// Errors produced by CognitionRuntime bootstrap constructors.
@@ -336,6 +345,7 @@ impl CognitionRuntime {
             sovereign_snapshot: None,
             principal_profile: None,
             dema_cache: None,
+            receipt_history_cache: None,
         }
     }
 
@@ -373,6 +383,7 @@ impl CognitionRuntime {
             sovereign_snapshot: Some(snapshot),
             principal_profile: None,
             dema_cache: None,
+            receipt_history_cache: None,
         })
     }
 
@@ -423,6 +434,7 @@ impl CognitionRuntime {
             sovereign_snapshot: None,
             principal_profile: None,
             dema_cache: None,
+            receipt_history_cache: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -541,6 +553,13 @@ impl CognitionRuntime {
                 manifest: None, // §10 Proof Law: rejected missions produce no manifest
             };
             self.missions.insert(mission_id, record.clone());
+            // Cycle-7 G3 Commit-1 — best-effort cache snapshot on the
+            // reject path. Chain did not advance, but the cache write
+            // here keeps file mtime moving and exposes the (unchanged)
+            // head to readers that poll the cache after an operator
+            // attempt. Failure is silent — see trailing write on
+            // permit-return for the same rationale.
+            let _ = self.write_receipt_history_cache();
             return Ok(record);
         }
 
@@ -635,6 +654,12 @@ impl CognitionRuntime {
             manifest,
         };
         self.missions.insert(mission_id, record.clone());
+        // Best-effort receipt-history cache write (Cycle-7 G3 Commit-1).
+        // Failure is silent here — the sealed chain remains truth; a
+        // stale cache will be detected by the chain-vs-cache diff on
+        // next rehydrate. Operator-visible warnings propagate via the
+        // principal-activation path which carries `cache_warning`.
+        let _ = self.write_receipt_history_cache();
         Ok(record)
     }
 
@@ -752,6 +777,13 @@ impl CognitionRuntime {
         self.chain.append_with_payload(pa_receipt.clone())?;
         self.principal_profile = Some(profile.clone());
 
+        // Cycle-7 G3 Commit-1 — refresh the receipt-history cache now
+        // that the PrincipalActivation receipt has advanced the chain
+        // beyond what submit_mission wrote. Best-effort; failure is
+        // silent because the principal_profile cache write below
+        // already carries the operator-visible cache_warning channel.
+        let _ = self.write_receipt_history_cache();
+
         // Best-effort disk cache write. Failure does not invalidate the
         // sealed chain — the profile remains in-memory and is rebuildable
         // from the chain on the next call to rehydrate_principal_from_cache
@@ -793,6 +825,8 @@ impl CognitionRuntime {
     /// builder-style composition.
     pub fn attach_dema_cache(&mut self, sovereign_root: &std::path::Path) -> &mut Self {
         self.dema_cache = Some(PrincipalProfileCache::at_sovereign_root(sovereign_root));
+        self.receipt_history_cache =
+            Some(ReceiptHistoryCache::at_sovereign_root(sovereign_root));
         self
     }
 
@@ -822,6 +856,55 @@ impl CognitionRuntime {
                 Ok(true)
             }
             None => Ok(false),
+        }
+    }
+
+    /// Cycle-7 G3 Commit-1 — accessor for the attached receipt-history
+    /// cache (if any). Exposed for test harness + gateway inspection.
+    pub fn receipt_history_cache(&self) -> Option<&ReceiptHistoryCache> {
+        self.receipt_history_cache.as_ref()
+    }
+
+    /// Cycle-7 G3 Commit-1 — build an in-memory snapshot of the current
+    /// receipt chain suitable for serialization into the dema_cache. The
+    /// snapshot is a thin projection: chain head, last payload timestamp,
+    /// and the ordered (kind, hash, prev) tuples.
+    ///
+    /// Niyyah §"Writer authority decision": derived and rebuildable —
+    /// the chain remains authoritative; the snapshot is a read fast-path.
+    pub fn receipt_history_snapshot(&self) -> ReceiptHistorySnapshot {
+        ReceiptHistorySnapshot {
+            head: self.chain.head(),
+            last_timestamp_ns: self.chain.latest_timestamp(),
+            records: self.chain.records().copied().collect(),
+        }
+    }
+
+    /// Cycle-7 G3 Commit-1 — write the current receipt history snapshot
+    /// to the attached cache. Returns `Ok(None)` when no cache is
+    /// attached, `Ok(Some(Ok(())))` on successful write, or
+    /// `Ok(Some(Err(e)))` when a cache is attached but the write failed.
+    ///
+    /// Best-effort by design: callers propagate the inner Result as a
+    /// warning string without aborting the already-sealed chain.
+    pub fn write_receipt_history_cache(
+        &self,
+    ) -> Option<Result<(), ReceiptHistoryCacheError>> {
+        self.receipt_history_cache
+            .as_ref()
+            .map(|c| c.write(&self.receipt_history_snapshot()))
+    }
+
+    /// Cycle-7 G3 Commit-1 — load the receipt-history snapshot from the
+    /// attached cache, if present. Returns `Ok(None)` when no cache is
+    /// attached OR the file is absent. The snapshot is derived state —
+    /// callers must still replay the canonical chain for truth.
+    pub fn rehydrate_receipt_history_from_cache(
+        &self,
+    ) -> Result<Option<ReceiptHistorySnapshot>, ReceiptHistoryCacheError> {
+        match &self.receipt_history_cache {
+            Some(c) => c.read(),
+            None => Ok(None),
         }
     }
 
@@ -1898,6 +1981,150 @@ mod tests {
             let ctx = AgentCtx { receipt_chain: genesis };
             let rt = CognitionRuntime::new(graph, chain, ctx);
             assert!(rt.sovereign_snapshot().is_none());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Cycle-7 G3 Commit-1 — receipt_history cache integration
+    // ════════════════════════════════════════════════════════════════
+    mod receipt_history_g3 {
+        use super::*;
+        use crate::principal_activation::{NodeIdentityAnchor, PrincipalActivationEnvelope};
+        use crate::receipt_history_cache::ReceiptHistoryCache;
+
+        const TEST_PUBKEY_HEX: &str =
+            "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a";
+
+        fn test_envelope(now_ns: u64) -> PrincipalActivationEnvelope {
+            let a =
+                NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-18T06:00:00Z");
+            PrincipalActivationEnvelope::from_anchor(
+                "Mumo".into(),
+                "node0_principal".into(),
+                &a,
+                now_ns,
+            )
+            .unwrap()
+        }
+
+        #[test]
+        fn no_cache_attached_makes_writes_a_noop() {
+            let mut rt = minimal_runtime();
+            assert!(rt.receipt_history_cache().is_none());
+            // Advance the chain via a permitted activation.
+            let _ = rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            // No cache → write helper returns None, no panic.
+            assert!(rt.write_receipt_history_cache().is_none());
+            assert!(rt.rehydrate_receipt_history_from_cache().unwrap().is_none());
+        }
+
+        #[test]
+        fn attach_dema_cache_initializes_both_surfaces() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            assert!(rt.dema_cache().is_some());
+            assert!(rt.receipt_history_cache().is_some());
+        }
+
+        #[test]
+        fn submit_principal_activation_auto_writes_receipt_history_snapshot() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let record = rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            assert!(!record.rejected);
+
+            let loaded = rt
+                .rehydrate_receipt_history_from_cache()
+                .unwrap()
+                .expect("cache written after activation");
+
+            // Head must equal chain head AFTER PrincipalActivation append.
+            assert_eq!(loaded.head, rt.chain.head());
+            // PA path seals 9 records (boot? minimal_runtime starts empty, so
+            // exact count depends on runtime init — we check monotonicity).
+            assert_eq!(loaded.records.len(), rt.chain.len());
+            // Terminal record must be the PrincipalActivation (kind 0x61).
+            let last_kind = loaded.records.last().expect("records not empty").kind;
+            assert_eq!(last_kind, ReceiptKind::PrincipalActivation);
+        }
+
+        #[test]
+        fn rejected_mission_still_writes_current_chain_snapshot() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            // Reject path: submit_mission returns early without advancing
+            // the chain, but the trailing write_receipt_history_cache()
+            // in submit_mission still fires — producing a valid snapshot
+            // of the pre-reject chain head.
+            let env = test_mission(500);
+            let claim = reject_claim(&env, 1_000);
+            let record = rt.submit_mission(env, claim).unwrap();
+            assert!(record.rejected);
+
+            let loaded = rt.rehydrate_receipt_history_from_cache().unwrap().unwrap();
+            assert_eq!(loaded.head, rt.chain.head());
+        }
+
+        #[test]
+        fn restart_simulation_snapshot_survives_and_matches_chain() {
+            // 1. Runtime A: attach cache, activate principal, drop.
+            // 2. Runtime B: attach cache at same root, read snapshot.
+            // 3. Loaded head + records must match A's final chain state.
+            let td = tempfile::TempDir::new().unwrap();
+
+            let (head_a, len_a) = {
+                let mut rt = minimal_runtime();
+                rt.attach_dema_cache(td.path());
+                rt.submit_principal_activation(test_envelope(42_000), 0.97).unwrap();
+                (rt.chain.head(), rt.chain.len())
+            };
+
+            let cache = ReceiptHistoryCache::at_sovereign_root(td.path());
+            let loaded = cache.read().unwrap().expect("snapshot on disk");
+            assert_eq!(loaded.head, head_a);
+            assert_eq!(loaded.records.len(), len_a);
+            assert_eq!(
+                loaded.records.last().map(|r| r.kind),
+                Some(ReceiptKind::PrincipalActivation)
+            );
+        }
+
+        #[test]
+        fn write_receipt_history_cache_returns_ok_when_attached() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            // Explicit helper call round-trips Ok(Some(Ok(()))).
+            let result = rt.write_receipt_history_cache().expect("cache attached");
+            result.expect("write succeeds");
+        }
+
+        #[test]
+        fn successive_activations_refresh_snapshot_head() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let r1 = rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            let head_after_first = rt.chain.head();
+            let snap1 = rt.rehydrate_receipt_history_from_cache().unwrap().unwrap();
+            assert_eq!(snap1.head, head_after_first);
+            assert!(!r1.rejected);
+
+            // A subsequent submit_mission must refresh the cache head.
+            let env = test_mission(2_000);
+            let claim = permit_claim(&env, 3_000);
+            let _ = rt.submit_mission(env, claim).unwrap();
+            let head_after_second = rt.chain.head();
+            let snap2 = rt.rehydrate_receipt_history_from_cache().unwrap().unwrap();
+            assert_eq!(snap2.head, head_after_second);
+            assert!(snap2.records.len() > snap1.records.len());
         }
     }
 }

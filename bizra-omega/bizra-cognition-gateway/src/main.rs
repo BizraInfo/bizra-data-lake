@@ -503,6 +503,25 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                 "dema_cache attached but rehydrate failed — will rebuild from chain if needed"
             ),
         }
+        // Cycle-7 G3 Commit-1 — log whether a prior receipt-history
+        // snapshot is present. attach_dema_cache has already initialized
+        // the ReceiptHistoryCache alongside PrincipalProfileCache.
+        match rt.rehydrate_receipt_history_from_cache() {
+            Ok(Some(snap)) => tracing::info!(
+                target: DOMAIN,
+                records = snap.records.len(),
+                "receipt_history cache present from prior session"
+            ),
+            Ok(None) => tracing::info!(
+                target: DOMAIN,
+                "receipt_history cache empty; will initialize on first chain advance"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "receipt_history cache malformed — will rebuild from chain on next advance"
+            ),
+        }
     }
     rt
 }

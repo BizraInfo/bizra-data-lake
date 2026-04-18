@@ -66,7 +66,7 @@ impl ReceiptKind {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Receipt {
     pub kind: ReceiptKind,
     pub hash: Blake3Hash,
