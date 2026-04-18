@@ -98,6 +98,29 @@ enum Command {
         #[arg(long, default_value_t = DEFAULT_QUALITY_SCORE)]
         quality: f64,
     },
+    /// Cycle-7 G4 — register a local resource in the dema_cache registry
+    ///
+    /// Kind accepts the canonical variants (filesystem, network, process,
+    /// credential) or any custom string. Unknown strings round-trip as
+    /// Custom(...) so older/newer builds do not reject each other's data.
+    RegisterResource {
+        /// Resource kind (filesystem|network|process|credential|<custom>)
+        #[arg(long)]
+        kind: String,
+        /// Resource id (path, host:port, pid, credential handle, ...)
+        #[arg(long)]
+        id: String,
+        /// Human-readable summary
+        #[arg(long, default_value = "")]
+        summary: String,
+        /// Mark this resource as allowlisted (G5 `dema organize` prerequisite)
+        #[arg(long)]
+        allowlisted: bool,
+    },
+    /// Cycle-7 G4 — list every resource registered in dema_cache
+    ListResources,
+    /// Cycle-7 G4 — show the Universal Resource Pattern projection
+    Urp,
 }
 
 #[derive(Deserialize)]
@@ -212,6 +235,50 @@ struct ActivatePrincipalOk {
     admissibility: Admissibility,
     #[serde(rename = "cacheWarning")]
     cache_warning: Option<String>,
+}
+
+// ─── Cycle-7 G4 — /resources DTOs ──────────────────────────────────────────
+
+#[derive(Serialize)]
+struct RegisterResourceReq<'a> {
+    kind: &'a str,
+    id: &'a str,
+    summary: &'a str,
+    allowlisted: bool,
+}
+
+#[derive(Deserialize)]
+struct ResourceOk {
+    kind: String,
+    id: String,
+    summary: String,
+    allowlisted: bool,
+}
+
+#[derive(Deserialize)]
+struct RegisterResourceOk {
+    outcome: String,
+    resource: ResourceOk,
+}
+
+#[derive(Deserialize)]
+struct ListResourcesOk {
+    resources: Vec<ResourceOk>,
+}
+
+#[derive(Deserialize)]
+struct UrpBucketOk {
+    kind: String,
+    resources: Vec<ResourceOk>,
+}
+
+#[derive(Deserialize)]
+struct UrpViewOk {
+    #[serde(rename = "totalCount")]
+    total_count: usize,
+    #[serde(rename = "allowlistedCount")]
+    allowlisted_count: usize,
+    buckets: Vec<UrpBucketOk>,
 }
 
 #[derive(Serialize)]
@@ -514,6 +581,124 @@ fn cmd_activate_principal(
     }
 }
 
+// ─── Cycle-7 G4 — resource registry CLI ────────────────────────────────
+
+fn cmd_register_resource(
+    kind: &str,
+    id: &str,
+    summary: &str,
+    allowlisted: bool,
+    json: bool,
+) -> Result<()> {
+    let req = RegisterResourceReq {
+        kind,
+        id,
+        summary,
+        allowlisted,
+    };
+    let url = format!("{}/resources/register", gateway_url());
+    let resp = client()?
+        .post(&url)
+        .json(&req)
+        .send()
+        .with_context(|| format!("POST {}", url))?;
+    let status = resp.status();
+    let text = resp.text().context("read response body")?;
+    if !status.is_success() {
+        return Err(anyhow!(
+            "gateway returned HTTP {} — body: {}",
+            status,
+            &text[..text.len().min(500)]
+        ));
+    }
+    let body: RegisterResourceOk =
+        serde_json::from_str(&text).context("decode register response")?;
+    if json {
+        println!("{}", text);
+    } else {
+        println!("register-resource — {}", body.outcome);
+        println!("  kind:        {}", body.resource.kind);
+        println!("  id:          {}", body.resource.id);
+        println!("  summary:     {}", body.resource.summary);
+        println!("  allowlisted: {}", body.resource.allowlisted);
+    }
+    Ok(())
+}
+
+fn cmd_list_resources(json: bool) -> Result<()> {
+    let url = format!("{}/resources/list", gateway_url());
+    let resp = client()?
+        .get(&url)
+        .send()
+        .with_context(|| format!("GET {}", url))?;
+    let status = resp.status();
+    let text = resp.text().context("read response body")?;
+    if !status.is_success() {
+        return Err(anyhow!(
+            "gateway returned HTTP {} — body: {}",
+            status,
+            &text[..text.len().min(500)]
+        ));
+    }
+    if json {
+        println!("{}", text);
+        return Ok(());
+    }
+    let body: ListResourcesOk = serde_json::from_str(&text).context("decode list response")?;
+    if body.resources.is_empty() {
+        println!("list-resources — (empty)");
+        return Ok(());
+    }
+    println!("list-resources — {} registered", body.resources.len());
+    for r in &body.resources {
+        let marker = if r.allowlisted { "✓" } else { " " };
+        println!("  {} {:<12} {}", marker, r.kind, r.id);
+        if !r.summary.is_empty() {
+            println!("              {}", r.summary);
+        }
+    }
+    Ok(())
+}
+
+fn cmd_urp(json: bool) -> Result<()> {
+    let url = format!("{}/resources/urp", gateway_url());
+    let resp = client()?
+        .get(&url)
+        .send()
+        .with_context(|| format!("GET {}", url))?;
+    let status = resp.status();
+    let text = resp.text().context("read response body")?;
+    if !status.is_success() {
+        return Err(anyhow!(
+            "gateway returned HTTP {} — body: {}",
+            status,
+            &text[..text.len().min(500)]
+        ));
+    }
+    if json {
+        println!("{}", text);
+        return Ok(());
+    }
+    let body: UrpViewOk = serde_json::from_str(&text).context("decode urp response")?;
+    println!(
+        "URP — {} resources ({} allowlisted)",
+        body.total_count, body.allowlisted_count
+    );
+    if body.buckets.is_empty() {
+        println!("  (registry empty)");
+        return Ok(());
+    }
+    for b in &body.buckets {
+        println!();
+        println!("  [{}] ({} entries)", b.kind, b.resources.len());
+        for r in &b.resources {
+            let marker = if r.allowlisted { "✓" } else { " " };
+            println!("    {} {}", marker, r.id);
+        }
+    }
+    Ok(())
+}
+
 fn cmd_status(json: bool) -> Result<()> {
     // Default no-arg behavior: health + chain summary in one shot
     let h_url = format!("{}/health", gateway_url());
@@ -575,6 +760,14 @@ fn main() -> ExitCode {
                 Err(e) => Err(e),
             }
         }
+        Some(Command::RegisterResource {
+            kind,
+            id,
+            summary,
+            allowlisted,
+        }) => cmd_register_resource(&kind, &id, &summary, allowlisted, cli.json),
+        Some(Command::ListResources) => cmd_list_resources(cli.json),
+        Some(Command::Urp) => cmd_urp(cli.json),
     };
 
     match result {
