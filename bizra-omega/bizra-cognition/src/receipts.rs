@@ -45,6 +45,12 @@ pub enum ReceiptKind {
     // Binds a NodeLifecycle mission receipt to a principal profile hash,
     // non-transferable and proof-bearing per niyyah §6 (local-only PoI).
     PrincipalActivation = 0x61,
+    // Cycle-7 G5 — dedicated kind for the first real operator mission
+    // (`dema organize <allowlisted>`). Binds a permitted NodeLifecycle
+    // mission receipt to an operator-visible state transition summary
+    // (path + deterministic listing digest + file_count). Read-only
+    // semantics; does not mutate the filesystem.
+    MissionExecuted    = 0x70,
     DegradedPath       = 0xF0,
 }
 
@@ -60,6 +66,7 @@ impl ReceiptKind {
             0x50 => Some(Self::NodeLifecycle),
             0x60 => Some(Self::Manifest),
             0x61 => Some(Self::PrincipalActivation),
+            0x70 => Some(Self::MissionExecuted),
             0xF0 => Some(Self::DegradedPath),
             _ => None,
         }

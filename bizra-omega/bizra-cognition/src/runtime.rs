@@ -526,6 +526,7 @@ impl CognitionRuntime {
                 | ReceiptKind::NodeLifecycle
                 | ReceiptKind::Manifest
                 | ReceiptKind::PrincipalActivation
+                | ReceiptKind::MissionExecuted
                 | ReceiptKind::DegradedPath => {}
             }
         }

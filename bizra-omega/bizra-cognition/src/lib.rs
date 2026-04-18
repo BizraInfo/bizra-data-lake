@@ -26,6 +26,7 @@ pub mod mission_log_cache;
 pub mod state_snapshots_cache;
 pub mod resource_registry_cache;
 pub mod resource_registry;
+pub mod organize_mission;
 pub mod thought_graph;
 pub mod configure_cognition;
 pub mod runtime;

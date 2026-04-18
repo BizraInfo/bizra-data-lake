@@ -357,6 +357,7 @@ fn kind_name(k: ReceiptKind) -> &'static str {
         ReceiptKind::NodeLifecycle => "NodeLifecycle",
         ReceiptKind::Manifest => "Manifest",
         ReceiptKind::PrincipalActivation => "PrincipalActivation",
+        ReceiptKind::MissionExecuted => "MissionExecuted",
         ReceiptKind::DegradedPath => "DegradedPath",
     }
 }
