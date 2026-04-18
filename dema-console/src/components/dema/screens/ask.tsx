@@ -161,7 +161,7 @@ export function AskScreen() {
     }
   }, [askMessages]);
 
-  const [sessionId] = useState(() => `sess-${Math.random().toString(36).slice(2, 10)}`);
+  const [sessionId] = useState(() => `sess-${crypto.randomUUID()}`);
 
   const handleSend = async () => {
     if (!input.trim()) return;
