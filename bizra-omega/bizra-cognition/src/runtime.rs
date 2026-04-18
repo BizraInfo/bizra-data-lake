@@ -56,6 +56,9 @@ use crate::state_snapshots_cache::{
     StateSnapshotEntry, StateSnapshotView, StateSnapshotsCache, StateSnapshotsCacheError,
     StateSnapshotsSnapshot,
 };
+use crate::resource_registry_cache::{
+    ResourceRegistryCache, ResourceRegistryCacheError, ResourceRegistrySnapshot,
+};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -337,6 +340,11 @@ pub struct CognitionRuntime {
     // each mission's FourStateModel (current + ideal + gap). Answers:
     // "where NODE0 is vs where it aims to be, per mission attempt."
     state_snapshots_cache: Option<StateSnapshotsCache>,
+    // Cycle-7 G3 Commit-5 — optional on-disk cache at
+    // sovereign_state/dema_cache/resource_registry.json. G3 seeds an
+    // empty registry so G4 can assume the file exists; G4 owns the
+    // mutation API (register-resource / allowlist / URP view).
+    resource_registry_cache: Option<ResourceRegistryCache>,
 }
 
 /// Errors produced by CognitionRuntime bootstrap constructors.
@@ -376,6 +384,7 @@ impl CognitionRuntime {
             manifest_history_cache: None,
             mission_log_cache: None,
             state_snapshots_cache: None,
+            resource_registry_cache: None,
         }
     }
 
@@ -417,6 +426,7 @@ impl CognitionRuntime {
             manifest_history_cache: None,
             mission_log_cache: None,
             state_snapshots_cache: None,
+            resource_registry_cache: None,
         })
     }
 
@@ -471,6 +481,7 @@ impl CognitionRuntime {
             manifest_history_cache: None,
             mission_log_cache: None,
             state_snapshots_cache: None,
+            resource_registry_cache: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -877,6 +888,8 @@ impl CognitionRuntime {
         self.mission_log_cache = Some(MissionLogCache::at_sovereign_root(sovereign_root));
         self.state_snapshots_cache =
             Some(StateSnapshotsCache::at_sovereign_root(sovereign_root));
+        self.resource_registry_cache =
+            Some(ResourceRegistryCache::at_sovereign_root(sovereign_root));
         self
     }
 
@@ -1140,6 +1153,43 @@ impl CognitionRuntime {
         &self,
     ) -> Result<Option<StateSnapshotsSnapshot>, StateSnapshotsCacheError> {
         match &self.state_snapshots_cache {
+            Some(c) => c.read(),
+            None => Ok(None),
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Cycle-7 G3 Commit-5 — resource_registry cache surface (seed only)
+    // ═══════════════════════════════════════════════════════════════
+    //
+    // G3 seeds an empty registry at boot. G4 will own the mutation API
+    // (register / allowlist / URP view). This module ships the file
+    // shape and schema-version lock so G4 can build without reshaping.
+
+    /// Accessor for the attached resource-registry cache (if any).
+    pub fn resource_registry_cache(&self) -> Option<&ResourceRegistryCache> {
+        self.resource_registry_cache.as_ref()
+    }
+
+    /// Seed an empty resource_registry.json if the file does not yet
+    /// exist. Returns Ok(Some(true)) when a new empty file was created,
+    /// Ok(Some(false)) when a file already existed, and Ok(None) when
+    /// no cache is attached.
+    pub fn seed_resource_registry_if_missing(
+        &self,
+    ) -> Result<Option<bool>, ResourceRegistryCacheError> {
+        match &self.resource_registry_cache {
+            Some(c) => c.seed_empty_if_missing().map(Some),
+            None => Ok(None),
+        }
+    }
+
+    /// Load the resource_registry snapshot from the attached cache.
+    /// Restart fast-path; G4 will add URP projection on top of this.
+    pub fn rehydrate_resource_registry_from_cache(
+        &self,
+    ) -> Result<Option<ResourceRegistrySnapshot>, ResourceRegistryCacheError> {
+        match &self.resource_registry_cache {
             Some(c) => c.read(),
             None => Ok(None),
         }
@@ -2782,6 +2832,84 @@ mod tests {
             let loaded = cache.read().unwrap().unwrap();
             assert_eq!(loaded.entries.len(), 1);
             assert_eq!(loaded.entries[0].mission_id, expected_id);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Cycle-7 G3 Commit-5 — resource_registry seed integration
+    // ════════════════════════════════════════════════════════════════
+    mod resource_registry_g3 {
+        use super::*;
+        use crate::resource_registry_cache::ResourceRegistryCache;
+
+        #[test]
+        fn attach_initializes_resource_registry_cache() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            assert!(rt.resource_registry_cache().is_some());
+        }
+
+        #[test]
+        fn seed_on_boot_creates_empty_registry() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let seeded = rt.seed_resource_registry_if_missing().unwrap();
+            assert_eq!(seeded, Some(true), "new seed should return Some(true)");
+            let loaded = rt.rehydrate_resource_registry_from_cache().unwrap();
+            assert!(loaded.is_some());
+            assert!(loaded.unwrap().resources.is_empty());
+        }
+
+        #[test]
+        fn seed_is_idempotent_and_does_not_overwrite() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            rt.seed_resource_registry_if_missing().unwrap();
+            // Directly write a non-empty registry simulating a G4 mutation.
+            let cache = rt.resource_registry_cache().unwrap().clone();
+            use crate::resource_registry_cache::{
+                ResourceEntry, ResourceRegistrySnapshot,
+            };
+            let populated = ResourceRegistrySnapshot {
+                resources: vec![ResourceEntry {
+                    id: "/home/mumo/docs".into(),
+                    kind: "filesystem".into(),
+                    summary: "mumo's docs".into(),
+                    allowlisted: true,
+                }],
+            };
+            cache.write(&populated).unwrap();
+            // Re-seeding must not clobber.
+            let seeded_again = rt.seed_resource_registry_if_missing().unwrap();
+            assert_eq!(seeded_again, Some(false));
+            let loaded = rt
+                .rehydrate_resource_registry_from_cache()
+                .unwrap()
+                .unwrap();
+            assert_eq!(loaded, populated);
+        }
+
+        #[test]
+        fn seed_without_attached_cache_returns_none() {
+            let rt = minimal_runtime();
+            let seeded = rt.seed_resource_registry_if_missing().unwrap();
+            assert_eq!(seeded, None);
+        }
+
+        #[test]
+        fn rehydrate_on_fresh_runtime_reads_seeded_file() {
+            let td = tempfile::TempDir::new().unwrap();
+            {
+                let mut rt = minimal_runtime();
+                rt.attach_dema_cache(td.path());
+                rt.seed_resource_registry_if_missing().unwrap();
+            }
+            let cache = ResourceRegistryCache::at_sovereign_root(td.path());
+            let loaded = cache.read().unwrap().unwrap();
+            assert!(loaded.resources.is_empty());
         }
     }
 }

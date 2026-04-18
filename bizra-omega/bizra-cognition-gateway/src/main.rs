@@ -573,6 +573,39 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                 "state_snapshots cache malformed — will rebuild from missions on next attempt"
             ),
         }
+        // Cycle-7 G3 Commit-5 — resource_registry seed. Ensure the
+        // empty file exists at boot so G4 (URP + allowlist) can assume
+        // the schema is already locked.
+        match rt.seed_resource_registry_if_missing() {
+            Ok(Some(true)) => tracing::info!(
+                target: DOMAIN,
+                "resource_registry seeded empty (G3 scope; G4 fills)"
+            ),
+            Ok(Some(false)) => {
+                match rt.rehydrate_resource_registry_from_cache() {
+                    Ok(Some(snap)) => tracing::info!(
+                        target: DOMAIN,
+                        resources = snap.resources.len(),
+                        "resource_registry cache present from prior session"
+                    ),
+                    Ok(None) => tracing::warn!(
+                        target: DOMAIN,
+                        "resource_registry seed reported existing but read returned None"
+                    ),
+                    Err(e) => tracing::warn!(
+                        target: DOMAIN,
+                        error = %e,
+                        "resource_registry cache malformed — delete to re-seed"
+                    ),
+                }
+            }
+            Ok(None) => {}
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "resource_registry seed failed"
+            ),
+        }
     }
     rt
 }
