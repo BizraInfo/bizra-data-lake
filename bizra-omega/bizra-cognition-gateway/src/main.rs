@@ -32,6 +32,7 @@ use bizra_cognition::principal_activation::{
 use bizra_cognition::resource_registry::{
     RegisterOutcome, ResourceKind, TypedResource, UrpView,
 };
+use bizra_cognition::runtime::OrganizeOutcome;
 use bizra_cognition::receipts::{
     Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind,
 };
@@ -314,6 +315,50 @@ fn register_outcome_name(o: RegisterOutcome) -> &'static str {
         RegisterOutcome::Updated => "updated",
         RegisterOutcome::Idempotent => "idempotent",
     }
+}
+
+// ─── Cycle-7 G5 — /missions/organize DTOs ─────────────────────────────────
+
+#[derive(Deserialize)]
+struct OrganizeRequest {
+    path: String,
+    #[serde(rename = "qualityScore", default = "default_organize_quality")]
+    quality_score: f64,
+}
+
+fn default_organize_quality() -> f64 {
+    0.98
+}
+
+#[derive(Serialize)]
+struct OrganizeEntryDto {
+    name: String,
+    kind: &'static str,
+}
+
+#[derive(Serialize)]
+struct OrganizeResponse {
+    #[serde(rename = "missionId")]
+    mission_id: String,
+    #[serde(rename = "missionReceiptId")]
+    mission_receipt_id: String,
+    #[serde(rename = "organizeReceiptId")]
+    organize_receipt_id: String,
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    path: String,
+    #[serde(rename = "listingDigest")]
+    listing_digest: String,
+    #[serde(rename = "fileCount")]
+    file_count: u32,
+    #[serde(rename = "dirCount")]
+    dir_count: u32,
+    #[serde(rename = "entryCount")]
+    entry_count: u32,
+    entries: Vec<OrganizeEntryDto>,
+    #[serde(rename = "timestampNs")]
+    timestamp_ns: u64,
+    admissibility: AdmissibilityResultDto,
 }
 
 #[derive(Serialize)]
@@ -1172,6 +1217,112 @@ async fn get_resources_list(
     }))
 }
 
+async fn post_organize(
+    State(state): State<AppState>,
+    Json(req): Json<OrganizeRequest>,
+) -> Result<Json<OrganizeResponse>, (StatusCode, Json<ErrorResponse>)> {
+    if req.path.trim().is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "EMPTY_PATH",
+                    message: "path must be non-empty".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
+    let path = std::path::PathBuf::from(&req.path);
+    let mut rt = state.runtime.write().await;
+    let outcome = rt
+        .submit_organize_mission(&path, req.quality_score)
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: ErrorBody {
+                        code: "RUNTIME_ERROR",
+                        message: format!("submit_organize_mission failed: {:?}", e),
+                        domain: DOMAIN,
+                        admissibility: None,
+                    },
+                }),
+            )
+        })?;
+
+    match outcome {
+        OrganizeOutcome::NotAllowlisted { path, remediation } => Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "PATH_NOT_ALLOWLISTED",
+                    message: format!("{} — {}", path, remediation),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        OrganizeOutcome::IoError { path, error } => Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ORGANIZE_IO_ERROR",
+                    message: format!("failed to read {}: {}", path, error),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        OrganizeOutcome::Rejected {
+            mission_record,
+            remediation,
+        } => Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ADMISSIBILITY_REJECTED",
+                    message: remediation,
+                    domain: DOMAIN,
+                    admissibility: Some(admissibility_to_dto(&mission_record.admissibility)),
+                },
+            }),
+        )),
+        OrganizeOutcome::Executed {
+            mission_record,
+            organize_receipt,
+            listing,
+        } => {
+            let mission_receipt_id = mission_record
+                .receipt_id
+                .expect("permit invariant: receipt_id must be Some");
+            let entries: Vec<OrganizeEntryDto> = listing
+                .entries
+                .iter()
+                .map(|e| OrganizeEntryDto {
+                    name: e.name.clone(),
+                    kind: e.kind_str(),
+                })
+                .collect();
+            Ok(Json(OrganizeResponse {
+                mission_id: hex32(&mission_record.envelope.mission_id),
+                mission_receipt_id: hex32(&mission_receipt_id),
+                organize_receipt_id: hex32(&organize_receipt.receipt_id),
+                chain_head: hex32(&rt.chain.head()),
+                path: listing.path.clone(),
+                listing_digest: hex32(&organize_receipt.listing_digest),
+                file_count: organize_receipt.file_count,
+                dir_count: organize_receipt.dir_count,
+                entry_count: organize_receipt.entry_count,
+                entries,
+                timestamp_ns: organize_receipt.timestamp_ns,
+                admissibility: admissibility_to_dto(&mission_record.admissibility),
+            }))
+        }
+    }
+}
+
 async fn get_resources_urp(
     State(state): State<AppState>,
 ) -> Result<Json<UrpViewDto>, (StatusCode, Json<ErrorResponse>)> {
@@ -1329,6 +1480,7 @@ fn router(state: AppState) -> Router {
         .route("/resources/register", post(post_resource_register))
         .route("/resources/list", get(get_resources_list))
         .route("/resources/urp", get(get_resources_urp))
+        .route("/missions/organize", post(post_organize))
         .with_state(state)
 }
 
@@ -2063,5 +2215,126 @@ mod tests {
         // alphabetical: filesystem, network
         assert_eq!(buckets[0]["kind"], "filesystem");
         assert_eq!(buckets[1]["kind"], "network");
+    }
+
+    // ─── Cycle-7 G5 — /missions/organize tests ─────────────────────────
+
+    async fn post_organize(
+        app: axum::Router,
+        path: &str,
+        quality: f64,
+    ) -> axum::response::Response {
+        let body = serde_json::json!({
+            "path": path,
+            "qualityScore": quality,
+        })
+        .to_string();
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/missions/organize")
+                .header("content-type", "application/json")
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+    }
+
+    fn write_g5_fixture(root: &std::path::Path) {
+        use std::fs;
+        fs::create_dir_all(root).unwrap();
+        fs::write(root.join("alpha.txt"), b"hello").unwrap();
+        fs::write(root.join("beta.txt"), b"world").unwrap();
+        fs::create_dir_all(root.join("subdir")).unwrap();
+    }
+
+    #[tokio::test]
+    async fn post_organize_allowlisted_path_returns_200_with_sealed_receipt() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+
+        let res = post_organize(router(state), &target.to_string_lossy(), 0.98).await;
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 16384).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["fileCount"], 2);
+        assert_eq!(v["dirCount"], 1);
+        assert_eq!(v["entryCount"], 3);
+        assert_eq!(v["chainHead"], v["organizeReceiptId"]);
+        assert_eq!(v["admissibility"]["verdict"], "Permit");
+    }
+
+    #[tokio::test]
+    async fn post_organize_non_allowlisted_returns_403() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        // NOT registered.
+        let res = post_organize(router(state), &target.to_string_lossy(), 0.98).await;
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "PATH_NOT_ALLOWLISTED");
+    }
+
+    #[tokio::test]
+    async fn post_organize_missing_path_returns_400_io_error() {
+        let td = tempfile::TempDir::new().unwrap();
+        let ghost = td.path().join("ghost-dir");
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &ghost.to_string_lossy(),
+            true,
+        )
+        .await;
+        let res = post_organize(router(state), &ghost.to_string_lossy(), 0.98).await;
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "ORGANIZE_IO_ERROR");
+    }
+
+    #[tokio::test]
+    async fn post_organize_below_ihsan_floor_returns_422() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+        let res = post_organize(router(state), &target.to_string_lossy(), 0.40).await;
+        assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "ADMISSIBILITY_REJECTED");
+    }
+
+    #[tokio::test]
+    async fn post_organize_empty_path_returns_400() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let res = post_organize(router(state), "", 0.98).await;
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "EMPTY_PATH");
     }
 }
