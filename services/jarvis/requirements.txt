@@ -25,3 +25,24 @@ PyJWT[crypto]>=2.8.0
 passlib[bcrypt]==1.7.4
 tenacity==8.2.3
 numpy==1.26.4
+
+# ─── Security transitive pins — closed Dependabot alerts 2026-04-18 ────────
+# These are transitive dependencies pulled in by fastapi / langchain-ollama /
+# starlette. Pinned here to force the vulnerable ranges out. Jarvis is an
+# internal ADK service and is not currently running on Node0; these pins
+# exist primarily to close GHSA alerts on the main-branch manifest. When
+# jarvis is rebuilt, resolve with a fresh constraint file and re-pin.
+#
+# Closes:
+#   GHSA langchain-core serialization injection (critical)
+#   GHSA langchain-core path traversal + template injection (high × 2)
+#   GHSA langchain-core SSRF via image_url (low)
+#   GHSA langchain-core various (medium)
+#   GHSA protobuf JSON recursion depth bypass (high)
+#   GHSA starlette multipart DoS (high)
+#   GHSA starlette (medium)
+#   GHSA langsmith (medium)
+langchain-core>=1.2.22
+protobuf>=5.29.6
+starlette>=0.47.2
+langsmith>=0.7.31
