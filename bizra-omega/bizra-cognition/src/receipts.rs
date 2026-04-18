@@ -38,6 +38,19 @@ pub enum ReceiptKind {
     ReasoningSession = 0x30,
     GovernanceDecision = 0x40,
     NodeLifecycle = 0x50,
+    // Cycle-7 G1 — dedicated kind for ManifestArtifact (was previously
+    // reusing NodeLifecycle). Non-breaking: new byte; old variants unchanged.
+    Manifest = 0x60,
+    // Cycle-7 G2 — dedicated kind for PrincipalActivationReceipt.
+    // Binds a NodeLifecycle mission receipt to a principal profile hash,
+    // non-transferable and proof-bearing per niyyah §6 (local-only PoI).
+    PrincipalActivation = 0x61,
+    // Cycle-7 G5 — dedicated kind for the first real operator mission
+    // (`dema organize <allowlisted>`). Binds a permitted NodeLifecycle
+    // mission receipt to an operator-visible state transition summary
+    // (path + deterministic listing digest + file_count). Read-only
+    // semantics; does not mutate the filesystem.
+    MissionExecuted = 0x70,
     DegradedPath = 0xF0,
 }
 
@@ -51,13 +64,16 @@ impl ReceiptKind {
             0x30 => Some(Self::ReasoningSession),
             0x40 => Some(Self::GovernanceDecision),
             0x50 => Some(Self::NodeLifecycle),
+            0x60 => Some(Self::Manifest),
+            0x61 => Some(Self::PrincipalActivation),
+            0x70 => Some(Self::MissionExecuted),
             0xF0 => Some(Self::DegradedPath),
             _ => None,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Receipt {
     pub kind: ReceiptKind,
     pub hash: Blake3Hash,

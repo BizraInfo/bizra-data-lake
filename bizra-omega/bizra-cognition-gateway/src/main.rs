@@ -10,13 +10,8 @@
 // activation receipt lineage.
 //
 // ── ci-hygiene waivers (2026-04-18) ─────────────────────────────────
-// Gateway-local lint suppressions, each documented:
-//   - dead_code: axum handler DTOs legitimately carry fields consumed
-//     only via serde serialization; clippy can't trace that path.
-//   - result_large_err: Axum error-response tuples are intentionally
-//     held inline to match handler return-type conventions. Boxing
-//     the error breaks the tower::Layer shape without benefit on the
-//     local single-operator gateway.
+//   - dead_code: axum handler DTOs carry fields consumed by serde only.
+//   - result_large_err: axum error tuples are inline for tower::Layer.
 #![allow(dead_code, clippy::result_large_err)]
 
 use std::collections::HashMap;
@@ -36,7 +31,11 @@ use bizra_cognition::admissibility_freeze_v1::{
 use bizra_cognition::mission_freeze_v1::{
     MissionEnvelope, MissionStage, Originator, StateSnapshot,
 };
+use bizra_cognition::poi_ledger::PoiEntry;
+use bizra_cognition::principal_activation::{NodeIdentityAnchor, PrincipalActivationEnvelope};
 use bizra_cognition::receipts::{Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind};
+use bizra_cognition::resource_registry::{RegisterOutcome, ResourceKind, TypedResource, UrpView};
+use bizra_cognition::runtime::OrganizeOutcome;
 use bizra_cognition::runtime::{
     CognitionRuntime, MissionReplayResult, MissionRuntimeError, MissionRuntimeRecord,
 };
@@ -185,6 +184,264 @@ struct GetMissionResponse {
     chain_head: String,
 }
 
+// ─── Cycle-7 G2 live-walk — principal activation DTOs ──────────────────────
+
+#[derive(Deserialize)]
+struct ActivatePrincipalRequest {
+    #[serde(rename = "principalName")]
+    principal_name: String,
+    #[serde(rename = "declaredRole", default = "default_declared_role")]
+    declared_role: String,
+    #[serde(rename = "qualityScore", default = "default_principal_quality")]
+    quality_score: f64,
+    /// Absolute or CWD-relative path to the node identity anchor JSON
+    /// (Python-authored sovereign_state/identity/credentials.json).
+    /// Defaults to BIZRA_IDENTITY_ANCHOR env var or the canonical path.
+    #[serde(
+        rename = "identityAnchorPath",
+        default = "default_identity_anchor_path"
+    )]
+    identity_anchor_path: String,
+}
+
+fn default_declared_role() -> String {
+    "node0_principal".to_string()
+}
+
+fn default_principal_quality() -> f64 {
+    0.98
+}
+
+fn default_identity_anchor_path() -> String {
+    std::env::var("BIZRA_IDENTITY_ANCHOR")
+        .unwrap_or_else(|_| "sovereign_state/identity/credentials.json".to_string())
+}
+
+#[derive(Serialize)]
+struct ActivatePrincipalResponse {
+    #[serde(rename = "missionId")]
+    mission_id: String,
+    #[serde(rename = "missionReceiptId")]
+    mission_receipt_id: String,
+    #[serde(rename = "principalActivationReceiptId")]
+    principal_activation_receipt_id: String,
+    #[serde(rename = "principalId")]
+    principal_id: String,
+    #[serde(rename = "profileHash")]
+    profile_hash: String,
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    #[serde(rename = "finalStage")]
+    final_stage: &'static str,
+    admissibility: AdmissibilityResultDto,
+    #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
+    cache_warning: Option<String>,
+}
+
+// ─── Cycle-7 G4 — /resources DTOs ──────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct RegisterResourceRequest {
+    kind: String,
+    id: String,
+    #[serde(default)]
+    summary: String,
+    #[serde(default)]
+    allowlisted: bool,
+}
+
+#[derive(Serialize)]
+struct ResourceDto {
+    kind: String,
+    id: String,
+    summary: String,
+    allowlisted: bool,
+}
+
+impl From<&TypedResource> for ResourceDto {
+    fn from(r: &TypedResource) -> Self {
+        ResourceDto {
+            kind: r.kind.as_str().to_string(),
+            id: r.id.clone(),
+            summary: r.summary.clone(),
+            allowlisted: r.allowlisted,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct RegisterResourceResponse {
+    outcome: &'static str,
+    resource: ResourceDto,
+}
+
+#[derive(Serialize)]
+struct ListResourcesResponse {
+    resources: Vec<ResourceDto>,
+}
+
+#[derive(Serialize)]
+struct UrpBucketDto {
+    kind: String,
+    resources: Vec<ResourceDto>,
+}
+
+#[derive(Serialize)]
+struct UrpViewDto {
+    #[serde(rename = "totalCount")]
+    total_count: usize,
+    #[serde(rename = "allowlistedCount")]
+    allowlisted_count: usize,
+    buckets: Vec<UrpBucketDto>,
+}
+
+impl From<&UrpView> for UrpViewDto {
+    fn from(v: &UrpView) -> Self {
+        UrpViewDto {
+            total_count: v.total_count,
+            allowlisted_count: v.allowlisted_count,
+            buckets: v
+                .buckets
+                .iter()
+                .map(|b| UrpBucketDto {
+                    kind: b.kind.as_str().to_string(),
+                    resources: b.resources.iter().map(ResourceDto::from).collect(),
+                })
+                .collect(),
+        }
+    }
+}
+
+fn register_outcome_name(o: RegisterOutcome) -> &'static str {
+    match o {
+        RegisterOutcome::Created => "created",
+        RegisterOutcome::Updated => "updated",
+        RegisterOutcome::Idempotent => "idempotent",
+    }
+}
+
+// ─── Cycle-7 G5 — /missions/organize DTOs ─────────────────────────────────
+
+#[derive(Deserialize)]
+struct OrganizeRequest {
+    path: String,
+    #[serde(rename = "qualityScore", default = "default_organize_quality")]
+    quality_score: f64,
+}
+
+fn default_organize_quality() -> f64 {
+    0.98
+}
+
+#[derive(Serialize)]
+struct OrganizeEntryDto {
+    name: String,
+    kind: &'static str,
+}
+
+// ─── Cycle-7 G6 — /poi DTOs ───────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct PoiEntryDto {
+    #[serde(rename = "receiptId")]
+    receipt_id: String,
+    #[serde(rename = "receiptKindByte")]
+    receipt_kind_byte: u8,
+    #[serde(rename = "receiptKindName")]
+    receipt_kind_name: &'static str,
+    #[serde(rename = "qualityScore")]
+    quality_score: f64,
+    #[serde(rename = "gateMinScore")]
+    gate_min_score: f64,
+    #[serde(rename = "entryCount")]
+    entry_count: u32,
+    #[serde(rename = "impactScore")]
+    impact_score: f64,
+    #[serde(rename = "timestampNs")]
+    timestamp_ns: u64,
+    #[serde(rename = "principalId", skip_serializing_if = "Option::is_none")]
+    principal_id: Option<String>,
+}
+
+impl From<&PoiEntry> for PoiEntryDto {
+    fn from(e: &PoiEntry) -> Self {
+        let receipt_kind_name = match e.receipt_kind_byte {
+            0x61 => "PrincipalActivation",
+            0x70 => "MissionExecuted",
+            _ => "Unknown",
+        };
+        PoiEntryDto {
+            receipt_id: hex32(&e.receipt_id),
+            receipt_kind_byte: e.receipt_kind_byte,
+            receipt_kind_name,
+            quality_score: e.quality_score,
+            gate_min_score: e.gate_min_score,
+            entry_count: e.entry_count,
+            impact_score: e.impact_score,
+            timestamp_ns: e.timestamp_ns,
+            principal_id: e.principal_id.as_ref().map(hex32),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct PoiLedgerResponse {
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    entries: Vec<PoiEntryDto>,
+}
+
+#[derive(Serialize)]
+struct PoiPerKindDto {
+    kind: &'static str,
+    count: usize,
+    #[serde(rename = "totalImpact")]
+    total_impact: f64,
+    #[serde(rename = "avgImpact")]
+    avg_impact: f64,
+}
+
+#[derive(Serialize)]
+struct PoiSummaryResponse {
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    #[serde(rename = "totalEntries")]
+    total_entries: usize,
+    #[serde(rename = "totalImpact")]
+    total_impact: f64,
+    #[serde(rename = "avgImpact")]
+    avg_impact: f64,
+    #[serde(rename = "maxImpact")]
+    max_impact: f64,
+    #[serde(rename = "byKind")]
+    by_kind: Vec<PoiPerKindDto>,
+}
+
+#[derive(Serialize)]
+struct OrganizeResponse {
+    #[serde(rename = "missionId")]
+    mission_id: String,
+    #[serde(rename = "missionReceiptId")]
+    mission_receipt_id: String,
+    #[serde(rename = "organizeReceiptId")]
+    organize_receipt_id: String,
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    path: String,
+    #[serde(rename = "listingDigest")]
+    listing_digest: String,
+    #[serde(rename = "fileCount")]
+    file_count: u32,
+    #[serde(rename = "dirCount")]
+    dir_count: u32,
+    #[serde(rename = "entryCount")]
+    entry_count: u32,
+    entries: Vec<OrganizeEntryDto>,
+    #[serde(rename = "timestampNs")]
+    timestamp_ns: u64,
+    admissibility: AdmissibilityResultDto,
+}
+
 #[derive(Serialize)]
 struct ReplayMissionResponse {
     #[serde(rename = "missionId")]
@@ -224,6 +481,9 @@ fn kind_name(k: ReceiptKind) -> &'static str {
         ReceiptKind::ReasoningSession => "ReasoningSession",
         ReceiptKind::GovernanceDecision => "GovernanceDecision",
         ReceiptKind::NodeLifecycle => "NodeLifecycle",
+        ReceiptKind::Manifest => "Manifest",
+        ReceiptKind::PrincipalActivation => "PrincipalActivation",
+        ReceiptKind::MissionExecuted => "MissionExecuted",
         ReceiptKind::DegradedPath => "DegradedPath",
     }
 }
@@ -430,7 +690,156 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
     let ctx = AgentCtx {
         receipt_chain: genesis,
     };
-    CognitionRuntime::new(graph, chain, ctx)
+    let mut rt = CognitionRuntime::new(graph, chain, ctx);
+
+    // Cycle-7 G2 Commit-3 — optional dema_cache attachment. When
+    // BIZRA_DEMA_CACHE_ROOT is set, permitted principal activations will
+    // persist the profile to <root>/dema_cache/principal.json.
+    // Restart: rehydrate on next boot via rehydrate_principal_from_cache.
+    if let Ok(root_str) = std::env::var("BIZRA_DEMA_CACHE_ROOT") {
+        let root = std::path::PathBuf::from(root_str);
+        rt.attach_dema_cache(&root);
+        match rt.rehydrate_principal_from_cache() {
+            Ok(true) => tracing::info!(
+                target: DOMAIN,
+                root = %root.display(),
+                "dema_cache attached and principal profile rehydrated from disk"
+            ),
+            Ok(false) => tracing::info!(
+                target: DOMAIN,
+                root = %root.display(),
+                "dema_cache attached; no principal profile present yet"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "dema_cache attached but rehydrate failed — will rebuild from chain if needed"
+            ),
+        }
+        // Cycle-7 G3 Commit-1 — log whether a prior receipt-history
+        // snapshot is present. attach_dema_cache has already initialized
+        // the ReceiptHistoryCache alongside PrincipalProfileCache.
+        match rt.rehydrate_receipt_history_from_cache() {
+            Ok(Some(snap)) => tracing::info!(
+                target: DOMAIN,
+                records = snap.records.len(),
+                "receipt_history cache present from prior session"
+            ),
+            Ok(None) => tracing::info!(
+                target: DOMAIN,
+                "receipt_history cache empty; will initialize on first chain advance"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "receipt_history cache malformed — will rebuild from chain on next advance"
+            ),
+        }
+        // Cycle-7 G3 Commit-2 — manifest_history presence.
+        match rt.rehydrate_manifest_history_from_cache() {
+            Ok(Some(snap)) => tracing::info!(
+                target: DOMAIN,
+                manifests = snap.manifests.len(),
+                "manifest_history cache present from prior session"
+            ),
+            Ok(None) => tracing::info!(
+                target: DOMAIN,
+                "manifest_history cache empty; will initialize on first permitted mission"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "manifest_history cache malformed — will rebuild from missions on next permit"
+            ),
+        }
+        // Cycle-7 G3 Commit-3 — mission_log presence.
+        match rt.rehydrate_mission_log_from_cache() {
+            Ok(Some(snap)) => tracing::info!(
+                target: DOMAIN,
+                entries = snap.entries.len(),
+                "mission_log cache present from prior session"
+            ),
+            Ok(None) => tracing::info!(
+                target: DOMAIN,
+                "mission_log cache empty; will initialize on first mission attempt"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "mission_log cache malformed — will rebuild from missions on next attempt"
+            ),
+        }
+        // Cycle-7 G3 Commit-4 — state_snapshots presence.
+        match rt.rehydrate_state_snapshots_from_cache() {
+            Ok(Some(snap)) => tracing::info!(
+                target: DOMAIN,
+                entries = snap.entries.len(),
+                "state_snapshots cache present from prior session"
+            ),
+            Ok(None) => tracing::info!(
+                target: DOMAIN,
+                "state_snapshots cache empty; will initialize on first mission attempt"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "state_snapshots cache malformed — will rebuild from missions on next attempt"
+            ),
+        }
+        // Cycle-7 G6 — restore PoI ledger in-memory state from the
+        // disk cache so `/poi/ledger` and `/poi/summary` are correct
+        // across gateway restarts. Chain stays truth; a future
+        // rebuild-from-chain call can verify+repair if needed.
+        match rt.load_poi_entries_from_cache() {
+            Ok(true) => tracing::info!(
+                target: DOMAIN,
+                entries = rt.poi_entries().len(),
+                "poi_ledger restored from prior session"
+            ),
+            Ok(false) => tracing::info!(
+                target: DOMAIN,
+                "poi_ledger cache empty; ledger begins fresh this session"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "poi_ledger cache malformed — ledger begins fresh; rebuild from chain will repair"
+            ),
+        }
+
+        // Cycle-7 G3 Commit-5 — resource_registry seed. Ensure the
+        // empty file exists at boot so G4 (URP + allowlist) can assume
+        // the schema is already locked.
+        match rt.seed_resource_registry_if_missing() {
+            Ok(Some(true)) => tracing::info!(
+                target: DOMAIN,
+                "resource_registry seeded empty (G3 scope; G4 fills)"
+            ),
+            Ok(Some(false)) => match rt.rehydrate_resource_registry_from_cache() {
+                Ok(Some(snap)) => tracing::info!(
+                    target: DOMAIN,
+                    resources = snap.resources.len(),
+                    "resource_registry cache present from prior session"
+                ),
+                Ok(None) => tracing::warn!(
+                    target: DOMAIN,
+                    "resource_registry seed reported existing but read returned None"
+                ),
+                Err(e) => tracing::warn!(
+                    target: DOMAIN,
+                    error = %e,
+                    "resource_registry cache malformed — delete to re-seed"
+                ),
+            },
+            Ok(None) => {}
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "resource_registry seed failed"
+            ),
+        }
+    }
+    rt
 }
 
 // ─── Handlers ───────────────────────────────────────────────────────────────
@@ -721,6 +1130,379 @@ async fn post_mission(
     }
 }
 
+// ─── Cycle-7 G2 live-walk — POST /principal/activate ───────────────────────
+//
+// Wraps CognitionRuntime::submit_principal_activation. Loads the Python-
+// authored node identity anchor, builds a PrincipalActivationEnvelope,
+// and threads it through the lawful mission loop + PrincipalActivationReceipt
+// append. On reject returns HTTP 422 with structured remediation text
+// per niyyah Frozen Law #5 (fail-closed honestly).
+
+async fn post_principal_activate(
+    State(state): State<AppState>,
+    Json(req): Json<ActivatePrincipalRequest>,
+) -> Result<Json<ActivatePrincipalResponse>, (StatusCode, Json<ErrorResponse>)> {
+    if req.principal_name.trim().is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "EMPTY_PRINCIPAL_NAME",
+                    message: "principalName must be non-empty".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
+
+    let anchor_path = std::path::PathBuf::from(&req.identity_anchor_path);
+    let anchor = NodeIdentityAnchor::load(&anchor_path).map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "IDENTITY_ANCHOR_LOAD",
+                    message: format!(
+                        "failed to load node identity anchor at {}: {}",
+                        anchor_path.display(),
+                        e
+                    ),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    let ts_ns = now_ns()?;
+    let envelope = PrincipalActivationEnvelope::from_anchor(
+        req.principal_name.clone(),
+        req.declared_role.clone(),
+        &anchor,
+        ts_ns,
+    )
+    .map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ENVELOPE_BUILD_FAILED",
+                    message: format!("failed to build activation envelope: {}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    let mut rt = state.runtime.write().await;
+    let record = rt
+        .submit_principal_activation(envelope, req.quality_score)
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: ErrorBody {
+                        code: "RUNTIME_ERROR",
+                        message: format!("submit_principal_activation failed: {:?}", e),
+                        domain: DOMAIN,
+                        admissibility: None,
+                    },
+                }),
+            )
+        })?;
+
+    if record.rejected {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ADMISSIBILITY_REJECTED",
+                    message: record
+                        .remediation
+                        .unwrap_or_else(|| "activation rejected".into()),
+                    domain: DOMAIN,
+                    admissibility: Some(admissibility_to_dto(&record.mission_record.admissibility)),
+                },
+            }),
+        ));
+    }
+
+    let profile = record
+        .profile
+        .as_ref()
+        .expect("permit invariant: profile must be Some");
+    let pa_receipt = record
+        .activation_receipt
+        .as_ref()
+        .expect("permit invariant: activation_receipt must be Some");
+    let mission_receipt_id = record
+        .mission_record
+        .receipt_id
+        .expect("permit invariant: mission receipt_id must be Some");
+
+    Ok(Json(ActivatePrincipalResponse {
+        mission_id: hex32(&record.mission_record.envelope.mission_id),
+        mission_receipt_id: hex32(&mission_receipt_id),
+        principal_activation_receipt_id: hex32(&pa_receipt.receipt_id),
+        principal_id: hex32(&profile.principal_id),
+        profile_hash: hex32(&pa_receipt.principal_profile_hash),
+        chain_head: hex32(&rt.chain.head()),
+        final_stage: stage_name(record.mission_record.stage),
+        admissibility: admissibility_to_dto(&record.mission_record.admissibility),
+        cache_warning: record.cache_warning,
+    }))
+}
+
+// ─── Cycle-7 G4 — /resources handlers ──────────────────────────────────────
+
+async fn post_resource_register(
+    State(state): State<AppState>,
+    Json(req): Json<RegisterResourceRequest>,
+) -> Result<Json<RegisterResourceResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let kind = ResourceKind::from_str(&req.kind);
+    let resource = TypedResource::new(kind, req.id, req.summary, req.allowlisted).map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "INVALID_RESOURCE",
+                    message: format!("{}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    let rt = state.runtime.read().await;
+    let outcome = rt.register_resource(resource.clone()).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "REGISTER_FAILED",
+                    message: format!("{}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    Ok(Json(RegisterResourceResponse {
+        outcome: register_outcome_name(outcome),
+        resource: ResourceDto::from(&resource),
+    }))
+}
+
+async fn get_resources_list(
+    State(state): State<AppState>,
+) -> Result<Json<ListResourcesResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let rt = state.runtime.read().await;
+    let resources = rt.list_resources().map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "LIST_FAILED",
+                    message: format!("{}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    Ok(Json(ListResourcesResponse {
+        resources: resources.iter().map(ResourceDto::from).collect(),
+    }))
+}
+
+// ─── Cycle-7 G6 — /poi handlers ──────────────────────────────────────────
+
+async fn get_poi_ledger(State(state): State<AppState>) -> Json<PoiLedgerResponse> {
+    let rt = state.runtime.read().await;
+    let snap = rt.poi_ledger_snapshot();
+    Json(PoiLedgerResponse {
+        chain_head: hex32(&snap.chain_head),
+        entries: snap.entries.iter().map(PoiEntryDto::from).collect(),
+    })
+}
+
+async fn get_poi_summary(State(state): State<AppState>) -> Json<PoiSummaryResponse> {
+    let rt = state.runtime.read().await;
+    let snap = rt.poi_ledger_snapshot();
+    let total = snap.entries.len();
+    let total_impact: f64 = snap.entries.iter().map(|e| e.impact_score).sum();
+    let max_impact = snap
+        .entries
+        .iter()
+        .map(|e| e.impact_score)
+        .fold(0.0_f64, f64::max);
+    let avg_impact = if total > 0 {
+        total_impact / (total as f64)
+    } else {
+        0.0
+    };
+
+    let kinds: [(u8, &'static str); 2] = [(0x61, "PrincipalActivation"), (0x70, "MissionExecuted")];
+    let mut by_kind: Vec<PoiPerKindDto> = Vec::with_capacity(kinds.len());
+    for (byte, name) in kinds {
+        let scoped: Vec<&PoiEntry> = snap
+            .entries
+            .iter()
+            .filter(|e| e.receipt_kind_byte == byte)
+            .collect();
+        let count = scoped.len();
+        if count == 0 {
+            continue;
+        }
+        let total: f64 = scoped.iter().map(|e| e.impact_score).sum();
+        by_kind.push(PoiPerKindDto {
+            kind: name,
+            count,
+            total_impact: total,
+            avg_impact: total / (count as f64),
+        });
+    }
+
+    Json(PoiSummaryResponse {
+        chain_head: hex32(&snap.chain_head),
+        total_entries: total,
+        total_impact,
+        avg_impact,
+        max_impact,
+        by_kind,
+    })
+}
+
+async fn post_organize(
+    State(state): State<AppState>,
+    Json(req): Json<OrganizeRequest>,
+) -> Result<Json<OrganizeResponse>, (StatusCode, Json<ErrorResponse>)> {
+    if req.path.trim().is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "EMPTY_PATH",
+                    message: "path must be non-empty".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
+    let path = std::path::PathBuf::from(&req.path);
+    let mut rt = state.runtime.write().await;
+    let outcome = rt
+        .submit_organize_mission(&path, req.quality_score)
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: ErrorBody {
+                        code: "RUNTIME_ERROR",
+                        message: format!("submit_organize_mission failed: {:?}", e),
+                        domain: DOMAIN,
+                        admissibility: None,
+                    },
+                }),
+            )
+        })?;
+
+    match outcome {
+        OrganizeOutcome::NotAllowlisted { path, remediation } => Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "PATH_NOT_ALLOWLISTED",
+                    message: format!("{} — {}", path, remediation),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        OrganizeOutcome::IoError { path, error } => Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ORGANIZE_IO_ERROR",
+                    message: format!("failed to read {}: {}", path, error),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        OrganizeOutcome::Rejected {
+            mission_record,
+            remediation,
+        } => Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ADMISSIBILITY_REJECTED",
+                    message: remediation,
+                    domain: DOMAIN,
+                    admissibility: Some(admissibility_to_dto(&mission_record.admissibility)),
+                },
+            }),
+        )),
+        OrganizeOutcome::Executed {
+            mission_record,
+            organize_receipt,
+            listing,
+        } => {
+            let mission_receipt_id = mission_record
+                .receipt_id
+                .expect("permit invariant: receipt_id must be Some");
+            let entries: Vec<OrganizeEntryDto> = listing
+                .entries
+                .iter()
+                .map(|e| OrganizeEntryDto {
+                    name: e.name.clone(),
+                    kind: e.kind_str(),
+                })
+                .collect();
+            Ok(Json(OrganizeResponse {
+                mission_id: hex32(&mission_record.envelope.mission_id),
+                mission_receipt_id: hex32(&mission_receipt_id),
+                organize_receipt_id: hex32(&organize_receipt.receipt_id),
+                chain_head: hex32(&rt.chain.head()),
+                path: listing.path.clone(),
+                listing_digest: hex32(&organize_receipt.listing_digest),
+                file_count: organize_receipt.file_count,
+                dir_count: organize_receipt.dir_count,
+                entry_count: organize_receipt.entry_count,
+                entries,
+                timestamp_ns: organize_receipt.timestamp_ns,
+                admissibility: admissibility_to_dto(&mission_record.admissibility),
+            }))
+        }
+    }
+}
+
+async fn get_resources_urp(
+    State(state): State<AppState>,
+) -> Result<Json<UrpViewDto>, (StatusCode, Json<ErrorResponse>)> {
+    let rt = state.runtime.read().await;
+    let view = rt.urp_view().map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "URP_FAILED",
+                    message: format!("{}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    Ok(Json(UrpViewDto::from(&view)))
+}
+
 async fn get_mission(
     State(state): State<AppState>,
     Path(hash_hex): Path<String>,
@@ -854,6 +1636,13 @@ fn router(state: AppState) -> Router {
         .route("/missions", post(post_mission))
         .route("/missions/:hash", get(get_mission))
         .route("/missions/:hash/replay", post(replay_mission))
+        .route("/principal/activate", post(post_principal_activate))
+        .route("/resources/register", post(post_resource_register))
+        .route("/resources/list", get(get_resources_list))
+        .route("/resources/urp", get(get_resources_urp))
+        .route("/missions/organize", post(post_organize))
+        .route("/poi/ledger", get(get_poi_ledger))
+        .route("/poi/summary", get(get_poi_summary))
         .with_state(state)
 }
 
@@ -1113,9 +1902,14 @@ mod tests {
         assert_eq!(v["finalStage"], "Replayability");
         assert_eq!(v["missionId"].as_str().unwrap().len(), 64);
         assert_eq!(v["receiptId"].as_str().unwrap().len(), 64);
-        assert_eq!(v["chainHead"], v["receiptId"]);
+        // Cycle-7 G1 (add18501): chainHead is the Manifest receipt appended
+        // after the NodeLifecycle receipt, so it is DISTINCT from receiptId.
+        assert_ne!(
+            v["chainHead"], v["receiptId"],
+            "post-G1: Manifest is appended after NodeLifecycle, advancing head"
+        );
 
-        // Chain should now show 7: 1 mission + 5 gate verdicts + 1 final receipt.
+        // Chain length: 1 mission + 5 gate verdicts + 1 NodeLifecycle + 1 Manifest = 8.
         let chain_res = router(state.clone())
             .oneshot(
                 Request::builder()
@@ -1127,7 +1921,7 @@ mod tests {
             .unwrap();
         let chain_body = to_bytes(chain_res.into_body(), 1024).await.unwrap();
         let chain: serde_json::Value = serde_json::from_slice(&chain_body).unwrap();
-        assert_eq!(chain["length"], 7);
+        assert_eq!(chain["length"], 8);
 
         let mission_id = v["missionId"].as_str().unwrap();
 
@@ -1147,7 +1941,9 @@ mod tests {
         assert_eq!(mission["stage"], "Replayability");
         assert_eq!(mission["rejected"], false);
         assert_eq!(mission["receiptId"], v["receiptId"]);
-        assert_eq!(mission["chainHead"], v["receiptId"]);
+        // G1: stored chain_head mirrors the submit response's chain_head
+        // (the Manifest head), not the NodeLifecycle receiptId.
+        assert_eq!(mission["chainHead"], v["chainHead"]);
 
         let replay_res = router(state.clone())
             .oneshot(
@@ -1221,7 +2017,10 @@ mod tests {
         assert_eq!(mission_res.status(), StatusCode::OK);
         let mission_body = to_bytes(mission_res.into_body(), 4096).await.unwrap();
         let mission: serde_json::Value = serde_json::from_slice(&mission_body).unwrap();
-        assert_eq!(mission["chainHead"], first["receiptId"]);
+        // G1: the first mission's stored chain_head is immutable — it is the
+        // Manifest head sealed at the time of its submission, not the later
+        // chain head after a second submission.
+        assert_eq!(mission["chainHead"], first["chainHead"]);
     }
 
     #[tokio::test]
@@ -1324,5 +2123,608 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    }
+
+    // ─── Cycle-7 G2 live walk — POST /principal/activate ─────────────────────
+
+    fn write_test_identity_anchor(dir: &std::path::Path) -> std::path::PathBuf {
+        let path = dir.join("credentials.json");
+        std::fs::write(
+            &path,
+            br#"{"node_id":"NODE0","public_key":"0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a","created_at":"2026-04-13T23:54:59Z"}"#,
+        )
+        .unwrap();
+        path
+    }
+
+    fn principal_request(anchor_path: &std::path::Path, quality: f64) -> serde_json::Value {
+        serde_json::json!({
+            "principalName": "Mumo",
+            "declaredRole": "node0_principal",
+            "qualityScore": quality,
+            "identityAnchorPath": anchor_path.to_str().unwrap(),
+        })
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_permits_and_seals_receipt_and_profile() {
+        let td = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td.path());
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
+
+        let res = router(new_state())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), StatusCode::OK, "activation should PERMIT");
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(v["admissibility"]["verdict"], "Permit");
+        assert_eq!(v["finalStage"], "Replayability");
+        assert_eq!(v["missionId"].as_str().unwrap().len(), 64);
+        assert_eq!(v["missionReceiptId"].as_str().unwrap().len(), 64);
+        assert_eq!(
+            v["principalActivationReceiptId"].as_str().unwrap().len(),
+            64
+        );
+        assert_eq!(v["principalId"].as_str().unwrap().len(), 64);
+        assert_eq!(v["profileHash"].as_str().unwrap().len(), 64);
+        // Chain head after permit activation is the PrincipalActivationReceipt id.
+        assert_eq!(v["chainHead"], v["principalActivationReceiptId"]);
+        assert_ne!(
+            v["principalActivationReceiptId"], v["missionReceiptId"],
+            "PA receipt must be distinct from the NodeLifecycle mission receipt"
+        );
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_grows_chain_by_nine() {
+        let td = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td.path());
+        let state = new_state();
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
+
+        let res = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+
+        // Chain length: 1 envelope + 5 gates + NodeLifecycle + Manifest + PA = 9.
+        let chain_res = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let chain_body = to_bytes(chain_res.into_body(), 1024).await.unwrap();
+        let chain: serde_json::Value = serde_json::from_slice(&chain_body).unwrap();
+        assert_eq!(chain["length"], 9);
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_below_ihsan_floor_rejects_with_422() {
+        let td = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td.path());
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.40)).unwrap();
+
+        let res = router(new_state())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            res.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "quality 0.40 below IHSAN_FLOOR must 422"
+        );
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "ADMISSIBILITY_REJECTED");
+        assert!(
+            v["error"]["message"].as_str().unwrap().contains("REJECTED"),
+            "reject message must be honest"
+        );
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_missing_anchor_returns_400() {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "principalName": "Mumo",
+            "identityAnchorPath": "/tmp/__definitely_missing_node_anchor__",
+        }))
+        .unwrap();
+
+        let res = router(new_state())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "IDENTITY_ANCHOR_LOAD");
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_empty_name_returns_400() {
+        let td = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td.path());
+        let body = serde_json::to_vec(&serde_json::json!({
+            "principalName": "",
+            "identityAnchorPath": anchor.to_str().unwrap(),
+        }))
+        .unwrap();
+
+        let res = router(new_state())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "EMPTY_PRINCIPAL_NAME");
+    }
+
+    // ─── Cycle-7 G4 — /resources endpoint tests ─────────────────────────
+
+    fn new_state_with_dema_cache(root: &std::path::Path) -> AppState {
+        let mut rt = bootstrap_runtime([0u8; 32]);
+        rt.attach_dema_cache(root);
+        AppState {
+            runtime: Arc::new(RwLock::new(rt)),
+        }
+    }
+
+    async fn register_resource(
+        app: axum::Router,
+        kind: &str,
+        id: &str,
+        allowlisted: bool,
+    ) -> axum::response::Response {
+        let body = serde_json::json!({
+            "kind": kind,
+            "id": id,
+            "summary": format!("test {}", id),
+            "allowlisted": allowlisted,
+        })
+        .to_string();
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/resources/register")
+                .header("content-type", "application/json")
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn post_resource_register_creates_new_entry() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let app = router(state);
+        let res = register_resource(app, "filesystem", "/home/mumo/docs", true).await;
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["outcome"], "created");
+        assert_eq!(v["resource"]["kind"], "filesystem");
+        assert_eq!(v["resource"]["id"], "/home/mumo/docs");
+        assert_eq!(v["resource"]["allowlisted"], true);
+    }
+
+    #[tokio::test]
+    async fn post_resource_register_same_twice_is_idempotent() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(router(state.clone()), "filesystem", "/a", true).await;
+        let res = register_resource(router(state), "filesystem", "/a", true).await;
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["outcome"], "idempotent");
+    }
+
+    #[tokio::test]
+    async fn post_resource_register_empty_id_returns_400() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let res = register_resource(router(state), "filesystem", "", true).await;
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "INVALID_RESOURCE");
+    }
+
+    #[tokio::test]
+    async fn get_resources_list_reflects_registered_resources() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(router(state.clone()), "filesystem", "/a", true).await;
+        let _ = register_resource(router(state.clone()), "network", "host:80", false).await;
+
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/resources/list")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["resources"].as_array().unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn get_resources_urp_groups_by_kind_and_reports_counts() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(router(state.clone()), "filesystem", "/a", true).await;
+        let _ = register_resource(router(state.clone()), "filesystem", "/b", false).await;
+        let _ = register_resource(router(state.clone()), "network", "host:80", true).await;
+
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/resources/urp")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["totalCount"], 3);
+        assert_eq!(v["allowlistedCount"], 2);
+        let buckets = v["buckets"].as_array().unwrap();
+        assert_eq!(buckets.len(), 2);
+        // alphabetical: filesystem, network
+        assert_eq!(buckets[0]["kind"], "filesystem");
+        assert_eq!(buckets[1]["kind"], "network");
+    }
+
+    // ─── Cycle-7 G5 — /missions/organize tests ─────────────────────────
+
+    async fn post_organize(
+        app: axum::Router,
+        path: &str,
+        quality: f64,
+    ) -> axum::response::Response {
+        let body = serde_json::json!({
+            "path": path,
+            "qualityScore": quality,
+        })
+        .to_string();
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/missions/organize")
+                .header("content-type", "application/json")
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+    }
+
+    fn write_g5_fixture(root: &std::path::Path) {
+        use std::fs;
+        fs::create_dir_all(root).unwrap();
+        fs::write(root.join("alpha.txt"), b"hello").unwrap();
+        fs::write(root.join("beta.txt"), b"world").unwrap();
+        fs::create_dir_all(root.join("subdir")).unwrap();
+    }
+
+    #[tokio::test]
+    async fn post_organize_allowlisted_path_returns_200_with_sealed_receipt() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+
+        let res = post_organize(router(state), &target.to_string_lossy(), 0.98).await;
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 16384).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["fileCount"], 2);
+        assert_eq!(v["dirCount"], 1);
+        assert_eq!(v["entryCount"], 3);
+        assert_eq!(v["chainHead"], v["organizeReceiptId"]);
+        assert_eq!(v["admissibility"]["verdict"], "Permit");
+    }
+
+    #[tokio::test]
+    async fn post_organize_non_allowlisted_returns_403() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        // NOT registered.
+        let res = post_organize(router(state), &target.to_string_lossy(), 0.98).await;
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "PATH_NOT_ALLOWLISTED");
+    }
+
+    #[tokio::test]
+    async fn post_organize_missing_path_returns_400_io_error() {
+        let td = tempfile::TempDir::new().unwrap();
+        let ghost = td.path().join("ghost-dir");
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &ghost.to_string_lossy(),
+            true,
+        )
+        .await;
+        let res = post_organize(router(state), &ghost.to_string_lossy(), 0.98).await;
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "ORGANIZE_IO_ERROR");
+    }
+
+    #[tokio::test]
+    async fn post_organize_below_ihsan_floor_returns_422() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+        let res = post_organize(router(state), &target.to_string_lossy(), 0.40).await;
+        assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "ADMISSIBILITY_REJECTED");
+    }
+
+    #[tokio::test]
+    async fn post_organize_empty_path_returns_400() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let res = post_organize(router(state), "", 0.98).await;
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "EMPTY_PATH");
+    }
+
+    // ─── Cycle-7 G6 — /poi tests ──────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_poi_ledger_empty_on_fresh_runtime() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/ledger")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["entries"].as_array().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn get_poi_summary_reports_zero_when_empty() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/summary")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["totalEntries"], 0);
+        assert_eq!(v["totalImpact"], 0.0);
+        assert_eq!(v["byKind"].as_array().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn get_poi_ledger_contains_entry_after_organize() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+        let _ = post_organize(router(state.clone()), &target.to_string_lossy(), 0.98).await;
+
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/ledger")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 16384).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let entries = v["entries"].as_array().unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0]["receiptKindName"], "MissionExecuted");
+        assert_eq!(entries[0]["entryCount"], 3);
+    }
+
+    #[tokio::test]
+    async fn get_poi_summary_aggregates_per_kind() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+        let _ = post_organize(router(state.clone()), &target.to_string_lossy(), 0.98).await;
+        // 2nd organize to get a 2nd MissionExecuted entry
+        let _ = post_organize(router(state.clone()), &target.to_string_lossy(), 0.98).await;
+
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/summary")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["totalEntries"], 2);
+        let by_kind = v["byKind"].as_array().unwrap();
+        assert_eq!(by_kind.len(), 1);
+        assert_eq!(by_kind[0]["kind"], "MissionExecuted");
+        assert_eq!(by_kind[0]["count"], 2);
+    }
+
+    #[tokio::test]
+    async fn get_poi_summary_splits_activation_and_execution_buckets() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        // Seed identity anchor so activation can run.
+        std::fs::create_dir_all(td.path().join("identity")).unwrap();
+        std::fs::write(
+            td.path().join("identity/credentials.json"),
+            br#"{"node_id":"NODE0","public_key":"0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a","created_at":"2026-04-18T08:00:00Z"}"#,
+        )
+        .unwrap();
+        let state = new_state_with_dema_cache(td.path());
+
+        // 1) activate
+        let anchor_path = td.path().join("identity/credentials.json");
+        let activate_body = serde_json::json!({
+            "principalName": "Mumo",
+            "declaredRole": "node0_principal",
+            "qualityScore": 0.98,
+            "identityAnchorPath": anchor_path.to_string_lossy(),
+        })
+        .to_string();
+        let _ = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(activate_body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // 2) register + organize
+        let _ = register_resource(
+            router(state.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+        let _ = post_organize(router(state.clone()), &target.to_string_lossy(), 0.98).await;
+
+        // 3) summary
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/poi/summary")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["totalEntries"], 2);
+        let by_kind = v["byKind"].as_array().unwrap();
+        assert_eq!(by_kind.len(), 2);
+        let names: Vec<&str> = by_kind
+            .iter()
+            .map(|b| b["kind"].as_str().unwrap())
+            .collect();
+        assert!(names.contains(&"PrincipalActivation"));
+        assert!(names.contains(&"MissionExecuted"));
     }
 }

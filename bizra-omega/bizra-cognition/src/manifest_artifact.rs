@@ -118,8 +118,12 @@ impl ManifestArtifact {
 
 impl ReceiptPayload for ManifestArtifact {
     fn kind(&self) -> ReceiptKind {
-        // ManifestArtifact uses NodeLifecycle kind — it's a lifecycle summary
-        ReceiptKind::NodeLifecycle
+        // Cycle-7 G1 — dedicated Manifest kind (was NodeLifecycle pre-Cycle-7).
+        // A manifest IS a lifecycle-style summary, but audit clarity favors a
+        // distinct receipt kind: manifests bind a mission's full chain footprint
+        // into one queryable object, which is semantically narrower than the
+        // NodeLifecycle catchall.
+        ReceiptKind::Manifest
     }
 
     /// Fix B: Override timestamp_ns so manifests advance the chain's
