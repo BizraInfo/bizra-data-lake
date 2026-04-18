@@ -62,6 +62,7 @@ use crate::resource_registry_cache::{
 use crate::resource_registry::{
     RegisterOutcome, ResourceKind, ResourceRegistryError, TypedResource, UrpView,
 };
+use crate::organize_mission::{OrganizeListing, OrganizeMissionReceipt};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -187,6 +188,45 @@ pub struct PrincipalActivationRecord {
     /// still in-memory; only the derived cache is stale. Caller may
     /// retry cache write or rebuild from chain.
     pub cache_warning: Option<String>,
+}
+
+/// Cycle-7 G5 — outcome of a `submit_organize_mission` call.
+///
+/// The four variants partition the semantic space:
+///   - `NotAllowlisted`: constitutional pre-gate refusal. No chain
+///     mutation. Operator must `dema register-resource --allowlisted`
+///     before retrying.
+///   - `IoError`: filesystem read failed before the lawful loop
+///     could be entered. No chain mutation.
+///   - `Rejected`: mission entered the lawful loop and was rejected
+///     at admissibility. Chain UNCHANGED per §10 Proof Law.
+///   - `Executed`: permit path — lawful loop produced NodeLifecycle
+///     mission receipt + Manifest; G5 appends MissionExecuted receipt.
+#[derive(Debug)]
+pub enum OrganizeOutcome {
+    NotAllowlisted {
+        path: String,
+        remediation: String,
+    },
+    IoError {
+        path: String,
+        error: String,
+    },
+    Rejected {
+        mission_record: MissionRuntimeRecord,
+        remediation: String,
+    },
+    Executed {
+        mission_record: MissionRuntimeRecord,
+        organize_receipt: OrganizeMissionReceipt,
+        listing: OrganizeListing,
+    },
+}
+
+impl OrganizeOutcome {
+    pub fn is_executed(&self) -> bool {
+        matches!(self, Self::Executed { .. })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -869,6 +909,136 @@ impl CognitionRuntime {
             rejected: false,
             remediation: None,
             cache_warning,
+        })
+    }
+
+    /// Cycle-7 G5 — first real operator mission. Read-only organize of
+    /// an allowlisted filesystem path. Flow:
+    ///
+    /// 1. Allowlist pre-gate — if `(FilesystemPath, path)` is not in
+    ///    the registry or `allowlisted=false`, refuse immediately with
+    ///    structured remediation. **No chain mutation.**
+    /// 2. Filesystem read — produce a deterministic `OrganizeListing`
+    ///    (top-level entries sorted by name, kind bytes). Any IO error
+    ///    returns `IoError`. **No chain mutation.**
+    /// 3. Lawful loop — build MissionEnvelope + AdmissibilityClaim
+    ///    with listing.digest() as evidence_hash; submit via
+    ///    `submit_mission`. Normal permit/reject semantics apply.
+    /// 4. Permit path — append `OrganizeMissionReceipt` (kind 0x70)
+    ///    binding the NodeLifecycle mission receipt to the listing.
+    ///    Chain head advances to the MissionExecuted receipt.
+    ///
+    /// Read-only: `OrganizeListing::from_path` never mutates. Niyyah
+    /// §10 Proof Law: refused intents leave no chain trace (absence);
+    /// permitted intents leave a sealed, replayable trace (presence).
+    pub fn submit_organize_mission(
+        &mut self,
+        path: &std::path::Path,
+        quality_score: f64,
+    ) -> Result<OrganizeOutcome, MissionRuntimeError> {
+        let path_str = path.to_string_lossy().into_owned();
+
+        // Step 1 — allowlist pre-gate. Constitutional refusal, not a
+        // rejection receipt. "Chain reflects what happened by absence,
+        // not by presence of a rejection receipt" (niyyah §10).
+        let allowed = self
+            .is_allowlisted(&ResourceKind::FilesystemPath, &path_str)
+            .unwrap_or(false);
+        if !allowed {
+            return Ok(OrganizeOutcome::NotAllowlisted {
+                path: path_str.clone(),
+                remediation: format!(
+                    "path '{}' is not allowlisted — run `dema register-resource \
+                     --kind filesystem --id {} --allowlisted` before retrying",
+                    path_str, path_str
+                ),
+            });
+        }
+
+        // Step 2 — filesystem read. Pure I/O; no lawful-loop entry yet.
+        let listing = match OrganizeListing::from_path(path) {
+            Ok(l) => l,
+            Err(e) => {
+                return Ok(OrganizeOutcome::IoError {
+                    path: path_str,
+                    error: e.to_string(),
+                });
+            }
+        };
+
+        // Step 3 — lawful loop. MissionEnvelope + AdmissibilityClaim.
+        let now_ns = self.now_ns_mission()?;
+        let listing_digest = listing.digest();
+        let session_id = self
+            .principal_profile
+            .as_ref()
+            .map(|p| p.principal_id)
+            .unwrap_or([0u8; 32]);
+
+        let current = StateSnapshot {
+            hash: blake3_domain("bizra-organize-state-pre-v1", path_str.as_bytes()),
+            summary: format!("Path '{}' unindexed — no listing digest sealed yet", path_str),
+            metric: 0.0,
+        };
+        let ideal = StateSnapshot {
+            hash: blake3_domain("bizra-organize-state-ideal-v1", path_str.as_bytes()),
+            summary: format!("Path '{}' indexed — listing digest sealed to chain", path_str),
+            metric: 1.0,
+        };
+        let mission_env = MissionEnvelope::from_intent(
+            format!("organize {}", path_str),
+            current,
+            ideal,
+            Originator::Operator { session_id },
+            now_ns,
+        );
+        let claim = AdmissibilityClaim {
+            claim_id: mission_env.extract_claim_id(),
+            has_evidence: true,
+            evidence_hash: Some(listing_digest),
+            economic_pattern: Some(EconomicPattern::None),
+            state_mutation: Some(StateMutation {
+                derives_from_canonical: true,
+                face_only: false,
+            }),
+            quality_score,
+            timestamp_ns: now_ns,
+        };
+
+        let mission_record = self.submit_mission(mission_env, claim)?;
+
+        if mission_record.rejected {
+            let remediation = reject_remediation_text(&mission_record);
+            return Ok(OrganizeOutcome::Rejected {
+                mission_record,
+                remediation,
+            });
+        }
+
+        // Step 4 — permit path. Append MissionExecuted receipt.
+        let mission_receipt_id = mission_record
+            .receipt_id
+            .expect("permit path invariant: receipt_id must be Some");
+        let now_ns_seal = self.now_ns_mission()?;
+        let prev_chain = self.chain.head();
+        let organize_receipt = OrganizeMissionReceipt::new(
+            mission_receipt_id,
+            &listing,
+            now_ns_seal,
+            prev_chain,
+        );
+        self.chain.append_with_payload(organize_receipt.clone())?;
+
+        // Refresh G3 caches now that the chain has advanced once more.
+        let _ = self.write_receipt_history_cache();
+        let _ = self.write_manifest_history_cache();
+        let _ = self.write_mission_log_cache();
+        let _ = self.write_state_snapshots_cache();
+
+        Ok(OrganizeOutcome::Executed {
+            mission_record,
+            organize_receipt,
+            listing,
         })
     }
 
@@ -3201,6 +3371,303 @@ mod tests {
             assert_eq!(fs.resources.len(), 2);
             let net = v.bucket(&ResourceKind::NetworkEndpoint).unwrap();
             assert_eq!(net.resources.len(), 1);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Cycle-7 G5 Commit-2 — submit_organize_mission integration
+    // ════════════════════════════════════════════════════════════════
+    mod organize_mission_g5 {
+        use super::*;
+        use crate::organize_mission::OrganizeMissionReceipt;
+        use crate::receipts::ReceiptPayloadDecode;
+        use crate::resource_registry::{ResourceKind, TypedResource};
+        use std::fs;
+
+        fn write_fixture_dir(root: &std::path::Path) {
+            fs::create_dir_all(root).unwrap();
+            fs::write(root.join("alpha.txt"), b"hello").unwrap();
+            fs::write(root.join("beta.txt"), b"world").unwrap();
+            fs::create_dir_all(root.join("subdir")).unwrap();
+        }
+
+        /// Target directory distinct from the dema_cache root so the
+        /// organize listing does not accidentally include the cache dir.
+        fn target_subdir(td: &tempfile::TempDir) -> std::path::PathBuf {
+            td.path().join("target")
+        }
+
+        fn allowlist(rt: &mut CognitionRuntime, path: &std::path::Path) {
+            rt.register_resource(
+                TypedResource::new(
+                    ResourceKind::FilesystemPath,
+                    path.to_string_lossy().into_owned(),
+                    "test dir".into(),
+                    true,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        }
+
+        #[test]
+        fn non_allowlisted_path_refused_without_chain_mutation() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            let chain_before = rt.chain.head();
+            let len_before = rt.chain.len();
+
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            match outcome {
+                OrganizeOutcome::NotAllowlisted { path, remediation } => {
+                    assert_eq!(path, target_subdir(&td).to_string_lossy().into_owned());
+                    assert!(remediation.contains("register-resource"));
+                }
+                other => panic!("expected NotAllowlisted, got {:?}", other),
+            }
+            assert_eq!(rt.chain.head(), chain_before, "chain must not advance");
+            assert_eq!(rt.chain.len(), len_before);
+        }
+
+        #[test]
+        fn registered_but_not_allowlisted_is_still_refused() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            // Register WITHOUT allowlist.
+            rt.register_resource(
+                TypedResource::new(
+                    ResourceKind::FilesystemPath,
+                    target_subdir(&td).to_string_lossy().into_owned(),
+                    "seen".into(),
+                    false,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            assert!(matches!(outcome, OrganizeOutcome::NotAllowlisted { .. }));
+        }
+
+        #[test]
+        fn io_error_on_missing_path_refused_without_chain_mutation() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            // Allowlist a path that does NOT exist on disk.
+            let fake = td.path().join("does-not-exist");
+            rt.register_resource(
+                TypedResource::new(
+                    ResourceKind::FilesystemPath,
+                    fake.to_string_lossy().into_owned(),
+                    "ghost".into(),
+                    true,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            let chain_before = rt.chain.head();
+
+            let outcome = rt.submit_organize_mission(&fake, 0.98).unwrap();
+            assert!(matches!(outcome, OrganizeOutcome::IoError { .. }));
+            assert_eq!(rt.chain.head(), chain_before);
+        }
+
+        #[test]
+        fn allowlisted_path_executes_and_seals_mission_executed_receipt() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            allowlist(&mut rt, &target_subdir(&td));
+
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            match outcome {
+                OrganizeOutcome::Executed {
+                    mission_record,
+                    organize_receipt,
+                    listing,
+                } => {
+                    assert!(!mission_record.rejected);
+                    assert_eq!(
+                        organize_receipt.mission_receipt_ref,
+                        mission_record.receipt_id.unwrap()
+                    );
+                    assert_eq!(organize_receipt.listing_digest, listing.digest());
+                    assert_eq!(organize_receipt.file_count, 2);
+                    assert_eq!(organize_receipt.dir_count, 1);
+                    assert_eq!(organize_receipt.entry_count, 3);
+                    // Chain head must equal the MissionExecuted receipt id.
+                    assert_eq!(rt.chain.head(), organize_receipt.receipt_id);
+                }
+                other => panic!("expected Executed, got {:?}", other),
+            }
+        }
+
+        #[test]
+        fn executed_receipt_replays_byte_exact_via_fetch_and_decode() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            allowlist(&mut rt, &target_subdir(&td));
+
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let id = match outcome {
+                OrganizeOutcome::Executed { organize_receipt, .. } => organize_receipt.receipt_id,
+                other => panic!("expected Executed, got {:?}", other),
+            };
+            // Fetch + decode round-trip from the payload store.
+            let bytes = rt
+                .chain
+                .fetch_payload_bytes(&id)
+                .unwrap()
+                .expect("payload stored");
+            let decoded = OrganizeMissionReceipt::from_canonical_bytes(&bytes).unwrap();
+            assert_eq!(decoded.receipt_id, id);
+        }
+
+        #[test]
+        fn rejected_admissibility_leaves_chain_unchanged() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            allowlist(&mut rt, &target_subdir(&td));
+
+            // quality below IHSAN_FLOOR -> reject
+            let chain_before_len = rt.chain.len();
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.40).unwrap();
+            match outcome {
+                OrganizeOutcome::Rejected { mission_record, remediation } => {
+                    assert!(mission_record.rejected);
+                    assert!(remediation.contains("REJECTED"));
+                }
+                other => panic!("expected Rejected, got {:?}", other),
+            }
+            // §10 Proof Law: rejected missions produce no chain artifacts.
+            assert_eq!(rt.chain.len(), chain_before_len);
+        }
+
+        #[test]
+        fn executed_outcome_advances_chain_by_ten_records() {
+            // Starting from 0 records, a permitted organize mission
+            // seals: envelope + 5 gate verdicts + NodeLifecycle +
+            // Manifest + MissionExecuted = 9 records. Plus whatever
+            // prior boot/init pushed. The minimal_runtime starts
+            // empty so 9 is the exact count.
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            allowlist(&mut rt, &target_subdir(&td));
+
+            let before = rt.chain.len();
+            rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let after = rt.chain.len();
+            assert_eq!(after - before, 9, "expected +9 records for permit path");
+        }
+
+        #[test]
+        fn organize_twice_same_path_produces_distinct_receipt_ids() {
+            // Same listing but different timestamps → different receipts.
+            // Replayability is about decode-round-trip, not about
+            // idempotence at the chain level.
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            allowlist(&mut rt, &target_subdir(&td));
+
+            let id1 = match rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap() {
+                OrganizeOutcome::Executed { organize_receipt, .. } => organize_receipt.receipt_id,
+                _ => unreachable!(),
+            };
+            let id2 = match rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap() {
+                OrganizeOutcome::Executed { organize_receipt, .. } => organize_receipt.receipt_id,
+                _ => unreachable!(),
+            };
+            assert_ne!(id1, id2);
+        }
+
+        #[test]
+        fn organize_after_principal_activation_threads_principal_id() {
+            // When a principal is activated, the organize mission's
+            // Originator::session_id should be the principal_id.
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            allowlist(&mut rt, &target_subdir(&td));
+
+            // Activate first.
+            let env = crate::principal_activation::PrincipalActivationEnvelope::from_anchor(
+                "Mumo".into(),
+                "node0_principal".into(),
+                &crate::principal_activation::NodeIdentityAnchor::for_test(
+                    "NODE0",
+                    "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a",
+                    "2026-04-18T07:00:00Z",
+                ),
+                1_000,
+            )
+            .unwrap();
+            rt.submit_principal_activation(env, 0.98).unwrap();
+            let principal_id = rt.principal_profile().unwrap().principal_id;
+
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            match outcome {
+                OrganizeOutcome::Executed { mission_record, .. } => {
+                    match mission_record.envelope.originator {
+                        Originator::Operator { session_id } => {
+                            assert_eq!(session_id, principal_id);
+                        }
+                        other => panic!("expected Operator, got {:?}", other),
+                    }
+                }
+                other => panic!("expected Executed, got {:?}", other),
+            }
+        }
+
+        #[test]
+        fn organize_empty_directory_still_executes() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            fs::create_dir_all(target_subdir(&td)).unwrap();
+            allowlist(&mut rt, &target_subdir(&td));
+
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            match outcome {
+                OrganizeOutcome::Executed { organize_receipt, .. } => {
+                    assert_eq!(organize_receipt.entry_count, 0);
+                    assert_eq!(organize_receipt.file_count, 0);
+                    assert_eq!(organize_receipt.dir_count, 0);
+                }
+                other => panic!("expected Executed for empty dir, got {:?}", other),
+            }
+        }
+
+        #[test]
+        fn organize_outcome_is_executed_helper() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            allowlist(&mut rt, &target_subdir(&td));
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            assert!(outcome.is_executed());
+            let refused = rt
+                .submit_organize_mission(
+                    &td.path().join("not-registered"),
+                    0.98,
+                )
+                .unwrap();
+            assert!(!refused.is_executed());
         }
     }
 }
