@@ -59,6 +59,9 @@ use crate::state_snapshots_cache::{
 use crate::resource_registry_cache::{
     ResourceRegistryCache, ResourceRegistryCacheError, ResourceRegistrySnapshot,
 };
+use crate::resource_registry::{
+    RegisterOutcome, ResourceKind, ResourceRegistryError, TypedResource,
+};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -1193,6 +1196,94 @@ impl CognitionRuntime {
             Some(c) => c.read(),
             None => Ok(None),
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Cycle-7 G4 Commit-1 — typed resource registry API
+    // ═══════════════════════════════════════════════════════════════
+    //
+    // Read-modify-write against resource_registry_cache. Local-only,
+    // non-chain per niyyah §"Writer authority HYBRID". No chain receipt
+    // is emitted for a register call — G5 will read the allowlist when
+    // deciding whether an `organize` mission may proceed.
+
+    /// Register or update a local resource. Behavior:
+    ///   - New (kind, id) → `RegisterOutcome::Created`
+    ///   - Existing (kind, id) with differing summary or allowlist flag
+    ///     → `RegisterOutcome::Updated`
+    ///   - Exact match already present → `RegisterOutcome::Idempotent`
+    ///     (write is elided).
+    ///
+    /// Equality key: (kind.as_str(), id). Two different ResourceKind
+    /// variants with the same canonical string collapse to one entry.
+    pub fn register_resource(
+        &self,
+        resource: TypedResource,
+    ) -> Result<RegisterOutcome, ResourceRegistryError> {
+        let cache = self
+            .resource_registry_cache
+            .as_ref()
+            .ok_or(ResourceRegistryError::NoCacheAttached)?;
+
+        let mut snapshot = cache.read()?.unwrap_or_default();
+        let key = (resource.kind.as_str().to_string(), resource.id.clone());
+
+        let mut outcome = RegisterOutcome::Created;
+        let mut replaced = false;
+        for existing in snapshot.resources.iter_mut() {
+            if existing.kind == key.0 && existing.id == key.1 {
+                if existing.summary == resource.summary
+                    && existing.allowlisted == resource.allowlisted
+                {
+                    return Ok(RegisterOutcome::Idempotent);
+                }
+                *existing = resource.to_cache_entry();
+                outcome = RegisterOutcome::Updated;
+                replaced = true;
+                break;
+            }
+        }
+        if !replaced {
+            snapshot.resources.push(resource.to_cache_entry());
+        }
+        // Deterministic ordering: by (kind, id).
+        snapshot
+            .resources
+            .sort_by(|a, b| a.kind.cmp(&b.kind).then_with(|| a.id.cmp(&b.id)));
+
+        cache.write(&snapshot)?;
+        Ok(outcome)
+    }
+
+    /// List all registered resources as typed projections. Returns an
+    /// empty Vec when no cache is attached or the file is absent.
+    pub fn list_resources(&self) -> Result<Vec<TypedResource>, ResourceRegistryError> {
+        let cache = match &self.resource_registry_cache {
+            Some(c) => c,
+            None => return Ok(Vec::new()),
+        };
+        let snapshot = cache.read()?.unwrap_or_default();
+        Ok(snapshot.resources.iter().map(TypedResource::from).collect())
+    }
+
+    /// True when (kind, id) is registered AND allowlisted. False on any
+    /// other state (absent, present-but-denied). Errors only on cache
+    /// malformation.
+    pub fn is_allowlisted(
+        &self,
+        kind: &ResourceKind,
+        id: &str,
+    ) -> Result<bool, ResourceRegistryError> {
+        let cache = match &self.resource_registry_cache {
+            Some(c) => c,
+            None => return Ok(false),
+        };
+        let snapshot = cache.read()?.unwrap_or_default();
+        let kind_str = kind.as_str();
+        Ok(snapshot
+            .resources
+            .iter()
+            .any(|r| r.kind == kind_str && r.id == id && r.allowlisted))
     }
 
     pub fn rehydrate_mission(
@@ -2910,6 +3001,159 @@ mod tests {
             let cache = ResourceRegistryCache::at_sovereign_root(td.path());
             let loaded = cache.read().unwrap().unwrap();
             assert!(loaded.resources.is_empty());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Cycle-7 G4 Commit-1 — typed resource registry API
+    // ════════════════════════════════════════════════════════════════
+    mod resource_registry_g4 {
+        use super::*;
+        use crate::resource_registry::{RegisterOutcome, ResourceKind, TypedResource};
+
+        fn fs_resource(id: &str, allowlisted: bool) -> TypedResource {
+            TypedResource::new(
+                ResourceKind::FilesystemPath,
+                id.into(),
+                format!("summary for {}", id),
+                allowlisted,
+            )
+            .unwrap()
+        }
+
+        #[test]
+        fn register_on_unattached_runtime_errors() {
+            let rt = minimal_runtime();
+            let err = rt.register_resource(fs_resource("/a", true)).unwrap_err();
+            assert!(matches!(
+                err,
+                crate::resource_registry::ResourceRegistryError::NoCacheAttached
+            ));
+        }
+
+        #[test]
+        fn register_new_returns_created_and_persists() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let out = rt.register_resource(fs_resource("/docs", true)).unwrap();
+            assert_eq!(out, RegisterOutcome::Created);
+            let loaded = rt.list_resources().unwrap();
+            assert_eq!(loaded.len(), 1);
+            assert_eq!(loaded[0].id, "/docs");
+            assert!(loaded[0].allowlisted);
+        }
+
+        #[test]
+        fn register_same_twice_is_idempotent() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let first = rt.register_resource(fs_resource("/docs", true)).unwrap();
+            assert_eq!(first, RegisterOutcome::Created);
+            let again = rt.register_resource(fs_resource("/docs", true)).unwrap();
+            assert_eq!(again, RegisterOutcome::Idempotent);
+            assert_eq!(rt.list_resources().unwrap().len(), 1);
+        }
+
+        #[test]
+        fn register_updates_allowlist_flag_on_existing_id() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            rt.register_resource(fs_resource("/docs", false)).unwrap();
+            let out = rt.register_resource(fs_resource("/docs", true)).unwrap();
+            assert_eq!(out, RegisterOutcome::Updated);
+            let loaded = rt.list_resources().unwrap();
+            assert_eq!(loaded.len(), 1, "update not duplicate");
+            assert!(loaded[0].allowlisted);
+        }
+
+        #[test]
+        fn is_allowlisted_true_only_when_registered_and_allowed() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            rt.register_resource(fs_resource("/allowed", true)).unwrap();
+            rt.register_resource(fs_resource("/denied", false)).unwrap();
+
+            assert!(rt
+                .is_allowlisted(&ResourceKind::FilesystemPath, "/allowed")
+                .unwrap());
+            assert!(!rt
+                .is_allowlisted(&ResourceKind::FilesystemPath, "/denied")
+                .unwrap());
+            assert!(!rt
+                .is_allowlisted(&ResourceKind::FilesystemPath, "/never-registered")
+                .unwrap());
+        }
+
+        #[test]
+        fn is_allowlisted_is_kind_sensitive() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            rt.register_resource(
+                TypedResource::new(
+                    ResourceKind::FilesystemPath,
+                    "example-id".into(),
+                    "".into(),
+                    true,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            // Same id, different kind — not allowlisted.
+            assert!(!rt
+                .is_allowlisted(&ResourceKind::NetworkEndpoint, "example-id")
+                .unwrap());
+            assert!(rt
+                .is_allowlisted(&ResourceKind::FilesystemPath, "example-id")
+                .unwrap());
+        }
+
+        #[test]
+        fn list_returns_deterministic_order() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            rt.register_resource(fs_resource("/zz", true)).unwrap();
+            rt.register_resource(fs_resource("/aa", true)).unwrap();
+            rt.register_resource(fs_resource("/mm", false)).unwrap();
+            let ids: Vec<_> = rt
+                .list_resources()
+                .unwrap()
+                .into_iter()
+                .map(|r| r.id)
+                .collect();
+            assert_eq!(ids, vec!["/aa".to_string(), "/mm".into(), "/zz".into()]);
+        }
+
+        #[test]
+        fn custom_kind_registers_and_lists_correctly() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let r = TypedResource::new(
+                ResourceKind::Custom("scroll".into()),
+                "tablet-01".into(),
+                "ancient tablet".into(),
+                false,
+            )
+            .unwrap();
+            rt.register_resource(r).unwrap();
+            let loaded = rt.list_resources().unwrap();
+            assert_eq!(loaded.len(), 1);
+            assert_eq!(loaded[0].kind, ResourceKind::Custom("scroll".into()));
+        }
+
+        #[test]
+        fn list_on_unattached_runtime_returns_empty() {
+            let rt = minimal_runtime();
+            assert!(rt.list_resources().unwrap().is_empty());
+            assert!(!rt
+                .is_allowlisted(&ResourceKind::FilesystemPath, "/anything")
+                .unwrap());
         }
     }
 }
