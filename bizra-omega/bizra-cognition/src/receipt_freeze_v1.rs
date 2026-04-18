@@ -274,7 +274,7 @@ impl SledPayloadStore {
 impl PayloadStore for SledPayloadStore {
     fn put(&self, hash: Blake3Hash, bytes: Vec<u8>) -> Result<(), StoreError> {
         self.db
-            .insert(&hash, bytes.as_slice())
+            .insert(hash, bytes.as_slice())
             .map_err(|e| StoreError::IoError(format!("sled put: {}", e)))?;
         // fsync after every put for durability
         self.db
