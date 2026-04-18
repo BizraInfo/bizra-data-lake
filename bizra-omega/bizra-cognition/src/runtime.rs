@@ -63,6 +63,9 @@ use crate::resource_registry::{
     RegisterOutcome, ResourceKind, ResourceRegistryError, TypedResource, UrpView,
 };
 use crate::organize_mission::{OrganizeListing, OrganizeMissionReceipt};
+use crate::poi_ledger::{
+    compute_impact_score, PoiEntry, PoiLedgerCache, PoiLedgerCacheError, PoiLedgerSnapshot,
+};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -388,6 +391,14 @@ pub struct CognitionRuntime {
     // empty registry so G4 can assume the file exists; G4 owns the
     // mutation API (register-resource / allowlist / URP view).
     resource_registry_cache: Option<ResourceRegistryCache>,
+    // Cycle-7 G6 — local-only Proof-of-Impact ledger. In-memory list
+    // of PoiEntry records, one per permitted MissionExecuted /
+    // PrincipalActivation receipt. Auto-appended on permit.
+    // Rebuildable from chain; cache at
+    // sovereign_state/dema_cache/poi_ledger.json is a read fast-path,
+    // never outranks chain.
+    poi_entries: Vec<PoiEntry>,
+    poi_ledger_cache: Option<PoiLedgerCache>,
 }
 
 /// Errors produced by CognitionRuntime bootstrap constructors.
@@ -428,6 +439,8 @@ impl CognitionRuntime {
             mission_log_cache: None,
             state_snapshots_cache: None,
             resource_registry_cache: None,
+            poi_entries: Vec::new(),
+            poi_ledger_cache: None,
         }
     }
 
@@ -470,6 +483,8 @@ impl CognitionRuntime {
             mission_log_cache: None,
             state_snapshots_cache: None,
             resource_registry_cache: None,
+            poi_entries: Vec::new(),
+            poi_ledger_cache: None,
         })
     }
 
@@ -525,6 +540,8 @@ impl CognitionRuntime {
             mission_log_cache: None,
             state_snapshots_cache: None,
             resource_registry_cache: None,
+            poi_entries: Vec::new(),
+            poi_ledger_cache: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -874,6 +891,16 @@ impl CognitionRuntime {
         self.chain.append_with_payload(pa_receipt.clone())?;
         self.principal_profile = Some(profile.clone());
 
+        // Cycle-7 G6 — record PoI entry for this activation BEFORE
+        // refreshing caches, so the ledger surface reflects the new
+        // entry in the same cache-refresh pass.
+        self.record_poi_for_mission(
+            pa_receipt.receipt_id,
+            ReceiptKind::PrincipalActivation as u8,
+            &mission_record,
+            0, // activation has no file-listing volume
+        );
+
         // Cycle-7 G3 Commit-1 — refresh the receipt-history cache now
         // that the PrincipalActivation receipt has advanced the chain
         // beyond what submit_mission wrote. Best-effort; failure is
@@ -1029,6 +1056,15 @@ impl CognitionRuntime {
         );
         self.chain.append_with_payload(organize_receipt.clone())?;
 
+        // Cycle-7 G6 — record PoI entry for this organize execution.
+        // Entry count = number of top-level listing entries (work volume).
+        self.record_poi_for_mission(
+            organize_receipt.receipt_id,
+            ReceiptKind::MissionExecuted as u8,
+            &mission_record,
+            organize_receipt.entry_count,
+        );
+
         // Refresh G3 caches now that the chain has advanced once more.
         let _ = self.write_receipt_history_cache();
         let _ = self.write_manifest_history_cache();
@@ -1064,6 +1100,7 @@ impl CognitionRuntime {
             Some(StateSnapshotsCache::at_sovereign_root(sovereign_root));
         self.resource_registry_cache =
             Some(ResourceRegistryCache::at_sovereign_root(sovereign_root));
+        self.poi_ledger_cache = Some(PoiLedgerCache::at_sovereign_root(sovereign_root));
         self
     }
 
@@ -1367,6 +1404,105 @@ impl CognitionRuntime {
             Some(c) => c.read(),
             None => Ok(None),
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Cycle-7 G6 — Proof-of-Impact ledger surface
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Accessor for the attached PoI ledger cache (if any).
+    pub fn poi_ledger_cache(&self) -> Option<&PoiLedgerCache> {
+        self.poi_ledger_cache.as_ref()
+    }
+
+    /// In-memory PoI entries for this session. Authoritative for
+    /// `poi_ledger_snapshot`; the disk cache is a derived fast-path.
+    pub fn poi_entries(&self) -> &[PoiEntry] {
+        &self.poi_entries
+    }
+
+    /// Build a ledger snapshot suitable for serialization.
+    pub fn poi_ledger_snapshot(&self) -> PoiLedgerSnapshot {
+        PoiLedgerSnapshot {
+            chain_head: self.chain.head(),
+            entries: self.poi_entries.clone(),
+        }
+    }
+
+    /// Best-effort write of the PoI ledger cache.
+    pub fn write_poi_ledger_cache(&self) -> Option<Result<(), PoiLedgerCacheError>> {
+        self.poi_ledger_cache
+            .as_ref()
+            .map(|c| c.write(&self.poi_ledger_snapshot()))
+    }
+
+    /// Load the PoI ledger snapshot from the attached cache. Returns
+    /// Ok(None) when no cache is attached or the file is absent.
+    pub fn rehydrate_poi_ledger_from_cache(
+        &self,
+    ) -> Result<Option<PoiLedgerSnapshot>, PoiLedgerCacheError> {
+        match &self.poi_ledger_cache {
+            Some(c) => c.read(),
+            None => Ok(None),
+        }
+    }
+
+    /// Replace the in-memory PoI entries from a cache snapshot. Used on
+    /// gateway boot to restore session state across restarts. Chain
+    /// remains truth — callers may also invoke `rebuild_poi_ledger_from_chain`
+    /// to verify+repair.
+    pub fn load_poi_entries_from_cache(&mut self) -> Result<bool, PoiLedgerCacheError> {
+        match self.rehydrate_poi_ledger_from_cache()? {
+            Some(snap) => {
+                self.poi_entries = snap.entries;
+                Ok(true)
+            }
+            None => Ok(false),
+        }
+    }
+
+    /// Record a PoI entry derived from a just-permitted mission.
+    /// Called internally by submit_organize_mission + submit_principal_activation
+    /// permit paths. Pushes to in-memory list and (best-effort) refreshes
+    /// the disk cache.
+    fn record_poi_for_mission(
+        &mut self,
+        receipt_id: Blake3Hash,
+        kind_byte: u8,
+        record: &MissionRuntimeRecord,
+        entry_count: u32,
+    ) {
+        let gate_min_score = record
+            .admissibility
+            .gate_verdicts
+            .iter()
+            .filter_map(|g| g.score)
+            .fold(f64::INFINITY, f64::min);
+        let gate_min_score = if gate_min_score.is_finite() {
+            gate_min_score
+        } else {
+            // All scores were None — fall back to the claim's quality
+            // so the entry is not worse than the operator's evidence.
+            record.claim.quality_score
+        };
+        let quality_score = record.claim.quality_score;
+        let impact_score = compute_impact_score(quality_score, gate_min_score, entry_count);
+        let principal_id = match record.envelope.originator {
+            Originator::Operator { session_id } if session_id != [0u8; 32] => Some(session_id),
+            _ => None,
+        };
+
+        self.poi_entries.push(PoiEntry {
+            receipt_id,
+            receipt_kind_byte: kind_byte,
+            quality_score,
+            gate_min_score,
+            entry_count,
+            impact_score,
+            timestamp_ns: record.timestamp_ns,
+            principal_id,
+        });
+        let _ = self.write_poi_ledger_cache();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -3668,6 +3804,244 @@ mod tests {
                 )
                 .unwrap();
             assert!(!refused.is_executed());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Cycle-7 G6 — PoI ledger integration
+    // ════════════════════════════════════════════════════════════════
+    mod poi_ledger_g6 {
+        use super::*;
+        use crate::poi_ledger::PoiLedgerCache;
+        use crate::resource_registry::{ResourceKind, TypedResource};
+        use std::fs;
+
+        const TEST_PUBKEY_HEX: &str =
+            "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a";
+
+        fn activation_envelope(now_ns: u64) -> crate::principal_activation::PrincipalActivationEnvelope {
+            crate::principal_activation::PrincipalActivationEnvelope::from_anchor(
+                "Mumo".into(),
+                "node0_principal".into(),
+                &crate::principal_activation::NodeIdentityAnchor::for_test(
+                    "NODE0",
+                    TEST_PUBKEY_HEX,
+                    "2026-04-18T07:00:00Z",
+                ),
+                now_ns,
+            )
+            .unwrap()
+        }
+
+        fn write_fixture_dir(root: &std::path::Path) {
+            fs::create_dir_all(root).unwrap();
+            fs::write(root.join("alpha.txt"), b"hello").unwrap();
+            fs::write(root.join("beta.txt"), b"world").unwrap();
+            fs::create_dir_all(root.join("subdir")).unwrap();
+        }
+
+        fn target_subdir(td: &tempfile::TempDir) -> std::path::PathBuf {
+            td.path().join("target")
+        }
+
+        #[test]
+        fn attach_initializes_poi_ledger_cache() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            assert!(rt.poi_ledger_cache().is_some());
+            assert!(rt.poi_entries().is_empty());
+        }
+
+        #[test]
+        fn empty_runtime_has_empty_snapshot() {
+            let rt = minimal_runtime();
+            let snap = rt.poi_ledger_snapshot();
+            assert!(snap.entries.is_empty());
+        }
+
+        #[test]
+        fn activation_appends_one_poi_entry() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let rec = rt.submit_principal_activation(activation_envelope(1000), 0.98).unwrap();
+            assert!(!rec.rejected);
+
+            assert_eq!(rt.poi_entries().len(), 1);
+            let e = &rt.poi_entries()[0];
+            assert_eq!(e.receipt_kind_byte, 0x61);
+            assert_eq!(e.entry_count, 0);
+            assert!(e.impact_score > 0.0 && e.impact_score <= 1.0);
+            assert_eq!(e.quality_score, 0.98);
+        }
+
+        #[test]
+        fn organize_appends_one_poi_entry_with_entry_count() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            rt.register_resource(
+                TypedResource::new(
+                    ResourceKind::FilesystemPath,
+                    target_subdir(&td).to_string_lossy().into_owned(),
+                    "".into(),
+                    true,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            assert!(outcome.is_executed());
+
+            assert_eq!(rt.poi_entries().len(), 1);
+            let e = &rt.poi_entries()[0];
+            assert_eq!(e.receipt_kind_byte, 0x70);
+            assert_eq!(e.entry_count, 3, "3 top-level entries in fixture");
+        }
+
+        #[test]
+        fn rejected_mission_does_not_produce_poi_entry() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            rt.register_resource(
+                TypedResource::new(
+                    ResourceKind::FilesystemPath,
+                    target_subdir(&td).to_string_lossy().into_owned(),
+                    "".into(),
+                    true,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            // quality below IHSAN_FLOOR
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.40).unwrap();
+            assert!(!outcome.is_executed());
+            assert!(rt.poi_entries().is_empty(), "§10 Proof Law: no chain, no ledger");
+        }
+
+        #[test]
+        fn non_allowlisted_organize_produces_no_entry() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+            // NOT allowlisted
+            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            assert!(matches!(outcome, OrganizeOutcome::NotAllowlisted { .. }));
+            assert!(rt.poi_entries().is_empty());
+        }
+
+        #[test]
+        fn activation_then_organize_stacks_two_entries() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            write_fixture_dir(&target_subdir(&td));
+
+            rt.submit_principal_activation(activation_envelope(1000), 0.98).unwrap();
+            rt.register_resource(
+                TypedResource::new(
+                    ResourceKind::FilesystemPath,
+                    target_subdir(&td).to_string_lossy().into_owned(),
+                    "".into(),
+                    true,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+
+            assert_eq!(rt.poi_entries().len(), 2);
+            assert_eq!(rt.poi_entries()[0].receipt_kind_byte, 0x61);
+            assert_eq!(rt.poi_entries()[1].receipt_kind_byte, 0x70);
+            // organize entry should carry the activated principal_id
+            let pid = rt.principal_profile().unwrap().principal_id;
+            assert_eq!(rt.poi_entries()[1].principal_id, Some(pid));
+        }
+
+        #[test]
+        fn poi_cache_is_written_after_each_permit() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            rt.submit_principal_activation(activation_envelope(1000), 0.98).unwrap();
+
+            let cache = PoiLedgerCache::at_sovereign_root(td.path());
+            let loaded = cache.read().unwrap().expect("cache written after permit");
+            assert_eq!(loaded.entries.len(), 1);
+            assert_eq!(loaded.entries[0].receipt_kind_byte, 0x61);
+        }
+
+        #[test]
+        fn load_poi_entries_from_cache_restores_session_state() {
+            let td = tempfile::TempDir::new().unwrap();
+            // Session A: build entries.
+            {
+                let mut rt = minimal_runtime();
+                rt.attach_dema_cache(td.path());
+                rt.submit_principal_activation(activation_envelope(1000), 0.98).unwrap();
+            }
+            // Session B: fresh runtime, load from cache.
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            assert!(rt.poi_entries().is_empty());
+            let loaded = rt.load_poi_entries_from_cache().unwrap();
+            assert!(loaded);
+            assert_eq!(rt.poi_entries().len(), 1);
+            assert_eq!(rt.poi_entries()[0].receipt_kind_byte, 0x61);
+        }
+
+        #[test]
+        fn load_from_cache_returns_false_when_absent() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let loaded = rt.load_poi_entries_from_cache().unwrap();
+            assert!(!loaded);
+        }
+
+        #[test]
+        fn impact_score_higher_for_larger_listing() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            // small target: 1 file
+            let small = td.path().join("small");
+            fs::create_dir_all(&small).unwrap();
+            fs::write(small.join("a.txt"), b"a").unwrap();
+
+            // big target: 10 files
+            let big = td.path().join("big");
+            fs::create_dir_all(&big).unwrap();
+            for i in 0..10 {
+                fs::write(big.join(format!("f{}.txt", i)), b"x").unwrap();
+            }
+
+            for p in [&small, &big] {
+                rt.register_resource(
+                    TypedResource::new(
+                        ResourceKind::FilesystemPath,
+                        p.to_string_lossy().into_owned(),
+                        "".into(),
+                        true,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            }
+
+            rt.submit_organize_mission(&small, 0.98).unwrap();
+            rt.submit_organize_mission(&big, 0.98).unwrap();
+
+            let s_score = rt.poi_entries()[0].impact_score;
+            let b_score = rt.poi_entries()[1].impact_score;
+            assert!(b_score > s_score, "bigger listing -> higher impact");
         }
     }
 }
