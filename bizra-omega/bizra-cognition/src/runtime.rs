@@ -52,6 +52,10 @@ use crate::manifest_history_cache::{
 use crate::mission_log_cache::{
     MissionLogCache, MissionLogCacheError, MissionLogEntry, MissionLogSnapshot,
 };
+use crate::state_snapshots_cache::{
+    StateSnapshotEntry, StateSnapshotView, StateSnapshotsCache, StateSnapshotsCacheError,
+    StateSnapshotsSnapshot,
+};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -328,6 +332,11 @@ pub struct CognitionRuntime {
     // intent_text, timestamp, stage, optional receipt_id, optional
     // remediation. Refreshed at every submit_mission boundary.
     mission_log_cache: Option<MissionLogCache>,
+    // Cycle-7 G3 Commit-4 — optional on-disk cache at
+    // sovereign_state/dema_cache/state_snapshots.json. Derived from
+    // each mission's FourStateModel (current + ideal + gap). Answers:
+    // "where NODE0 is vs where it aims to be, per mission attempt."
+    state_snapshots_cache: Option<StateSnapshotsCache>,
 }
 
 /// Errors produced by CognitionRuntime bootstrap constructors.
@@ -366,6 +375,7 @@ impl CognitionRuntime {
             receipt_history_cache: None,
             manifest_history_cache: None,
             mission_log_cache: None,
+            state_snapshots_cache: None,
         }
     }
 
@@ -406,6 +416,7 @@ impl CognitionRuntime {
             receipt_history_cache: None,
             manifest_history_cache: None,
             mission_log_cache: None,
+            state_snapshots_cache: None,
         })
     }
 
@@ -459,6 +470,7 @@ impl CognitionRuntime {
             receipt_history_cache: None,
             manifest_history_cache: None,
             mission_log_cache: None,
+            state_snapshots_cache: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -586,6 +598,7 @@ impl CognitionRuntime {
             let _ = self.write_receipt_history_cache();
             let _ = self.write_manifest_history_cache();
             let _ = self.write_mission_log_cache();
+            let _ = self.write_state_snapshots_cache();
             return Ok(record);
         }
 
@@ -688,6 +701,7 @@ impl CognitionRuntime {
         let _ = self.write_receipt_history_cache();
         let _ = self.write_manifest_history_cache();
         let _ = self.write_mission_log_cache();
+        let _ = self.write_state_snapshots_cache();
         Ok(record)
     }
 
@@ -813,6 +827,7 @@ impl CognitionRuntime {
         let _ = self.write_receipt_history_cache();
         let _ = self.write_manifest_history_cache();
         let _ = self.write_mission_log_cache();
+        let _ = self.write_state_snapshots_cache();
 
         // Best-effort disk cache write. Failure does not invalidate the
         // sealed chain — the profile remains in-memory and is rebuildable
@@ -860,6 +875,8 @@ impl CognitionRuntime {
         self.manifest_history_cache =
             Some(ManifestHistoryCache::at_sovereign_root(sovereign_root));
         self.mission_log_cache = Some(MissionLogCache::at_sovereign_root(sovereign_root));
+        self.state_snapshots_cache =
+            Some(StateSnapshotsCache::at_sovereign_root(sovereign_root));
         self
     }
 
@@ -1055,6 +1072,74 @@ impl CognitionRuntime {
         &self,
     ) -> Result<Option<MissionLogSnapshot>, MissionLogCacheError> {
         match &self.mission_log_cache {
+            Some(c) => c.read(),
+            None => Ok(None),
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Cycle-7 G3 Commit-4 — state_snapshots cache surface
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Accessor for the attached state-snapshots cache (if any).
+    pub fn state_snapshots_cache(&self) -> Option<&StateSnapshotsCache> {
+        self.state_snapshots_cache.as_ref()
+    }
+
+    /// Build an in-memory snapshot of the FourStateModel attached to
+    /// every mission attempt this session. Derived from the `missions`
+    /// registry. Includes both permit and reject outcomes — operator
+    /// sees where Dema thought NODE0 was, and where it aimed to be,
+    /// regardless of whether the attempt was admitted.
+    pub fn state_snapshots_snapshot(&self) -> StateSnapshotsSnapshot {
+        let mut entries: Vec<StateSnapshotEntry> = self
+            .missions
+            .values()
+            .map(|r| {
+                let m = &r.envelope.state;
+                StateSnapshotEntry {
+                    mission_id: r.envelope.mission_id,
+                    timestamp_ns: r.timestamp_ns,
+                    rejected: r.rejected,
+                    current: StateSnapshotView {
+                        hash: m.current_state.hash,
+                        summary: m.current_state.summary.clone(),
+                        metric: m.current_state.metric,
+                    },
+                    ideal: StateSnapshotView {
+                        hash: m.ideal_state.hash,
+                        summary: m.ideal_state.summary.clone(),
+                        metric: m.ideal_state.metric,
+                    },
+                    gap: m.gap,
+                }
+            })
+            .collect();
+        entries.sort_by(|a, b| {
+            a.timestamp_ns
+                .cmp(&b.timestamp_ns)
+                .then_with(|| a.mission_id.cmp(&b.mission_id))
+        });
+        StateSnapshotsSnapshot {
+            chain_head: self.chain.head(),
+            entries,
+        }
+    }
+
+    /// Best-effort write of the state_snapshots cache.
+    pub fn write_state_snapshots_cache(
+        &self,
+    ) -> Option<Result<(), StateSnapshotsCacheError>> {
+        self.state_snapshots_cache
+            .as_ref()
+            .map(|c| c.write(&self.state_snapshots_snapshot()))
+    }
+
+    /// Load the state_snapshots snapshot from the attached cache.
+    pub fn rehydrate_state_snapshots_from_cache(
+        &self,
+    ) -> Result<Option<StateSnapshotsSnapshot>, StateSnapshotsCacheError> {
+        match &self.state_snapshots_cache {
             Some(c) => c.read(),
             None => Ok(None),
         }
@@ -2591,6 +2676,112 @@ mod tests {
             let loaded = cache.read().unwrap().unwrap();
             assert_eq!(loaded.entries.len(), 1);
             assert_eq!(loaded.entries[0].mission_id, expected_mission_id);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Cycle-7 G3 Commit-4 — state_snapshots cache integration
+    // ════════════════════════════════════════════════════════════════
+    mod state_snapshots_g3 {
+        use super::*;
+        use crate::state_snapshots_cache::StateSnapshotsCache;
+
+        #[test]
+        fn attach_initializes_state_snapshots_cache() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            assert!(rt.state_snapshots_cache().is_some());
+        }
+
+        #[test]
+        fn empty_runtime_has_empty_state_snapshots() {
+            let rt = minimal_runtime();
+            let snap = rt.state_snapshots_snapshot();
+            assert!(snap.entries.is_empty());
+        }
+
+        #[test]
+        fn permitted_mission_captures_current_and_ideal_states() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let env = test_mission(100);
+            let claim = permit_claim(&env, 200);
+            let record = rt.submit_mission(env, claim).unwrap();
+
+            let loaded = rt
+                .rehydrate_state_snapshots_from_cache()
+                .unwrap()
+                .expect("cache written");
+            assert_eq!(loaded.entries.len(), 1);
+            let e = &loaded.entries[0];
+            assert_eq!(e.mission_id, record.envelope.mission_id);
+            assert!(!e.rejected);
+            // minimal_runtime's test_mission uses current_state/ideal_state
+            // from the fixtures, so hashes + summaries must round-trip.
+            assert_eq!(e.current.hash, current_state().hash);
+            assert_eq!(e.ideal.hash, ideal_state().hash);
+            assert_eq!(e.current.summary, current_state().summary);
+            assert_eq!(e.ideal.summary, ideal_state().summary);
+        }
+
+        #[test]
+        fn rejected_mission_still_records_state_snapshot() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let env = test_mission(100);
+            let claim = reject_claim(&env, 200);
+            let record = rt.submit_mission(env, claim).unwrap();
+            assert!(record.rejected);
+
+            let loaded = rt.rehydrate_state_snapshots_from_cache().unwrap().unwrap();
+            assert_eq!(loaded.entries.len(), 1);
+            let e = &loaded.entries[0];
+            assert!(e.rejected, "rejected attempts are preserved in state log");
+            // State snapshot must still carry the gap Dema perceived at
+            // submission time.
+            assert!(e.gap >= 0.0);
+        }
+
+        #[test]
+        fn multiple_attempts_sorted_by_timestamp() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let e1 = test_mission(1_000);
+            let c1 = reject_claim(&e1, 1_100);
+            rt.submit_mission(e1, c1).unwrap();
+
+            let e2 = test_mission(2_000);
+            let c2 = permit_claim(&e2, 2_100);
+            rt.submit_mission(e2, c2).unwrap();
+
+            let loaded = rt.rehydrate_state_snapshots_from_cache().unwrap().unwrap();
+            assert_eq!(loaded.entries.len(), 2);
+            assert!(loaded.entries[0].timestamp_ns < loaded.entries[1].timestamp_ns);
+        }
+
+        #[test]
+        fn restart_survival() {
+            let td = tempfile::TempDir::new().unwrap();
+            let expected_id;
+            {
+                let mut rt = minimal_runtime();
+                rt.attach_dema_cache(td.path());
+                let env = test_mission(42);
+                let claim = permit_claim(&env, 84);
+                let rec = rt.submit_mission(env, claim).unwrap();
+                expected_id = rec.envelope.mission_id;
+            }
+            let cache = StateSnapshotsCache::at_sovereign_root(td.path());
+            let loaded = cache.read().unwrap().unwrap();
+            assert_eq!(loaded.entries.len(), 1);
+            assert_eq!(loaded.entries[0].mission_id, expected_id);
         }
     }
 }

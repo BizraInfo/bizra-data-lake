@@ -556,6 +556,23 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                 "mission_log cache malformed — will rebuild from missions on next attempt"
             ),
         }
+        // Cycle-7 G3 Commit-4 — state_snapshots presence.
+        match rt.rehydrate_state_snapshots_from_cache() {
+            Ok(Some(snap)) => tracing::info!(
+                target: DOMAIN,
+                entries = snap.entries.len(),
+                "state_snapshots cache present from prior session"
+            ),
+            Ok(None) => tracing::info!(
+                target: DOMAIN,
+                "state_snapshots cache empty; will initialize on first mission attempt"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "state_snapshots cache malformed — will rebuild from missions on next attempt"
+            ),
+        }
     }
     rt
 }
