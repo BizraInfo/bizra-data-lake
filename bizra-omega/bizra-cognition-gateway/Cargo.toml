@@ -16,6 +16,10 @@ axum = "0.7"
 clap = { version = "4.5", features = ["derive", "color"] }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
+# Spearpoint A — Rust→TypeScript binding generation. Bindings are
+# checked in at bindings/; `cargo test` regenerates them; CI fails on
+# unstaged diff. UI consumers import from that directory.
+ts-rs = { version = "10", features = ["no-serde-warnings"] }
 
 [dev-dependencies]
 tower = { version = "0.4", features = ["util"] }

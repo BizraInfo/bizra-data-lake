@@ -9,10 +9,15 @@
 // activation. Chain starts empty; first successful mission emits the founding
 // activation receipt lineage.
 //
+// Spearpoint A: HTTP boundary contracts live in `mod contracts` and emit
+// to `bindings/*.ts` via ts-rs on `cargo test`. CI enforces drift detection.
+//
 // ── ci-hygiene waivers (2026-04-18) ─────────────────────────────────
 //   - dead_code: axum handler DTOs carry fields consumed by serde only.
 //   - result_large_err: axum error tuples are inline for tower::Layer.
 #![allow(dead_code, clippy::result_large_err)]
+
+mod contracts;
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
