@@ -27,6 +27,7 @@ pub mod state_snapshots_cache;
 pub mod resource_registry_cache;
 pub mod resource_registry;
 pub mod organize_mission;
+pub mod poi_ledger;
 pub mod thought_graph;
 pub mod configure_cognition;
 pub mod runtime;
