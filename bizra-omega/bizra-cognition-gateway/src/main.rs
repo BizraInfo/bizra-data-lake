@@ -29,6 +29,9 @@ use bizra_cognition::mission_freeze_v1::{
 use bizra_cognition::principal_activation::{
     NodeIdentityAnchor, PrincipalActivationEnvelope,
 };
+use bizra_cognition::resource_registry::{
+    RegisterOutcome, ResourceKind, TypedResource, UrpView,
+};
 use bizra_cognition::receipts::{
     Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind,
 };
@@ -229,6 +232,88 @@ struct ActivatePrincipalResponse {
     admissibility: AdmissibilityResultDto,
     #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
     cache_warning: Option<String>,
+}
+
+// ─── Cycle-7 G4 — /resources DTOs ──────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct RegisterResourceRequest {
+    kind: String,
+    id: String,
+    #[serde(default)]
+    summary: String,
+    #[serde(default)]
+    allowlisted: bool,
+}
+
+#[derive(Serialize)]
+struct ResourceDto {
+    kind: String,
+    id: String,
+    summary: String,
+    allowlisted: bool,
+}
+
+impl From<&TypedResource> for ResourceDto {
+    fn from(r: &TypedResource) -> Self {
+        ResourceDto {
+            kind: r.kind.as_str().to_string(),
+            id: r.id.clone(),
+            summary: r.summary.clone(),
+            allowlisted: r.allowlisted,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct RegisterResourceResponse {
+    outcome: &'static str,
+    resource: ResourceDto,
+}
+
+#[derive(Serialize)]
+struct ListResourcesResponse {
+    resources: Vec<ResourceDto>,
+}
+
+#[derive(Serialize)]
+struct UrpBucketDto {
+    kind: String,
+    resources: Vec<ResourceDto>,
+}
+
+#[derive(Serialize)]
+struct UrpViewDto {
+    #[serde(rename = "totalCount")]
+    total_count: usize,
+    #[serde(rename = "allowlistedCount")]
+    allowlisted_count: usize,
+    buckets: Vec<UrpBucketDto>,
+}
+
+impl From<&UrpView> for UrpViewDto {
+    fn from(v: &UrpView) -> Self {
+        UrpViewDto {
+            total_count: v.total_count,
+            allowlisted_count: v.allowlisted_count,
+            buckets: v
+                .buckets
+                .iter()
+                .map(|b| UrpBucketDto {
+                    kind: b.kind.as_str().to_string(),
+                    resources: b.resources.iter().map(ResourceDto::from).collect(),
+                })
+                .collect(),
+        }
+    }
+}
+
+fn register_outcome_name(o: RegisterOutcome) -> &'static str {
+    match o {
+        RegisterOutcome::Created => "created",
+        RegisterOutcome::Updated => "updated",
+        RegisterOutcome::Idempotent => "idempotent",
+    }
 }
 
 #[derive(Serialize)]
@@ -1022,6 +1107,90 @@ async fn post_principal_activate(
     }))
 }
 
+// ─── Cycle-7 G4 — /resources handlers ──────────────────────────────────────
+
+async fn post_resource_register(
+    State(state): State<AppState>,
+    Json(req): Json<RegisterResourceRequest>,
+) -> Result<Json<RegisterResourceResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let kind = ResourceKind::from_str(&req.kind);
+    let resource = TypedResource::new(kind, req.id, req.summary, req.allowlisted).map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "INVALID_RESOURCE",
+                    message: format!("{}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    let rt = state.runtime.read().await;
+    let outcome = rt.register_resource(resource.clone()).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "REGISTER_FAILED",
+                    message: format!("{}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    Ok(Json(RegisterResourceResponse {
+        outcome: register_outcome_name(outcome),
+        resource: ResourceDto::from(&resource),
+    }))
+}
+
+async fn get_resources_list(
+    State(state): State<AppState>,
+) -> Result<Json<ListResourcesResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let rt = state.runtime.read().await;
+    let resources = rt.list_resources().map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "LIST_FAILED",
+                    message: format!("{}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    Ok(Json(ListResourcesResponse {
+        resources: resources.iter().map(ResourceDto::from).collect(),
+    }))
+}
+
+async fn get_resources_urp(
+    State(state): State<AppState>,
+) -> Result<Json<UrpViewDto>, (StatusCode, Json<ErrorResponse>)> {
+    let rt = state.runtime.read().await;
+    let view = rt.urp_view().map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "URP_FAILED",
+                    message: format!("{}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    Ok(Json(UrpViewDto::from(&view)))
+}
+
 async fn get_mission(
     State(state): State<AppState>,
     Path(hash_hex): Path<String>,
@@ -1156,6 +1325,9 @@ fn router(state: AppState) -> Router {
         .route("/missions/:hash", get(get_mission))
         .route("/missions/:hash/replay", post(replay_mission))
         .route("/principal/activate", post(post_principal_activate))
+        .route("/resources/register", post(post_resource_register))
+        .route("/resources/list", get(get_resources_list))
+        .route("/resources/urp", get(get_resources_urp))
         .with_state(state)
 }
 
@@ -1777,5 +1949,118 @@ mod tests {
         let body = to_bytes(res.into_body(), 4096).await.unwrap();
         let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(v["error"]["code"], "EMPTY_PRINCIPAL_NAME");
+    }
+
+    // ─── Cycle-7 G4 — /resources endpoint tests ─────────────────────────
+
+    fn new_state_with_dema_cache(root: &std::path::Path) -> AppState {
+        let mut rt = bootstrap_runtime([0u8; 32]);
+        rt.attach_dema_cache(root);
+        AppState {
+            runtime: Arc::new(RwLock::new(rt)),
+        }
+    }
+
+    async fn register_resource(
+        app: axum::Router,
+        kind: &str,
+        id: &str,
+        allowlisted: bool,
+    ) -> axum::response::Response {
+        let body = serde_json::json!({
+            "kind": kind,
+            "id": id,
+            "summary": format!("test {}", id),
+            "allowlisted": allowlisted,
+        })
+        .to_string();
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/resources/register")
+                .header("content-type", "application/json")
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn post_resource_register_creates_new_entry() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let app = router(state);
+        let res = register_resource(app, "filesystem", "/home/mumo/docs", true).await;
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["outcome"], "created");
+        assert_eq!(v["resource"]["kind"], "filesystem");
+        assert_eq!(v["resource"]["id"], "/home/mumo/docs");
+        assert_eq!(v["resource"]["allowlisted"], true);
+    }
+
+    #[tokio::test]
+    async fn post_resource_register_same_twice_is_idempotent() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(router(state.clone()), "filesystem", "/a", true).await;
+        let res = register_resource(router(state), "filesystem", "/a", true).await;
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["outcome"], "idempotent");
+    }
+
+    #[tokio::test]
+    async fn post_resource_register_empty_id_returns_400() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let res = register_resource(router(state), "filesystem", "", true).await;
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "INVALID_RESOURCE");
+    }
+
+    #[tokio::test]
+    async fn get_resources_list_reflects_registered_resources() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(router(state.clone()), "filesystem", "/a", true).await;
+        let _ = register_resource(router(state.clone()), "network", "host:80", false).await;
+
+        let res = router(state)
+            .oneshot(Request::builder().uri("/resources/list").body(axum::body::Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["resources"].as_array().unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn get_resources_urp_groups_by_kind_and_reports_counts() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_dema_cache(td.path());
+        let _ = register_resource(router(state.clone()), "filesystem", "/a", true).await;
+        let _ = register_resource(router(state.clone()), "filesystem", "/b", false).await;
+        let _ = register_resource(router(state.clone()), "network", "host:80", true).await;
+
+        let res = router(state)
+            .oneshot(Request::builder().uri("/resources/urp").body(axum::body::Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["totalCount"], 3);
+        assert_eq!(v["allowlistedCount"], 2);
+        let buckets = v["buckets"].as_array().unwrap();
+        assert_eq!(buckets.len(), 2);
+        // alphabetical: filesystem, network
+        assert_eq!(buckets[0]["kind"], "filesystem");
+        assert_eq!(buckets[1]["kind"], "network");
     }
 }
