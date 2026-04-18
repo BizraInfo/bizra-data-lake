@@ -59,3 +59,8 @@ db/custom.db
 /skills/
 /.zscripts/
 /mini-services/
+
+# Repo root has a Python-ecosystem `lib/` exclusion; un-ignore the
+# TypeScript `src/lib/` directory that holds gateway-client.ts.
+!src/lib/
+!src/lib/**
