@@ -49,6 +49,9 @@ use crate::receipt_history_cache::{
 use crate::manifest_history_cache::{
     ManifestHistoryCache, ManifestHistoryCacheError, ManifestHistorySnapshot, ManifestSummary,
 };
+use crate::mission_log_cache::{
+    MissionLogCache, MissionLogCacheError, MissionLogEntry, MissionLogSnapshot,
+};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -319,6 +322,12 @@ pub struct CognitionRuntime {
     // on every submit_mission permit return. Best-effort; chain stays
     // truth.
     manifest_history_cache: Option<ManifestHistoryCache>,
+    // Cycle-7 G3 Commit-3 — optional on-disk cache at
+    // sovereign_state/dema_cache/mission_log.json. Derived from the
+    // full `missions` registry (permit + reject). Each entry carries
+    // intent_text, timestamp, stage, optional receipt_id, optional
+    // remediation. Refreshed at every submit_mission boundary.
+    mission_log_cache: Option<MissionLogCache>,
 }
 
 /// Errors produced by CognitionRuntime bootstrap constructors.
@@ -356,6 +365,7 @@ impl CognitionRuntime {
             dema_cache: None,
             receipt_history_cache: None,
             manifest_history_cache: None,
+            mission_log_cache: None,
         }
     }
 
@@ -395,6 +405,7 @@ impl CognitionRuntime {
             dema_cache: None,
             receipt_history_cache: None,
             manifest_history_cache: None,
+            mission_log_cache: None,
         })
     }
 
@@ -447,6 +458,7 @@ impl CognitionRuntime {
             dema_cache: None,
             receipt_history_cache: None,
             manifest_history_cache: None,
+            mission_log_cache: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -573,6 +585,7 @@ impl CognitionRuntime {
             // permit-return for the same rationale.
             let _ = self.write_receipt_history_cache();
             let _ = self.write_manifest_history_cache();
+            let _ = self.write_mission_log_cache();
             return Ok(record);
         }
 
@@ -674,6 +687,7 @@ impl CognitionRuntime {
         // principal-activation path which carries `cache_warning`.
         let _ = self.write_receipt_history_cache();
         let _ = self.write_manifest_history_cache();
+        let _ = self.write_mission_log_cache();
         Ok(record)
     }
 
@@ -798,6 +812,7 @@ impl CognitionRuntime {
         // already carries the operator-visible cache_warning channel.
         let _ = self.write_receipt_history_cache();
         let _ = self.write_manifest_history_cache();
+        let _ = self.write_mission_log_cache();
 
         // Best-effort disk cache write. Failure does not invalidate the
         // sealed chain — the profile remains in-memory and is rebuildable
@@ -844,6 +859,7 @@ impl CognitionRuntime {
             Some(ReceiptHistoryCache::at_sovereign_root(sovereign_root));
         self.manifest_history_cache =
             Some(ManifestHistoryCache::at_sovereign_root(sovereign_root));
+        self.mission_log_cache = Some(MissionLogCache::at_sovereign_root(sovereign_root));
         self
     }
 
@@ -974,6 +990,71 @@ impl CognitionRuntime {
         &self,
     ) -> Result<Option<ManifestHistorySnapshot>, ManifestHistoryCacheError> {
         match &self.manifest_history_cache {
+            Some(c) => c.read(),
+            None => Ok(None),
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Cycle-7 G3 Commit-3 — mission_log cache surface
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Accessor for the attached mission-log cache (if any).
+    pub fn mission_log_cache(&self) -> Option<&MissionLogCache> {
+        self.mission_log_cache.as_ref()
+    }
+
+    /// Build an in-memory snapshot of every mission attempted this
+    /// session (permit + reject). Derived from the `missions` registry.
+    /// Sorted by timestamp_ns for operator-legible chronology. Chain
+    /// remains authoritative; cache is a read fast-path.
+    pub fn mission_log_snapshot(&self) -> MissionLogSnapshot {
+        let mut entries: Vec<MissionLogEntry> = self
+            .missions
+            .values()
+            .map(|r| {
+                let remediation = if r.rejected {
+                    Some(reject_remediation_text(r))
+                } else {
+                    None
+                };
+                MissionLogEntry {
+                    mission_id: r.envelope.mission_id,
+                    intent_text: r.envelope.intent_text.clone(),
+                    timestamp_ns: r.timestamp_ns,
+                    rejected: r.rejected,
+                    stage_byte: r.stage as u8,
+                    receipt_id: r.receipt_id,
+                    chain_head_after: r.chain_head,
+                    quality_score: r.claim.quality_score,
+                    remediation,
+                }
+            })
+            .collect();
+        entries.sort_by(|a, b| {
+            a.timestamp_ns
+                .cmp(&b.timestamp_ns)
+                .then_with(|| a.mission_id.cmp(&b.mission_id))
+        });
+        MissionLogSnapshot {
+            chain_head: self.chain.head(),
+            entries,
+        }
+    }
+
+    /// Best-effort write of the mission_log cache.
+    pub fn write_mission_log_cache(&self) -> Option<Result<(), MissionLogCacheError>> {
+        self.mission_log_cache
+            .as_ref()
+            .map(|c| c.write(&self.mission_log_snapshot()))
+    }
+
+    /// Load the mission_log snapshot from the attached cache, if
+    /// present. Restart fast-path for operator-visible mission history.
+    pub fn rehydrate_mission_log_from_cache(
+        &self,
+    ) -> Result<Option<MissionLogSnapshot>, MissionLogCacheError> {
+        match &self.mission_log_cache {
             Some(c) => c.read(),
             None => Ok(None),
         }
@@ -2358,6 +2439,158 @@ mod tests {
             let loaded = cache.read().unwrap().expect("snapshot on disk");
             assert_eq!(loaded.manifests.len(), expected_len);
             assert_eq!(loaded.manifests[0].manifest_id, expected_id);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Cycle-7 G3 Commit-3 — mission_log cache integration
+    // ════════════════════════════════════════════════════════════════
+    mod mission_log_g3 {
+        use super::*;
+        use crate::mission_log_cache::MissionLogCache;
+        use crate::principal_activation::{NodeIdentityAnchor, PrincipalActivationEnvelope};
+
+        const TEST_PUBKEY_HEX: &str =
+            "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a";
+
+        fn test_envelope(now_ns: u64) -> PrincipalActivationEnvelope {
+            let a =
+                NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-18T06:00:00Z");
+            PrincipalActivationEnvelope::from_anchor(
+                "Mumo".into(),
+                "node0_principal".into(),
+                &a,
+                now_ns,
+            )
+            .unwrap()
+        }
+
+        #[test]
+        fn attach_initializes_mission_log_cache() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            assert!(rt.mission_log_cache().is_some());
+        }
+
+        #[test]
+        fn empty_runtime_has_empty_mission_log_snapshot() {
+            let rt = minimal_runtime();
+            let snap = rt.mission_log_snapshot();
+            assert!(snap.entries.is_empty());
+            assert_eq!(snap.chain_head, rt.chain.head());
+        }
+
+        #[test]
+        fn permitted_mission_appears_in_log_without_remediation() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let env = test_mission(100);
+            let claim = permit_claim(&env, 200);
+            let record = rt.submit_mission(env, claim).unwrap();
+
+            let loaded = rt
+                .rehydrate_mission_log_from_cache()
+                .unwrap()
+                .expect("cache written");
+            assert_eq!(loaded.entries.len(), 1);
+            let e = &loaded.entries[0];
+            assert!(!e.rejected);
+            assert_eq!(e.mission_id, record.envelope.mission_id);
+            assert_eq!(e.receipt_id, record.receipt_id);
+            assert!(e.remediation.is_none());
+            assert!(e.quality_score >= 0.95);
+        }
+
+        #[test]
+        fn rejected_mission_appears_with_structured_remediation() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            let env = test_mission(100);
+            let claim = reject_claim(&env, 200);
+            let record = rt.submit_mission(env, claim).unwrap();
+            assert!(record.rejected);
+
+            let loaded = rt.rehydrate_mission_log_from_cache().unwrap().unwrap();
+            assert_eq!(loaded.entries.len(), 1);
+            let e = &loaded.entries[0];
+            assert!(e.rejected);
+            assert_eq!(e.receipt_id, None);
+            let remediation = e.remediation.as_ref().expect("remediation present");
+            assert!(
+                remediation.contains("REJECTED"),
+                "remediation must name rejection honestly: {}",
+                remediation
+            );
+        }
+
+        #[test]
+        fn mixed_stream_sorted_by_timestamp_ns() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            // Submit reject first (earlier), permit second (later).
+            let e1 = test_mission(1_000);
+            let c1 = reject_claim(&e1, 1_100);
+            rt.submit_mission(e1, c1).unwrap();
+
+            let e2 = test_mission(2_000);
+            let c2 = permit_claim(&e2, 2_100);
+            rt.submit_mission(e2, c2).unwrap();
+
+            let loaded = rt.rehydrate_mission_log_from_cache().unwrap().unwrap();
+            assert_eq!(loaded.entries.len(), 2);
+            assert!(
+                loaded.entries[0].timestamp_ns < loaded.entries[1].timestamp_ns,
+                "log must sort ascending by timestamp"
+            );
+            assert!(loaded.entries[0].rejected);
+            assert!(!loaded.entries[1].rejected);
+        }
+
+        #[test]
+        fn principal_activation_appears_in_mission_log() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+
+            rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+
+            let loaded = rt.rehydrate_mission_log_from_cache().unwrap().unwrap();
+            assert_eq!(loaded.entries.len(), 1);
+            let e = &loaded.entries[0];
+            assert!(!e.rejected);
+            // intent_text from PrincipalActivationEnvelope should be the
+            // canonical activation intent string.
+            assert!(
+                e.intent_text.contains("activate"),
+                "activation intent text: {}",
+                e.intent_text
+            );
+            assert!(e.receipt_id.is_some());
+        }
+
+        #[test]
+        fn restart_survival_reloads_mission_log() {
+            let td = tempfile::TempDir::new().unwrap();
+            let expected_mission_id;
+            {
+                let mut rt = minimal_runtime();
+                rt.attach_dema_cache(td.path());
+                let env = test_mission(7_000);
+                let claim = permit_claim(&env, 7_100);
+                let rec = rt.submit_mission(env, claim).unwrap();
+                expected_mission_id = rec.envelope.mission_id;
+            }
+            let cache = MissionLogCache::at_sovereign_root(td.path());
+            let loaded = cache.read().unwrap().unwrap();
+            assert_eq!(loaded.entries.len(), 1);
+            assert_eq!(loaded.entries[0].mission_id, expected_mission_id);
         }
     }
 }

@@ -22,6 +22,7 @@ pub mod principal_activation;
 pub mod principal_cache;
 pub mod receipt_history_cache;
 pub mod manifest_history_cache;
+pub mod mission_log_cache;
 pub mod thought_graph;
 pub mod configure_cognition;
 pub mod runtime;

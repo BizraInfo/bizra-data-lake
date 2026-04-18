@@ -539,6 +539,23 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                 "manifest_history cache malformed — will rebuild from missions on next permit"
             ),
         }
+        // Cycle-7 G3 Commit-3 — mission_log presence.
+        match rt.rehydrate_mission_log_from_cache() {
+            Ok(Some(snap)) => tracing::info!(
+                target: DOMAIN,
+                entries = snap.entries.len(),
+                "mission_log cache present from prior session"
+            ),
+            Ok(None) => tracing::info!(
+                target: DOMAIN,
+                "mission_log cache empty; will initialize on first mission attempt"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "mission_log cache malformed — will rebuild from missions on next attempt"
+            ),
+        }
     }
     rt
 }
