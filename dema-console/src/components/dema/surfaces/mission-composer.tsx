@@ -49,6 +49,8 @@ const SCOPE_OPTIONS: { value: MissionScope; label: string }[] = [
 export function MissionComposer() {
   const beginMission = useMissionStore((s) => s.beginMission);
   const advanceToAdmissibility = useMissionStore((s) => s.advanceToAdmissibility);
+  const evaluateGates = useMissionStore((s) => s.evaluateGates);
+  const evaluateGatesReal = useMissionStore((s) => s.evaluateGatesReal);
 
   const [intent, setIntent] = useState("");
   const [currentState, setCurrentState] = useState("");
@@ -59,6 +61,13 @@ export function MissionComposer() {
   const [scope, setScope] = useState<MissionScope>("normal");
 
   const canBegin = intent.trim().length > 0;
+
+  // Option A session 2 — route organize missions through the real
+  // cognition-gateway. All other mission types still use the local
+  // simulation (explicit non-goal of this session).
+  const intentIsFilesystemPath =
+    intent.trim().startsWith("/") || intent.trim().startsWith("~");
+  const willRouteToGateway = missionType === "organize" && intentIsFilesystemPath;
 
   const handleSubmit = () => {
     if (!canBegin) return;
@@ -72,6 +81,13 @@ export function MissionComposer() {
       scope,
     });
     advanceToAdmissibility();
+    // Fire the evaluator immediately so the Gate Ladder starts
+    // rendering verdicts (real or simulated) as soon as it mounts.
+    if (willRouteToGateway) {
+      void evaluateGatesReal();
+    } else {
+      void evaluateGates();
+    }
   };
 
   return (
@@ -279,6 +295,11 @@ export function MissionComposer() {
               <Sparkles className="h-4 w-4 mr-2" />
               Begin Mission
             </Button>
+            {willRouteToGateway && (
+              <p className="mt-2 text-center text-[11px] text-muted-foreground/70">
+                Mission will be evaluated by the cognition gateway
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

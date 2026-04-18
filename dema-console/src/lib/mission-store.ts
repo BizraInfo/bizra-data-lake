@@ -20,6 +20,9 @@ import type {
   GATE_DEFINITIONS as GateDefs,
 } from "./types";
 import { GATE_DEFINITIONS } from "./types";
+// Option A session 2 — real gateway binding for organize missions.
+import { submitOrganize, type GatewayOutcome } from "./gateway-client";
+import type { AdmissibilityContract } from "@/bindings/AdmissibilityContract";
 
 function genId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -53,6 +56,16 @@ interface MissionStore {
 
   advanceToAdmissibility: () => void;
   evaluateGates: () => Promise<void>;
+  /**
+   * Option A session 2 — real gateway binding.
+   *
+   * When missionType === "organize" and the intent string looks like a
+   * filesystem path, POST it through /missions/organize and render the
+   * actual AdmissibilityContract instead of the random-block simulation.
+   * Other mission types keep the existing simulation for now (explicit
+   * non-goal of this session per surface-catalog-v1.md §10).
+   */
+  evaluateGatesReal: () => Promise<void>;
   advanceToAction: (actionPlan: MissionActionPlan) => void;
   confirmAction: () => Promise<void>;
   completeMission: (receipt: Receipt) => void;
@@ -190,6 +203,147 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
         isProcessing: false,
       });
     }
+  },
+
+  evaluateGatesReal: async () => {
+    const { activeMission } = get();
+    if (!activeMission) return;
+    set({ isProcessing: true });
+
+    // Transition all gates to evaluating so the UI shows activity during
+    // the network call. If the gateway returns quickly, the visible
+    // "evaluating" flash is acceptable; if it hangs, the operator at
+    // least sees progress rather than a frozen UI.
+    const evaluatingGates = activeMission.gates.map((g) => ({
+      ...g,
+      status: "evaluating" as GateStatus,
+    }));
+    set({
+      activeMission: { ...activeMission, gates: evaluatingGates },
+    });
+
+    // Intent is the filesystem path for organize missions. The lawful
+    // prerequisite (allowlist registration) is NOT yet surfaced in the
+    // Composer — if the path isn't registered, the gateway returns a
+    // 403 pre-gate refusal and Gate Ladder renders NotAllowlisted.
+    const outcome = await submitOrganize({
+      path: activeMission.intent.trim(),
+      qualityScore: 0.98,
+    });
+
+    const renderFromAdmissibility = (a: AdmissibilityContract) => {
+      const byScorer = new Map(a.gateVerdicts.map((gv) => [gv.scorerId, gv]));
+      return activeMission.gates.map((g) => {
+        const gv = byScorer.get(g.id);
+        if (!gv) {
+          return {
+            ...g,
+            status: "pending" as GateStatus,
+            detail: "no verdict returned from gateway for this gate",
+          };
+        }
+        const passed = gv.verdict === "Permit";
+        const score = gv.score !== null && gv.score !== undefined ? gv.score : null;
+        const scoreLabel = score !== null ? ` (score ${score.toFixed(4)})` : "";
+        return {
+          ...g,
+          status: passed ? ("passed" as GateStatus) : ("blocked" as GateStatus),
+          detail: passed
+            ? `Invariant satisfied${scoreLabel}.`
+            : `${gv.reason}${scoreLabel}`,
+        };
+      });
+    };
+
+    if (outcome.kind === "ok") {
+      // Happy path: organize executed. Render all gates from the real
+      // admissibility contract, advance to action stage.
+      const updated = renderFromAdmissibility(outcome.data.admissibility);
+      set({
+        activeMission: {
+          ...activeMission,
+          gates: updated,
+          stage: "action",
+        },
+        currentStage: "action",
+        stageTransitions: [
+          ...get().stageTransitions,
+          {
+            from: "admissibility" as MissionStage,
+            to: "action" as MissionStage,
+            label: "All gates passed (gateway sealed receipt)",
+            timestamp: new Date().toISOString(),
+          },
+        ],
+        isProcessing: false,
+      });
+      return;
+    }
+
+    if (outcome.kind === "refused") {
+      // Gateway returned 400/403/422. Two cases matter for Gate Ladder:
+      //   - 403 PATH_NOT_ALLOWLISTED: constitutional pre-gate refusal,
+      //     leaves no gate verdicts (admissibility never ran). Mark all
+      //     gates blocked with the remediation message.
+      //   - 422 ADMISSIBILITY_REJECTED: gateway did run admissibility
+      //     and returned real verdicts + the failing RejectedClaim.
+      //     Render from the contract exactly like the permit path.
+      const preGate = !outcome.error.admissibility;
+      const updated = preGate
+        ? activeMission.gates.map((g) => ({
+            ...g,
+            status: "blocked" as GateStatus,
+            detail: `${outcome.error.code}: ${outcome.error.message}`,
+          }))
+        : renderFromAdmissibility(outcome.error.admissibility!);
+      set({
+        activeMission: {
+          ...activeMission,
+          gates: updated,
+          stage: "blocked",
+        },
+        currentStage: "blocked",
+        stageTransitions: [
+          ...get().stageTransitions,
+          {
+            from: "admissibility" as MissionStage,
+            to: "blocked" as MissionStage,
+            label: preGate
+              ? `Pre-gate refused: ${outcome.error.code}`
+              : "Admissibility rejected by gateway",
+            timestamp: new Date().toISOString(),
+          },
+        ],
+        isProcessing: false,
+      });
+      return;
+    }
+
+    // outcome.kind === "unreachable" — the gateway is offline or
+    // returning non-JSON. Refuse honestly; do NOT simulate a verdict.
+    const updated = activeMission.gates.map((g) => ({
+      ...g,
+      status: "blocked" as GateStatus,
+      detail: `cognition gateway unreachable: ${outcome.reason}`,
+    }));
+    set({
+      activeMission: {
+        ...activeMission,
+        gates: updated,
+        stage: "blocked",
+      },
+      currentStage: "blocked",
+      stageTransitions: [
+        ...get().stageTransitions,
+        {
+          from: "admissibility" as MissionStage,
+          to: "blocked" as MissionStage,
+          label: "Gateway unreachable",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+      isProcessing: false,
+    });
   },
 
   advanceToAction: (actionPlan) => {

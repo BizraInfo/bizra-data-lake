@@ -177,7 +177,18 @@ export function GateLadder() {
   const activeMission = useMissionStore((s) => s.activeMission);
   const isProcessing = useMissionStore((s) => s.isProcessing);
   const evaluateGates = useMissionStore((s) => s.evaluateGates);
+  const evaluateGatesReal = useMissionStore((s) => s.evaluateGatesReal);
   const currentStage = useMissionStore((s) => s.currentStage);
+
+  // Option A session 2 — "Evaluate Gates" routes to the real cognition
+  // gateway only when the mission matches a wired path (organize + fs
+  // path). Otherwise the local simulation still runs.
+  const intent = activeMission?.intent?.trim() ?? "";
+  const routeToGateway =
+    activeMission?.missionType === "organize" &&
+    (intent.startsWith("/") || intent.startsWith("~"));
+  const handleEvaluate = () =>
+    routeToGateway ? evaluateGatesReal() : evaluateGates();
 
   const gates = activeMission?.gates ?? [];
   const hasEvaluated = gates.some((g) => g.status !== "pending");
@@ -323,7 +334,7 @@ export function GateLadder() {
           {!hasEvaluated && (
             <div className="mt-6">
               <Button
-                onClick={() => evaluateGates()}
+                onClick={handleEvaluate}
                 disabled={isProcessing}
                 className={cn(
                   "w-full h-11 text-sm font-medium",
@@ -333,12 +344,12 @@ export function GateLadder() {
                 {isProcessing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Evaluating...
+                    {routeToGateway ? "Calling cognition gateway..." : "Evaluating..."}
                   </>
                 ) : (
                   <>
                     <Shield className="h-4 w-4 mr-2" />
-                    Evaluate Gates
+                    {routeToGateway ? "Evaluate via Gateway" : "Evaluate Gates"}
                   </>
                 )}
               </Button>
