@@ -26,6 +26,9 @@ use bizra_cognition::admissibility_freeze_v1::{
 use bizra_cognition::mission_freeze_v1::{
     MissionEnvelope, MissionStage, Originator, StateSnapshot,
 };
+use bizra_cognition::principal_activation::{
+    NodeIdentityAnchor, PrincipalActivationEnvelope,
+};
 use bizra_cognition::receipts::{
     Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind,
 };
@@ -175,6 +178,57 @@ struct GetMissionResponse {
     receipt_id: Option<String>,
     #[serde(rename = "chainHead")]
     chain_head: String,
+}
+
+// ─── Cycle-7 G2 live-walk — principal activation DTOs ──────────────────────
+
+#[derive(Deserialize)]
+struct ActivatePrincipalRequest {
+    #[serde(rename = "principalName")]
+    principal_name: String,
+    #[serde(rename = "declaredRole", default = "default_declared_role")]
+    declared_role: String,
+    #[serde(rename = "qualityScore", default = "default_principal_quality")]
+    quality_score: f64,
+    /// Absolute or CWD-relative path to the node identity anchor JSON
+    /// (Python-authored sovereign_state/identity/credentials.json).
+    /// Defaults to BIZRA_IDENTITY_ANCHOR env var or the canonical path.
+    #[serde(rename = "identityAnchorPath", default = "default_identity_anchor_path")]
+    identity_anchor_path: String,
+}
+
+fn default_declared_role() -> String {
+    "node0_principal".to_string()
+}
+
+fn default_principal_quality() -> f64 {
+    0.98
+}
+
+fn default_identity_anchor_path() -> String {
+    std::env::var("BIZRA_IDENTITY_ANCHOR")
+        .unwrap_or_else(|_| "sovereign_state/identity/credentials.json".to_string())
+}
+
+#[derive(Serialize)]
+struct ActivatePrincipalResponse {
+    #[serde(rename = "missionId")]
+    mission_id: String,
+    #[serde(rename = "missionReceiptId")]
+    mission_receipt_id: String,
+    #[serde(rename = "principalActivationReceiptId")]
+    principal_activation_receipt_id: String,
+    #[serde(rename = "principalId")]
+    principal_id: String,
+    #[serde(rename = "profileHash")]
+    profile_hash: String,
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    #[serde(rename = "finalStage")]
+    final_stage: &'static str,
+    admissibility: AdmissibilityResultDto,
+    #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
+    cache_warning: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -423,7 +477,34 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
     );
     let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
     let ctx = AgentCtx { receipt_chain: genesis };
-    CognitionRuntime::new(graph, chain, ctx)
+    let mut rt = CognitionRuntime::new(graph, chain, ctx);
+
+    // Cycle-7 G2 Commit-3 — optional dema_cache attachment. When
+    // BIZRA_DEMA_CACHE_ROOT is set, permitted principal activations will
+    // persist the profile to <root>/dema_cache/principal.json.
+    // Restart: rehydrate on next boot via rehydrate_principal_from_cache.
+    if let Ok(root_str) = std::env::var("BIZRA_DEMA_CACHE_ROOT") {
+        let root = std::path::PathBuf::from(root_str);
+        rt.attach_dema_cache(&root);
+        match rt.rehydrate_principal_from_cache() {
+            Ok(true) => tracing::info!(
+                target: DOMAIN,
+                root = %root.display(),
+                "dema_cache attached and principal profile rehydrated from disk"
+            ),
+            Ok(false) => tracing::info!(
+                target: DOMAIN,
+                root = %root.display(),
+                "dema_cache attached; no principal profile present yet"
+            ),
+            Err(e) => tracing::warn!(
+                target: DOMAIN,
+                error = %e,
+                "dema_cache attached but rehydrate failed — will rebuild from chain if needed"
+            ),
+        }
+    }
+    rt
 }
 
 // ─── Handlers ───────────────────────────────────────────────────────────────
@@ -713,6 +794,131 @@ async fn post_mission(
     }
 }
 
+// ─── Cycle-7 G2 live-walk — POST /principal/activate ───────────────────────
+//
+// Wraps CognitionRuntime::submit_principal_activation. Loads the Python-
+// authored node identity anchor, builds a PrincipalActivationEnvelope,
+// and threads it through the lawful mission loop + PrincipalActivationReceipt
+// append. On reject returns HTTP 422 with structured remediation text
+// per niyyah Frozen Law #5 (fail-closed honestly).
+
+async fn post_principal_activate(
+    State(state): State<AppState>,
+    Json(req): Json<ActivatePrincipalRequest>,
+) -> Result<Json<ActivatePrincipalResponse>, (StatusCode, Json<ErrorResponse>)> {
+    if req.principal_name.trim().is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "EMPTY_PRINCIPAL_NAME",
+                    message: "principalName must be non-empty".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
+
+    let anchor_path = std::path::PathBuf::from(&req.identity_anchor_path);
+    let anchor = NodeIdentityAnchor::load(&anchor_path).map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "IDENTITY_ANCHOR_LOAD",
+                    message: format!(
+                        "failed to load node identity anchor at {}: {}",
+                        anchor_path.display(),
+                        e
+                    ),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    let ts_ns = now_ns()?;
+    let envelope = PrincipalActivationEnvelope::from_anchor(
+        req.principal_name.clone(),
+        req.declared_role.clone(),
+        &anchor,
+        ts_ns,
+    )
+    .map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ENVELOPE_BUILD_FAILED",
+                    message: format!("failed to build activation envelope: {}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+
+    let mut rt = state.runtime.write().await;
+    let record = rt
+        .submit_principal_activation(envelope, req.quality_score)
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: ErrorBody {
+                        code: "RUNTIME_ERROR",
+                        message: format!("submit_principal_activation failed: {:?}", e),
+                        domain: DOMAIN,
+                        admissibility: None,
+                    },
+                }),
+            )
+        })?;
+
+    if record.rejected {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ADMISSIBILITY_REJECTED",
+                    message: record
+                        .remediation
+                        .unwrap_or_else(|| "activation rejected".into()),
+                    domain: DOMAIN,
+                    admissibility: Some(admissibility_to_dto(&record.mission_record.admissibility)),
+                },
+            }),
+        ));
+    }
+
+    let profile = record
+        .profile
+        .as_ref()
+        .expect("permit invariant: profile must be Some");
+    let pa_receipt = record
+        .activation_receipt
+        .as_ref()
+        .expect("permit invariant: activation_receipt must be Some");
+    let mission_receipt_id = record
+        .mission_record
+        .receipt_id
+        .expect("permit invariant: mission receipt_id must be Some");
+
+    Ok(Json(ActivatePrincipalResponse {
+        mission_id: hex32(&record.mission_record.envelope.mission_id),
+        mission_receipt_id: hex32(&mission_receipt_id),
+        principal_activation_receipt_id: hex32(&pa_receipt.receipt_id),
+        principal_id: hex32(&profile.principal_id),
+        profile_hash: hex32(&pa_receipt.principal_profile_hash),
+        chain_head: hex32(&rt.chain.head()),
+        final_stage: stage_name(record.mission_record.stage),
+        admissibility: admissibility_to_dto(&record.mission_record.admissibility),
+        cache_warning: record.cache_warning,
+    }))
+}
+
 async fn get_mission(
     State(state): State<AppState>,
     Path(hash_hex): Path<String>,
@@ -846,6 +1052,7 @@ fn router(state: AppState) -> Router {
         .route("/missions", post(post_mission))
         .route("/missions/:hash", get(get_mission))
         .route("/missions/:hash/replay", post(replay_mission))
+        .route("/principal/activate", post(post_principal_activate))
         .with_state(state)
 }
 
@@ -1287,5 +1494,185 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    }
+
+    // ─── Cycle-7 G2 live walk — POST /principal/activate ─────────────────────
+
+    fn write_test_identity_anchor(dir: &std::path::Path) -> std::path::PathBuf {
+        let path = dir.join("credentials.json");
+        std::fs::write(
+            &path,
+            br#"{"node_id":"NODE0","public_key":"0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a","created_at":"2026-04-13T23:54:59Z"}"#,
+        )
+        .unwrap();
+        path
+    }
+
+    fn principal_request(anchor_path: &std::path::Path, quality: f64) -> serde_json::Value {
+        serde_json::json!({
+            "principalName": "Mumo",
+            "declaredRole": "node0_principal",
+            "qualityScore": quality,
+            "identityAnchorPath": anchor_path.to_str().unwrap(),
+        })
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_permits_and_seals_receipt_and_profile() {
+        let td = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td.path());
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
+
+        let res = router(new_state())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), StatusCode::OK, "activation should PERMIT");
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(v["admissibility"]["verdict"], "Permit");
+        assert_eq!(v["finalStage"], "Replayability");
+        assert_eq!(v["missionId"].as_str().unwrap().len(), 64);
+        assert_eq!(v["missionReceiptId"].as_str().unwrap().len(), 64);
+        assert_eq!(v["principalActivationReceiptId"].as_str().unwrap().len(), 64);
+        assert_eq!(v["principalId"].as_str().unwrap().len(), 64);
+        assert_eq!(v["profileHash"].as_str().unwrap().len(), 64);
+        // Chain head after permit activation is the PrincipalActivationReceipt id.
+        assert_eq!(v["chainHead"], v["principalActivationReceiptId"]);
+        assert_ne!(
+            v["principalActivationReceiptId"], v["missionReceiptId"],
+            "PA receipt must be distinct from the NodeLifecycle mission receipt"
+        );
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_grows_chain_by_nine() {
+        let td = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td.path());
+        let state = new_state();
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
+
+        let res = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+
+        // Chain length: 1 envelope + 5 gates + NodeLifecycle + Manifest + PA = 9.
+        let chain_res = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let chain_body = to_bytes(chain_res.into_body(), 1024).await.unwrap();
+        let chain: serde_json::Value = serde_json::from_slice(&chain_body).unwrap();
+        assert_eq!(chain["length"], 9);
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_below_ihsan_floor_rejects_with_422() {
+        let td = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td.path());
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.40)).unwrap();
+
+        let res = router(new_state())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            res.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "quality 0.40 below IHSAN_FLOOR must 422"
+        );
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "ADMISSIBILITY_REJECTED");
+        assert!(
+            v["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("REJECTED"),
+            "reject message must be honest"
+        );
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_missing_anchor_returns_400() {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "principalName": "Mumo",
+            "identityAnchorPath": "/tmp/__definitely_missing_node_anchor__",
+        }))
+        .unwrap();
+
+        let res = router(new_state())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "IDENTITY_ANCHOR_LOAD");
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_empty_name_returns_400() {
+        let td = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td.path());
+        let body = serde_json::to_vec(&serde_json::json!({
+            "principalName": "",
+            "identityAnchorPath": anchor.to_str().unwrap(),
+        }))
+        .unwrap();
+
+        let res = router(new_state())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["error"]["code"], "EMPTY_PRINCIPAL_NAME");
     }
 }

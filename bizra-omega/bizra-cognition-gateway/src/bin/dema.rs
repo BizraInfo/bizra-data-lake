@@ -6,15 +6,17 @@
 //! over localhost HTTP. Designed for Mumo's eye: terse, honest, no theatrics.
 //!
 //! Usage:
-//!   dema              → status (chain head, length, last activity)
-//!   dema health       → gateway health + domain tag
-//!   dema chain        → chain head + length + latest timestamp
-//!   dema receipt <h>  → show one receipt by hex id
-//!   dema activate     → submit the principal activation intent
-//!   dema submit "..." → submit a custom intent
+//!   dema                       → status (chain head, length, last activity)
+//!   dema health                → gateway health + domain tag
+//!   dema chain                 → chain head + length + latest timestamp
+//!   dema receipt <h>           → show one receipt by hex id
+//!   dema activate              → submit the principal activation intent (generic)
+//!   dema activate-principal    → lawful principal activation via Cycle-7 G2 path
+//!   dema submit "..."          → submit a custom intent
 //!
 //! Env:
 //!   BIZRA_COGNITION_GATEWAY_URL (default http://127.0.0.1:7421)
+//!   BIZRA_IDENTITY_ANCHOR       (default sovereign_state/identity/credentials.json)
 
 use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
@@ -67,6 +69,26 @@ enum Command {
         /// Override quality score (default 0.98, must be ≥ 0.95 for IHSAN_FLOOR)
         #[arg(long, default_value_t = DEFAULT_QUALITY_SCORE)]
         quality: f64,
+    },
+    /// Cycle-7 G2 — lawful principal activation via /principal/activate
+    ///
+    /// Loads the Python-authored node identity anchor, builds an
+    /// activation-specific envelope, and seals both the NodeLifecycle
+    /// mission receipt AND the PrincipalActivationReceipt to the chain.
+    /// Persists the principal profile to sovereign_state/dema_cache/.
+    ActivatePrincipal {
+        /// Principal name (e.g. your given name)
+        #[arg(long, default_value = "Mumo")]
+        name: String,
+        /// Declared role (default: node0_principal)
+        #[arg(long, default_value = "node0_principal")]
+        role: String,
+        /// Quality score (default 0.98, must be ≥ 0.95 for IHSAN_FLOOR)
+        #[arg(long, default_value_t = DEFAULT_QUALITY_SCORE)]
+        quality: f64,
+        /// Path to the node identity anchor JSON
+        #[arg(long)]
+        anchor: Option<String>,
     },
     /// Submit a custom mission intent
     Submit {
@@ -155,6 +177,41 @@ struct ErrorBody {
     message: String,
     #[serde(default)]
     admissibility: Option<Admissibility>,
+}
+
+// ─── Cycle-7 G2 principal activation DTOs ──────────────────────────────────
+
+#[derive(Serialize)]
+struct ActivatePrincipalRequest<'a> {
+    #[serde(rename = "principalName")]
+    principal_name: &'a str,
+    #[serde(rename = "declaredRole")]
+    declared_role: &'a str,
+    #[serde(rename = "qualityScore")]
+    quality_score: f64,
+    #[serde(rename = "identityAnchorPath")]
+    identity_anchor_path: &'a str,
+}
+
+#[derive(Deserialize)]
+struct ActivatePrincipalOk {
+    #[serde(rename = "missionId")]
+    mission_id: String,
+    #[serde(rename = "missionReceiptId")]
+    mission_receipt_id: String,
+    #[serde(rename = "principalActivationReceiptId")]
+    principal_activation_receipt_id: String,
+    #[serde(rename = "principalId")]
+    principal_id: String,
+    #[serde(rename = "profileHash")]
+    profile_hash: String,
+    #[serde(rename = "chainHead")]
+    chain_head: String,
+    #[serde(rename = "finalStage")]
+    final_stage: String,
+    admissibility: Admissibility,
+    #[serde(rename = "cacheWarning")]
+    cache_warning: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -380,6 +437,83 @@ fn cmd_submit(intent: &str, quality: f64, json: bool) -> Result<bool> {
     }
 }
 
+fn default_anchor_path() -> String {
+    std::env::var("BIZRA_IDENTITY_ANCHOR")
+        .unwrap_or_else(|_| "sovereign_state/identity/credentials.json".to_string())
+}
+
+fn print_activate_principal_ok(a: &ActivatePrincipalOk) {
+    println!("  principal:         {}", a.principal_id);
+    println!("  mission:           {}", a.mission_id);
+    println!("  mission_receipt:   {}", a.mission_receipt_id);
+    println!("  activation_receipt:{}", a.principal_activation_receipt_id);
+    println!("  profile_hash:      {}", a.profile_hash);
+    println!("  stage:             {}", a.final_stage);
+    println!("  chain_head:        {}", a.chain_head);
+    println!("  admissibility:");
+    print_admissibility(&a.admissibility, "  ");
+    if a.chain_head == a.principal_activation_receipt_id {
+        println!("  ✓ chain head equals principal activation receipt — sealed");
+    }
+    if let Some(w) = &a.cache_warning {
+        println!("  ⚠ cache warning: {}", w);
+    } else {
+        println!("  ✓ profile persisted to sovereign_state/dema_cache/");
+    }
+}
+
+fn cmd_activate_principal(
+    name: &str,
+    role: &str,
+    quality: f64,
+    anchor: Option<&str>,
+    json: bool,
+) -> Result<bool> {
+    let anchor_path_owned = anchor
+        .map(|s| s.to_string())
+        .unwrap_or_else(default_anchor_path);
+    let req = ActivatePrincipalRequest {
+        principal_name: name,
+        declared_role: role,
+        quality_score: quality,
+        identity_anchor_path: &anchor_path_owned,
+    };
+    let url = format!("{}/principal/activate", gateway_url());
+    let resp = client()?
+        .post(&url)
+        .json(&req)
+        .send()
+        .with_context(|| format!("POST {}", url))?;
+
+    let status = resp.status();
+    let text = resp.text().context("read response body")?;
+
+    if status.is_success() {
+        let body: ActivatePrincipalOk =
+            serde_json::from_str(&text).context("decode principal activate OK")?;
+        if json {
+            println!("{}", text);
+        } else {
+            print_activate_principal_ok(&body);
+        }
+        Ok(true)
+    } else if status.as_u16() == 422 {
+        let body: SubmitError = serde_json::from_str(&text).context("decode reject 422")?;
+        if json {
+            println!("{}", text);
+        } else {
+            print_submit_rejected(&body.error);
+        }
+        Ok(false)
+    } else {
+        Err(anyhow!(
+            "gateway returned HTTP {} — body: {}",
+            status,
+            &text[..text.len().min(500)]
+        ))
+    }
+}
+
 fn cmd_status(json: bool) -> Result<()> {
     // Default no-arg behavior: health + chain summary in one shot
     let h_url = format!("{}/health", gateway_url());
@@ -419,6 +553,18 @@ fn main() -> ExitCode {
                     // Rejection is not an error for the CLI — it's a truthful outcome
                     return ExitCode::from(2);
                 }
+                Err(e) => Err(e),
+            }
+        }
+        Some(Command::ActivatePrincipal {
+            name,
+            role,
+            quality,
+            anchor,
+        }) => {
+            match cmd_activate_principal(&name, &role, quality, anchor.as_deref(), cli.json) {
+                Ok(true) => Ok(()),
+                Ok(false) => return ExitCode::from(2),
                 Err(e) => Err(e),
             }
         }
