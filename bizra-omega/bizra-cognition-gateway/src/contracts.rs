@@ -119,6 +119,278 @@ impl From<bizra_cognition::mission_freeze_v1::MissionStage> for MissionStageName
 }
 
 // ════════════════════════════════════════════════════════════════════
+// Admissibility group
+// ════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub enum VerdictName {
+    Permit,
+    Reject,
+    Review,
+    ScoreOnly,
+}
+
+impl From<bizra_cognition::admissibility_freeze_v1::Verdict> for VerdictName {
+    fn from(v: bizra_cognition::admissibility_freeze_v1::Verdict) -> Self {
+        use bizra_cognition::admissibility_freeze_v1::Verdict;
+        match v {
+            Verdict::Permit => Self::Permit,
+            Verdict::Reject => Self::Reject,
+            Verdict::Review => Self::Review,
+            Verdict::ScoreOnly => Self::ScoreOnly,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub enum InvariantName {
+    ZannZero,
+    ClaimMustBind,
+    RibaZero,
+    NoShadowState,
+    IhsanFloor,
+}
+
+impl InvariantName {
+    /// Canonical operator-facing scorer_id exactly as the gateway emits.
+    pub fn scorer_id(self) -> &'static str {
+        match self {
+            Self::ZannZero => "ZANN_ZERO",
+            Self::ClaimMustBind => "CLAIM_MUST_BIND",
+            Self::RibaZero => "RIBA_ZERO",
+            Self::NoShadowState => "NO_SHADOW_STATE",
+            Self::IhsanFloor => "IHSAN_FLOOR",
+        }
+    }
+}
+
+/// Gate verdict row as it appears inside AdmissibilityResult.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct GateVerdictContract {
+    #[serde(rename = "scorerId")]
+    pub scorer_id: String,
+    pub invariant: Option<String>,
+    pub verdict: VerdictName,
+    pub reason: String,
+    pub score: Option<f64>,
+}
+
+/// Structured rejection detail when admissibility refuses a claim.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct RejectedClaimContract {
+    pub invariant: String,
+    pub reason: String,
+    #[serde(rename = "remediationPath")]
+    pub remediation_path: String,
+    #[serde(rename = "escalationAllowed")]
+    pub escalation_allowed: bool,
+}
+
+/// Full admissibility verdict shipped by every mission endpoint.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct AdmissibilityContract {
+    pub verdict: VerdictName,
+    #[serde(rename = "gateVerdicts")]
+    pub gate_verdicts: Vec<GateVerdictContract>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rejected: Option<RejectedClaimContract>,
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Resource / URP group (G4)
+// ════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct ResourceContract {
+    pub kind: String,
+    pub id: String,
+    pub summary: String,
+    pub allowlisted: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct UrpBucketContract {
+    pub kind: String,
+    pub resources: Vec<ResourceContract>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct UrpViewContract {
+    #[serde(rename = "totalCount")]
+    pub total_count: usize,
+    #[serde(rename = "allowlistedCount")]
+    pub allowlisted_count: usize,
+    pub buckets: Vec<UrpBucketContract>,
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Organize action group (G5)
+// ════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub enum OrganizeEntryKind {
+    #[serde(rename = "file")]
+    File,
+    #[serde(rename = "directory")]
+    Directory,
+    #[serde(rename = "symlink")]
+    Symlink,
+    #[serde(rename = "other")]
+    Other,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct OrganizeEntryContract {
+    pub name: String,
+    pub kind: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct OrganizeResponseContract {
+    #[serde(rename = "missionId")]
+    pub mission_id: String,
+    #[serde(rename = "missionReceiptId")]
+    pub mission_receipt_id: String,
+    #[serde(rename = "organizeReceiptId")]
+    pub organize_receipt_id: String,
+    #[serde(rename = "chainHead")]
+    pub chain_head: String,
+    pub path: String,
+    #[serde(rename = "listingDigest")]
+    pub listing_digest: String,
+    #[serde(rename = "fileCount")]
+    pub file_count: u32,
+    #[serde(rename = "dirCount")]
+    pub dir_count: u32,
+    #[serde(rename = "entryCount")]
+    pub entry_count: u32,
+    pub entries: Vec<OrganizeEntryContract>,
+    #[serde(rename = "timestampNs")]
+    pub timestamp_ns: u64,
+    pub admissibility: AdmissibilityContract,
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Proof-of-Impact group (G6)
+// ════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct PoiEntryContract {
+    #[serde(rename = "receiptId")]
+    pub receipt_id: String,
+    #[serde(rename = "receiptKindByte")]
+    pub receipt_kind_byte: u8,
+    #[serde(rename = "receiptKindName")]
+    pub receipt_kind_name: String,
+    #[serde(rename = "qualityScore")]
+    pub quality_score: f64,
+    #[serde(rename = "gateMinScore")]
+    pub gate_min_score: f64,
+    #[serde(rename = "entryCount")]
+    pub entry_count: u32,
+    #[serde(rename = "impactScore")]
+    pub impact_score: f64,
+    #[serde(rename = "timestampNs")]
+    pub timestamp_ns: u64,
+    #[serde(rename = "principalId", skip_serializing_if = "Option::is_none")]
+    pub principal_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct PoiLedgerResponseContract {
+    #[serde(rename = "chainHead")]
+    pub chain_head: String,
+    pub entries: Vec<PoiEntryContract>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct PoiPerKindContract {
+    pub kind: String,
+    pub count: usize,
+    #[serde(rename = "totalImpact")]
+    pub total_impact: f64,
+    #[serde(rename = "avgImpact")]
+    pub avg_impact: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct PoiSummaryResponseContract {
+    #[serde(rename = "chainHead")]
+    pub chain_head: String,
+    #[serde(rename = "totalEntries")]
+    pub total_entries: usize,
+    #[serde(rename = "totalImpact")]
+    pub total_impact: f64,
+    #[serde(rename = "avgImpact")]
+    pub avg_impact: f64,
+    #[serde(rename = "maxImpact")]
+    pub max_impact: f64,
+    #[serde(rename = "byKind")]
+    pub by_kind: Vec<PoiPerKindContract>,
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Principal activation group (G2)
+// ════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct ActivatePrincipalResponseContract {
+    #[serde(rename = "missionId")]
+    pub mission_id: String,
+    #[serde(rename = "missionReceiptId")]
+    pub mission_receipt_id: String,
+    #[serde(rename = "principalActivationReceiptId")]
+    pub principal_activation_receipt_id: String,
+    #[serde(rename = "principalId")]
+    pub principal_id: String,
+    #[serde(rename = "profileHash")]
+    pub profile_hash: String,
+    #[serde(rename = "chainHead")]
+    pub chain_head: String,
+    #[serde(rename = "finalStage")]
+    pub final_stage: MissionStageName,
+    pub admissibility: AdmissibilityContract,
+    #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
+    pub cache_warning: Option<String>,
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Error group
+// ════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct ErrorBodyContract {
+    pub code: String,
+    pub message: String,
+    pub domain: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admissibility: Option<AdmissibilityContract>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub struct ErrorResponseContract {
+    pub error: ErrorBodyContract,
+}
+
+// ════════════════════════════════════════════════════════════════════
 // Tests — sanity checks + ts-rs emission triggers
 // ════════════════════════════════════════════════════════════════════
 
@@ -172,6 +444,150 @@ mod tests {
             MissionStage::Reflex,
         ] {
             let _ = MissionStageName::from(s);
+        }
+    }
+
+    #[test]
+    fn invariant_scorer_ids_match_frozen_canon() {
+        // Drift guard: the gateway currently emits these literal strings.
+        // If either side moves, this test fails and the UI is not
+        // silently shown a wrong label.
+        assert_eq!(InvariantName::ZannZero.scorer_id(), "ZANN_ZERO");
+        assert_eq!(InvariantName::ClaimMustBind.scorer_id(), "CLAIM_MUST_BIND");
+        assert_eq!(InvariantName::RibaZero.scorer_id(), "RIBA_ZERO");
+        assert_eq!(InvariantName::NoShadowState.scorer_id(), "NO_SHADOW_STATE");
+        assert_eq!(InvariantName::IhsanFloor.scorer_id(), "IHSAN_FLOOR");
+    }
+
+    #[test]
+    fn verdict_name_serializes_as_camel_case_variant() {
+        let v = VerdictName::Permit;
+        let j = serde_json::to_string(&v).unwrap();
+        assert_eq!(j, "\"Permit\"");
+    }
+
+    #[test]
+    fn gate_verdict_contract_serializes_with_camel_case_scorer_id() {
+        let g = GateVerdictContract {
+            scorer_id: "IHSAN_FLOOR".into(),
+            invariant: Some("IhsanFloor".into()),
+            verdict: VerdictName::Permit,
+            reason: "score 0.98 >= floor 0.95".into(),
+            score: Some(0.98),
+        };
+        let j: serde_json::Value = serde_json::to_value(&g).unwrap();
+        assert_eq!(j["scorerId"], "IHSAN_FLOOR");
+        assert_eq!(j["verdict"], "Permit");
+        assert_eq!(j["score"], 0.98);
+    }
+
+    #[test]
+    fn admissibility_contract_round_trip() {
+        let a = AdmissibilityContract {
+            verdict: VerdictName::Reject,
+            gate_verdicts: vec![GateVerdictContract {
+                scorer_id: "IHSAN_FLOOR".into(),
+                invariant: Some("IhsanFloor".into()),
+                verdict: VerdictName::Reject,
+                reason: "score 0.40 < floor 0.95".into(),
+                score: Some(0.40),
+            }],
+            rejected: Some(RejectedClaimContract {
+                invariant: "IHSAN_FLOOR".into(),
+                reason: "below floor".into(),
+                remediation_path: "raise quality_score to >= 0.95".into(),
+                escalation_allowed: true,
+            }),
+        };
+        let j = serde_json::to_string(&a).unwrap();
+        let back: AdmissibilityContract = serde_json::from_str(&j).unwrap();
+        assert_eq!(back.verdict, VerdictName::Reject);
+        assert_eq!(back.gate_verdicts.len(), 1);
+        assert!(back.rejected.is_some());
+    }
+
+    #[test]
+    fn poi_entry_contract_matches_gateway_dto_shape() {
+        // Any future rename of these field names will break the UI.
+        // This test locks the camelCase wire shape.
+        let e = PoiEntryContract {
+            receipt_id: "deadbeef".into(),
+            receipt_kind_byte: 0x70,
+            receipt_kind_name: "MissionExecuted".into(),
+            quality_score: 0.98,
+            gate_min_score: 0.97,
+            entry_count: 3,
+            impact_score: 0.9743,
+            timestamp_ns: 1_700_000_000_000_000_000,
+            principal_id: Some("cafebabe".into()),
+        };
+        let v = serde_json::to_value(&e).unwrap();
+        assert!(v.get("receiptId").is_some());
+        assert!(v.get("receiptKindByte").is_some());
+        assert!(v.get("receiptKindName").is_some());
+        assert!(v.get("qualityScore").is_some());
+        assert!(v.get("gateMinScore").is_some());
+        assert!(v.get("entryCount").is_some());
+        assert!(v.get("impactScore").is_some());
+        assert!(v.get("timestampNs").is_some());
+        assert!(v.get("principalId").is_some());
+    }
+
+    #[test]
+    fn urp_view_contract_camel_case_counts() {
+        let u = UrpViewContract {
+            total_count: 3,
+            allowlisted_count: 2,
+            buckets: vec![],
+        };
+        let v = serde_json::to_value(&u).unwrap();
+        assert_eq!(v["totalCount"], 3);
+        assert_eq!(v["allowlistedCount"], 2);
+    }
+
+    #[test]
+    fn organize_response_contract_has_all_required_camel_case_fields() {
+        let o = OrganizeResponseContract {
+            mission_id: "a".into(),
+            mission_receipt_id: "b".into(),
+            organize_receipt_id: "c".into(),
+            chain_head: "d".into(),
+            path: "/tmp/target".into(),
+            listing_digest: "e".into(),
+            file_count: 2,
+            dir_count: 1,
+            entry_count: 3,
+            entries: vec![OrganizeEntryContract {
+                name: "alpha.txt".into(),
+                kind: "file".into(),
+            }],
+            timestamp_ns: 123,
+            admissibility: AdmissibilityContract {
+                verdict: VerdictName::Permit,
+                gate_verdicts: vec![],
+                rejected: None,
+            },
+        };
+        let v = serde_json::to_value(&o).unwrap();
+        for field in [
+            "missionId",
+            "missionReceiptId",
+            "organizeReceiptId",
+            "chainHead",
+            "path",
+            "listingDigest",
+            "fileCount",
+            "dirCount",
+            "entryCount",
+            "entries",
+            "timestampNs",
+            "admissibility",
+        ] {
+            assert!(
+                v.get(field).is_some(),
+                "OrganizeResponseContract missing field '{}'",
+                field
+            );
         }
     }
 }
