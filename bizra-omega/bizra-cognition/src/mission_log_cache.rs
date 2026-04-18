@@ -57,14 +57,40 @@ pub struct MissionLogEntry {
 
 #[derive(Debug)]
 pub enum MissionLogCacheError {
-    DirCreate { path: PathBuf, msg: String },
-    TempWrite { path: PathBuf, msg: String },
-    Rename { from: PathBuf, to: PathBuf, msg: String },
-    ReadFailed { path: PathBuf, msg: String },
-    ParseFailed { path: PathBuf, msg: String },
-    Malformed { path: PathBuf, reason: &'static str },
-    SchemaMismatch { path: PathBuf, got: String, want: String },
-    HexDecode { field: &'static str, reason: String },
+    DirCreate {
+        path: PathBuf,
+        msg: String,
+    },
+    TempWrite {
+        path: PathBuf,
+        msg: String,
+    },
+    Rename {
+        from: PathBuf,
+        to: PathBuf,
+        msg: String,
+    },
+    ReadFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    ParseFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    Malformed {
+        path: PathBuf,
+        reason: &'static str,
+    },
+    SchemaMismatch {
+        path: PathBuf,
+        got: String,
+        want: String,
+    },
+    HexDecode {
+        field: &'static str,
+        reason: String,
+    },
     Serialize(String),
 }
 
@@ -90,7 +116,13 @@ impl std::fmt::Display for MissionLogCacheError {
                 write!(f, "cache {} malformed: {}", path.display(), reason)
             }
             Self::SchemaMismatch { path, got, want } => {
-                write!(f, "cache {} schema {}, expected {}", path.display(), got, want)
+                write!(
+                    f,
+                    "cache {} schema {}, expected {}",
+                    path.display(),
+                    got,
+                    want
+                )
             }
             Self::HexDecode { field, reason } => {
                 write!(f, "hex decode {}: {}", field, reason)
@@ -158,21 +190,23 @@ impl MissionLogCache {
             .map_err(|e| MissionLogCacheError::Serialize(e.to_string()))?;
 
         let final_path = self.log_path();
-        let tmp_path = self
-            .cache_dir
-            .join(format!("{}.tmp.{}", MISSION_LOG_FILENAME, std::process::id()));
+        let tmp_path = self.cache_dir.join(format!(
+            "{}.tmp.{}",
+            MISSION_LOG_FILENAME,
+            std::process::id()
+        ));
 
         {
-            let mut f = fs::File::create(&tmp_path).map_err(|e| {
-                MissionLogCacheError::TempWrite {
+            let mut f =
+                fs::File::create(&tmp_path).map_err(|e| MissionLogCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
-            f.write_all(&bytes).map_err(|e| MissionLogCacheError::TempWrite {
-                path: tmp_path.clone(),
-                msg: e.to_string(),
-            })?;
+                })?;
+            f.write_all(&bytes)
+                .map_err(|e| MissionLogCacheError::TempWrite {
+                    path: tmp_path.clone(),
+                    msg: e.to_string(),
+                })?;
             f.sync_all().map_err(|e| MissionLogCacheError::TempWrite {
                 path: tmp_path.clone(),
                 msg: e.to_string(),
@@ -197,23 +231,21 @@ impl MissionLogCache {
             path: path.clone(),
             msg: e.to_string(),
         })?;
-        let v: Value = serde_json::from_slice(&bytes).map_err(|e| {
-            MissionLogCacheError::ParseFailed {
+        let v: Value =
+            serde_json::from_slice(&bytes).map_err(|e| MissionLogCacheError::ParseFailed {
                 path: path.clone(),
                 msg: e.to_string(),
-            }
-        })?;
+            })?;
         let obj = v.as_object().ok_or(MissionLogCacheError::Malformed {
             path: path.clone(),
             reason: "root is not an object",
         })?;
-        let schema = obj
-            .get("schema_version")
-            .and_then(|x| x.as_str())
-            .ok_or(MissionLogCacheError::Malformed {
+        let schema = obj.get("schema_version").and_then(|x| x.as_str()).ok_or(
+            MissionLogCacheError::Malformed {
                 path: path.clone(),
                 reason: "missing schema_version",
-            })?;
+            },
+        )?;
         if schema != CACHE_SCHEMA_VERSION {
             return Err(MissionLogCacheError::SchemaMismatch {
                 path,
@@ -222,13 +254,12 @@ impl MissionLogCache {
             });
         }
         let chain_head = field_hex(obj, &path, "chain_head")?;
-        let arr = obj
-            .get("entries")
-            .and_then(|x| x.as_array())
-            .ok_or(MissionLogCacheError::Malformed {
+        let arr = obj.get("entries").and_then(|x| x.as_array()).ok_or(
+            MissionLogCacheError::Malformed {
                 path: path.clone(),
                 reason: "missing entries array",
-            })?;
+            },
+        )?;
 
         let mut entries = Vec::with_capacity(arr.len());
         for e in arr {
@@ -265,12 +296,14 @@ impl MissionLogCache {
             )? as u8;
             let receipt_id = match eobj.get("receipt_id") {
                 None | Some(Value::Null) => None,
-                Some(Value::String(s)) => Some(hex_decode(s).map_err(|reason| {
-                    MissionLogCacheError::HexDecode {
-                        field: "receipt_id",
-                        reason,
-                    }
-                })?),
+                Some(Value::String(s)) => {
+                    Some(
+                        hex_decode(s).map_err(|reason| MissionLogCacheError::HexDecode {
+                            field: "receipt_id",
+                            reason,
+                        })?,
+                    )
+                }
                 _ => {
                     return Err(MissionLogCacheError::Malformed {
                         path,
@@ -308,7 +341,10 @@ impl MissionLogCache {
             });
         }
 
-        Ok(Some(MissionLogSnapshot { chain_head, entries }))
+        Ok(Some(MissionLogSnapshot {
+            chain_head,
+            entries,
+        }))
     }
 
     pub fn delete(&self) -> Result<(), MissionLogCacheError> {
@@ -335,7 +371,10 @@ fn field_hex(
             path: path.to_path_buf(),
             reason: "missing hex field",
         })?;
-    hex_decode(s).map_err(|reason| MissionLogCacheError::HexDecode { field: name, reason })
+    hex_decode(s).map_err(|reason| MissionLogCacheError::HexDecode {
+        field: name,
+        reason,
+    })
 }
 
 fn hex_encode(bytes: &Blake3Hash) -> String {

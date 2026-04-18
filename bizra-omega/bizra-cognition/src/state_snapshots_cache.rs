@@ -56,14 +56,40 @@ pub struct StateSnapshotView {
 
 #[derive(Debug)]
 pub enum StateSnapshotsCacheError {
-    DirCreate { path: PathBuf, msg: String },
-    TempWrite { path: PathBuf, msg: String },
-    Rename { from: PathBuf, to: PathBuf, msg: String },
-    ReadFailed { path: PathBuf, msg: String },
-    ParseFailed { path: PathBuf, msg: String },
-    Malformed { path: PathBuf, reason: &'static str },
-    SchemaMismatch { path: PathBuf, got: String, want: String },
-    HexDecode { field: &'static str, reason: String },
+    DirCreate {
+        path: PathBuf,
+        msg: String,
+    },
+    TempWrite {
+        path: PathBuf,
+        msg: String,
+    },
+    Rename {
+        from: PathBuf,
+        to: PathBuf,
+        msg: String,
+    },
+    ReadFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    ParseFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    Malformed {
+        path: PathBuf,
+        reason: &'static str,
+    },
+    SchemaMismatch {
+        path: PathBuf,
+        got: String,
+        want: String,
+    },
+    HexDecode {
+        field: &'static str,
+        reason: String,
+    },
     Serialize(String),
 }
 
@@ -89,7 +115,13 @@ impl std::fmt::Display for StateSnapshotsCacheError {
                 write!(f, "cache {} malformed: {}", path.display(), reason)
             }
             Self::SchemaMismatch { path, got, want } => {
-                write!(f, "cache {} schema {}, expected {}", path.display(), got, want)
+                write!(
+                    f,
+                    "cache {} schema {}, expected {}",
+                    path.display(),
+                    got,
+                    want
+                )
             }
             Self::HexDecode { field, reason } => {
                 write!(f, "hex decode {}: {}", field, reason)
@@ -127,15 +159,10 @@ impl StateSnapshotsCache {
         self.cache_dir.join(STATE_SNAPSHOTS_FILENAME)
     }
 
-    pub fn write(
-        &self,
-        snapshot: &StateSnapshotsSnapshot,
-    ) -> Result<(), StateSnapshotsCacheError> {
-        fs::create_dir_all(&self.cache_dir).map_err(|e| {
-            StateSnapshotsCacheError::DirCreate {
-                path: self.cache_dir.clone(),
-                msg: e.to_string(),
-            }
+    pub fn write(&self, snapshot: &StateSnapshotsSnapshot) -> Result<(), StateSnapshotsCacheError> {
+        fs::create_dir_all(&self.cache_dir).map_err(|e| StateSnapshotsCacheError::DirCreate {
+            path: self.cache_dir.clone(),
+            msg: e.to_string(),
         })?;
 
         let mut entries_json = Vec::with_capacity(snapshot.entries.len());
@@ -166,28 +193,27 @@ impl StateSnapshotsCache {
         ));
 
         {
-            let mut f = fs::File::create(&tmp_path).map_err(|e| {
-                StateSnapshotsCacheError::TempWrite {
+            let mut f =
+                fs::File::create(&tmp_path).map_err(|e| StateSnapshotsCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
-            f.write_all(&bytes).map_err(|e| StateSnapshotsCacheError::TempWrite {
-                path: tmp_path.clone(),
-                msg: e.to_string(),
-            })?;
-            f.sync_all().map_err(|e| StateSnapshotsCacheError::TempWrite {
-                path: tmp_path.clone(),
-                msg: e.to_string(),
-            })?;
+                })?;
+            f.write_all(&bytes)
+                .map_err(|e| StateSnapshotsCacheError::TempWrite {
+                    path: tmp_path.clone(),
+                    msg: e.to_string(),
+                })?;
+            f.sync_all()
+                .map_err(|e| StateSnapshotsCacheError::TempWrite {
+                    path: tmp_path.clone(),
+                    msg: e.to_string(),
+                })?;
         }
 
-        fs::rename(&tmp_path, &final_path).map_err(|e| {
-            StateSnapshotsCacheError::Rename {
-                from: tmp_path,
-                to: final_path,
-                msg: e.to_string(),
-            }
+        fs::rename(&tmp_path, &final_path).map_err(|e| StateSnapshotsCacheError::Rename {
+            from: tmp_path,
+            to: final_path,
+            msg: e.to_string(),
         })?;
 
         Ok(())
@@ -202,23 +228,21 @@ impl StateSnapshotsCache {
             path: path.clone(),
             msg: e.to_string(),
         })?;
-        let v: Value = serde_json::from_slice(&bytes).map_err(|e| {
-            StateSnapshotsCacheError::ParseFailed {
+        let v: Value =
+            serde_json::from_slice(&bytes).map_err(|e| StateSnapshotsCacheError::ParseFailed {
                 path: path.clone(),
                 msg: e.to_string(),
-            }
-        })?;
+            })?;
         let obj = v.as_object().ok_or(StateSnapshotsCacheError::Malformed {
             path: path.clone(),
             reason: "root is not an object",
         })?;
-        let schema = obj
-            .get("schema_version")
-            .and_then(|x| x.as_str())
-            .ok_or(StateSnapshotsCacheError::Malformed {
+        let schema = obj.get("schema_version").and_then(|x| x.as_str()).ok_or(
+            StateSnapshotsCacheError::Malformed {
                 path: path.clone(),
                 reason: "missing schema_version",
-            })?;
+            },
+        )?;
         if schema != CACHE_SCHEMA_VERSION {
             return Err(StateSnapshotsCacheError::SchemaMismatch {
                 path,
@@ -227,13 +251,12 @@ impl StateSnapshotsCache {
             });
         }
         let chain_head = field_hex(obj, &path, "chain_head")?;
-        let arr = obj
-            .get("entries")
-            .and_then(|x| x.as_array())
-            .ok_or(StateSnapshotsCacheError::Malformed {
+        let arr = obj.get("entries").and_then(|x| x.as_array()).ok_or(
+            StateSnapshotsCacheError::Malformed {
                 path: path.clone(),
                 reason: "missing entries array",
-            })?;
+            },
+        )?;
 
         let mut entries = Vec::with_capacity(arr.len());
         for e in arr {
@@ -287,7 +310,10 @@ impl StateSnapshotsCache {
                 gap,
             });
         }
-        Ok(Some(StateSnapshotsSnapshot { chain_head, entries }))
+        Ok(Some(StateSnapshotsSnapshot {
+            chain_head,
+            entries,
+        }))
     }
 
     pub fn delete(&self) -> Result<(), StateSnapshotsCacheError> {
@@ -328,13 +354,18 @@ fn view_from_json(
             reason: "missing summary",
         })?
         .to_string();
-    let metric = obj.get("metric").and_then(|x| x.as_f64()).ok_or(
-        StateSnapshotsCacheError::Malformed {
-            path: path.to_path_buf(),
-            reason: "missing metric",
-        },
-    )?;
-    Ok(StateSnapshotView { hash, summary, metric })
+    let metric =
+        obj.get("metric")
+            .and_then(|x| x.as_f64())
+            .ok_or(StateSnapshotsCacheError::Malformed {
+                path: path.to_path_buf(),
+                reason: "missing metric",
+            })?;
+    Ok(StateSnapshotView {
+        hash,
+        summary,
+        metric,
+    })
 }
 
 fn field_hex(
@@ -349,7 +380,10 @@ fn field_hex(
             path: path.to_path_buf(),
             reason: "missing hex field",
         })?;
-    hex_decode(s).map_err(|reason| StateSnapshotsCacheError::HexDecode { field: name, reason })
+    hex_decode(s).map_err(|reason| StateSnapshotsCacheError::HexDecode {
+        field: name,
+        reason,
+    })
 }
 
 fn hex_encode(bytes: &Blake3Hash) -> String {
@@ -412,7 +446,11 @@ mod tests {
     fn sample_snapshot() -> StateSnapshotsSnapshot {
         StateSnapshotsSnapshot {
             chain_head: [0xAB; 32],
-            entries: vec![sample_entry(1, false), sample_entry(2, true), sample_entry(3, false)],
+            entries: vec![
+                sample_entry(1, false),
+                sample_entry(2, true),
+                sample_entry(3, false),
+            ],
         }
     }
 

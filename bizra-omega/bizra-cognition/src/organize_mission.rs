@@ -24,9 +24,7 @@
 //!   - See runtime::submit_organize_mission for the enforcement site.
 
 use crate::canonical_hasher::{blake3_domain, Blake3Hash};
-use crate::receipts::{
-    ByteReader, DecodeError, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
-};
+use crate::receipts::{ByteReader, DecodeError, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode};
 
 // ════════════════════════════════════════════════════════════════════
 // OrganizeListing — deterministic read-only projection of a directory
@@ -381,9 +379,37 @@ mod tests {
 
     #[test]
     fn entry_kind_str_maps_known_bytes() {
-        assert_eq!(OrganizeEntry { name: "x".into(), kind_byte: 0x01 }.kind_str(), "file");
-        assert_eq!(OrganizeEntry { name: "x".into(), kind_byte: 0x02 }.kind_str(), "directory");
-        assert_eq!(OrganizeEntry { name: "x".into(), kind_byte: 0x03 }.kind_str(), "symlink");
-        assert_eq!(OrganizeEntry { name: "x".into(), kind_byte: 0xFF }.kind_str(), "other");
+        assert_eq!(
+            OrganizeEntry {
+                name: "x".into(),
+                kind_byte: 0x01
+            }
+            .kind_str(),
+            "file"
+        );
+        assert_eq!(
+            OrganizeEntry {
+                name: "x".into(),
+                kind_byte: 0x02
+            }
+            .kind_str(),
+            "directory"
+        );
+        assert_eq!(
+            OrganizeEntry {
+                name: "x".into(),
+                kind_byte: 0x03
+            }
+            .kind_str(),
+            "symlink"
+        );
+        assert_eq!(
+            OrganizeEntry {
+                name: "x".into(),
+                kind_byte: 0xFF
+            }
+            .kind_str(),
+            "other"
+        );
     }
 }

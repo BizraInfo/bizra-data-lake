@@ -63,14 +63,40 @@ impl From<&ManifestArtifact> for ManifestSummary {
 
 #[derive(Debug)]
 pub enum ManifestHistoryCacheError {
-    DirCreate { path: PathBuf, msg: String },
-    TempWrite { path: PathBuf, msg: String },
-    Rename { from: PathBuf, to: PathBuf, msg: String },
-    ReadFailed { path: PathBuf, msg: String },
-    ParseFailed { path: PathBuf, msg: String },
-    Malformed { path: PathBuf, reason: &'static str },
-    SchemaMismatch { path: PathBuf, got: String, want: String },
-    HexDecode { field: &'static str, reason: String },
+    DirCreate {
+        path: PathBuf,
+        msg: String,
+    },
+    TempWrite {
+        path: PathBuf,
+        msg: String,
+    },
+    Rename {
+        from: PathBuf,
+        to: PathBuf,
+        msg: String,
+    },
+    ReadFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    ParseFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    Malformed {
+        path: PathBuf,
+        reason: &'static str,
+    },
+    SchemaMismatch {
+        path: PathBuf,
+        got: String,
+        want: String,
+    },
+    HexDecode {
+        field: &'static str,
+        reason: String,
+    },
     Serialize(String),
 }
 
@@ -96,7 +122,13 @@ impl std::fmt::Display for ManifestHistoryCacheError {
                 write!(f, "cache {} malformed: {}", path.display(), reason)
             }
             Self::SchemaMismatch { path, got, want } => {
-                write!(f, "cache {} schema {}, expected {}", path.display(), got, want)
+                write!(
+                    f,
+                    "cache {} schema {}, expected {}",
+                    path.display(),
+                    got,
+                    want
+                )
             }
             Self::HexDecode { field, reason } => {
                 write!(f, "hex decode {}: {}", field, reason)
@@ -138,11 +170,9 @@ impl ManifestHistoryCache {
         &self,
         snapshot: &ManifestHistorySnapshot,
     ) -> Result<(), ManifestHistoryCacheError> {
-        fs::create_dir_all(&self.cache_dir).map_err(|e| {
-            ManifestHistoryCacheError::DirCreate {
-                path: self.cache_dir.clone(),
-                msg: e.to_string(),
-            }
+        fs::create_dir_all(&self.cache_dir).map_err(|e| ManifestHistoryCacheError::DirCreate {
+            path: self.cache_dir.clone(),
+            msg: e.to_string(),
         })?;
 
         let mut manifests_json = Vec::with_capacity(snapshot.manifests.len());
@@ -175,32 +205,27 @@ impl ManifestHistoryCache {
         ));
 
         {
-            let mut f = fs::File::create(&tmp_path).map_err(|e| {
-                ManifestHistoryCacheError::TempWrite {
+            let mut f =
+                fs::File::create(&tmp_path).map_err(|e| ManifestHistoryCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
-            f.write_all(&bytes).map_err(|e| {
-                ManifestHistoryCacheError::TempWrite {
+                })?;
+            f.write_all(&bytes)
+                .map_err(|e| ManifestHistoryCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
-            f.sync_all().map_err(|e| {
-                ManifestHistoryCacheError::TempWrite {
+                })?;
+            f.sync_all()
+                .map_err(|e| ManifestHistoryCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
+                })?;
         }
 
-        fs::rename(&tmp_path, &final_path).map_err(|e| {
-            ManifestHistoryCacheError::Rename {
-                from: tmp_path,
-                to: final_path,
-                msg: e.to_string(),
-            }
+        fs::rename(&tmp_path, &final_path).map_err(|e| ManifestHistoryCacheError::Rename {
+            from: tmp_path,
+            to: final_path,
+            msg: e.to_string(),
         })?;
 
         Ok(())
@@ -215,23 +240,21 @@ impl ManifestHistoryCache {
             path: path.clone(),
             msg: e.to_string(),
         })?;
-        let v: Value = serde_json::from_slice(&bytes).map_err(|e| {
-            ManifestHistoryCacheError::ParseFailed {
+        let v: Value =
+            serde_json::from_slice(&bytes).map_err(|e| ManifestHistoryCacheError::ParseFailed {
                 path: path.clone(),
                 msg: e.to_string(),
-            }
-        })?;
+            })?;
         let obj = v.as_object().ok_or(ManifestHistoryCacheError::Malformed {
             path: path.clone(),
             reason: "root is not an object",
         })?;
-        let schema = obj
-            .get("schema_version")
-            .and_then(|x| x.as_str())
-            .ok_or(ManifestHistoryCacheError::Malformed {
+        let schema = obj.get("schema_version").and_then(|x| x.as_str()).ok_or(
+            ManifestHistoryCacheError::Malformed {
                 path: path.clone(),
                 reason: "missing schema_version",
-            })?;
+            },
+        )?;
         if schema != CACHE_SCHEMA_VERSION {
             return Err(ManifestHistoryCacheError::SchemaMismatch {
                 path,
@@ -266,13 +289,12 @@ impl ManifestHistoryCache {
                     reason: "missing window_end",
                 },
             )?;
-            let refs_raw =
-                mobj.get("receipt_refs")
-                    .and_then(|x| x.as_array())
-                    .ok_or(ManifestHistoryCacheError::Malformed {
-                        path: path.clone(),
-                        reason: "missing receipt_refs",
-                    })?;
+            let refs_raw = mobj.get("receipt_refs").and_then(|x| x.as_array()).ok_or(
+                ManifestHistoryCacheError::Malformed {
+                    path: path.clone(),
+                    reason: "missing receipt_refs",
+                },
+            )?;
             let mut receipt_refs = Vec::with_capacity(refs_raw.len());
             for r in refs_raw {
                 let s = r.as_str().ok_or(ManifestHistoryCacheError::Malformed {
@@ -335,7 +357,10 @@ fn field_hex(
             path: path.to_path_buf(),
             reason: "missing hex field",
         })?;
-    hex_decode(s).map_err(|reason| ManifestHistoryCacheError::HexDecode { field: name, reason })
+    hex_decode(s).map_err(|reason| ManifestHistoryCacheError::HexDecode {
+        field: name,
+        reason,
+    })
 }
 
 fn hex_encode(bytes: &Blake3Hash) -> String {
@@ -456,7 +481,10 @@ mod tests {
         )
         .unwrap();
         let err = cache.read().unwrap_err();
-        assert!(matches!(err, ManifestHistoryCacheError::SchemaMismatch { .. }));
+        assert!(matches!(
+            err,
+            ManifestHistoryCacheError::SchemaMismatch { .. }
+        ));
     }
 
     #[test]

@@ -55,13 +55,36 @@ impl Default for ResourceRegistrySnapshot {
 
 #[derive(Debug)]
 pub enum ResourceRegistryCacheError {
-    DirCreate { path: PathBuf, msg: String },
-    TempWrite { path: PathBuf, msg: String },
-    Rename { from: PathBuf, to: PathBuf, msg: String },
-    ReadFailed { path: PathBuf, msg: String },
-    ParseFailed { path: PathBuf, msg: String },
-    Malformed { path: PathBuf, reason: &'static str },
-    SchemaMismatch { path: PathBuf, got: String, want: String },
+    DirCreate {
+        path: PathBuf,
+        msg: String,
+    },
+    TempWrite {
+        path: PathBuf,
+        msg: String,
+    },
+    Rename {
+        from: PathBuf,
+        to: PathBuf,
+        msg: String,
+    },
+    ReadFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    ParseFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    Malformed {
+        path: PathBuf,
+        reason: &'static str,
+    },
+    SchemaMismatch {
+        path: PathBuf,
+        got: String,
+        want: String,
+    },
     Serialize(String),
 }
 
@@ -87,7 +110,13 @@ impl std::fmt::Display for ResourceRegistryCacheError {
                 write!(f, "cache {} malformed: {}", path.display(), reason)
             }
             Self::SchemaMismatch { path, got, want } => {
-                write!(f, "cache {} schema {}, expected {}", path.display(), got, want)
+                write!(
+                    f,
+                    "cache {} schema {}, expected {}",
+                    path.display(),
+                    got,
+                    want
+                )
             }
             Self::Serialize(s) => write!(f, "serialize resource registry: {}", s),
         }
@@ -126,11 +155,9 @@ impl ResourceRegistryCache {
         &self,
         snapshot: &ResourceRegistrySnapshot,
     ) -> Result<(), ResourceRegistryCacheError> {
-        fs::create_dir_all(&self.cache_dir).map_err(|e| {
-            ResourceRegistryCacheError::DirCreate {
-                path: self.cache_dir.clone(),
-                msg: e.to_string(),
-            }
+        fs::create_dir_all(&self.cache_dir).map_err(|e| ResourceRegistryCacheError::DirCreate {
+            path: self.cache_dir.clone(),
+            msg: e.to_string(),
         })?;
 
         let mut resources_json = Vec::with_capacity(snapshot.resources.len());
@@ -158,40 +185,33 @@ impl ResourceRegistryCache {
         ));
 
         {
-            let mut f = fs::File::create(&tmp_path).map_err(|e| {
-                ResourceRegistryCacheError::TempWrite {
+            let mut f =
+                fs::File::create(&tmp_path).map_err(|e| ResourceRegistryCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
-            f.write_all(&bytes).map_err(|e| {
-                ResourceRegistryCacheError::TempWrite {
+                })?;
+            f.write_all(&bytes)
+                .map_err(|e| ResourceRegistryCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
-            f.sync_all().map_err(|e| {
-                ResourceRegistryCacheError::TempWrite {
+                })?;
+            f.sync_all()
+                .map_err(|e| ResourceRegistryCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
+                })?;
         }
 
-        fs::rename(&tmp_path, &final_path).map_err(|e| {
-            ResourceRegistryCacheError::Rename {
-                from: tmp_path,
-                to: final_path,
-                msg: e.to_string(),
-            }
+        fs::rename(&tmp_path, &final_path).map_err(|e| ResourceRegistryCacheError::Rename {
+            from: tmp_path,
+            to: final_path,
+            msg: e.to_string(),
         })?;
 
         Ok(())
     }
 
-    pub fn read(
-        &self,
-    ) -> Result<Option<ResourceRegistrySnapshot>, ResourceRegistryCacheError> {
+    pub fn read(&self) -> Result<Option<ResourceRegistrySnapshot>, ResourceRegistryCacheError> {
         let path = self.registry_path();
         if !path.exists() {
             return Ok(None);
@@ -210,13 +230,12 @@ impl ResourceRegistryCache {
             path: path.clone(),
             reason: "root is not an object",
         })?;
-        let schema = obj
-            .get("schema_version")
-            .and_then(|x| x.as_str())
-            .ok_or(ResourceRegistryCacheError::Malformed {
+        let schema = obj.get("schema_version").and_then(|x| x.as_str()).ok_or(
+            ResourceRegistryCacheError::Malformed {
                 path: path.clone(),
                 reason: "missing schema_version",
-            })?;
+            },
+        )?;
         if schema != CACHE_SCHEMA_VERSION {
             return Err(ResourceRegistryCacheError::SchemaMismatch {
                 path,
@@ -266,7 +285,12 @@ impl ResourceRegistryCache {
                     reason: "missing allowlisted",
                 },
             )?;
-            resources.push(ResourceEntry { id, kind, summary, allowlisted });
+            resources.push(ResourceEntry {
+                id,
+                kind,
+                summary,
+                allowlisted,
+            });
         }
         Ok(Some(ResourceRegistrySnapshot { resources }))
     }

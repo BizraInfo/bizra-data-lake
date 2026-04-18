@@ -51,9 +51,9 @@ def assert_receipt_valid(result) -> None:
 
     if result.success:
         assert result.verdict == "PASS", f"Success but verdict is {result.verdict}"
-        assert result.ihsan_score >= IHSAN_THRESHOLD, (
-            f"PASS verdict but ihsan {result.ihsan_score} < {IHSAN_THRESHOLD}"
-        )
+        assert (
+            result.ihsan_score >= IHSAN_THRESHOLD
+        ), f"PASS verdict but ihsan {result.ihsan_score} < {IHSAN_THRESHOLD}"
         assert result.content, "PASS verdict but empty content"
 
     if result.receipt is not None:
@@ -69,6 +69,6 @@ def assert_receipt_valid(result) -> None:
 def assert_blocked(result, expected_verdict: str) -> None:
     """Verify an AgentResult was correctly blocked."""
     assert not result.success, "Expected block but got success"
-    assert result.verdict == expected_verdict, (
-        f"Expected {expected_verdict}, got {result.verdict}"
-    )
+    assert (
+        result.verdict == expected_verdict
+    ), f"Expected {expected_verdict}, got {result.verdict}"

@@ -103,14 +103,40 @@ pub struct PoiLedgerSnapshot {
 
 #[derive(Debug)]
 pub enum PoiLedgerCacheError {
-    DirCreate { path: PathBuf, msg: String },
-    TempWrite { path: PathBuf, msg: String },
-    Rename { from: PathBuf, to: PathBuf, msg: String },
-    ReadFailed { path: PathBuf, msg: String },
-    ParseFailed { path: PathBuf, msg: String },
-    Malformed { path: PathBuf, reason: &'static str },
-    SchemaMismatch { path: PathBuf, got: String, want: String },
-    HexDecode { field: &'static str, reason: String },
+    DirCreate {
+        path: PathBuf,
+        msg: String,
+    },
+    TempWrite {
+        path: PathBuf,
+        msg: String,
+    },
+    Rename {
+        from: PathBuf,
+        to: PathBuf,
+        msg: String,
+    },
+    ReadFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    ParseFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    Malformed {
+        path: PathBuf,
+        reason: &'static str,
+    },
+    SchemaMismatch {
+        path: PathBuf,
+        got: String,
+        want: String,
+    },
+    HexDecode {
+        field: &'static str,
+        reason: String,
+    },
     Serialize(String),
 }
 
@@ -136,7 +162,13 @@ impl std::fmt::Display for PoiLedgerCacheError {
                 write!(f, "cache {} malformed: {}", path.display(), reason)
             }
             Self::SchemaMismatch { path, got, want } => {
-                write!(f, "cache {} schema {}, expected {}", path.display(), got, want)
+                write!(
+                    f,
+                    "cache {} schema {}, expected {}",
+                    path.display(),
+                    got,
+                    want
+                )
             }
             Self::HexDecode { field, reason } => {
                 write!(f, "hex decode {}: {}", field, reason)
@@ -210,16 +242,16 @@ impl PoiLedgerCache {
         ));
 
         {
-            let mut f = fs::File::create(&tmp_path).map_err(|e| {
-                PoiLedgerCacheError::TempWrite {
+            let mut f =
+                fs::File::create(&tmp_path).map_err(|e| PoiLedgerCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
-            f.write_all(&bytes).map_err(|e| PoiLedgerCacheError::TempWrite {
-                path: tmp_path.clone(),
-                msg: e.to_string(),
-            })?;
+                })?;
+            f.write_all(&bytes)
+                .map_err(|e| PoiLedgerCacheError::TempWrite {
+                    path: tmp_path.clone(),
+                    msg: e.to_string(),
+                })?;
             f.sync_all().map_err(|e| PoiLedgerCacheError::TempWrite {
                 path: tmp_path.clone(),
                 msg: e.to_string(),
@@ -243,23 +275,21 @@ impl PoiLedgerCache {
             path: path.clone(),
             msg: e.to_string(),
         })?;
-        let v: Value = serde_json::from_slice(&bytes).map_err(|e| {
-            PoiLedgerCacheError::ParseFailed {
+        let v: Value =
+            serde_json::from_slice(&bytes).map_err(|e| PoiLedgerCacheError::ParseFailed {
                 path: path.clone(),
                 msg: e.to_string(),
-            }
-        })?;
+            })?;
         let obj = v.as_object().ok_or(PoiLedgerCacheError::Malformed {
             path: path.clone(),
             reason: "root is not an object",
         })?;
-        let schema = obj
-            .get("schema_version")
-            .and_then(|x| x.as_str())
-            .ok_or(PoiLedgerCacheError::Malformed {
+        let schema = obj.get("schema_version").and_then(|x| x.as_str()).ok_or(
+            PoiLedgerCacheError::Malformed {
                 path: path.clone(),
                 reason: "missing schema_version",
-            })?;
+            },
+        )?;
         if schema != CACHE_SCHEMA_VERSION {
             return Err(PoiLedgerCacheError::SchemaMismatch {
                 path,
@@ -320,12 +350,14 @@ impl PoiLedgerCache {
             )?;
             let principal_id = match eobj.get("principal_id") {
                 None | Some(Value::Null) => None,
-                Some(Value::String(s)) => Some(hex_decode(s).map_err(|reason| {
-                    PoiLedgerCacheError::HexDecode {
-                        field: "principal_id",
-                        reason,
-                    }
-                })?),
+                Some(Value::String(s)) => {
+                    Some(
+                        hex_decode(s).map_err(|reason| PoiLedgerCacheError::HexDecode {
+                            field: "principal_id",
+                            reason,
+                        })?,
+                    )
+                }
                 _ => {
                     return Err(PoiLedgerCacheError::Malformed {
                         path,
@@ -344,7 +376,10 @@ impl PoiLedgerCache {
                 principal_id,
             });
         }
-        Ok(Some(PoiLedgerSnapshot { chain_head, entries }))
+        Ok(Some(PoiLedgerSnapshot {
+            chain_head,
+            entries,
+        }))
     }
 
     pub fn delete(&self) -> Result<(), PoiLedgerCacheError> {
@@ -371,7 +406,10 @@ fn field_hex(
             path: path.to_path_buf(),
             reason: "missing hex field",
         })?;
-    hex_decode(s).map_err(|reason| PoiLedgerCacheError::HexDecode { field: name, reason })
+    hex_decode(s).map_err(|reason| PoiLedgerCacheError::HexDecode {
+        field: name,
+        reason,
+    })
 }
 
 fn hex_encode(bytes: &Blake3Hash) -> String {

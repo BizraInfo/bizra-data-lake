@@ -20,7 +20,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Literal
 
-
 # ═══════════════════════════════════════════════════════════════
 # Execution Modes — Choose the lightest that preserves correctness
 # ═══════════════════════════════════════════════════════════════
@@ -199,12 +198,14 @@ class IntentSlots:
     stakes: Stakes = "M"
     constraints: str = ""
     success_criteria: str = ""
-    forbidden_moves: List[str] = field(default_factory=lambda: [
-        "hallucination",
-        "hidden assumptions",
-        "skipped proof obligation",
-        "decorative complexity",
-    ])
+    forbidden_moves: List[str] = field(
+        default_factory=lambda: [
+            "hallucination",
+            "hidden assumptions",
+            "skipped proof obligation",
+            "decorative complexity",
+        ]
+    )
     sources_allowed: List[str] = field(default_factory=list)
 
     @property

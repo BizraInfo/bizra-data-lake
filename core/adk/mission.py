@@ -26,9 +26,13 @@ class Budget:
         if self.max_tokens <= 0:
             raise ValueError(f"max_tokens must be positive, got {self.max_tokens}")
         if self.max_wall_seconds <= 0:
-            raise ValueError(f"max_wall_seconds must be positive, got {self.max_wall_seconds}")
+            raise ValueError(
+                f"max_wall_seconds must be positive, got {self.max_wall_seconds}"
+            )
         if self.max_tool_calls <= 0:
-            raise ValueError(f"max_tool_calls must be positive, got {self.max_tool_calls}")
+            raise ValueError(
+                f"max_tool_calls must be positive, got {self.max_tool_calls}"
+            )
 
 
 DEFAULT_BUDGET = Budget()
@@ -54,7 +58,9 @@ class Mission:
     def consume_tool_call(self) -> None:
         self._tool_calls_used += 1
         if self._tool_calls_used > self.budget.max_tool_calls:
-            raise BudgetExhausted("tool_calls", self._tool_calls_used, self.budget.max_tool_calls)
+            raise BudgetExhausted(
+                "tool_calls", self._tool_calls_used, self.budget.max_tool_calls
+            )
 
 
 class BudgetExhausted(Exception):

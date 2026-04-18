@@ -48,14 +48,40 @@ pub const PRINCIPAL_CACHE_FILENAME: &str = "principal.json";
 
 #[derive(Debug)]
 pub enum PrincipalCacheError {
-    DirCreate { path: PathBuf, msg: String },
-    TempWrite { path: PathBuf, msg: String },
-    Rename { from: PathBuf, to: PathBuf, msg: String },
-    ReadFailed { path: PathBuf, msg: String },
-    ParseFailed { path: PathBuf, msg: String },
-    Malformed { path: PathBuf, reason: &'static str },
-    SchemaMismatch { path: PathBuf, got: String, want: String },
-    HexDecode { field: &'static str, reason: String },
+    DirCreate {
+        path: PathBuf,
+        msg: String,
+    },
+    TempWrite {
+        path: PathBuf,
+        msg: String,
+    },
+    Rename {
+        from: PathBuf,
+        to: PathBuf,
+        msg: String,
+    },
+    ReadFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    ParseFailed {
+        path: PathBuf,
+        msg: String,
+    },
+    Malformed {
+        path: PathBuf,
+        reason: &'static str,
+    },
+    SchemaMismatch {
+        path: PathBuf,
+        got: String,
+        want: String,
+    },
+    HexDecode {
+        field: &'static str,
+        reason: String,
+    },
     Serialize(String),
 }
 
@@ -68,13 +94,9 @@ impl std::fmt::Display for PrincipalCacheError {
             Self::TempWrite { path, msg } => {
                 write!(f, "write cache temp {}: {}", path.display(), msg)
             }
-            Self::Rename { from, to, msg } => write!(
-                f,
-                "rename {} -> {}: {}",
-                from.display(),
-                to.display(),
-                msg
-            ),
+            Self::Rename { from, to, msg } => {
+                write!(f, "rename {} -> {}: {}", from.display(), to.display(), msg)
+            }
             Self::ReadFailed { path, msg } => {
                 write!(f, "read cache {}: {}", path.display(), msg)
             }
@@ -165,22 +187,20 @@ impl PrincipalProfileCache {
         ));
 
         {
-            let mut f = fs::File::create(&tmp_path).map_err(|e| {
-                PrincipalCacheError::TempWrite {
+            let mut f =
+                fs::File::create(&tmp_path).map_err(|e| PrincipalCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
-                }
-            })?;
+                })?;
             f.write_all(&bytes)
                 .map_err(|e| PrincipalCacheError::TempWrite {
                     path: tmp_path.clone(),
                     msg: e.to_string(),
                 })?;
-            f.sync_all()
-                .map_err(|e| PrincipalCacheError::TempWrite {
-                    path: tmp_path.clone(),
-                    msg: e.to_string(),
-                })?;
+            f.sync_all().map_err(|e| PrincipalCacheError::TempWrite {
+                path: tmp_path.clone(),
+                msg: e.to_string(),
+            })?;
         }
 
         fs::rename(&tmp_path, &final_path).map_err(|e| PrincipalCacheError::Rename {
@@ -213,13 +233,12 @@ impl PrincipalProfileCache {
             path: path.clone(),
             reason: "root is not an object",
         })?;
-        let schema = obj
-            .get("schema_version")
-            .and_then(|x| x.as_str())
-            .ok_or(PrincipalCacheError::Malformed {
+        let schema = obj.get("schema_version").and_then(|x| x.as_str()).ok_or(
+            PrincipalCacheError::Malformed {
                 path: path.clone(),
                 reason: "missing schema_version",
-            })?;
+            },
+        )?;
         if schema != CACHE_SCHEMA_VERSION {
             return Err(PrincipalCacheError::SchemaMismatch {
                 path,
@@ -232,13 +251,12 @@ impl PrincipalProfileCache {
         let node_id = field_str(obj, &path, "node_id")?;
         let declared_role = field_str(obj, &path, "declared_role")?;
         let activation_receipt_id = field_hex(obj, &path, "activation_receipt_id")?;
-        let activation_ns =
-            obj.get("activation_ns")
-                .and_then(|x| x.as_u64())
-                .ok_or(PrincipalCacheError::Malformed {
-                    path: path.clone(),
-                    reason: "missing activation_ns",
-                })?;
+        let activation_ns = obj.get("activation_ns").and_then(|x| x.as_u64()).ok_or(
+            PrincipalCacheError::Malformed {
+                path: path.clone(),
+                reason: "missing activation_ns",
+            },
+        )?;
 
         let profile = PrincipalProfile {
             principal_id,
@@ -290,7 +308,10 @@ fn field_hex(
             path: path.to_path_buf(),
             reason: leak_static("missing hex field", name),
         })?;
-    hex_decode(s).map_err(|reason| PrincipalCacheError::HexDecode { field: name, reason })
+    hex_decode(s).map_err(|reason| PrincipalCacheError::HexDecode {
+        field: name,
+        reason,
+    })
 }
 
 // `&'static str` reason slot is enumerated; we can't synthesize a

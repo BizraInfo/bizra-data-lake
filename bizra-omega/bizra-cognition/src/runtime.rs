@@ -9,11 +9,12 @@
 //! receipts, and produces a graph consistent with the chain's decisions.
 //!
 //! Rehydrate contract:
-//!   - Input: a ThoughtGraph in its fresh-boot state (no reflexes installed)
-//!            and a ReceiptChain whose records have been loaded (but whose
-//!            derived state the graph has not yet applied).
-//!   - Output: a runtime whose graph has the exact reflex set the chain
-//!            records commit to, with no side effects beyond state.
+//!
+//! - Input: a ThoughtGraph in its fresh-boot state (no reflexes installed)
+//!   and a ReceiptChain whose records have been loaded (but whose derived
+//!   state the graph has not yet applied).
+//! - Output: a runtime whose graph has the exact reflex set the chain
+//!   records commit to, with no side effects beyond state.
 //!
 //! Determinism: rehydrate is pure replay. Same chain + same graph skeleton
 //! → same final state, byte-for-byte. This is what makes Node1 reproducibility
@@ -24,50 +25,46 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::admissibility_freeze_v1::{
     AdmissibilityChain, AdmissibilityClaim, AdmissibilityResult, EconomicPattern, GateVerdict,
-    Invariant, RejectedClaim, StateMutation, Verdict,
+    RejectedClaim, StateMutation, Verdict,
 };
-use crate::thought_graph::{
-    ThoughtGraph, AgentCtx, Thought, ReasoningError, ShadowMode,
-    MyelinationReceipt, DemyelinationReceipt, DemyelinationReason,
-    CompiledReflex,
-};
-use crate::mission_freeze_v1::{
-    MissionEnvelope, MissionStage, Originator, StateSnapshot,
-};
-use crate::receipts::{
-    ReceiptChain, ReceiptPayload, ReceiptKind,
-    ChainError, Blake3Hash, InMemoryPayloadStore,
-};
+use crate::canonical_hasher::blake3_domain;
 use crate::manifest_artifact::ManifestArtifact;
-use crate::principal_activation::{
-    PrincipalActivationEnvelope, PrincipalActivationReceipt, PrincipalProfile,
-};
-use crate::principal_cache::{PrincipalCacheError, PrincipalProfileCache};
-use crate::receipt_history_cache::{
-    ReceiptHistoryCache, ReceiptHistoryCacheError, ReceiptHistorySnapshot,
-};
 use crate::manifest_history_cache::{
     ManifestHistoryCache, ManifestHistoryCacheError, ManifestHistorySnapshot, ManifestSummary,
 };
+use crate::mission_freeze_v1::{MissionEnvelope, MissionStage, Originator, StateSnapshot};
 use crate::mission_log_cache::{
     MissionLogCache, MissionLogCacheError, MissionLogEntry, MissionLogSnapshot,
-};
-use crate::state_snapshots_cache::{
-    StateSnapshotEntry, StateSnapshotView, StateSnapshotsCache, StateSnapshotsCacheError,
-    StateSnapshotsSnapshot,
-};
-use crate::resource_registry_cache::{
-    ResourceRegistryCache, ResourceRegistryCacheError, ResourceRegistrySnapshot,
-};
-use crate::resource_registry::{
-    RegisterOutcome, ResourceKind, ResourceRegistryError, TypedResource, UrpView,
 };
 use crate::organize_mission::{OrganizeListing, OrganizeMissionReceipt};
 use crate::poi_ledger::{
     compute_impact_score, PoiEntry, PoiLedgerCache, PoiLedgerCacheError, PoiLedgerSnapshot,
 };
+use crate::principal_activation::{
+    PrincipalActivationEnvelope, PrincipalActivationReceipt, PrincipalProfile,
+};
+use crate::principal_cache::{PrincipalCacheError, PrincipalProfileCache};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
-use crate::canonical_hasher::blake3_domain;
+use crate::receipt_history_cache::{
+    ReceiptHistoryCache, ReceiptHistoryCacheError, ReceiptHistorySnapshot,
+};
+use crate::receipts::{
+    Blake3Hash, ChainError, InMemoryPayloadStore, ReceiptChain, ReceiptKind, ReceiptPayload,
+};
+use crate::resource_registry::{
+    RegisterOutcome, ResourceKind, ResourceRegistryError, TypedResource, UrpView,
+};
+use crate::resource_registry_cache::{
+    ResourceRegistryCache, ResourceRegistryCacheError, ResourceRegistrySnapshot,
+};
+use crate::state_snapshots_cache::{
+    StateSnapshotEntry, StateSnapshotView, StateSnapshotsCache, StateSnapshotsCacheError,
+    StateSnapshotsSnapshot,
+};
+use crate::thought_graph::{
+    AgentCtx, CompiledReflex, DemyelinationReason, DemyelinationReceipt, MyelinationReceipt,
+    ReasoningError, ShadowMode, Thought, ThoughtGraph,
+};
 
 // ============================================================================
 // Events
@@ -75,9 +72,14 @@ use crate::canonical_hasher::blake3_domain;
 
 #[derive(Debug, Clone)]
 pub enum CognitionEvent {
-    ReasoningRequest { request_id: Blake3Hash },
+    ReasoningRequest {
+        request_id: Blake3Hash,
+    },
     ConsolidationTick,
-    GovernanceDemyelination { edge: Blake3Hash, decision: Blake3Hash },
+    GovernanceDemyelination {
+        edge: Blake3Hash,
+        decision: Blake3Hash,
+    },
     Shutdown,
 }
 
@@ -95,7 +97,9 @@ pub enum LoopError {
 }
 
 impl From<ChainError> for LoopError {
-    fn from(e: ChainError) -> Self { LoopError::Chain(e) }
+    fn from(e: ChainError) -> Self {
+        LoopError::Chain(e)
+    }
 }
 
 #[derive(Debug)]
@@ -106,7 +110,9 @@ pub enum RehydrateError {
 }
 
 impl From<ChainError> for RehydrateError {
-    fn from(e: ChainError) -> Self { RehydrateError::ChainFetch(e) }
+    fn from(e: ChainError) -> Self {
+        RehydrateError::ChainFetch(e)
+    }
 }
 
 #[derive(Debug)]
@@ -115,11 +121,16 @@ pub enum MissionRuntimeError {
     Clock(String),
     DuplicateMission(Blake3Hash),
     MissionNotFound(Blake3Hash),
-    ClaimMismatch { expected: Blake3Hash, got: Blake3Hash },
+    ClaimMismatch {
+        expected: Blake3Hash,
+        got: Blake3Hash,
+    },
 }
 
 impl From<ChainError> for MissionRuntimeError {
-    fn from(e: ChainError) -> Self { MissionRuntimeError::Chain(e) }
+    fn from(e: ChainError) -> Self {
+        MissionRuntimeError::Chain(e)
+    }
 }
 
 /// The full record of a mission's passage through the lawful loop.
@@ -269,18 +280,22 @@ pub enum DegradedOccasion {
 impl DegradedPathReceipt {
     fn occasion_discriminant(&self) -> u8 {
         match self.occasion {
-            DegradedOccasion::MyelinationPersistFailed { .. }   => 0x01,
+            DegradedOccasion::MyelinationPersistFailed { .. } => 0x01,
             DegradedOccasion::DemyelinationPersistFailed { .. } => 0x02,
-            DegradedOccasion::ReasoningFailed { .. }            => 0x03,
-            DegradedOccasion::ConsolidationDivergence { .. }    => 0x04,
-            DegradedOccasion::ClockFailure { .. }               => 0x05,
+            DegradedOccasion::ReasoningFailed { .. } => 0x03,
+            DegradedOccasion::ConsolidationDivergence { .. } => 0x04,
+            DegradedOccasion::ClockFailure { .. } => 0x05,
         }
     }
 }
 
 impl ReceiptPayload for DegradedPathReceipt {
-    fn kind(&self) -> ReceiptKind { ReceiptKind::DegradedPath }
-    fn timestamp_ns(&self) -> u64 { self.timestamp_ns }
+    fn kind(&self) -> ReceiptKind {
+        ReceiptKind::DegradedPath
+    }
+    fn timestamp_ns(&self) -> u64 {
+        self.timestamp_ns
+    }
     fn canonical_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(256);
         buf.push(self.occasion_discriminant());
@@ -322,8 +337,12 @@ pub struct ReasoningSessionReceipt {
 }
 
 impl ReceiptPayload for ReasoningSessionReceipt {
-    fn kind(&self) -> ReceiptKind { ReceiptKind::ReasoningSession }
-    fn timestamp_ns(&self) -> u64 { self.timestamp_ns }
+    fn kind(&self) -> ReceiptKind {
+        ReceiptKind::ReasoningSession
+    }
+    fn timestamp_ns(&self) -> u64 {
+        self.timestamp_ns
+    }
     fn canonical_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(128);
         buf.extend_from_slice(&self.request_id);
@@ -460,14 +479,11 @@ impl CognitionRuntime {
         let snapshot = crate::sovereign_state::SovereignStateSnapshot::load(path)?;
 
         let genesis: Blake3Hash = [0u8; 32];
-        let graph = ThoughtGraph::from_parts(
-            HashMap::new(),
-            Vec::new(),
-            HashMap::new(),
-            genesis,
-        );
+        let graph = ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
         let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx = AgentCtx { receipt_chain: genesis };
+        let ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
 
         Ok(Self {
             graph,
@@ -490,9 +506,7 @@ impl CognitionRuntime {
 
     /// Access the attached sovereign-state snapshot (if this runtime
     /// was bootstrapped via `from_sovereign_state`).
-    pub fn sovereign_snapshot(
-        &self,
-    ) -> Option<&crate::sovereign_state::SovereignStateSnapshot> {
+    pub fn sovereign_snapshot(&self) -> Option<&crate::sovereign_state::SovereignStateSnapshot> {
         self.sovereign_snapshot.as_ref()
     }
 
@@ -522,14 +536,13 @@ impl CognitionRuntime {
     /// correctness. Reflex installation IS truth-state and must be rebuilt.
     /// Hit counts and quarantines are observation-state and will repopulate
     /// naturally as the runtime processes new events.
-    pub fn rehydrate(
-        graph: ThoughtGraph,
-        chain: ReceiptChain,
-    ) -> Result<Self, RehydrateError> {
+    pub fn rehydrate(graph: ThoughtGraph, chain: ReceiptChain) -> Result<Self, RehydrateError> {
         let mut rt = Self {
             graph,
             chain,
-            ctx: AgentCtx { receipt_chain: [0u8; 32] },
+            ctx: AgentCtx {
+                receipt_chain: [0u8; 32],
+            },
             missions: HashMap::new(),
             session_counter: 0,
             sovereign_snapshot: None,
@@ -547,14 +560,15 @@ impl CognitionRuntime {
         // Collect replay actions in order. We iterate records oldest-to-newest.
         // For each Myelination, we must decode the payload to recover the
         // CompiledReflex's policy_version and source hash.
-        let records: Vec<(ReceiptKind, Blake3Hash)> = rt.chain.records()
-            .map(|r| (r.kind, r.hash))
-            .collect();
+        let records: Vec<(ReceiptKind, Blake3Hash)> =
+            rt.chain.records().map(|r| (r.kind, r.hash)).collect();
 
         for (kind, hash) in records {
             match kind {
                 ReceiptKind::Myelination => {
-                    let receipt: MyelinationReceipt = rt.chain.fetch_and_decode(&hash)
+                    let receipt: MyelinationReceipt = rt
+                        .chain
+                        .fetch_and_decode(&hash)
                         .map_err(RehydrateError::ChainFetch)?;
 
                     // Reconstruct the CompiledReflex. In production this calls
@@ -565,10 +579,13 @@ impl CognitionRuntime {
                         source_s2: receipt.source_s2,
                         policy_version: receipt.policy_version,
                     };
-                    rt.graph.install_reflex_from_replay(receipt.source_s2, reflex);
+                    rt.graph
+                        .install_reflex_from_replay(receipt.source_s2, reflex);
                 }
                 ReceiptKind::Demyelination => {
-                    let receipt: DemyelinationReceipt = rt.chain.fetch_and_decode(&hash)
+                    let receipt: DemyelinationReceipt = rt
+                        .chain
+                        .fetch_and_decode(&hash)
                         .map_err(RehydrateError::ChainFetch)?;
                     rt.graph.remove_reflex_from_replay(&receipt.reflex);
                 }
@@ -739,10 +756,10 @@ impl CognitionRuntime {
             manifest_refs.push(receipt_id);
 
             let m = ManifestArtifact::from_window(
-                timestamp_ns,            // window_start: mission submission time
-                self.now_ns_mission()?,  // window_end: post-replay-verify time
+                timestamp_ns,           // window_start: mission submission time
+                self.now_ns_mission()?, // window_end: post-replay-verify time
                 manifest_refs,
-                self.chain.head(),       // chain_head: post-ReceiptArtifact append
+                self.chain.head(), // chain_head: post-ReceiptArtifact append
             );
             self.chain.append_with_payload(m.clone())?;
             manifest = Some(m);
@@ -782,10 +799,7 @@ impl CognitionRuntime {
     /// Returns `Some(&ManifestArtifact)` when the mission reached
     /// Replayability (S8) and a manifest was sealed into the chain;
     /// `None` for rejected missions or if the mission_id is unknown.
-    pub fn manifest_for_mission(
-        &self,
-        mission_id: &Blake3Hash,
-    ) -> Option<&ManifestArtifact> {
+    pub fn manifest_for_mission(&self, mission_id: &Blake3Hash) -> Option<&ManifestArtifact> {
         self.missions
             .get(mission_id)
             .and_then(|r| r.manifest.as_ref())
@@ -1004,12 +1018,18 @@ impl CognitionRuntime {
 
         let current = StateSnapshot {
             hash: blake3_domain("bizra-organize-state-pre-v1", path_str.as_bytes()),
-            summary: format!("Path '{}' unindexed — no listing digest sealed yet", path_str),
+            summary: format!(
+                "Path '{}' unindexed — no listing digest sealed yet",
+                path_str
+            ),
             metric: 0.0,
         };
         let ideal = StateSnapshot {
             hash: blake3_domain("bizra-organize-state-ideal-v1", path_str.as_bytes()),
-            summary: format!("Path '{}' indexed — listing digest sealed to chain", path_str),
+            summary: format!(
+                "Path '{}' indexed — listing digest sealed to chain",
+                path_str
+            ),
             metric: 1.0,
         };
         let mission_env = MissionEnvelope::from_intent(
@@ -1048,12 +1068,8 @@ impl CognitionRuntime {
             .expect("permit path invariant: receipt_id must be Some");
         let now_ns_seal = self.now_ns_mission()?;
         let prev_chain = self.chain.head();
-        let organize_receipt = OrganizeMissionReceipt::new(
-            mission_receipt_id,
-            &listing,
-            now_ns_seal,
-            prev_chain,
-        );
+        let organize_receipt =
+            OrganizeMissionReceipt::new(mission_receipt_id, &listing, now_ns_seal, prev_chain);
         self.chain.append_with_payload(organize_receipt.clone())?;
 
         // Cycle-7 G6 — record PoI entry for this organize execution.
@@ -1091,13 +1107,10 @@ impl CognitionRuntime {
     /// builder-style composition.
     pub fn attach_dema_cache(&mut self, sovereign_root: &std::path::Path) -> &mut Self {
         self.dema_cache = Some(PrincipalProfileCache::at_sovereign_root(sovereign_root));
-        self.receipt_history_cache =
-            Some(ReceiptHistoryCache::at_sovereign_root(sovereign_root));
-        self.manifest_history_cache =
-            Some(ManifestHistoryCache::at_sovereign_root(sovereign_root));
+        self.receipt_history_cache = Some(ReceiptHistoryCache::at_sovereign_root(sovereign_root));
+        self.manifest_history_cache = Some(ManifestHistoryCache::at_sovereign_root(sovereign_root));
         self.mission_log_cache = Some(MissionLogCache::at_sovereign_root(sovereign_root));
-        self.state_snapshots_cache =
-            Some(StateSnapshotsCache::at_sovereign_root(sovereign_root));
+        self.state_snapshots_cache = Some(StateSnapshotsCache::at_sovereign_root(sovereign_root));
         self.resource_registry_cache =
             Some(ResourceRegistryCache::at_sovereign_root(sovereign_root));
         self.poi_ledger_cache = Some(PoiLedgerCache::at_sovereign_root(sovereign_root));
@@ -1161,9 +1174,7 @@ impl CognitionRuntime {
     ///
     /// Best-effort by design: callers propagate the inner Result as a
     /// warning string without aborting the already-sealed chain.
-    pub fn write_receipt_history_cache(
-        &self,
-    ) -> Option<Result<(), ReceiptHistoryCacheError>> {
+    pub fn write_receipt_history_cache(&self) -> Option<Result<(), ReceiptHistoryCacheError>> {
         self.receipt_history_cache
             .as_ref()
             .map(|c| c.write(&self.receipt_history_snapshot()))
@@ -1217,9 +1228,7 @@ impl CognitionRuntime {
     /// Best-effort write of the manifest-history cache. `Ok(None)` when
     /// no cache is attached. See receipt_history counterpart for
     /// niyyah-alignment rationale.
-    pub fn write_manifest_history_cache(
-        &self,
-    ) -> Option<Result<(), ManifestHistoryCacheError>> {
+    pub fn write_manifest_history_cache(&self) -> Option<Result<(), ManifestHistoryCacheError>> {
         self.manifest_history_cache
             .as_ref()
             .map(|c| c.write(&self.manifest_history_snapshot()))
@@ -1351,9 +1360,7 @@ impl CognitionRuntime {
     }
 
     /// Best-effort write of the state_snapshots cache.
-    pub fn write_state_snapshots_cache(
-        &self,
-    ) -> Option<Result<(), StateSnapshotsCacheError>> {
+    pub fn write_state_snapshots_cache(&self) -> Option<Result<(), StateSnapshotsCacheError>> {
         self.state_snapshots_cache
             .as_ref()
             .map(|c| c.write(&self.state_snapshots_snapshot()))
@@ -1633,10 +1640,7 @@ impl CognitionRuntime {
     }
 
     /// Single event handler.
-    pub fn handle(
-        &mut self,
-        event: CognitionEvent,
-    ) -> Result<Option<Vec<Thought>>, LoopError> {
+    pub fn handle(&mut self, event: CognitionEvent) -> Result<Option<Vec<Thought>>, LoopError> {
         match event {
             CognitionEvent::ReasoningRequest { request_id } => {
                 self.handle_reasoning(request_id).map(Some)
@@ -1664,10 +1668,8 @@ impl CognitionRuntime {
             }
         };
 
-        let thoughts_digest = blake3_domain(
-            "bizra-thoughts-v1",
-            &(thoughts.len() as u32).to_le_bytes(),
-        );
+        let thoughts_digest =
+            blake3_domain("bizra-thoughts-v1", &(thoughts.len() as u32).to_le_bytes());
 
         let receipt = ReasoningSessionReceipt {
             request_id,
@@ -1695,9 +1697,13 @@ impl CognitionRuntime {
             let (receipt, compiled) = match proposal {
                 Ok(pair) => pair,
                 Err(ReasoningError::ImmutableS2Violation(_)) => continue,
-                Err(ReasoningError::QuarantineDivergence { candidate, divergence }) => {
+                Err(ReasoningError::QuarantineDivergence {
+                    candidate,
+                    divergence,
+                }) => {
                     self.emit_degraded(DegradedOccasion::ConsolidationDivergence {
-                        edge: candidate, divergence,
+                        edge: candidate,
+                        divergence,
                     })?;
                     continue;
                 }
@@ -1711,12 +1717,14 @@ impl CognitionRuntime {
 
             match self.chain.append_with_payload(receipt) {
                 Ok(receipt_hash) => {
-                    self.graph.commit_myelination(edge_hash, compiled, receipt_hash);
+                    self.graph
+                        .commit_myelination(edge_hash, compiled, receipt_hash);
                 }
                 Err(chain_err) => {
                     self.graph.abort_myelination(edge_hash);
                     self.emit_degraded(DegradedOccasion::MyelinationPersistFailed {
-                        edge: edge_hash, cause: format!("{:?}", chain_err),
+                        edge: edge_hash,
+                        cause: format!("{:?}", chain_err),
                     })?;
                 }
             }
@@ -1730,10 +1738,10 @@ impl CognitionRuntime {
         edge: Blake3Hash,
         decision: Blake3Hash,
     ) -> Result<(), LoopError> {
-        let receipt = match self.graph.propose_demyelination(
-            edge,
-            DemyelinationReason::GovernanceDecision(decision),
-        ) {
+        let receipt = match self
+            .graph
+            .propose_demyelination(edge, DemyelinationReason::GovernanceDecision(decision))
+        {
             Some(r) => r,
             None => return Ok(()),
         };
@@ -1745,7 +1753,8 @@ impl CognitionRuntime {
             }
             Err(chain_err) => {
                 self.emit_degraded(DegradedOccasion::DemyelinationPersistFailed {
-                    edge, cause: format!("{:?}", chain_err),
+                    edge,
+                    cause: format!("{:?}", chain_err),
                 })?;
                 Ok(())
             }
@@ -1801,10 +1810,7 @@ fn reject_remediation_text(record: &MissionRuntimeRecord) -> String {
     }
 }
 
-fn admissibility_result_matches(
-    left: &AdmissibilityResult,
-    right: &AdmissibilityResult,
-) -> bool {
+fn admissibility_result_matches(left: &AdmissibilityResult, right: &AdmissibilityResult) -> bool {
     left.verdict == right.verdict
         && left.gate_verdicts.len() == right.gate_verdicts.len()
         && left
@@ -1825,10 +1831,7 @@ fn gate_verdict_matches(left: &GateVerdict, right: &GateVerdict) -> bool {
         && left.score == right.score
 }
 
-fn rejected_claim_matches(
-    left: Option<&RejectedClaim>,
-    right: Option<&RejectedClaim>,
-) -> bool {
+fn rejected_claim_matches(left: Option<&RejectedClaim>, right: Option<&RejectedClaim>) -> bool {
     match (left, right) {
         (None, None) => true,
         (Some(a), Some(b)) => {
@@ -1858,7 +1861,9 @@ mod tests {
 
     struct NoopNode;
     impl GraphNode for NoopNode {
-        fn traverse(&self, _ctx: &mut AgentCtx) -> Vec<Thought> { vec![Thought] }
+        fn traverse(&self, _ctx: &mut AgentCtx) -> Vec<Thought> {
+            vec![Thought]
+        }
     }
 
     fn minimal_graph() -> (ThoughtGraph, Blake3Hash) {
@@ -1868,13 +1873,18 @@ mod tests {
         let mut policies = HashMap::new();
         policies.insert(root_hash, MyelinationPolicy::standard());
         let genesis = [0u8; 32];
-        (ThoughtGraph::from_parts(nodes, vec![root_hash], policies, genesis), genesis)
+        (
+            ThoughtGraph::from_parts(nodes, vec![root_hash], policies, genesis),
+            genesis,
+        )
     }
 
     fn minimal_runtime() -> CognitionRuntime {
         let (graph, genesis) = minimal_graph();
         let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx = AgentCtx { receipt_chain: genesis };
+        let ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
         CognitionRuntime::new(graph, chain, ctx)
     }
 
@@ -1932,9 +1942,11 @@ mod tests {
     fn reasoning_request_produces_thoughts_and_advances_chain() {
         let mut rt = minimal_runtime();
         let initial_head = rt.chain.head();
-        let result = rt.handle(CognitionEvent::ReasoningRequest {
-            request_id: [42u8; 32],
-        }).unwrap();
+        let result = rt
+            .handle(CognitionEvent::ReasoningRequest {
+                request_id: [42u8; 32],
+            })
+            .unwrap();
         assert!(result.is_some());
         assert_ne!(rt.chain.head(), initial_head);
         assert_eq!(rt.chain.len(), 1);
@@ -1964,7 +1976,10 @@ mod tests {
         let mut rt = minimal_runtime();
         let genesis = [0u8; 32];
         for i in 0..10u8 {
-            rt.handle(CognitionEvent::ReasoningRequest { request_id: [i; 32] }).unwrap();
+            rt.handle(CognitionEvent::ReasoningRequest {
+                request_id: [i; 32],
+            })
+            .unwrap();
         }
         assert_eq!(rt.chain.len(), 10);
         rt.chain.verify_continuity(genesis).unwrap();
@@ -1980,7 +1995,9 @@ mod tests {
     fn rehydrate_reconstructs_reflex_state_from_chain() {
         let (graph, genesis) = minimal_graph();
         let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx = AgentCtx { receipt_chain: genesis };
+        let ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
         let mut rt = CognitionRuntime::new(graph, chain, ctx);
 
         // Directly construct a MyelinationReceipt and write it to the chain —
@@ -2005,8 +2022,10 @@ mod tests {
         // Move the chain into the rehydrate call
         let rehydrated = CognitionRuntime::rehydrate(fresh_graph, rt.chain).unwrap();
 
-        assert!(rehydrated.graph.has_reflex(&edge),
-                "rehydrate must reconstruct reflex from Myelination receipt");
+        assert!(
+            rehydrated.graph.has_reflex(&edge),
+            "rehydrate must reconstruct reflex from Myelination receipt"
+        );
     }
 
     /// Prove that Myelination followed by Demyelination leaves no reflex
@@ -2015,7 +2034,9 @@ mod tests {
     fn rehydrate_respects_demyelination() {
         let (graph, genesis) = minimal_graph();
         let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx = AgentCtx { receipt_chain: genesis };
+        let ctx = AgentCtx {
+            receipt_chain: genesis,
+        };
         let mut rt = CognitionRuntime::new(graph, chain, ctx);
 
         let edge = [1u8; 32];
@@ -2045,8 +2066,10 @@ mod tests {
         let (fresh_graph, _) = minimal_graph();
         let rehydrated = CognitionRuntime::rehydrate(fresh_graph, rt.chain).unwrap();
 
-        assert!(!rehydrated.graph.has_reflex(&edge),
-                "rehydrate must respect demyelination — chain final state wins");
+        assert!(
+            !rehydrated.graph.has_reflex(&edge),
+            "rehydrate must respect demyelination — chain final state wins"
+        );
     }
 
     /// The operational proof of R1: two nodes starting from the same chain
@@ -2055,7 +2078,9 @@ mod tests {
     fn rehydrate_is_deterministic() {
         let (graph_a, genesis) = minimal_graph();
         let chain_a = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx_a = AgentCtx { receipt_chain: genesis };
+        let ctx_a = AgentCtx {
+            receipt_chain: genesis,
+        };
         let mut rt_a = CognitionRuntime::new(graph_a, chain_a, ctx_a);
 
         let edge = [1u8; 32];
@@ -2081,7 +2106,9 @@ mod tests {
         // Build an equivalent chain from scratch
         let (graph_b, _) = minimal_graph();
         let chain_b = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-        let ctx_b = AgentCtx { receipt_chain: genesis };
+        let ctx_b = AgentCtx {
+            receipt_chain: genesis,
+        };
         let mut rt_b = CognitionRuntime::new(graph_b, chain_b, ctx_b);
         rt_b.chain.append_with_payload(myel).unwrap();
 
@@ -2089,9 +2116,14 @@ mod tests {
         let rehydrated_b = CognitionRuntime::rehydrate(fresh_b, rt_b.chain).unwrap();
 
         assert_eq!(rehydrated_a.graph.chain_head(), chain_a_head);
-        assert_eq!(rehydrated_a.graph.chain_head(), rehydrated_b.graph.chain_head());
-        assert_eq!(rehydrated_a.graph.has_reflex(&edge),
-                   rehydrated_b.graph.has_reflex(&edge));
+        assert_eq!(
+            rehydrated_a.graph.chain_head(),
+            rehydrated_b.graph.chain_head()
+        );
+        assert_eq!(
+            rehydrated_a.graph.has_reflex(&edge),
+            rehydrated_b.graph.has_reflex(&edge)
+        );
     }
 
     #[test]
@@ -2109,18 +2141,31 @@ mod tests {
         assert_eq!(record.stage, MissionStage::Replayability);
         assert_eq!(record.admissibility.verdict, Verdict::Permit);
         assert_eq!(record.gate_receipt_hashes.len(), 5);
-        let final_receipt = record.final_receipt.as_ref().expect("permit must have final receipt");
+        let final_receipt = record
+            .final_receipt
+            .as_ref()
+            .expect("permit must have final receipt");
         assert_eq!(final_receipt.kind, ReceiptKind::NodeLifecycle);
         assert_eq!(final_receipt.claim_ref, record.envelope.mission_id);
         assert_eq!(record.receipt_id, Some(final_receipt.receipt_id));
-        assert_eq!(record.mission_payload_hash, Some(final_receipt.claim_ref).map(|_| record.mission_payload_hash.unwrap()));
+        assert_eq!(
+            record.mission_payload_hash,
+            Some(final_receipt.claim_ref).map(|_| record.mission_payload_hash.unwrap())
+        );
         assert_eq!(rt.mission_count(), 1);
         // Cycle-7 G1: chain now carries 8 records per permitted mission —
         // 1 envelope + 5 gates + 1 final ReceiptArtifact + 1 ManifestArtifact.
         // Head advances to the manifest hash (the manifest is the LAST thing
         // appended on the permit path).
-        assert_eq!(rt.chain.len(), 8, "1 mission + 5 gates + 1 final receipt + 1 manifest");
-        let manifest = record.manifest.as_ref().expect("permit must carry a manifest");
+        assert_eq!(
+            rt.chain.len(),
+            8,
+            "1 mission + 5 gates + 1 final receipt + 1 manifest"
+        );
+        let manifest = record
+            .manifest
+            .as_ref()
+            .expect("permit must carry a manifest");
         assert_eq!(rt.chain.head(), manifest.manifest_id);
 
         // Registry lookup returns an equivalent record.
@@ -2159,24 +2204,46 @@ mod tests {
 
         let record = rt.submit_mission(envelope, claim).unwrap();
 
-        assert!(record.rejected, "verdict was Reject — record must be marked rejected");
-        assert!(record.receipt_id.is_none(), "rejected mission must have no receipt_id");
-        assert!(record.final_receipt.is_none(), "rejected mission must have no final receipt");
-        assert!(record.mission_payload_hash.is_none(),
-            "rejected mission envelope was NOT appended to chain");
-        assert_eq!(record.stage, MissionStage::Admissibility,
-            "rejected mission stops at S4 Admissibility");
+        assert!(
+            record.rejected,
+            "verdict was Reject — record must be marked rejected"
+        );
+        assert!(
+            record.receipt_id.is_none(),
+            "rejected mission must have no receipt_id"
+        );
+        assert!(
+            record.final_receipt.is_none(),
+            "rejected mission must have no final receipt"
+        );
+        assert!(
+            record.mission_payload_hash.is_none(),
+            "rejected mission envelope was NOT appended to chain"
+        );
+        assert_eq!(
+            record.stage,
+            MissionStage::Admissibility,
+            "rejected mission stops at S4 Admissibility"
+        );
         assert_eq!(record.admissibility.verdict, Verdict::Reject);
-        assert!(record.admissibility.rejected.is_some(),
-            "reject must carry RejectedClaim with remediation path");
+        assert!(
+            record.admissibility.rejected.is_some(),
+            "reject must carry RejectedClaim with remediation path"
+        );
 
         // Chain UNCHANGED on reject (§10 chain-is-truth).
-        assert_eq!(rt.chain.len(), pre_chain_len,
-            "rejected mission must NOT advance the chain at all");
+        assert_eq!(
+            rt.chain.len(),
+            pre_chain_len,
+            "rejected mission must NOT advance the chain at all"
+        );
 
         // Registry PRESERVES the rejection (derived state per §10).
-        assert_eq!(rt.mission_count(), 1,
-            "rejected mission must be queryable via mission_by_id");
+        assert_eq!(
+            rt.mission_count(),
+            1,
+            "rejected mission must be queryable via mission_by_id"
+        );
         let from_registry = rt.mission_by_id(&mission_id).unwrap();
         assert!(from_registry.rejected);
         assert_eq!(from_registry.stage, MissionStage::Admissibility);
@@ -2193,8 +2260,11 @@ mod tests {
 
         let record = rt.submit_mission(envelope, claim).unwrap();
 
-        assert_eq!(record.envelope.stage, MissionStage::Replayability,
-            "permit + decode-verified replay must reach S8");
+        assert_eq!(
+            record.envelope.stage,
+            MissionStage::Replayability,
+            "permit + decode-verified replay must reach S8"
+        );
         assert_eq!(record.stage, MissionStage::Replayability);
     }
 
@@ -2237,7 +2307,10 @@ mod tests {
 
         // Manifest fields are deterministic and mission-bound.
         assert_eq!(manifest.receipt_count as usize, manifest.receipt_refs.len());
-        assert!(manifest.verify_integrity(), "integrity hash must round-trip");
+        assert!(
+            manifest.verify_integrity(),
+            "integrity hash must round-trip"
+        );
 
         // chain_head_at_generation captures the PRE-manifest-append head —
         // i.e., the final ReceiptArtifact (NodeLifecycle) hash. The manifest
@@ -2312,11 +2385,7 @@ mod tests {
 
         // The manifest payload is the LAST record on chain (appended after
         // ReceiptArtifact), and it carries the dedicated ReceiptKind::Manifest.
-        let last = rt
-            .chain
-            .records()
-            .last()
-            .expect("chain must be non-empty");
+        let last = rt.chain.records().last().expect("chain must be non-empty");
         assert_eq!(last.kind, ReceiptKind::Manifest);
         assert_eq!(last.hash, manifest.manifest_id);
     }
@@ -2393,18 +2462,27 @@ mod tests {
             let env = test_envelope(2_000);
             let record = rt.submit_principal_activation(env, 0.40).unwrap();
 
-            assert!(record.rejected, "quality 0.40 below IHSAN_FLOOR must Reject");
-            assert!(record.profile.is_none(), "§10 Proof Law: no profile on reject");
+            assert!(
+                record.rejected,
+                "quality 0.40 below IHSAN_FLOOR must Reject"
+            );
+            assert!(
+                record.profile.is_none(),
+                "§10 Proof Law: no profile on reject"
+            );
             assert!(
                 record.activation_receipt.is_none(),
                 "§10 Proof Law: no PrincipalActivationReceipt on reject"
             );
-            assert!(rt.principal_profile().is_none(),
-                "runtime principal_profile must stay None on reject");
+            assert!(
+                rt.principal_profile().is_none(),
+                "runtime principal_profile must stay None on reject"
+            );
             let remediation = record.remediation.as_ref().expect("remediation set");
             assert!(
                 remediation.contains("REJECTED"),
-                "remediation must name the rejection honestly: {}", remediation
+                "remediation must name the rejection honestly: {}",
+                remediation
             );
         }
 
@@ -2418,10 +2496,15 @@ mod tests {
             let profile = record.profile.as_ref().unwrap();
             let mission_receipt_id = record.mission_record.receipt_id.unwrap();
 
-            assert_eq!(receipt.activation_receipt_ref, mission_receipt_id,
-                "PrincipalActivationReceipt must reference the NodeLifecycle mission receipt_id");
-            assert_eq!(receipt.principal_profile_hash, profile.profile_hash(),
-                "PrincipalActivationReceipt must carry the profile's canonical hash");
+            assert_eq!(
+                receipt.activation_receipt_ref, mission_receipt_id,
+                "PrincipalActivationReceipt must reference the NodeLifecycle mission receipt_id"
+            );
+            assert_eq!(
+                receipt.principal_profile_hash,
+                profile.profile_hash(),
+                "PrincipalActivationReceipt must carry the profile's canonical hash"
+            );
             assert_eq!(receipt.principal_id, profile.principal_id);
         }
 
@@ -2434,8 +2517,12 @@ mod tests {
             let record = rt.submit_principal_activation(env, 0.98).unwrap();
             let after = rt.chain.len();
             assert!(!record.rejected);
-            assert_eq!(after - before, 9,
-                "permit activation must append exactly 9 chain records (got {})", after - before);
+            assert_eq!(
+                after - before,
+                9,
+                "permit activation must append exactly 9 chain records (got {})",
+                after - before
+            );
         }
 
         #[test]
@@ -2447,8 +2534,12 @@ mod tests {
             let record = rt.submit_principal_activation(env, 0.40).unwrap();
             let after = rt.chain.len();
             assert!(record.rejected);
-            assert_eq!(after - before, 0,
-                "rejected activation must not touch the chain (grew by {})", after - before);
+            assert_eq!(
+                after - before,
+                0,
+                "rejected activation must not touch the chain (grew by {})",
+                after - before
+            );
         }
 
         #[test]
@@ -2457,8 +2548,11 @@ mod tests {
             let env = test_envelope(6_000);
             let record = rt.submit_principal_activation(env, 0.98).unwrap();
             let pa_receipt = record.activation_receipt.as_ref().unwrap();
-            assert_eq!(rt.chain.head(), pa_receipt.receipt_id,
-                "chain head must equal the PrincipalActivationReceipt id after permit");
+            assert_eq!(
+                rt.chain.head(),
+                pa_receipt.receipt_id,
+                "chain head must equal the PrincipalActivationReceipt id after permit"
+            );
         }
 
         // ── Cycle-7 G2 Commit-3 — disk cache integration ──
@@ -2474,8 +2568,10 @@ mod tests {
             assert!(!record.rejected);
             assert!(record.cache_warning.is_none(), "cache write should succeed");
             let cache = rt.dema_cache().expect("cache attached");
-            assert!(cache.principal_path().exists(),
-                "principal.json must exist on disk after permit activation");
+            assert!(
+                cache.principal_path().exists(),
+                "principal.json must exist on disk after permit activation"
+            );
         }
 
         #[test]
@@ -2488,8 +2584,10 @@ mod tests {
 
             assert!(record.rejected);
             let cache = rt.dema_cache().unwrap();
-            assert!(!cache.principal_path().exists(),
-                "rejected activation must not touch disk cache (§10 Proof Law)");
+            assert!(
+                !cache.principal_path().exists(),
+                "rejected activation must not touch disk cache (§10 Proof Law)"
+            );
         }
 
         #[test]
@@ -2501,8 +2599,10 @@ mod tests {
             assert!(!record.rejected);
             assert!(record.cache_warning.is_none());
             assert!(rt.dema_cache().is_none());
-            assert!(rt.principal_profile().is_some(),
-                "in-memory profile still set even without cache attached");
+            assert!(
+                rt.principal_profile().is_some(),
+                "in-memory profile still set even without cache attached"
+            );
         }
 
         #[test]
@@ -2527,8 +2627,10 @@ mod tests {
             //    cache, rehydrate profile from disk.
             let mut rt2 = minimal_runtime();
             rt2.attach_dema_cache(sovereign_root);
-            assert!(rt2.principal_profile().is_none(),
-                "fresh runtime has no in-memory profile before rehydrate");
+            assert!(
+                rt2.principal_profile().is_none(),
+                "fresh runtime has no in-memory profile before rehydrate"
+            );
             let loaded = rt2.rehydrate_principal_from_cache().unwrap();
             assert!(loaded, "profile must be readable from cache after restart");
 
@@ -2567,15 +2669,21 @@ mod tests {
             let env = test_envelope(30_000);
             let record = rt.submit_principal_activation(env, 0.98).unwrap();
             let original_hash = record.profile.as_ref().unwrap().profile_hash();
-            let receipt_hash = record.activation_receipt.as_ref().unwrap().principal_profile_hash;
+            let receipt_hash = record
+                .activation_receipt
+                .as_ref()
+                .unwrap()
+                .principal_profile_hash;
             assert_eq!(original_hash, receipt_hash);
 
             let mut rt2 = minimal_runtime();
             rt2.attach_dema_cache(td.path());
             rt2.rehydrate_principal_from_cache().unwrap();
             let reloaded_hash = rt2.principal_profile().unwrap().profile_hash();
-            assert_eq!(reloaded_hash, original_hash,
-                "profile_hash must survive disk round-trip for G2 binding integrity");
+            assert_eq!(
+                reloaded_hash, original_hash,
+                "profile_hash must survive disk round-trip for G2 binding integrity"
+            );
         }
 
         #[test]
@@ -2591,10 +2699,14 @@ mod tests {
 
             let p1 = r1.profile.as_ref().unwrap();
             let p2 = r2.profile.as_ref().unwrap();
-            assert_eq!(p1.principal_id, p2.principal_id,
-                "principal_id is stable across re-activations of the same principal");
-            assert_ne!(p1.activation_receipt_id, p2.activation_receipt_id,
-                "activation_receipt_id must differ across distinct mission submissions");
+            assert_eq!(
+                p1.principal_id, p2.principal_id,
+                "principal_id is stable across re-activations of the same principal"
+            );
+            assert_ne!(
+                p1.activation_receipt_id, p2.activation_receipt_id,
+                "activation_receipt_id must differ across distinct mission submissions"
+            );
         }
     }
 
@@ -2647,7 +2759,9 @@ mod tests {
             let rt = CognitionRuntime::from_sovereign_state(td.path())
                 .expect("valid fixture should bootstrap");
 
-            let snap = rt.sovereign_snapshot().expect("snapshot should be attached");
+            let snap = rt
+                .sovereign_snapshot()
+                .expect("snapshot should be attached");
             assert_eq!(snap.envelopes_count(), 1);
             assert_eq!(snap.total_entries(), 1);
             assert_eq!(snap.envelopes[0].entries[0].event, "bootstrap_test");
@@ -2671,7 +2785,9 @@ mod tests {
             let graph =
                 ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
             let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-            let ctx = AgentCtx { receipt_chain: genesis };
+            let ctx = AgentCtx {
+                receipt_chain: genesis,
+            };
             let rt = CognitionRuntime::new(graph, chain, ctx);
             assert!(rt.sovereign_snapshot().is_none());
         }
@@ -2689,8 +2805,7 @@ mod tests {
             "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a";
 
         fn test_envelope(now_ns: u64) -> PrincipalActivationEnvelope {
-            let a =
-                NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-18T06:00:00Z");
+            let a = NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-18T06:00:00Z");
             PrincipalActivationEnvelope::from_anchor(
                 "Mumo".into(),
                 "node0_principal".into(),
@@ -2705,7 +2820,9 @@ mod tests {
             let mut rt = minimal_runtime();
             assert!(rt.receipt_history_cache().is_none());
             // Advance the chain via a permitted activation.
-            let _ = rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            let _ = rt
+                .submit_principal_activation(test_envelope(1_000), 0.98)
+                .unwrap();
             // No cache → write helper returns None, no panic.
             assert!(rt.write_receipt_history_cache().is_none());
             assert!(rt.rehydrate_receipt_history_from_cache().unwrap().is_none());
@@ -2726,7 +2843,9 @@ mod tests {
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
 
-            let record = rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            let record = rt
+                .submit_principal_activation(test_envelope(1_000), 0.98)
+                .unwrap();
             assert!(!record.rejected);
 
             let loaded = rt
@@ -2773,7 +2892,8 @@ mod tests {
             let (head_a, len_a) = {
                 let mut rt = minimal_runtime();
                 rt.attach_dema_cache(td.path());
-                rt.submit_principal_activation(test_envelope(42_000), 0.97).unwrap();
+                rt.submit_principal_activation(test_envelope(42_000), 0.97)
+                    .unwrap();
                 (rt.chain.head(), rt.chain.len())
             };
 
@@ -2792,7 +2912,8 @@ mod tests {
             let td = tempfile::TempDir::new().unwrap();
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
-            rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            rt.submit_principal_activation(test_envelope(1_000), 0.98)
+                .unwrap();
             // Explicit helper call round-trips Ok(Some(Ok(()))).
             let result = rt.write_receipt_history_cache().expect("cache attached");
             result.expect("write succeeds");
@@ -2804,7 +2925,9 @@ mod tests {
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
 
-            let r1 = rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            let r1 = rt
+                .submit_principal_activation(test_envelope(1_000), 0.98)
+                .unwrap();
             let head_after_first = rt.chain.head();
             let snap1 = rt.rehydrate_receipt_history_from_cache().unwrap().unwrap();
             assert_eq!(snap1.head, head_after_first);
@@ -2833,8 +2956,7 @@ mod tests {
             "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a";
 
         fn test_envelope(now_ns: u64) -> PrincipalActivationEnvelope {
-            let a =
-                NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-18T06:00:00Z");
+            let a = NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-18T06:00:00Z");
             PrincipalActivationEnvelope::from_anchor(
                 "Mumo".into(),
                 "node0_principal".into(),
@@ -2897,10 +3019,7 @@ mod tests {
             // Cache is written on reject path but must contain zero
             // manifests — the missions registry holds the rejected
             // record with manifest=None, which the snapshot filters.
-            let loaded = rt
-                .rehydrate_manifest_history_from_cache()
-                .unwrap()
-                .unwrap();
+            let loaded = rt.rehydrate_manifest_history_from_cache().unwrap().unwrap();
             assert!(loaded.manifests.is_empty());
         }
 
@@ -2910,7 +3029,9 @@ mod tests {
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
 
-            let record = rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            let record = rt
+                .submit_principal_activation(test_envelope(1_000), 0.98)
+                .unwrap();
             assert!(!record.rejected);
 
             let loaded = rt
@@ -2945,10 +3066,7 @@ mod tests {
             let c2 = permit_claim(&e2, 2_100);
             let r2 = rt.submit_mission(e2, c2).unwrap();
 
-            let loaded = rt
-                .rehydrate_manifest_history_from_cache()
-                .unwrap()
-                .unwrap();
+            let loaded = rt.rehydrate_manifest_history_from_cache().unwrap().unwrap();
             assert_eq!(loaded.manifests.len(), 2);
             // window_start-ascending order.
             assert!(
@@ -2995,8 +3113,7 @@ mod tests {
             "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a";
 
         fn test_envelope(now_ns: u64) -> PrincipalActivationEnvelope {
-            let a =
-                NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-18T06:00:00Z");
+            let a = NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-18T06:00:00Z");
             PrincipalActivationEnvelope::from_anchor(
                 "Mumo".into(),
                 "node0_principal".into(),
@@ -3100,7 +3217,8 @@ mod tests {
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
 
-            rt.submit_principal_activation(test_envelope(1_000), 0.98).unwrap();
+            rt.submit_principal_activation(test_envelope(1_000), 0.98)
+                .unwrap();
 
             let loaded = rt.rehydrate_mission_log_from_cache().unwrap().unwrap();
             assert_eq!(loaded.entries.len(), 1);
@@ -3276,9 +3394,7 @@ mod tests {
             rt.seed_resource_registry_if_missing().unwrap();
             // Directly write a non-empty registry simulating a G4 mutation.
             let cache = rt.resource_registry_cache().unwrap().clone();
-            use crate::resource_registry_cache::{
-                ResourceEntry, ResourceRegistrySnapshot,
-            };
+            use crate::resource_registry_cache::{ResourceEntry, ResourceRegistrySnapshot};
             let populated = ResourceRegistrySnapshot {
                 resources: vec![ResourceEntry {
                     id: "/home/mumo/docs".into(),
@@ -3555,7 +3671,9 @@ mod tests {
             let chain_before = rt.chain.head();
             let len_before = rt.chain.len();
 
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             match outcome {
                 OrganizeOutcome::NotAllowlisted { path, remediation } => {
                     assert_eq!(path, target_subdir(&td).to_string_lossy().into_owned());
@@ -3585,7 +3703,9 @@ mod tests {
             )
             .unwrap();
 
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             assert!(matches!(outcome, OrganizeOutcome::NotAllowlisted { .. }));
         }
 
@@ -3621,7 +3741,9 @@ mod tests {
             write_fixture_dir(&target_subdir(&td));
             allowlist(&mut rt, &target_subdir(&td));
 
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             match outcome {
                 OrganizeOutcome::Executed {
                     mission_record,
@@ -3652,9 +3774,13 @@ mod tests {
             write_fixture_dir(&target_subdir(&td));
             allowlist(&mut rt, &target_subdir(&td));
 
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             let id = match outcome {
-                OrganizeOutcome::Executed { organize_receipt, .. } => organize_receipt.receipt_id,
+                OrganizeOutcome::Executed {
+                    organize_receipt, ..
+                } => organize_receipt.receipt_id,
                 other => panic!("expected Executed, got {:?}", other),
             };
             // Fetch + decode round-trip from the payload store.
@@ -3677,9 +3803,14 @@ mod tests {
 
             // quality below IHSAN_FLOOR -> reject
             let chain_before_len = rt.chain.len();
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.40).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.40)
+                .unwrap();
             match outcome {
-                OrganizeOutcome::Rejected { mission_record, remediation } => {
+                OrganizeOutcome::Rejected {
+                    mission_record,
+                    remediation,
+                } => {
                     assert!(mission_record.rejected);
                     assert!(remediation.contains("REJECTED"));
                 }
@@ -3703,7 +3834,8 @@ mod tests {
             allowlist(&mut rt, &target_subdir(&td));
 
             let before = rt.chain.len();
-            rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            rt.submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             let after = rt.chain.len();
             assert_eq!(after - before, 9, "expected +9 records for permit path");
         }
@@ -3719,12 +3851,22 @@ mod tests {
             write_fixture_dir(&target_subdir(&td));
             allowlist(&mut rt, &target_subdir(&td));
 
-            let id1 = match rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap() {
-                OrganizeOutcome::Executed { organize_receipt, .. } => organize_receipt.receipt_id,
+            let id1 = match rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap()
+            {
+                OrganizeOutcome::Executed {
+                    organize_receipt, ..
+                } => organize_receipt.receipt_id,
                 _ => unreachable!(),
             };
-            let id2 = match rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap() {
-                OrganizeOutcome::Executed { organize_receipt, .. } => organize_receipt.receipt_id,
+            let id2 = match rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap()
+            {
+                OrganizeOutcome::Executed {
+                    organize_receipt, ..
+                } => organize_receipt.receipt_id,
                 _ => unreachable!(),
             };
             assert_ne!(id1, id2);
@@ -3755,7 +3897,9 @@ mod tests {
             rt.submit_principal_activation(env, 0.98).unwrap();
             let principal_id = rt.principal_profile().unwrap().principal_id;
 
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             match outcome {
                 OrganizeOutcome::Executed { mission_record, .. } => {
                     match mission_record.envelope.originator {
@@ -3777,9 +3921,13 @@ mod tests {
             fs::create_dir_all(target_subdir(&td)).unwrap();
             allowlist(&mut rt, &target_subdir(&td));
 
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             match outcome {
-                OrganizeOutcome::Executed { organize_receipt, .. } => {
+                OrganizeOutcome::Executed {
+                    organize_receipt, ..
+                } => {
                     assert_eq!(organize_receipt.entry_count, 0);
                     assert_eq!(organize_receipt.file_count, 0);
                     assert_eq!(organize_receipt.dir_count, 0);
@@ -3795,13 +3943,12 @@ mod tests {
             rt.attach_dema_cache(td.path());
             write_fixture_dir(&target_subdir(&td));
             allowlist(&mut rt, &target_subdir(&td));
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             assert!(outcome.is_executed());
             let refused = rt
-                .submit_organize_mission(
-                    &td.path().join("not-registered"),
-                    0.98,
-                )
+                .submit_organize_mission(&td.path().join("not-registered"), 0.98)
                 .unwrap();
             assert!(!refused.is_executed());
         }
@@ -3819,7 +3966,9 @@ mod tests {
         const TEST_PUBKEY_HEX: &str =
             "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a";
 
-        fn activation_envelope(now_ns: u64) -> crate::principal_activation::PrincipalActivationEnvelope {
+        fn activation_envelope(
+            now_ns: u64,
+        ) -> crate::principal_activation::PrincipalActivationEnvelope {
             crate::principal_activation::PrincipalActivationEnvelope::from_anchor(
                 "Mumo".into(),
                 "node0_principal".into(),
@@ -3865,7 +4014,9 @@ mod tests {
             let td = tempfile::TempDir::new().unwrap();
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
-            let rec = rt.submit_principal_activation(activation_envelope(1000), 0.98).unwrap();
+            let rec = rt
+                .submit_principal_activation(activation_envelope(1000), 0.98)
+                .unwrap();
             assert!(!rec.rejected);
 
             assert_eq!(rt.poi_entries().len(), 1);
@@ -3893,7 +4044,9 @@ mod tests {
             )
             .unwrap();
 
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             assert!(outcome.is_executed());
 
             assert_eq!(rt.poi_entries().len(), 1);
@@ -3919,9 +4072,14 @@ mod tests {
             )
             .unwrap();
             // quality below IHSAN_FLOOR
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.40).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.40)
+                .unwrap();
             assert!(!outcome.is_executed());
-            assert!(rt.poi_entries().is_empty(), "§10 Proof Law: no chain, no ledger");
+            assert!(
+                rt.poi_entries().is_empty(),
+                "§10 Proof Law: no chain, no ledger"
+            );
         }
 
         #[test]
@@ -3931,7 +4089,9 @@ mod tests {
             rt.attach_dema_cache(td.path());
             write_fixture_dir(&target_subdir(&td));
             // NOT allowlisted
-            let outcome = rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            let outcome = rt
+                .submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
             assert!(matches!(outcome, OrganizeOutcome::NotAllowlisted { .. }));
             assert!(rt.poi_entries().is_empty());
         }
@@ -3943,7 +4103,8 @@ mod tests {
             rt.attach_dema_cache(td.path());
             write_fixture_dir(&target_subdir(&td));
 
-            rt.submit_principal_activation(activation_envelope(1000), 0.98).unwrap();
+            rt.submit_principal_activation(activation_envelope(1000), 0.98)
+                .unwrap();
             rt.register_resource(
                 TypedResource::new(
                     ResourceKind::FilesystemPath,
@@ -3954,7 +4115,8 @@ mod tests {
                 .unwrap(),
             )
             .unwrap();
-            rt.submit_organize_mission(&target_subdir(&td), 0.98).unwrap();
+            rt.submit_organize_mission(&target_subdir(&td), 0.98)
+                .unwrap();
 
             assert_eq!(rt.poi_entries().len(), 2);
             assert_eq!(rt.poi_entries()[0].receipt_kind_byte, 0x61);
@@ -3969,7 +4131,8 @@ mod tests {
             let td = tempfile::TempDir::new().unwrap();
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
-            rt.submit_principal_activation(activation_envelope(1000), 0.98).unwrap();
+            rt.submit_principal_activation(activation_envelope(1000), 0.98)
+                .unwrap();
 
             let cache = PoiLedgerCache::at_sovereign_root(td.path());
             let loaded = cache.read().unwrap().expect("cache written after permit");
@@ -3984,7 +4147,8 @@ mod tests {
             {
                 let mut rt = minimal_runtime();
                 rt.attach_dema_cache(td.path());
-                rt.submit_principal_activation(activation_envelope(1000), 0.98).unwrap();
+                rt.submit_principal_activation(activation_envelope(1000), 0.98)
+                    .unwrap();
             }
             // Session B: fresh runtime, load from cache.
             let mut rt = minimal_runtime();

@@ -160,9 +160,7 @@ def _check_ethics(
         check=Check.ETHICS,
         passed=passed,
         score=ihsan_score,
-        detail=(
-            f"Ihsān={ihsan_score:.3f} vs threshold={UNIFIED_IHSAN_THRESHOLD}"
-        ),
+        detail=(f"Ihsān={ihsan_score:.3f} vs threshold={UNIFIED_IHSAN_THRESHOLD}"),
         evidence_level=EvidenceLevel.VERIFIED,
     )
 

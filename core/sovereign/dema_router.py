@@ -36,13 +36,27 @@ class DEMARouter:
     """
 
     # Priority keywords
-    URGENT_KEYWORDS = frozenset({
-        "urgent", "asap", "immediately", "critical", "emergency",
-        "now", "right away", "blocker",
-    })
-    HIGH_KEYWORDS = frozenset({
-        "important", "priority", "soon", "deadline", "review",
-    })
+    URGENT_KEYWORDS = frozenset(
+        {
+            "urgent",
+            "asap",
+            "immediately",
+            "critical",
+            "emergency",
+            "now",
+            "right away",
+            "blocker",
+        }
+    )
+    HIGH_KEYWORDS = frozenset(
+        {
+            "important",
+            "priority",
+            "soon",
+            "deadline",
+            "review",
+        }
+    )
 
     def __init__(
         self,
@@ -79,9 +93,31 @@ class DEMARouter:
         # Inline fallback — same keyword map as user_context.select_pat_agent
         lower = query.lower()
         role_keywords = {
-            "strategist": ["plan", "strategy", "roadmap", "vision", "goal", "direction"],
-            "researcher": ["research", "investigate", "study", "analyze", "find", "explore"],
-            "developer": ["code", "build", "implement", "fix", "debug", "develop", "create"],
+            "strategist": [
+                "plan",
+                "strategy",
+                "roadmap",
+                "vision",
+                "goal",
+                "direction",
+            ],
+            "researcher": [
+                "research",
+                "investigate",
+                "study",
+                "analyze",
+                "find",
+                "explore",
+            ],
+            "developer": [
+                "code",
+                "build",
+                "implement",
+                "fix",
+                "debug",
+                "develop",
+                "create",
+            ],
             "analyst": ["data", "metrics", "report", "trend", "revenue", "performance"],
             "reviewer": ["review", "audit", "check", "verify", "assess", "evaluate"],
             "executor": ["run", "execute", "deploy", "launch", "start", "activate"],

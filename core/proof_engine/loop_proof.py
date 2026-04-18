@@ -24,15 +24,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from core.proof_engine.evidence_audit import EvidenceAuditResult, audit_evidence
-from core.proof_engine.fate_gate import FateResult, validate_with_evidence
-from core.proof_engine.fate_telemetry import FateTelemetry
+from core.proof_engine.fate_gate import validate_with_evidence
 from core.proof_engine.model_routing import (
     PatRole,
     SatRole,
@@ -40,7 +37,7 @@ from core.proof_engine.model_routing import (
     get_sat_model,
     routing_table_summary,
 )
-from core.proof_engine.sat_validator import SatVerdict, SimplePatOutput
+from core.proof_engine.sat_validator import SimplePatOutput
 
 
 @dataclass

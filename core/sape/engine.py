@@ -47,13 +47,13 @@ from .modules import (
 from .probes import run_probes
 from .prompt import compile_sape_v2_prompt
 from .types import (
+    MODE_MODULES,
+    MODE_PASSES,
+    MODE_PROBES,
     CheckResult,
     EvidenceLevel,
     ExecutionMode,
     IntentSlots,
-    MODE_MODULES,
-    MODE_PASSES,
-    MODE_PROBES,
     Module,
     ModuleResult,
     Pass,
@@ -196,24 +196,28 @@ class SAPEv2Engine:
                 snr_fn=self._snr_fn,
                 ihsan_score=self._compute_ihsan(content),
             )
-            pass_results.append(PassResult(
-                pass_type=Pass.DIVERGE,
-                output="Divergence complete — probes fired",
-                modules_run=[m.module for m in module_results],
-                probes_run=active_probes,
-                snr_score=self._compute_snr(content),
-            ))
+            pass_results.append(
+                PassResult(
+                    pass_type=Pass.DIVERGE,
+                    output="Divergence complete — probes fired",
+                    modules_run=[m.module for m in module_results],
+                    probes_run=active_probes,
+                    snr_score=self._compute_snr(content),
+                )
+            )
         else:
             probe_results = []
 
         # ─── Pass 2: Converge (always) ───
         convergence_snr = self._aggregate_snr(module_results)
-        pass_results.append(PassResult(
-            pass_type=Pass.CONVERGE,
-            output="Convergence complete — modules synthesized",
-            modules_run=[m.module for m in module_results],
-            snr_score=convergence_snr,
-        ))
+        pass_results.append(
+            PassResult(
+                pass_type=Pass.CONVERGE,
+                output="Convergence complete — modules synthesized",
+                modules_run=[m.module for m in module_results],
+                snr_score=convergence_snr,
+            )
+        )
 
         # ─── Selection Gate (Standard mode) ───
         if mode == ExecutionMode.STANDARD:
@@ -226,12 +230,14 @@ class SAPEv2Engine:
 
         # ─── Pass 3: Prove or Bound (Deep only) ───
         if Pass.PROVE_OR_BOUND in active_passes:
-            pass_results.append(PassResult(
-                pass_type=Pass.PROVE_OR_BOUND,
-                output="Prove or Bound complete — 6 checks applied with falsification attempt",
-                modules_run=[m.module for m in module_results],
-                snr_score=convergence_snr,
-            ))
+            pass_results.append(
+                PassResult(
+                    pass_type=Pass.PROVE_OR_BOUND,
+                    output="Prove or Bound complete — 6 checks applied with falsification attempt",
+                    modules_run=[m.module for m in module_results],
+                    snr_score=convergence_snr,
+                )
+            )
 
         # ─── 6 Checks (always all 6) ───
         overall_ihsan = self._compute_ihsan(content)
@@ -329,9 +335,7 @@ class SAPEv2Engine:
         evidence: Optional[List[Dict[str, Any]]],
     ) -> EvidenceLevel:
         """Derive overall evidence level from module results."""
-        if evidence and any(
-            e.get("evidence_level") == "VERIFIED" for e in evidence
-        ):
+        if evidence and any(e.get("evidence_level") == "VERIFIED" for e in evidence):
             return EvidenceLevel.VERIFIED
         if evidence:
             return EvidenceLevel.GROUNDED_INFERENCE
@@ -397,7 +401,9 @@ class SAPEv2Engine:
             for r in failed_checks:
                 sections.append(f"  CHECK FAILED: {r.check.value} — {r.detail}")
             for r in flagged:
-                sections.append(f"  PROBE FLAGGED: {r.probe.value} — {r.findings[:100]}")
+                sections.append(
+                    f"  PROBE FLAGGED: {r.probe.value} — {r.findings[:100]}"
+                )
 
         return "\n".join(sections)
 

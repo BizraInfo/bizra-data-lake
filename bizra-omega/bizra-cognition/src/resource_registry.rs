@@ -223,8 +223,7 @@ impl UrpView {
         let allowlisted_count = resources.iter().filter(|r| r.allowlisted).count();
 
         use std::collections::BTreeMap;
-        let mut by_kind: BTreeMap<String, (ResourceKind, Vec<TypedResource>)> =
-            BTreeMap::new();
+        let mut by_kind: BTreeMap<String, (ResourceKind, Vec<TypedResource>)> = BTreeMap::new();
         for r in resources {
             let key = r.kind.as_str().to_string();
             let entry = by_kind
@@ -388,7 +387,10 @@ mod tests {
         ]);
         // alphabetical by canonical string: credential, filesystem, network, process
         let kinds: Vec<&str> = v.buckets.iter().map(|b| b.kind.as_str()).collect();
-        assert_eq!(kinds, vec!["credential", "filesystem", "network", "process"]);
+        assert_eq!(
+            kinds,
+            vec!["credential", "filesystem", "network", "process"]
+        );
     }
 
     #[test]
@@ -399,7 +401,11 @@ mod tests {
             mk(ResourceKind::FilesystemPath, "/mm", false),
         ]);
         assert_eq!(v.buckets.len(), 1);
-        let ids: Vec<&str> = v.buckets[0].resources.iter().map(|r| r.id.as_str()).collect();
+        let ids: Vec<&str> = v.buckets[0]
+            .resources
+            .iter()
+            .map(|r| r.id.as_str())
+            .collect();
         assert_eq!(ids, vec!["/aa", "/mm", "/zz"]);
     }
 

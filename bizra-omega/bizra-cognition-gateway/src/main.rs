@@ -8,6 +8,11 @@
 // v0.2 scope (Cycle-5 G3): v0.1 read surface + POST /mission for principal
 // activation. Chain starts empty; first successful mission emits the founding
 // activation receipt lineage.
+//
+// ── ci-hygiene waivers (2026-04-18) ─────────────────────────────────
+//   - dead_code: axum handler DTOs carry fields consumed by serde only.
+//   - result_large_err: axum error tuples are inline for tower::Layer.
+#![allow(dead_code, clippy::result_large_err)]
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -26,17 +31,11 @@ use bizra_cognition::admissibility_freeze_v1::{
 use bizra_cognition::mission_freeze_v1::{
     MissionEnvelope, MissionStage, Originator, StateSnapshot,
 };
-use bizra_cognition::principal_activation::{
-    NodeIdentityAnchor, PrincipalActivationEnvelope,
-};
-use bizra_cognition::resource_registry::{
-    RegisterOutcome, ResourceKind, TypedResource, UrpView,
-};
-use bizra_cognition::runtime::OrganizeOutcome;
 use bizra_cognition::poi_ledger::PoiEntry;
-use bizra_cognition::receipts::{
-    Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind,
-};
+use bizra_cognition::principal_activation::{NodeIdentityAnchor, PrincipalActivationEnvelope};
+use bizra_cognition::receipts::{Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind};
+use bizra_cognition::resource_registry::{RegisterOutcome, ResourceKind, TypedResource, UrpView};
+use bizra_cognition::runtime::OrganizeOutcome;
 use bizra_cognition::runtime::{
     CognitionRuntime, MissionReplayResult, MissionRuntimeError, MissionRuntimeRecord,
 };
@@ -198,7 +197,10 @@ struct ActivatePrincipalRequest {
     /// Absolute or CWD-relative path to the node identity anchor JSON
     /// (Python-authored sovereign_state/identity/credentials.json).
     /// Defaults to BIZRA_IDENTITY_ANCHOR env var or the canonical path.
-    #[serde(rename = "identityAnchorPath", default = "default_identity_anchor_path")]
+    #[serde(
+        rename = "identityAnchorPath",
+        default = "default_identity_anchor_path"
+    )]
     identity_anchor_path: String,
 }
 
@@ -540,7 +542,11 @@ fn state_snapshot_from_dto(
             }),
         )
     })?;
-    Ok(StateSnapshot { hash, summary: dto.summary, metric: dto.metric })
+    Ok(StateSnapshot {
+        hash,
+        summary: dto.summary,
+        metric: dto.metric,
+    })
 }
 
 fn now_ns() -> Result<u64, (StatusCode, Json<ErrorResponse>)> {
@@ -679,14 +685,11 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
     // + admissibility evaluation — no graph traversal. This is the minimum viable
     // runtime for the G3 activation surface. Future arcs will attach PAT-7/SAT-5
     // factories via configure_cognition::default_pat7_sat5_config.
-    let graph = ThoughtGraph::from_parts(
-        HashMap::new(),
-        Vec::new(),
-        HashMap::new(),
-        genesis,
-    );
+    let graph = ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
     let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-    let ctx = AgentCtx { receipt_chain: genesis };
+    let ctx = AgentCtx {
+        receipt_chain: genesis,
+    };
     let mut rt = CognitionRuntime::new(graph, chain, ctx);
 
     // Cycle-7 G2 Commit-3 — optional dema_cache attachment. When
@@ -812,24 +815,22 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                 target: DOMAIN,
                 "resource_registry seeded empty (G3 scope; G4 fills)"
             ),
-            Ok(Some(false)) => {
-                match rt.rehydrate_resource_registry_from_cache() {
-                    Ok(Some(snap)) => tracing::info!(
-                        target: DOMAIN,
-                        resources = snap.resources.len(),
-                        "resource_registry cache present from prior session"
-                    ),
-                    Ok(None) => tracing::warn!(
-                        target: DOMAIN,
-                        "resource_registry seed reported existing but read returned None"
-                    ),
-                    Err(e) => tracing::warn!(
-                        target: DOMAIN,
-                        error = %e,
-                        "resource_registry cache malformed — delete to re-seed"
-                    ),
-                }
-            }
+            Ok(Some(false)) => match rt.rehydrate_resource_registry_from_cache() {
+                Ok(Some(snap)) => tracing::info!(
+                    target: DOMAIN,
+                    resources = snap.resources.len(),
+                    "resource_registry cache present from prior session"
+                ),
+                Ok(None) => tracing::warn!(
+                    target: DOMAIN,
+                    "resource_registry seed reported existing but read returned None"
+                ),
+                Err(e) => tracing::warn!(
+                    target: DOMAIN,
+                    error = %e,
+                    "resource_registry cache malformed — delete to re-seed"
+                ),
+            },
             Ok(None) => {}
             Err(e) => tracing::warn!(
                 target: DOMAIN,
@@ -844,7 +845,10 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
 // ─── Handlers ───────────────────────────────────────────────────────────────
 
 async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse { status: "ok", domain: DOMAIN })
+    Json(HealthResponse {
+        status: "ok",
+        domain: DOMAIN,
+    })
 }
 
 async fn get_chain(State(state): State<AppState>) -> Json<ReceiptChainHeadDto> {
@@ -988,7 +992,8 @@ async fn post_mission(
             Json(ErrorResponse {
                 error: ErrorBody {
                     code: "TIMESTAMP_RUNTIME_OWNED",
-                    message: "timestampNs is runtime-owned and cannot be supplied by the caller".into(),
+                    message: "timestampNs is runtime-owned and cannot be supplied by the caller"
+                        .into(),
                     domain: DOMAIN,
                     admissibility: None,
                 },
@@ -1000,13 +1005,8 @@ async fn post_mission(
     let current = state_snapshot_from_dto(req.current_state, "currentState.hash")?;
     let ideal = state_snapshot_from_dto(req.ideal_state, "idealState.hash")?;
 
-    let envelope = MissionEnvelope::from_intent(
-        req.intent.clone(),
-        current,
-        ideal,
-        originator,
-        ts_ns,
-    );
+    let envelope =
+        MissionEnvelope::from_intent(req.intent.clone(), current, ideal, originator, ts_ns);
     let claim_id = envelope.extract_claim_id();
 
     let claim = AdmissibilityClaim {
@@ -1034,7 +1034,9 @@ async fn post_mission(
                     Json(ErrorResponse {
                         error: ErrorBody {
                             code: "PERMIT_WITHOUT_RECEIPT",
-                            message: "permit record missing receipt_id — runtime invariant violated".into(),
+                            message:
+                                "permit record missing receipt_id — runtime invariant violated"
+                                    .into(),
                             domain: DOMAIN,
                             admissibility: None,
                         },
@@ -1319,9 +1321,7 @@ async fn get_resources_list(
 
 // ─── Cycle-7 G6 — /poi handlers ──────────────────────────────────────────
 
-async fn get_poi_ledger(
-    State(state): State<AppState>,
-) -> Json<PoiLedgerResponse> {
+async fn get_poi_ledger(State(state): State<AppState>) -> Json<PoiLedgerResponse> {
     let rt = state.runtime.read().await;
     let snap = rt.poi_ledger_snapshot();
     Json(PoiLedgerResponse {
@@ -1330,9 +1330,7 @@ async fn get_poi_ledger(
     })
 }
 
-async fn get_poi_summary(
-    State(state): State<AppState>,
-) -> Json<PoiSummaryResponse> {
+async fn get_poi_summary(State(state): State<AppState>) -> Json<PoiSummaryResponse> {
     let rt = state.runtime.read().await;
     let snap = rt.poi_ledger_snapshot();
     let total = snap.entries.len();
@@ -1348,10 +1346,7 @@ async fn get_poi_summary(
         0.0
     };
 
-    let kinds: [(u8, &'static str); 2] = [
-        (0x61, "PrincipalActivation"),
-        (0x70, "MissionExecuted"),
-    ];
+    let kinds: [(u8, &'static str); 2] = [(0x61, "PrincipalActivation"), (0x70, "MissionExecuted")];
     let mut by_kind: Vec<PoiPerKindDto> = Vec::with_capacity(kinds.len());
     for (byte, name) in kinds {
         let scoped: Vec<&PoiEntry> = snap
@@ -1662,7 +1657,9 @@ async fn main() {
 
     let genesis = [0u8; 32];
     let runtime = bootstrap_runtime(genesis);
-    let state = AppState { runtime: Arc::new(RwLock::new(runtime)) };
+    let state = AppState {
+        runtime: Arc::new(RwLock::new(runtime)),
+    };
 
     let port: u16 = std::env::var("BIZRA_COGNITION_PORT")
         .ok()
@@ -1767,7 +1764,12 @@ mod tests {
     #[tokio::test]
     async fn health_returns_ok() {
         let res = router(new_state())
-            .oneshot(Request::builder().uri("/health").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/health")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -1776,7 +1778,12 @@ mod tests {
     #[tokio::test]
     async fn empty_chain_returns_zero_head_null_timestamp() {
         let res = router(new_state())
-            .oneshot(Request::builder().uri("/chain").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -1801,7 +1808,12 @@ mod tests {
         let state = new_state_with_sovereign(td.path());
 
         let res = router(state)
-            .oneshot(Request::builder().uri("/chain").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -1824,10 +1836,19 @@ mod tests {
         // Query by hash_b — the head of the snapshot chain
         let uri = format!("/chain/{}", hash_b);
         let res = router(state.clone())
-            .oneshot(Request::builder().uri(&uri).body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri(&uri)
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
-        assert_eq!(res.status(), StatusCode::OK, "durable receipt should be served from snapshot");
+        assert_eq!(
+            res.status(),
+            StatusCode::OK,
+            "durable receipt should be served from snapshot"
+        );
         let body = to_bytes(res.into_body(), 2048).await.unwrap();
         let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(v["id"], hash_b);
@@ -1844,7 +1865,12 @@ mod tests {
 
         let uri = format!("/chain/{}", "f".repeat(64));
         let res = router(state)
-            .oneshot(Request::builder().uri(&uri).body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri(&uri)
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::NOT_FOUND);
@@ -1885,7 +1911,12 @@ mod tests {
 
         // Chain length: 1 mission + 5 gate verdicts + 1 NodeLifecycle + 1 Manifest = 8.
         let chain_res = router(state.clone())
-            .oneshot(Request::builder().uri("/chain").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         let chain_body = to_bytes(chain_res.into_body(), 1024).await.unwrap();
@@ -1974,7 +2005,10 @@ mod tests {
         let mission_res = router(state.clone())
             .oneshot(
                 Request::builder()
-                    .uri(format!("/missions/{}", first["missionId"].as_str().unwrap()))
+                    .uri(format!(
+                        "/missions/{}",
+                        first["missionId"].as_str().unwrap()
+                    ))
                     .body(axum::body::Body::empty())
                     .unwrap(),
             )
@@ -2138,7 +2172,10 @@ mod tests {
         assert_eq!(v["finalStage"], "Replayability");
         assert_eq!(v["missionId"].as_str().unwrap().len(), 64);
         assert_eq!(v["missionReceiptId"].as_str().unwrap().len(), 64);
-        assert_eq!(v["principalActivationReceiptId"].as_str().unwrap().len(), 64);
+        assert_eq!(
+            v["principalActivationReceiptId"].as_str().unwrap().len(),
+            64
+        );
         assert_eq!(v["principalId"].as_str().unwrap().len(), 64);
         assert_eq!(v["profileHash"].as_str().unwrap().len(), 64);
         // Chain head after permit activation is the PrincipalActivationReceipt id.
@@ -2211,10 +2248,7 @@ mod tests {
         let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(v["error"]["code"], "ADMISSIBILITY_REJECTED");
         assert!(
-            v["error"]["message"]
-                .as_str()
-                .unwrap()
-                .contains("REJECTED"),
+            v["error"]["message"].as_str().unwrap().contains("REJECTED"),
             "reject message must be honest"
         );
     }
@@ -2351,7 +2385,12 @@ mod tests {
         let _ = register_resource(router(state.clone()), "network", "host:80", false).await;
 
         let res = router(state)
-            .oneshot(Request::builder().uri("/resources/list").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/resources/list")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -2369,7 +2408,12 @@ mod tests {
         let _ = register_resource(router(state.clone()), "network", "host:80", true).await;
 
         let res = router(state)
-            .oneshot(Request::builder().uri("/resources/urp").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/resources/urp")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -2676,7 +2720,10 @@ mod tests {
         assert_eq!(v["totalEntries"], 2);
         let by_kind = v["byKind"].as_array().unwrap();
         assert_eq!(by_kind.len(), 2);
-        let names: Vec<&str> = by_kind.iter().map(|b| b["kind"].as_str().unwrap()).collect();
+        let names: Vec<&str> = by_kind
+            .iter()
+            .map(|b| b["kind"].as_str().unwrap())
+            .collect();
         assert!(names.contains(&"PrincipalActivation"));
         assert!(names.contains(&"MissionExecuted"));
     }

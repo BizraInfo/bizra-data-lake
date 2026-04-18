@@ -135,8 +135,7 @@ class FATEBoundary:
                 fate_verdict="FAIL",
                 ihsan_score=ihsan_score,
                 reason=(
-                    f"Ihsan {ihsan_score:.2f} < "
-                    f"threshold {self._ihsan_threshold}"
+                    f"Ihsan {ihsan_score:.2f} < " f"threshold {self._ihsan_threshold}"
                 ),
                 elapsed_ms=elapsed,
             )
@@ -146,9 +145,7 @@ class FATEBoundary:
         # 2. FATE gate check (if available)
         if self._fate_gate is not None:
             try:
-                validate_fn = getattr(
-                    self._fate_gate, "validate_with_evidence", None
-                )
+                validate_fn = getattr(self._fate_gate, "validate_with_evidence", None)
                 if validate_fn and callable(validate_fn):
                     pat_output = {
                         "agent_id": agent_id,
@@ -158,17 +155,11 @@ class FATEBoundary:
                     }
                     fate_result = validate_fn(pat_output)
                     passed = getattr(fate_result, "passed", False)
-                    verdict_str = str(
-                        getattr(fate_result, "verdict", "UNKNOWN")
-                    )
-                    evidence_audit = getattr(
-                        fate_result, "evidence_audit", None
-                    )
+                    verdict_str = str(getattr(fate_result, "verdict", "UNKNOWN"))
+                    evidence_audit = getattr(fate_result, "evidence_audit", None)
                     evidence_valid = True
                     if evidence_audit:
-                        evidence_valid = getattr(
-                            evidence_audit, "valid", True
-                        )
+                        evidence_valid = getattr(evidence_audit, "valid", True)
 
                     elapsed = (time.monotonic() - t0) * 1000
                     if passed:
@@ -219,9 +210,7 @@ class FATEBoundary:
             import blake3
 
             content = json.dumps(result.to_dict(), sort_keys=True).encode()
-            receipt_hash = blake3.blake3(
-                self._prev_hash.encode() + content
-            ).hexdigest()
+            receipt_hash = blake3.blake3(self._prev_hash.encode() + content).hexdigest()
             self._prev_hash = receipt_hash
 
             self._receipt_dir.mkdir(parents=True, exist_ok=True)

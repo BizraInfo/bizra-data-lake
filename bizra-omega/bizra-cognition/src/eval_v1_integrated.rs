@@ -22,12 +22,10 @@
 use std::collections::BTreeMap;
 
 use crate::canonical_hasher::blake3_domain;
+use crate::configure_cognition::{ConfigureError, GraphNodeFactory};
 use crate::receipts::{
-    Blake3Hash,
-    ReceiptPayload, ReceiptPayloadDecode, ReceiptKind,
-    ByteReader, DecodeError,
+    Blake3Hash, ByteReader, DecodeError, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
 };
-use crate::configure_cognition::{GraphNodeFactory, ConfigureError};
 
 // ════════════════════════════════════════════════════════════
 // Errors
@@ -37,8 +35,14 @@ use crate::configure_cognition::{GraphNodeFactory, ConfigureError};
 pub enum EvalError {
     EmptyEvidenceChain,
     ComparableSetEmpty,
-    IhsanBelowFloor { score: f64, floor: f64 },
-    ReproducibilityMismatch { expected: Blake3Hash, got: Blake3Hash },
+    IhsanBelowFloor {
+        score: f64,
+        floor: f64,
+    },
+    ReproducibilityMismatch {
+        expected: Blake3Hash,
+        got: Blake3Hash,
+    },
 }
 
 impl std::fmt::Display for EvalError {
@@ -46,10 +50,15 @@ impl std::fmt::Display for EvalError {
         match self {
             Self::EmptyEvidenceChain => write!(f, "Evidence chain is empty"),
             Self::ComparableSetEmpty => write!(f, "Comparable set is empty"),
-            Self::IhsanBelowFloor { score, floor } =>
-                write!(f, "Ihsan score {:.4} below floor {:.4}", score, floor),
-            Self::ReproducibilityMismatch { expected, got } =>
-                write!(f, "Reproducibility hash mismatch"),
+            Self::IhsanBelowFloor { score, floor } => {
+                write!(f, "Ihsan score {:.4} below floor {:.4}", score, floor)
+            }
+            Self::ReproducibilityMismatch {
+                expected: _,
+                got: _,
+            } => {
+                write!(f, "Reproducibility hash mismatch")
+            }
         }
     }
 }
@@ -63,16 +72,16 @@ impl std::error::Error for EvalError {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum ActionCategory {
-    RustCode            = 0,
-    PythonCode          = 1,
-    TypeScriptCode      = 2,
-    Test                = 3,
-    Documentation       = 4,
-    Architecture        = 5,
+    RustCode = 0,
+    PythonCode = 1,
+    TypeScriptCode = 2,
+    Test = 3,
+    Documentation = 4,
+    Architecture = 5,
     ConstitutionalDesign = 6,
     SpiritualFoundation = 7,
-    InfrastructureOps   = 8,
-    Research            = 9,
+    InfrastructureOps = 8,
+    Research = 9,
 }
 
 impl ActionCategory {
@@ -119,7 +128,8 @@ impl EvidenceChain {
 
         // Canonical sort: timestamp, then hash bytes
         actions.sort_by(|a, b| {
-            a.timestamp_unix.cmp(&b.timestamp_unix)
+            a.timestamp_unix
+                .cmp(&b.timestamp_unix)
                 .then_with(|| a.hash.cmp(&b.hash))
         });
 
@@ -130,7 +140,12 @@ impl EvidenceChain {
         let canonical = Self::to_canonical_bytes(&actions);
         let root_hash = blake3_domain("bizra-eval-v1-evidence", &canonical);
 
-        EvidenceChain { actions, root_hash, dedup_removed, raw_action_count: raw_count }
+        EvidenceChain {
+            actions,
+            root_hash,
+            dedup_removed,
+            raw_action_count: raw_count,
+        }
     }
 
     fn to_canonical_bytes(actions: &[HashedAction]) -> Vec<u8> {
@@ -144,10 +159,14 @@ impl EvidenceChain {
         buf
     }
 
-    pub fn action_count(&self) -> u64 { self.actions.len() as u64 }
+    pub fn action_count(&self) -> u64 {
+        self.actions.len() as u64
+    }
 
     pub fn span_months(&self) -> f64 {
-        if self.actions.len() < 2 { return 0.0; }
+        if self.actions.len() < 2 {
+            return 0.0;
+        }
         let first = self.actions.first().unwrap().timestamp_unix;
         let last = self.actions.last().unwrap().timestamp_unix;
         (last - first) as f64 / (30.44 * 24.0 * 3600.0)
@@ -155,7 +174,9 @@ impl EvidenceChain {
 
     pub fn category_diversity(&self) -> usize {
         let mut seen = std::collections::HashSet::new();
-        for a in &self.actions { seen.insert(a.category); }
+        for a in &self.actions {
+            seen.insert(a.category);
+        }
         seen.len()
     }
 
@@ -164,7 +185,11 @@ impl EvidenceChain {
     }
 
     pub fn count_by_category(&self, cat: ActionCategory) -> u64 {
-        self.actions.iter().filter(|a| a.category == cat).map(|a| a.size_metric).sum()
+        self.actions
+            .iter()
+            .filter(|a| a.category == cat)
+            .map(|a| a.size_metric)
+            .sum()
     }
 }
 
@@ -176,8 +201,8 @@ impl EvidenceChain {
 pub struct ComparableEntry {
     pub project_id: String,
     pub loc: u64,
-    pub test_density: f64,    // tests per 1K LOC
-    pub commit_cadence: f64,  // commits per month
+    pub test_density: f64,   // tests per 1K LOC
+    pub commit_cadence: f64, // commits per month
     pub age_months: u32,
     pub contributor_count: u32,
 }
@@ -202,7 +227,11 @@ impl ComparableSet {
         entries.sort_by(|a, b| a.project_id.cmp(&b.project_id));
         let canonical = Self::to_canonical_bytes(&entries, &filter);
         let set_hash = blake3_domain("bizra-eval-v1-comparables", &canonical);
-        ComparableSet { entries, set_hash, filter }
+        ComparableSet {
+            entries,
+            set_hash,
+            filter,
+        }
     }
 
     fn to_canonical_bytes(entries: &[ComparableEntry], filter: &ComparableFilter) -> Vec<u8> {
@@ -233,7 +262,9 @@ impl ComparableSet {
     }
 
     pub fn median_loc(&self) -> u64 {
-        if self.entries.is_empty() { return 1; }
+        if self.entries.is_empty() {
+            return 1;
+        }
         let mut locs: Vec<u64> = self.entries.iter().map(|e| e.loc).collect();
         locs.sort();
         locs[locs.len() / 2].max(1)
@@ -241,18 +272,24 @@ impl ComparableSet {
 
     pub fn median_test_density(&self) -> f64 {
         let vals = self.sorted_field(|e| e.test_density);
-        if vals.is_empty() { return 1.0; }
+        if vals.is_empty() {
+            return 1.0;
+        }
         vals[vals.len() / 2].max(0.01)
     }
 
     pub fn median_commit_cadence(&self) -> f64 {
         let vals = self.sorted_field(|e| e.commit_cadence);
-        if vals.is_empty() { return 1.0; }
+        if vals.is_empty() {
+            return 1.0;
+        }
         vals[vals.len() / 2].max(0.01)
     }
 
     pub fn median_contributors(&self) -> f64 {
-        if self.entries.is_empty() { return 1.0; }
+        if self.entries.is_empty() {
+            return 1.0;
+        }
         let mut counts: Vec<u32> = self.entries.iter().map(|e| e.contributor_count).collect();
         counts.sort();
         (counts[counts.len() / 2] as f64).max(1.0)
@@ -265,7 +302,7 @@ impl ComparableSet {
 
 #[derive(Clone, Debug)]
 pub struct ValuationConfig {
-    pub ihsan_floor: f64,      // 0.95 per commit 0115016b
+    pub ihsan_floor: f64, // 0.95 per commit 0115016b
 
     pub weight_loc: f64,
     pub weight_test_density: f64,
@@ -338,8 +375,12 @@ pub fn evaluate(
     evidence: &EvidenceChain,
     comparables: &ComparableSet,
 ) -> Result<ValuationResult, EvalError> {
-    if evidence.actions.is_empty() { return Err(EvalError::EmptyEvidenceChain); }
-    if comparables.entries.is_empty() { return Err(EvalError::ComparableSetEmpty); }
+    if evidence.actions.is_empty() {
+        return Err(EvalError::EmptyEvidenceChain);
+    }
+    if comparables.entries.is_empty() {
+        return Err(EvalError::ComparableSetEmpty);
+    }
 
     let mut factors = BTreeMap::new();
 
@@ -382,21 +423,31 @@ pub fn evaluate(
         + f_solo * config.weight_solo;
 
     // Ihsan score — computed from evidence quality, not vibes
-    let code_count = [ActionCategory::RustCode, ActionCategory::PythonCode,
-                      ActionCategory::TypeScriptCode]
-        .iter()
-        .map(|c| evidence.actions.iter().filter(|a| a.category == *c).count() as f64)
-        .sum::<f64>()
-        .max(1.0);
+    let code_count = [
+        ActionCategory::RustCode,
+        ActionCategory::PythonCode,
+        ActionCategory::TypeScriptCode,
+    ]
+    .iter()
+    .map(|c| evidence.actions.iter().filter(|a| a.category == *c).count() as f64)
+    .sum::<f64>()
+    .max(1.0);
 
-    let doc_count = [ActionCategory::Documentation, ActionCategory::Architecture,
-                     ActionCategory::ConstitutionalDesign, ActionCategory::SpiritualFoundation]
-        .iter()
-        .map(|c| evidence.actions.iter().filter(|a| a.category == *c).count() as f64)
-        .sum::<f64>();
+    let doc_count = [
+        ActionCategory::Documentation,
+        ActionCategory::Architecture,
+        ActionCategory::ConstitutionalDesign,
+        ActionCategory::SpiritualFoundation,
+    ]
+    .iter()
+    .map(|c| evidence.actions.iter().filter(|a| a.category == *c).count() as f64)
+    .sum::<f64>();
 
-    let test_count = evidence.actions.iter()
-        .filter(|a| a.category == ActionCategory::Test).count() as f64;
+    let test_count = evidence
+        .actions
+        .iter()
+        .filter(|a| a.category == ActionCategory::Test)
+        .count() as f64;
 
     let test_ratio = (test_count / code_count).min(1.0);
     let doc_ratio = (doc_count / code_count).min(1.0);
@@ -428,8 +479,13 @@ pub fn evaluate(
     let reproducibility_hash = blake3_domain("bizra-eval-v1-repro", &repro_buf);
 
     Ok(ValuationResult {
-        valuation_seed, ihsan_score, factors, raw_impact,
-        distribution_urp, distribution_user, reproducibility_hash,
+        valuation_seed,
+        ihsan_score,
+        factors,
+        raw_impact,
+        distribution_urp,
+        distribution_user,
+        reproducibility_hash,
     })
 }
 
@@ -575,10 +631,18 @@ impl ReceiptPayloadDecode for GenesisValuationReceipt {
         }
 
         Ok(GenesisValuationReceipt {
-            user_id, evidence_chain_hash, comparable_set_hash,
-            function_hash, valuation_seed, ihsan_score,
-            distribution_urp, distribution_user, reproducibility_hash,
-            factor_count, factor_keys, factor_values,
+            user_id,
+            evidence_chain_hash,
+            comparable_set_hash,
+            function_hash,
+            valuation_seed,
+            ihsan_score,
+            distribution_urp,
+            distribution_user,
+            reproducibility_hash,
+            factor_count,
+            factor_keys,
+            factor_values,
         })
     }
 }
@@ -587,7 +651,7 @@ impl ReceiptPayloadDecode for GenesisValuationReceipt {
 // ValuationFactory — plugs into configure_cognition.rs
 // ════════════════════════════════════════════════════════════
 
-use crate::thought_graph::{GraphNode, AgentCtx, Thought};
+use crate::thought_graph::{AgentCtx, GraphNode, Thought};
 
 /// A GraphNode that runs the valuation when traversed.
 /// Used by the configure layer to wire eval_v1 into the standard
@@ -599,7 +663,7 @@ pub struct ValuationNode {
 }
 
 impl GraphNode for ValuationNode {
-    fn traverse(&self, ctx: &mut AgentCtx) -> Vec<Thought> {
+    fn traverse(&self, _ctx: &mut AgentCtx) -> Vec<Thought> {
         // The valuation node doesn't produce Thoughts in the normal sense.
         // It runs evaluate() and emits a receipt via the runtime loop.
         // This traverse() is a passthrough that signals "valuation available."
@@ -655,25 +719,25 @@ impl GraphNode for ValuationNodeStub {
 // Integration: ReceiptKind patch (apply to receipts.rs)
 // ════════════════════════════════════════════════════════════
 
-/// To integrate, add to receipts.rs ReceiptKind:
-///
-/// ```rust
-/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// #[repr(u8)]
-/// pub enum ReceiptKind {
-///     Genesis            = 0x00,
-///     CognitionBoot      = 0x10,
-///     Myelination        = 0x20,
-///     Demyelination      = 0x21,
-///     ReasoningSession   = 0x30,
-///     GovernanceDecision = 0x40,
-///     NodeLifecycle      = 0x50,
-///     GenesisValuation   = 0x60,  // ← NEW
-///     DegradedPath       = 0xF0,
-/// }
-/// ```
-///
-/// And add `0x60 => Some(Self::GenesisValuation)` to from_byte().
+// To integrate, add to receipts.rs ReceiptKind:
+//
+// ```rust
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// #[repr(u8)]
+// pub enum ReceiptKind {
+//     Genesis            = 0x00,
+//     CognitionBoot      = 0x10,
+//     Myelination        = 0x20,
+//     Demyelination      = 0x21,
+//     ReasoningSession   = 0x30,
+//     GovernanceDecision = 0x40,
+//     NodeLifecycle      = 0x50,
+//     GenesisValuation   = 0x60,  // ← NEW
+//     DegradedPath       = 0xF0,
+// }
+// ```
+//
+// And add `0x60 => Some(Self::GenesisValuation)` to from_byte().
 
 // ════════════════════════════════════════════════════════════
 // Integration: CognitionEvent patch (apply to runtime.rs)

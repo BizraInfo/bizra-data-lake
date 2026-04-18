@@ -40,8 +40,7 @@ use serde_json::Value;
 
 use crate::canonical_hasher::blake3_domain;
 use crate::receipts::{
-    Blake3Hash, ByteReader, DecodeError, ReceiptKind, ReceiptPayload,
-    ReceiptPayloadDecode,
+    Blake3Hash, ByteReader, DecodeError, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
 };
 
 // ════════════════════════════════════════════════════════════
@@ -231,13 +230,12 @@ impl PrincipalActivationEnvelope {
         anchor: &NodeIdentityAnchor,
         created_ns: u64,
     ) -> Result<Self, NodeAnchorError> {
-        let node_pubkey =
-            anchor
-                .public_key_bytes()
-                .map_err(|e| NodeAnchorError::PubkeyDecode {
-                    path: "<in-memory anchor>".into(),
-                    reason: e,
-                })?;
+        let node_pubkey = anchor
+            .public_key_bytes()
+            .map_err(|e| NodeAnchorError::PubkeyDecode {
+                path: "<in-memory anchor>".into(),
+                reason: e,
+            })?;
         let mut intent_buf =
             Vec::with_capacity(CANONICAL_ACTIVATION_INTENT.len() + principal_name.len() + 32);
         intent_buf.extend_from_slice(CANONICAL_ACTIVATION_INTENT.as_bytes());

@@ -79,8 +79,14 @@ pub enum ReceiptKind {
 pub enum EvalError {
     EmptyEvidenceChain,
     ComparableSetEmpty,
-    IhsanBelowFloor { score: f32, floor: f32 },
-    ReproducibilityMismatch { expected: Blake3Hash, got: Blake3Hash },
+    IhsanBelowFloor {
+        score: f32,
+        floor: f32,
+    },
+    ReproducibilityMismatch {
+        expected: Blake3Hash,
+        got: Blake3Hash,
+    },
     OverflowInDistribution,
 }
 
@@ -89,13 +95,16 @@ impl std::fmt::Display for EvalError {
         match self {
             Self::EmptyEvidenceChain => write!(f, "Evidence chain is empty"),
             Self::ComparableSetEmpty => write!(f, "Comparable set is empty"),
-            Self::IhsanBelowFloor { score, floor } =>
-                write!(f, "Ihsan score {:.4} below floor {:.4}", score, floor),
-            Self::ReproducibilityMismatch { expected, got } =>
-                write!(f, "Reproducibility hash mismatch: expected {}, got {}",
-                       expected.to_hex(), got.to_hex()),
-            Self::OverflowInDistribution =>
-                write!(f, "Overflow computing distribution amounts"),
+            Self::IhsanBelowFloor { score, floor } => {
+                write!(f, "Ihsan score {:.4} below floor {:.4}", score, floor)
+            }
+            Self::ReproducibilityMismatch { expected, got } => write!(
+                f,
+                "Reproducibility hash mismatch: expected {}, got {}",
+                expected.to_hex(),
+                got.to_hex()
+            ),
+            Self::OverflowInDistribution => write!(f, "Overflow computing distribution amounts"),
         }
     }
 }
@@ -160,7 +169,8 @@ impl EvidenceChain {
 
         // Canonical sort: by timestamp, then by hash bytes for stability
         actions.sort_by(|a, b| {
-            a.timestamp_unix.cmp(&b.timestamp_unix)
+            a.timestamp_unix
+                .cmp(&b.timestamp_unix)
                 .then_with(|| a.hash.as_bytes().cmp(b.hash.as_bytes()))
         });
 
@@ -269,23 +279,21 @@ pub struct ComparableFilter {
 
 impl ComparableSet {
     /// Build from entries + filter spec. Sorts canonically, computes hash.
-    pub fn from_entries(
-        mut entries: Vec<ComparableEntry>,
-        filter_spec: ComparableFilter,
-    ) -> Self {
+    pub fn from_entries(mut entries: Vec<ComparableEntry>, filter_spec: ComparableFilter) -> Self {
         // Canonical sort by project_id for determinism
         entries.sort_by(|a, b| a.project_id.cmp(&b.project_id));
 
         let canonical = Self::canonical_bytes_inner(&entries, &filter_spec);
         let set_hash = blake3_domain("EVAL_V1_COMPARABLES", &canonical);
 
-        ComparableSet { entries, set_hash, filter_spec }
+        ComparableSet {
+            entries,
+            set_hash,
+            filter_spec,
+        }
     }
 
-    fn canonical_bytes_inner(
-        entries: &[ComparableEntry],
-        filter: &ComparableFilter,
-    ) -> Vec<u8> {
+    fn canonical_bytes_inner(entries: &[ComparableEntry], filter: &ComparableFilter) -> Vec<u8> {
         let mut buf = Vec::new();
         // Hash the filter spec first
         buf.extend_from_slice(&filter.min_loc.to_le_bytes());
@@ -309,24 +317,28 @@ impl ComparableSet {
     }
 
     pub fn median_loc(&self) -> u64 {
-        if self.entries.is_empty() { return 0; }
+        if self.entries.is_empty() {
+            return 0;
+        }
         let mut locs: Vec<u64> = self.entries.iter().map(|e| e.loc).collect();
         locs.sort();
         locs[locs.len() / 2]
     }
 
     pub fn median_test_density(&self) -> f32 {
-        if self.entries.is_empty() { return 0.0; }
-        let mut densities: Vec<f32> = self.entries.iter()
-            .map(|e| e.test_density).collect();
+        if self.entries.is_empty() {
+            return 0.0;
+        }
+        let mut densities: Vec<f32> = self.entries.iter().map(|e| e.test_density).collect();
         densities.sort_by(|a, b| a.partial_cmp(b).unwrap());
         densities[densities.len() / 2]
     }
 
     pub fn median_commit_cadence(&self) -> f32 {
-        if self.entries.is_empty() { return 0.0; }
-        let mut cadences: Vec<f32> = self.entries.iter()
-            .map(|e| e.commit_cadence).collect();
+        if self.entries.is_empty() {
+            return 0.0;
+        }
+        let mut cadences: Vec<f32> = self.entries.iter().map(|e| e.commit_cadence).collect();
         cadences.sort_by(|a, b| a.partial_cmp(b).unwrap());
         cadences[cadences.len() / 2]
     }
@@ -470,7 +482,9 @@ pub fn evaluate(
 
     // ── Factor 2: Test density (tests per 1K LOC) ──
     let total_size = evidence.total_size().max(1);
-    let test_count: u64 = evidence.actions.iter()
+    let test_count: u64 = evidence
+        .actions
+        .iter()
         .filter(|a| a.category == ActionCategory::Test)
         .map(|a| a.size_metric)
         .sum();
@@ -502,8 +516,11 @@ pub fn evaluate(
     // This is not founder privilege — any solo user gets the same boost.
     // The comparable set's contributor_count is the baseline.
     let median_contributors = {
-        let mut counts: Vec<u32> = comparables.entries.iter()
-            .map(|e| e.contributor_count).collect();
+        let mut counts: Vec<u32> = comparables
+            .entries
+            .iter()
+            .map(|e| e.contributor_count)
+            .collect();
         counts.sort();
         counts[counts.len() / 2] as f32
     };
@@ -528,20 +545,30 @@ pub fn evaluate(
     // - test coverage ratio (do you test what you build?)
     // - documentation ratio (do you document what you build?)
     // - constitutional alignment (do your frozen anchors hold?)
-    let doc_count: u64 = evidence.actions.iter()
-        .filter(|a| matches!(a.category,
-            ActionCategory::Documentation
-            | ActionCategory::Architecture
-            | ActionCategory::ConstitutionalDesign
-            | ActionCategory::SpiritualFoundation
-        ))
+    let doc_count: u64 = evidence
+        .actions
+        .iter()
+        .filter(|a| {
+            matches!(
+                a.category,
+                ActionCategory::Documentation
+                    | ActionCategory::Architecture
+                    | ActionCategory::ConstitutionalDesign
+                    | ActionCategory::SpiritualFoundation
+            )
+        })
         .count() as u64;
-    let code_count: u64 = evidence.actions.iter()
-        .filter(|a| matches!(a.category,
-            ActionCategory::RustCode
-            | ActionCategory::PythonCode
-            | ActionCategory::TypeScriptCode
-        ))
+    let code_count: u64 = evidence
+        .actions
+        .iter()
+        .filter(|a| {
+            matches!(
+                a.category,
+                ActionCategory::RustCode
+                    | ActionCategory::PythonCode
+                    | ActionCategory::TypeScriptCode
+            )
+        })
         .count() as u64;
 
     let doc_ratio = if code_count > 0 {
@@ -707,10 +734,12 @@ pub fn verify_valuation(
     let result = evaluate(config, evidence, comparables)?;
 
     // Check reproducibility hash
-    Ok(result.reproducibility_hash == claimed_receipt.reproducibility_hash
-        && result.valuation_seed == claimed_receipt.valuation_seed
-        && result.distribution_urp == claimed_receipt.distribution_urp
-        && result.distribution_user == claimed_receipt.distribution_user)
+    Ok(
+        result.reproducibility_hash == claimed_receipt.reproducibility_hash
+            && result.valuation_seed == claimed_receipt.valuation_seed
+            && result.distribution_urp == claimed_receipt.distribution_urp
+            && result.distribution_user == claimed_receipt.distribution_user,
+    )
 }
 
 // ────────────────────────────────────────────────────────────
@@ -732,8 +761,7 @@ mod tests {
 
             // Rust code: ~500 LOC per month
             actions.push(HashedAction {
-                hash: Blake3Hash::from_bytes(
-                    &format!("rust-{}", month).as_bytes()),
+                hash: Blake3Hash::from_bytes(&format!("rust-{}", month).as_bytes()),
                 timestamp_unix: ts,
                 category: ActionCategory::RustCode,
                 size_metric: 500,
@@ -741,8 +769,7 @@ mod tests {
 
             // Python code: ~300 LOC per month
             actions.push(HashedAction {
-                hash: Blake3Hash::from_bytes(
-                    &format!("python-{}", month).as_bytes()),
+                hash: Blake3Hash::from_bytes(&format!("python-{}", month).as_bytes()),
                 timestamp_unix: ts + 86400,
                 category: ActionCategory::PythonCode,
                 size_metric: 300,
@@ -750,8 +777,7 @@ mod tests {
 
             // Tests: ~350 per month (yields ~12,600 total)
             actions.push(HashedAction {
-                hash: Blake3Hash::from_bytes(
-                    &format!("tests-{}", month).as_bytes()),
+                hash: Blake3Hash::from_bytes(&format!("tests-{}", month).as_bytes()),
                 timestamp_unix: ts + 172800,
                 category: ActionCategory::Test,
                 size_metric: 350,
@@ -759,8 +785,7 @@ mod tests {
 
             // Documentation every month (reflects real BIZRA doc discipline)
             actions.push(HashedAction {
-                hash: Blake3Hash::from_bytes(
-                    &format!("docs-{}", month).as_bytes()),
+                hash: Blake3Hash::from_bytes(&format!("docs-{}", month).as_bytes()),
                 timestamp_unix: ts + 259200,
                 category: ActionCategory::Documentation,
                 size_metric: 100,
@@ -769,8 +794,7 @@ mod tests {
             // Constitutional design every 3 months
             if month % 3 == 0 {
                 actions.push(HashedAction {
-                    hash: Blake3Hash::from_bytes(
-                        &format!("const-{}", month).as_bytes()),
+                    hash: Blake3Hash::from_bytes(&format!("const-{}", month).as_bytes()),
                     timestamp_unix: ts + 345600,
                     category: ActionCategory::ConstitutionalDesign,
                     size_metric: 50,
@@ -780,8 +804,7 @@ mod tests {
             // Spiritual foundation: twice (beginning and end)
             if month == 0 || month == 35 {
                 actions.push(HashedAction {
-                    hash: Blake3Hash::from_bytes(
-                        &format!("spirit-{}", month).as_bytes()),
+                    hash: Blake3Hash::from_bytes(&format!("spirit-{}", month).as_bytes()),
                     timestamp_unix: ts + 432000,
                     category: ActionCategory::SpiritualFoundation,
                     size_metric: 200,
@@ -791,8 +814,7 @@ mod tests {
             // TypeScript code every 2 months (frontend)
             if month % 2 == 0 {
                 actions.push(HashedAction {
-                    hash: Blake3Hash::from_bytes(
-                        &format!("ts-{}", month).as_bytes()),
+                    hash: Blake3Hash::from_bytes(&format!("ts-{}", month).as_bytes()),
                     timestamp_unix: ts + 518400,
                     category: ActionCategory::TypeScriptCode,
                     size_metric: 200,
@@ -801,8 +823,7 @@ mod tests {
 
             // Architecture docs every month
             actions.push(HashedAction {
-                hash: Blake3Hash::from_bytes(
-                    &format!("arch-{}", month).as_bytes()),
+                hash: Blake3Hash::from_bytes(&format!("arch-{}", month).as_bytes()),
                 timestamp_unix: ts + 604800,
                 category: ActionCategory::Architecture,
                 size_metric: 80,
@@ -811,8 +832,7 @@ mod tests {
             // Infrastructure ops every 4 months
             if month % 4 == 0 {
                 actions.push(HashedAction {
-                    hash: Blake3Hash::from_bytes(
-                        &format!("infra-{}", month).as_bytes()),
+                    hash: Blake3Hash::from_bytes(&format!("infra-{}", month).as_bytes()),
                     timestamp_unix: ts + 691200,
                     category: ActionCategory::InfrastructureOps,
                     size_metric: 60,
@@ -822,8 +842,7 @@ mod tests {
             // Research every 3 months
             if month % 3 == 0 {
                 actions.push(HashedAction {
-                    hash: Blake3Hash::from_bytes(
-                        &format!("research-{}", month).as_bytes()),
+                    hash: Blake3Hash::from_bytes(&format!("research-{}", month).as_bytes()),
                     timestamp_unix: ts + 777600,
                     category: ActionCategory::Research,
                     size_metric: 150,
@@ -881,9 +900,7 @@ mod tests {
         let filter = ComparableFilter {
             min_loc: 10_000,
             min_age_months: 12,
-            license_families: vec![
-                "MIT".into(), "Apache-2.0".into(), "AGPL-3.0".into(),
-            ],
+            license_families: vec!["MIT".into(), "Apache-2.0".into(), "AGPL-3.0".into()],
             exclude_self: true,
         };
 
@@ -900,10 +917,14 @@ mod tests {
         let r1 = evaluate(&config, &evidence, &comparables).unwrap();
         let r2 = evaluate(&config, &evidence, &comparables).unwrap();
 
-        assert_eq!(r1.valuation_seed, r2.valuation_seed,
-                   "E1 violated: non-deterministic valuation");
-        assert_eq!(r1.reproducibility_hash, r2.reproducibility_hash,
-                   "E1 violated: non-deterministic reproducibility hash");
+        assert_eq!(
+            r1.valuation_seed, r2.valuation_seed,
+            "E1 violated: non-deterministic valuation"
+        );
+        assert_eq!(
+            r1.reproducibility_hash, r2.reproducibility_hash,
+            "E1 violated: non-deterministic reproducibility hash"
+        );
         assert_eq!(r1.distribution_urp, r2.distribution_urp);
         assert_eq!(r1.distribution_user, r2.distribution_user);
     }
@@ -923,11 +944,13 @@ mod tests {
         );
 
         // 50/50 per البذرة — allow for integer rounding (off by 1 max)
-        let diff = (result.distribution_urp as i64
-                    - result.distribution_user as i64).abs();
-        assert!(diff <= 1,
-                "Distribution is not 50/50: URP={}, user={}",
-                result.distribution_urp, result.distribution_user);
+        let diff = (result.distribution_urp as i64 - result.distribution_user as i64).abs();
+        assert!(
+            diff <= 1,
+            "Distribution is not 50/50: URP={}, user={}",
+            result.distribution_urp,
+            result.distribution_user
+        );
     }
 
     #[test]
@@ -935,19 +958,20 @@ mod tests {
         let config = ValuationConfig::canonical_v1();
 
         // Evidence with ONLY code, no tests, no docs → low Ihsan
-        let actions = vec![
-            HashedAction {
-                hash: Blake3Hash::from_bytes(b"just-code"),
-                timestamp_unix: 1_680_000_000,
-                category: ActionCategory::RustCode,
-                size_metric: 100_000,
-            },
-        ];
+        let actions = vec![HashedAction {
+            hash: Blake3Hash::from_bytes(b"just-code"),
+            timestamp_unix: 1_680_000_000,
+            category: ActionCategory::RustCode,
+            size_metric: 100_000,
+        }];
         let evidence = EvidenceChain::from_actions(actions);
         let comparables = mock_comparable_set();
 
         let result = evaluate(&config, &evidence, &comparables);
-        assert!(result.is_err(), "Ihsan gate should reject code-only evidence");
+        assert!(
+            result.is_err(),
+            "Ihsan gate should reject code-only evidence"
+        );
         match result {
             Err(EvalError::IhsanBelowFloor { score, floor }) => {
                 assert!(score < floor);
@@ -973,9 +997,7 @@ mod tests {
         );
 
         // Any node can verify
-        let verified = verify_valuation(
-            &config, &evidence, &comparables, &receipt
-        ).unwrap();
+        let verified = verify_valuation(&config, &evidence, &comparables, &receipt).unwrap();
 
         assert!(verified, "Reproducibility verification failed");
     }
@@ -1019,8 +1041,11 @@ mod tests {
         let mut c2 = ValuationConfig::canonical_v1();
         c2.weight_loc = 0.25; // different weight
 
-        assert_ne!(c1.function_hash(), c2.function_hash(),
-                   "Different configs must produce different function hashes");
+        assert_ne!(
+            c1.function_hash(),
+            c2.function_hash(),
+            "Different configs must produce different function hashes"
+        );
     }
 
     #[test]
@@ -1033,10 +1058,11 @@ mod tests {
 
         // The solo_builder_multiplier factor should be > 1.0
         // (median team size in mock comparables is 12, log2(12) ≈ 3.58)
-        let solo_factor = result.factor_scores
-            .get("solo_builder_multiplier").unwrap();
-        assert!(*solo_factor > 1.0,
-                "Solo builder should get multiplier > 1.0, got {}",
-                solo_factor);
+        let solo_factor = result.factor_scores.get("solo_builder_multiplier").unwrap();
+        assert!(
+            *solo_factor > 1.0,
+            "Solo builder should get multiplier > 1.0, got {}",
+            solo_factor
+        );
     }
 }
