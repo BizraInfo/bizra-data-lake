@@ -23,20 +23,25 @@ use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::admissibility_freeze_v1::{
-    AdmissibilityChain, AdmissibilityClaim, AdmissibilityResult, GateVerdict,
-    RejectedClaim, Verdict,
+    AdmissibilityChain, AdmissibilityClaim, AdmissibilityResult, EconomicPattern, GateVerdict,
+    Invariant, RejectedClaim, StateMutation, Verdict,
 };
 use crate::thought_graph::{
     ThoughtGraph, AgentCtx, Thought, ReasoningError, ShadowMode,
     MyelinationReceipt, DemyelinationReceipt, DemyelinationReason,
     CompiledReflex,
 };
-use crate::mission_freeze_v1::{MissionEnvelope, MissionStage};
+use crate::mission_freeze_v1::{
+    MissionEnvelope, MissionStage, Originator, StateSnapshot,
+};
 use crate::receipts::{
     ReceiptChain, ReceiptPayload, ReceiptKind,
     ChainError, Blake3Hash, InMemoryPayloadStore,
 };
 use crate::manifest_artifact::ManifestArtifact;
+use crate::principal_activation::{
+    PrincipalActivationEnvelope, PrincipalActivationReceipt, PrincipalProfile,
+};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::canonical_hasher::blake3_domain;
 
@@ -133,6 +138,29 @@ pub struct MissionRuntimeRecord {
     /// missions never produce a manifest). `Some` only when stage reaches
     /// Replayability (S8) under Patch B discipline from Cycle-5.
     pub manifest: Option<ManifestArtifact>,
+}
+
+/// Cycle-7 G2 — the full outcome of a principal-activation submission.
+///
+/// Wraps the underlying `MissionRuntimeRecord` (which carries the
+/// admissibility result, NodeLifecycle receipt, and Manifest) with the
+/// activation-specific artifacts:
+///
+/// - `profile` is Some only on permit — the PrincipalProfile bound to
+///   the NodeLifecycle receipt. None on reject per §10 Proof Law.
+/// - `activation_receipt` is the chain-sealed PrincipalActivationReceipt
+///   (kind 0x61) appended immediately after Manifest. None on reject.
+/// - `rejected` mirrors `mission_record.rejected` for caller ergonomics.
+/// - `remediation` is Some on reject — honest, structured text describing
+///   which gate failed, why, and the remediation path.
+#[derive(Debug, Clone)]
+pub struct PrincipalActivationRecord {
+    pub envelope: PrincipalActivationEnvelope,
+    pub mission_record: MissionRuntimeRecord,
+    pub profile: Option<PrincipalProfile>,
+    pub activation_receipt: Option<PrincipalActivationReceipt>,
+    pub rejected: bool,
+    pub remediation: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -256,6 +284,11 @@ pub struct CognitionRuntime {
     // Some(snap) means the gateway served its last pre-restart truth
     // and the chain is anchored to Python-authoritative persistence.
     sovereign_snapshot: Option<crate::sovereign_state::SovereignStateSnapshot>,
+    // Cycle-7 G2 — in-memory principal profile populated by a permitted
+    // submit_principal_activation call. Derived and rebuildable from
+    // chain per niyyah §"Writer authority decision (HYBRID)". Durable
+    // disk cache lives in principal_cache.rs (Commit 3).
+    principal_profile: Option<PrincipalProfile>,
 }
 
 /// Errors produced by CognitionRuntime bootstrap constructors.
@@ -289,6 +322,7 @@ impl CognitionRuntime {
             missions: HashMap::new(),
             session_counter: 0,
             sovereign_snapshot: None,
+            principal_profile: None,
         }
     }
 
@@ -324,6 +358,7 @@ impl CognitionRuntime {
             missions: HashMap::new(),
             session_counter: 0,
             sovereign_snapshot: Some(snapshot),
+            principal_profile: None,
         })
     }
 
@@ -372,6 +407,7 @@ impl CognitionRuntime {
             missions: HashMap::new(),
             session_counter: 0,
             sovereign_snapshot: None,
+            principal_profile: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -605,6 +641,117 @@ impl CognitionRuntime {
         self.missions.get(mission_id)
     }
 
+    /// Cycle-7 G2 — submit a principal activation through the lawful
+    /// mission-runtime loop.
+    ///
+    /// Wraps `submit_mission` with an activation-specific envelope shape
+    /// anchored to a node identity pubkey (caller builds the envelope via
+    /// `PrincipalActivationEnvelope::from_anchor`). On Permit, appends an
+    /// additional `PrincipalActivationReceipt` (kind 0x61) to the chain
+    /// that binds the NodeLifecycle mission receipt to a `PrincipalProfile`,
+    /// and stores the profile in-memory for Dema queries.
+    ///
+    /// §10 Proof Law preserved: rejected activations produce no
+    /// PrincipalActivationReceipt, no profile, and `remediation` carries
+    /// structured honest text.
+    ///
+    /// Chain footprint (permit path) is exactly +1 vs `submit_mission`:
+    ///   envelope + 5 gates + NodeLifecycle + Manifest + PrincipalActivation = 9.
+    pub fn submit_principal_activation(
+        &mut self,
+        activation_envelope: PrincipalActivationEnvelope,
+        quality_score: f64,
+    ) -> Result<PrincipalActivationRecord, MissionRuntimeError> {
+        let session_id = activation_envelope.node_pubkey;
+        let current = StateSnapshot {
+            hash: blake3_domain(
+                "bizra-principal-state-pre-v1",
+                &activation_envelope.node_pubkey,
+            ),
+            summary: "Principal unactivated — no chain receipt yet".into(),
+            metric: 0.0,
+        };
+        let ideal = StateSnapshot {
+            hash: blake3_domain(
+                "bizra-principal-state-ideal-v1",
+                &activation_envelope.node_pubkey,
+            ),
+            summary: "Principal activated — receipted through lawful loop".into(),
+            metric: 1.0,
+        };
+        let mission_env = MissionEnvelope::from_intent(
+            activation_envelope.intent_text(),
+            current,
+            ideal,
+            Originator::Operator { session_id },
+            activation_envelope.created_ns,
+        );
+
+        let claim = AdmissibilityClaim {
+            claim_id: mission_env.extract_claim_id(),
+            has_evidence: true,
+            evidence_hash: Some(activation_envelope.intent_hash),
+            economic_pattern: Some(EconomicPattern::None),
+            state_mutation: Some(StateMutation {
+                derives_from_canonical: true,
+                face_only: false,
+            }),
+            quality_score,
+            timestamp_ns: activation_envelope.created_ns,
+        };
+
+        let mission_record = self.submit_mission(mission_env, claim)?;
+
+        if mission_record.rejected {
+            let remediation = reject_remediation_text(&mission_record);
+            return Ok(PrincipalActivationRecord {
+                envelope: activation_envelope,
+                mission_record,
+                profile: None,
+                activation_receipt: None,
+                rejected: true,
+                remediation: Some(remediation),
+            });
+        }
+
+        let activation_receipt_id = mission_record
+            .receipt_id
+            .expect("permit path invariant: receipt_id must be Some");
+        let profile = PrincipalProfile::new(
+            &activation_envelope,
+            activation_receipt_id,
+            mission_record.timestamp_ns,
+        );
+        let profile_hash = profile.profile_hash();
+        let now_ns = self.now_ns_mission()?;
+        let prev_chain = self.chain.head();
+        let pa_receipt = PrincipalActivationReceipt::new(
+            activation_receipt_id,
+            profile_hash,
+            activation_envelope.node_pubkey,
+            profile.principal_id,
+            now_ns,
+            prev_chain,
+        );
+        self.chain.append_with_payload(pa_receipt.clone())?;
+        self.principal_profile = Some(profile.clone());
+
+        Ok(PrincipalActivationRecord {
+            envelope: activation_envelope,
+            mission_record,
+            profile: Some(profile),
+            activation_receipt: Some(pa_receipt),
+            rejected: false,
+            remediation: None,
+        })
+    }
+
+    /// Read-access to the currently activated principal profile, if any.
+    /// Niyyah §"Writer authority decision (HYBRID)": derived, rebuildable.
+    pub fn principal_profile(&self) -> Option<&PrincipalProfile> {
+        self.principal_profile.as_ref()
+    }
+
     pub fn rehydrate_mission(
         &self,
         mission_id: &Blake3Hash,
@@ -778,6 +925,30 @@ impl CognitionRuntime {
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_nanos() as u64)
             .map_err(|e| MissionRuntimeError::Clock(e.to_string()))
+    }
+}
+
+/// Cycle-7 G2 — build honest structured remediation text from a
+/// rejected mission record. Never simulates success; always names the
+/// failed gate and the concrete remediation path (niyyah Frozen Law #5).
+fn reject_remediation_text(record: &MissionRuntimeRecord) -> String {
+    if let Some(rc) = record.admissibility.rejected.as_ref() {
+        format!(
+            "activation REJECTED by {} — {}. Remediation: {}. Escalation: {}.",
+            rc.invariant.name(),
+            rc.reject_reason,
+            rc.remediation_path,
+            if rc.escalation_allowed {
+                "allowed (REVIEW)"
+            } else {
+                "denied"
+            },
+        )
+    } else {
+        format!(
+            "activation REJECTED — verdict {:?}. See mission_record.admissibility.gate_verdicts.",
+            record.admissibility.verdict,
+        )
     }
 }
 
@@ -1320,6 +1491,145 @@ mod tests {
         assert_eq!(rt.chain.len(), pre_len, "rehydrate must not mutate length");
         // Manifest is still accessible after rehydrate.
         assert!(rt.manifest_for_mission(&mission_id).is_some());
+    }
+
+    // ========================================================================
+    // Cycle-7 G2 Phase 2 — submit_principal_activation integration tests
+    // ========================================================================
+
+    mod principal_activation_g2 {
+        use super::*;
+        use crate::principal_activation::{NodeIdentityAnchor, PrincipalActivationEnvelope};
+
+        const TEST_PUBKEY_HEX: &str =
+            "0232760d5349763eb6b45f57944ffec67d19c36214dd60824c6d0f728d5f762a";
+
+        fn test_anchor() -> NodeIdentityAnchor {
+            NodeIdentityAnchor::for_test("NODE0", TEST_PUBKEY_HEX, "2026-04-13T23:54:59Z")
+        }
+
+        fn test_envelope(now_ns: u64) -> PrincipalActivationEnvelope {
+            PrincipalActivationEnvelope::from_anchor(
+                "Mumo".into(),
+                "node0_principal".into(),
+                &test_anchor(),
+                now_ns,
+            )
+            .expect("valid anchor builds envelope")
+        }
+
+        #[test]
+        fn activate_principal_happy_path_seals_receipt_and_profile() {
+            let mut rt = minimal_runtime();
+            let env = test_envelope(1_000);
+            let record = rt.submit_principal_activation(env, 0.98).unwrap();
+
+            assert!(!record.rejected, "quality 0.98 should Permit");
+            assert!(record.profile.is_some());
+            assert!(record.activation_receipt.is_some());
+            assert!(record.remediation.is_none());
+            assert!(rt.principal_profile().is_some());
+
+            let profile = record.profile.as_ref().unwrap();
+            assert_eq!(profile.name, "Mumo");
+            assert_eq!(profile.node_id, "NODE0");
+            assert_eq!(profile.declared_role, "node0_principal");
+            let mission_receipt_id = record.mission_record.receipt_id.unwrap();
+            assert_eq!(profile.activation_receipt_id, mission_receipt_id);
+        }
+
+        #[test]
+        fn activate_principal_rejects_low_quality_with_remediation() {
+            let mut rt = minimal_runtime();
+            let env = test_envelope(2_000);
+            let record = rt.submit_principal_activation(env, 0.40).unwrap();
+
+            assert!(record.rejected, "quality 0.40 below IHSAN_FLOOR must Reject");
+            assert!(record.profile.is_none(), "§10 Proof Law: no profile on reject");
+            assert!(
+                record.activation_receipt.is_none(),
+                "§10 Proof Law: no PrincipalActivationReceipt on reject"
+            );
+            assert!(rt.principal_profile().is_none(),
+                "runtime principal_profile must stay None on reject");
+            let remediation = record.remediation.as_ref().expect("remediation set");
+            assert!(
+                remediation.contains("REJECTED"),
+                "remediation must name the rejection honestly: {}", remediation
+            );
+        }
+
+        #[test]
+        fn activate_principal_receipt_binds_mission_and_profile_hashes() {
+            let mut rt = minimal_runtime();
+            let env = test_envelope(3_000);
+            let record = rt.submit_principal_activation(env, 0.98).unwrap();
+
+            let receipt = record.activation_receipt.as_ref().unwrap();
+            let profile = record.profile.as_ref().unwrap();
+            let mission_receipt_id = record.mission_record.receipt_id.unwrap();
+
+            assert_eq!(receipt.activation_receipt_ref, mission_receipt_id,
+                "PrincipalActivationReceipt must reference the NodeLifecycle mission receipt_id");
+            assert_eq!(receipt.principal_profile_hash, profile.profile_hash(),
+                "PrincipalActivationReceipt must carry the profile's canonical hash");
+            assert_eq!(receipt.principal_id, profile.principal_id);
+        }
+
+        #[test]
+        fn activate_principal_permit_grows_chain_by_exactly_nine() {
+            // 1 envelope + 5 gates + NodeLifecycle + Manifest + PrincipalActivation = 9
+            let mut rt = minimal_runtime();
+            let before = rt.chain.len();
+            let env = test_envelope(4_000);
+            let record = rt.submit_principal_activation(env, 0.98).unwrap();
+            let after = rt.chain.len();
+            assert!(!record.rejected);
+            assert_eq!(after - before, 9,
+                "permit activation must append exactly 9 chain records (got {})", after - before);
+        }
+
+        #[test]
+        fn activate_principal_reject_grows_chain_by_zero() {
+            // §10 Proof Law: rejected claims do not enter the chain.
+            let mut rt = minimal_runtime();
+            let before = rt.chain.len();
+            let env = test_envelope(5_000);
+            let record = rt.submit_principal_activation(env, 0.40).unwrap();
+            let after = rt.chain.len();
+            assert!(record.rejected);
+            assert_eq!(after - before, 0,
+                "rejected activation must not touch the chain (grew by {})", after - before);
+        }
+
+        #[test]
+        fn activate_principal_chain_head_is_activation_receipt_on_permit() {
+            let mut rt = minimal_runtime();
+            let env = test_envelope(6_000);
+            let record = rt.submit_principal_activation(env, 0.98).unwrap();
+            let pa_receipt = record.activation_receipt.as_ref().unwrap();
+            assert_eq!(rt.chain.head(), pa_receipt.receipt_id,
+                "chain head must equal the PrincipalActivationReceipt id after permit");
+        }
+
+        #[test]
+        fn activate_principal_profile_id_stable_across_reactivations() {
+            let mut rt = minimal_runtime();
+            // Same principal identity (Mumo, same node) → stable principal_id
+            // even though activation_receipt_id differs because of different
+            // timestamps / chain heads.
+            let env1 = test_envelope(7_000);
+            let r1 = rt.submit_principal_activation(env1, 0.98).unwrap();
+            let env2 = test_envelope(8_000);
+            let r2 = rt.submit_principal_activation(env2, 0.98).unwrap();
+
+            let p1 = r1.profile.as_ref().unwrap();
+            let p2 = r2.profile.as_ref().unwrap();
+            assert_eq!(p1.principal_id, p2.principal_id,
+                "principal_id is stable across re-activations of the same principal");
+            assert_ne!(p1.activation_receipt_id, p2.activation_receipt_id,
+                "activation_receipt_id must differ across distinct mission submissions");
+        }
     }
 
     // ========================================================================

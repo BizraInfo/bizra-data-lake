@@ -216,6 +216,8 @@ fn kind_name(k: ReceiptKind) -> &'static str {
         ReceiptKind::ReasoningSession => "ReasoningSession",
         ReceiptKind::GovernanceDecision => "GovernanceDecision",
         ReceiptKind::NodeLifecycle => "NodeLifecycle",
+        ReceiptKind::Manifest => "Manifest",
+        ReceiptKind::PrincipalActivation => "PrincipalActivation",
         ReceiptKind::DegradedPath => "DegradedPath",
     }
 }
@@ -1072,16 +1074,21 @@ mod tests {
         assert_eq!(v["finalStage"], "Replayability");
         assert_eq!(v["missionId"].as_str().unwrap().len(), 64);
         assert_eq!(v["receiptId"].as_str().unwrap().len(), 64);
-        assert_eq!(v["chainHead"], v["receiptId"]);
+        // Cycle-7 G1 (add18501): chainHead is the Manifest receipt appended
+        // after the NodeLifecycle receipt, so it is DISTINCT from receiptId.
+        assert_ne!(
+            v["chainHead"], v["receiptId"],
+            "post-G1: Manifest is appended after NodeLifecycle, advancing head"
+        );
 
-        // Chain should now show 7: 1 mission + 5 gate verdicts + 1 final receipt.
+        // Chain length: 1 mission + 5 gate verdicts + 1 NodeLifecycle + 1 Manifest = 8.
         let chain_res = router(state.clone())
             .oneshot(Request::builder().uri("/chain").body(axum::body::Body::empty()).unwrap())
             .await
             .unwrap();
         let chain_body = to_bytes(chain_res.into_body(), 1024).await.unwrap();
         let chain: serde_json::Value = serde_json::from_slice(&chain_body).unwrap();
-        assert_eq!(chain["length"], 7);
+        assert_eq!(chain["length"], 8);
 
         let mission_id = v["missionId"].as_str().unwrap();
 
@@ -1101,7 +1108,9 @@ mod tests {
         assert_eq!(mission["stage"], "Replayability");
         assert_eq!(mission["rejected"], false);
         assert_eq!(mission["receiptId"], v["receiptId"]);
-        assert_eq!(mission["chainHead"], v["receiptId"]);
+        // G1: stored chain_head mirrors the submit response's chain_head
+        // (the Manifest head), not the NodeLifecycle receiptId.
+        assert_eq!(mission["chainHead"], v["chainHead"]);
 
         let replay_res = router(state.clone())
             .oneshot(
@@ -1172,7 +1181,10 @@ mod tests {
         assert_eq!(mission_res.status(), StatusCode::OK);
         let mission_body = to_bytes(mission_res.into_body(), 4096).await.unwrap();
         let mission: serde_json::Value = serde_json::from_slice(&mission_body).unwrap();
-        assert_eq!(mission["chainHead"], first["receiptId"]);
+        // G1: the first mission's stored chain_head is immutable — it is the
+        // Manifest head sealed at the time of its submission, not the later
+        // chain head after a second submission.
+        assert_eq!(mission["chainHead"], first["chainHead"]);
     }
 
     #[tokio::test]
