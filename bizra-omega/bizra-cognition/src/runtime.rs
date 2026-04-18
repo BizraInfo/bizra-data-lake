@@ -9,11 +9,12 @@
 //! receipts, and produces a graph consistent with the chain's decisions.
 //!
 //! Rehydrate contract:
-//!   - Input: a ThoughtGraph in its fresh-boot state (no reflexes installed)
-//!            and a ReceiptChain whose records have been loaded (but whose
-//!            derived state the graph has not yet applied).
-//!   - Output: a runtime whose graph has the exact reflex set the chain
-//!            records commit to, with no side effects beyond state.
+//!
+//! - Input: a ThoughtGraph in its fresh-boot state (no reflexes installed)
+//!   and a ReceiptChain whose records have been loaded (but whose derived
+//!   state the graph has not yet applied).
+//! - Output: a runtime whose graph has the exact reflex set the chain
+//!   records commit to, with no side effects beyond state.
 //!
 //! Determinism: rehydrate is pure replay. Same chain + same graph skeleton
 //! → same final state, byte-for-byte. This is what makes Node1 reproducibility

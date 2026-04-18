@@ -17,7 +17,6 @@ Standing on Giants:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 from core.proof_engine.evidence_audit import (
     EvidenceAuditResult,
@@ -26,7 +25,6 @@ from core.proof_engine.evidence_audit import (
 from core.proof_engine.sat_validator import (
     PatOutput,
     SatVerdict,
-    SimplePatOutput,
     validate,
 )
 

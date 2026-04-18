@@ -53,7 +53,10 @@ impl std::fmt::Display for EvalError {
             Self::IhsanBelowFloor { score, floor } => {
                 write!(f, "Ihsan score {:.4} below floor {:.4}", score, floor)
             }
-            Self::ReproducibilityMismatch { expected, got } => {
+            Self::ReproducibilityMismatch {
+                expected: _,
+                got: _,
+            } => {
                 write!(f, "Reproducibility hash mismatch")
             }
         }
@@ -660,7 +663,7 @@ pub struct ValuationNode {
 }
 
 impl GraphNode for ValuationNode {
-    fn traverse(&self, ctx: &mut AgentCtx) -> Vec<Thought> {
+    fn traverse(&self, _ctx: &mut AgentCtx) -> Vec<Thought> {
         // The valuation node doesn't produce Thoughts in the normal sense.
         // It runs evaluate() and emits a receipt via the runtime loop.
         // This traverse() is a passthrough that signals "valuation available."
@@ -716,25 +719,25 @@ impl GraphNode for ValuationNodeStub {
 // Integration: ReceiptKind patch (apply to receipts.rs)
 // ════════════════════════════════════════════════════════════
 
-/// To integrate, add to receipts.rs ReceiptKind:
-///
-/// ```rust
-/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// #[repr(u8)]
-/// pub enum ReceiptKind {
-///     Genesis            = 0x00,
-///     CognitionBoot      = 0x10,
-///     Myelination        = 0x20,
-///     Demyelination      = 0x21,
-///     ReasoningSession   = 0x30,
-///     GovernanceDecision = 0x40,
-///     NodeLifecycle      = 0x50,
-///     GenesisValuation   = 0x60,  // ← NEW
-///     DegradedPath       = 0xF0,
-/// }
-/// ```
-///
-/// And add `0x60 => Some(Self::GenesisValuation)` to from_byte().
+// To integrate, add to receipts.rs ReceiptKind:
+//
+// ```rust
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// #[repr(u8)]
+// pub enum ReceiptKind {
+//     Genesis            = 0x00,
+//     CognitionBoot      = 0x10,
+//     Myelination        = 0x20,
+//     Demyelination      = 0x21,
+//     ReasoningSession   = 0x30,
+//     GovernanceDecision = 0x40,
+//     NodeLifecycle      = 0x50,
+//     GenesisValuation   = 0x60,  // ← NEW
+//     DegradedPath       = 0xF0,
+// }
+// ```
+//
+// And add `0x60 => Some(Self::GenesisValuation)` to from_byte().
 
 // ════════════════════════════════════════════════════════════
 // Integration: CognitionEvent patch (apply to runtime.rs)

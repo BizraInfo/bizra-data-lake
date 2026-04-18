@@ -8,6 +8,16 @@
 // v0.2 scope (Cycle-5 G3): v0.1 read surface + POST /mission for principal
 // activation. Chain starts empty; first successful mission emits the founding
 // activation receipt lineage.
+//
+// ── ci-hygiene waivers (2026-04-18) ─────────────────────────────────
+// Gateway-local lint suppressions, each documented:
+//   - dead_code: axum handler DTOs legitimately carry fields consumed
+//     only via serde serialization; clippy can't trace that path.
+//   - result_large_err: Axum error-response tuples are intentionally
+//     held inline to match handler return-type conventions. Boxing
+//     the error breaks the tower::Layer shape without benefit on the
+//     local single-operator gateway.
+#![allow(dead_code, clippy::result_large_err)]
 
 use std::collections::HashMap;
 use std::net::SocketAddr;

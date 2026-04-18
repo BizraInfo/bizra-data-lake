@@ -24,7 +24,7 @@ import os
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Protocol
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 

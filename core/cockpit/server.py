@@ -301,9 +301,9 @@ def dashboard():
     routing = _model_routing()
     activity = _recent_activity(10)
     seal = _seal_status()
-    agents = _agent_status()
-    receipts = _receipt_chain(10)
-    activation = _activation_status()
+    _agents = _agent_status()  # noqa: F841 — retained for side-effects
+    _receipts = _receipt_chain(10)  # noqa: F841 — retained for side-effects
+    _activation = _activation_status()  # noqa: F841 — retained for side-effects
 
     verdict_rows = (
         "".join(

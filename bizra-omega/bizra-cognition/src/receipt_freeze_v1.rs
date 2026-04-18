@@ -30,10 +30,14 @@
 //!   ReceiptEnvelope<T> (payload)    = Layer 2 (internal, mutable impl)
 
 use crate::canonical_hasher::blake3_domain;
+#[cfg(test)]
+use crate::receipts::InMemoryPayloadStore;
 use crate::receipts::{
-    Blake3Hash, ByteReader, DecodeError, InMemoryPayloadStore, PayloadStore, Receipt, ReceiptChain,
-    ReceiptKind, ReceiptPayload, ReceiptPayloadDecode, StoreError,
+    Blake3Hash, ByteReader, DecodeError, Receipt, ReceiptChain, ReceiptKind, ReceiptPayload,
+    ReceiptPayloadDecode,
 };
+#[cfg(feature = "sled-store")]
+use crate::receipts::{PayloadStore, StoreError};
 
 // ════════════════════════════════════════════════════════════
 // ReceiptArtifact — The §7 Frozen Contract
@@ -563,7 +567,7 @@ mod tests {
             let bytes = chain
                 .fetch_payload_bytes(id)
                 .unwrap()
-                .expect(&format!("Payload missing for receipt {}", idx));
+                .unwrap_or_else(|| panic!("Payload missing for receipt {}", idx));
 
             let decoded = ReceiptArtifact::from_canonical_bytes(&bytes).unwrap();
 

@@ -102,7 +102,7 @@ def main():
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     output = Path(f"/data/bizra/logs/loop-proof-{timestamp}.json")
 
-    print(f"=== BIZRA Canonical Loop Proof ===")
+    print("=== BIZRA Canonical Loop Proof ===")
     print(f"Mission: {mission}")
     print(f"Output:  {output}")
     print()

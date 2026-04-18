@@ -15,6 +15,10 @@
 //!
 //! Env:
 //!   BIZRA_COGNITION_GATEWAY_URL (default http://127.0.0.1:7421)
+//!
+//! ci-hygiene waiver (2026-04-18): DTOs carry fields consumed via
+//! serde only; clippy can't trace that path.
+#![allow(dead_code)]
 
 use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};

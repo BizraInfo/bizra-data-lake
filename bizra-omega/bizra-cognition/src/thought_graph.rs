@@ -20,7 +20,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::canonical_hasher::{blake3_chain, blake3_domain};
+use crate::canonical_hasher::blake3_domain;
 pub use crate::receipts::{
     Blake3Hash, ByteReader, DecodeError, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
 };
