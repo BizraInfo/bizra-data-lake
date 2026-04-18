@@ -1,0 +1,495 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* DEMA custom tokens */
+  --color-trust: var(--trust);
+  --color-trust-foreground: var(--trust-foreground);
+  --color-trust-muted: var(--trust-muted);
+  --color-receipt: var(--receipt);
+  --color-receipt-foreground: var(--receipt-foreground);
+  --color-manifest: var(--manifest);
+  --color-manifest-foreground: var(--manifest-foreground);
+  --color-action: var(--action);
+  --color-action-foreground: var(--action-foreground);
+  --color-gap: var(--gap);
+  --color-gap-foreground: var(--gap-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+}
+
+:root {
+  --radius: 0.625rem;
+  /* DEMA Light Theme — Clean, warm neutral with amber/gold trust accent */
+  --background: oklch(0.995 0.002 90);
+  --foreground: oklch(0.13 0.01 60);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.13 0.01 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.13 0.01 60);
+  --primary: oklch(0.18 0.01 60);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.965 0.003 80);
+  --secondary-foreground: oklch(0.2 0.01 60);
+  --muted: oklch(0.96 0.004 80);
+  --muted-foreground: oklch(0.5 0.01 60);
+  --accent: oklch(0.965 0.003 80);
+  --accent-foreground: oklch(0.2 0.01 60);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.91 0.004 80);
+  --input: oklch(0.91 0.004 80);
+  --ring: oklch(0.7 0.01 80);
+  /* DEMA semantic tokens — light */
+  --trust: oklch(0.82 0.15 75);
+  --trust-foreground: oklch(0.22 0.04 60);
+  --trust-muted: oklch(0.95 0.03 80);
+  --receipt: oklch(0.72 0.16 150);
+  --receipt-foreground: oklch(0.15 0.04 150);
+  --manifest: oklch(0.7 0.14 200);
+  --manifest-foreground: oklch(0.15 0.04 200);
+  --action: oklch(0.75 0.15 300);
+  --action-foreground: oklch(0.15 0.04 300);
+  --gap: oklch(0.8 0.18 55);
+  --gap-foreground: oklch(0.2 0.04 55);
+  --success: oklch(0.72 0.16 150);
+  --success-foreground: oklch(0.15 0.06 150);
+  --warning: oklch(0.82 0.15 75);
+  --warning-foreground: oklch(0.22 0.06 55);
+  /* Charts */
+  --chart-1: oklch(0.82 0.15 75);
+  --chart-2: oklch(0.72 0.16 150);
+  --chart-3: oklch(0.7 0.14 200);
+  --chart-4: oklch(0.75 0.15 300);
+  --chart-5: oklch(0.8 0.18 55);
+  /* Sidebar */
+  --sidebar: oklch(0.985 0.002 80);
+  --sidebar-foreground: oklch(0.13 0.01 60);
+  --sidebar-primary: oklch(0.82 0.15 75);
+  --sidebar-primary-foreground: oklch(0.15 0.04 75);
+  --sidebar-accent: oklch(0.96 0.006 80);
+  --sidebar-accent-foreground: oklch(0.2 0.01 60);
+  --sidebar-border: oklch(0.92 0.004 80);
+  --sidebar-ring: oklch(0.82 0.15 75);
+}
+
+.dark {
+  /* DEMA Dark Theme — Deep charcoal with warm amber trust accent */
+  --background: oklch(0.12 0.005 60);
+  --foreground: oklch(0.94 0.005 80);
+  --card: oklch(0.17 0.006 60);
+  --card-foreground: oklch(0.94 0.005 80);
+  --popover: oklch(0.17 0.006 60);
+  --popover-foreground: oklch(0.94 0.005 80);
+  --primary: oklch(0.92 0.01 80);
+  --primary-foreground: oklch(0.12 0.005 60);
+  --secondary: oklch(0.22 0.006 60);
+  --secondary-foreground: oklch(0.9 0.005 80);
+  --muted: oklch(0.22 0.006 60);
+  --muted-foreground: oklch(0.62 0.008 70);
+  --accent: oklch(0.22 0.006 60);
+  --accent-foreground: oklch(0.9 0.005 80);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.82 0.15 75);
+  /* DEMA semantic tokens — dark */
+  --trust: oklch(0.78 0.14 75);
+  --trust-foreground: oklch(0.12 0.02 60);
+  --trust-muted: oklch(0.2 0.02 70);
+  --receipt: oklch(0.68 0.14 150);
+  --receipt-foreground: oklch(0.95 0.02 150);
+  --manifest: oklch(0.65 0.12 200);
+  --manifest-foreground: oklch(0.95 0.02 200);
+  --action: oklch(0.7 0.13 300);
+  --action-foreground: oklch(0.95 0.02 300);
+  --gap: oklch(0.78 0.16 55);
+  --gap-foreground: oklch(0.12 0.03 55);
+  --success: oklch(0.68 0.14 150);
+  --success-foreground: oklch(0.95 0.03 150);
+  --warning: oklch(0.78 0.14 75);
+  --warning-foreground: oklch(0.12 0.03 55);
+  /* Charts */
+  --chart-1: oklch(0.78 0.14 75);
+  --chart-2: oklch(0.68 0.14 150);
+  --chart-3: oklch(0.65 0.12 200);
+  --chart-4: oklch(0.7 0.13 300);
+  --chart-5: oklch(0.78 0.16 55);
+  /* Sidebar */
+  --sidebar: oklch(0.14 0.005 60);
+  --sidebar-foreground: oklch(0.94 0.005 80);
+  --sidebar-primary: oklch(0.78 0.14 75);
+  --sidebar-primary-foreground: oklch(0.12 0.02 75);
+  --sidebar-accent: oklch(0.2 0.01 60);
+  --sidebar-accent-foreground: oklch(0.9 0.005 80);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.78 0.14 75);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* DEMA Custom Scrollbar */
+.dema-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dema-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dema-scrollbar::-webkit-scrollbar-thumb {
+  background: oklch(0.5 0 0 / 30%);
+  border-radius: 3px;
+}
+.dema-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0 / 50%);
+}
+
+/* Trust Strip Glow */
+.trust-glow {
+  box-shadow: 0 1px 0 0 oklch(0.82 0.15 75 / 20%), 0 0 20px oklch(0.82 0.15 75 / 5%);
+}
+
+/* DEMA Pulse for live indicators */
+@keyframes dema-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.dema-pulse {
+  animation: dema-pulse 2s ease-in-out infinite;
+}
+
+/* Calm fade in */
+@keyframes dema-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dema-fade-in {
+  animation: dema-fade-in 0.3s ease-out;
+}
+
+/* Subtle slide from right */
+@keyframes dema-slide-in {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.dema-slide-in {
+  animation: dema-slide-in 0.3s ease-out;
+}
+
+/* Receipt chain connector */
+.receipt-chain-item::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 36px;
+  bottom: -12px;
+  width: 1px;
+  background: oklch(0.5 0 0 / 15%);
+}
+.receipt-chain-item:last-child::before {
+  display: none;
+}
+
+/* DEMA monospace data */
+.dema-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.8em;
+  letter-spacing: -0.01em;
+}
+
+/* BIZRA Orchestration Animations */
+
+/* Agent status glow — active */
+@keyframes agent-glow-active {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.72 0.16 150 / 0); }
+  50% { box-shadow: 0 0 8px 2px oklch(0.72 0.16 150 / 15%); }
+}
+.agent-glow-active {
+  animation: agent-glow-active 3s ease-in-out infinite;
+}
+
+/* Agent status glow — busy */
+@keyframes agent-glow-busy {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.82 0.15 75 / 0); }
+  50% { box-shadow: 0 0 10px 3px oklch(0.82 0.15 75 / 20%); }
+}
+.agent-glow-busy {
+  animation: agent-glow-busy 2s ease-in-out infinite;
+}
+
+/* Agent status glow — error */
+@keyframes agent-glow-error {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.577 0.245 27 / 0); }
+  50% { box-shadow: 0 0 12px 4px oklch(0.577 0.245 27 / 25%); }
+}
+.agent-glow-error {
+  animation: agent-glow-error 1.5s ease-in-out infinite;
+}
+
+/* Propagation wave */
+@keyframes propagate-wave {
+  0% { r: 0; opacity: 0.6; }
+  100% { r: 40; opacity: 0; }
+}
+
+/* Telemetry pulse for live events */
+@keyframes telemetry-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.telemetry-pulse {
+  animation: telemetry-pulse 1s ease-in-out;
+}
+
+/* Progress bar animation */
+@keyframes progress-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.progress-shimmer {
+  background: linear-gradient(90deg, transparent 25%, oklch(1 0 0 / 30%) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: progress-shimmer 2s linear infinite;
+}
+
+/* Graph node hover effect */
+.graph-node-hover {
+  filter: brightness(1.2);
+  cursor: pointer;
+}
+
+/* Governance rule active indicator */
+@keyframes rule-pulse {
+  0%, 100% { border-color: oklch(0.72 0.16 150 / 30%); }
+  50% { border-color: oklch(0.72 0.16 150 / 60%); }
+}
+.rule-active-indicator {
+  animation: rule-pulse 3s ease-in-out infinite;
+}
+
+/* Data stream line animation */
+@keyframes stream-flow {
+  0% { stroke-dashoffset: 20; }
+  100% { stroke-dashoffset: 0; }
+}
+.stream-flow {
+  stroke-dasharray: 4 4;
+  animation: stream-flow 1s linear infinite;
+}
+
+/* Staggered fade in for lists */
+@keyframes stagger-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* BIZRA section separator */
+.bizra-separator {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, oklch(0.7 0.14 200 / 30%), transparent);
+}
+
+/* Cryptographic hash display */
+.crypto-hash {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.75em;
+  color: oklch(0.5 0.01 60);
+  word-break: break-all;
+}
+
+/* Health status bar gradient */
+.health-bar-healthy {
+  background: linear-gradient(90deg, oklch(0.72 0.16 150), oklch(0.68 0.14 150));
+}
+.health-bar-degraded {
+  background: linear-gradient(90deg, oklch(0.82 0.15 75), oklch(0.78 0.14 75));
+}
+.health-bar-down {
+  background: linear-gradient(90deg, oklch(0.577 0.245 27), oklch(0.704 0.191 22));
+}
+
+/* ADK Factory Animations */
+@keyframes adk-seal-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.72 0.16 150 / 0); }
+  50% { box-shadow: 0 0 12px 4px oklch(0.72 0.16 150 / 20%); }
+}
+.adk-seal-glow {
+  animation: adk-seal-glow 3s ease-in-out infinite;
+}
+
+@keyframes adk-lifecycle-flow {
+  from { background-position: 0 0; }
+  to { background-position: 20px 0; }
+}
+.adk-lifecycle-flow {
+  background: repeating-linear-gradient(90deg, oklch(0.7 0.14 200 / 15%) 0px, oklch(0.7 0.14 200 / 15%) 2px, transparent 2px, transparent 10px);
+  animation: adk-lifecycle-flow 1s linear infinite;
+}
+
+@keyframes adk-phase-progress {
+  0% { width: 0%; }
+  100% { width: 65%; }
+}
+.adk-phase-progress {
+  animation: adk-phase-progress 3s ease-out forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* DEMA Constitutional Generative UI — Surface Animations    */
+/* ═══════════════════════════════════════════════════════════════ */
+
+/* Surface entrance — calm slide up */
+@keyframes surface-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.surface-enter {
+  animation: surface-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Surface exit — subtle fade */
+@keyframes surface-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-6px); }
+}
+.surface-exit {
+  animation: surface-exit 0.2s ease-in forwards;
+}
+
+/* Gate evaluation pulse — sequential */
+@keyframes gate-eval-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.78 0.14 75 / 0); }
+  50% { box-shadow: 0 0 8px 2px oklch(0.78 0.14 75 / 25%); }
+}
+.gate-eval-pulse {
+  animation: gate-eval-pulse 1.2s ease-in-out infinite;
+}
+
+/* Gate passed glow */
+@keyframes gate-passed-glow {
+  0% { box-shadow: 0 0 0 0 oklch(0.68 0.14 150 / 0); }
+  50% { box-shadow: 0 0 12px 3px oklch(0.68 0.14 150 / 15%); }
+  100% { box-shadow: 0 0 0 0 oklch(0.68 0.14 150 / 0); }
+}
+.gate-passed-glow {
+  animation: gate-passed-glow 2s ease-out forwards;
+}
+
+/* Gate blocked shake */
+@keyframes gate-blocked-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 50%, 90% { transform: translateX(-3px); }
+  30%, 70% { transform: translateX(3px); }
+}
+.gate-blocked-shake {
+  animation: gate-blocked-shake 0.5s ease-in-out;
+}
+
+/* Seal glow for receipt */
+@keyframes seal-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.68 0.14 150 / 0); }
+  50% { box-shadow: 0 0 16px 4px oklch(0.68 0.14 150 / 12%); }
+}
+.seal-glow {
+  animation: seal-glow 3s ease-in-out infinite;
+}
+
+/* Stage connector line animation */
+@keyframes stage-connector-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.stage-connector-fill {
+  animation: stage-connector-fill 0.5s ease-out forwards;
+}
+
+/* Typing cursor for intent field */
+@keyframes intent-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Memory constellation tab indicator */
+@keyframes tab-indicator-slide {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.tab-indicator-slide {
+  animation: tab-indicator-slide 0.2s ease-out;
+  transform-origin: left;
+}
+
+/* Safe area bottom for iOS */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Processing overlay shimmer */
+@keyframes processing-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.processing-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.17 0.006 60) 25%,
+    oklch(0.2 0.006 60) 50%,
+    oklch(0.17 0.006 60) 75%
+  );
+  background-size: 200% 100%;
+  animation: processing-shimmer 1.5s linear infinite;
+}

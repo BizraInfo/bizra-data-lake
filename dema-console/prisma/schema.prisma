@@ -1,0 +1,105 @@
+// This is your Prisma schema file for DEMA
+// The one visible face of BIZRA
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Receipt {
+  id          String   @id @default(cuid())
+  missionId   String?
+  type        String   // "action", "verification", "delegation", "completion", "error"
+  status      String   @default("pending") // "pending", "verified", "rejected", "expired"
+  title       String
+  description String?
+  evidence    String?  // JSON string
+  issuedAt    DateTime @default(now())
+  verifiedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Manifest {
+  id          String   @id @default(cuid())
+  missionId   String?
+  title       String
+  description String?
+  status      String   @default("draft") // "draft", "active", "completed", "archived"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  artifacts ManifestArtifact[]
+}
+
+model ManifestArtifact {
+  id         String   @id @default(cuid())
+  manifestId String
+  name       String
+  type       String
+  path       String?
+  hash       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  manifest Manifest @relation(fields: [manifestId], references: [id], onDelete: Cascade)
+}
+
+model Resource {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   // "file", "url", "credential", "service", "knowledge", "browser", "terminal"
+  path      String?
+  status    String   @default("registered") // "registered", "active", "revoked"
+  metadata  String?  // JSON string
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TrustState {
+  id           String    @id @default(cuid())
+  principalId  String?
+  principalName String?
+  level        String    @default("visitor") // "visitor", "citizen", "operator", "admin"
+  score        Int       @default(0)
+  lastVerified DateTime?
+  updatedAt    DateTime  @updatedAt
+}
+
+model MemoryEntry {
+  id         String   @id @default(cuid())
+  category   String   // "preference", "context", "knowledge", "poi"
+  title      String
+  content    String
+  confidence Float    @default(0.5)
+  relevance  Float    @default(0.5)
+  source     String?
+  tags       String?  // JSON string
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ActionLog {
+  id          String    @id @default(cuid())
+  mode        String    // "browser", "computer", "code", "research"
+  action      String
+  status      String    @default("pending")
+  description String?
+  permission  String    @default("explicit") // "auto", "explicit", "denied"
+  evidence    String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+}
