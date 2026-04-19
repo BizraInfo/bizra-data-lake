@@ -195,21 +195,19 @@ pub trait Sealable: Send + Sync {
     ///
     /// The implementer is responsible for populating every field:
     ///
-    ///   - `claim_id`        : canonical hash identifying this sealable
-    ///                         artifact (derived from `bytes_for_digest`)
-    ///   - `has_evidence`    : whether binding evidence is present
-    ///                         (checked by ZANN_ZERO)
-    ///   - `evidence_hash`   : the binding hash; must be `Some(non-zero)`
-    ///                         when `has_evidence` is `true`
-    ///                         (checked by CLAIM_MUST_BIND)
-    ///   - `economic_pattern`: any declared economic action
-    ///                         (checked by RIBA_ZERO)
-    ///   - `state_mutation`  : any declared kernel state change
-    ///                         (checked by NO_SHADOW_STATE)
-    ///   - `quality_score`   : self-assessed quality in `[0.0, 1.0]`; the
-    ///                         chain requires `≥ 0.95` to Permit
-    ///                         (checked by IHSAN_FLOOR)
-    ///   - `timestamp_ns`    : monotonic timestamp for this seal attempt
+    /// - `claim_id`: canonical hash identifying this sealable artifact
+    ///   (derived from `bytes_for_digest`).
+    /// - `has_evidence`: whether binding evidence is present
+    ///   (checked by ZANN_ZERO).
+    /// - `evidence_hash`: the binding hash; `Some(non-zero)` when
+    ///   `has_evidence` is `true` (checked by CLAIM_MUST_BIND).
+    /// - `economic_pattern`: any declared economic action
+    ///   (checked by RIBA_ZERO).
+    /// - `state_mutation`: any declared kernel state change
+    ///   (checked by NO_SHADOW_STATE).
+    /// - `quality_score`: self-assessed quality in `[0.0, 1.0]`; the chain
+    ///   requires `≥ 0.95` to Permit (checked by IHSAN_FLOOR).
+    /// - `timestamp_ns`: monotonic timestamp for this seal attempt.
     fn seal_envelope(&self) -> AdmissibilityClaim;
 
     /// Produce the canonical byte sequence that uniquely identifies this
