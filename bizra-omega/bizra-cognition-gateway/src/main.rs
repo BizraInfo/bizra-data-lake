@@ -18,6 +18,7 @@
 #![allow(dead_code, clippy::result_large_err)]
 
 mod contracts;
+mod witness;
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -1633,6 +1634,16 @@ async fn replay_mission(
 }
 
 fn router(state: AppState) -> Router {
+    // Witness sub-router (Cycle-8 Day 4): additive, state-isolated.
+    // Uses its own WitnessStore; does NOT share AppState. The witness
+    // endpoints report what was received, never what the local chain
+    // says (NO_SHADOW_STATE at the result boundary). Witness-grade
+    // detectability only; bonded stake / slashing / DAO are Horizon.
+    let witness_router = Router::new()
+        .route("/witness/head", post(witness::post_head))
+        .route("/witness/head/:node_id", get(witness::get_head))
+        .with_state(witness::WitnessStore::new());
+
     Router::new()
         .route("/health", get(health))
         .route("/chain", get(get_chain))
@@ -1649,6 +1660,7 @@ fn router(state: AppState) -> Router {
         .route("/poi/ledger", get(get_poi_ledger))
         .route("/poi/summary", get(get_poi_summary))
         .with_state(state)
+        .merge(witness_router)
 }
 
 #[tokio::main]
