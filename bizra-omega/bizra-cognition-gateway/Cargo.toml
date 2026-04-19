@@ -20,6 +20,12 @@ anyhow = { workspace = true }
 # checked in at bindings/; `cargo test` regenerates them; CI fails on
 # unstaged diff. UI consumers import from that directory.
 ts-rs = { version = "10", features = ["no-serde-warnings"] }
+# Cycle-8 Day 5 — Ed25519 signatures on WitnessObservation.
+# Workspace-pinned to 2.1 with features [serde, rand_core, batch].
+ed25519-dalek = { workspace = true }
+# Random number generation for test-time key creation; production keys
+# load from BIZRA_WITNESS_SIGNING_KEY_HEX env var.
+rand = { workspace = true }
 
 [dev-dependencies]
 tower = { version = "0.4", features = ["util"] }
