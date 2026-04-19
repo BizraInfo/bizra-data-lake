@@ -41,7 +41,7 @@ Every line of code passes three gates before it ships:
 ```
 RIBA_ZERO        →  No exploitation. No interest. No harm.
 CLAIM_MUST_BIND  →  No hallucination. Every claim has evidence.
-IHSAN_FLOOR      →  Excellence is the minimum. 0.99 threshold.
+IHSAN_FLOOR      →  Excellence is the minimum. Gate held until met.
 ```
 
 If any gate fails → **rejected**. No exceptions. No overrides.
