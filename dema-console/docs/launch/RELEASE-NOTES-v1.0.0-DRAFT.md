@@ -11,6 +11,10 @@
 
 **Draft discipline:** every line below is one of four states — **SHIPPED** (merged to main), **DRAFTED** (on a feature branch, not yet merged), **HELD** (intentionally not public at T=0), or **BLOCKED** (requires human gate to proceed). No overclaiming.
 
+**No-assumptions rule:** we do not assume a capability is live before we ship it. Two live truth labels on the landing surface:
+- The `curl …/install.sh | sh` one-liner on `/landing` is explicitly labeled `install · preview · not live yet` — gated on first cargo-dist release cut (see §4).
+- The `/r/<hash>` receipt viewer is explicitly `local-first` — it queries a gateway on the viewer's own machine (default `127.0.0.1:7421`), never a public lookup service. If/when a public witness gateway is introduced, it will be a conscious product decision with its own truth label.
+
 ---
 
 ## 1. What's SHIPPED on main (available at v1.0.0)

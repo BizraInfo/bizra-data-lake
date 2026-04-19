@@ -1,21 +1,25 @@
-// bizra.ai/r/<hash> — public receipt viewer
+// bizra.ai/r/<hash> — receipt viewer (local-first)
 //
 // بسم الله الرحمن الرحيم
 //
-// Shareable URL for a sealed receipt. The user pastes a 64-char hex
-// hash; this page attempts to fetch it from the local gateway at
-// 127.0.0.1:7421 and renders it honestly.
+// Epistemology: we do not assume public receipt lookup exists. It
+// does not, at T=0. Receipts live on the operator's own node's
+// chain, not on a central server. This page is a LOCAL-FIRST
+// viewer: it asks the viewer's own dema gateway (default
+// 127.0.0.1:7421 on the viewer's machine), not a remote server.
 //
-// Three outcomes, NO_SHADOW_STATE at the result boundary:
-//   - ok: receipt found — render its canonical fields verbatim
-//   - not_found: honest "no receipt with this hash on this node"
-//   - unreachable: honest "local gateway unreachable; run `dema start`"
+// Three honest outcomes, NO_SHADOW_STATE at the result boundary:
+//   - ok: receipt found on this viewer's local chain
+//   - not_found: reached the local gateway, no receipt with this hash
+//   - unreachable: no local gateway running — page explains why
+//   - invalid_hash: hash shape is wrong; no lookup attempted
 //
-// Local-first discipline: this page does NOT attempt to fetch from
-// a remote gateway. Receipts are by default LOCAL to the operator's
-// own node. The public bizra.ai/r/<hash> URL scheme is a way to
-// SHARE a hash — the receiver pastes it into THEIR own dema-console
-// where THEIR local gateway answers. No cross-node leakage.
+// Why: the public `bizra.ai/r/<hash>` URL scheme is a SHARE channel
+// (paste a hash into a message). Resolution still happens on the
+// receiver's own machine against their own sovereign chain. No
+// hidden public gateway. No cross-node leakage. When/if a public
+// witness gateway is ever introduced, it will be a conscious
+// product decision with its own truth label, not a silent default.
 
 "use client";
 
@@ -88,11 +92,25 @@ export default function ReceiptPage({
           >
             ← DEMA landing
           </Link>
-          <h1 className="text-xl font-semibold">Receipt viewer</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold">Receipt viewer</h1>
+            <Badge variant="outline" className="text-[10px] font-mono">local-first</Badge>
+          </div>
           <code className="block text-[11px] font-mono text-muted-foreground break-all">
             {params.hash}
           </code>
         </header>
+
+        <Card className="border-border/50 bg-muted/10">
+          <CardContent className="p-3 text-[11px] text-muted-foreground leading-relaxed">
+            This viewer asks <code className="font-mono">{GATEWAY_URL}</code> —
+            a gateway on <strong className="text-foreground">your own machine</strong>,
+            not a central server. Receipts live on the node that sealed them.
+            If you pasted a hash sealed on a different machine, the answer
+            will honestly be &quot;not on this node&quot; until you run the
+            lookup on the sealing machine. No assumption of public lookup is made.
+          </CardContent>
+        </Card>
 
         {outcome.kind === "loading" && (
           <Card className="border-border/50 bg-muted/10">

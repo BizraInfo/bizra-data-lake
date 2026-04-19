@@ -19,16 +19,23 @@
 // they merge to this branch from cycle-8.
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
   title: "DEMA seals reality. Organize is the first proof.",
   description:
-    "DEMA is a governed runtime that turns your intent into lawful, receipted, replayable action. Install in 60 seconds. Verify every claim. No cloud. No account. No cost.",
+    "DEMA is a governed runtime that turns your intent into lawful, receipted, replayable action. Verify every claim. No cloud. No account. No cost. Install path pending final T=0 release cut.",
 };
 
-const INSTALL_COMMAND = "curl -fsSL https://bizra.ai/install.sh | sh";
+// Epistemology:
+//   We do not assume. If we must, we name the assumption and bound it.
+// The install one-liner below is the intended shape of the command when
+// the first cargo-dist release is cut. Until that release actually
+// publishes the signed binary + install.sh at the shown URL, the command
+// is a PREVIEW, not a live path. We label it as such rather than imply
+// it works today.
+const INSTALL_COMMAND_PREVIEW = "curl -fsSL https://bizra.ai/install.sh | sh";
 const FIRST_MISSION_COMMAND = "dema organize ~/Downloads";
 
 export default function LandingPage() {
@@ -47,25 +54,43 @@ export default function LandingPage() {
           </p>
 
           <Card className="bg-muted/30 border-border/50 text-left max-w-2xl mx-auto">
-            <CardContent className="p-4 space-y-2">
-              <code className="block font-mono text-xs md:text-sm text-foreground/90 break-all">
-                {INSTALL_COMMAND}
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  install · preview
+                </Badge>
+                <span className="text-[11px] text-muted-foreground">
+                  not live yet — pending first cargo-dist release cut
+                </span>
+              </div>
+              <code className="block font-mono text-xs md:text-sm text-muted-foreground/70 break-all line-through decoration-muted-foreground/40">
+                {INSTALL_COMMAND_PREVIEW}
               </code>
-              <code className="block font-mono text-xs md:text-sm text-foreground/90 break-all">
-                {FIRST_MISSION_COMMAND}
-              </code>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                The one-liner above is the intended shape of the install
+                command. We do not present it as live before we ship it.
+                When the first signed release is cut, this card flips to an
+                active state and the strikethrough comes off.
+              </p>
+              <div className="pt-2 border-t border-border/40 space-y-2">
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  first mission · design
+                </Badge>
+                <code className="block font-mono text-xs md:text-sm text-foreground/90 break-all">
+                  {FIRST_MISSION_COMMAND}
+                </code>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Runs locally once DEMA is installed. Requires an allowlisted
+                  resource (see step 2 below).
+                </p>
+              </div>
             </CardContent>
           </Card>
 
           <p className="text-xs text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            You get a cryptographically sealed manifest of your digital clutter —
-            receipted, replayable, and verifiable by any skeptical stranger on
-            any machine.
-          </p>
-
-          <p className="text-[11px] text-muted-foreground/70 italic">
-            Install script not live yet — this page is a pre-launch reference.
-            Install will become live when the first cargo-dist release is cut.
+            When live, you get a cryptographically sealed manifest of your
+            digital clutter — receipted, replayable, and verifiable by any
+            skeptical stranger on any machine.
           </p>
         </section>
 
@@ -93,11 +118,20 @@ export default function LandingPage() {
         {/* Your first proof */}
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">Your first proof</h2>
+          <p className="text-[11px] text-muted-foreground/80 italic leading-relaxed">
+            The steps below describe the shipped runtime flow. Step 1
+            (install) is gated on the first cargo-dist release; steps 2 and 3
+            already run against the local kernel once DEMA is on your machine.
+          </p>
           <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-3 leading-relaxed">
             <li>
-              <span className="text-foreground">Install</span> (&lt; 5 minutes, reproducible build, SHA-256 verified):
-              <pre className="mt-2 bg-muted/30 border border-border/50 p-2 rounded text-xs font-mono overflow-x-auto">
-                {INSTALL_COMMAND}
+              <span className="text-foreground">Install</span>{" "}
+              <Badge variant="outline" className="text-[10px] font-mono align-middle">
+                pending
+              </Badge>{" "}
+              — once live, a single reproducible build, SHA-256 verified, no sudo:
+              <pre className="mt-2 bg-muted/30 border border-border/50 p-2 rounded text-xs font-mono overflow-x-auto text-muted-foreground/70 line-through decoration-muted-foreground/40">
+                {INSTALL_COMMAND_PREVIEW}
               </pre>
             </li>
             <li>
@@ -239,8 +273,11 @@ export default function LandingPage() {
           <h2 className="text-lg font-semibold">Links</h2>
           <ul className="text-sm space-y-2">
             <li>
-              <strong className="text-foreground">Install</strong>{" "}
-              <span className="text-muted-foreground">(pending first cargo-dist release)</span>
+              <span className="text-muted-foreground">Install</span>{" "}
+              <Badge variant="outline" className="text-[10px] font-mono align-middle">
+                pending · not live
+              </Badge>{" "}
+              <span className="text-muted-foreground">— activates at first cargo-dist release</span>
             </li>
             <li>
               <Link className="underline decoration-dotted hover:text-foreground" href="/manifest">
@@ -277,6 +314,16 @@ export default function LandingPage() {
               </a>
             </li>
           </ul>
+        </section>
+
+        {/* Epistemology note */}
+        <section className="border-t border-border/50 pt-6">
+          <p className="text-[11px] text-muted-foreground/80 italic leading-relaxed max-w-2xl mx-auto text-center">
+            DEMA does not assume. If a claim on this page is not yet live, it
+            is explicitly labeled pending. When it ships, the label comes off.
+            We would rather under-claim and let proof catch up than overclaim
+            and need a retraction.
+          </p>
         </section>
 
         {/* Footer */}
