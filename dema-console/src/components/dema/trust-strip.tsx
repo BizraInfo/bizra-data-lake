@@ -25,6 +25,29 @@ export function TrustStrip() {
   const latestReceipt = receipts[0];
   const verifiedCount = receipts.filter((r) => r.status === "verified").length;
 
+  // NO_SHADOW_STATE: when no principal is activated, render an honest
+  // activation prompt instead of blank score / session / receipt fields.
+  // The face MUST NOT display scores, session ids, or receipt counts
+  // unless the kernel has sealed a PrincipalActivation receipt.
+  if (!trustState.isActive) {
+    return (
+      <div className="trust-glow border-b border-border bg-card/80 backdrop-blur-sm">
+        <div className="flex items-center h-10 px-3 gap-2 text-xs">
+          <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="font-medium text-muted-foreground">
+            No principal activated
+          </span>
+          <span className="text-muted-foreground">
+            — activate with
+          </span>
+          <code className="bg-accent/30 px-1.5 py-0.5 rounded font-mono text-[11px]">
+            dema activate-principal
+          </code>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="trust-glow border-b border-border bg-card/80 backdrop-blur-sm">
       <div className="flex items-center h-10 px-3 gap-1 text-xs overflow-x-auto dema-scrollbar">
