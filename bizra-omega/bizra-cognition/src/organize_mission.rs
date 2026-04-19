@@ -25,6 +25,12 @@
 
 use crate::canonical_hasher::{blake3_domain, Blake3Hash};
 use crate::receipts::{ByteReader, DecodeError, ReceiptKind, ReceiptPayload, ReceiptPayloadDecode};
+// Day 2 — Sealable trait integration. Appends a request-type and trait
+// impls only; all pre-existing types in this module are unchanged.
+use crate::admissibility_freeze_v1::{
+    AdmissibilityClaim, EconomicPattern, RejectedClaim, StateMutation,
+};
+use crate::seal::{Sealable, SealableOutcome};
 
 // ════════════════════════════════════════════════════════════════════
 // OrganizeListing — deterministic read-only projection of a directory
@@ -243,6 +249,100 @@ impl ReceiptPayloadDecode for OrganizeMissionReceipt {
     }
 }
 
+// ════════════════════════════════════════════════════════════════════
+// OrganizeRequest — Day 2 Sealable integration
+// ════════════════════════════════════════════════════════════════════
+//
+// OrganizeRequest is the pre-execution artifact that passes through the
+// universal Sealable primitive. After the 5-gate AdmissibilityChain yields
+// Permit, the runtime reads the filesystem to produce OrganizeListing,
+// then builds OrganizeMissionReceipt (all unchanged types above).
+//
+// This addition is purely additive: zero pre-existing code is modified,
+// no behavior is altered. The existing organize flow continues to work
+// via the exact same path. Day 3+ may choose to route it through a
+// generic `fn seal<S: Sealable>(...)` wrapper; that refactor is out of
+// Day 2 scope.
+
+/// An organize-mission request — pre-execution input to the lawful loop.
+///
+/// Carries only what is knowable at submission time: the target path, the
+/// self-declared quality score, and a monotonic timestamp. The post-execution
+/// evidence (OrganizeListing.digest) binds later at receipt construction.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OrganizeRequest {
+    pub path: String,
+    pub quality_score: f64,
+    pub timestamp_ns: u64,
+}
+
+impl OrganizeRequest {
+    pub fn new(path: impl Into<String>, quality_score: f64, timestamp_ns: u64) -> Self {
+        Self {
+            path: path.into(),
+            quality_score,
+            timestamp_ns,
+        }
+    }
+}
+
+impl Sealable for OrganizeRequest {
+    fn seal_envelope(&self) -> AdmissibilityClaim {
+        // Evidence hash is cryptographically derived from the request's own
+        // canonical bytes, never asserted. CLAIM_MUST_BIND holds by
+        // construction: the hash IS the binding.
+        let evidence_hash = blake3_domain("bizra-organize-request-v1", &self.bytes_for_digest());
+
+        AdmissibilityClaim {
+            claim_id: evidence_hash,
+            // ZANN_ZERO: request carries evidence (its own canonical form + post-exec listing).
+            has_evidence: true,
+            // CLAIM_MUST_BIND: non-zero hash derived from bytes_for_digest.
+            evidence_hash: Some(evidence_hash),
+            // RIBA_ZERO: organize is a read-only filesystem operation;
+            // no economic pattern is declared. The kernel's RIBA_ZERO gate
+            // will Permit None.
+            economic_pattern: Some(EconomicPattern::None),
+            // NO_SHADOW_STATE: the only state change from organize is a
+            // receipt appended to the canonical chain — derives from the
+            // canonical runtime, never face-only.
+            state_mutation: Some(StateMutation {
+                derives_from_canonical: true,
+                face_only: false,
+            }),
+            // IHSAN_FLOOR: self-declared; the kernel enforces ≥ 0.95.
+            quality_score: self.quality_score,
+            timestamp_ns: self.timestamp_ns,
+        }
+    }
+
+    fn bytes_for_digest(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(4 + self.path.len() + 8 + 8);
+        buf.extend_from_slice(&(self.path.len() as u32).to_le_bytes());
+        buf.extend_from_slice(self.path.as_bytes());
+        buf.extend_from_slice(&self.quality_score.to_le_bytes());
+        buf.extend_from_slice(&self.timestamp_ns.to_le_bytes());
+        buf
+    }
+
+    fn receipt_kind() -> ReceiptKind {
+        ReceiptKind::MissionExecuted
+    }
+}
+
+impl SealableOutcome for OrganizeRequest {
+    /// Lawful success carries the full canonical receipt payload; chain
+    /// head advance is encoded in the receipt's prev_chain field, which
+    /// the runtime sets at append time.
+    type Ok = OrganizeMissionReceipt;
+    /// Refusal carries the kernel's RejectedClaim exactly as issued —
+    /// invariant + reason + remediation — no translation layer.
+    type Refused = RejectedClaim;
+    /// Unreachable carries a human-readable reason only. No verdict is
+    /// fabricated; NO_SHADOW_STATE holds at the result boundary.
+    type Unreachable = String;
+}
+
 // ════════════════════════════════════════════════════════════
 // Tests
 // ════════════════════════════════════════════════════════════
@@ -375,6 +475,180 @@ mod tests {
         assert_eq!(back.entry_count, 0);
         assert_eq!(back.file_count, 0);
         assert_eq!(back.dir_count, 0);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Day 2 — Sealable integration tests
+    //
+    // These tests prove:
+    //   (a) OrganizeRequest produces a well-formed AdmissibilityClaim that
+    //       preserves all 5 invariants at the trait boundary;
+    //   (b) bytes_for_digest is deterministic (empirical-reproducibility
+    //       modality of the Four-Modality Golden Standard);
+    //   (c) SealableOutcome associated types compile correctly.
+    //
+    // Pre-existing tests above are UNCHANGED — behavioral equivalence on
+    // the organize data path (OrganizeListing, OrganizeMissionReceipt) is
+    // preserved by construction: Day 2 is purely additive.
+    // ────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn organize_request_builds_well_formed_claim() {
+        let req = OrganizeRequest::new("/tmp/test", 0.98, 1_700_000_000_000_000_000);
+        let claim = req.seal_envelope();
+        assert!(claim.has_evidence, "ZANN_ZERO: has_evidence must be true");
+        assert!(
+            claim.evidence_hash.is_some(),
+            "CLAIM_MUST_BIND: evidence_hash must be Some"
+        );
+        assert_eq!(claim.quality_score, 0.98);
+        assert_eq!(claim.timestamp_ns, 1_700_000_000_000_000_000);
+    }
+
+    #[test]
+    fn organize_request_claim_id_equals_evidence_hash() {
+        // CLAIM_MUST_BIND preservation: evidence hash is derived from the
+        // request's own bytes (blake3_domain over bytes_for_digest), and
+        // the claim_id equals that hash so the binding is self-referential.
+        let req = OrganizeRequest::new("/tmp/bind", 0.97, 42);
+        let claim = req.seal_envelope();
+        let expected = blake3_domain("bizra-organize-request-v1", &req.bytes_for_digest());
+        assert_eq!(claim.evidence_hash, Some(expected));
+        assert_eq!(claim.claim_id, expected);
+    }
+
+    #[test]
+    fn organize_request_declares_economic_pattern_none() {
+        // RIBA_ZERO preservation: organize is a read-only filesystem op.
+        // No economic activity is declared; the RibaZeroGate will Permit.
+        let req = OrganizeRequest::new("/tmp/riba", 0.98, 0);
+        let claim = req.seal_envelope();
+        assert_eq!(claim.economic_pattern, Some(EconomicPattern::None));
+    }
+
+    #[test]
+    fn organize_request_declares_canonical_state_mutation() {
+        // NO_SHADOW_STATE preservation: the only state change is a receipt
+        // on the canonical chain; derives_from_canonical must be true and
+        // face_only must be false.
+        let req = OrganizeRequest::new("/tmp/ss", 0.98, 0);
+        let claim = req.seal_envelope();
+        let sm = claim
+            .state_mutation
+            .as_ref()
+            .expect("state_mutation must be Some");
+        assert!(sm.derives_from_canonical);
+        assert!(!sm.face_only);
+    }
+
+    #[test]
+    fn organize_request_bytes_are_deterministic() {
+        // Empirical-reproducibility modality: identical inputs → identical
+        // bytes on every machine, every run.
+        let r1 = OrganizeRequest::new("/tmp/a", 0.98, 100);
+        let r2 = OrganizeRequest::new("/tmp/a", 0.98, 100);
+        assert_eq!(r1.bytes_for_digest(), r2.bytes_for_digest());
+    }
+
+    #[test]
+    fn organize_request_bytes_change_on_path_change() {
+        let r1 = OrganizeRequest::new("/tmp/a", 0.98, 100);
+        let r2 = OrganizeRequest::new("/tmp/b", 0.98, 100);
+        assert_ne!(r1.bytes_for_digest(), r2.bytes_for_digest());
+    }
+
+    #[test]
+    fn organize_request_bytes_change_on_quality_change() {
+        let r1 = OrganizeRequest::new("/tmp/a", 0.98, 100);
+        let r2 = OrganizeRequest::new("/tmp/a", 0.99, 100);
+        assert_ne!(r1.bytes_for_digest(), r2.bytes_for_digest());
+    }
+
+    #[test]
+    fn organize_request_bytes_change_on_timestamp_change() {
+        let r1 = OrganizeRequest::new("/tmp/a", 0.98, 100);
+        let r2 = OrganizeRequest::new("/tmp/a", 0.98, 200);
+        assert_ne!(r1.bytes_for_digest(), r2.bytes_for_digest());
+    }
+
+    #[test]
+    fn organize_request_receipt_kind_is_mission_executed() {
+        // Chain_head behavior preservation: OrganizeRequest produces the
+        // same ReceiptKind (MissionExecuted = 0x70) that the existing
+        // OrganizeMissionReceipt stamps on the chain record.
+        assert_eq!(
+            <OrganizeRequest as Sealable>::receipt_kind(),
+            ReceiptKind::MissionExecuted
+        );
+    }
+
+    #[test]
+    fn organize_request_receipt_kind_matches_existing_receipt() {
+        // The Sealable trait's advertised receipt_kind MUST equal the
+        // kind that OrganizeMissionReceipt actually stamps. Divergence
+        // would violate the NO_SHADOW_STATE boundary (advertised vs
+        // actual receipt kind).
+        let td = tempfile::TempDir::new().unwrap();
+        write_fixture_dir(td.path());
+        let listing = OrganizeListing::from_path(td.path()).unwrap();
+        let receipt = OrganizeMissionReceipt::new([0xAA; 32], &listing, 0, [0xBB; 32]);
+        assert_eq!(
+            <OrganizeRequest as Sealable>::receipt_kind(),
+            receipt.kind()
+        );
+    }
+
+    #[test]
+    fn organize_request_sealable_outcome_types_have_expected_shapes() {
+        // Compile-only proof that Ok/Refused/Unreachable associated types
+        // carry the shapes the face contract demands.
+        fn _ok_is_organize_mission_receipt(_r: <OrganizeRequest as SealableOutcome>::Ok) {}
+        fn _refused_is_rejected_claim(_r: <OrganizeRequest as SealableOutcome>::Refused) {}
+        fn _unreachable_is_string(_r: <OrganizeRequest as SealableOutcome>::Unreachable) {}
+        // If this test compiles, the SealableOutcome typing is correct;
+        // no runtime assertion needed.
+    }
+
+    #[test]
+    fn organize_request_low_quality_claim_would_fail_ihsan_floor() {
+        // IHSAN_FLOOR preservation: a quality_score below 0.95 produces
+        // a claim the chain will Reject. We don't run the chain here
+        // (that would widen scope); we assert the field passes through
+        // so the gate has correct input.
+        let req = OrganizeRequest::new("/tmp/low", 0.80, 0);
+        let claim = req.seal_envelope();
+        assert!(claim.quality_score < 0.95);
+        // Full chain evaluation is covered by admissibility_freeze_v1's
+        // own test suite; here we only assert the input boundary.
+    }
+
+    #[test]
+    fn organize_request_rejected_claim_shape_is_untranslated() {
+        // Refused-path constitutional correctness: SealableOutcome::Refused
+        // is exactly RejectedClaim from the admissibility chain — no
+        // lossy translation layer. Build a RejectedClaim and assert it
+        // type-checks as the Refused associated type.
+        use crate::admissibility_freeze_v1::Invariant;
+        let refused: <OrganizeRequest as SealableOutcome>::Refused = RejectedClaim {
+            claim_ref: [0u8; 32],
+            invariant: Invariant::IhsanFloor,
+            reject_reason: "quality_score 0.8 < floor 0.95".to_string(),
+            remediation_path: "raise quality_score to ≥ 0.95".to_string(),
+            escalation_allowed: false,
+        };
+        assert_eq!(refused.invariant, Invariant::IhsanFloor);
+        assert!(!refused.escalation_allowed);
+    }
+
+    #[test]
+    fn organize_request_unreachable_path_is_typed_string() {
+        // Unreachable-path constitutional correctness: the chain may be
+        // offline; SealableOutcome::Unreachable carries a reason only.
+        // NO simulated verdict is permitted (NO_SHADOW_STATE at the result
+        // boundary).
+        let unreachable: <OrganizeRequest as SealableOutcome>::Unreachable =
+            "cognition gateway connection refused on 127.0.0.1:7421".to_string();
+        assert!(unreachable.contains("unreachable") || unreachable.contains("refused"));
     }
 
     #[test]

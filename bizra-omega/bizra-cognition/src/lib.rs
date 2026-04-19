@@ -61,6 +61,7 @@ pub mod receipts;
 pub mod resource_registry;
 pub mod resource_registry_cache;
 pub mod runtime;
+pub mod seal;
 pub mod sovereign_state;
 pub mod state_snapshots_cache;
 pub mod thought_graph;
