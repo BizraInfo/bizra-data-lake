@@ -265,7 +265,11 @@ mod tests {
 
         let mut with_new_claim = r.clone();
         with_new_claim.ihsan_claim = Some(0.50);
-        assert_ne!(base, with_new_claim.hash(), "ihsan_claim tamper must detect");
+        assert_ne!(
+            base,
+            with_new_claim.hash(),
+            "ihsan_claim tamper must detect"
+        );
 
         let mut with_new_response = r.clone();
         with_new_response.response_hash = [9u8; 32];

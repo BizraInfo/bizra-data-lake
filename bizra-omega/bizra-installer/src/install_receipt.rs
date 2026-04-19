@@ -361,7 +361,10 @@ mod tests {
         let sel = ModelSelection::from_tier(&ModelTier::Enhanced, true);
         assert_eq!(sel.model_name, "Llama 3.1 8B Q4_K_M");
         assert!(sel.auto_selected);
-        assert!(sel.provenance.is_none(), "from_tier defaults to no provenance");
+        assert!(
+            sel.provenance.is_none(),
+            "from_tier defaults to no provenance"
+        );
     }
 
     // ─────────────────────────────────────────────────────────
@@ -492,7 +495,10 @@ mod tests {
     #[test]
     fn receipt_with_provenance_hashes_and_verifies() {
         let mut r = sample_receipt();
-        r.model_selection = r.model_selection.clone().with_provenance(sample_provenance());
+        r.model_selection = r
+            .model_selection
+            .clone()
+            .with_provenance(sample_provenance());
         // Re-compute hash to reflect the new content.
         r.receipt_hash = r.compute_hash();
         assert!(r.verify(), "fresh receipt with provenance must verify");
@@ -501,7 +507,10 @@ mod tests {
     #[test]
     fn receipt_hash_changes_when_provenance_changes() {
         let mut r1 = sample_receipt();
-        r1.model_selection = r1.model_selection.clone().with_provenance(sample_provenance());
+        r1.model_selection = r1
+            .model_selection
+            .clone()
+            .with_provenance(sample_provenance());
         r1.receipt_hash = r1.compute_hash();
 
         let mut r2 = r1.clone();
