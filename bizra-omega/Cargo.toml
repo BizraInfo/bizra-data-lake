@@ -134,3 +134,31 @@ panic = "abort"
 
 [profile.dev]
 opt-level = 1
+
+# ━━━ cargo-dist packaging — Cycle-8 Day 3 ━━━
+#
+# Distribution config for the First Fire launch binaries.
+# Only bizra-cognition-gateway ships; it is the single crate that
+# produces both the HTTP gateway server (src/main.rs) AND the `dema`
+# CLI (src/bin/dema.rs) as [[bin]] targets. All other workspace
+# members remain internal crates and are NOT published by cargo-dist.
+#
+# Validation requires `cargo install cargo-dist && cargo dist check`.
+# This config was hand-written (equivalent to `cargo dist init` output)
+# to avoid a global cargo install during Day 3 packaging preflight.
+#
+[workspace.metadata.dist]
+cargo-dist-version = "0.23.0"
+ci = "github"
+installers = ["shell", "powershell"]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+]
+# Only the gateway crate ships binaries. All other workspace members stay internal.
+packages = ["bizra-cognition-gateway"]
+# CI preflight mode: validate packaging on PRs without publishing.
+pr-run-mode = "plan"
+allow-dirty = ["ci"]
