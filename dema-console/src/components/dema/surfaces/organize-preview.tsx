@@ -85,116 +85,55 @@ const MISSION_TYPE_ICON: Record<MissionType, { icon: typeof Layers; color: strin
   monitor: { icon: Shield, color: 'text-success' },
 };
 
-// ─── Sample Action Plan Generator ───────────────────────────────
+// ─── Action Plan Generator ──────────────────────────────────────
+//
+// NO_SHADOW_STATE: no fabricated step counts, no invented resource
+// names, no placeholder dryRun metrics. Only `organize` is wired to
+// shipped kernel truth at T=0; other mission types are honestly
+// labeled "not yet wired". When real gateway data exists for any
+// type, the plan shape below is the structural envelope the kernel
+// fills — no invented values leak from this file.
 
 function generateSampleActionPlan(missionType: MissionType): MissionActionPlan {
-  const plans: Record<MissionType, MissionActionPlan> = {
-    organize: {
+  // Only `organize` is end-to-end wired via submitOrganize() →
+  // gateway → sealed MissionExecuted receipt at T=0.
+  if (missionType === 'organize') {
+    return {
       steps: [
-        { id: 's-01', label: 'Scan target directory', description: 'Index all files in the target directory structure', type: 'read', resource: 'Local workspace', status: 'pending' },
-        { id: 's-02', label: 'Analyze current structure', description: 'Map existing file organization and identify patterns', type: 'compute', status: 'pending' },
-        { id: 's-03', label: 'Generate organization plan', description: 'Create optimal file restructuring proposal', type: 'compute', status: 'pending' },
-        { id: 's-04', label: 'Apply directory changes', description: 'Execute the reorganization with atomic operations', type: 'write', resource: 'Local workspace', status: 'pending' },
-        { id: 's-05', label: 'Verify integrity', description: 'Confirm no files were lost or corrupted during reorganization', type: 'verify', status: 'pending' },
+        { id: 's-01', label: 'Allowlist check',
+          description: 'Verify the target path is registered & allowlisted',
+          type: 'verify', status: 'pending' },
+        { id: 's-02', label: 'Read target path',
+          description: 'Read top-level entries of the allowlisted directory (read-only, no mutation)',
+          type: 'read', status: 'pending' },
+        { id: 's-03', label: 'Admissibility chain',
+          description: 'Pass the claim through the 5 constitutional gates',
+          type: 'verify', status: 'pending' },
+        { id: 's-04', label: 'Seal MissionExecuted receipt',
+          description: 'Bind the listing digest + mission hash into the canonical receipt chain',
+          type: 'verify', status: 'pending' },
       ],
-      estimatedDuration: '~45s',
-      resourcesRequired: ['Local workspace', 'bizra-omega core'],
-      dryRunAvailable: true,
-      dryRunResult: {
-        filesAffected: 234,
-        operationsPlanned: 47,
-        riskLevel: 'low',
-        warnings: ['3 files have naming conflicts that will be auto-resolved'],
-      },
-    },
-    research: {
-      steps: [
-        { id: 's-01', label: 'Parse research query', description: 'Decompose the research question into searchable sub-queries', type: 'compute', status: 'pending' },
-        { id: 's-02', label: 'Search local knowledge base', description: 'Query verified internal corpus for existing evidence', type: 'read', resource: 'Market research archive', status: 'pending' },
-        { id: 's-03', label: 'Execute web research', description: 'Navigate and extract data from verified external sources', type: 'navigate', resource: 'Browser instance', status: 'pending' },
-        { id: 's-04', label: 'Synthesize findings', description: 'Cross-reference and synthesize multi-source evidence', type: 'compute', status: 'pending' },
-        { id: 's-05', label: 'Verify evidence chain', description: 'Validate all citations and evidence provenance', type: 'verify', status: 'pending' },
-      ],
-      estimatedDuration: '~2m',
-      resourcesRequired: ['Market research archive', 'Browser instance', 'Perplexity bridge'],
-      dryRunAvailable: true,
-      dryRunResult: {
-        filesAffected: 12,
-        operationsPlanned: 28,
-        riskLevel: 'low',
-        warnings: [],
-      },
-    },
-    analyze: {
-      steps: [
-        { id: 's-01', label: 'Collect data samples', description: 'Gather required data from connected sources', type: 'read', resource: 'bizra-omega core', status: 'pending' },
-        { id: 's-02', label: 'Run statistical analysis', description: 'Execute correlation and trend detection algorithms', type: 'compute', status: 'pending' },
-        { id: 's-03', label: 'Generate visualizations', description: 'Create charts and data summaries', type: 'write', status: 'pending' },
-        { id: 's-04', label: 'Validate conclusions', description: 'Cross-check findings against known benchmarks', type: 'verify', status: 'pending' },
-      ],
-      estimatedDuration: '~1m 30s',
-      resourcesRequired: ['bizra-omega core'],
-      dryRunAvailable: true,
-      dryRunResult: {
-        filesAffected: 8,
-        operationsPlanned: 15,
-        riskLevel: 'low',
-        warnings: ['Sample size may be insufficient for high-confidence conclusions'],
-      },
-    },
-    create: {
-      steps: [
-        { id: 's-01', label: 'Review specifications', description: 'Load and parse creation requirements', type: 'read', status: 'pending' },
-        { id: 's-02', label: 'Generate draft content', description: 'Create initial artifact based on specifications', type: 'write', resource: 'Local workspace', status: 'pending' },
-        { id: 's-03', label: 'Quality review', description: 'Verify content meets constitutional quality standards', type: 'verify', status: 'pending' },
-        { id: 's-04', label: 'Finalize and persist', description: 'Write the approved artifact to target location', type: 'write', resource: 'Local workspace', status: 'pending' },
-      ],
-      estimatedDuration: '~1m',
-      resourcesRequired: ['Local workspace'],
-      dryRunAvailable: true,
-      dryRunResult: {
-        filesAffected: 5,
-        operationsPlanned: 9,
-        riskLevel: 'medium',
-        warnings: ['Generated content requires human review before publication'],
-      },
-    },
-    communicate: {
-      steps: [
-        { id: 's-01', label: 'Draft communication', description: 'Compose message using verified evidence', type: 'write', status: 'pending' },
-        { id: 's-02', label: 'Fact-check claims', description: 'Verify every claim binds to a receipt', type: 'verify', status: 'pending' },
-        { id: 's-03', label: 'Deliver message', description: 'Send through appropriate communication channel', type: 'navigate', status: 'pending' },
-      ],
-      estimatedDuration: '~30s',
-      resourcesRequired: ['Market research archive'],
-      dryRunAvailable: true,
-      dryRunResult: {
-        filesAffected: 2,
-        operationsPlanned: 6,
-        riskLevel: 'low',
-        warnings: [],
-      },
-    },
-    monitor: {
-      steps: [
-        { id: 's-01', label: 'Initialize monitoring targets', description: 'Configure observation parameters for target systems', type: 'read', resource: 'bizra-omega core', status: 'pending' },
-        { id: 's-02', label: 'Collect baseline metrics', description: 'Gather initial system health and performance data', type: 'read', status: 'pending' },
-        { id: 's-03', label: 'Establish alert thresholds', description: 'Set constitutional boundary alerts', type: 'compute', status: 'pending' },
-        { id: 's-04', label: 'Begin continuous observation', description: 'Activate persistent monitoring loop', type: 'navigate', resource: 'bizra-omega core', status: 'pending' },
-      ],
-      estimatedDuration: '~20s setup',
-      resourcesRequired: ['bizra-omega core'],
-      dryRunAvailable: true,
-      dryRunResult: {
-        filesAffected: 1,
-        operationsPlanned: 4,
-        riskLevel: 'low',
-        warnings: ['Long-running operation — resource monitoring will persist until manually stopped'],
-      },
-    },
-  };
+      estimatedDuration: '',
+      resourcesRequired: [],
+      dryRunAvailable: false,
+      dryRunResult: null,
+    };
+  }
 
-  return plans[missionType] || plans.organize;
+  // All other mission types are Horizon / not wired at T=0.
+  // Render an honest single-step "not yet wired" placeholder that
+  // does NOT fabricate any operational metric.
+  return {
+    steps: [
+      { id: 's-01', label: 'Not yet wired at T=0',
+        description: `Mission type "${missionType}" is Horizon. Only "organize" is wired to the kernel at first fire. Run \`dema organize <path>\` for the real flow.`,
+        type: 'verify', status: 'pending' },
+    ],
+    estimatedDuration: '',
+    resourcesRequired: [],
+    dryRunAvailable: false,
+    dryRunResult: null,
+  };
 }
 
 // ─── Risk Level Badge ───────────────────────────────────────────

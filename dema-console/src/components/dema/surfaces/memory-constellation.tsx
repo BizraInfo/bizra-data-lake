@@ -294,6 +294,29 @@ function CompactMissionCard({ mission }: { mission: ReturnType<typeof useMission
 function ProfileTab() {
   const { trustState } = useDEMAStore();
 
+  // NO_SHADOW_STATE: if no principal is activated, render an honest
+  // activation prompt. Do NOT display empty name/id/score as if the
+  // kernel had sealed a PrincipalActivation receipt.
+  if (!trustState.isActive) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+        <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center">
+          <User className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">
+          No principal activated
+        </p>
+        <p className="text-xs text-muted-foreground max-w-md">
+          Your trust profile will appear here once the kernel seals a
+          PrincipalActivation receipt.
+        </p>
+        <code className="bg-accent/30 px-2 py-1 rounded font-mono text-xs">
+          dema activate-principal
+        </code>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Identity Card */}
@@ -374,8 +397,11 @@ function ReceiptsTab() {
         <CompactReceiptCard key={r.id} receipt={r} />
       ))}
       {receipts.length === 0 && (
-        <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
-          No receipts yet
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-xs text-center space-y-2 px-4">
+          <span>No receipts yet</span>
+          <span className="opacity-70">
+            Run <code className="bg-accent/30 px-1 py-0.5 rounded font-mono">dema organize &lt;path&gt;</code> to seal your first.
+          </span>
         </div>
       )}
     </div>
@@ -397,8 +423,11 @@ function ManifestsTab() {
         <CompactManifestCard key={m.id} manifest={m} />
       ))}
       {manifests.length === 0 && (
-        <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
-          No manifests
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-xs text-center space-y-2 px-4">
+          <span>No manifests yet</span>
+          <span className="opacity-70">
+            Manifests aggregate receipts into daily proofs — they appear once you have receipts.
+          </span>
         </div>
       )}
     </div>
@@ -420,8 +449,11 @@ function MissionsTab() {
         <CompactMissionCard key={m.id} mission={m} />
       ))}
       {missionHistory.length === 0 && (
-        <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
-          No mission history
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-xs text-center space-y-2 px-4">
+          <span>No mission history yet</span>
+          <span className="opacity-70">
+            Start a mission from the Mission Composer.
+          </span>
         </div>
       )}
     </div>
@@ -468,8 +500,11 @@ function StateTab() {
         );
       })}
       {memoryEntries.length === 0 && (
-        <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
-          No memory entries
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-xs text-center space-y-2 px-4">
+          <span>No memory entries yet</span>
+          <span className="opacity-70">
+            Memory accumulates as the kernel seals mission outcomes.
+          </span>
         </div>
       )}
     </div>
@@ -491,8 +526,11 @@ function ResourcesTab() {
         <CompactResourceCard key={r.id} resource={r} />
       ))}
       {resources.length === 0 && (
-        <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
-          No resources registered
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-xs text-center space-y-2 px-4">
+          <span>No resources registered</span>
+          <span className="opacity-70">
+            Run <code className="bg-accent/30 px-1 py-0.5 rounded font-mono">dema register-resource --kind filesystem --id &lt;path&gt; --allowlisted</code>
+          </span>
         </div>
       )}
     </div>
