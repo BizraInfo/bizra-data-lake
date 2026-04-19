@@ -40,41 +40,27 @@ import type {
 
 // ─── Demo / Seed Data ──────────────────────────────────────────
 
+// NO_SHADOW_STATE: no principal is activated until the kernel says so.
+// Cycle-8 PR#28 face polish: inactive default replaces fabricated demo
+// principal. UI MUST read isActive=false as "no principal activated"
+// and show an activation-prompt surface, NOT a populated trust panel.
 const DEMO_TRUST_STATE: TrustState = {
-  principalId: "prin-001",
-  principalName: "Operator",
+  principalId: "",
+  principalName: "",
   level: "citizen",
-  score: 72,
+  score: 0,
   maxScore: 100,
-  lastVerified: new Date(Date.now() - 3600000).toISOString(),
-  sessionId: "sess-" + Math.random().toString(36).slice(2, 10),
-  isActive: true,
+  lastVerified: new Date(0).toISOString(),
+  sessionId: "",
+  isActive: false,
 };
 
-const DEMO_RECEIPTS: Receipt[] = [
-  { id: "rcp-001", missionId: "msn-alpha", type: "completion", status: "verified", title: "Repository scan completed", description: "Full codebase scan of bizra-omega core runtime. 47 files indexed, 0 critical findings.", evidence: '{"files_scanned": 47, "critical": 0, "warnings": 2}', issuedAt: new Date(Date.now() - 1800000).toISOString(), verifiedAt: new Date(Date.now() - 1200000).toISOString(), expiresAt: null },
-  { id: "rcp-002", missionId: "msn-alpha", type: "action", status: "verified", title: "Trust state verified", description: "Principal trust level confirmed at citizen tier. Session validated.", evidence: '{"level": "citizen", "score": 72}', issuedAt: new Date(Date.now() - 7200000).toISOString(), verifiedAt: new Date(Date.now() - 6600000).toISOString(), expiresAt: null },
-  { id: "rcp-003", missionId: "msn-beta", type: "delegation", status: "pending", title: "Research task delegated", description: "Market analysis task delegated to research subsystem. Awaiting synthesis.", evidence: null, issuedAt: new Date(Date.now() - 86400000).toISOString(), verifiedAt: null, expiresAt: new Date(Date.now() + 86400000 * 6).toISOString() },
-  { id: "rcp-004", missionId: null, type: "verification", status: "verified", title: "Resource integrity check", description: "All registered resources passed integrity validation.", evidence: '{"total": 12, "passed": 12, "failed": 0}', issuedAt: new Date(Date.now() - 172800000).toISOString(), verifiedAt: new Date(Date.now() - 171600000).toISOString(), expiresAt: null },
-  { id: "rcp-005", missionId: "msn-gamma", type: "action", status: "expired", title: "Browser automation session", description: "Automated browser task expired without completion.", evidence: '{"url": "example.com", "steps_completed": 3}', issuedAt: new Date(Date.now() - 604800000).toISOString(), verifiedAt: null, expiresAt: new Date(Date.now() - 86400000).toISOString() },
-];
-
-const DEMO_MANIFESTS: Manifest[] = [
-  { id: "mft-001", missionId: "msn-alpha", title: "Core Runtime Phase 1", description: "Manifest for Cycle-7 Phase 1 runtime changes.", status: "active", artifactCount: 14, createdAt: new Date(Date.now() - 86400000 * 3).toISOString(), updatedAt: new Date(Date.now() - 3600000).toISOString() },
-  { id: "mft-002", missionId: "msn-beta", title: "DEMA Product Face", description: "Product surface for the unified operator face.", status: "active", artifactCount: 8, createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), updatedAt: new Date(Date.now() - 7200000).toISOString() },
-  { id: "mft-003", missionId: null, title: "Knowledge Base v2", description: "Second iteration of the structured knowledge repository.", status: "draft", artifactCount: 3, createdAt: new Date(Date.now() - 86400000 * 7).toISOString(), updatedAt: new Date(Date.now() - 86400000 * 2).toISOString() },
-];
-
-const DEMO_RESOURCES: Resource[] = [
-  { id: "res-001", name: "bizra-omega core", type: "service", path: "bizra-omega/", status: "active", metadata: { version: "0.7.1" }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "res-002", name: "Local workspace", type: "file", path: "~/workspace/", status: "active", metadata: { files: 234 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "res-003", name: "GitHub API token", type: "credential", path: null, status: "active", metadata: { scope: "repo,read:org" }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "res-004", name: "Perplexity bridge", type: "service", path: "mcp://perplexity", status: "active", metadata: { protocol: "MCP" }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "res-005", name: "Market research archive", type: "knowledge", path: "/knowledge/market/", status: "active", metadata: { entries: 47 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "res-006", name: "Browser instance", type: "browser", path: "local://browser/main", status: "registered", metadata: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "res-007", name: "Terminal session", type: "terminal", path: "local://terminal/main", status: "active", metadata: { shell: "zsh" }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "res-008", name: "Product documentation", type: "url", path: "https://docs.anthropic.com", status: "active", metadata: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
+// NO_SHADOW_STATE: these arrays start empty. The chain is empty until
+// the operator seals something real. The face MUST NOT display
+// fabricated receipts, manifests, or resources.
+const DEMO_RECEIPTS: Receipt[] = [];
+const DEMO_MANIFESTS: Manifest[] = [];
+const DEMO_RESOURCES: Resource[] = [];
 
 const DEMO_ACTION_LOG: ActionLog[] = [
   { id: "act-001", mode: "research", action: "market_analysis", status: "completed", description: "Competitive analysis of Claude Code, Perplexity, and Manus.", permission: "auto", evidence: "Report saved to /knowledge/market/", createdAt: new Date(Date.now() - 3600000).toISOString(), completedAt: new Date(Date.now() - 1800000).toISOString() },
