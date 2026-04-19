@@ -43,8 +43,8 @@ The cargo-dist-generated installer performs this flow:
 |---|---|---|
 | **Cryptographic** | `sha256sum $(which dema)` == declared SHA in manifest | anyone with sha256sum |
 | **Empirical** | `dema --version && dema chain` runs; same output on any identical install | anyone with dema installed |
-| **Formal** | `cargo test -p bizra-cognition` (after git clone) → 309/309 green | anyone with Rust toolchain |
-| **Economic / Witness** | `dema chain` head matches witness peer's observed head (Day 4 work) | anyone with a witness URL |
+| **Formal (TESTED)** | `cargo test -p bizra-cognition` (after git clone) → 309/309 green. Full Isabelle/HOL-grade formal proof is Horizon, not T=0. | anyone with Rust toolchain |
+| **Economic / Witness** | `dema chain` head matches witness peer's observed head (Day 4 work). Witness-grade detectability only; bonded stake / slashing / DAO / challenge-period economics are Horizon / Layer B. | anyone with a witness URL |
 
 ## Config location
 
