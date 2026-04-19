@@ -48,6 +48,7 @@ dev = [
     "ruff>=0.4.0",
     "hypothesis>=6.100.0",
     "pyyaml>=6.0",
+    "faiss-cpu>=1.7.4,<2.0",
 ]
 full = [
     "torch>=2.0.0",
