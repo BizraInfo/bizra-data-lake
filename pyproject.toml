@@ -48,7 +48,14 @@ dev = [
     "ruff>=0.4.0",
     "hypothesis>=6.100.0",
     "pyyaml>=6.0",
-    "faiss-cpu>=1.7.4,<2.0",
+    # faiss-cpu pinned <1.13: 1.13.x wheels (2025-11-17 onward) embed
+    # AVX-512/AMX CPU instructions that SIGILL (exit 132) on GitHub
+    # Actions runners lacking those extensions. Bernoulli flake —
+    # same wheel passes on AVX-512-capable runners, fails elsewhere.
+    # Re-evaluate when upstream ships CPU-baseline-portable wheels.
+    # Root cause: PR #30 job 72039736801. See
+    # feedback_python_deps_cpu_variance memory.
+    "faiss-cpu>=1.7.4,<1.13",
 ]
 full = [
     "torch>=2.0.0",
