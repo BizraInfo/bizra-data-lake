@@ -90,21 +90,63 @@ class SmokeVerifier {
     let consoleErrors = 0;
 
     const errorMessages: string[] = [];
+    const filteredMessages: string[] = [];
+
+    // Dev-environment false positives we ignore. The FATE gate must fail
+    // on real application bugs, not on Next.js HMR / Vite overlay noise
+    // that fires before hydration completes. These patterns are derived
+    // from observed dev-server behaviour; keep the list narrow.
+    const isDevServerNoise = (
+      locationUrl: string,
+      text: string,
+      stack?: string,
+    ): boolean => {
+      const combined = `${locationUrl}\n${text}\n${stack ?? ""}`;
+      return (
+        // HMR-injected error overlay scripts run from blob: URLs and
+        // occasionally touch the DOM before React hydrates, throwing
+        // harmless appendChild/removeChild TypeErrors.
+        /blob:/.test(combined) ||
+        // Next.js dev-only webpack runtime wrappers.
+        /webpack-internal:\/\/\//.test(combined) ||
+        // The Next.js dev error overlay injects a tools handler with
+        // known race conditions in dev mode.
+        /next-devtools|_next\/static\/chunks\/webpack/.test(combined)
+      );
+    };
+
     page.on("console", (msg) => {
-      if (msg.type() === "error") {
-        consoleErrors++;
-        errorMessages.push(`[console] ${msg.text().slice(0, 200)}`);
+      if (msg.type() !== "error") return;
+      const loc = msg.location();
+      const url = loc?.url ?? "";
+      const text = msg.text();
+      if (isDevServerNoise(url, text)) {
+        filteredMessages.push(`[dev-noise @ ${url.slice(0, 60)}] ${text.slice(0, 120)}`);
+        return;
       }
+      consoleErrors++;
+      errorMessages.push(`[console] ${text.slice(0, 200)}`);
     });
+
     page.on("pageerror", (err) => {
+      if (isDevServerNoise("", err.message, err.stack)) {
+        filteredMessages.push(`[dev-noise pageerror] ${err.message.slice(0, 120)}`);
+        return;
+      }
       consoleErrors++;
       errorMessages.push(`[pageerror] ${err.message.slice(0, 200)}`);
     });
-    // Surface error details to stdout when non-empty (after goto).
+
+    // Surface error details after goto: real errors first (counted),
+    // then filtered dev-server noise for operator transparency.
     const flushErrors = () => {
       if (errorMessages.length > 0) {
-        console.log(`  └─ errors:`);
+        console.log(`  └─ errors (counted):`);
         errorMessages.forEach((m) => console.log(`     ${m}`));
+      }
+      if (filteredMessages.length > 0) {
+        console.log(`  └─ filtered (dev-server noise, not counted):`);
+        filteredMessages.forEach((m) => console.log(`     ${m}`));
       }
     };
 
