@@ -35,6 +35,37 @@
 //! - Side effects are communicated via event re-emission, not shared state
 //! - Each subscriber includes a canonical topic filter and minimum priority
 //! - `wire_all()` registers all 12 in correct dependency order
+//!
+//! ## Economic-loop delegation to Python (subscribers #3 / #4 / #5)
+//!
+//! The three PoI / receipt-append handlers (`handle_poi_credit_on_promotion`,
+//! `handle_poi_accumulate`, `handle_receipt_append`) return
+//! `HookResult::Continue` without a Rust-native implementation BY DESIGN:
+//! the canonical economic-loop surface (PoI accumulation, SEED minting,
+//! glacial-memory PoI credit) is implemented in Python at
+//! `core/bus/subscribers.py` (SUB-9 `MemoryPromotedPoICredit`, SUB-10
+//! `TeleScriptCompletedPoIAccumulate`) and bridged to the Rust event bus
+//! via `PyEventBridge` / `RustEventBridge` (see
+//! `bizra-omega/bizra-python/src/lib.rs:1415` and
+//! `core/bus/rust_bridge.py`). The Python path already handles:
+//!   - `MemoryPromoted` → `poi.accumulate(source="memory_promotion", ...)`
+//!   - `TeleScriptCompleted` → `poi.accumulate(...)` + conditional
+//!     `minter.compute_reward(...)` + `minter.mint_seed(...)` when
+//!     `ihsan ≥ MINTING_FLOOR (0.95)`
+//!   - Event-hash chain integrity via BLAKE2b in `Event._compute_hash()`.
+//!
+//! The Rust handlers are kept as registered no-op subscribers so that
+//! `wire_all()` reports the full 13-subscriber graph, the topic filters
+//! remain declaratively visible in Rust, and a future Rust-native port of
+//! the economic loop has clean landing sites. Any Rust-native port requires
+//! first resolving the Python minter-interface ambiguity across
+//! `core/token/bloom.py::TokenMinter`,
+//! `core/sovereign/mission_nervous_system.py::TokenMinter` (Protocol),
+//! `core/sovereign/organism.py::_NoOpMinter`, and
+//! `core/bus/subscribers.py::MockMinter`.
+//!
+//! Until that decision lands, `HookResult::Continue` IS the correct
+//! behavior for these three handlers — not a gap.
 
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -126,9 +157,23 @@ pub fn handle_hhmm_promotion_check(event: &Event) -> HookResult {
 /// actions is crystallized into economic value.
 ///
 /// Standing on: BIZRA Economics — impact generates value, not compute
+///
+/// ## Delegation contract — returns `HookResult::Continue` BY DESIGN
+///
+/// The PoI credit calculation is implemented in Python at
+/// `core/bus/subscribers.py::MemoryPromotedPoICredit` (SUB-9), which
+/// receives the same `MemoryPromoted` event via `PyEventBridge`
+/// (`bizra-omega/bizra-python/src/lib.rs:1415`,
+/// `core/bus/rust_bridge.py`) and calls
+/// `poi.accumulate(source="memory_promotion", quality=ihsan,
+/// evidence_hash=event.event_hash)`. The Rust handler stays a registered
+/// no-op so the `wire_all()` topology remains declaratively complete
+/// and a future Rust-native port has a clean landing site. See module
+/// header for the scope of that future port.
 pub fn handle_poi_credit_on_promotion(_event: &Event) -> HookResult {
-    // Calculate PoI credit from promoted memory's contribution graph
-    // Emit PoICredit event with credit amount and Isnad attribution
+    // Delegated to Python SUB-9 via PyEventBridge — see module header.
+    // Do not implement a Rust-native version without first resolving the
+    // Python minter-interface ambiguity documented in the module header.
     HookResult::Continue
 }
 
@@ -139,11 +184,20 @@ pub fn handle_poi_credit_on_promotion(_event: &Event) -> HookResult {
 /// This feeds the SEED yield calculation.
 ///
 /// Standing on: Satoshi (2008) — accumulate work proofs into blocks
+///
+/// ## Delegation contract — returns `HookResult::Continue` BY DESIGN
+///
+/// PoI accumulation and conditional SEED minting are implemented in
+/// Python at `core/bus/subscribers.py::TeleScriptCompletedPoIAccumulate`
+/// (SUB-10). SUB-10 calls `poi.accumulate(source="telescript_completion",
+/// ...)` and, when `ihsan >= MINTING_FLOOR (0.95)`, invokes
+/// `minter.compute_reward(...)` followed by `minter.mint_seed(
+/// amount=..., poi_evidence=event.event_hash, ihsan=...)`. The Python
+/// path is the canonical economic-loop surface. Rust emits the event
+/// and Python handles the minting — see module header.
 pub fn handle_poi_accumulate(_event: &Event) -> HookResult {
-    // Sum step-level PoI credits
-    // Calculate CPVA (Cost-Per-Value-Added)
-    // Compute SEED yield = market_baseline - cpva
-    // Emit accumulated PoI receipt
+    // Delegated to Python SUB-10 via PyEventBridge — see module header.
+    // CPVA / SEED-yield computation lives in core/bus/subscribers.py.
     HookResult::Continue
 }
 
@@ -155,12 +209,22 @@ pub fn handle_poi_accumulate(_event: &Event) -> HookResult {
 ///
 /// Standing on: Lamport (1978) — happened-before ordering
 ///              Satoshi (2008) — hash-linked chain integrity
+///
+/// ## Delegation contract — returns `HookResult::Continue` BY DESIGN
+///
+/// The Python `Event` dataclass at `core/bus/subscribers.py:55–87`
+/// computes a BLAKE2b chain hash for every event (`_compute_hash()`
+/// with prev_hash threaded through), so step-level receipt-chain
+/// integrity is already enforced at event-publish time on the Python
+/// side. Ed25519-signed `ConstitutionalReceipt` emission for the
+/// action-bus lives in `bizra-action::receipt::ReceiptChain::record()`
+/// (BLAKE3 + Ed25519 via the `production` + `signing` features enabled
+/// at the `bizra-node` / `bizra-agent` dep level — see PR #44). This
+/// handler is therefore kept as a registered no-op until a Rust-native
+/// port of SUB-10's accumulation path is designed (see module header).
 pub fn handle_receipt_append(_event: &Event) -> HookResult {
-    // Construct ActionReceipt from step outcome
-    // Compute BLAKE3 hash of receipt fields
-    // Sign with Ed25519 (node keypair)
-    // Set prev_hash = last receipt's hash
-    // Append to chain
+    // Delegated to Python Event._compute_hash() chain + bizra-action
+    // ReceiptChain for signing — see module header.
     HookResult::Continue
 }
 
