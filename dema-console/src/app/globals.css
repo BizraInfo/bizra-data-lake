@@ -502,8 +502,6 @@
  * Any change here requires updating design-tokens.ts in the same commit.
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
-
 @theme {
   /* Genesis Gold — deep ember to pale luminance */
   --color-gold-100: #F9F1D8;
@@ -521,9 +519,9 @@
   /* Bizra Emerald — sovereign/live state only */
   --color-bizra-emerald: #10b981;
 
-  /* Font families — imported above */
-  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
-  --font-arabic: "Amiri", serif;
+  /* Font families — loaded via next/font/google in layout.tsx */
+  --font-serif: var(--font-brand-serif), ui-serif, Georgia, serif;
+  --font-arabic: var(--font-brand-arabic), serif;
 }
 
 /* ── Brand custom classes (multi-component usage) ───────────────── */

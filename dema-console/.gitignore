@@ -64,3 +64,15 @@ db/custom.db
 # TypeScript `src/lib/` directory that holds gateway-client.ts.
 !src/lib/
 !src/lib/**
+
+# BIZRA smoke-verifier runtime artefacts — receipts + screenshots live
+# only locally. Their Merkle root + verdict hashes land in the commit
+# message of the run that generated them (Isnad binding).
+.bizra/
+
+# bun.lock is authoritative for this project (package.json "start"
+# script uses `bun .next/standalone/server.js`). pnpm and npm users
+# run their own install locally; their lockfiles stay out of the tree
+# to prevent cross-tool drift.
+pnpm-lock.yaml
+package-lock.json
