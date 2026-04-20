@@ -13,6 +13,7 @@ use async_trait::async_trait;
 
 pub mod backends;
 pub mod gateway;
+pub mod hal;
 pub mod selector;
 
 pub use backends::{
@@ -20,6 +21,10 @@ pub use backends::{
     OllamaBackend,
 };
 pub use gateway::{GatewayError, InferenceGateway, InferenceRequest, InferenceResponse};
+pub use hal::{
+    CognitionBackend, CognitiveRequest, CognitiveResponse, InferenceError, LocalServerBackend,
+    ProvenanceDescriptor, ProviderIdentity,
+};
 pub use selector::{ModelSelector, ModelTier, TaskComplexity};
 
 /// Default timeout for inference requests
