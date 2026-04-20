@@ -19,7 +19,7 @@ path = "src/lib.rs"
 bizra-hooks = { path = "../bizra-hooks" }
 bizra-memory = { path = "../bizra-memory" }
 bizra-agent = { path = "../bizra-agent" }
-bizra-action = { path = "../bizra-action" }
+bizra-action = { path = "../bizra-action", features = ["production", "signing"] }
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 rand = "0.8"
 bizra-telescript = { path = "../bizra-telescript" }
