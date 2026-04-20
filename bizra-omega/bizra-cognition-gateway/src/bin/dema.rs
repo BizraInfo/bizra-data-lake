@@ -659,9 +659,23 @@ fn print_activate_principal_ok(a: &ActivatePrincipalOk) {
     if let Some(w) = &a.cache_warning {
         println!("  ⚠ cache warning: {}", w);
     } else {
-        let root = std::env::var("BIZRA_DEMA_CACHE_ROOT")
-            .unwrap_or_else(|_| "sovereign_state".to_string());
-        println!("  ✓ profile persisted to {}/dema_cache/", root);
+        // Note: this reads the CLI's env. If the gateway runs with a different
+        // env (e.g. remote via BIZRA_COGNITION_GATEWAY_URL), this can drift —
+        // the canonically correct fix is a server-reported effective_cache_root
+        // field on ActivatePrincipalOk. Tracked as a follow-up; this branch
+        // stays honest for the common local-gateway case and reports clearly
+        // when no cache was attached at all.
+        match std::env::var("BIZRA_DEMA_CACHE_ROOT") {
+            Ok(root) if !root.is_empty() => {
+                let path = std::path::PathBuf::from(root).join("dema_cache");
+                println!("  ✓ profile persisted to {}/", path.display());
+            }
+            _ => {
+                println!(
+                    "  ⚠ dema_cache not attached (BIZRA_DEMA_CACHE_ROOT unset) — profile not persisted to disk"
+                );
+            }
+        }
     }
 }
 
