@@ -168,7 +168,7 @@ impl InvariantName {
 
 /// Gate verdict row as it appears inside AdmissibilityResult.
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct GateVerdictContract {
     #[serde(rename = "scorerId")]
     pub scorer_id: String,
@@ -180,7 +180,7 @@ pub struct GateVerdictContract {
 
 /// Structured rejection detail when admissibility refuses a claim.
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct RejectedClaimContract {
     pub invariant: String,
     pub reason: String,
@@ -192,12 +192,13 @@ pub struct RejectedClaimContract {
 
 /// Full admissibility verdict shipped by every mission endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct AdmissibilityContract {
     pub verdict: VerdictName,
     #[serde(rename = "gateVerdicts")]
     pub gate_verdicts: Vec<GateVerdictContract>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub rejected: Option<RejectedClaimContract>,
 }
 
@@ -222,7 +223,7 @@ pub struct UrpBucketContract {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct UrpViewContract {
     #[serde(rename = "totalCount")]
     pub total_count: usize,
@@ -236,7 +237,7 @@ pub struct UrpViewContract {
 // ════════════════════════════════════════════════════════════════════
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "lowercase")]
 pub enum OrganizeEntryKind {
     #[serde(rename = "file")]
     File,
@@ -256,7 +257,7 @@ pub struct OrganizeEntryContract {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct OrganizeResponseContract {
     #[serde(rename = "missionId")]
     pub mission_id: String,
@@ -286,7 +287,7 @@ pub struct OrganizeResponseContract {
 // ════════════════════════════════════════════════════════════════════
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct PoiEntryContract {
     #[serde(rename = "receiptId")]
     pub receipt_id: String,
@@ -305,11 +306,12 @@ pub struct PoiEntryContract {
     #[serde(rename = "timestampNs")]
     pub timestamp_ns: u64,
     #[serde(rename = "principalId", skip_serializing_if = "Option::is_none")]
+    #[ts(rename = "principalId", optional)]
     pub principal_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct PoiLedgerResponseContract {
     #[serde(rename = "chainHead")]
     pub chain_head: String,
@@ -317,7 +319,7 @@ pub struct PoiLedgerResponseContract {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct PoiPerKindContract {
     pub kind: String,
     pub count: usize,
@@ -328,7 +330,7 @@ pub struct PoiPerKindContract {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct PoiSummaryResponseContract {
     #[serde(rename = "chainHead")]
     pub chain_head: String,
@@ -349,7 +351,7 @@ pub struct PoiSummaryResponseContract {
 // ════════════════════════════════════════════════════════════════════
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../bindings/")]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
 pub struct ActivatePrincipalResponseContract {
     #[serde(rename = "missionId")]
     pub mission_id: String,
@@ -367,6 +369,7 @@ pub struct ActivatePrincipalResponseContract {
     pub final_stage: MissionStageName,
     pub admissibility: AdmissibilityContract,
     #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
+    #[ts(rename = "cacheWarning", optional)]
     pub cache_warning: Option<String>,
 }
 
@@ -381,6 +384,7 @@ pub struct ErrorBodyContract {
     pub message: String,
     pub domain: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub admissibility: Option<AdmissibilityContract>,
 }
 
@@ -587,6 +591,84 @@ mod tests {
                 v.get(field).is_some(),
                 "OrganizeResponseContract missing field '{}'",
                 field
+            );
+        }
+    }
+
+    /// Drift-guard: generated TS bindings must emit camelCase field names
+    /// (via `#[ts(rename_all = "camelCase")]` at struct level + explicit
+    /// `#[ts(rename = "…")]` on optional fields) that match the serde
+    /// wire shape. If ts-rs starts emitting snake_case or a dropped
+    /// rename_all attribute is reintroduced, TS consumers silently read
+    /// `undefined` from the wire. This test locks the invariant.
+    #[test]
+    fn ts_bindings_emit_wire_compatible_camel_case_keys() {
+        // Binding files are generated by the other #[test]s in this module
+        // via `#[ts(export, export_to = "../bindings/")]`. Test order is
+        // not guaranteed, so we instantiate the struct here which triggers
+        // the ts-rs export side effect synchronously for this check.
+        let _ = ActivatePrincipalResponseContract {
+            mission_id: "x".into(),
+            mission_receipt_id: "x".into(),
+            principal_activation_receipt_id: "x".into(),
+            principal_id: "x".into(),
+            profile_hash: "x".into(),
+            chain_head: "x".into(),
+            final_stage: MissionStageName::Replayability,
+            admissibility: AdmissibilityContract {
+                verdict: VerdictName::Permit,
+                gate_verdicts: vec![],
+                rejected: None,
+            },
+            cache_warning: None,
+        };
+
+        // Cross-crate path: tests run from the crate root (CARGO_MANIFEST_DIR).
+        let binding_file = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("bindings")
+            .join("ActivatePrincipalResponseContract.ts");
+        let binding_src = std::fs::read_to_string(&binding_file).unwrap_or_else(|e| {
+            panic!(
+                "could not read generated binding {}: {} — did ts-rs run? (cargo test regenerates)",
+                binding_file.display(),
+                e
+            )
+        });
+
+        // Camel-case wire keys that MUST appear (serde JSON-level).
+        for key in [
+            "missionId: string",
+            "missionReceiptId: string",
+            "principalActivationReceiptId: string",
+            "principalId: string",
+            "profileHash: string",
+            "chainHead: string",
+            "finalStage: MissionStageName",
+            "admissibility: AdmissibilityContract",
+        ] {
+            assert!(
+                binding_src.contains(key),
+                "binding missing required camelCase key '{}'.\n\nFull binding:\n{}",
+                key,
+                binding_src
+            );
+        }
+
+        // Skip-serializing-if Option fields MUST be marked optional (`?:`) with
+        // the camelCase name.
+        assert!(
+            binding_src.contains("cacheWarning?:"),
+            "binding must mark cacheWarning as optional (cacheWarning?: …). Found:\n{}",
+            binding_src
+        );
+
+        // Negative guard: the old snake_case drift must NOT reappear.
+        for bad_key in ["cache_warning:", "mission_id:", "chain_head:"] {
+            assert!(
+                !binding_src.contains(bad_key),
+                "binding regressed to snake_case — found forbidden key '{}'.\n\nFull:\n{}",
+                bad_key,
+                binding_src
             );
         }
     }
