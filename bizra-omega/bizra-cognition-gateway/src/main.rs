@@ -2289,7 +2289,16 @@ mod tests {
         let td_anchor = tempfile::TempDir::new().unwrap();
         let td_cache = tempfile::TempDir::new().unwrap();
         let anchor = write_test_identity_anchor(td_anchor.path());
-        let state = new_state_with_dema_cache(td_cache.path());
+        // Build the runtime env-free, then attach the tmp cache manually. Mirrors the
+        // no-cache test's `new_state_env_free` pattern so BIZRA_DEMA_CACHE_ROOT /
+        // BIZRA_SOVEREIGN_STATE_PATH in the test runner environment cannot leak in.
+        let state = {
+            let mut rt = fresh_in_memory_runtime([0u8; 32]);
+            rt.attach_dema_cache(td_cache.path());
+            AppState {
+                runtime: Arc::new(RwLock::new(rt)),
+            }
+        };
         let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
 
         let res = router(state)

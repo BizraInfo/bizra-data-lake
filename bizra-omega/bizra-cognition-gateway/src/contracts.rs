@@ -664,15 +664,28 @@ mod tests {
         }
 
         // Skip-serializing-if Option fields MUST be marked optional (`?:`) with
-        // the camelCase name.
+        // the camelCase name. Both skip-option fields on this contract must
+        // assert — if either regresses to `T | null` (required + nullable) or
+        // to snake_case, TS consumers silently read `undefined` at runtime.
         assert!(
             binding_src.contains("cacheWarning?:"),
             "binding must mark cacheWarning as optional (cacheWarning?: …). Found:\n{}",
             binding_src
         );
+        assert!(
+            binding_src.contains("effectiveCacheDir?:"),
+            "binding must mark effectiveCacheDir as optional (effectiveCacheDir?: …). Found:\n{}",
+            binding_src
+        );
 
-        // Negative guard: the old snake_case drift must NOT reappear.
-        for bad_key in ["cache_warning:", "mission_id:", "chain_head:"] {
+        // Negative guard: the old snake_case drift must NOT reappear for any
+        // field that has a #[serde(rename = "camelCase")] on the Rust side.
+        for bad_key in [
+            "cache_warning:",
+            "effective_cache_dir:",
+            "mission_id:",
+            "chain_head:",
+        ] {
             assert!(
                 !binding_src.contains(bad_key),
                 "binding regressed to snake_case — found forbidden key '{}'.\n\nFull:\n{}",
