@@ -90,13 +90,18 @@ impl DeviceSummary {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ModelSelection {
     pub model_name: String,
     pub model_tier: String,
     pub quantization: String,
     pub size_gb: f32,
     pub auto_selected: bool,
+    /// v2.1: cryptographic provenance + provider identity.
+    /// Optional to preserve byte-parity with v2.0 receipts that
+    /// predate the Brain Activation substrate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<ProvenanceDescriptor>,
 }
 
 impl ModelSelection {
@@ -115,8 +120,70 @@ impl ModelSelection {
             },
             size_gb: tier.disk_requirement_gb(),
             auto_selected: auto,
+            provenance: None,
         }
     }
+
+    /// Attach provenance to an existing selection (post-download).
+    pub fn with_provenance(mut self, provenance: ProvenanceDescriptor) -> Self {
+        self.provenance = Some(provenance);
+        self
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Provenance substrate (v2.1 — Brain Activation binding)
+// ─────────────────────────────────────────────────────────────
+//
+// Every cognition-capable install binds to a verifiable triple:
+//   1. model_sha256      — what weights are on disk
+//   2. model_signer      — who vouched for them (optional)
+//   3. provider_identity — which provider class served them
+//
+// Schema-parity mirror lives in
+// bizra-omega/bizra-cognition/src/cognition_round.rs. Parity is
+// enforced by JSON-shape tests in both crates; any change here
+// requires the same change there in the same commit.
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct ProvenanceDescriptor {
+    /// BLAKE3 hex of the model weights file. Empty string when
+    /// `provider_identity` is `CoreNone` (no model pinned).
+    pub model_sha256: String,
+
+    /// Signer identity + signature over `(model_sha256, model_slug)`.
+    /// None when the model is unsigned (user-provided local file)
+    /// or irrelevant (remote API provider).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_signer: Option<SignerIdentity>,
+
+    /// Which provider class served this brain. Always present.
+    pub provider_identity: ProviderIdentity,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct SignerIdentity {
+    /// Opaque identifier for the signing key (e.g., hex fingerprint).
+    pub key_id: String,
+    /// Algorithm name, e.g., "ed25519".
+    pub algorithm: String,
+    /// Hex-encoded signature bytes.
+    pub signature_hex: String,
+}
+
+/// Provider class — which kind of cognition served the round.
+/// Mirrors Brain Activation Spec v0.1 §3.1 HAL enum.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ProviderIdentity {
+    /// Kernel-only; no brain layer active. Sovereignty-first default.
+    CoreNone,
+    /// Embedded local model (llama.cpp / candle / etc.).
+    LocalModel { weights_path: String },
+    /// Local inference server (Ollama, LM Studio).
+    LocalServer { endpoint: String, vendor: String },
+    /// Remote API (user explicitly opted in; leaves the machine).
+    RemoteApi { vendor: String },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -248,6 +315,7 @@ mod tests {
                 quantization: "Q4_K_M".into(),
                 size_gb: 8.5,
                 auto_selected: true,
+                provenance: None,
             },
             vec![InstalledComponent {
                 name: "bizra-node".into(),
@@ -293,5 +361,184 @@ mod tests {
         let sel = ModelSelection::from_tier(&ModelTier::Enhanced, true);
         assert_eq!(sel.model_name, "Llama 3.1 8B Q4_K_M");
         assert!(sel.auto_selected);
+        assert!(
+            sel.provenance.is_none(),
+            "from_tier defaults to no provenance"
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // v2.1 Provenance tests
+    // ─────────────────────────────────────────────────────────
+
+    fn sample_provenance() -> ProvenanceDescriptor {
+        ProvenanceDescriptor {
+            model_sha256: "a".repeat(64),
+            model_signer: Some(SignerIdentity {
+                key_id: "ed25519:bizra-authority-01".into(),
+                algorithm: "ed25519".into(),
+                signature_hex: "b".repeat(128),
+            }),
+            provider_identity: ProviderIdentity::LocalModel {
+                weights_path: "/home/user/.bizra/models/gemma4-e4b.gguf".into(),
+            },
+        }
+    }
+
+    #[test]
+    fn provenance_serde_roundtrip() {
+        let p = sample_provenance();
+        let json = serde_json::to_string(&p).unwrap();
+        let back: ProvenanceDescriptor = serde_json::from_str(&json).unwrap();
+        assert_eq!(p, back);
+    }
+
+    #[test]
+    fn provenance_json_shape_is_stable() {
+        // Schema contract: this exact shape must be mirrored in
+        // bizra-cognition/src/cognition_round.rs. If this asserts
+        // fails, reconcile both crates in the same commit.
+        let p = sample_provenance();
+        let v = serde_json::to_value(&p).unwrap();
+        let expected = serde_json::json!({
+            "model_sha256": "a".repeat(64),
+            "model_signer": {
+                "key_id": "ed25519:bizra-authority-01",
+                "algorithm": "ed25519",
+                "signature_hex": "b".repeat(128),
+            },
+            "provider_identity": {
+                "kind": "local_model",
+                "weights_path": "/home/user/.bizra/models/gemma4-e4b.gguf",
+            },
+        });
+        assert_eq!(v, expected);
+    }
+
+    #[test]
+    fn provider_identity_core_none_serializes_minimally() {
+        let p = ProviderIdentity::CoreNone;
+        let v = serde_json::to_value(&p).unwrap();
+        assert_eq!(v, serde_json::json!({"kind": "core_none"}));
+    }
+
+    #[test]
+    fn provider_identity_all_variants_roundtrip() {
+        let variants = vec![
+            ProviderIdentity::CoreNone,
+            ProviderIdentity::LocalModel {
+                weights_path: "/path/to.gguf".into(),
+            },
+            ProviderIdentity::LocalServer {
+                endpoint: "http://localhost:11434".into(),
+                vendor: "ollama".into(),
+            },
+            ProviderIdentity::RemoteApi {
+                vendor: "anthropic".into(),
+            },
+        ];
+        for v in variants {
+            let json = serde_json::to_string(&v).unwrap();
+            let back: ProviderIdentity = serde_json::from_str(&json).unwrap();
+            assert_eq!(v, back, "variant lost fidelity on roundtrip: {:?}", v);
+        }
+    }
+
+    #[test]
+    fn v20_receipt_json_deserializes_without_provenance() {
+        // Backward-compat contract: a v2.0 receipt JSON (no `provenance`
+        // field on model_selection) must still deserialize cleanly.
+        let v20_json = serde_json::json!({
+            "receipt_version": "2.0.0",
+            "receipt_hash": "deadbeef",
+            "parent_hash": "0".repeat(64),
+            "timestamp": "2026-04-19T18:15:18Z",
+            "installer_version": "2.0.0",
+            "action": "FreshInstall",
+            "device_summary": {
+                "os": "Linux",
+                "arch": "X86_64",
+                "ram_gb": 16.0,
+                "gpu": null,
+                "tier": "Standard",
+                "locale": "en-US",
+            },
+            "model_selection": {
+                "model_name": "Llama 3.1 8B Q4_K_M",
+                "model_tier": "Enhanced",
+                "quantization": "Q4_K_M",
+                "size_gb": 4.5,
+                "auto_selected": true,
+            },
+            "components": [],
+            "duration_seconds": 10.0,
+            "health_check_passed": true,
+            "ihsan_score": 0.95,
+        });
+        let r: InstallReceipt = serde_json::from_value(v20_json).unwrap();
+        assert!(r.model_selection.provenance.is_none());
+    }
+
+    #[test]
+    fn v20_receipt_hash_unchanged_with_none_provenance() {
+        // A ModelSelection with provenance=None must serialize
+        // identically to a v2.0 ModelSelection, so receipts hashed
+        // before v2.1 still verify bit-for-bit.
+        let sel = ModelSelection::from_tier(&ModelTier::Enhanced, true);
+        let json = serde_json::to_string(&sel).unwrap();
+        assert!(
+            !json.contains("provenance"),
+            "Option::None with skip_serializing_if must omit the field; got: {json}"
+        );
+    }
+
+    #[test]
+    fn receipt_with_provenance_hashes_and_verifies() {
+        let mut r = sample_receipt();
+        r.model_selection = r
+            .model_selection
+            .clone()
+            .with_provenance(sample_provenance());
+        // Re-compute hash to reflect the new content.
+        r.receipt_hash = r.compute_hash();
+        assert!(r.verify(), "fresh receipt with provenance must verify");
+    }
+
+    #[test]
+    fn receipt_hash_changes_when_provenance_changes() {
+        let mut r1 = sample_receipt();
+        r1.model_selection = r1
+            .model_selection
+            .clone()
+            .with_provenance(sample_provenance());
+        r1.receipt_hash = r1.compute_hash();
+
+        let mut r2 = r1.clone();
+        // Alter provenance — e.g., different signer.
+        let mut prov = sample_provenance();
+        prov.model_signer.as_mut().unwrap().key_id = "ed25519:impostor".into();
+        r2.model_selection.provenance = Some(prov);
+        r2.receipt_hash = r2.compute_hash();
+
+        assert_ne!(
+            r1.receipt_hash, r2.receipt_hash,
+            "changing provenance must change receipt_hash"
+        );
+    }
+
+    #[test]
+    fn provenance_skip_serializing_if_none() {
+        let prov = ProvenanceDescriptor {
+            model_sha256: "feedface".into(),
+            model_signer: None, // explicitly None — must be omitted from JSON
+            provider_identity: ProviderIdentity::RemoteApi {
+                vendor: "openai".into(),
+            },
+        };
+        let json = serde_json::to_string(&prov).unwrap();
+        assert!(
+            !json.contains("model_signer"),
+            "Option::None signer must be skipped; got: {json}"
+        );
     }
 }

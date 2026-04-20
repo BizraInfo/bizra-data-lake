@@ -44,6 +44,7 @@
 
 pub mod admissibility_freeze_v1;
 pub mod canonical_hasher;
+pub mod cognition_round;
 pub mod configure_cognition;
 pub mod eval_v1;
 pub mod eval_v1_integrated;
