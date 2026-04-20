@@ -152,7 +152,9 @@ logs/
 missions/
 
 # ── Compiled Binaries ─────────────────────────────────────────
-bizra
+# Root-anchored so only the top-level compiled `bizra` binary is
+# ignored, not nested paths like `dema-console/src/components/bizra/`.
+/bizra
 *.exe
 
 # ── ML Models (large files) ───────────────────────────────────
