@@ -202,6 +202,15 @@ pub struct PrincipalActivationRecord {
     /// still in-memory; only the derived cache is stale. Caller may
     /// retry cache write or rebuild from chain.
     pub cache_warning: Option<String>,
+    /// Server-reported `dema_cache/` directory where the profile was
+    /// persisted. `Some(dir)` iff a dema_cache was attached at activation
+    /// time (regardless of write outcome — write failures surface via
+    /// `cache_warning`). `None` when no cache was attached, which is the
+    /// canonically correct signal that no on-disk persistence happened.
+    /// Consumers: CLI and web face echo this verbatim rather than
+    /// deriving it from their own env — closes ZANN_ZERO drift under
+    /// remote gateway / divergent env scenarios.
+    pub effective_cache_dir: Option<std::path::PathBuf>,
 }
 
 /// Cycle-7 G5 — outcome of a `submit_organize_mission` call.
@@ -880,6 +889,7 @@ impl CognitionRuntime {
                 rejected: true,
                 remediation: Some(remediation),
                 cache_warning: None,
+                effective_cache_dir: None,
             });
         }
 
@@ -942,6 +952,15 @@ impl CognitionRuntime {
             None
         };
 
+        // Server-authoritative record of the dema_cache dir that was
+        // attached at activation time. Populated iff a cache is attached,
+        // independent of write outcome — callers combine this with
+        // cache_warning to interpret persistence state.
+        let effective_cache_dir = self
+            .dema_cache
+            .as_ref()
+            .map(|c| c.cache_dir().to_path_buf());
+
         Ok(PrincipalActivationRecord {
             envelope: activation_envelope,
             mission_record,
@@ -950,6 +969,7 @@ impl CognitionRuntime {
             rejected: false,
             remediation: None,
             cache_warning,
+            effective_cache_dir,
         })
     }
 

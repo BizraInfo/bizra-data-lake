@@ -241,6 +241,18 @@ struct ActivatePrincipalResponse {
     admissibility: AdmissibilityResultDto,
     #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
     cache_warning: Option<String>,
+    /// Path to the `dema_cache/` directory the gateway attached for this
+    /// activation, or omitted if no cache was attached. Absolute if
+    /// BIZRA_DEMA_CACHE_ROOT was set to an absolute path; relative
+    /// otherwise — no canonicalization is performed so the reported path
+    /// matches the one the runtime actually writes to, even under
+    /// relative-cwd deployments. Derived server-side from the runtime's
+    /// attached PrincipalProfileCache so clients can echo the
+    /// authoritative persist location without reading their own env
+    /// (CLI env may diverge from gateway env when talking to a remote
+    /// gateway via BIZRA_COGNITION_GATEWAY_URL).
+    #[serde(rename = "effectiveCacheDir", skip_serializing_if = "Option::is_none")]
+    effective_cache_dir: Option<String>,
 }
 
 // ─── Cycle-7 G4 — /resources DTOs ──────────────────────────────────────────
@@ -643,13 +655,37 @@ fn mission_record_to_dto(record: &MissionRuntimeRecord) -> GetMissionResponse {
     }
 }
 
+/// Fresh in-memory runtime with no env dependencies. Used by the default
+/// in-memory path of `bootstrap_runtime` AND by tests that need a runtime
+/// decoupled from process env (so exported BIZRA_* vars in the test
+/// environment don't silently alter the runtime under test).
+fn fresh_in_memory_runtime(genesis: Blake3Hash) -> CognitionRuntime {
+    // Empty-graph bootstrap. submit_mission only touches self.chain + self.missions
+    // + admissibility evaluation — no graph traversal. This is the minimum viable
+    // runtime for the G3 activation surface. Future arcs will attach PAT-7/SAT-5
+    // factories via configure_cognition::default_pat7_sat5_config.
+    let graph = ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
+    let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
+    let ctx = AgentCtx {
+        receipt_chain: genesis,
+    };
+    CognitionRuntime::new(graph, chain, ctx)
+}
+
 fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
     // Cycle-6 G1 Phase 1 — try sovereign_state bootstrap if BIZRA_SOVEREIGN_STATE_PATH is set.
     //   - env unset       → in-memory bootstrap (dev mode, preserves Cycle-5 behavior)
     //   - env set, path missing → warn, fall back to in-memory
     //   - env set, path present, load OK → attach snapshot, serve durable-read
     //   - env set, path present, load FAILED → fail-closed startup (exit 1)
-    if let Ok(path_str) = std::env::var("BIZRA_SOVEREIGN_STATE_PATH") {
+    //
+    // Both branches flow into the shared dema_cache attachment block below
+    // so BIZRA_DEMA_CACHE_ROOT is honored regardless of which bootstrap
+    // path produced `rt` (fixes the case where setting both env vars
+    // previously skipped cache attachment because sovereign-state loaded
+    // first and returned early).
+    let mut rt: CognitionRuntime = if let Ok(path_str) = std::env::var("BIZRA_SOVEREIGN_STATE_PATH")
+    {
         let p = std::path::Path::new(&path_str);
         if p.exists() {
             match CognitionRuntime::from_sovereign_state(p) {
@@ -664,7 +700,7 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                             "bootstrap from sovereign_state OK (durable-read enabled)"
                         );
                     }
-                    return rt;
+                    rt
                 }
                 Err(e) => {
                     tracing::error!(
@@ -682,166 +718,167 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                 path = %p.display(),
                 "BIZRA_SOVEREIGN_STATE_PATH set but path missing; falling back to in-memory bootstrap"
             );
+            fresh_in_memory_runtime(genesis)
         }
-    }
-
-    // Default in-memory bootstrap (dev / no env var / missing path).
-    // Empty-graph bootstrap. submit_mission only touches self.chain + self.missions
-    // + admissibility evaluation — no graph traversal. This is the minimum viable
-    // runtime for the G3 activation surface. Future arcs will attach PAT-7/SAT-5
-    // factories via configure_cognition::default_pat7_sat5_config.
-    let graph = ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
-    let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-    let ctx = AgentCtx {
-        receipt_chain: genesis,
+    } else {
+        fresh_in_memory_runtime(genesis)
     };
-    let mut rt = CognitionRuntime::new(graph, chain, ctx);
 
     // Cycle-7 G2 Commit-3 — optional dema_cache attachment. When
-    // BIZRA_DEMA_CACHE_ROOT is set, permitted principal activations will
-    // persist the profile to <root>/dema_cache/principal.json.
+    // BIZRA_DEMA_CACHE_ROOT is set to a non-empty value, permitted principal
+    // activations will persist the profile to <root>/dema_cache/principal.json.
+    // An empty string is treated as unset — Rust's std::env::var returns
+    // Ok("") for an exported-but-empty var, which would otherwise cause
+    // dema_cache/ to be attached at cwd. Fail-closed against that drift.
     // Restart: rehydrate on next boot via rehydrate_principal_from_cache.
-    if let Ok(root_str) = std::env::var("BIZRA_DEMA_CACHE_ROOT") {
-        let root = std::path::PathBuf::from(root_str);
-        rt.attach_dema_cache(&root);
-        match rt.rehydrate_principal_from_cache() {
-            Ok(true) => tracing::info!(
-                target: DOMAIN,
-                root = %root.display(),
-                "dema_cache attached and principal profile rehydrated from disk"
-            ),
-            Ok(false) => tracing::info!(
-                target: DOMAIN,
-                root = %root.display(),
-                "dema_cache attached; no principal profile present yet"
-            ),
-            Err(e) => tracing::warn!(
-                target: DOMAIN,
-                error = %e,
-                "dema_cache attached but rehydrate failed — will rebuild from chain if needed"
-            ),
-        }
-        // Cycle-7 G3 Commit-1 — log whether a prior receipt-history
-        // snapshot is present. attach_dema_cache has already initialized
-        // the ReceiptHistoryCache alongside PrincipalProfileCache.
-        match rt.rehydrate_receipt_history_from_cache() {
-            Ok(Some(snap)) => tracing::info!(
-                target: DOMAIN,
-                records = snap.records.len(),
-                "receipt_history cache present from prior session"
-            ),
-            Ok(None) => tracing::info!(
-                target: DOMAIN,
-                "receipt_history cache empty; will initialize on first chain advance"
-            ),
-            Err(e) => tracing::warn!(
-                target: DOMAIN,
-                error = %e,
-                "receipt_history cache malformed — will rebuild from chain on next advance"
-            ),
-        }
-        // Cycle-7 G3 Commit-2 — manifest_history presence.
-        match rt.rehydrate_manifest_history_from_cache() {
-            Ok(Some(snap)) => tracing::info!(
-                target: DOMAIN,
-                manifests = snap.manifests.len(),
-                "manifest_history cache present from prior session"
-            ),
-            Ok(None) => tracing::info!(
-                target: DOMAIN,
-                "manifest_history cache empty; will initialize on first permitted mission"
-            ),
-            Err(e) => tracing::warn!(
-                target: DOMAIN,
-                error = %e,
-                "manifest_history cache malformed — will rebuild from missions on next permit"
-            ),
-        }
-        // Cycle-7 G3 Commit-3 — mission_log presence.
-        match rt.rehydrate_mission_log_from_cache() {
-            Ok(Some(snap)) => tracing::info!(
-                target: DOMAIN,
-                entries = snap.entries.len(),
-                "mission_log cache present from prior session"
-            ),
-            Ok(None) => tracing::info!(
-                target: DOMAIN,
-                "mission_log cache empty; will initialize on first mission attempt"
-            ),
-            Err(e) => tracing::warn!(
-                target: DOMAIN,
-                error = %e,
-                "mission_log cache malformed — will rebuild from missions on next attempt"
-            ),
-        }
-        // Cycle-7 G3 Commit-4 — state_snapshots presence.
-        match rt.rehydrate_state_snapshots_from_cache() {
-            Ok(Some(snap)) => tracing::info!(
-                target: DOMAIN,
-                entries = snap.entries.len(),
-                "state_snapshots cache present from prior session"
-            ),
-            Ok(None) => tracing::info!(
-                target: DOMAIN,
-                "state_snapshots cache empty; will initialize on first mission attempt"
-            ),
-            Err(e) => tracing::warn!(
-                target: DOMAIN,
-                error = %e,
-                "state_snapshots cache malformed — will rebuild from missions on next attempt"
-            ),
-        }
-        // Cycle-7 G6 — restore PoI ledger in-memory state from the
-        // disk cache so `/poi/ledger` and `/poi/summary` are correct
-        // across gateway restarts. Chain stays truth; a future
-        // rebuild-from-chain call can verify+repair if needed.
-        match rt.load_poi_entries_from_cache() {
-            Ok(true) => tracing::info!(
-                target: DOMAIN,
-                entries = rt.poi_entries().len(),
-                "poi_ledger restored from prior session"
-            ),
-            Ok(false) => tracing::info!(
-                target: DOMAIN,
-                "poi_ledger cache empty; ledger begins fresh this session"
-            ),
-            Err(e) => tracing::warn!(
-                target: DOMAIN,
-                error = %e,
-                "poi_ledger cache malformed — ledger begins fresh; rebuild from chain will repair"
-            ),
-        }
-
-        // Cycle-7 G3 Commit-5 — resource_registry seed. Ensure the
-        // empty file exists at boot so G4 (URP + allowlist) can assume
-        // the schema is already locked.
-        match rt.seed_resource_registry_if_missing() {
-            Ok(Some(true)) => tracing::info!(
-                target: DOMAIN,
-                "resource_registry seeded empty (G3 scope; G4 fills)"
-            ),
-            Ok(Some(false)) => match rt.rehydrate_resource_registry_from_cache() {
-                Ok(Some(snap)) => tracing::info!(
+    if let Ok(root_str) = std::env::var("BIZRA_DEMA_CACHE_ROOT").map(|s| s.trim().to_string()) {
+        if !root_str.is_empty() {
+            let root = std::path::PathBuf::from(root_str);
+            rt.attach_dema_cache(&root);
+            match rt.rehydrate_principal_from_cache() {
+                Ok(true) => tracing::info!(
                     target: DOMAIN,
-                    resources = snap.resources.len(),
-                    "resource_registry cache present from prior session"
+                    root = %root.display(),
+                    "dema_cache attached and principal profile rehydrated from disk"
                 ),
-                Ok(None) => tracing::warn!(
+                Ok(false) => tracing::info!(
                     target: DOMAIN,
-                    "resource_registry seed reported existing but read returned None"
+                    root = %root.display(),
+                    "dema_cache attached; no principal profile present yet"
                 ),
                 Err(e) => tracing::warn!(
                     target: DOMAIN,
                     error = %e,
-                    "resource_registry cache malformed — delete to re-seed"
+                    "dema_cache attached but rehydrate failed — will rebuild from chain if needed"
                 ),
-            },
-            Ok(None) => {}
-            Err(e) => tracing::warn!(
+            }
+            // Cycle-7 G3 Commit-1 — log whether a prior receipt-history
+            // snapshot is present. attach_dema_cache has already initialized
+            // the ReceiptHistoryCache alongside PrincipalProfileCache.
+            match rt.rehydrate_receipt_history_from_cache() {
+                Ok(Some(snap)) => tracing::info!(
+                    target: DOMAIN,
+                    records = snap.records.len(),
+                    "receipt_history cache present from prior session"
+                ),
+                Ok(None) => tracing::info!(
+                    target: DOMAIN,
+                    "receipt_history cache empty; will initialize on first chain advance"
+                ),
+                Err(e) => tracing::warn!(
+                    target: DOMAIN,
+                    error = %e,
+                    "receipt_history cache malformed — will rebuild from chain on next advance"
+                ),
+            }
+            // Cycle-7 G3 Commit-2 — manifest_history presence.
+            match rt.rehydrate_manifest_history_from_cache() {
+                Ok(Some(snap)) => tracing::info!(
+                    target: DOMAIN,
+                    manifests = snap.manifests.len(),
+                    "manifest_history cache present from prior session"
+                ),
+                Ok(None) => tracing::info!(
+                    target: DOMAIN,
+                    "manifest_history cache empty; will initialize on first permitted mission"
+                ),
+                Err(e) => tracing::warn!(
+                    target: DOMAIN,
+                    error = %e,
+                    "manifest_history cache malformed — will rebuild from missions on next permit"
+                ),
+            }
+            // Cycle-7 G3 Commit-3 — mission_log presence.
+            match rt.rehydrate_mission_log_from_cache() {
+                Ok(Some(snap)) => tracing::info!(
+                    target: DOMAIN,
+                    entries = snap.entries.len(),
+                    "mission_log cache present from prior session"
+                ),
+                Ok(None) => tracing::info!(
+                    target: DOMAIN,
+                    "mission_log cache empty; will initialize on first mission attempt"
+                ),
+                Err(e) => tracing::warn!(
+                    target: DOMAIN,
+                    error = %e,
+                    "mission_log cache malformed — will rebuild from missions on next attempt"
+                ),
+            }
+            // Cycle-7 G3 Commit-4 — state_snapshots presence.
+            match rt.rehydrate_state_snapshots_from_cache() {
+                Ok(Some(snap)) => tracing::info!(
+                    target: DOMAIN,
+                    entries = snap.entries.len(),
+                    "state_snapshots cache present from prior session"
+                ),
+                Ok(None) => tracing::info!(
+                    target: DOMAIN,
+                    "state_snapshots cache empty; will initialize on first mission attempt"
+                ),
+                Err(e) => tracing::warn!(
+                    target: DOMAIN,
+                    error = %e,
+                    "state_snapshots cache malformed — will rebuild from missions on next attempt"
+                ),
+            }
+            // Cycle-7 G6 — restore PoI ledger in-memory state from the
+            // disk cache so `/poi/ledger` and `/poi/summary` are correct
+            // across gateway restarts. Chain stays truth; a future
+            // rebuild-from-chain call can verify+repair if needed.
+            match rt.load_poi_entries_from_cache() {
+                Ok(true) => tracing::info!(
+                    target: DOMAIN,
+                    entries = rt.poi_entries().len(),
+                    "poi_ledger restored from prior session"
+                ),
+                Ok(false) => tracing::info!(
+                    target: DOMAIN,
+                    "poi_ledger cache empty; ledger begins fresh this session"
+                ),
+                Err(e) => tracing::warn!(
+                    target: DOMAIN,
+                    error = %e,
+                    "poi_ledger cache malformed — ledger begins fresh; rebuild from chain will repair"
+                ),
+            }
+
+            // Cycle-7 G3 Commit-5 — resource_registry seed. Ensure the
+            // empty file exists at boot so G4 (URP + allowlist) can assume
+            // the schema is already locked.
+            match rt.seed_resource_registry_if_missing() {
+                Ok(Some(true)) => tracing::info!(
+                    target: DOMAIN,
+                    "resource_registry seeded empty (G3 scope; G4 fills)"
+                ),
+                Ok(Some(false)) => match rt.rehydrate_resource_registry_from_cache() {
+                    Ok(Some(snap)) => tracing::info!(
+                        target: DOMAIN,
+                        resources = snap.resources.len(),
+                        "resource_registry cache present from prior session"
+                    ),
+                    Ok(None) => tracing::warn!(
+                        target: DOMAIN,
+                        "resource_registry seed reported existing but read returned None"
+                    ),
+                    Err(e) => tracing::warn!(
+                        target: DOMAIN,
+                        error = %e,
+                        "resource_registry cache malformed — delete to re-seed"
+                    ),
+                },
+                Ok(None) => {}
+                Err(e) => tracing::warn!(
+                    target: DOMAIN,
+                    error = %e,
+                    "resource_registry seed failed"
+                ),
+            }
+        } else {
+            tracing::info!(
                 target: DOMAIN,
-                error = %e,
-                "resource_registry seed failed"
-            ),
+                "BIZRA_DEMA_CACHE_ROOT set but empty — treated as unset (no dema_cache attached)"
+            );
         }
     }
     rt
@@ -1257,6 +1294,7 @@ async fn post_principal_activate(
         final_stage: stage_name(record.mission_record.stage),
         admissibility: admissibility_to_dto(&record.mission_record.admissibility),
         cache_warning: record.cache_warning,
+        effective_cache_dir: record.effective_cache_dir.map(|p| p.display().to_string()),
     }))
 }
 
@@ -1693,6 +1731,17 @@ mod tests {
     fn new_state() -> AppState {
         AppState {
             runtime: Arc::new(RwLock::new(bootstrap_runtime([0u8; 32]))),
+        }
+    }
+
+    /// Env-free AppState: constructs the runtime directly via
+    /// `fresh_in_memory_runtime` rather than going through `bootstrap_runtime`.
+    /// This decouples tests from whatever BIZRA_* env vars the test runner
+    /// happens to export — guaranteeing the "no cache attached" state
+    /// regardless of the host environment.
+    fn new_state_env_free() -> AppState {
+        AppState {
+            runtime: Arc::new(RwLock::new(fresh_in_memory_runtime([0u8; 32]))),
         }
     }
 
@@ -2188,6 +2237,101 @@ mod tests {
         assert_ne!(
             v["principalActivationReceiptId"], v["missionReceiptId"],
             "PA receipt must be distinct from the NodeLifecycle mission receipt"
+        );
+    }
+
+    // ─── effective_cache_dir wire-contract tests ─────────────────────────
+    //
+    // Proves the server's authoritative report of the attached dema_cache
+    // dir. The CLI and web face echo this verbatim rather than reading
+    // their own env (ZANN_ZERO + CLAIM_MUST_BIND under remote/divergent
+    // env scenarios).
+
+    #[tokio::test]
+    async fn post_principal_activate_omits_effective_cache_dir_when_no_cache_attached() {
+        let td = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td.path());
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
+
+        // Use the env-free helper rather than new_state() → guarantees no
+        // cache regardless of whether BIZRA_DEMA_CACHE_ROOT is exported in
+        // the test runner environment.
+        let res = router(new_state_env_free())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(v["admissibility"]["verdict"], "Permit");
+        assert!(
+            v.get("effectiveCacheDir").is_none(),
+            "no cache attached → effectiveCacheDir must be omitted, got {:?}",
+            v.get("effectiveCacheDir")
+        );
+        assert!(
+            v.get("cacheWarning").is_none(),
+            "no cache attached → no warning either; warning is for write-failure only"
+        );
+    }
+
+    #[tokio::test]
+    async fn post_principal_activate_reports_server_authoritative_cache_dir_when_attached() {
+        let td_anchor = tempfile::TempDir::new().unwrap();
+        let td_cache = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td_anchor.path());
+        // Build the runtime env-free, then attach the tmp cache manually. Mirrors the
+        // no-cache test's `new_state_env_free` pattern so BIZRA_DEMA_CACHE_ROOT /
+        // BIZRA_SOVEREIGN_STATE_PATH in the test runner environment cannot leak in.
+        let state = {
+            let mut rt = fresh_in_memory_runtime([0u8; 32]);
+            rt.attach_dema_cache(td_cache.path());
+            AppState {
+                runtime: Arc::new(RwLock::new(rt)),
+            }
+        };
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
+
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(v["admissibility"]["verdict"], "Permit");
+        let expected = td_cache.path().join("dema_cache");
+        assert_eq!(
+            v["effectiveCacheDir"].as_str().unwrap(),
+            expected.display().to_string(),
+            "effectiveCacheDir must echo the exact PathBuf::join path the runtime attached"
+        );
+        assert!(
+            v.get("cacheWarning").is_none(),
+            "write to a fresh tmp dir should succeed → no warning"
+        );
+        // Evidence: the file actually landed at the reported path.
+        assert!(
+            expected.join("principal.json").exists(),
+            "principal.json must exist at the server-reported effectiveCacheDir"
         );
     }
 

@@ -368,9 +368,17 @@ pub struct ActivatePrincipalResponseContract {
     #[serde(rename = "finalStage")]
     pub final_stage: MissionStageName,
     pub admissibility: AdmissibilityContract,
+    // ts-rs does NOT automatically honor `#[serde(rename)]`; without the
+    // twin `#[ts(...)]` directives the generated .ts would emit these
+    // fields as snake_case required strings while the actual JSON wire
+    // is camelCase and may be omitted. `optional` marks them `?: T`
+    // so TS consumers correctly handle the omission.
     #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
     #[ts(rename = "cacheWarning", optional)]
     pub cache_warning: Option<String>,
+    #[serde(rename = "effectiveCacheDir", skip_serializing_if = "Option::is_none")]
+    #[ts(rename = "effectiveCacheDir", optional)]
+    pub effective_cache_dir: Option<String>,
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -621,6 +629,7 @@ mod tests {
                 rejected: None,
             },
             cache_warning: None,
+            effective_cache_dir: None,
         };
 
         // Cross-crate path: tests run from the crate root (CARGO_MANIFEST_DIR).
@@ -655,15 +664,28 @@ mod tests {
         }
 
         // Skip-serializing-if Option fields MUST be marked optional (`?:`) with
-        // the camelCase name.
+        // the camelCase name. Both skip-option fields on this contract must
+        // assert — if either regresses to `T | null` (required + nullable) or
+        // to snake_case, TS consumers silently read `undefined` at runtime.
         assert!(
             binding_src.contains("cacheWarning?:"),
             "binding must mark cacheWarning as optional (cacheWarning?: …). Found:\n{}",
             binding_src
         );
+        assert!(
+            binding_src.contains("effectiveCacheDir?:"),
+            "binding must mark effectiveCacheDir as optional (effectiveCacheDir?: …). Found:\n{}",
+            binding_src
+        );
 
-        // Negative guard: the old snake_case drift must NOT reappear.
-        for bad_key in ["cache_warning:", "mission_id:", "chain_head:"] {
+        // Negative guard: the old snake_case drift must NOT reappear for any
+        // field that has a #[serde(rename = "camelCase")] on the Rust side.
+        for bad_key in [
+            "cache_warning:",
+            "effective_cache_dir:",
+            "mission_id:",
+            "chain_head:",
+        ] {
             assert!(
                 !binding_src.contains(bad_key),
                 "binding regressed to snake_case — found forbidden key '{}'.\n\nFull:\n{}",
