@@ -368,6 +368,11 @@ pub struct ActivatePrincipalResponseContract {
     #[serde(rename = "finalStage")]
     pub final_stage: MissionStageName,
     pub admissibility: AdmissibilityContract,
+    // ts-rs does NOT automatically honor `#[serde(rename)]`; without the
+    // twin `#[ts(...)]` directives the generated .ts would emit these
+    // fields as snake_case required strings while the actual JSON wire
+    // is camelCase and may be omitted. `optional` marks them `?: T`
+    // so TS consumers correctly handle the omission.
     #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
     #[ts(rename = "cacheWarning", optional)]
     pub cache_warning: Option<String>,

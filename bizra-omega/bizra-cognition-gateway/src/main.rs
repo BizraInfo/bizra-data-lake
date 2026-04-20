@@ -241,12 +241,16 @@ struct ActivatePrincipalResponse {
     admissibility: AdmissibilityResultDto,
     #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
     cache_warning: Option<String>,
-    /// Absolute path to the `dema_cache/` directory the gateway attached
-    /// for this activation, or omitted if no cache was attached.
-    /// Derived server-side from the runtime's attached PrincipalProfileCache
-    /// so clients can echo the authoritative persist location without
-    /// reading their own env (CLI env may diverge from gateway env when
-    /// talking to a remote gateway via BIZRA_COGNITION_GATEWAY_URL).
+    /// Path to the `dema_cache/` directory the gateway attached for this
+    /// activation, or omitted if no cache was attached. Absolute if
+    /// BIZRA_DEMA_CACHE_ROOT was set to an absolute path; relative
+    /// otherwise — no canonicalization is performed so the reported path
+    /// matches the one the runtime actually writes to, even under
+    /// relative-cwd deployments. Derived server-side from the runtime's
+    /// attached PrincipalProfileCache so clients can echo the
+    /// authoritative persist location without reading their own env
+    /// (CLI env may diverge from gateway env when talking to a remote
+    /// gateway via BIZRA_COGNITION_GATEWAY_URL).
     #[serde(rename = "effectiveCacheDir", skip_serializing_if = "Option::is_none")]
     effective_cache_dir: Option<String>,
 }
@@ -651,13 +655,37 @@ fn mission_record_to_dto(record: &MissionRuntimeRecord) -> GetMissionResponse {
     }
 }
 
+/// Fresh in-memory runtime with no env dependencies. Used by the default
+/// in-memory path of `bootstrap_runtime` AND by tests that need a runtime
+/// decoupled from process env (so exported BIZRA_* vars in the test
+/// environment don't silently alter the runtime under test).
+fn fresh_in_memory_runtime(genesis: Blake3Hash) -> CognitionRuntime {
+    // Empty-graph bootstrap. submit_mission only touches self.chain + self.missions
+    // + admissibility evaluation — no graph traversal. This is the minimum viable
+    // runtime for the G3 activation surface. Future arcs will attach PAT-7/SAT-5
+    // factories via configure_cognition::default_pat7_sat5_config.
+    let graph = ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
+    let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
+    let ctx = AgentCtx {
+        receipt_chain: genesis,
+    };
+    CognitionRuntime::new(graph, chain, ctx)
+}
+
 fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
     // Cycle-6 G1 Phase 1 — try sovereign_state bootstrap if BIZRA_SOVEREIGN_STATE_PATH is set.
     //   - env unset       → in-memory bootstrap (dev mode, preserves Cycle-5 behavior)
     //   - env set, path missing → warn, fall back to in-memory
     //   - env set, path present, load OK → attach snapshot, serve durable-read
     //   - env set, path present, load FAILED → fail-closed startup (exit 1)
-    if let Ok(path_str) = std::env::var("BIZRA_SOVEREIGN_STATE_PATH") {
+    //
+    // Both branches flow into the shared dema_cache attachment block below
+    // so BIZRA_DEMA_CACHE_ROOT is honored regardless of which bootstrap
+    // path produced `rt` (fixes the case where setting both env vars
+    // previously skipped cache attachment because sovereign-state loaded
+    // first and returned early).
+    let mut rt: CognitionRuntime = if let Ok(path_str) = std::env::var("BIZRA_SOVEREIGN_STATE_PATH")
+    {
         let p = std::path::Path::new(&path_str);
         if p.exists() {
             match CognitionRuntime::from_sovereign_state(p) {
@@ -672,7 +700,7 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                             "bootstrap from sovereign_state OK (durable-read enabled)"
                         );
                     }
-                    return rt;
+                    rt
                 }
                 Err(e) => {
                     tracing::error!(
@@ -690,20 +718,11 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
                 path = %p.display(),
                 "BIZRA_SOVEREIGN_STATE_PATH set but path missing; falling back to in-memory bootstrap"
             );
+            fresh_in_memory_runtime(genesis)
         }
-    }
-
-    // Default in-memory bootstrap (dev / no env var / missing path).
-    // Empty-graph bootstrap. submit_mission only touches self.chain + self.missions
-    // + admissibility evaluation — no graph traversal. This is the minimum viable
-    // runtime for the G3 activation surface. Future arcs will attach PAT-7/SAT-5
-    // factories via configure_cognition::default_pat7_sat5_config.
-    let graph = ThoughtGraph::from_parts(HashMap::new(), Vec::new(), HashMap::new(), genesis);
-    let chain = ReceiptChain::new(genesis, Box::new(InMemoryPayloadStore::new()));
-    let ctx = AgentCtx {
-        receipt_chain: genesis,
+    } else {
+        fresh_in_memory_runtime(genesis)
     };
-    let mut rt = CognitionRuntime::new(graph, chain, ctx);
 
     // Cycle-7 G2 Commit-3 — optional dema_cache attachment. When
     // BIZRA_DEMA_CACHE_ROOT is set to a non-empty value, permitted principal
@@ -1715,6 +1734,17 @@ mod tests {
         }
     }
 
+    /// Env-free AppState: constructs the runtime directly via
+    /// `fresh_in_memory_runtime` rather than going through `bootstrap_runtime`.
+    /// This decouples tests from whatever BIZRA_* env vars the test runner
+    /// happens to export — guaranteeing the "no cache attached" state
+    /// regardless of the host environment.
+    fn new_state_env_free() -> AppState {
+        AppState {
+            runtime: Arc::new(RwLock::new(fresh_in_memory_runtime([0u8; 32]))),
+        }
+    }
+
     /// Build an AppState whose CognitionRuntime was bootstrapped from a
     /// live sovereign_state/ tempdir. Used to exercise Phase 2 durable-read
     /// fall-through without touching process env vars.
@@ -2223,8 +2253,10 @@ mod tests {
         let anchor = write_test_identity_anchor(td.path());
         let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
 
-        // new_state() does NOT call attach_dema_cache → runtime has no cache.
-        let res = router(new_state())
+        // Use the env-free helper rather than new_state() → guarantees no
+        // cache regardless of whether BIZRA_DEMA_CACHE_ROOT is exported in
+        // the test runner environment.
+        let res = router(new_state_env_free())
             .oneshot(
                 Request::builder()
                     .method("POST")

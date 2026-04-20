@@ -662,16 +662,22 @@ fn print_activate_principal_ok(a: &ActivatePrincipalOk) {
     // (effectiveCacheDir) rather than the CLI's local env — CLI and gateway
     // envs may diverge under BIZRA_COGNITION_GATEWAY_URL. Three arms:
     //   - cacheWarning present → attempted write failed, chain still sealed
-    //   - effectiveCacheDir present (no warning) → persisted successfully
-    //   - both absent → no dema_cache was attached; nothing written to disk
+    //   - effectiveCacheDir present (no warning) → persisted to that path
+    //   - both absent → either no dema_cache was attached, or we are
+    //     talking to an older gateway that predates this field. Stay
+    //     honest about the ambiguity rather than claiming either.
     if let Some(w) = &a.cache_warning {
         println!("  ⚠ cache warning: {}", w);
     } else if let Some(dir) = &a.effective_cache_dir {
-        println!("  ✓ profile persisted to {}/", dir);
+        // Print the path verbatim — no trailing slash injection. The
+        // gateway produced `dir` via PathBuf::join so separators already
+        // match the platform the gateway runs on.
+        println!("  ✓ profile persisted to {}", dir);
     } else {
         println!(
-            "  ⚠ dema_cache not attached — profile not persisted to disk \
-             (gateway running without BIZRA_DEMA_CACHE_ROOT)"
+            "  ⚠ gateway did not report dema_cache state — either no cache was \
+             attached, or this is an older gateway. Profile persistence cannot \
+             be confirmed from this response alone."
         );
     }
 }
