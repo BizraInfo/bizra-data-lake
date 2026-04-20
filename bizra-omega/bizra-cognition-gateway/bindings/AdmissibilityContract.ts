@@ -6,4 +6,4 @@ import type { VerdictName } from "./VerdictName";
 /**
  * Full admissibility verdict shipped by every mission endpoint.
  */
-export type AdmissibilityContract = { verdict: VerdictName, gateVerdicts: Array<GateVerdictContract>, rejected: RejectedClaimContract | null, };
+export type AdmissibilityContract = { verdict: VerdictName, gateVerdicts: Array<GateVerdictContract>, rejected?: RejectedClaimContract, };
