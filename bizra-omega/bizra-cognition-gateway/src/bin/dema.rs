@@ -256,6 +256,8 @@ struct ActivatePrincipalOk {
     admissibility: Admissibility,
     #[serde(rename = "cacheWarning")]
     cache_warning: Option<String>,
+    #[serde(rename = "effectiveCacheDir", default)]
+    effective_cache_dir: Option<String>,
 }
 
 // ─── Cycle-7 G4 — /resources DTOs ──────────────────────────────────────────
@@ -656,10 +658,21 @@ fn print_activate_principal_ok(a: &ActivatePrincipalOk) {
     if a.chain_head == a.principal_activation_receipt_id {
         println!("  ✓ chain head equals principal activation receipt — sealed");
     }
+    // Persist-state display binds to the gateway's authoritative report
+    // (effectiveCacheDir) rather than the CLI's local env — CLI and gateway
+    // envs may diverge under BIZRA_COGNITION_GATEWAY_URL. Three arms:
+    //   - cacheWarning present → attempted write failed, chain still sealed
+    //   - effectiveCacheDir present (no warning) → persisted successfully
+    //   - both absent → no dema_cache was attached; nothing written to disk
     if let Some(w) = &a.cache_warning {
         println!("  ⚠ cache warning: {}", w);
+    } else if let Some(dir) = &a.effective_cache_dir {
+        println!("  ✓ profile persisted to {}/", dir);
     } else {
-        println!("  ✓ profile persisted to sovereign_state/dema_cache/");
+        println!(
+            "  ⚠ dema_cache not attached — profile not persisted to disk \
+             (gateway running without BIZRA_DEMA_CACHE_ROOT)"
+        );
     }
 }
 

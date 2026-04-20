@@ -2,4 +2,4 @@
 import type { AdmissibilityContract } from "./AdmissibilityContract";
 import type { MissionStageName } from "./MissionStageName";
 
-export type ActivatePrincipalResponseContract = { missionId: string, missionReceiptId: string, principalActivationReceiptId: string, principalId: string, profileHash: string, chainHead: string, finalStage: MissionStageName, admissibility: AdmissibilityContract, cacheWarning?: string, };
+export type ActivatePrincipalResponseContract = { missionId: string, missionReceiptId: string, principalActivationReceiptId: string, principalId: string, profileHash: string, chainHead: string, finalStage: MissionStageName, admissibility: AdmissibilityContract, cacheWarning?: string, effectiveCacheDir?: string, };

@@ -371,6 +371,9 @@ pub struct ActivatePrincipalResponseContract {
     #[serde(rename = "cacheWarning", skip_serializing_if = "Option::is_none")]
     #[ts(rename = "cacheWarning", optional)]
     pub cache_warning: Option<String>,
+    #[serde(rename = "effectiveCacheDir", skip_serializing_if = "Option::is_none")]
+    #[ts(rename = "effectiveCacheDir", optional)]
+    pub effective_cache_dir: Option<String>,
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -621,6 +624,7 @@ mod tests {
                 rejected: None,
             },
             cache_warning: None,
+            effective_cache_dir: None,
         };
 
         // Cross-crate path: tests run from the crate root (CARGO_MANIFEST_DIR).
