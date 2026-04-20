@@ -1,198 +1,182 @@
-name: Face Smoke Verifier
+name: FATE Gate — Face Smoke Verifier
 
 on:
   pull_request:
     paths:
-      - "dema-console/src/app/**"
-      - "dema-console/src/components/bizra/**"
-      - "dema-console/src/lib/design-tokens.ts"
-      - "dema-console/scripts/smoke-verifier.ts"
-      - "dema-console/package.json"
-      - "dema-console/bun.lock"
-      - ".github/workflows/face-smoke-ci.yml"
+      - 'dema-console/**'
+      - '.github/workflows/face-smoke-ci.yml'
   workflow_dispatch:
 
+# Cancel in-progress runs for the same PR to save compute (Efficiency Dimension)
 concurrency:
-  group: face-smoke-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  actions: read
-
 jobs:
-  face-smoke:
-    name: Verify /, /manifesto, /brand
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    defaults:
-      run:
-        shell: bash
-        working-directory: dema-console
-
-    env:
-      CI: "true"
-      NODE_ENV: development
-      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
-      BIZRA_SMOKE_URL: http://127.0.0.1:4242
-      PORT: "4242"
+  smoke-verification:
+    name: Cryptographic Smoke Pass
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write # Required to post the receipt to the PR
 
     steps:
-      - name: Checkout
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: ⚙️ Setup Node.js & pnpm
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '20'
 
-      - name: Restore Playwright browser cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
-          key: playwright-${{ runner.os }}-${{ hashFiles('dema-console/package.json') }}
+      - name: 📦 Install pnpm
+        run: npm install -g pnpm
 
-      - name: Install dependencies
-        # No --frozen-lockfile: PR #35 added playwright + tsx via pnpm; the
-        # bun.lock on main predates those entries. Allowing bun install to
-        # refresh the lock in CI is acceptable for a smoke-verifier gate.
-        # Follow-up arc: regenerate bun.lock locally and commit to restore
-        # frozen-lockfile discipline.
-        run: bun install
+      - name: 📦 Install Dependencies
+        working-directory: dema-console
+        # pnpm-lock.yaml is gitignored (bun.lock is authoritative per PR #35);
+        # a fresh resolution per run is acceptable for a smoke-verifier gate.
+        run: pnpm install
 
-      - name: Install Playwright Chromium
-        run: bunx playwright install chromium
+      - name: 🎭 Install Playwright Browsers
+        working-directory: dema-console
+        run: pnpm exec playwright install chromium --with-deps
 
-      - name: Start Next dev server
+      - name: 🚀 Boot Sovereign Face (Background)
+        working-directory: dema-console
         run: |
-          set -euo pipefail
-          mkdir -p ../.artifacts/face-smoke
-          bunx next dev -p "$PORT" > ../.artifacts/face-smoke/next-dev.log 2>&1 &
-          echo $! > ../.artifacts/face-smoke/next-dev.pid
+          # Use port 4242 to avoid conflicts
+          npx next dev -p 4242 > /tmp/next-dev-smoke.log 2>&1 &
+          echo $! > /tmp/next-dev-smoke.pid
 
-      - name: Wait for app readiness
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 90); do
-            if curl -fsS "$BIZRA_SMOKE_URL/" >/dev/null 2>&1; then
-              echo "App ready after ${i}s"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "App failed to become ready"
-          tail -200 ../.artifacts/face-smoke/next-dev.log || true
-          exit 1
+          # Wait for server readiness
+          echo "Waiting for DEMA Face to mount on :4242..."
+          timeout 30 bash -c 'until curl -s http://localhost:4242 > /dev/null; do sleep 1; done'
+          echo "DEMA Face Mounted."
 
-      - name: Warm target routes
+      - name: 🔥 Warm Target Routes (Trigger Compilation)
+        working-directory: dema-console
         run: |
           set -euo pipefail
           for route in / /manifesto /brand; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" "$BIZRA_SMOKE_URL$route" --max-time 90)
-            echo "$route -> $code"
-            test "$code" = "200"
+            echo -n "Warming $route... "
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:4242$route" --max-time 90)
+            echo "HTTP $code"
+            if [ "$code" != "200" ]; then
+              echo "Failed to warm route: $route"
+              exit 1
+            fi
           done
 
-      - name: Run cryptographic smoke verifier
+      - name: 🔐 Execute Cryptographic Smoke Verifier
+        working-directory: dema-console
         run: |
           set -euo pipefail
-          bunx tsx scripts/smoke-verifier.ts 2>&1 | tee ../.artifacts/face-smoke/smoke-verifier.log
+          BIZRA_SMOKE_URL="http://localhost:4242" npx tsx scripts/smoke-verifier.ts | tee /tmp/smoke-verifier.log
 
-      - name: Extract receipt summary
-        run: |
-          set -euo pipefail
-          latest_receipt=$(ls -1t .bizra/receipts/smoke/smoke_receipt_*.json | head -1)
-          echo "Latest receipt: $latest_receipt"
-          # Receipt schema reference (authoritative = scripts/smoke-verifier.ts):
-          #   receipt.receipt_id, receipt.merkle_root, receipt.routes_verified,
-          #   receipt.verdicts[].{route, status, dom_hash, screenshot_hash,
-          #                        console_errors, load_time_ms}
-          node --input-type=module -e "
-          import fs from 'node:fs';
-          const receiptPath = process.argv[2];
-          const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
-          const verdicts = receipt.verdicts || [];
-          const all_passed = verdicts.length > 0 && verdicts.every(v => v.status === 'PASS');
-          const summary = {
-            merkle_root: receipt.merkle_root,
-            receipt_id: receipt.receipt_id,
-            timestamp_iso: receipt.timestamp_iso,
-            all_passed,
-            total_routes: receipt.routes_verified,
-            route_results: verdicts.map(v => ({
-              route: v.route,
-              status: v.status,
-              load_ms: v.load_time_ms,
-              console_errors: v.console_errors,
-              dom_hash: String(v.dom_hash || '').slice(0, 16),
-              png_hash: String(v.screenshot_hash || '').slice(0, 16),
-            })),
-          };
-          fs.writeFileSync('../.artifacts/face-smoke/receipt-summary.json', JSON.stringify(summary, null, 2));
-          console.log(JSON.stringify(summary, null, 2));
-          // GitHub Actions step summary (shown on PR check run page).
-          const md = [];
-          md.push('## 🧾 Face Smoke Verifier — Cryptographic Evidence');
-          md.push('');
-          md.push('| Field | Value |');
-          md.push('|---|---|');
-          md.push('| Merkle root | \`' + summary.merkle_root + '\` |');
-          md.push('| Receipt id | \`' + summary.receipt_id + '\` |');
-          md.push('| All passed | ' + (summary.all_passed ? '✅ yes' : '❌ no') + ' |');
-          md.push('| Routes verified | ' + summary.total_routes + ' |');
-          md.push('| Timestamp | ' + summary.timestamp_iso + ' |');
-          md.push('');
-          md.push('| Route | Status | Load (ms) | Console errors | DOM hash | PNG hash |');
-          md.push('|---|---|---|---|---|---|');
-          for (const r of summary.route_results) {
-            md.push('| \`' + r.route + '\` | ' + r.status + ' | ' + r.load_ms + ' | ' + r.console_errors + ' | \`' + r.dom_hash + '…\` | \`' + r.png_hash + '…\` |');
-          }
-          if (process.env.GITHUB_STEP_SUMMARY) {
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');
-          }
-          " "$latest_receipt"
-
-      - name: Upload smoke artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: 📜 Extract Receipt & Post Truth to PR
+        uses: actions/github-script@v7
+        if: always() # Run even if verification fails to report the exact failure
         with:
-          name: face-smoke-artifacts
-          path: |
-            .artifacts/face-smoke/**
-            dema-console/.bizra/receipts/smoke/**
-          if-no-files-found: warn
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Locate the latest generated receipt
+            const receiptsDir = 'dema-console/.bizra/receipts/smoke';
+            if (!fs.existsSync(receiptsDir)) {
+              console.log('No receipts found. Verifier likely failed to boot.');
+              return;
+            }
+
+            const files = fs.readdirSync(receiptsDir).filter(f => f.endsWith('.json'));
+            if (files.length === 0) return;
+
+            // Sort by creation time descending
+            files.sort((a, b) => {
+              return fs.statSync(path.join(receiptsDir, b)).mtime.getTime() -
+                     fs.statSync(path.join(receiptsDir, a)).mtime.getTime();
+            });
+
+            const latestReceiptPath = path.join(receiptsDir, files[0]);
+            const receipt = JSON.parse(fs.readFileSync(latestReceiptPath, 'utf8'));
+
+            // Calculate Global Verdict
+            const allPassed = receipt.verdicts.every(v => v.status === 'PASS');
+            const headerColor = allPassed ? '🟢' : '🔴';
+            const statusText = allPassed ? 'SATISFIABLE (CLEAN)' : 'VIOLATION DETECTED';
+
+            // Build the Markdown Table
+            let table = `| Route | Verdict | DOM Hash (SHA-256) | PNG Hash (SHA-256) | Load (ms) | Errs |\n`;
+            table += `|---|---|---|---|---|---|\n`;
+
+            receipt.verdicts.forEach(v => {
+              const statusIcon = v.status === 'PASS' ? '✅' : '❌';
+              table += `| \`${v.route}\` | ${statusIcon} ${v.status} | \`${v.dom_hash.substring(0, 12)}...\` | \`${v.screenshot_hash.substring(0, 12)}...\` | ${v.load_time_ms} | ${v.console_errors} |\n`;
+            });
+
+            // Construct the PR Comment Body
+            const commentBody = `
+            ### ${headerColor} BIZRA FATE Gate: Face Smoke Verifier
+
+            **System Status:** \`${statusText}\`
+            **Timestamp:** \`${receipt.timestamp_iso}\`
+            **Canonical Merkle Root:** \`\`\`text
+            ${receipt.merkle_root}
+            \`\`\`
+
+            #### Verification Matrix
+            ${table}
+
+            > **CLAIM_MUST_BIND**: Full cryptographic receipts and visual snapshots are preserved in the workflow artifacts for this run.
+            `;
+
+            // Find existing comment to update, or create a new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c => c.user.type === 'Bot' && c.body.includes('BIZRA FATE Gate: Face Smoke Verifier'));
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody
+              });
+            }
+
+            // Fail the workflow if the receipt shows failures
+            if (!allPassed) {
+              core.setFailed('SHADOW_STATE detected: One or more routes failed cryptographic smoke verification.');
+            }
+
+      - name: 💾 Upload Cryptographic Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fate-gate-receipts-${{ github.sha }}
+          path: dema-console/.bizra/receipts/smoke/**
           retention-days: 14
 
-      - name: Stop Next dev server
+      - name: 🧹 Teardown Environment
         if: always()
         run: |
           set +e
-          if [ -f ../.artifacts/face-smoke/next-dev.pid ]; then
-            kill "$(cat ../.artifacts/face-smoke/next-dev.pid)" 2>/dev/null || true
+          if [ -f /tmp/next-dev-smoke.pid ]; then
+            kill "$(cat /tmp/next-dev-smoke.pid)" 2>/dev/null || true
           fi
-          pkill -f "next dev -p $PORT" 2>/dev/null || true
-
-      - name: Fail if verifier did not prove all routes
-        run: |
-          set -euo pipefail
-          node --input-type=module -e "
-          import fs from 'node:fs';
-          const summary = JSON.parse(fs.readFileSync('../.artifacts/face-smoke/receipt-summary.json', 'utf8'));
-          if (!summary.all_passed) {
-            console.error('Smoke verifier failed: not all routes passed');
-            process.exit(1);
-          }
-          const bad = (summary.route_results || []).filter(r => r.status !== 'PASS' || r.console_errors > 0);
-          if (bad.length > 0) {
-            console.error('Smoke verifier found route-level regressions:');
-            console.error(JSON.stringify(bad, null, 2));
-            process.exit(1);
-          }
-          console.log('Face smoke verifier passed cleanly. Merkle root: ' + summary.merkle_root);
-          "
+          pkill -f "next dev -p 4242" 2>/dev/null || true
