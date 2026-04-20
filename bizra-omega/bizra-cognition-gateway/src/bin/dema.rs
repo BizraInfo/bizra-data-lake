@@ -659,7 +659,9 @@ fn print_activate_principal_ok(a: &ActivatePrincipalOk) {
     if let Some(w) = &a.cache_warning {
         println!("  ⚠ cache warning: {}", w);
     } else {
-        println!("  ✓ profile persisted to sovereign_state/dema_cache/");
+        let root = std::env::var("BIZRA_DEMA_CACHE_ROOT")
+            .unwrap_or_else(|_| "sovereign_state".to_string());
+        println!("  ✓ profile persisted to {}/dema_cache/", root);
     }
 }
 
