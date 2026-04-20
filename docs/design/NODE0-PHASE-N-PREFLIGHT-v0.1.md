@@ -96,16 +96,31 @@ All items MUST be YES before `GO Node0`. Any NO halts per canon §10.
 Exact commands. No phantoms — every flag verified against `dema --help` (canon §5).
 
 ```bash
-# 0. Sanity
-which dema                     # must point to the post-#41 release binary
-dema --version                 # confirm build
+# 0. Sanity — both binaries must be on PATH before proceeding
+which dema                            # must point to the post-#41 release binary
+which bizra-cognition-gateway          # REQUIRED — step 1 assumes it's on $PATH
+dema --version                        # confirm build
+command -v jq >/dev/null || { echo "install jq: step 3/4 require it"; exit 1; }
+
+# If either binary is not on PATH, install from the fresh build:
+#   sudo install -m755 bizra-omega/target/release/dema                      ~/.local/bin/
+#   sudo install -m755 bizra-omega/target/release/bizra-cognition-gateway   ~/.local/bin/
+
+# Prepare the operator session directory (archive target for step 9 artifacts)
+mkdir -p ~/.bizra/
 
 # 1. Start a fresh gateway with the real env
 export BIZRA_IDENTITY_ANCHOR=<I1 absolute path>
 export BIZRA_DEMA_CACHE_ROOT=<I2 absolute path>
 unset BIZRA_SOVEREIGN_STATE_PATH      # or set to real if bootstrapping durable
 nohup bizra-cognition-gateway > ~/.bizra/gateway.log 2>&1 &
-sleep 2
+echo $! > ~/.bizra/gateway.pid         # record PID so §4 teardown is shell-independent
+
+# Poll for health rather than arbitrary sleep — tolerates slow starts
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  if dema health 2>/dev/null | grep -q "ok"; then echo "gateway up"; break; fi
+  sleep 1
+done
 dema health                    # must return: gateway: ok (bizra-cognition-gateway-v1)
 
 # 2. THE IRREVERSIBLE ACT — mint the real PrincipalActivationReceipt
@@ -153,9 +168,18 @@ dema poi
 # Expected: PrincipalActivation bucket count=1, total≈0.9604-1.0000
 
 # D. Rehydration smoke (prove durability):
-kill %1                        # stop gateway
+# Use the PID file written by §3 step 1 — shell-independent, survives
+# terminal reopening, unaffected by other background jobs.
+kill $(cat ~/.bizra/gateway.pid) 2>/dev/null || pkill -f 'bizra-cognition-gateway'
+sleep 0.5
+pgrep -af bizra-cognition-gateway >/dev/null && { echo "gateway still running"; exit 1; } || echo "gateway stopped"
+
 nohup bizra-cognition-gateway > ~/.bizra/gateway2.log 2>&1 &
-sleep 2
+echo $! > ~/.bizra/gateway.pid
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  if dema health 2>/dev/null | grep -q "ok"; then break; fi
+  sleep 1
+done
 grep "principal profile rehydrated from disk" ~/.bizra/gateway2.log
 # Expected match: proves the real profile survives restart
 ```
