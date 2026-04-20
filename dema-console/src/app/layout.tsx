@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Playfair_Display,
+  Inter,
+  Amiri,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "@/components/providers";
@@ -15,6 +22,37 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// BIZRA brand fonts — loaded via next/font/google (self-hosted, no CSS
+// @import timing hazard). Exposed as CSS vars; Tailwind `@theme` wires
+// utilities (font-brand-serif, font-brand-arabic, etc.).
+const playfair = Playfair_Display({
+  variable: "--font-brand-serif",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const brandSans = Inter({
+  variable: "--font-brand-sans",
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600"],
+  display: "swap",
+});
+
+const amiri = Amiri({
+  variable: "--font-brand-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  display: "swap",
+});
+
+const brandMono = JetBrains_Mono({
+  variable: "--font-brand-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -35,7 +73,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${brandSans.variable} ${amiri.variable} ${brandMono.variable} antialiased bg-background text-foreground`}
       >
         <ThemeProvider
           attribute="class"

@@ -94,9 +94,19 @@ function LandingNav({
 }
 
 function HeroSection() {
+  // Scroll-linked fade gated behind a mount check. During SSR and the
+  // first client render we compute styles without `useScroll` (which
+  // inline-renders MotionValues differently server vs client), then
+  // enable the real scroll transform on the second client render. This
+  // eliminates the hydration mismatch flagged by the smoke verifier on
+  // /manifesto. /brand's HeroReveal never had useScroll so it was clean.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const { scrollYProgress } = useScroll();
-  const opacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
-  const y = useTransform(scrollYProgress, [0, 0.15], [0, -40]);
+  const opacityMV = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
+  const yMV = useTransform(scrollYProgress, [0, 0.15], [0, -40]);
+  const opacity = mounted ? opacityMV : 1;
+  const y = mounted ? yMV : 0;
 
   return (
     <section className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden">
