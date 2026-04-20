@@ -493,3 +493,61 @@
   background-size: 200% 100%;
   animation: processing-shimmer 1.5s linear infinite;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * BIZRA Brand Tokens
+ * ═══════════════════════════════════════════════════════════════════
+ * Canon: `docs/design/CANON-TERMS.md` §07 brand phrases;
+ * runtime mirror in `src/lib/design-tokens.ts` (one-to-one).
+ * Any change here requires updating design-tokens.ts in the same commit.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
+
+@theme {
+  /* Genesis Gold — deep ember to pale luminance */
+  --color-gold-100: #F9F1D8;
+  --color-gold-300: #E6D5A6;
+  --color-gold-400: #D4B875;
+  --color-gold-500: #C9A962;
+  --color-gold-600: #B08D45;
+  --color-gold-900: #8A6B2E;
+
+  /* Celestial Navy — void layering */
+  --color-navy-800: #0A1628;
+  --color-navy-900: #050B14;
+  --color-navy-void: #030810;
+
+  /* Bizra Emerald — sovereign/live state only */
+  --color-bizra-emerald: #10b981;
+
+  /* Font families — imported above */
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-arabic: "Amiri", serif;
+}
+
+/* ── Brand custom classes (multi-component usage) ───────────────── */
+
+.brand-grid-bg {
+  background-image:
+    linear-gradient(rgba(201, 169, 98, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201, 169, 98, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+}
+
+.gold-text-gradient {
+  background: linear-gradient(to bottom, #E6D5A6, #B08D45);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.brand-glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
