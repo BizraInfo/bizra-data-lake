@@ -58,18 +58,22 @@ All items MUST be YES before `GO Node0`. Any NO halts per canon §10.
 - [ ] `cargo test --workspace` green (last run on activation branch, not cached)
 - [ ] `cargo clippy --workspace --all-targets -- -D warnings` clean
 - [ ] `Test Python (3.11)` on main is **green** (issue #40 resolved — Phase N should not proceed while Python activation stack is red)
+- [ ] **Phase G smoke passed on the rebuilt binary** — run `dema activate-principal` against a `/tmp/` anchor at `--quality 1.00` and confirm all five invariants Permit. This tests the exact code path Phase N will traverse. Skipping this step means the first time the real activation code runs is under the irreversible anchor.
+- [ ] **stash@{0} state resolved** — either merged as its two recommended split PRs (`chore(lint)` + `docs(canon)`), or formally deferred in a memory note. Leaving 216 files of un-triaged WIP in the stash pile violates NO_SHADOW_STATE intent.
 
 ### B. Environment isolation
 - [ ] `BIZRA_IDENTITY_ANCHOR=<I1 absolute path>` exported
 - [ ] `BIZRA_DEMA_CACHE_ROOT=<I2 absolute path>` exported (non-empty — gateway bootstrap treats empty as unset since PR #41)
 - [ ] `BIZRA_SOVEREIGN_STATE_PATH` either unset OR pointed at the same real sovereign root you plan to use post-Phase-N
 - [ ] Gateway binary freshly built from the post-#41 main: `cargo build --release -p bizra-cognition-gateway`
+- [ ] **Write-ability test** — `mkdir -p <I2> && touch <I2>/.preflight-write-test && rm <I2>/.preflight-write-test` succeeds without error. Catches filesystem perms, mount issues, or missing parent dirs *before* the irreversible act. Cache write failure after chain seals is recoverable via `cache_warning` but painful.
 
 ### C. Identity anchor file
 - [ ] `<I1 path>` exists, readable
 - [ ] `node_id` set to a stable, operator-chosen identifier
 - [ ] `public_key` is 64 hex chars (32 bytes) derived from a real ed25519 key the operator controls
 - [ ] Private key backed up AND stored separately from the repo (never in working tree)
+- [ ] **Pubkey ↔ private-key independently verified** — re-derive the pubkey from your stored private key and confirm byte-for-byte match against the `public_key` field in `<I1>`. Example: `openssl pkey -in <key.pem> -pubout -outform DER | tail -c 32 | xxd -p -c 64` and diff against the anchor's hex field. Phase N is one-shot — an anchor with a pubkey whose private key is lost or wrong means the sovereign origin binds to a key you cannot control.
 
 ### D. Daughter Test (canon §10 / NO_SHADOW_STATE)
 - [ ] `~/Downloads` and any path that `dema organize` will touch contains **no shadow state** (no unverified PDFs, no untrusted binaries, no conflicting prior receipts)
@@ -79,7 +83,7 @@ All items MUST be YES before `GO Node0`. Any NO halts per canon §10.
 ### E. Operator alignment
 - [ ] Operator is rested, not fatigued, not on hour 15 of a session
 - [ ] Operator has typed `GO Node0` as a **standalone** phrase (no `/A`, `/@`, `/L` flags chained)
-- [ ] Operator understands: this mints the first PrincipalActivationReceipt under the real anchor. **It cannot be undone** short of `rm -rf`-ing the cache root (which leaves the chain head but loses profile rehydration).
+- [ ] Operator understands: this mints the first PrincipalActivationReceipt under the real anchor. **The receipt itself is immutable once sealed on the chain** — no filesystem operation can unseal it. Deleting the cache root only loses derived profile rehydration (rebuildable from chain); the sovereign-origin binding to your pubkey is permanent.
 
 ### F. Escalation reachability
 - [ ] At least one trusted witness can be pinged if Phase N produces an unexpected verdict
