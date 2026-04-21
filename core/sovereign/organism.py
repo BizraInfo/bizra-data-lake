@@ -687,8 +687,16 @@ class SovereignOrganism:
                 logger.debug("Seed Chain construction failed: %s", exc)
                 governed_prompt = text
 
-            # Run through NervousSystem → Pipeline → 12 agents
-            ns_receipt = await self._nervous_system.run(governed_prompt)
+            # Run through NervousSystem → Pipeline → 12 agents.
+            # Pass raw `text` as raw_prompt so the Ihsān scorer measures
+            # contextual_relevance / intent_alignment against the user's
+            # true intent, not the liturgical Niyyah/Bayyinah/Hadd/Qasd
+            # wrapper. The wrapped `governed_prompt` remains mission_text
+            # for receipts, evidence, and runtime structure. See
+            # SovereignNervousSystem.run docstring for 2026-04-21 rationale.
+            ns_receipt = await self._nervous_system.run(
+                governed_prompt, raw_prompt=text
+            )
 
             # Get pipeline details (if available)
             pipeline_stats = self._pipeline.stats if self._pipeline else None

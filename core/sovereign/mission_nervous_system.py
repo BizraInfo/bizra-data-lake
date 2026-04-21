@@ -417,14 +417,35 @@ class SovereignNervousSystem:
         macro_state: Optional[str] = None,
         ihsan_override: Optional[float] = None,
         snr_override: Optional[float] = None,
+        raw_prompt: Optional[str] = None,
     ) -> NervousSystemReceipt:
         """Execute a mission through the S1/S2 cognitive pipeline.
 
         Args:
-            mission_text: The user's mission description.
+            mission_text: The canonical mission description. Typically a
+                liturgical mission-spine wrapped version of the raw prompt
+                (``## Niyyah / ## Bayyinah / ## Hadd / ## Qasd`` from
+                ``core.prompt.seed_chain``). Kept intact for receipts,
+                evidence, reflex pattern matching, and canonical runtime
+                structure.
             macro_state: Optional HHMM macro state for hierarchical lookup.
             ihsan_override: Override Ihsān score (for testing).
             snr_override: Override SNR score (for testing).
+            raw_prompt: Optional raw user prompt BEFORE the mission-spine
+                wrapper is applied. When provided, used as the ``input_text``
+                for the Ihsān composite scorer so contextual_relevance and
+                intent_alignment are measured against the true user intent
+                rather than the liturgical scaffolding. When None (legacy
+                callers), scoring falls back to ``mission_text``.
+
+                This decoupling closes the scorer-vs-spine drift surfaced
+                by the canonical spearpoint replay test on 2026-04-21:
+                wrapped 835-char spine text dropped ``contextual_relevance``
+                from 0.68 (raw prompt) to 0.39, pulling the composite from
+                0.87 to 0.79 — below the 0.85 Ihsān floor. Preserving the
+                wrapped ``mission_text`` for evidence while scoring against
+                ``raw_prompt`` restores the correct signal without changing
+                the Ihsān floor or the scorer calibration.
 
         Returns:
             NervousSystemReceipt with full evidence chain.
@@ -496,10 +517,14 @@ class SovereignNervousSystem:
                 )
 
         # ── SCORE: Constitutional quality gates (Al-Ghazali) ─────
+        # Use raw_prompt when provided (decouples scoring from the
+        # liturgical mission-spine wrapper); fall back to mission_text for
+        # legacy callers. See docstring for the 2026-04-21 rationale.
+        scoring_input = raw_prompt if raw_prompt is not None else mission_text
         ihsan = (
             ihsan_override
             if ihsan_override is not None
-            else _score_ihsan(output_text, mission_text)
+            else _score_ihsan(output_text, scoring_input)
         )
         snr = snr_override if snr_override is not None else _score_snr(output_text)
         if metadata.get("degraded"):
