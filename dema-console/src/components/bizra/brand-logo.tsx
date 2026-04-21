@@ -157,16 +157,15 @@ export function BrandLogo({
           initial={animate ? { opacity: 0, scale: 0 } : { opacity: 1, scale: 1 }}
           animate={
             animate
-              ? [
-                  { opacity: 0, scale: 0 },
-                  { opacity: 1, scale: 1.2 },
-                  { opacity: 1, scale: 1 },
-                ]
+              ? {
+                  opacity: [0, 1, 1],
+                  scale: [0, 1.2, 1],
+                }
               : { opacity: 1, scale: 1 }
           }
           transition={
             animate
-              ? { delay: 1.8, duration: 0.6, ease: "easeOut" }
+              ? { delay: 1.8, duration: 0.6, ease: "easeOut", times: [0, 0.6, 1] }
               : { duration: 0 }
           }
         />

@@ -469,16 +469,22 @@ export async function POST(request: NextRequest) {
       return badRequest(`Component "${targetComponent}" not found`);
     }
 
-    // Simulate health check with minor metric fluctuations
+    // Simulate health check with minor metric fluctuations.
     const jitter = () => (Math.random() - 0.5) * 0.05;
+    const clampUnitInterval = (value: number) => Math.max(0, Math.min(1, value));
+    const currentMetrics = target.metrics;
     const checkedComponent: ComponentHealth = {
       ...target,
       lastChecked: new Date().toISOString(),
-      metrics: target.metrics
+      metrics: currentMetrics
         ? {
-            ...target.metrics,
-            cpu: Math.max(0, Math.min(1, target.metrics.cpu + jitter())),
-            memory: Math.max(0, Math.min(1, target.metrics.memory + jitter())),
+            ...currentMetrics,
+            ...(typeof currentMetrics.cpu === "number"
+              ? { cpu: clampUnitInterval(currentMetrics.cpu + jitter()) }
+              : {}),
+            ...(typeof currentMetrics.memory === "number"
+              ? { memory: clampUnitInterval(currentMetrics.memory + jitter()) }
+              : {}),
           }
         : undefined,
     };
@@ -492,9 +498,9 @@ export async function POST(request: NextRequest) {
     // Add a telemetry event for the manual check
     telemetryEvents.push({
       id: `tel-${String(telemetryEvents.length + 1).padStart(3, "0")}`,
-      component: targetComponent,
+      component: target.name,
       level: "info",
-      message: `Manual health check initiated for ${targetComponent} — status: ${checkedComponent.status}`,
+      message: `Manual health check initiated for ${target.name} — status: ${checkedComponent.status}`,
       timestamp: new Date().toISOString(),
     });
 
