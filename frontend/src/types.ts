@@ -141,10 +141,46 @@ export interface HealthResponse {
   checks?: Record<string, boolean>;
 }
 
-export interface AuthResponse {
-  token: string;
-  node_id: string;
-  expires_at: string;
+/**
+ * Auth response shapes — MUST match backend `core/sovereign/api.py` auth endpoints.
+ *
+ * Contract anchored by pytest suite `tests/core/auth/test_phase21_auth.py` (61 passing)
+ * and the cross-layer regression guard `tests/core/auth/test_auth_wire_contract.py`.
+ *
+ * Do NOT flatten these types — backend returns nested `tokens` + nested `user`
+ * (on register only). The earlier flat `{ token, node_id, expires_at }` shape
+ * was frontend-only drift and would cause runtime errors against the real
+ * backend.
+ */
+
+export interface AuthTokens {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+export interface UserProfile {
+  user_id: string;
+  username: string;
+  email: string;
+  api_key: string;
+  namespace: string;
+  covenant_accepted: boolean;
+  created_at: string;
+}
+
+/** Response shape for `POST /v1/auth/register`. */
+export interface RegisterResponse {
+  user: UserProfile;
+  tokens: AuthTokens;
+}
+
+/** Response shape for `POST /v1/auth/login`. */
+export interface LoginResponse {
+  user_id: string;
+  username: string;
+  tokens: AuthTokens;
 }
 
 export interface SeedPotentialResponse {

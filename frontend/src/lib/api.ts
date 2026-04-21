@@ -12,11 +12,12 @@
  */
 
 import type {
-  AuthResponse,
   HealthResponse,
   JudgmentStats,
+  LoginResponse,
   MissionResponse,
   NodeValueResponse,
+  RegisterResponse,
   SELEpisode,
   SeedPotentialResponse,
   TokenBalanceResponse,
@@ -227,11 +228,16 @@ class ApiClient {
   }
 
   // ─── Auth ───
-  login(credentials: { username: string; password: string }): Promise<AuthResponse> {
+  // Backend truth: core/sovereign/api.py auth endpoints.
+  // RegisterResponse and LoginResponse have DIFFERENT shapes (see types.ts).
+  // Register requires email + accept_covenant; login only username + password.
+  login(credentials: { username: string; password: string }): Promise<LoginResponse> {
     return this.request('POST', '/v1/auth/login', credentials, { noAuth: true });
   }
 
-  register(data: { username: string; password: string; name: string }): Promise<AuthResponse> {
+  register(
+    data: { username: string; email: string; password: string; accept_covenant: boolean },
+  ): Promise<RegisterResponse> {
     return this.request('POST', '/v1/auth/register', data, { noAuth: true });
   }
 
