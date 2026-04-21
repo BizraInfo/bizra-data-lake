@@ -798,6 +798,50 @@ export function useMemoryStats() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// TRUST SURFACE — row 6 (Node0 Closure Sprint, 2026-04-21)
+// ═══════════════════════════════════════════════════════════════════
+//
+// Authoritative receipt chain head proxied from the Rust cognition-gateway
+// via /v1/chain. This is Dema's public truth-surface binding: the chain
+// IS the evidence of lawful operation; the web face reveals it verbatim.
+// When the proxy returns 503 (gateway unreachable), useChainHead's `error`
+// state is set — the UI MUST show that honestly, never fabricate a head.
+
+export interface ChainHead {
+  head: string; // 64-char hex, or "" when gateway unreachable
+  length: number;
+  latestTimestamp: number | null;
+  sovereignEnvelopes?: number;
+  sovereignEntries?: number;
+}
+
+function normalizeChainHead(payload: unknown): ChainHead {
+  const data = asObject(payload);
+  return {
+    head: asString(data.head, ""),
+    length: asNumber(data.length, 0),
+    latestTimestamp:
+      typeof data.latestTimestamp === "number" ? data.latestTimestamp : null,
+    sovereignEnvelopes:
+      typeof data.sovereignEnvelopes === "number"
+        ? data.sovereignEnvelopes
+        : undefined,
+    sovereignEntries:
+      typeof data.sovereignEntries === "number"
+        ? data.sovereignEntries
+        : undefined,
+  };
+}
+
+export function useChainHead() {
+  return useFetch<ChainHead>(
+    "/v1/chain",
+    { head: "", length: 0, latestTimestamp: null },
+    { transform: normalizeChainHead },
+  );
+}
+
 export function useMemoryProfile() {
   return useFetch<MemoryProfile>(
     "/v1/memory/profile",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { useSovereignHealth, useSeedPotential, useTokenBalance } from "@/hooks/use-sovereign-api";
+import { useSovereignHealth, useSeedPotential, useTokenBalance, useChainHead } from "@/hooks/use-sovereign-api";
 import { TERMINAL_VIEW_META } from "./terminal-manifest";
 
 // ─── Lazy-load views ────────────────────────────────────────────
@@ -66,6 +66,11 @@ function StatusBar() {
   const { data: health } = useSovereignHealth();
   const { data: potential } = useSeedPotential();
   const { data: balance } = useTokenBalance();
+  // Node0 Closure Sprint row 6 — trust_surface binding to authoritative chain.
+  // `chainError` being non-null means the Rust cognition-gateway is
+  // unreachable (via the /v1/chain proxy in core/sovereign/api.py). Show the
+  // truth of that offline state — never fabricate a head.
+  const { data: chain, error: chainError } = useChainHead();
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -77,6 +82,11 @@ function StatusBar() {
   const ihsan = potential?.sovereignty_score ?? 0;
   const seed = balance?.seed ?? 0;
   const tier = potential?.tier ?? "—";
+
+  // Chain display: "CHAIN#<length> <head-8>" when live, "CHAIN —" when
+  // gateway unreachable or head empty. Never fabricated.
+  const chainLive = !chainError && chain.head.length === 64;
+  const chainHeadShort = chainLive ? chain.head.slice(0, 8) : "—";
 
   return (
     <div className="flex items-center justify-between px-4 py-1.5 bg-slate-900/80 border-b border-slate-800/50 text-[10px]">
@@ -93,6 +103,22 @@ function StatusBar() {
 
         <span className={ihsan >= 0.95 ? "text-emerald-400" : ihsan >= 0.85 ? "text-amber-400" : "text-red-400"}>
           Ihsān {ihsan.toFixed(2)}
+        </span>
+
+        <span className="text-slate-700">|</span>
+
+        {/* CHAIN — authoritative head from Rust cognition-gateway via
+            /v1/chain proxy. Shows "—" honestly when gateway is down. */}
+        <span
+          className={chainLive ? "text-cyan-400" : "text-slate-600"}
+          data-testid="chain-status"
+          title={
+            chainLive
+              ? `Chain head: ${chain.head} (length: ${chain.length})`
+              : "Chain unavailable — cognition-gateway unreachable"
+          }
+        >
+          CHAIN#{chain.length} {chainHeadShort}
         </span>
 
         <span className="text-slate-700">|</span>

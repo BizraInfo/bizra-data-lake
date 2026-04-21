@@ -2773,6 +2773,68 @@ def create_fastapi_app(runtime: Any) -> Any:
         return base
 
     @app.get(
+        "/v1/chain",
+        tags=["trust"],
+        summary="Authoritative receipt chain head (proxied from cognition-gateway)",
+        description=(
+            "Thin proxy to the Rust cognition-gateway's GET /chain endpoint. "
+            "Returns {head, length, latestTimestamp, sovereignEnvelopes?, "
+            "sovereignEntries?} — the authoritative chain state for Dema's "
+            "trust surface. Forwards verbatim (no reshaping, no simulation). "
+            "If the gateway is unreachable, returns 503 with a structured "
+            "gateway_unreachable payload so the UI reveals the truth of an "
+            "offline backend rather than fabricating a healthy response. "
+            "Gateway URL resolves from BIZRA_COGNITION_GATEWAY_URL env var, "
+            "default http://localhost:7421."
+        ),
+    )
+    async def get_chain_head(request: Request):
+        """Proxy to Rust cognition-gateway for authoritative chain state.
+
+        Node0 Closure Sprint — row 6 (trust_surface) — 2026-04-21.
+
+        Public (no auth) — chain head is public truth for transparency, same
+        as ``dema chain`` CLI (no auth required against the Rust gateway).
+        The chain is the evidence of lawful operation; anyone holding the
+        machine can inspect it. Auth gates are for write operations, not
+        for reading the chain's public witness.
+        """
+        import httpx  # local import — httpx is already in pyproject.toml deps
+
+        gateway_base = os.getenv(
+            "BIZRA_COGNITION_GATEWAY_URL", "http://localhost:7421"
+        )
+        upstream_url = f"{gateway_base.rstrip('/')}/chain"
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                upstream = await client.get(upstream_url)
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as exc:
+            # Honest 503 — don't fabricate a healthy chain head.
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "gateway_unreachable",
+                    "gateway_url": upstream_url,
+                    "error": type(exc).__name__,
+                    "detail": str(exc)[:200],
+                },
+            )
+
+        if upstream.status_code != 200:
+            # Pass through upstream error code + body — don't reshape.
+            return JSONResponse(
+                status_code=upstream.status_code,
+                content={
+                    "status": "gateway_non_200",
+                    "gateway_url": upstream_url,
+                    "upstream_status": upstream.status_code,
+                    "upstream_body": upstream.text[:500],
+                },
+            )
+
+        return upstream.json()
+
+    @app.get(
         "/v1/reflex/status",
         tags=["reflex"],
         summary="Reflex compiler status",
