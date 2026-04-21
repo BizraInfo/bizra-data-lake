@@ -28,6 +28,13 @@ dependencies = [
     "pynacl>=1.5.0,<2.0",
     "hnswlib>=0.8.0",
     "mcp[cli]>=1.0.0,<2.0",
+    # z3-solver — required by core.sovereign.z3_fate_gate for canonical-mode
+    # FATE enforcement. Without it, the FATE gate degrades and canonical
+    # mode raises "Canonical mode requires an enforced FATE gate on the
+    # mission spine" (see core/sovereign/runtime_core.py:641). The
+    # canonical spearpoint replay test
+    # (tests/scripts/test_canonical_spearpoint_v1.py) requires this.
+    "z3-solver>=4.12.0",
 ]
 
 [project.scripts]
