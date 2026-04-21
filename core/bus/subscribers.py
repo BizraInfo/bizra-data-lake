@@ -30,6 +30,32 @@ logger = logging.getLogger("bizra.bus.subscribers")
 
 
 # ═══════════════════════════════════════════════════════════════════
+# THRESHOLD CONSTANTS — two-band Ihsān policy (2026-04-21)
+# ═══════════════════════════════════════════════════════════════════
+#
+# The Ihsān gate operates on two distinct bands, NOT one:
+#
+#   • MISSION_IHSAN_HALT_FLOOR = 0.85
+#       Hard halt — below this, the mission is constitutionally unsafe.
+#       `IHSAN_GATE_BREACHED` is published; SUB-5 (`IhsanGateBreachHandler`)
+#       halts the session fail-closed.
+#
+#   • UNIFIED_IHSAN_THRESHOLD = 0.95 (from core.integration.constants)
+#       Production-ideal — below this (but ≥ 0.85) the mission executed
+#       lawfully but fell short of production quality. `IHSAN_WARNING`
+#       is published; `IhsanWarningHandler` records telemetry WITHOUT
+#       halting. The mission completes; reflex/replay proceeds.
+#
+# History: prior to 2026-04-21, both sites conflated the two thresholds —
+# publish trigger used 0.95 (production-ideal) while SUB-5's log text
+# parroted 0.85. Any mission scoring 0.85 ≤ ihsan < 0.95 silently
+# halted with a misleading "0.866 < 0.85" log message. Separating the
+# bands preserves the full strictness of 0.95 as a quality signal while
+# only halting on the true operational hard floor.
+MISSION_IHSAN_HALT_FLOOR = 0.85
+
+
+# ═══════════════════════════════════════════════════════════════════
 # EVENT TYPES
 # ═══════════════════════════════════════════════════════════════════
 
@@ -46,8 +72,9 @@ class EventType(str, Enum):
     # Memory
     MEMORY_PROMOTED = "memory.promoted"
     MEMORY_RETRIEVED = "memory.retrieved"
-    # Constitutional
-    IHSAN_GATE_BREACHED = "ihsan.gate.breached"
+    # Constitutional (two-band Ihsān policy — see MISSION_IHSAN_HALT_FLOOR)
+    IHSAN_GATE_BREACHED = "ihsan.gate.breached"  # Hard halt: ihsan < 0.85
+    IHSAN_WARNING = "ihsan.warning"  # Production-ideal deviation: 0.85 ≤ ihsan < 0.95
     # Agent
     AGENT_REGISTERED = "agent.registered"
 
@@ -503,7 +530,10 @@ class IhsanGateBreachHandler:
 
     event_types = [EventType.IHSAN_GATE_BREACHED]
 
-    MISSION_FLOOR = 0.85
+    # Use module-level constant as the single source of truth. The
+    # publish sites in `mission_nervous_system.py` and `organism.py`
+    # also import this same constant so halt trigger ≡ halt handler log.
+    MISSION_FLOOR = MISSION_IHSAN_HALT_FLOOR
 
     def __init__(self, session_manager, audit_log):
         self.sessions = session_manager
@@ -534,6 +564,73 @@ class IhsanGateBreachHandler:
         logger.warning(
             f"[SUB-5] 🛑 SESSION HALTED: {session_id} "
             f"(Ihsān={ihsan_score:.3f}, violated: {violation_dims})"
+        )
+
+
+class IhsanWarningHandler:
+    """
+    Subscriber (warn band): IhsanWarning → log production-ideal deviation.
+
+    Fires ONLY when Ihsān is in the warn band: at or above the hard-halt
+    floor (``MISSION_IHSAN_HALT_FLOOR = 0.85``) but below production ideal
+    (``UNIFIED_IHSAN_THRESHOLD = 0.95``). The mission executed lawfully;
+    this handler records telemetry and does NOT halt the session.
+
+    Introduced 2026-04-21 to split the former conflated publish path at
+    mission_nervous_system.py and organism.py (which emitted
+    IHSAN_GATE_BREACHED for any score < 0.95, causing SUB-5 to halt
+    missions that were operationally valid but short of production
+    ideal).
+
+    FAIL-OPEN: warning-only; does not raise on failure.
+    """
+
+    event_types = [EventType.IHSAN_WARNING]
+
+    HARD_HALT_FLOOR = MISSION_IHSAN_HALT_FLOOR  # 0.85
+    # Production-ideal threshold is injected at construction so the
+    # handler doesn't hard-depend on core.integration.constants; keeps
+    # the bus-layer decoupled from sovereign-layer config.
+    DEFAULT_PRODUCTION_IDEAL = 0.95
+
+    def __init__(self, audit_log, production_ideal: float = DEFAULT_PRODUCTION_IDEAL):
+        self.audit = audit_log
+        self.production_ideal = production_ideal
+
+    def handle(self, event: Event) -> None:
+        session_id = event.payload.get("session_id", "")
+        ihsan_score = event.payload.get("ihsan_composite", 0.0)
+        action_type = event.payload.get("action_type", "")
+
+        # Record warning (does NOT halt)
+        log_warning = getattr(self.audit, "log_warning", None)
+        if callable(log_warning):
+            log_warning(
+                session_id=session_id,
+                score=ihsan_score,
+                halt_floor=self.HARD_HALT_FLOOR,
+                production_ideal=self.production_ideal,
+                action_type=action_type,
+                timestamp=event.timestamp,
+            )
+        else:
+            # Fall back to log_violation with explicit warn band marker.
+            log_violation = getattr(self.audit, "log_violation", None)
+            if callable(log_violation):
+                log_violation(
+                    session_id=session_id,
+                    score=ihsan_score,
+                    floor=self.production_ideal,
+                    action_type=action_type,
+                    dimensions=["ihsan_below_production_ideal"],
+                    timestamp=event.timestamp,
+                    severity="warn",
+                )
+
+        logger.info(
+            f"[SUB-WARN] ⚠️ IHSAN WARN: {session_id} "
+            f"(Ihsān={ihsan_score:.3f} in [{self.HARD_HALT_FLOOR}, "
+            f"{self.production_ideal}) — lawful but below production ideal)"
         )
 
 
@@ -860,6 +957,7 @@ def wire_all_subscribers(
         SessionEndGenesisCompile(reflex_cache, memory_store),
         # Phase 2: Safety
         IhsanGateBreachHandler(session_manager, audit_log),
+        IhsanWarningHandler(audit_log),  # warn band 0.85 ≤ score < 0.95 — no halt
         FailedActionQuarantine(memory_store, quarantine_store),
         TeleScriptRollbackHealing(healing_engine, memory_store),
         # Phase 3: Economics

@@ -760,18 +760,41 @@ class SovereignNervousSystem:
         )
         published.append("action.receipt")
 
-        if ihsan < UNIFIED_IHSAN_THRESHOLD:
-            # IHSAN_GATE_BREACHED — triggers safety handlers
+        # Two-band Ihsān policy (see core.bus.subscribers
+        # MISSION_IHSAN_HALT_FLOOR docstring, 2026-04-21):
+        #   ihsan < 0.85              → IHSAN_GATE_BREACHED (hard halt)
+        #   0.85 ≤ ihsan < 0.95       → IHSAN_WARNING (warn, no halt)
+        #   ihsan ≥ 0.95              → neither (production-ideal met)
+        from core.bus.subscribers import MISSION_IHSAN_HALT_FLOOR
+
+        if ihsan < MISSION_IHSAN_HALT_FLOOR:
+            # Hard halt — below operational minimum.
+            # ``violation_dimensions`` keeps the legacy string
+            # "ihsan_below_threshold" for backward compatibility with
+            # downstream subscribers; the ``threshold`` field now reports
+            # the actual trigger value (0.85, not 0.95).
             self._bus.publish(
                 EventType.IHSAN_GATE_BREACHED,
                 {
                     **base_payload,
                     "action_type": action_type,
-                    "threshold": UNIFIED_IHSAN_THRESHOLD,
+                    "threshold": MISSION_IHSAN_HALT_FLOOR,
                     "violation_dimensions": ["ihsan_below_threshold"],
                 },
             )
             published.append("ihsan.gate.breached")
+        elif ihsan < UNIFIED_IHSAN_THRESHOLD:
+            # Warn band — lawful but below production ideal. Does NOT halt.
+            self._bus.publish(
+                EventType.IHSAN_WARNING,
+                {
+                    **base_payload,
+                    "action_type": action_type,
+                    "threshold": UNIFIED_IHSAN_THRESHOLD,
+                    "halt_floor": MISSION_IHSAN_HALT_FLOOR,
+                },
+            )
+            published.append("ihsan.warning")
 
         # SESSION_END — triggers reflex compilation + PoI accumulation
         self._bus.publish(

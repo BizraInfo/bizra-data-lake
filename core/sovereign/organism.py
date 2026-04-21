@@ -884,8 +884,18 @@ class SovereignOrganism:
                 },
             )
 
-            # If Ihsān below production threshold, emit breach event
-            if not receipt.gate_passed or receipt.ihsan_score < UNIFIED_IHSAN_THRESHOLD:
+            # Two-band Ihsān policy (see core.bus.subscribers
+            # MISSION_IHSAN_HALT_FLOOR docstring, 2026-04-21):
+            #   gate failed or ihsan < 0.85     → IHSAN_GATE_BREACHED (halt)
+            #   0.85 ≤ ihsan < 0.95             → IHSAN_WARNING (warn, no halt)
+            #   ihsan ≥ 0.95 AND gate passed    → neither (production ideal met)
+            from core.bus.subscribers import MISSION_IHSAN_HALT_FLOOR
+
+            if (
+                not receipt.gate_passed
+                or receipt.ihsan_score < MISSION_IHSAN_HALT_FLOOR
+            ):
+                # Hard halt — gate rejected or score below operational floor.
                 self._cqrs_bus.publish(
                     EventType.IHSAN_GATE_BREACHED,
                     {
@@ -893,6 +903,19 @@ class SovereignOrganism:
                         "ihsan_composite": receipt.ihsan_score,
                         "action_type": f"mission:{receipt.system}",
                         "violation_dimensions": receipt.gate_reasons,
+                        "threshold": MISSION_IHSAN_HALT_FLOOR,
+                    },
+                )
+            elif receipt.ihsan_score < UNIFIED_IHSAN_THRESHOLD:
+                # Warn band — lawful but below production ideal. No halt.
+                self._cqrs_bus.publish(
+                    EventType.IHSAN_WARNING,
+                    {
+                        "session_id": receipt.mission_id,
+                        "ihsan_composite": receipt.ihsan_score,
+                        "action_type": f"mission:{receipt.system}",
+                        "threshold": UNIFIED_IHSAN_THRESHOLD,
+                        "halt_floor": MISSION_IHSAN_HALT_FLOOR,
                     },
                 )
 
