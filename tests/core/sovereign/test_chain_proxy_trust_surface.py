@@ -52,6 +52,13 @@ CANONICAL_CHAIN_HEAD = {
     "sovereignEntries": 5,
 }
 
+CANONICAL_LATEST_RECEIPT = {
+    "id": "rct_369319cd83e24191",
+    "kind": "MissionApproved",
+    "timestamp": 1745180214,
+    "status": "COMPLETE",
+}
+
 
 class _FakeAsyncClient:
     """Context-manager fake for httpx.AsyncClient that patches per-test."""
@@ -70,6 +77,27 @@ class _FakeAsyncClient:
         if self._exc is not None:
             raise self._exc
         return self._response
+
+
+class _RouteAsyncClient:
+    """Route-aware fake for endpoints that make multiple upstream calls."""
+
+    def __init__(self, *, responses=None, exceptions=None):
+        self._responses = responses or {}
+        self._exceptions = exceptions or {}
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return None
+
+    async def get(self, url, **_):  # noqa: D401 — pytest fake
+        if url in self._exceptions:
+            raise self._exceptions[url]
+        if url not in self._responses:
+            raise AssertionError(f"Unexpected upstream URL requested: {url}")
+        return self._responses[url]
 
 
 def _runtime_for_chain(tmp: Path):
@@ -233,3 +261,144 @@ class TestChainProxyGatewayUrlOverride:
         assert captured_urls[0] == "http://override-gateway.test:1234/chain", (
             f"Gateway URL override not respected. Attempted: {captured_urls[0]}"
         )
+
+
+class TestChainLatestProxy:
+    """/v1/chain/latest keeps one truthful trust-surface snapshot."""
+
+    def test_latest_success_returns_combined_authoritative_payload(
+        self, chain_client: TestClient
+    ) -> None:
+        chain_response = MagicMock()
+        chain_response.status_code = 200
+        chain_response.json.return_value = CANONICAL_CHAIN_HEAD
+        chain_response.text = ""
+
+        receipt_response = MagicMock()
+        receipt_response.status_code = 200
+        receipt_response.json.return_value = CANONICAL_LATEST_RECEIPT
+        receipt_response.text = ""
+
+        gateway_base = "http://localhost:7421"
+
+        def _factory(**kwargs: Any) -> _RouteAsyncClient:
+            return _RouteAsyncClient(
+                responses={
+                    f"{gateway_base}/chain": chain_response,
+                    f"{gateway_base}/chain/{CANONICAL_CHAIN_HEAD['head']}": receipt_response,
+                }
+            )
+
+        with patch("httpx.AsyncClient", _factory):
+            resp = chain_client.get("/v1/chain/latest")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body == {
+            **CANONICAL_CHAIN_HEAD,
+            "latestReceipt": CANONICAL_LATEST_RECEIPT,
+        }
+
+    def test_latest_genesis_returns_honest_null_receipt(
+        self, chain_client: TestClient
+    ) -> None:
+        chain_response = MagicMock()
+        chain_response.status_code = 200
+        chain_response.json.return_value = {
+            "head": "",
+            "length": 0,
+            "latestTimestamp": None,
+            "sovereignEnvelopes": 0,
+            "sovereignEntries": 0,
+        }
+        chain_response.text = ""
+
+        def _factory(**kwargs: Any) -> _RouteAsyncClient:
+            return _RouteAsyncClient(
+                responses={"http://localhost:7421/chain": chain_response}
+            )
+
+        with patch("httpx.AsyncClient", _factory):
+            resp = chain_client.get("/v1/chain/latest")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["length"] == 0
+        assert body["latestReceipt"] is None
+        assert "latestReceiptError" not in body
+
+    def test_latest_returns_503_when_gateway_is_unreachable(
+        self, chain_client: TestClient
+    ) -> None:
+        def _factory(**kwargs: Any) -> _RouteAsyncClient:
+            return _RouteAsyncClient(
+                exceptions={
+                    "http://localhost:7421/chain": httpx.ConnectError(
+                        "connection refused"
+                    )
+                }
+            )
+
+        with patch("httpx.AsyncClient", _factory):
+            resp = chain_client.get("/v1/chain/latest")
+
+        assert resp.status_code == 503
+        body = resp.json()
+        assert body["status"] == "gateway_unreachable"
+        assert body["error"] == "ConnectError"
+
+    def test_latest_surfaces_non_200_from_chain(
+        self, chain_client: TestClient
+    ) -> None:
+        chain_response = MagicMock()
+        chain_response.status_code = 502
+        chain_response.text = "bad gateway"
+
+        def _factory(**kwargs: Any) -> _RouteAsyncClient:
+            return _RouteAsyncClient(
+                responses={"http://localhost:7421/chain": chain_response}
+            )
+
+        with patch("httpx.AsyncClient", _factory):
+            resp = chain_client.get("/v1/chain/latest")
+
+        assert resp.status_code == 502
+        body = resp.json()
+        assert body["status"] == "gateway_non_200"
+        assert body["upstream_status"] == 502
+        assert "bad gateway" in body["upstream_body"]
+
+    def test_latest_preserves_head_but_marks_receipt_lookup_failure(
+        self, chain_client: TestClient
+    ) -> None:
+        chain_response = MagicMock()
+        chain_response.status_code = 200
+        chain_response.json.return_value = CANONICAL_CHAIN_HEAD
+        chain_response.text = ""
+
+        receipt_response = MagicMock()
+        receipt_response.status_code = 404
+        receipt_response.text = "receipt not found"
+
+        gateway_base = "http://localhost:7421"
+
+        def _factory(**kwargs: Any) -> _RouteAsyncClient:
+            return _RouteAsyncClient(
+                responses={
+                    f"{gateway_base}/chain": chain_response,
+                    f"{gateway_base}/chain/{CANONICAL_CHAIN_HEAD['head']}": receipt_response,
+                }
+            )
+
+        with patch("httpx.AsyncClient", _factory):
+            resp = chain_client.get("/v1/chain/latest")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["head"] == CANONICAL_CHAIN_HEAD["head"]
+        assert body["length"] == CANONICAL_CHAIN_HEAD["length"]
+        assert body["latestReceipt"] is None
+        assert body["latestReceiptError"] == {
+            "upstream_status": 404,
+            "detail": "receipt not found",
+        }

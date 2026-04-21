@@ -2835,6 +2835,87 @@ def create_fastapi_app(runtime: Any) -> Any:
         return upstream.json()
 
     @app.get(
+        "/v1/chain/latest",
+        tags=["trust"],
+        summary="Chain head + latest receipt detail in one call",
+        description=(
+            "Combines the cognition-gateway's GET /chain (head, length, "
+            "latestTimestamp) with GET /chain/{head} (latest receipt kind, "
+            "id, timestamp) into a single authoritative payload for the "
+            "trust surface. Lets Dema show 'RECEIPT <kind> <timestamp>' "
+            "next to 'CHAIN#<length> <head>' without requiring two "
+            "frontend round-trips. Same no-shadow-state contract as "
+            "/v1/chain: 503 on gateway unreachable, honest null receipt "
+            "when chain is at genesis (length=0)."
+        ),
+    )
+    async def get_chain_latest(request: Request):
+        """Proxy: chain head + latest receipt detail, single payload.
+
+        Node0 Closure Sprint — row 6 (trust_surface) enrichment — 2026-04-21.
+        Public (no auth) matching /v1/chain precedent.
+        """
+        import httpx
+
+        gateway_base = os.getenv(
+            "BIZRA_COGNITION_GATEWAY_URL", "http://localhost:7421"
+        ).rstrip("/")
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                # Step 1: fetch chain head + length
+                chain_resp = await client.get(f"{gateway_base}/chain")
+                if chain_resp.status_code != 200:
+                    return JSONResponse(
+                        status_code=chain_resp.status_code,
+                        content={
+                            "status": "gateway_non_200",
+                            "gateway_url": f"{gateway_base}/chain",
+                            "upstream_status": chain_resp.status_code,
+                            "upstream_body": chain_resp.text[:500],
+                        },
+                    )
+                chain_data = chain_resp.json()
+                head = chain_data.get("head", "")
+                length = chain_data.get("length", 0)
+
+                result: dict[str, Any] = {
+                    "head": head,
+                    "length": length,
+                    "latestTimestamp": chain_data.get("latestTimestamp"),
+                    "sovereignEnvelopes": chain_data.get("sovereignEnvelopes"),
+                    "sovereignEntries": chain_data.get("sovereignEntries"),
+                    "latestReceipt": None,
+                }
+
+                # Step 2: fetch latest receipt detail (skip for empty chain)
+                is_genesis = length == 0 or not head or head == ("0" * 64)
+                if not is_genesis:
+                    receipt_resp = await client.get(
+                        f"{gateway_base}/chain/{head}"
+                    )
+                    if receipt_resp.status_code == 200:
+                        result["latestReceipt"] = receipt_resp.json()
+                    else:
+                        # Head exists but receipt detail unavailable —
+                        # surface honestly, don't fabricate.
+                        result["latestReceiptError"] = {
+                            "upstream_status": receipt_resp.status_code,
+                            "detail": receipt_resp.text[:200],
+                        }
+
+                return result
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as exc:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "gateway_unreachable",
+                    "gateway_url": f"{gateway_base}/chain",
+                    "error": type(exc).__name__,
+                    "detail": str(exc)[:200],
+                },
+            )
+
+    @app.get(
         "/v1/reflex/status",
         tags=["reflex"],
         summary="Reflex compiler status",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { useSovereignHealth, useSeedPotential, useTokenBalance, useChainHead } from "@/hooks/use-sovereign-api";
+import { useSovereignHealth, useSeedPotential, useTokenBalance, useChainLatest } from "@/hooks/use-sovereign-api";
 import { TERMINAL_VIEW_META } from "./terminal-manifest";
 
 // ─── Lazy-load views ────────────────────────────────────────────
@@ -63,14 +63,17 @@ function ViewLoader() {
 // ─── Status Bar ─────────────────────────────────────────────────
 
 function StatusBar() {
-  const { data: health } = useSovereignHealth();
+  const { data: health, error: healthError, loading: healthLoading } = useSovereignHealth();
   const { data: potential } = useSeedPotential();
   const { data: balance } = useTokenBalance();
-  // Node0 Closure Sprint row 6 — trust_surface binding to authoritative chain.
-  // `chainError` being non-null means the Rust cognition-gateway is
-  // unreachable (via the /v1/chain proxy in core/sovereign/api.py). Show the
-  // truth of that offline state — never fabricate a head.
-  const { data: chain, error: chainError } = useChainHead();
+  // Node0 Closure Sprint row 6 — trust_surface uses /v1/chain/latest as the
+  // authoritative snapshot for both CHAIN and RECEIPT. This avoids cross-poll
+  // drift and lets the UI distinguish genesis from receipt-detail failure.
+  const {
+    data: chainLatest,
+    error: chainLatestError,
+    loading: chainLatestLoading,
+  } = useChainLatest();
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -78,15 +81,75 @@ function StatusBar() {
     return () => clearInterval(timer);
   }, []);
 
-  const isLive = !!health;
+  const isLive =
+    !healthLoading && !healthError && (health.running || health.status === "healthy");
   const ihsan = potential?.sovereignty_score ?? 0;
   const seed = balance?.seed ?? 0;
   const tier = potential?.tier ?? "—";
 
-  // Chain display: "CHAIN#<length> <head-8>" when live, "CHAIN —" when
-  // gateway unreachable or head empty. Never fabricated.
-  const chainLive = !chainError && chain.head.length === 64;
-  const chainHeadShort = chainLive ? chain.head.slice(0, 8) : "—";
+  // CHAIN / RECEIPT truth surface comes from one authoritative snapshot.
+  const chainSnapshotReady = !chainLatestLoading && !chainLatestError;
+  const chainLive = chainSnapshotReady && chainLatest.head.length === 64;
+  const chainHeadShort = chainLive ? chainLatest.head.slice(0, 8) : "—";
+  const chainLength = chainSnapshotReady ? chainLatest.length : 0;
+
+  // Row 6 enrichment — RECEIPT cell from /v1/chain/latest.
+  // Honest absence taxonomy:
+  // - chainLatestError => gateway unreachable
+  // - chainLatest.length===0 or empty head => genesis / no receipts yet
+  // - latestReceiptError => head exists but detail lookup failed
+  // - latestReceipt===null with no error => no receipt detail available
+  const latest = chainLatest.latestReceipt;
+  const latestReceiptError = chainLatest.latestReceiptError;
+  const chainAtGenesis =
+    chainSnapshotReady &&
+    (chainLatest.length === 0 ||
+      !chainLatest.head ||
+      chainLatest.head === "0".repeat(64));
+  const receiptLookupFailed =
+    chainSnapshotReady && !chainAtGenesis && latestReceiptError !== null;
+  const receiptLive =
+    chainSnapshotReady && !receiptLookupFailed && latest !== null;
+  const receiptKind = receiptLive ? latest?.kind || "—" : "—";
+  const receiptTimeLabel = (() => {
+    if (!receiptLive || !latest || latest.timestamp === null) return "—";
+    try {
+      return new Date(latest.timestamp * 1000).toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } catch {
+      return "—";
+    }
+  })();
+
+  // Row 6 enrichment — IHSĀN band from SovereignHealth.
+  // Authoritative ihsan_score from /v1/health. Classify per the
+  // two-band Ihsān policy (mission_nervous_system.py): >= 0.95 = ideal,
+  // 0.85 <= score < 0.95 = warn, < 0.85 = halt.
+  // When health is unavailable, band is "—" (honest absence).
+  const authoritativeHealth = !healthLoading && !healthError;
+  const healthIhsan =
+    authoritativeHealth && typeof health.ihsan_score === "number"
+      ? health.ihsan_score
+      : null;
+  const ihsanBand = (() => {
+    if (healthIhsan === null) return { label: "—", color: "text-slate-600" };
+    if (healthIhsan >= 0.95) return { label: "ideal", color: "text-emerald-400" };
+    if (healthIhsan >= 0.85) return { label: "warn", color: "text-amber-400" };
+    return { label: "halt", color: "text-red-400" };
+  })();
+
+  // Row 6 enrichment — Gini from SovereignHealth (ADL §14 threshold 0.35).
+  const gini =
+    authoritativeHealth && typeof health.gini === "number" ? health.gini : null;
+  const giniColor =
+    gini === null
+      ? "text-slate-600"
+      : gini <= 0.35
+      ? "text-emerald-400"
+      : "text-red-400";
 
   return (
     <div className="flex items-center justify-between px-4 py-1.5 bg-slate-900/80 border-b border-slate-800/50 text-[10px]">
@@ -107,18 +170,80 @@ function StatusBar() {
 
         <span className="text-slate-700">|</span>
 
-        {/* CHAIN — authoritative head from Rust cognition-gateway via
-            /v1/chain proxy. Shows "—" honestly when gateway is down. */}
+        {/* IHSĀN band — authoritative health.ihsan_score classified into
+            two-band policy: >= 0.95 ideal, >= 0.85 warn, < 0.85 halt.
+            Matches backend halt trigger at mission_nervous_system.py. */}
         <span
-          className={chainLive ? "text-cyan-400" : "text-slate-600"}
-          data-testid="chain-status"
+          className={ihsanBand.color}
+          data-testid="ihsan-band"
           title={
-            chainLive
-              ? `Chain head: ${chain.head} (length: ${chain.length})`
-              : "Chain unavailable — cognition-gateway unreachable"
+            healthIhsan !== null
+              ? `Runtime Ihsān: ${healthIhsan.toFixed(3)} (band: ${ihsanBand.label})`
+              : "Runtime Ihsān unavailable"
           }
         >
-          CHAIN#{chain.length} {chainHeadShort}
+          IHSĀN:{ihsanBand.label}
+        </span>
+
+        <span className="text-slate-700">|</span>
+
+        {/* CHAIN — authoritative head from Rust cognition-gateway via
+            /v1/chain proxy. Shows "—" honestly when gateway is down. */}
+         <span
+           className={chainLive ? "text-cyan-400" : "text-slate-600"}
+           data-testid="chain-status"
+           title={
+             chainLive
+              ? `Chain head: ${chainLatest.head} (length: ${chainLatest.length})`
+              : chainLatestLoading
+              ? "Chain loading — awaiting authoritative snapshot"
+              : chainLatestError
+              ? "Chain unavailable — cognition-gateway unreachable"
+              : chainAtGenesis
+              ? "Chain at genesis — no receipts yet"
+              : "Chain snapshot unavailable"
+           }
+         >
+          CHAIN#{chainLength} {chainHeadShort}
+        </span>
+
+        <span className="text-slate-700">|</span>
+
+        {/* RECEIPT — latest receipt kind + timestamp from /v1/chain/latest.
+            Honest "—" when chain is at genesis or detail unavailable. */}
+         <span
+           className={receiptLive ? "text-violet-400" : "text-slate-600"}
+           data-testid="receipt-status"
+           title={
+             receiptLive && latest !== null
+               ? `Latest receipt: ${latest.kind} (id: ${latest.id.slice(0, 16)}…)`
+              : chainLatestLoading
+              ? "Receipt detail loading — awaiting authoritative snapshot"
+              : chainLatestError
+              ? "Receipt detail unavailable — gateway unreachable"
+              : receiptLookupFailed
+              ? "Receipt detail unavailable — upstream lookup failed"
+              : chainAtGenesis
+              ? "No receipts yet — chain at genesis"
+              : "Receipt detail unavailable"
+           }
+         >
+          RECEIPT:{receiptKind} {receiptTimeLabel}
+        </span>
+
+        <span className="text-slate-700">|</span>
+
+        {/* GINI — ADL §14 justice invariant, authoritative from /v1/health. */}
+        <span
+          className={giniColor}
+          data-testid="gini-status"
+          title={
+            gini !== null
+              ? `ADL Gini: ${gini.toFixed(3)} (threshold: 0.35)`
+              : "Gini unavailable"
+          }
+        >
+          GINI:{gini !== null ? gini.toFixed(2) : "—"}
         </span>
 
         <span className="text-slate-700">|</span>
