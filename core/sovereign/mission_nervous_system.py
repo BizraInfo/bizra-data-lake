@@ -456,12 +456,21 @@ class SovereignNervousSystem:
         events_published: List[str] = []
         metadata: Dict[str, Any] = {}
 
+        # Reflex-key input: the stable semantic intent. When raw_prompt is
+        # provided, use it so the reflex key survives variable Bayyinah
+        # evidence fields (e.g., "Prior receipt: <hash>" changes between
+        # run1 and run2 of an otherwise-identical mission). This mirrors
+        # the raw_prompt decoupling for Ihsān scoring (see _score_ihsan
+        # call below). Wrapped `mission_text` remains canonical runtime
+        # evidence for receipts, inference, and audit.
+        reflex_key_input = raw_prompt if raw_prompt is not None else mission_text
+
         # ── S1 PROBE: Reflex cache lookup (Kahneman System 1) ────
         reflex_hit = False
         output_text = ""
 
         if self._reflex is not None:
-            entry = self._reflex.lookup(mission_text, macro_state=macro_state)
+            entry = self._reflex.lookup(reflex_key_input, macro_state=macro_state)
             if entry is not None:
                 output_text = entry.output_template
                 reflex_hit = True
@@ -571,13 +580,17 @@ class SovereignNervousSystem:
                 )
 
         # ── RECORD: Observation for future S1 (Deming PDCA) ─────
+        # Use reflex_key_input (raw_prompt when provided) so the stored
+        # pattern_hash matches what a future lookup will compute. Mixing
+        # wrapped mission_text on write with raw_prompt on read would
+        # guarantee reflex miss even for semantically identical missions.
         if not reflex_hit and self._reflex is not None:
             precipitated_entry = self._reflex.record_observation(
-                input_text=mission_text,
+                input_text=reflex_key_input,
                 output_text=output_text,
                 ihsan_composite=ihsan,
             )
-            pattern_hash = self._reflex._hash_input(mission_text)
+            pattern_hash = self._reflex._hash_input(reflex_key_input)
             if precipitated_entry is not None:
                 metadata["reflex_delta"] = {
                     "compiled": True,
