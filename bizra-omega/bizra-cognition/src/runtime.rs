@@ -133,6 +133,112 @@ impl From<ChainError> for MissionRuntimeError {
     }
 }
 
+#[derive(Debug)]
+pub enum DailyManifestError {
+    InvalidDateKey(String),
+    DateOutOfRange(String),
+    Cache(ManifestHistoryCacheError),
+}
+
+impl From<ManifestHistoryCacheError> for DailyManifestError {
+    fn from(e: ManifestHistoryCacheError) -> Self {
+        DailyManifestError::Cache(e)
+    }
+}
+
+const NS_PER_DAY: u64 = 86_400_000_000_000;
+
+fn manifests_overlap_day(
+    window_start: u64,
+    window_end: u64,
+    day_start: u64,
+    day_end: u64,
+) -> bool {
+    window_end > day_start && window_start < day_end
+}
+
+fn day_bounds_from_date_key(date_key: &str) -> Result<(u64, u64), DailyManifestError> {
+    let mut parts = date_key.split('-');
+    let year = parts
+        .next()
+        .and_then(|s| s.parse::<i32>().ok())
+        .ok_or_else(|| DailyManifestError::InvalidDateKey(date_key.into()))?;
+    let month = parts
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+        .ok_or_else(|| DailyManifestError::InvalidDateKey(date_key.into()))?;
+    let day = parts
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+        .ok_or_else(|| DailyManifestError::InvalidDateKey(date_key.into()))?;
+    if parts.next().is_some() {
+        return Err(DailyManifestError::InvalidDateKey(date_key.into()));
+    }
+
+    let civil_days = days_from_civil(year, month, day)
+        .ok_or_else(|| DailyManifestError::InvalidDateKey(date_key.into()))?;
+    let canonical = date_key_from_day_index(civil_days as u64)?;
+    if canonical != date_key {
+        return Err(DailyManifestError::InvalidDateKey(date_key.into()));
+    }
+
+    let start = (civil_days as u64)
+        .checked_mul(NS_PER_DAY)
+        .ok_or_else(|| DailyManifestError::DateOutOfRange(date_key.into()))?;
+    let end = start
+        .checked_add(NS_PER_DAY)
+        .ok_or_else(|| DailyManifestError::DateOutOfRange(date_key.into()))?;
+    Ok((start, end))
+}
+
+fn date_key_from_window_start(window_start: u64) -> Result<String, DailyManifestError> {
+    date_key_from_day_index(window_start / NS_PER_DAY)
+}
+
+fn date_key_from_day_index(day_index: u64) -> Result<String, DailyManifestError> {
+    let day_index = i64::try_from(day_index)
+        .map_err(|_| DailyManifestError::DateOutOfRange(day_index.to_string()))?;
+    let (year, month, day) = civil_from_days(day_index);
+    Ok(format!("{year:04}-{month:02}-{day:02}"))
+}
+
+fn days_from_civil(year: i32, month: u32, day: u32) -> Option<i64> {
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+        return None;
+    }
+    let year = year - i32::from(month <= 2);
+    let era = if year >= 0 { year } else { year - 399 } / 400;
+    let yoe = year - era * 400;
+    let month = month as i32;
+    let day = day as i32;
+    let doy = (153 * (month + if month > 2 { -3 } else { 9 }) + 2) / 5 + day - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = i64::from(era) * 146_097 + i64::from(doe) - 719_468;
+    let (roundtrip_year, roundtrip_month, roundtrip_day) = civil_from_days(days);
+    if roundtrip_year == year + i32::from(month <= 2)
+        && roundtrip_month == month as u32
+        && roundtrip_day == day as u32
+    {
+        Some(days)
+    } else {
+        None
+    }
+}
+
+fn civil_from_days(days: i64) -> (i32, u32, u32) {
+    let days = days + 719_468;
+    let era = if days >= 0 { days } else { days - 146_096 } / 146_097;
+    let doe = days - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let mut year = yoe as i32 + era as i32 * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = mp + if mp < 10 { 3 } else { -9 };
+    year += i32::from(month <= 2);
+    (year, month as u32, day as u32)
+}
+
 /// The full record of a mission's passage through the lawful loop.
 ///
 /// G2-hardening (Cycle-5, 2026-04-17 per spec g2-patches-abc.md):
@@ -397,11 +503,11 @@ pub struct CognitionRuntime {
     // the append. Best-effort: write failures do not invalidate the
     // sealed chain. Rehydrate via `rehydrate_receipt_history_from_cache`.
     receipt_history_cache: Option<ReceiptHistoryCache>,
-    // Cycle-7 G3 Commit-2 — optional on-disk cache at
-    // sovereign_state/dema_cache/manifest_history.json. Derived from
-    // the `missions` registry (permit-path-only manifests). Refreshed
-    // on every submit_mission permit return. Best-effort; chain stays
-    // truth.
+    // Cycle-7 G3 Commit-2 / Row-5 closure — optional on-disk cache at
+    // sovereign_state/dema_cache/manifest_history.json. Stores explicit,
+    // calendar-day daily manifests sealed from permit-path mission
+    // manifests. Chain remains truth; this file is derived, rebuildable,
+    // and only advances via seal_daily_manifest().
     manifest_history_cache: Option<ManifestHistoryCache>,
     // Cycle-7 G3 Commit-3 — optional on-disk cache at
     // sovereign_state/dema_cache/mission_log.json. Derived from the
@@ -1222,21 +1328,59 @@ impl CognitionRuntime {
         self.manifest_history_cache.as_ref()
     }
 
-    /// Build an in-memory snapshot of all ManifestArtifacts currently
-    /// bound to permitted missions. Derived from the `missions`
-    /// registry + current chain head. Authoritative source stays the
-    /// chain; cache is a read fast-path.
+    fn build_daily_manifest_summary(
+        &self,
+        date_key: &str,
+    ) -> Result<Option<ManifestSummary>, DailyManifestError> {
+        let (day_start, day_end) = day_bounds_from_date_key(date_key)?;
+        let mut receipt_refs: Vec<Blake3Hash> = Vec::new();
+        let mut latest_day_manifest: Option<(u64, Blake3Hash)> = None;
+
+        for record in self.missions.values().filter(|r| !r.rejected) {
+            let Some(manifest) = record.manifest.as_ref() else {
+                continue;
+            };
+            if !manifests_overlap_day(manifest.window_start, manifest.window_end, day_start, day_end)
+            {
+                continue;
+            }
+            receipt_refs.extend(manifest.receipt_refs.iter().copied());
+            let candidate = (manifest.window_end, manifest.manifest_id);
+            if latest_day_manifest
+                .as_ref()
+                .map(|current| candidate > *current)
+                .unwrap_or(true)
+            {
+                latest_day_manifest = Some(candidate);
+            }
+        }
+
+        let Some((_, day_chain_head)) = latest_day_manifest else {
+            return Ok(None);
+        };
+
+        let daily_manifest =
+            ManifestArtifact::from_window(day_start, day_end, receipt_refs, day_chain_head);
+        Ok(Some(ManifestSummary::from_daily_manifest(
+            date_key.to_string(),
+            &daily_manifest,
+        )))
+    }
+
+    /// Build an in-memory snapshot of all sealed daily manifests.
+    /// Manifest history is no longer synthesized from raw permit-path
+    /// missions on every submit; it advances only through explicit
+    /// `seal_daily_manifest()` calls.
     pub fn manifest_history_snapshot(&self) -> ManifestHistorySnapshot {
-        let mut manifests: Vec<ManifestSummary> = self
-            .missions
-            .values()
-            .filter(|r| !r.rejected)
-            .filter_map(|r| r.manifest.as_ref().map(ManifestSummary::from))
-            .collect();
-        // Deterministic order by window_start then manifest_id.
+        let mut manifests = self
+            .rehydrate_manifest_history_from_cache()
+            .ok()
+            .flatten()
+            .map(|snapshot| snapshot.manifests)
+            .unwrap_or_default();
         manifests.sort_by(|a, b| {
-            a.window_start
-                .cmp(&b.window_start)
+            a.date_key
+                .cmp(&b.date_key)
                 .then_with(|| a.manifest_id.cmp(&b.manifest_id))
         });
         ManifestHistorySnapshot {
@@ -1245,9 +1389,50 @@ impl CognitionRuntime {
         }
     }
 
-    /// Best-effort write of the manifest-history cache. `Ok(None)` when
-    /// no cache is attached. See receipt_history counterpart for
-    /// niyyah-alignment rationale.
+    /// Seal one explicit UTC calendar day into the manifest-history
+    /// cache. Returns `Ok(None)` when no permitted mission overlaps the
+    /// requested day, preserving honest empty-day behavior.
+    pub fn seal_daily_manifest(
+        &self,
+        date_key: &str,
+    ) -> Result<Option<ManifestSummary>, DailyManifestError> {
+        let mut snapshot = match self.rehydrate_manifest_history_from_cache()? {
+            Some(snapshot) => snapshot,
+            None => ManifestHistorySnapshot {
+                chain_head: self.chain.head(),
+                manifests: Vec::new(),
+            },
+        };
+
+        if let Some(existing) = snapshot
+            .manifests
+            .iter()
+            .find(|manifest| manifest.date_key == date_key)
+        {
+            return Ok(Some(existing.clone()));
+        }
+
+        let Some(sealed) = self.build_daily_manifest_summary(date_key)? else {
+            return Ok(None);
+        };
+
+        snapshot.chain_head = self.chain.head();
+        snapshot.manifests.push(sealed.clone());
+        snapshot.manifests.sort_by(|a, b| {
+            a.date_key
+                .cmp(&b.date_key)
+                .then_with(|| a.manifest_id.cmp(&b.manifest_id))
+        });
+
+        if let Some(cache) = self.manifest_history_cache.as_ref() {
+            cache.write(&snapshot)?;
+        }
+
+        Ok(Some(sealed))
+    }
+
+    /// Best-effort write of the currently sealed manifest-history cache.
+    /// `Ok(None)` when no cache is attached.
     pub fn write_manifest_history_cache(&self) -> Option<Result<(), ManifestHistoryCacheError>> {
         self.manifest_history_cache
             .as_ref()
@@ -3003,121 +3188,192 @@ mod tests {
         }
 
         #[test]
-        fn permitted_mission_appends_manifest_to_cache() {
+        fn same_day_missions_aggregate_into_one_daily_manifest() {
             let td = tempfile::TempDir::new().unwrap();
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
+            let (day_start, day_end) = day_bounds_from_date_key("2026-04-21").unwrap();
 
-            let env = test_mission(100);
-            let claim = permit_claim(&env, 200);
-            let record = rt.submit_mission(env, claim).unwrap();
-            assert!(!record.rejected);
-            assert!(record.manifest.is_some(), "permit path emits manifest");
+            let e1 = test_mission(100);
+            let c1 = permit_claim(&e1, 200);
+            let r1 = rt.submit_mission(e1, c1).unwrap();
 
-            let loaded = rt
-                .rehydrate_manifest_history_from_cache()
+            let e2 = test_mission(300);
+            let c2 = permit_claim(&e2, 400);
+            let r2 = rt.submit_mission(e2, c2).unwrap();
+
+            let m1 = rewrite_manifest_window(&mut rt, r1.envelope.mission_id, day_start + 10, day_start + 20);
+            let m2 = rewrite_manifest_window(&mut rt, r2.envelope.mission_id, day_start + 30, day_start + 40);
+
+            let sealed = rt
+                .seal_daily_manifest("2026-04-21")
                 .unwrap()
-                .expect("cache written after submit");
-            assert_eq!(loaded.chain_head, rt.chain.head());
+                .expect("same-day digest");
+            let expected: std::collections::BTreeSet<_> = m1
+                .receipt_refs
+                .iter()
+                .chain(m2.receipt_refs.iter())
+                .copied()
+                .collect();
+
+            assert_eq!(sealed.date_key, "2026-04-21");
+            assert_eq!(sealed.window_start, day_start);
+            assert_eq!(sealed.window_end, day_end);
+            assert_eq!(sealed.receipt_count as usize, expected.len());
+            assert_eq!(
+                sealed
+                    .receipt_refs
+                    .iter()
+                    .copied()
+                    .collect::<std::collections::BTreeSet<_>>(),
+                expected
+            );
+            assert_eq!(sealed.chain_head_at_generation, m2.manifest_id);
+
+            let loaded = rt.rehydrate_manifest_history_from_cache().unwrap().unwrap();
             assert_eq!(loaded.manifests.len(), 1);
-            let expected_id = record.manifest.as_ref().unwrap().manifest_id;
-            assert_eq!(loaded.manifests[0].manifest_id, expected_id);
+            assert_eq!(loaded.manifests[0], sealed);
         }
 
         #[test]
-        fn rejected_mission_does_not_add_to_manifest_history() {
+        fn empty_day_is_handled_honestly() {
             let td = tempfile::TempDir::new().unwrap();
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
 
-            let env = test_mission(100);
-            let claim = reject_claim(&env, 200);
-            let record = rt.submit_mission(env, claim).unwrap();
-            assert!(record.rejected);
-            assert!(record.manifest.is_none(), "§10: no manifest on reject");
+            assert!(rt.seal_daily_manifest("2026-04-20").unwrap().is_none());
 
-            // Cache is written on reject path but must contain zero
-            // manifests — the missions registry holds the rejected
-            // record with manifest=None, which the snapshot filters.
-            let loaded = rt.rehydrate_manifest_history_from_cache().unwrap().unwrap();
+            let loaded = rt.manifest_history_snapshot();
             assert!(loaded.manifests.is_empty());
         }
 
         #[test]
-        fn principal_activation_populates_manifest_history() {
+        fn day_boundary_creates_distinct_daily_manifests() {
             let td = tempfile::TempDir::new().unwrap();
             let mut rt = minimal_runtime();
             rt.attach_dema_cache(td.path());
+            let (day1_start, day1_end) = day_bounds_from_date_key("2026-04-21").unwrap();
+            let (day2_start, day2_end) = day_bounds_from_date_key("2026-04-22").unwrap();
 
-            let record = rt
-                .submit_principal_activation(test_envelope(1_000), 0.98)
-                .unwrap();
-            assert!(!record.rejected);
-
-            let loaded = rt
-                .rehydrate_manifest_history_from_cache()
-                .unwrap()
-                .expect("cache written after activation");
-            assert_eq!(loaded.manifests.len(), 1);
-            // The activation's inner mission record must have a manifest
-            // that matches the one surfaced via the cache.
-            let expected_id = record
-                .mission_record
-                .manifest
-                .as_ref()
-                .expect("activation permit produces manifest")
-                .manifest_id;
-            assert_eq!(loaded.manifests[0].manifest_id, expected_id);
-        }
-
-        #[test]
-        fn multiple_missions_appear_in_deterministic_order() {
-            let td = tempfile::TempDir::new().unwrap();
-            let mut rt = minimal_runtime();
-            rt.attach_dema_cache(td.path());
-
-            // Submit two permitted missions with distinct window_start
-            // (timestamp_ns) so the sort key is exercised.
             let e1 = test_mission(1_000);
             let c1 = permit_claim(&e1, 1_100);
             let r1 = rt.submit_mission(e1, c1).unwrap();
+            let m1 = rewrite_manifest_window(
+                &mut rt,
+                r1.envelope.mission_id,
+                day1_end - 20,
+                day1_end - 10,
+            );
 
             let e2 = test_mission(2_000);
             let c2 = permit_claim(&e2, 2_100);
             let r2 = rt.submit_mission(e2, c2).unwrap();
+            let m2 = rewrite_manifest_window(
+                &mut rt,
+                r2.envelope.mission_id,
+                day2_start + 10,
+                day2_start + 20,
+            );
+
+            let sealed1 = rt
+                .seal_daily_manifest("2026-04-21")
+                .unwrap()
+                .expect("day1 digest");
+            let sealed2 = rt
+                .seal_daily_manifest("2026-04-22")
+                .unwrap()
+                .expect("day2 digest");
+
+            assert_eq!(sealed1.window_start, day1_start);
+            assert_eq!(sealed1.window_end, day1_end);
+            assert_eq!(sealed1.receipt_count, m1.receipt_count);
+            assert_eq!(sealed1.chain_head_at_generation, m1.manifest_id);
+
+            assert_eq!(sealed2.window_start, day2_start);
+            assert_eq!(sealed2.window_end, day2_end);
+            assert_eq!(sealed2.receipt_count, m2.receipt_count);
+            assert_eq!(sealed2.chain_head_at_generation, m2.manifest_id);
 
             let loaded = rt.rehydrate_manifest_history_from_cache().unwrap().unwrap();
             assert_eq!(loaded.manifests.len(), 2);
-            // window_start-ascending order.
-            assert!(
-                loaded.manifests[0].window_start < loaded.manifests[1].window_start,
-                "manifests must be sorted by window_start asc"
-            );
-            // Identity membership.
-            let ids: std::collections::HashSet<_> =
-                loaded.manifests.iter().map(|m| m.manifest_id).collect();
-            assert!(ids.contains(&r1.manifest.unwrap().manifest_id));
-            assert!(ids.contains(&r2.manifest.unwrap().manifest_id));
+            assert_eq!(loaded.manifests[0].date_key, "2026-04-21");
+            assert_eq!(loaded.manifests[1].date_key, "2026-04-22");
+        }
+
+        #[test]
+        fn daily_manifest_seal_is_idempotent_and_stable() {
+            let td = tempfile::TempDir::new().unwrap();
+            let mut rt = minimal_runtime();
+            rt.attach_dema_cache(td.path());
+            let (day_start, _) = day_bounds_from_date_key("2026-04-21").unwrap();
+
+            let e1 = test_mission(1_000);
+            let c1 = permit_claim(&e1, 1_100);
+            let r1 = rt.submit_mission(e1, c1).unwrap();
+            let _ = rewrite_manifest_window(&mut rt, r1.envelope.mission_id, day_start + 10, day_start + 20);
+
+            let sealed1 = rt
+                .seal_daily_manifest("2026-04-21")
+                .unwrap()
+                .expect("first seal");
+            let sealed2 = rt
+                .seal_daily_manifest("2026-04-21")
+                .unwrap()
+                .expect("second seal");
+
+            assert_eq!(sealed1, sealed2);
+
+            let loaded = rt.rehydrate_manifest_history_from_cache().unwrap().unwrap();
+            assert_eq!(loaded.manifests.len(), 1);
+            assert_eq!(loaded.manifests[0], sealed1);
         }
 
         #[test]
         fn restart_survival_reloads_manifest_history() {
             let td = tempfile::TempDir::new().unwrap();
-            let expected_len;
-            let expected_id;
+            let expected_manifest;
             {
                 let mut rt = minimal_runtime();
                 rt.attach_dema_cache(td.path());
+                let (day_start, _) = day_bounds_from_date_key("2026-04-21").unwrap();
                 let env = test_mission(42);
                 let claim = permit_claim(&env, 84);
                 let rec = rt.submit_mission(env, claim).unwrap();
-                expected_id = rec.manifest.unwrap().manifest_id;
-                expected_len = 1;
+                let _ = rewrite_manifest_window(&mut rt, rec.envelope.mission_id, day_start + 10, day_start + 20);
+                expected_manifest = rt
+                    .seal_daily_manifest("2026-04-21")
+                    .unwrap()
+                    .expect("sealed digest");
             }
             let cache = ManifestHistoryCache::at_sovereign_root(td.path());
             let loaded = cache.read().unwrap().expect("snapshot on disk");
-            assert_eq!(loaded.manifests.len(), expected_len);
-            assert_eq!(loaded.manifests[0].manifest_id, expected_id);
+            assert_eq!(loaded.manifests.len(), 1);
+            assert_eq!(loaded.manifests[0], expected_manifest);
+        }
+
+        fn rewrite_manifest_window(
+            rt: &mut CognitionRuntime,
+            mission_id: Blake3Hash,
+            window_start: u64,
+            window_end: u64,
+        ) -> ManifestArtifact {
+            let record = rt
+                .missions
+                .get_mut(&mission_id)
+                .expect("mission present for manifest rewrite");
+            let original = record
+                .manifest
+                .as_ref()
+                .expect("permit path manifest present")
+                .clone();
+            let updated = ManifestArtifact::from_window(
+                window_start,
+                window_end,
+                original.receipt_refs.clone(),
+                original.chain_head_at_generation,
+            );
+            record.manifest = Some(updated.clone());
+            updated
         }
     }
 
