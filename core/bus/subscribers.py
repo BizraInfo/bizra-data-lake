@@ -1,15 +1,15 @@
 """
-BIZRA EventBus Subscriber Wiring — All 12 Subscribers
+BIZRA EventBus Subscriber Wiring — All 13 Subscribers
 ======================================================
 Drop into: core/bus/subscribers.py
 
-This module wires the 12 EventBus subscribers identified in the
+This module wires the 13 EventBus subscribers identified in the
 Ω∞ Peak Synthesis as the brain-body gap. Each subscriber listens
 for a specific event type and triggers the appropriate downstream action.
 
 Phase 1 (Learning Loop): Subscribers 1-4
 Phase 2 (Safety): Subscribers 5-7
-Phase 3 (Economics): Subscribers 8-12
+Phase 3 (Economics): Subscribers 8-13
 
 Standing on Giants: Hewitt (actor model), Deming (PDCA), Boyd (OODA)
 """
@@ -711,7 +711,7 @@ class TeleScriptRollbackHealing:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# PHASE 3: ECONOMICS (Subscribers 8-12)
+# PHASE 3: ECONOMICS (Subscribers 8-13)
 # ═══════════════════════════════════════════════════════════════════
 
 
@@ -877,7 +877,7 @@ class MemoryRetrievedBudgetReport:
 
 class AgentRegisteredSelfModelUpdate:
     """
-    Subscriber 12: AgentRegistered → Self-Model Update
+    Subscriber 13: AgentRegistered → Self-Model Update
     When an agent registers (or re-registers), update the node's
     self-model to reflect current capabilities.
     This is RSI Pillar I: the system knows what it can do.
@@ -913,13 +913,13 @@ class AgentRegisteredSelfModelUpdate:
         )
 
         logger.info(
-            f"[SUB-12] 🤖 Self-model updated: {agent_type}:{agent_id} "
+            f"[SUB-13] 🤖 Self-model updated: {agent_type}:{agent_id} "
             f"({len(capabilities)} capabilities, v{version})"
         )
 
 
 # ═══════════════════════════════════════════════════════════════════
-# WIRING: Connect all 12 subscribers to the EventBus
+# WIRING: Connect all 13 subscribers to the EventBus
 # ═══════════════════════════════════════════════════════════════════
 
 
@@ -942,7 +942,7 @@ def wire_all_subscribers(
     capability_registry,
 ) -> List[Subscriber]:
     """
-    Wire all 12 EventBus subscribers.
+    Wire all 13 EventBus subscribers.
 
     Call this during node initialization (genesis sequence).
     All dependencies must be initialized before calling this.
@@ -971,7 +971,10 @@ def wire_all_subscribers(
     for sub in subscribers:
         bus.subscribe(sub)
 
-    logger.info(f"═══ ALL 12 SUBSCRIBERS WIRED ═══ (chain height: {bus.chain_height})")
+    logger.info(
+        f"═══ ALL {len(subscribers)} SUBSCRIBERS WIRED ═══ "
+        f"(chain height: {bus.chain_height})"
+    )
     return subscribers
 
 
@@ -1098,7 +1101,7 @@ def _run_smoke_tests():
         capability_registry=MockCapRegistry(),
     )
 
-    assert len(subs) == 12, f"Expected 12 subscribers, got {len(subs)}"
+    assert len(subs) == 13, f"Expected 13 subscribers, got {len(subs)}"
 
     # Test Phase 1: Learning loop
     bus.publish(EventType.ACTION_INTENT, {"intent": "test task", "session_id": "s1"})
@@ -1170,10 +1173,10 @@ def _run_smoke_tests():
     assert bus.verify_chain(), "Chain integrity check failed!"
     assert bus.chain_height == 11, f"Expected 11 events, got {bus.chain_height}"
 
-    print("═══ ALL 12 SUBSCRIBERS: SMOKE TEST PASSED ═══")
+    print("═══ ALL 13 SUBSCRIBERS: SMOKE TEST PASSED ═══")
     print(f"  Events processed: {bus.chain_height}")
     print("  Chain integrity: VERIFIED")
-    print(f"  Subscribers wired: {len(subs)}/12")
+    print(f"  Subscribers wired: {len(subs)}/13")
 
 
 if __name__ == "__main__":

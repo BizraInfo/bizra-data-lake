@@ -155,7 +155,7 @@ class SovereignOrganism:
       - SovereignNervousSystem (S1 reflex + S2 deliberation)
       - MissionPipeline (12-agent HHMM-routed chain)
       - Helix3Scheduler (S3 evolutionary heartbeat)
-      - EventBus + 12 subscribers
+      - EventBus + 13 subscribers
       - BLOOM token minter + community pool
       - ReflexCompiler (reflex cache)
       - Evidence chain (hash-linked receipts)
@@ -182,7 +182,7 @@ class SovereignOrganism:
         # Wired at boot(); all mission receipts flow through here.
         self._node0: Any = None
 
-        # CQRS EventBus with 12 subscribers (§1: "You ARE 12 agents")
+        # CQRS EventBus with 13 subscribers (§1: "You ARE 12 agents")
         self._cqrs_bus: Any = None
         self._subscribers: List[Any] = []
 
@@ -234,7 +234,7 @@ class SovereignOrganism:
           2. MissionPipeline → 12-agent HHMM chain
           3. wire_pipeline_to_nervous_system → connects muscles to brain
           4. wire_helix3 → connects evolutionary heartbeat
-          5. wire_all_subscribers → connects 12 CQRS bus subscribers
+          5. wire_all_subscribers → connects 13 CQRS bus subscribers
           6. (optional) start_heartbeat → 60s tick loop
 
         Args:
@@ -281,7 +281,7 @@ class SovereignOrganism:
             on_heartbeat=on_heartbeat,
         )
 
-        # Step 4: Wire 12 CQRS bus subscribers — the nervous system
+        # Step 4: Wire 13 CQRS bus subscribers — the nervous system
         org._wire_subscribers()
 
         # Step 5: Wire Node0Heartbeat — the ONE canonical ingest authority.
@@ -302,7 +302,7 @@ class SovereignOrganism:
         return org
 
     def _wire_subscribers(self) -> None:
-        """Wire the 12 CQRS EventBus subscribers — the organism's nervous system.
+        """Wire the 13 CQRS EventBus subscribers — the organism's nervous system.
 
         Uses no-op adapters for subsystems not yet initialized at this level.
         The bus module provides hash-chained event integrity (Nakamoto, 2008)
@@ -799,7 +799,7 @@ class SovereignOrganism:
             if self._on_receipt:
                 self._on_receipt(receipt)
 
-            # Emit to CQRS bus — fires 12 subscribers
+            # Emit to CQRS bus — fires 13 subscribers
             self._emit_cqrs_receipt(receipt)
 
             # Bridge to Node0Heartbeat — THE canonical ingest authority
@@ -858,7 +858,7 @@ class SovereignOrganism:
     # ─── CQRS Bus Emission ──────────────────────────────────────────
 
     def _emit_cqrs_receipt(self, receipt: OrganismReceipt) -> None:
-        """Publish a mission receipt to the CQRS bus, firing all 12 subscribers.
+        """Publish a mission receipt to the CQRS bus, firing all 13 subscribers.
 
         This is the causal bridge: organism receipt → hash-chained event log
         → subscriber side-effects (memory reinforce, HHMM promotion, PoI credit).
