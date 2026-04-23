@@ -40,7 +40,7 @@ logger = logging.getLogger("bizra.bus.subscribers")
 #       `IHSAN_GATE_BREACHED` is published; SUB-5 (`IhsanGateBreachHandler`)
 #       halts the session fail-closed.
 #
-#   • UNIFIED_IHSAN_THRESHOLD = 0.95 (from core.integration.constants)
+#   • UNIFIED_IHSAN_THRESHOLD is 0.95 (from core.integration.constants)
 #       Production-ideal — below this (but ≥ 0.85) the mission executed
 #       lawfully but fell short of production quality. `IHSAN_WARNING`
 #       is published; `IhsanWarningHandler` records telemetry WITHOUT
@@ -573,7 +573,7 @@ class IhsanWarningHandler:
 
     Fires ONLY when Ihsān is in the warn band: at or above the hard-halt
     floor (``MISSION_IHSAN_HALT_FLOOR = 0.85``) but below production ideal
-    (``UNIFIED_IHSAN_THRESHOLD = 0.95``). The mission executed lawfully;
+    (``UNIFIED_IHSAN_THRESHOLD`` is 0.95). The mission executed lawfully;
     this handler records telemetry and does NOT halt the session.
 
     Introduced 2026-04-21 to split the former conflated publish path at
