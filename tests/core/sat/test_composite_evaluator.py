@@ -1,8 +1,15 @@
 """Tests for SAT-5 Composite Evaluator."""
 
-from core.sat.composite_evaluator import evaluate_all_gates, evaluate_gates_for_receipt, CompositeVerdict
+import pytest
+
+from core.sat.composite_evaluator import (
+    CompositeVerdict,
+    evaluate_all_gates,
+    evaluate_gates_for_receipt,
+)
 
 
+@pytest.mark.slow
 def test_composite_evaluator_returns_verdict():
     verdict = evaluate_all_gates(skip_slow=True, skip_manual=True)
     assert isinstance(verdict, CompositeVerdict)

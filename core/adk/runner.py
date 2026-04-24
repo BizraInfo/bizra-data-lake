@@ -227,14 +227,20 @@ def _step_iisal(agent, mission, output, ihsan, verdict_str, is_pass):
 
 def _step_retrospective(mission, output, agent, fate_result, is_pass):
     """Step 7: Produce loop proof artifact."""
+    from bizra_config import DATA_LAKE_ROOT
     from core.proof_engine.loop_proof import execute_loop_proof
 
-    confidence = "high" if is_pass else "low"
-    proof_dir = Path(os.getenv("BIZRA_PROOFS_DIR", "/data/bizra/proofs"))
-    proof_dir.mkdir(parents=True, exist_ok=True)
+    if not is_pass:
+        return None
+
+    confidence = "high"
+    proof_dir = Path(
+        os.getenv("BIZRA_PROOFS_DIR", str(DATA_LAKE_ROOT / "artifacts" / "proofs"))
+    )
     output_path = proof_dir / f"loop-proof-{mission.id}.json"
 
     try:
+        proof_dir.mkdir(parents=True, exist_ok=True)
         loop_proof = execute_loop_proof(
             mission=f"[{agent.name}] {mission.question[:200]}",
             pat_answer=output.content[:2000],

@@ -11,16 +11,13 @@ import os
 import subprocess
 import urllib.error
 import urllib.request
-from pathlib import Path
 from typing import List
 
+from bizra_config import DATA_LAKE_ROOT
 from core.adk.agent import Agent, charter
 from core.adk.mission import Mission
 from core.adk.tools import tool
 
-DATA_LAKE_ROOT = Path(
-    os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake")
-)
 OLLAMA_URL = os.getenv("BIZRA_OLLAMA_URL", "http://127.0.0.1:11434")
 MODEL = os.getenv("BIZRA_STRATEGIST_MODEL", "gemma4:26b-bizra-16k")
 

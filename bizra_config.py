@@ -40,11 +40,12 @@ def _resolve_data_lake_root() -> Path:
     Resolve DATA_LAKE_ROOT with fallback hierarchy:
     1. BIZRA_DATA_LAKE_ROOT env var (explicit override)
     2. Platform-specific defaults
-    3. Current working directory fallback
+    3. Detected repository checkout
+    4. Platform default, even if it does not exist
     """
     # Explicit override always wins
     if env_root := os.getenv("BIZRA_DATA_LAKE_ROOT"):
-        return Path(env_root)
+        return Path(env_root).expanduser()
 
     # Platform-specific defaults
     if PLATFORM == "windows":
@@ -62,7 +63,33 @@ def _resolve_data_lake_root() -> Path:
     else:
         default = Path.cwd() / "bizra-data-lake"
 
+    if default.exists():
+        return default
+
+    detected = _find_repo_root(Path.cwd(), Path(__file__).resolve())
+    if detected is not None:
+        return detected
+
     return default
+
+
+def _find_repo_root(*starts: Path) -> Path | None:
+    """Find this checkout when platform defaults are unavailable.
+
+    GitHub Actions and other CI systems check the repository out under a
+    runner-owned workspace, not under ~/bizra-data-lake.  The config module
+    lives at the repository root, so walking upward from cwd and __file__
+    gives subprocess users a real cwd without weakening the explicit env
+    override or Node0 platform defaults.
+    """
+    for start in starts:
+        current = start if start.is_dir() else start.parent
+        for candidate in (current, *current.parents):
+            if (candidate / "bizra_config.py").is_file() and (
+                candidate / "core"
+            ).is_dir():
+                return candidate
+    return None
 
 
 # --- CORE PATHS (Environment-Configurable) ---

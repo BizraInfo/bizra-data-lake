@@ -470,6 +470,7 @@ class TestMerge:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.slow
 class TestClassify:
     """Tests for AI-powered classify operation (extension-fallback path)."""
 

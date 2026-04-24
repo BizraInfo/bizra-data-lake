@@ -22,6 +22,7 @@ def tmp_ledger(tmp_path):
 class TestSuccessPath:
     """Test 1: Real local question → PAT retrieves evidence → SAT PASS → full ledger chain."""
 
+    @pytest.mark.requires_ollama
     def test_full_mvda_cycle(self, tmp_ledger):
         result = execute_mvda(
             "What is the Spearpoint seal (commit b08f2208) and why does it matter?",

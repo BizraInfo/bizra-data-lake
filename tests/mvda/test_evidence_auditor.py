@@ -106,6 +106,7 @@ class TestAuditorInFate:
         actors = [json.loads(l)["actor"] for l in lines]
         assert "evidence_auditor" in actors
 
+    @pytest.mark.requires_ollama
     def test_valid_refs_pass_through(self, tmp_ledger):
         """Real evidence refs should pass auditor and reach SAT."""
         result = execute_mvda(

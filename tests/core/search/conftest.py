@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import sys
+from importlib.machinery import ModuleSpec
 from types import ModuleType
 from unittest.mock import MagicMock
 
 import pytest
 
 # ---------------------------------------------------------------------------
-# Module-level faiss/pandas mock injection.
+# faiss/pandas mocks used by vector-search tests.
 #
-# test_vector_search.py needs mock faiss/pandas in sys.modules BEFORE its
-# module-level imports. We do this injection here (conftest loads first)
-# and wrap it in a module-scoped fixture that RESTORES originals when
-# all tests in this directory finish — preventing pollution of later test
-# modules (e.g. transformers -> importlib.util.find_spec("faiss")).
+# Do not inject these at conftest import time: pytest may collect this
+# conftest before unrelated modules run, and global pandas/faiss pollution
+# makes real-data tests see MagicMock objects.
 # ---------------------------------------------------------------------------
 
 _SENTINEL = object()
@@ -26,17 +25,15 @@ _prev_pandas = sys.modules.get("pandas", _SENTINEL)
 
 # Create mocks
 mock_faiss = ModuleType("faiss")
+mock_faiss.__spec__ = ModuleSpec("faiss", loader=None)
 mock_faiss.METRIC_L2 = 1  # type: ignore[attr-defined]
 mock_faiss.METRIC_INNER_PRODUCT = 0  # type: ignore[attr-defined]
 mock_faiss.read_index = MagicMock()  # type: ignore[attr-defined]
 
 mock_pd_module = ModuleType("pandas")
+mock_pd_module.__spec__ = ModuleSpec("pandas", loader=None)
 mock_pd_module.read_parquet = MagicMock()  # type: ignore[attr-defined]
 mock_pd_module.DataFrame = MagicMock  # type: ignore[attr-defined]
-
-# Inject immediately (needed for test_vector_search.py's top-level imports)
-sys.modules["faiss"] = mock_faiss
-sys.modules["pandas"] = mock_pd_module
 
 
 def _restore_real_modules() -> None:

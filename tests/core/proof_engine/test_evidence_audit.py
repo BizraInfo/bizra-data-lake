@@ -1,10 +1,6 @@
 """Tests for promoted Evidence Auditor in core.proof_engine."""
 
-import pytest
-
 from core.proof_engine.evidence_audit import (
-    EvidenceAuditResult,
-    RefAudit,
     audit_evidence,
     _classify_ref,
     _extract_value,
@@ -64,11 +60,13 @@ class TestAuditEvidence:
         assert not result.all_refs_valid
 
     def test_mixed_refs(self):
-        result = audit_evidence([
-            "git-show:b08f2208",
-            "file:NONEXISTENT.pdf",
-            "file:core/zpk/kernel.py",
-        ])
+        result = audit_evidence(
+            [
+                "git-show:b08f2208",
+                "file:NONEXISTENT.pdf",
+                "file:core/zpk/kernel.py",
+            ]
+        )
         assert result.valid_count == 2
         assert result.invalid_count == 1
         assert not result.all_refs_valid
@@ -83,11 +81,16 @@ class TestAuditEvidence:
         assert result.total_count == 0
         assert not result.all_refs_valid
 
-    def test_gold_chunk_valid(self):
+    def test_gold_chunk_valid(self, tmp_path):
         import pandas as pd
-        df = pd.read_parquet("/data/bizra/04_GOLD/chunks.parquet", columns=["chunk_id"])
-        real_id = df.iloc[0]["chunk_id"]
-        result = audit_evidence([f"04_GOLD:chunk:{real_id}"])
+
+        gold_path = tmp_path / "04_GOLD"
+        gold_path.mkdir()
+        pd.DataFrame({"chunk_id": ["chunk-test-001"]}).to_parquet(
+            gold_path / "chunks.parquet"
+        )
+
+        result = audit_evidence(["04_GOLD:chunk:chunk-test-001"], gold_path=gold_path)
         assert result.valid_count == 1
         assert result.all_refs_valid
 

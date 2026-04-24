@@ -11,16 +11,13 @@ import os
 import subprocess
 import urllib.error
 import urllib.request
-from pathlib import Path
 from typing import List
 
+from bizra_config import DATA_LAKE_ROOT
 from core.adk.agent import Agent, charter
 from core.adk.mission import Mission
 from core.adk.tools import tool
 
-DATA_LAKE_ROOT = Path(
-    os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra/repos/bizra-data-lake")
-)
 OLLAMA_URL = os.getenv("BIZRA_OLLAMA_URL", "http://127.0.0.1:11434")
 MODEL = os.getenv("BIZRA_PAT_MODEL", "gemma4:26b-bizra-16k")
 
@@ -40,6 +37,13 @@ class ResearcherAgent(Agent):
         """Search git history, docs, and corpus for evidence."""
         evidence_parts: list[str] = []
         refs: list[str] = []
+        q_lower = question.lower()
+        if not any(
+            term in q_lower
+            for term in ("bizra", "spearpoint", "proof", "receipt", "fate", "adk")
+        ):
+            self._evidence_text = ""
+            return refs
 
         # Git log for relevant commits
         for grep_term in ["spearpoint", "proof", "receipt", "fate"]:
@@ -84,12 +88,11 @@ class ResearcherAgent(Agent):
         for doc in [
             DATA_LAKE_ROOT / "BIZRA_CANONICAL.md",
             DATA_LAKE_ROOT / "ARCHITECTURE.md",
-            Path("/data/bizra/docs/llm-stack.md"),
+            DATA_LAKE_ROOT / "docs" / "llm-stack.md",
         ]:
             if doc.exists():
                 try:
                     text = doc.read_text()[:2000]
-                    q_lower = question.lower()
                     if any(kw in text.lower() for kw in q_lower.split()[:3]):
                         evidence_parts.append(f"{doc.name}:\n{text[:400]}")
                         refs.append(f"file:{doc.name}")
