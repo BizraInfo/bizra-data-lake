@@ -10,6 +10,7 @@ from core.sat.composite_evaluator import (
 
 
 @pytest.mark.slow
+@pytest.mark.xdist_group("runtime_heavy")
 def test_composite_evaluator_returns_verdict():
     verdict = evaluate_all_gates(skip_slow=True, skip_manual=True)
     assert isinstance(verdict, CompositeVerdict)

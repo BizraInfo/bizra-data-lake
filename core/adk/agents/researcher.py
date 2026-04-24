@@ -38,12 +38,6 @@ class ResearcherAgent(Agent):
         evidence_parts: list[str] = []
         refs: list[str] = []
         q_lower = question.lower()
-        if not any(
-            term in q_lower
-            for term in ("bizra", "spearpoint", "proof", "receipt", "fate", "adk")
-        ):
-            self._evidence_text = ""
-            return refs
 
         # Git log for relevant commits
         for grep_term in ["spearpoint", "proof", "receipt", "fate"]:
@@ -84,11 +78,16 @@ class ResearcherAgent(Agent):
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
-        # Documentation search
+        # Documentation search. llm-stack.md lives outside the repo on Node0
+        # native Linux (/data/bizra/docs/); include both so the evidence path
+        # still works when DATA_LAKE_ROOT resolves to the repo checkout.
+        from pathlib import Path as _Path
+
         for doc in [
             DATA_LAKE_ROOT / "BIZRA_CANONICAL.md",
             DATA_LAKE_ROOT / "ARCHITECTURE.md",
             DATA_LAKE_ROOT / "docs" / "llm-stack.md",
+            _Path("/data/bizra/docs/llm-stack.md"),
         ]:
             if doc.exists():
                 try:

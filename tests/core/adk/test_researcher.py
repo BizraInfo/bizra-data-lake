@@ -35,8 +35,13 @@ async def test_researcher_gathers_evidence():
 
 
 @pytest.mark.asyncio
+@pytest.mark.requires_ollama
 async def test_researcher_refuses_without_evidence():
-    """A question with no local evidence should produce honest refusal."""
+    """A question with no local evidence should produce honest refusal.
+
+    Reaches Ollama when refs land (git-show b08f2208 always matches), so this
+    test requires a live Ollama backend to exercise the FATE-block path.
+    """
     agent = ResearcherAgent()
     mission = make_test_mission("What is the airspeed velocity of an unladen swallow?")
     result = await agent.run(mission)
