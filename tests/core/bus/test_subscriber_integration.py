@@ -1,8 +1,8 @@
 """
-EventBus 12-Subscriber Integration Test — Phase 82
+EventBus 13-Subscriber Integration Test — Phase 82
 ═══════════════════════════════════════════════════
 
-Proves all 12 subscribers fire in correct sequence when events are
+Proves all 13 subscribers fire in correct sequence when events are
 published through the EventBus. Each subscriber receives its event,
 triggers its side-effect, and the hash chain stays valid throughout.
 
@@ -243,23 +243,23 @@ def deps():
 
 @pytest.fixture
 def wired_bus(deps):
-    """EventBus with all 12 subscribers wired."""
+    """EventBus with all 13 subscribers wired."""
     bus = EventBus()
     subs = wire_all_subscribers(bus, **deps)
     return bus, subs, deps
 
 
 # ═══════════════════════════════════════════════════════════════
-# Test: All 12 subscribers wire correctly
+# Test: All 13 subscribers wire correctly
 # ═══════════════════════════════════════════════════════════════
 
 
 class TestSubscriberWiring:
-    """Verify all 12 subscribers are wired to the EventBus."""
+    """Verify all 13 subscribers are wired to the EventBus."""
 
-    def test_wire_all_returns_12_subscribers(self, wired_bus):
+    def test_wire_all_returns_13_subscribers(self, wired_bus):
         _, subs, _ = wired_bus
-        assert len(subs) == 12
+        assert len(subs) == 13
 
     def test_wire_all_subscriber_types(self, wired_bus):
         _, subs, _ = wired_bus
@@ -371,12 +371,12 @@ class TestPhase2Safety:
 
 
 # ═══════════════════════════════════════════════════════════════
-# Test: Phase 3 — Economics (Subscribers 8-12)
+# Test: Phase 3 — Economics (Subscribers 8-13)
 # ═══════════════════════════════════════════════════════════════
 
 
 class TestPhase3Economics:
-    """Subscribers 8-12: economic reward and budget tracking."""
+    """Subscribers 8-13: economic reward and budget tracking."""
 
     def test_action_receipt_promotes_via_hhmm(self, wired_bus):
         bus, _, deps = wired_bus
@@ -436,12 +436,12 @@ class TestPhase3Economics:
 
 
 # ═══════════════════════════════════════════════════════════════
-# Test: Full sequence — all 12 fire in order
+# Test: Full sequence — all 13 fire in order
 # ═══════════════════════════════════════════════════════════════
 
 
 class TestFullSequence:
-    """All 12 subscribers fire in sequence, chain stays valid."""
+    """All 13 subscribers fire in sequence, chain stays valid."""
 
     def test_full_11_event_sequence_chain_valid(self, wired_bus):
         """Publish all 11 event types in lifecycle order; chain must remain valid."""
@@ -610,7 +610,7 @@ class TestFullSequence:
         assert len(deps["token_minter"].rewards) >= 1
         # SUB-11: Budget reported
         assert deps["context_budget"].total_used >= 500
-        # SUB-12: Self-model updated
+        # SUB-13: Self-model updated
         assert len(deps["self_model"].updates) >= 1
         assert len(deps["capability_registry"].registrations) >= 1
 

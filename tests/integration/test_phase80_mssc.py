@@ -75,9 +75,9 @@ class TestBloomTokenSystem:
 
 
 class TestEventBusSubscribers:
-    """Prove all 12 subscribers wire and the bus emits."""
+    """Prove all 13 subscribers wire and the bus emits."""
 
-    def test_wire_all_12_subscribers(self):
+    def test_wire_all_13_subscribers(self):
         from core.bus.subscribers import EventBus, wire_all_subscribers
 
         bus = EventBus()
@@ -98,7 +98,7 @@ class TestEventBusSubscribers:
             self_model=None,
             capability_registry=None,
         )
-        assert len(subs) == 12, f"Expected 12 subscribers, got {len(subs)}"
+        assert len(subs) == 13, f"Expected 13 subscribers, got {len(subs)}"
 
     def test_event_bus_hash_chain(self):
         from core.bus.subscribers import EventBus, EventType

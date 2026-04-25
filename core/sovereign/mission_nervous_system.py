@@ -417,14 +417,35 @@ class SovereignNervousSystem:
         macro_state: Optional[str] = None,
         ihsan_override: Optional[float] = None,
         snr_override: Optional[float] = None,
+        raw_prompt: Optional[str] = None,
     ) -> NervousSystemReceipt:
         """Execute a mission through the S1/S2 cognitive pipeline.
 
         Args:
-            mission_text: The user's mission description.
+            mission_text: The canonical mission description. Typically a
+                liturgical mission-spine wrapped version of the raw prompt
+                (``## Niyyah / ## Bayyinah / ## Hadd / ## Qasd`` from
+                ``core.prompt.seed_chain``). Kept intact for receipts,
+                evidence, reflex pattern matching, and canonical runtime
+                structure.
             macro_state: Optional HHMM macro state for hierarchical lookup.
             ihsan_override: Override Ihsān score (for testing).
             snr_override: Override SNR score (for testing).
+            raw_prompt: Optional raw user prompt BEFORE the mission-spine
+                wrapper is applied. When provided, used as the ``input_text``
+                for the Ihsān composite scorer so contextual_relevance and
+                intent_alignment are measured against the true user intent
+                rather than the liturgical scaffolding. When None (legacy
+                callers), scoring falls back to ``mission_text``.
+
+                This decoupling closes the scorer-vs-spine drift surfaced
+                by the canonical spearpoint replay test on 2026-04-21:
+                wrapped 835-char spine text dropped ``contextual_relevance``
+                from 0.68 (raw prompt) to 0.39, pulling the composite from
+                0.87 to 0.79 — below the 0.85 Ihsān floor. Preserving the
+                wrapped ``mission_text`` for evidence while scoring against
+                ``raw_prompt`` restores the correct signal without changing
+                the Ihsān floor or the scorer calibration.
 
         Returns:
             NervousSystemReceipt with full evidence chain.
@@ -435,12 +456,21 @@ class SovereignNervousSystem:
         events_published: List[str] = []
         metadata: Dict[str, Any] = {}
 
+        # Reflex-key input: the stable semantic intent. When raw_prompt is
+        # provided, use it so the reflex key survives variable Bayyinah
+        # evidence fields (e.g., "Prior receipt: <hash>" changes between
+        # run1 and run2 of an otherwise-identical mission). This mirrors
+        # the raw_prompt decoupling for Ihsān scoring (see _score_ihsan
+        # call below). Wrapped `mission_text` remains canonical runtime
+        # evidence for receipts, inference, and audit.
+        reflex_key_input = raw_prompt if raw_prompt is not None else mission_text
+
         # ── S1 PROBE: Reflex cache lookup (Kahneman System 1) ────
         reflex_hit = False
         output_text = ""
 
         if self._reflex is not None:
-            entry = self._reflex.lookup(mission_text, macro_state=macro_state)
+            entry = self._reflex.lookup(reflex_key_input, macro_state=macro_state)
             if entry is not None:
                 output_text = entry.output_template
                 reflex_hit = True
@@ -496,10 +526,14 @@ class SovereignNervousSystem:
                 )
 
         # ── SCORE: Constitutional quality gates (Al-Ghazali) ─────
+        # Use raw_prompt when provided (decouples scoring from the
+        # liturgical mission-spine wrapper); fall back to mission_text for
+        # legacy callers. See docstring for the 2026-04-21 rationale.
+        scoring_input = raw_prompt if raw_prompt is not None else mission_text
         ihsan = (
             ihsan_override
             if ihsan_override is not None
-            else _score_ihsan(output_text, mission_text)
+            else _score_ihsan(output_text, scoring_input)
         )
         snr = snr_override if snr_override is not None else _score_snr(output_text)
         if metadata.get("degraded"):
@@ -546,13 +580,17 @@ class SovereignNervousSystem:
                 )
 
         # ── RECORD: Observation for future S1 (Deming PDCA) ─────
+        # Use reflex_key_input (raw_prompt when provided) so the stored
+        # pattern_hash matches what a future lookup will compute. Mixing
+        # wrapped mission_text on write with raw_prompt on read would
+        # guarantee reflex miss even for semantically identical missions.
         if not reflex_hit and self._reflex is not None:
             precipitated_entry = self._reflex.record_observation(
-                input_text=mission_text,
+                input_text=reflex_key_input,
                 output_text=output_text,
                 ihsan_composite=ihsan,
             )
-            pattern_hash = self._reflex._hash_input(mission_text)
+            pattern_hash = self._reflex._hash_input(reflex_key_input)
             if precipitated_entry is not None:
                 metadata["reflex_delta"] = {
                     "compiled": True,
@@ -735,18 +773,41 @@ class SovereignNervousSystem:
         )
         published.append("action.receipt")
 
-        if ihsan < UNIFIED_IHSAN_THRESHOLD:
-            # IHSAN_GATE_BREACHED — triggers safety handlers
+        # Two-band Ihsān policy (see core.bus.subscribers
+        # MISSION_IHSAN_HALT_FLOOR docstring, 2026-04-21):
+        #   ihsan < 0.85              → IHSAN_GATE_BREACHED (hard halt)
+        #   0.85 ≤ ihsan < 0.95       → IHSAN_WARNING (warn, no halt)
+        #   ihsan ≥ 0.95              → neither (production-ideal met)
+        from core.bus.subscribers import MISSION_IHSAN_HALT_FLOOR
+
+        if ihsan < MISSION_IHSAN_HALT_FLOOR:
+            # Hard halt — below operational minimum.
+            # ``violation_dimensions`` keeps the legacy string
+            # "ihsan_below_threshold" for backward compatibility with
+            # downstream subscribers; the ``threshold`` field now reports
+            # the actual trigger value (0.85, not 0.95).
             self._bus.publish(
                 EventType.IHSAN_GATE_BREACHED,
                 {
                     **base_payload,
                     "action_type": action_type,
-                    "threshold": UNIFIED_IHSAN_THRESHOLD,
+                    "threshold": MISSION_IHSAN_HALT_FLOOR,
                     "violation_dimensions": ["ihsan_below_threshold"],
                 },
             )
             published.append("ihsan.gate.breached")
+        elif ihsan < UNIFIED_IHSAN_THRESHOLD:
+            # Warn band — lawful but below production ideal. Does NOT halt.
+            self._bus.publish(
+                EventType.IHSAN_WARNING,
+                {
+                    **base_payload,
+                    "action_type": action_type,
+                    "threshold": UNIFIED_IHSAN_THRESHOLD,
+                    "halt_floor": MISSION_IHSAN_HALT_FLOOR,
+                },
+            )
+            published.append("ihsan.warning")
 
         # SESSION_END — triggers reflex compilation + PoI accumulation
         self._bus.publish(
