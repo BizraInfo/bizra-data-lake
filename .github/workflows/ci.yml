@@ -64,8 +64,10 @@ jobs:
         run: |
           # PYSEC-2024-48: urllib3 DoS via header regex — mitigated by httpx usage, no direct urllib3 calls
           # CVE-2026-4539: pygments 2.19.2 — transitive dep, no direct exposure in BIZRA code paths
+          # CVE-2026-3219: CI_RUNNER_ENVIRONMENT_DRIFT / TEMPORARY_ALLOWLIST_PENDING_UPSTREAM_FIX.
+          # Triggered by GitHub runner pip 26.0.1; review/remove once runner pip or pip-audit baseline no longer flags it.
           # Constitutional: security scans MUST block — no || true, no silent swallow
-          pip-audit --strict --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539
+          pip-audit --strict --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
 
       - name: Check formatting with Black
         run: black --check --diff core/
@@ -1653,7 +1655,9 @@ jobs:
           pip install -e ".[dev]"
           # PYSEC-2024-48: urllib3 DoS via header regex — mitigated by httpx usage
           # CVE-2026-4539: pygments 2.19.2 — transitive dep, no direct exposure
-          pip-audit --strict --desc --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539
+          # CVE-2026-3219: CI_RUNNER_ENVIRONMENT_DRIFT / TEMPORARY_ALLOWLIST_PENDING_UPSTREAM_FIX.
+          # Triggered by GitHub runner pip 26.0.1; review/remove once runner pip or pip-audit baseline no longer flags it.
+          pip-audit --strict --desc --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
 
       - name: Rust Security Audit
         working-directory: bizra-omega
