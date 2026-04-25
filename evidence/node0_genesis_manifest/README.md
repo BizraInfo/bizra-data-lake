@@ -59,7 +59,7 @@ The first canonical roots:
 
 1. **الرسالة** (Al-Risāla) — Mumu's first origin document, Ramadan 2023. Status: `private` + `FOUNDER_STATED` + `PLANNED` until the operator upload anchors it.
 2. **البذرة** (Al-Bidhra) — Mumu's second origin document, Ramadan 2023. Same handling.
-3. **`docs/canon/bizra-origin-canon-v1.md`** — in-tree canon-v1 document (closest verifiable analogue to the origin kernel until BIZRA_ORIGIN_KERNEL.md is committed). Status: `public` + `VERIFIED`.
+3. **`docs/bizra-origin-canon-v1.md`** — in-tree canon-v1 document (closest verifiable analogue to the origin kernel until BIZRA_ORIGIN_KERNEL.md is committed). Status: `public` + `VERIFIED`.
 4. **Repo HEAD index** — `git ls-tree HEAD` digest. Status: `public` + `VERIFIED`.
 5. **Founder-stated metrics** (15k+ hours, 1601 conversations, etc.) — recorded as `PLANNED` placeholder entries until backed by timestamped artifacts (commit logs, calendar exports, etc.). The manifest acknowledges them; it does NOT validate them.
 

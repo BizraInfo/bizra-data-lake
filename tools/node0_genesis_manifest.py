@@ -145,6 +145,28 @@ def _git_head_sha(repo_root: Path) -> Optional[str]:
     return result.stdout.strip()
 
 
+def _git_porcelain_status(repo_root: Path) -> Optional[str]:
+    """Return ``git status --porcelain`` output (stripped) or None on failure.
+
+    None means git is unavailable; the caller decides whether that's
+    fatal. Empty string means a clean working tree.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(repo_root),
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
 # -- Asset processing ------------------------------------------------------
 
 
@@ -152,8 +174,14 @@ VALID_VISIBILITY = {"public", "private", "hash_only", "redacted"}
 VALID_PROOF_STATUS = {"VERIFIED", "MEASURED", "DERIVED", "FOUNDER_STATED", "PLANNED"}
 
 
-def _validate_asset(asset: dict[str, Any], idx: int) -> list[str]:
+def _validate_asset(asset: Any, idx: int) -> list[str]:
     errors: list[str] = []
+    if not isinstance(asset, dict):
+        # Non-object entries (strings, lists, etc.) must produce a controlled
+        # validation error instead of crashing on .get() below.
+        return [
+            f"assets[{idx}] must be a JSON object; got {type(asset).__name__}"
+        ]
     for required in ("asset_id", "category", "title", "visibility", "proof_status"):
         if not asset.get(required):
             errors.append(f"asset[{idx}] missing required field: {required}")
@@ -337,6 +365,18 @@ def main(argv: Optional[list[str]] = None) -> int:
         action="store_true",
         help="Suppress info-level logging.",
     )
+    parser.add_argument(
+        "--allow-dirty-working-tree",
+        action="store_true",
+        help=(
+            "Allow the manifest to run on a repo with uncommitted changes. "
+            "DEFAULT: fail closed. The git ls-tree HEAD repo-index asset reflects "
+            "HEAD while file content hashes reflect the working tree; on a dirty "
+            "checkout these two views diverge and the ledger mixes snapshots. "
+            "Setting this flag stamps a snapshot_consistency_warning into the "
+            "run report and proceeds anyway."
+        ),
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(
@@ -370,6 +410,35 @@ def main(argv: Optional[list[str]] = None) -> int:
     LOG.info("manifest=%s", manifest_path)
     LOG.info("output_dir=%s", output_dir)
     LOG.info("hash_algorithm=%s", algorithm)
+
+    # Snapshot-consistency check (Codex P1).
+    # The repo-index asset hashes `git ls-tree HEAD` while public assets hash
+    # working-tree bytes. On a dirty repo these reflect different snapshots
+    # and the ledger becomes internally inconsistent. Default: fail closed.
+    porcelain = _git_porcelain_status(repo_root)
+    dirty_working_tree_allowed = bool(args.allow_dirty_working_tree)
+    snapshot_consistency_warning: Optional[str] = None
+    if porcelain is None:
+        # git unavailable; not a dirtiness signal — proceed but note it.
+        snapshot_consistency_warning = (
+            "git status unavailable; snapshot-consistency check skipped"
+        )
+        LOG.warning(snapshot_consistency_warning)
+    elif porcelain:
+        message = (
+            "dirty working tree detected — file content hashes reflect "
+            "uncommitted bytes while the repo-index asset uses git ls-tree HEAD. "
+            "Re-run on a clean checkout, or pass --allow-dirty-working-tree to "
+            "proceed with a snapshot-consistency warning."
+        )
+        if not dirty_working_tree_allowed:
+            LOG.error("%s\n--- git status --porcelain ---\n%s", message, porcelain)
+            return 4
+        snapshot_consistency_warning = (
+            "dirty_working_tree allowed via --allow-dirty-working-tree; "
+            "ledger mixes working-tree file hashes with HEAD tree-index digest"
+        )
+        LOG.warning(snapshot_consistency_warning)
 
     assets = manifest.get("assets") or []
     LOG.info("processing %d asset(s)", len(assets))
@@ -504,6 +573,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         "visibility_counts": visibility_counts,
         "warnings": all_warnings,
         "final_chain_hash": prev_line_hash,
+        "dirty_working_tree_allowed": dirty_working_tree_allowed,
+        "snapshot_consistency_warning": snapshot_consistency_warning,
         "constraints_honored": {
             "no_runtime_files_edited": True,
             "no_commits_or_pushes": True,
