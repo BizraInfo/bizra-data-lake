@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bizra.ai/schemas/node0_genesis_asset_manifest_v1.json",
+  "title": "Node0 Genesis Asset Manifest v1",
+  "description": "Schema for declaring Node0 founder-seed assets prior to public hash verification. Each asset entry MUST declare its visibility and proof_status; the manifest script (tools/node0_genesis_manifest.py) honors visibility when computing hashes.",
+  "type": "object",
+  "required": ["version", "node_id", "generated_at_utc", "hash_algorithm", "assets"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "node0-genesis-manifest-v1"
+    },
+    "node_id": {
+      "type": "string",
+      "description": "Canonical Node0 reference, e.g. BIZRA-641A1D00 / Mumo / 369319cd…676a per project_node0_sovereign_origin_sealed memory."
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "hash_algorithm": {
+      "type": "string",
+      "enum": ["BLAKE3", "SHA-256"],
+      "description": "BLAKE3 preferred; SHA-256 only as fallback."
+    },
+    "previous_manifest_hash": {
+      "type": ["string", "null"],
+      "description": "Hex of the prior manifest's BLAKE3 hash for chain continuity. Null on the first manifest."
+    },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Asset" }
+    },
+    "notes": { "type": "string" }
+  },
+  "definitions": {
+    "Asset": {
+      "type": "object",
+      "required": ["asset_id", "category", "title", "visibility", "proof_status"],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "pattern": "^node0-[a-z0-9_-]+-[0-9]{4,}$",
+          "description": "Stable identifier within the manifest. Must not change across regenerations."
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "genesis_document",
+            "repo",
+            "chat_export",
+            "research",
+            "prototype",
+            "archive",
+            "receipt",
+            "code_index",
+            "evidence_bundle"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable label. May be in any language. Used in reports; never hashed as content."
+        },
+        "language": {
+          "type": "string",
+          "description": "BCP-47 tag, e.g. ar, en. Optional."
+        },
+        "created_at_claim": {
+          "type": "string",
+          "description": "Free-form date-of-origin claim, e.g. 'Ramadan 2023'. Subject to FOUNDER_STATED until anchored."
+        },
+        "current_location": {
+          "type": "string",
+          "description": "Human-readable hint of where the asset lives. Avoid leaking absolute paths to private archives."
+        },
+        "path_relative": {
+          "type": ["string", "null"],
+          "description": "If the asset is in-tree, repo-relative path. Null for private/redacted assets."
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["public", "private", "hash_only", "redacted"],
+          "description": "Controls what the manifest script does. 'public' hashes content openly; 'private' hashes content but does NOT include the bytes anywhere; 'hash_only' identical to 'private' (alias); 'redacted' skips entirely with reason."
+        },
+        "proof_status": {
+          "type": "string",
+          "enum": ["VERIFIED", "MEASURED", "DERIVED", "FOUNDER_STATED", "PLANNED"],
+          "description": "Truth label per BIZRA claim discipline. VERIFIED requires hash + verifiable origin; FOUNDER_STATED is unverified founder testimony; PLANNED is not yet present."
+        },
+        "redaction_reason": {
+          "type": "string",
+          "description": "Required when visibility=='redacted'. Brief, non-leaking explanation."
+        },
+        "size_bytes": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Computed by the manifest script for resolvable assets. Do not hand-edit."
+        },
+        "content_hash": {
+          "type": ["string", "null"],
+          "description": "Hex-encoded BLAKE3 (or SHA-256) of the file bytes. Computed by script; do not hand-edit."
+        },
+        "metadata_hash": {
+          "type": ["string", "null"],
+          "description": "Hash of (path||size||proof_status||visibility||created_at_claim) — always computable, even for redacted assets, because no raw content is involved."
+        },
+        "poi_relevance": {
+          "type": "string",
+          "description": "Why this asset matters to Node0 genesis. Free text."
+        },
+        "risk_notes": {
+          "type": "string",
+          "description": "Privacy/security/legal flags for this asset. e.g. 'contains personal medical context — keep redacted forever'."
+        }
+      }
+    }
+  }
+}
