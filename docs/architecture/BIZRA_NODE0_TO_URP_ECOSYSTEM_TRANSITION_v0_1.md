@@ -13,7 +13,7 @@ Node0 is a **bootstrap**, not a destination.
 
 Before BIZRA can credibly describe itself as a decentralized agentic ecosystem, one Node must prove it can stand alone — execute missions, sign receipts, replay its own state, hold its constitutional gates, recover from restart — entirely on a single machine, with no external dependency.
 
-This document records, as canon, how the architecture moves from that proven single-node baseline through the Universal Resource Pool (URP), the SAT-5 network layer, federated cognition, and opt-in autopoiesis. It states explicitly what is **measured**, what is **planned**, and what is **directional only**.
+This document records, as canon, how the architecture moves from that proven single-node baseline through the URP (Universal Resource Pool), the SAT-5 network layer, federated cognition, and opt-in autopoiesis. It states explicitly what is **measured**, what is **planned**, and what is **directional only**.
 
 The canonical sentence:
 

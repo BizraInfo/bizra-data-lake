@@ -1,5 +1,32 @@
 # Node0 Activation Readiness Audit — BIZRA v0.1
 
+## 2026-04-26 Closure Addendum
+
+The original audit below is preserved as the v0.1 finding set. Several Tier D documentation blockers have since been closed by the Node0 GTM handover kit and the Canon Store Ingestion Gate design note.
+
+Latest safe checks:
+
+| Check | Result |
+|---|---|
+| `python3 -m py_compile scripts/node0_standalone.py tests/scripts/test_node0_standalone.py` | PASS |
+| `python3 scripts/node0_standalone.py health` | PASS, `status=ready`, `ready=true`, 11/11 status-determining gates green |
+| `python3 scripts/node0_standalone.py pilot-doctor` | PASS, `status=ready`, `blocking=[]` |
+
+Updated Tier D blocker status:
+
+| Original blocker | Current status | Evidence |
+|---|---|---|
+| Node-onboarding runbook | CLOSED_FOR_PRIVATE_PILOT | `docs/gtm/node0_activation_go_to_market_v0_1/USER_NODE_ONBOARDING_RUNBOOK.md` |
+| Minimum-hardware profile | CLOSED_FOR_PRIVATE_PILOT | `docs/gtm/node0_activation_go_to_market_v0_1/MINIMUM_HARDWARE_PROFILE.md` |
+| Canon Store Ingestion Gate spec | CLOSED_AS_DESIGN_ONLY | `docs/audits/omnidirectional_hyperdimensional_audit_v0_1/CANON_STORE_INGESTION_GATE_DESIGN.md` |
+| Operator kill-switch documented | CLOSED_FOR_PRIVATE_PILOT | `docs/gtm/node0_activation_go_to_market_v0_1/OPERATOR_KILL_SWITCH_AND_INCIDENT_RUNBOOK.md` |
+| Public claim discipline on bizra.ai | STILL_BLOCKING_PUBLIC_SCALE | Needs live website cleanup, receipt links, or softened claims. |
+| Privacy policy / privacy-sensitive copy | STILL_BLOCKING_PUBLIC_SCALE | Publish policy or avoid exact privacy/no-telemetry claims. |
+
+Updated call: **Node0 is GO for controlled private-pilot preparation, NO-GO for public production federation and paid ads.** The next measured gate is a reciprocal signed handshake with one trusted user device.
+
+---
+
 **Gate mapping:** Findings mapped to 5-tier Definition of Done.
 
 - **Tier A — Birth:** Node0 identity sealed.

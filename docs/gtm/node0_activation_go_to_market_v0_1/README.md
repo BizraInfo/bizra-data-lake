@@ -1,12 +1,12 @@
 # BIZRA Node0 Activation Go-to-Market Kit v0.1
 
-**Status:** Phase 1 handover kit draft  
-**Scope:** Private pilot, operator readiness, GTM, business model, and investor/operator handover.  
+**Status:** Phase 1 handover kit draft; private-pilot closure sprint active
+**Scope:** Private pilot, operator readiness, GTM, business model, and investor/operator handover.
 **Truth discipline:** Do not claim production federation until a second physical node completes an independently verified signed-receipt exchange.
 
 ## Executive Position
 
-Node0 is ready as a single-node sovereign runtime through Tier C. It is not yet ready for external-user production, paid ads, or Genesis-100 scale claims. The next honest milestone is a private pilot with a small number of ready user devices, beginning with a two-node URP handshake.
+Node0 is ready as a single-node sovereign runtime and currently reports all 11 status-determining health gates green. It is ready for controlled private-pilot preparation, not external-user production, paid ads, or Genesis-100 scale claims. The next honest milestone is a private pilot with one trusted user device, beginning with reciprocal signed handshake artifacts.
 
 Canonical sentence:
 
@@ -25,13 +25,15 @@ Canonical sentence:
 - `CLAIM_DISCIPLINE_FOR_NODE0_AND_URP.md` - approved language and prohibited claims.
 - `SOURCE_CODE_IMPLEMENTATION_BLUEPRINT.md` - exact private-pilot source surfaces, commands, tests, and remaining code gaps.
 - `PILOT_EVIDENCE_REGISTER.md` - measured local artifact proof, verification limits, and next evidence needed.
+- `PRODUCTION_READINESS_AND_GTM_CLOSURE_SPRINT.md` - current closure sprint, health evidence, stop lines, and GTM execution sequence.
 
 ## Decision Dashboard
 
 | Area | Current call | Meaning |
 |---|---|---|
-| Node0 Tier A-C | GO | Single-node identity, receipts, and visible surface are operational enough for internal activation. |
-| Tier D external use | NO-GO | Missing onboarding, hardware profile, privacy/claim cleanup, kill-switch, and ingestion-gate spec. |
+| Node0 single-node lifecycle | GO | `health` reports ready with all 11 status-determining gates green. |
+| Controlled private pilot | GO FOR PREP | `pilot-doctor` reports ready with no blockers; real two-device handshake still needs evidence. |
+| Tier D external public use | NO-GO | Public website claim cleanup, privacy-sensitive copy, and repeatable user-device evidence remain required. |
 | Multi-node URP | PLANNED | Heartbeat/prototype exists; production bootnode and second-node handshake are not proven yet. |
 | Local pilot handshake artifact | MEASURED_LOCAL_ARTIFACT | Node0 can generate and verify a signed private-pilot handshake JSON artifact. |
 | Organic launch | Conditional GO | Safe after visual QA, Arabic review, operator sign-off, and website claim cleanup. |

@@ -85,9 +85,9 @@ Blocked until:
 
 - Publish claim-safe website hero or staging page.
 - Prepare private pilot invite copy.
-- Select 10 candidate pilots, onboard 2-5.
-- Produce first pilot evidence pack.
-- Update investor handover with measured results.
+- Select one trusted user device for the first two-device evidence run, then expand to 2-5 only after reciprocal verification succeeds.
+- Produce the first two-device pilot evidence pack: Node0 artifact, user-device artifact, reciprocal verification results, device profile, and restart notes.
+- Update investor handover with measured results only.
 
 ## Success Metrics
 
@@ -106,3 +106,17 @@ Do not scale GTM if:
 - Onboarding requires undocumented operator improvisation.
 - Public site still contains unsupported production claims.
 - Privacy and incident handling are unclear.
+
+## Production Readiness Sequence
+
+Use `PRODUCTION_READINESS_AND_GTM_CLOSURE_SPRINT.md` as the controlling execution sequence for this launch lane.
+
+| Sequence | Gate | GTM permission |
+|---|---|---|
+| 1 | Node0 `health` reports `ready=true` and `pilot-doctor` reports `blocking=[]` | Internal demo and controlled pilot prep |
+| 2 | One trusted user device completes reciprocal signed artifact verification | Private pilot evidence claim |
+| 3 | 2-5 trusted devices repeat onboarding without undocumented operator improvisation | Private beta claim |
+| 4 | Website copy is claim-safe and privacy-sensitive claims are either published or softened | Organic launch |
+| 5 | Ads checklist is fully green, including claim sign-off and visual QA | Paid launch |
+
+Do not skip sequence steps. A green Node0 health report is necessary, but it is not sufficient for public production claims.

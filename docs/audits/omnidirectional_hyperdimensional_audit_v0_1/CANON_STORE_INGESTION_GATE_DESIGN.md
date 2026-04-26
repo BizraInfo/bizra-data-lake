@@ -146,7 +146,134 @@ Default posture: documentation targets first; runtime targets later.
 
 ---
 
-## 9. First Dry-Run Candidate
+## 9. Minimal Implementation Runway
+
+The first implementation should be a dry-run validator, not an ingestion writer. It should prove that BIZRA can reject unsafe canon promotion before it proves that it can write canon.
+
+### Phase K4.1 — Dry-run validator
+
+| Capability | Requirement |
+|---|---|
+| Input | JSON request file matching the schema in §3. |
+| Mutation | None. No target store writes. |
+| Output | `dry_run_receipt.json` or `rejection_receipt.json`. |
+| Network | Disabled by default. |
+| Exit code | `0` for accepted dry run, non-zero for rejection or internal error. |
+
+Recommended command shape:
+
+```bash
+python tools/canon_store/ingestion_gate.py validate \
+  --request path/to/ingestion_request.json \
+  --output artifacts/canon_store/dry_runs/
+```
+
+### Phase K4.2 — Documentation-index writer
+
+Only after K4.1 has accepted one valid candidate and rejected one tampered candidate should the gate write to the lowest-risk target: a documentation-only canon candidate index.
+
+Allowed mutation:
+
+```text
+docs/canon/CANDIDATE_CANON_INDEX.json
+```
+
+Paused mutations:
+
+- `docs/canon/BIZRA_ORIGIN_KERNEL.md`
+- `MEMORY.md`
+- Rust topology canon
+- Python constants
+- Any runtime canon database
+
+### Phase K4.3 — ADR promotion
+
+The design can become an ADR only after receipts, rollback manifests, and tamper rejection are proven in CI-safe mode. Runtime canon targets remain out of scope until a separate typed GO names the exact store and rollback procedure.
+
+---
+
+## 10. Request Schema Draft
+
+Initial request files should be explicit and boring:
+
+```json
+{
+  "candidate_path": "tools/cognitive_foundry/claude_lane/canon_packs/example/",
+  "candidate_type": "foundry_pack",
+  "content_hash": "sha256:<hex>",
+  "issuance_hash": "sha256:<hex-or-null>",
+  "target_store": "docs/canon/CANDIDATE_CANON_INDEX.json",
+  "operator_id": "human-operator-id",
+  "operator_statement": "I approve dry-run validation for this candidate only.",
+  "truth_label": "PARTIAL",
+  "rollback_plan": "No mutation in dry-run; remove index entry for documentation-index write."
+}
+```
+
+Schema rules:
+
+- `candidate_path` must resolve inside an approved repository or evidence root.
+- `content_hash` and `issuance_hash` must include the algorithm prefix.
+- `truth_label` must be one of `MEASURED`, `PARTIAL`, `PLANNED`, or `DIRECTIONAL`.
+- `target_store` must be in the allowlist for the current phase.
+- `operator_statement` must be stored verbatim in the receipt.
+
+---
+
+## 11. Receipt Schema Draft
+
+Dry-run and rejection receipts should be machine-checkable and human-readable.
+
+```json
+{
+  "receipt_type": "canon_ingestion_dry_run",
+  "schema_version": "0.1",
+  "created_at": "2026-04-26T00:00:00Z",
+  "candidate_path": "tools/cognitive_foundry/claude_lane/canon_packs/example/",
+  "candidate_hash": "sha256:<hex>",
+  "target_store": "docs/canon/CANDIDATE_CANON_INDEX.json",
+  "truth_label": "PARTIAL",
+  "operator_id": "human-operator-id",
+  "operator_statement": "verbatim operator approval text",
+  "validations": [
+    {"name": "path_boundary", "status": "passed"},
+    {"name": "content_hash", "status": "passed"},
+    {"name": "claim_discipline", "status": "passed"}
+  ],
+  "decision": "accepted_dry_run",
+  "mutation_performed": false,
+  "pre_state_hash": null,
+  "post_state_hash": null,
+  "receipt_hash": "sha256:<hex>",
+  "signature": null
+}
+```
+
+For K4.1, `signature` may remain `null` if no approved signing key path exists. Before K4.2 writes any index, signatures become required and must use managed key material, never hard-coded secrets.
+
+---
+
+## 12. Fail-Closed Exit Codes
+
+The CLI should reserve clear exit codes so CI can act without parsing prose:
+
+| Code | Meaning |
+|---:|---|
+| `0` | Validation accepted in current mode. |
+| `2` | Request schema invalid. |
+| `3` | Candidate path outside approved boundary. |
+| `4` | Content hash mismatch. |
+| `5` | Claim discipline failure. |
+| `6` | Target store not allowed in current phase. |
+| `7` | Operator confirmation mismatch. |
+| `8` | Secret scan failure. |
+| `9` | Internal error; no mutation performed. |
+
+Every non-zero exit must emit a rejection receipt.
+
+---
+
+## 13. First Dry-Run Candidate
 
 The first safe dry run should be index-only:
 
@@ -162,7 +289,7 @@ The Origin Kernel should not be the first ingestion candidate. It is source auth
 
 ---
 
-## 10. Acceptance Criteria
+## 14. Acceptance Criteria
 
 The design graduates from note to ADR when:
 
@@ -177,7 +304,7 @@ The design graduates from note to ADR when:
 
 ---
 
-## 11. Stop Line
+## 15. Stop Line
 
 This note authorizes **design only**. It does not authorize:
 
