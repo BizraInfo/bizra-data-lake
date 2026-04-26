@@ -39,7 +39,16 @@ def test_verdict_to_dict():
     assert "ihsan_score" in d
 
 
+@pytest.mark.requires_ollama
 def test_evaluate_gates_for_receipt():
+    """Exercises evaluate_gates_for_receipt() including the Oracle-S LLM path.
+
+    The function invokes ``core.proof_engine.sat_validator.validate`` which
+    issues a real HTTP request to a local Ollama backend. On hosts where
+    Ollama is unreachable but the connection blocks (DNS retry, slow gateway,
+    sandboxed CI), the request hangs past the per-test pytest-timeout instead
+    of failing fast. Skip in CI to keep the suite deterministic.
+    """
     verdict = evaluate_gates_for_receipt(
         pat_answer="The Spearpoint seal is commit b08f2208",
         evidence_refs=["git-show:b08f2208"],

@@ -6,6 +6,7 @@ This is the ADK's sole new orchestration logic.
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -13,6 +14,8 @@ from typing import TYPE_CHECKING
 from core.adk.agent import AgentResult, _DraftOutput, _RefuseOutput
 from core.adk.mission import BudgetExhausted, Mission
 from core.integration.constants import IHSAN_THRESHOLD
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from core.adk.agent import Agent
@@ -226,7 +229,15 @@ def _step_iisal(agent, mission, output, ihsan, verdict_str, is_pass):
 
 
 def _step_retrospective(mission, output, agent, fate_result, is_pass):
-    """Step 7: Produce loop proof artifact."""
+    """Step 7: Produce loop proof artifact.
+
+    Returns:
+        The ``LoopProof`` object on success.
+        ``None`` when the mission did not pass the FATE gate (skipped by design)
+        OR when proof generation raised — both cases return ``None`` for
+        backward compatibility, but the exception path is logged at WARNING
+        so silent failures are visible in operator logs.
+    """
     from bizra_config import DATA_LAKE_ROOT
     from core.proof_engine.loop_proof import execute_loop_proof
 
@@ -249,5 +260,12 @@ def _step_retrospective(mission, output, agent, fate_result, is_pass):
             output_path=output_path,
         )
         return loop_proof
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "loop-proof generation failed for mission %s (agent=%s): %s",
+            mission.id,
+            agent.name,
+            exc,
+            exc_info=True,
+        )
         return None
