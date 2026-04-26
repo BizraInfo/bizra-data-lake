@@ -41,13 +41,19 @@ class CognitiveHashTable:
         # MD5 here is a non-security hash used only to spread keys across
         # cuckoo-table slot indices. usedforsecurity=False satisfies bandit B324
         # without changing behavior (Python 3.9+ stdlib).
-        return int(hashlib.md5(key.encode(), usedforsecurity=False).hexdigest(), 16) % self._capacity
+        return (
+            int(hashlib.md5(key.encode(), usedforsecurity=False).hexdigest(), 16)
+            % self._capacity
+        )
 
     def _hash2(self, key: str) -> int:
         # SHA-1 here is a non-security hash used only to spread keys across
         # cuckoo-table slot indices. usedforsecurity=False satisfies bandit B324
         # without changing behavior (Python 3.9+ stdlib).
-        return int(hashlib.sha1(key.encode(), usedforsecurity=False).hexdigest(), 16) % self._capacity
+        return (
+            int(hashlib.sha1(key.encode(), usedforsecurity=False).hexdigest(), 16)
+            % self._capacity
+        )
 
     def put(self, key: str, value: Any) -> None:
         """Insert or update a key-value pair."""
