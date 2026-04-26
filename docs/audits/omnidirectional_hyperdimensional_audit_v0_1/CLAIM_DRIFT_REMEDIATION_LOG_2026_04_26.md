@@ -173,3 +173,51 @@ Outcomes: the gate **provably passes on the current clean tree** (R0, G1), **pro
 5. Reference this §9 in the commit message as the gate-expansion authority.
 
 No file should be added to `CLEAN_SET` without this sequence. The gate is only meaningful if CLEAN_SET is kept credible.
+
+---
+
+## 10. Post-landing fix — H4 suppression semantics (2026-04-26)
+
+A reviewer flagged a mismatch between the module docstring ("any line containing `claim-probe: allow` is exempted from gating") and the H4 coexistence check, which was gating on a **file-scope** marker test (`ALLOW_MARKER not in text`). This meant that a `claim-probe: allow` marker placed on *any* line anywhere in a file suppressed the H4 coexistence finding, even when neither of the two canonical sentences carried the marker on its own line.
+
+### 10.1 Runtime evidence (debug session `c98f9f`, runId `h4-bug-probe`)
+
+Six synthetic fixtures were built and fed to `scan_file`:
+
+| Case | Fixture | Expected H4 | Pre-fix | Post-fix |
+|------|---------|-------------|---------|----------|
+| A | both canonical sentences, no marker | 1 | 1 | 1 |
+| B | marker on an unrelated line, sentences clean | 1 | **0 (BUG)** | **1** |
+| C | marker on the H4_A line only | 0 | 0 | 0 |
+| D | marker on both H4 sentence lines | 0 | 0 | 0 |
+| E | H1 per-line control (`READY FOR PRODUCTION`) | 1 | 1 | 1 |
+| F | only H4_A present (no H4_B) | 0 | 0 | 0 |
+
+Pre-fix NDJSON proof: `.cursor/debug-c98f9f.log` line 2 (Case B: `"findings": []`).
+Post-fix NDJSON proof: same log, runId `h4-post-fix`, Case B: `H4 line=3 matched=double-canonical`.
+
+### 10.2 Fix
+
+Replaced the two file-scope predicates with a helper that collects unsuppressed line numbers per pattern and fires H4 only if both sets are non-empty:
+
+```python
+def _unsuppressed_line_matches(pattern: re.Pattern, lines: List[str]) -> List[int]:
+    matches: List[int] = []
+    for lineno, line in enumerate(lines, 1):
+        if ALLOW_MARKER in line:
+            continue
+        if pattern.search(line):
+            matches.append(lineno)
+    return matches
+
+legacy_hits    = _unsuppressed_line_matches(H4_A, lines)
+canonical_hits = _unsuppressed_line_matches(H4_B, lines)
+if legacy_hits and canonical_hits:
+    # emit H4 with data={"legacy_lines": ..., "canonical_lines": ...}
+```
+
+Suppression semantics are now consistent across H1, H2, H3, H4, and H5: a line carrying `claim-probe: allow` is exempt for that occurrence only; no file-scope suppression exists. The H4 finding also now reports the line number of the first unsuppressed legacy-sentence match (previously `line: 0`), making it easier to locate in CI logs.
+
+### 10.3 Impact on the live tree
+
+Running the full CI invocation (`--ci --verbose --log-path … --summary-json …`) against the current branch before and after the fix yields the **same** verdict (PASS) and the **same** counts (CLEAN_SET 3 files / 0 findings / 0 gating; WATCH_SET 21 files / 22 findings). No production file relied on the buggy file-scope behavior, so the fix has zero observable impact on the current gate while tightening its specification.

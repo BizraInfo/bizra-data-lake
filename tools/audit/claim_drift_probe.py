@@ -195,14 +195,18 @@ def scan_file(rel_path: str, sink: LogSink) -> List[dict]:
                     },
                 )
 
-    has_legacy = bool(H4_A.search(text)) and ALLOW_MARKER not in text
-    has_canonical = bool(H4_B.search(text)) and ALLOW_MARKER not in text
-    if has_legacy and has_canonical:
+    # H4 coexistence check uses the SAME per-line suppression rule as H1-H5:
+    # a line with `claim-probe: allow` is exempt for that occurrence only.
+    # The H4 finding fires only if both canonical sentences have at least one
+    # unsuppressed match in the file.
+    legacy_hits = _unsuppressed_line_matches(H4_A, lines)
+    canonical_hits = _unsuppressed_line_matches(H4_B, lines)
+    if legacy_hits and canonical_hits:
         findings.append(
             {
                 "hypothesisId": "H4",
                 "path": rel_path,
-                "line": 0,
+                "line": legacy_hits[0],
                 "matched": "double-canonical",
                 "why": "document carries BOTH legacy and Topology Canon canonical sentences",
                 "snippet": "",
@@ -210,12 +214,28 @@ def scan_file(rel_path: str, sink: LogSink) -> List[dict]:
         )
         sink.emit(
             hypothesisId="H4",
-            location=f"{rel_path}:0",
+            location=f"{rel_path}:{legacy_hits[0]}",
             message="document carries BOTH legacy and Topology Canon canonical sentences",
-            data={"legacy_seed": has_legacy, "topology_canon": has_canonical},
+            data={
+                "legacy_lines": legacy_hits,
+                "canonical_lines": canonical_hits,
+            },
         )
 
     return findings
+
+
+def _unsuppressed_line_matches(pattern: re.Pattern, lines: List[str]) -> List[int]:
+    """Return 1-based line numbers matching ``pattern`` whose lines do not carry
+    the ``claim-probe: allow`` marker. Used by the H4 coexistence check so
+    suppression behaves consistently with H1-H5 (per-line, not file-scope)."""
+    matches: List[int] = []
+    for lineno, line in enumerate(lines, 1):
+        if ALLOW_MARKER in line:
+            continue
+        if pattern.search(line):
+            matches.append(lineno)
+    return matches
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
