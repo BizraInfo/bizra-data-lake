@@ -10,6 +10,11 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from core.integration.constants import (
+    IHSAN_THRESHOLD as CONSTITUTIONAL_IHSAN_THRESHOLD,
+    SNR_THRESHOLD as CONSTITUTIONAL_SNR_THRESHOLD,
+)
+
 # Load credentials
 load_dotenv()
 
@@ -116,6 +121,11 @@ GPU_ENABLED = True
 
 # --- REASONING PARAMETERS ---
 # Import from authoritative single source of truth
+
+# Backward-compatible aliases for legacy runtime modules that still import
+# thresholds from bizra_config.
+IHSAN_CONSTRAINT = CONSTITUTIONAL_IHSAN_THRESHOLD
+SNR_THRESHOLD = CONSTITUTIONAL_SNR_THRESHOLD
 
 ARTE_TENSION_LIMIT = 0.75
 
