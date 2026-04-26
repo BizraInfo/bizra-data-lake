@@ -9,7 +9,7 @@ Imports from:
   - evidence/bizra_hypergraph_unified/hyperedges.json (hyperedges)
 
 Usage:
-    export BIZRA_PG_DSN="postgresql://bizra:bizra_dev_password@localhost:5432/bizra"
+    export BIZRA_PG_DSN="$YOUR_POSTGRES_DSN"
     python tools/kg_seed_from_concept_graph.py
 """
 
@@ -24,6 +24,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 try:
     import psycopg
@@ -32,9 +33,19 @@ except ImportError:
     sys.exit(1)
 
 
-PG_DSN = os.environ.get(
-    "BIZRA_PG_DSN", "postgresql://bizra:bizra_dev_password@localhost:5432/bizra"
-)
+PG_DSN = os.environ.get("BIZRA_PG_DSN")
+
+
+def dsn_display_name(dsn: str) -> str:
+    """Return host/database details without logging credentials."""
+    parsed = urlparse(dsn)
+    if not parsed.hostname:
+        return "<unparseable>"
+    host = parsed.hostname
+    if parsed.port:
+        host = f"{host}:{parsed.port}"
+    database = parsed.path.lstrip("/") or "<database unset>"
+    return f"{host}/{database}"
 
 
 def sha256_text(s: str) -> str:
@@ -322,13 +333,18 @@ def main() -> int:
         help="Path to unified HyperGraphRAG directory",
     )
     parser.add_argument(
-        "--dsn", type=str, default=PG_DSN, help="PostgreSQL connection string"
+        "--dsn",
+        type=str,
+        default=PG_DSN,
+        help="PostgreSQL connection string, or set BIZRA_PG_DSN",
     )
 
     args = parser.parse_args()
+    if not args.dsn:
+        parser.error("PostgreSQL DSN required via --dsn or BIZRA_PG_DSN")
 
     print("🚀 BIZRA Knowledge Substrate Seeder")
-    print(f"   DSN: {args.dsn.split('@')[1] if '@' in args.dsn else args.dsn}")
+    print(f"   DSN: {dsn_display_name(args.dsn)}")
 
     try:
         with psycopg.connect(args.dsn) as conn:

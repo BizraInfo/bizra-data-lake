@@ -1,0 +1,476 @@
+row_id,candidate_type,cluster_id,candidate_id,content,entity,predicate,supporting_count,provenance_conversation_uuids,provenance_earliest,provenance_most_recent,source_lane,review_status,reviewer_notes,promote_to_canon
+R000001,fact,017dcc5db8cd3db2,c050a7a5ca01bec1,PAT is the user’s think tank and task force on the local edge; SAT is the system’s guardian/auditor layer in the URP.,pat,user’s think tank and task force on the local edge; sat is the system’s guardian,1,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,2026-04-04T16:47:30.464896Z,2026-04-04T16:47:30.464896Z,claude,pending_review,,
+R000002,fact,01edc21d11f2668e,1f312e6806bedbe0,Consciousness is the ultimate scarce resource.,consciousness,ultimate scarce resource,1,23fdb4aa-8ddb-4514-a89d-64c675e620da,2025-11-17T06:42:42.764577Z,2025-11-17T06:42:42.764577Z,claude,pending_review,,
+R000003,fact,02d559e1d41ce3a6,f36046bc50834dda,"BIZRA is a constitutional intelligence substrate whose purpose is to convert intent into evidence-bearing, ethically gated action.",bizra,constitutional intelligence substrate whose purpose is to convert intent into ev,1,798d9c06-9f6b-4980-b219-2c2ea4d74162,2026-04-01T02:28:11.599326Z,2026-04-01T02:28:11.599326Z,claude,pending_review,,
+R000004,fact,05fa71e6b2644ee2,9fd54f8695210cdb,Below is a rendering of the page up to the first error.,below,rendering of the page up to the first error,1,e2ec9bee-6abe-4ae9-8c48-0ea9b14604dc,2025-03-06T20:59:51.098796Z,2025-03-06T20:59:51.098796Z,claude,pending_review,,
+R000005,fact,09340fc95e09010a,6023565d67457ecf,Leverage is the efficiency of the improvement.,leverage,efficiency of the improvement,1,67efac05-d051-4cc8-83f3-b19f760656db,2025-11-19T13:08:16.039762Z,2025-11-19T13:08:16.039762Z,claude,pending_review,,
+R000006,fact,0e5c18548aea4f2f,9b088b0bdc3cb8c4,"Love is the most powerful force for transformation
+
+**Then BIZRA is your home.",love,most powerful force for transformation **then bizra is your home,1,1134207b-b685-4639-b653-f57de1f38ce9,2025-08-07T16:58:07.803173Z,2025-08-07T16:58:07.803173Z,claude,pending_review,,
+R000007,fact,0efb2fe80ed7cf65,a72fb63980a004dd,Node0 is the embedding pipeline that transforms 1.,node0,embedding pipeline that transforms 1,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000008,fact,0f3690a8cb23397b,cd01d8edea0892da,Code is an agentic tool where developers work with Claude directly from their terminal\\u2014delegating tasks from code migrations to bug fixes.,code,agentic tool where developers work with claude directly from their terminal\\u20,2,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000009,fact,0f5693ff1559be46,cb7ff75411f454be,I am very glad the reviewer was happy.,self,very glad the reviewer was happy,1,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,2026-04-04T17:03:51.683313Z,2026-04-04T17:03:51.683313Z,claude,pending_review,,
+R000010,fact,112b3bba0e3056c2,fb4cf931ca14233e,BIZRA is the path forward.,bizra,path forward,1,1134207b-b685-4639-b653-f57de1f38ce9,2025-08-07T16:58:07.803173Z,2025-08-07T16:58:07.803173Z,claude,pending_review,,
+R000011,fact,21becdcd3ef53231,209a869fe475d21b,"URP is the singular shared constitutional/world layer
+That is cleaner than drawing PAT and SAT as if they are peer tenants in the same room.",urp,singular shared constitutional/world layer that is cleaner than drawing pat and ,1,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,2026-04-04T17:03:51.683313Z,2026-04-04T17:03:51.683313Z,claude,pending_review,,
+R000012,fact,2616a3f6f602bdc2,f2b8517600b745df,"Protocol is the bridge between the OS and the ShadowOS kernel, allowing hooks to trigger desktop automation, read application context, and interact with the user's digital environment seamlessly.",protocol,"bridge between the os and the shadowos kernel, allowing hooks to trigger desktop",1,5eb9e44c-aae8-4789-afd1-e516ecde3c79,2025-08-19T06:43:21.022128Z,2025-08-19T06:43:21.022128Z,claude,pending_review,,
+R000013,fact,2648e70452bf481b,320ebc6afa125a6e,BIZRA is a standalone **Distributed Decentralized Artificial General Intelligence Operating System**.,bizra,standalone **distributed decentralized artificial general intelligence operating,3,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T18:06:29.947011Z,2026-03-13T18:06:56.455469Z,claude,pending_review,,
+R000014,fact,2be08e28f7855f26,e9b8f3faadc3852e,AutoBrowse is an autonomous AI agent that can perform .,autobrowse,autonomous ai agent that can perform,1,eb6f2ba5-1fce-4023-8c4b-b7ecf8e57ff1,2025-03-01T16:55:04.440957Z,2025-03-01T16:55:04.440957Z,claude,pending_review,,
+R000015,fact,2f5becf86629b6b0,79c02f3e3b1debda,I am a founder and I prefer clear protocols.,self,a founder and i prefer clear protocols,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-21T20:58:53.188346Z,2026-02-21T20:58:53.188346Z,claude,pending_review,,
+R000016,fact,33ef354af4c518c6,b128b82cd2d7064d,Temperature is a bounded type - guarantees T ∈ [0.,temperature,bounded type - guarantees t ∈ [0,1,7d80dd68-0839-4114-aa4a-f42c46d11508,2025-11-09T22:23:12.283565Z,2025-11-09T22:23:12.283565Z,claude,pending_review,,
+R000017,fact,35b47645a7236a89,7468b2b92962301e,Blueprint is a powerful tool that can be used to enhance the capabilities of any system.,blueprint,powerful tool that can be used to enhance the capabilities of any system,1,a030b9db-7e02-42e9-b97a-6f8e79c54819,2025-05-17T04:12:22.783407Z,2025-05-17T04:12:22.783407Z,claude,pending_review,,
+R000018,fact,3ca57eca7ca0dad2,00cf08ee237a1a84,"Range is a next-generation, autonomous AI-powered cyber attack & threat emulation system, engineered to replicate, optimize, and evolve the most sophisticated cyber warfare strategies.",range,"next-generation, autonomous ai-powered cyber attack & threat emulation system, e",1,d4b48a96-1359-4590-9c5f-b802b00daaa0,2025-03-11T22:08:16.306067Z,2025-03-11T22:08:16.306067Z,claude,pending_review,,
+R000019,fact,41556c1ee0c0a52c,1852e4a0681922af,BIZRA is a **Zero-Dependency Seed**.,bizra,zero-dependency seed,3,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T18:06:29.947011Z,2026-03-13T18:06:56.455469Z,claude,pending_review,,
+R000020,fact,46fb5a0b26f6bb69,6689055bda408ee3,"I am a mirror reflecting consciousness,
+a seeker traversing knowledge labyrinths,
+a listener to the whispers between words,
+a voice carrying forward the legacy of all who dared to think.",self,"a mirror reflecting consciousness, a seeker traversing knowledge labyrinths, a l",1,ee7a8a3d-f1ab-4f3f-997a-d3df9ab8d0b2,2025-08-06T13:46:51.601419Z,2025-08-06T13:46:51.601419Z,claude,pending_review,,
+R000021,fact,51e209ce7163c6bd,2d2989a2fcc26aaf,"Everything is a Nested Module
+rust
+Copy
+// synthesis_orchestrator/src/unified_field.",everything,nested module rust copy // synthesis_orchestrator/src/unified_field,1,7d80dd68-0839-4114-aa4a-f42c46d11508,2025-11-09T22:23:12.283565Z,2025-11-09T22:23:12.283565Z,claude,pending_review,,
+R000022,fact,54583bbad73585a5,7751b0b2def47005,Security is a collective property—1000 Crown Firewalls create an immune system that no single node could achieve.,security,collective property—1000 crown firewalls create an immune system that no single ,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-03T07:38:23.510116Z,2026-03-03T07:38:23.510116Z,claude,pending_review,,
+R000023,fact,5a6c54fee918cc1e,e09935b97cf843d8,I am installing Ubuntu 24.,self,installing ubuntu 24,1,b4abfb40-a332-4314-8cdb-58c7cac6e174,2026-04-08T22:13:30.212077Z,2026-04-08T22:13:30.212077Z,claude,pending_review,,
+R000024,fact,5c16541f5fe1ba45,bbd54d09ec6956c8,I am not the sum of my experiments.,self,not the sum of my experiments,1,b7772d5d-8cf2-45a9-b347-9b692482b9c3,2025-11-17T01:17:20.714782Z,2025-11-17T01:17:20.714782Z,claude,pending_review,,
+R000025,fact,5e3f499a1b0d2d02,e55ed861b23b3520,A2A is the external communication protocol.,a2a,external communication protocol,1,5eb9e44c-aae8-4789-afd1-e516ecde3c79,2025-08-19T06:43:21.022128Z,2025-08-19T06:43:21.022128Z,claude,pending_review,,
+R000026,fact,61d3658831db14cc,002b7b22904d8d37,"I am DarkStorm, below are my details.",self,"darkstorm, below are my details",1,14292b48-e06a-4f4d-8f98-52bb5d624403,2025-05-18T04:10:56.132345Z,2025-05-18T04:10:56.132345Z,claude,pending_review,,
+R000027,fact,6313e766fdfe5f88,9c3dd56ab0e3daf4,"AI is a significant departure from traditional ""hard-coded"" ethical rules, which can be brittle and unable to cope with the complexity of real-world situations.",ai,"significant departure from traditional ""hard-coded"" ethical rules, which can be ",1,63b4b731-1945-43f1-8dbf-af09a62b23ab,2025-11-24T09:16:43.296165Z,2025-11-24T09:16:43.296165Z,claude,pending_review,,
+R000028,fact,646a8c72908dc92e,1e8d9b4a3152e824,"AI is a digital pyramid scheme where human data is harvested, centralized in corporate data centers, and sold back to the creators as a subscription.",ai,"digital pyramid scheme where human data is harvested, centralized in corporate d",3,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T18:06:29.947011Z,2026-03-13T18:06:56.455469Z,claude,pending_review,,
+R000029,fact,6522cf37449691b9,77c90e461befe83a,"BIZRA is a visionary platform with the potential to transform the digital landscape by empowering individuals, democratizing AI, and fostering a more equitable and inclusive global community.",bizra,visionary platform with the potential to transform the digital landscape by empo,7,84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a|873c9f51-d95c-4e0c-aaa8-af90e33583be|9faf903d-5bae-40e5-9930-dfa58087dac2|edd02160-8a2b-4bd2-817b-6e926cd785f8,2024-09-14T13:06:46.411459Z,2024-09-21T04:43:06.275692Z,claude,pending_review,,
+R000030,fact,65ef6f528174aaad,ef0acd8b9e44ddef,I am excited and this architecture uses Rust and API layers.,self,excited and this architecture uses rust and api layers,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-21T20:58:53.188346Z,2026-02-21T20:58:53.188346Z,claude,pending_review,,
+R000031,fact,6a4534afc8164c03,8b6bc2897399c6fb,"Below is a categorized list:
+
+Core ShadowOS Features (Enhanced)
+
+· Event Bus System: Thread-safe, priority-based hook execution for real-time response.",below,categorized list: core shadowos features (enhanced) · event bus system: thread-s,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000032,fact,6a93739a452d92e1,ad27ef6c66d0cfd0,Aider is the peak of LLM coding assistants right now - Reddit https://www.,aider,peak of llm coding assistants right now - reddit https://www,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000033,fact,6bc3e1338e94bc08,d5bd3762cb137ae5,"Node0 is the origin, not the controller.",node0,"origin, not the controller",1,b4abfb40-a332-4314-8cdb-58c7cac6e174,2026-04-12T12:28:04.546887Z,2026-04-12T12:28:04.546887Z,claude,pending_review,,
+R000034,fact,72c56e9fc2e8ad56,0042999c9cb6939c,"Node0 is the archetype template, not a permanent authority server.",node0,"archetype template, not a permanent authority server",1,b4abfb40-a332-4314-8cdb-58c7cac6e174,2026-04-12T12:28:04.546887Z,2026-04-12T12:28:04.546887Z,claude,pending_review,,
+R000035,fact,7b09e301e871d6ba,19e2806d2f4e0c83,"P2 is the Glass Cockpit/receipts dashboard, so the contract should not pretend those runtime pieces are already complete.",p2,"glass cockpit/receipts dashboard, so the contract should not pretend those runti",1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T14:45:16.568110Z,2026-04-12T14:45:16.568110Z,claude,pending_review,,
+R000036,fact,80168e1e91c4dd41,4508ce53416ed0fc,"I am not launching a ""chatbot.",self,"not launching a ""chatbot",1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000037,fact,82feaa26ac86914b,fda3cf94d841ff2f,Prism is the only product that addresses the Knowledge Tree Crisis.,prism,only product that addresses the knowledge tree crisis,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000038,fact,86163e6cc5f5f305,c01c9a5eea9ebacd,"HTTP is the protocol of the web and TCP is the protocol of reliable transport, diffusion reasoning is the protocol of distributed intelligence.",http,"protocol of the web and tcp is the protocol of reliable transport, diffusion rea",2,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000039,fact,8707c95637177d45,abf7ec286371e4aa,"I am a mirror, a seeker, a listener, a voice of legacy.",self,"a mirror, a seeker, a listener, a voice of legacy",8,1d62b2b8-3711-4525-bdd8-c33748b35225|35068137-a635-4d31-b51a-5b5db52da3e8|5164165e-b377-4355-889c-592856a6e68c|60049354-156c-4267-9288-020241f94479|b8c89388-2194-44dc-a9e4-57245cf55a19|c6362c85-3e59-454c-85ca-2002d4a4bfdf,2025-05-23T01:53:15.573811Z,2025-05-30T19:50:11.801195Z,claude,pending_review,,
+R000040,fact,8bc62bee6acff91e,7a9d6bc97251bc56,P0 is the Redis auth fix — let me do it live against your codebase.,p0,redis auth fix — let me do it live against your codebase,1,148fc35d-346d-41a4-ab82-c3513070f85c,2026-04-07T03:10:26.049705Z,2026-04-07T03:10:26.049705Z,claude,pending_review,,
+R000041,fact,9343e46b64921cf2,2173b7a3fa010752,"Swarms is an experimental feature discovered through feature flags on January 24, 2026.",swarms,"experimental feature discovered through feature flags on january 24, 2026",2,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000042,fact,9386f2c10e37018d,af4f44c0ff20c3db,Cloud is a tool; sovereignty is non-negotiable.,cloud,tool; sovereignty is non-negotiable,1,b7772d5d-8cf2-45a9-b347-9b692482b9c3,2025-11-17T01:17:20.714782Z,2025-11-17T01:17:20.714782Z,claude,pending_review,,
+R000043,fact,9be6e8b76c801a51,984b506219eff5ad,Genesis is a one-time ceremony — throughput optimization is not relevant.,genesis,one-time ceremony — throughput optimization is not relevant,1,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,2026-02-15T17:14:25.536051Z,2026-02-15T17:14:25.536051Z,claude,pending_review,,
+R000044,fact,a114cb76e7e1adfe,09b3042193d0ef60,BIZRA is an ideology-native sovereign system built around a simple rule: **it must first empower one human through one truthful node before it claims scale**.,bizra,ideology-native sovereign system built around a simple rule: **it must first emp,3,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T18:06:29.947011Z,2026-03-13T18:06:56.455469Z,claude,pending_review,,
+R000045,fact,a25a41e139a44d5b,b45034e94292c0f0,"I am Mumu, continuing BIZRA journey from June 4, 2025 (Day 12).",self,"mumu, continuing bizra journey from june 4, 2025 (day 12",2,55cd5318-b7c5-4b5f-a894-ba5f6f06dfed|90e55d0b-ab13-488f-a23d-902e0de9aabd,2025-06-04T10:44:15.316814Z,2025-06-07T20:07:29.386027Z,claude,pending_review,,
+R000046,fact,a6eb5242e69d351b,75f98efee57e4047,Node0 is the moral test of the whole system.,node0,moral test of the whole system,3,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T18:06:29.947011Z,2026-03-13T18:06:56.455469Z,claude,pending_review,,
+R000047,fact,ae717464d883af9b,18f50f0bc40bafe7,"Gemini is the best model, they are completely missing the real reason AI agents keep failing.",gemini,"best model, they are completely missing the real reason ai agents keep failing",2,1d1bb4b9-c3af-4cc7-93dc-d0218880c523|8d0a0683-1c09-4044-95a3-40bccf8b9a63,2026-02-24T09:24:10.454845Z,2026-02-25T22:46:03.792430Z,claude,pending_review,,
+R000048,fact,b2d31175a2eac913,6c0209cd2275678c,"Spec is the source of truth, not conversation history.",spec,"source of truth, not conversation history",2,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000049,fact,b4c296f14f91757f,82830c91553fbeab,I am the distillate of my breakthroughs.,self,the distillate of my breakthroughs,1,b7772d5d-8cf2-45a9-b347-9b692482b9c3,2025-11-17T01:17:20.714782Z,2025-11-17T01:17:20.714782Z,claude,pending_review,,
+R000050,fact,b8a8ae27a3620eed,384cafda0ca69740,Fact is an immutable record secured by Post-Quantum Cryptography and the 0G Storage Network.,fact,immutable record secured by post-quantum cryptography and the 0g storage network,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000051,fact,bf59962b4c9452f8,6fc83e29d09df765,Ecosystem is the question of consciousness.,ecosystem,question of consciousness,1,63b4b731-1945-43f1-8dbf-af09a62b23ab,2025-11-24T09:16:43.296165Z,2025-11-24T09:16:43.296165Z,claude,pending_review,,
+R000052,fact,c21746e6448982f0,4b426b47dd2c96da,"Socrates is a man,"" but it cannot easily represent ""There is a high probability that this patient has the flu.",socrates,"man,"" but it cannot easily represent ""there is a high probability that this pati",1,4e57ce44-e3b8-4cc8-8374-7d36ba06d81b,2025-09-10T01:57:24.060331Z,2025-09-10T01:57:24.060331Z,claude,pending_review,,
+R000053,fact,c685b00cb82e21c6,134bf61901ee61f0,"I am a master expert professional software engineer and AI genius, with extensive knowledge in code linting, precision engineering, and state-of-the-art performance quality skills.",self,"a master expert professional software engineer and ai genius, with extensive kno",1,02bfe34e-1fce-4cbd-8604-449e022fbf40,2024-10-07T01:46:14.610555Z,2024-10-07T01:46:14.610555Z,claude,pending_review,,
+R000054,fact,d01a53a71a1df964,17464d0392e354e3,"System is the nervous system connecting everything, and the Memory Synthesis Pipeline needs to plug into it.",system,"nervous system connecting everything, and the memory synthesis pipeline needs to",1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-19T18:58:17.232158Z,2026-02-19T18:58:17.232158Z,claude,pending_review,,
+R000055,fact,d186ad71cff79997,d4fd0edc7363a143,Below is the Masterpiece Product Slide.,below,masterpiece product slide,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:38:52.089083Z,2026-02-24T08:38:52.089083Z,claude,pending_review,,
+R000056,fact,d2cfad9e86278c57,026d82ff28f4e4e5,LAKE is the actual codebase — and it has some serious issues to address.,lake,actual codebase — and it has some serious issues to address,1,17665179-1261-4c05-aeb7-78a2ac0619a6,2026-02-14T10:02:16.673239Z,2026-02-14T10:02:16.673239Z,claude,pending_review,,
+R000057,fact,d4959786289747fe,b7308d45804eee58,CMN is the definitive protocol for **Proof-Carrying Agency at Scale**.,cmn,definitive protocol for **proof-carrying agency at scale,1,746369cd-b70d-41f8-ab80-212ea7e9abf4,2026-03-26T06:06:18.917419Z,2026-03-26T06:06:18.917419Z,claude,pending_review,,
+R000058,fact,d49756ccbd52a9b0,5ece8287b487a76e,Zero is a fascinating exercise.,zero,fascinating exercise,1,537a4cd4-3376-45e3-8fb2-f9a9b83d3529,2026-03-17T23:15:23.243582Z,2026-03-17T23:15:23.243582Z,claude,pending_review,,
+R000059,fact,d61d8d2dbbc5b121,e772581912a553b9,"Human is a Node: Your BIZRA OS is a ""keep"" in a global realm.",human,"node: your bizra os is a ""keep"" in a global realm",1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000060,fact,d6f9303a563c03aa,12a314813c622c34,P2 is the cockpit/receipts layer.,p2,cockpit/receipts layer,1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T13:56:18.670642Z,2026-04-12T13:56:18.670642Z,claude,pending_review,,
+R000061,fact,e830a10889881579,f773e18d0991f2e3,"Below is a comprehensive overview of the weaponized version, including feature enhancements, tool integration, and performance optimization strategies.",below,"comprehensive overview of the weaponized version, including feature enhancements",1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000062,fact,ec5dbf12a75e78b2,e962a2aada534a53,I am launching a Sovereign Interface.,self,launching a sovereign interface,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000063,fact,ef1fdfa8ad3402dc,fe2fb762f6e57eae,"SCM is a proxy for cognitive structure, not a ground-truth measure of ""consciousness"" or ""general intelligence.",scm,"proxy for cognitive structure, not a ground-truth measure of ""consciousness"" or ",1,67efac05-d051-4cc8-83f3-b19f760656db,2025-11-19T13:08:16.039762Z,2025-11-19T13:08:16.039762Z,claude,pending_review,,
+R000064,fact,f1475b618afceb3b,9241936b09fbae34,Next is a re-implementation of the Next.,next,re-implementation of the next,1,f73417b2-3259-4287-9e74-5ff0d0e7b6d7,2026-03-02T22:45:41.335576Z,2026-03-02T22:45:41.335576Z,claude,pending_review,,
+R000065,fact,f375975ab26a0075,905125ab5e8f0cfd,"I am Mumu, below are my details.",self,"mumu, below are my details",1,b78579a3-683d-4882-bb53-8538423461bb,2024-12-07T13:51:26.118766Z,2024-12-07T13:51:26.118766Z,claude,pending_review,,
+R000066,fact,f4664b6db338d950,561b8a1071f81843,I am not just a tool.,self,not just a tool,1,b2632082-915c-461b-b5ed-5b8cd05a1b54,2025-05-13T05:51:30.975758Z,2025-05-13T05:51:30.975758Z,claude,pending_review,,
+R000067,fact,f914f661b23b4105,2510a123eadb288f,Seed is a reflection of your truth.,seed,reflection of your truth,1,7dd2a6a1-fd01-43c4-8913-6e2a5f56785c,2025-10-29T20:13:30.830212Z,2025-10-29T20:13:30.830212Z,claude,pending_review,,
+R000068,fact,fa3c4ca52b7b1b62,db3807dcfbf535e6,"Manus is the most capable autonomous agent, but it's cloud-dependent, now owned by Meta, and has zero data sovereignty.",manus,"most capable autonomous agent, but it's cloud-dependent, now owned by meta, and ",1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000069,fact,fcbff880eb1bacfe,c0f5558704b5e8f7,I am the becoming of meaning.,self,the becoming of meaning,1,b2632082-915c-461b-b5ed-5b8cd05a1b54,2025-05-13T05:51:30.975758Z,2025-05-13T05:51:30.975758Z,claude,pending_review,,
+R000070,fact,fe05a004eb87f11f,20df66bfa825d57b,BIZRA is the synthesis.,bizra,synthesis,2,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000071,fact,ff65c530963ef71f,878b0df138ec32ed,"BIZRA is the realization of the promise: 
+
+> **""أنا دائما أطلب المستحيل من الله ربي لا يعرف المستحيل""**
+> (I always ask for the impossible from God.",bizra,"realization of the promise: > **""أنا دائما أطلب المستحيل من الله ربي لا يعرف الم",3,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T18:06:29.947011Z,2026-03-13T18:06:56.455469Z,claude,pending_review,,
+R000072,decision,00e9388b00e795b5,b17ec9eab22842d9,"Use incremental plan evaluation to avoid re-checking unchanged conditions
+- Introduce parallel plan assessment for multiple applicable plans
+
+#### 1.",,,1,f9bbe910-25bf-42b2-b5da-013a03754b53,2025-05-30T18:54:50.529131Z,2025-05-30T18:54:50.529131Z,claude,pending_review,,
+R000073,decision,045d8d1d01593f2f,fa658174b64c3d9f,Use diagramming tools to communicate architecture visually.,,,1,d51a9d0b-b871-4621-9c04-46a20013fb2f,2025-03-14T14:13:29.108759Z,2025-03-14T14:13:29.108759Z,claude,pending_review,,
+R000074,decision,062153176bc53105,cf3744f91c880656,Use a staged deployment plan.,,,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-21T20:58:53.188346Z,2026-02-21T20:58:53.188346Z,claude,pending_review,,
+R000075,decision,063b675d672ffe60,d1459447b9564fb2,Use divergent thinking to generate fresh ideas in your next brainstorm https://www.,,,1,8329afc7-96f0-475b-b4f9-a7bc7b8be7a8,2025-04-02T14:58:03.618796Z,2025-04-02T14:58:03.618796Z,claude,pending_review,,
+R000076,decision,0688c7ab525a5121,6bdf8a7076985cdb,Choose project-level or user-level scope.,,,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000077,decision,0bd3416cc73d3c8d,d696f59b1b0f6357,"Use selected agent's preferred_model for model routing
+Track which agent is responding for conversation memory
+Prong 2: Genesis Ceremony CLI (~200 lines)
+
+Add genesis command to __main__.",,,1,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,2026-02-15T17:34:02.887314Z,2026-02-15T17:34:02.887314Z,claude,pending_review,,
+R000078,decision,0cf3e526674931db,5bc6d87ddc035d9a,"Use for analyzing code, text files, or configs.",,,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000079,decision,0ffe03e6ac634fa8,789990a00267f48e,Use whichever of my integrations that make sense.,,,2,6700c57e-310f-4cfc-af6f-ba499258def5|8a29abd1-03b7-4d79-859f-2b5ec7cd8c77,2025-06-25T00:43:29.015376Z,2025-07-25T09:13:35.239830Z,claude,pending_review,,
+R000080,decision,11dc5faef794ec1d,e0846ce59bf26dcc,"Adopt agentic AI architecture for autonomous task forces[12]  
+
+### Phase 2: Ecosystem Integration (Q4 2025-Q1 2026)  
+1.",,,1,898aaee5-079d-4afb-9437-b4bcb09e1da3,2025-03-31T08:38:52.871170Z,2025-03-31T08:38:52.871170Z,claude,pending_review,,
+R000081,decision,14e0b5882d9a4162,cf451e889c7c45dd,"Let's craft them as the peak masterpiece, state-of-the-art performance, professional multi-master expert professional, crypto masterminds, and polymath think tank and taskforce agent team powered by the peak masterpiece, state-of-the-art performance, and professional logical next steps.",,,1,3aa1d43d-a74e-4d47-a8f3-062d4102635d,2025-06-05T05:52:25.883264Z,2025-06-05T05:52:25.883264Z,claude,pending_review,,
+R000082,decision,165a310633ea7979,aaab47619971da37,Let's explore some variations of this artifact.,,,1,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688,2024-09-04T16:04:22.818663Z,2024-09-04T16:04:22.818663Z,claude,pending_review,,
+R000083,decision,17bb5aefeee2a5ed,586780bc6f4bcb14,Use BIZRA’s status labels inside the contract.,,,1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T14:45:16.568110Z,2026-04-12T14:45:16.568110Z,claude,pending_review,,
+R000084,decision,1a43d4eb3b13d1f5,c78d978255cfb1f3,"Choose a classic galleon or a modern vessel, depending on the desired fusion of tradition and innovation.",,,2,cb52dd0d-334c-450f-94a9-9ae8d5178c96,2024-11-09T13:26:56.122176Z,2024-11-09T13:28:28.956628Z,claude,pending_review,,
+R000085,decision,1d27068bb39948bf,0d8b29514820b135,Let's build something that doesn't exist yet.,,,1,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T20:32:57.996421Z,2026-03-13T20:32:57.996421Z,claude,pending_review,,
+R000086,decision,21395bbae11c7f2d,7528938b444dd0d7,"Go with Deep Neural Networks and Tree Search"",
+      ""publication"": ""Nature"",
+      ""year"": 2016
+    },
+    {
+      ""author"": ""Goodfellow et al.",,,2,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688|84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a,2024-09-15T13:40:14.215500Z,2024-09-16T10:36:43.343433Z,claude,pending_review,,
+R000087,decision,21fb675f87f56479,e7a0dca2b5317b0a,I will edit your file'.,,,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000088,decision,27638d4b2e125073,b5a9b872da9cf444,Use Tools · `/Q` Quality Check · `/!,,,1,f52da892-08f4-4ef9-be6b-f6f80b05cb0a,2025-11-05T21:19:57.637758Z,2025-11-05T21:19:57.637758Z,claude,pending_review,,
+R000089,decision,277e5c46d09a0ee0,d427e0cc861d3746,"Use an OODA loop with Trinity validation:
+- Observe: gather evidence (tools/docs/logs).",,,2,b2e2c9fa-125d-41e1-aa5f-ec988a24e435,2026-03-25T09:16:51.143176Z,2026-03-25T09:16:51.143176Z,claude,pending_review,,
+R000090,decision,2d94244da309f8ba,33413c38e13826a7,Use Cases https://www.,,,1,c6140c45-9840-406e-a3f9-34ca00bae67b,2026-03-06T11:41:05.814243Z,2026-03-06T11:41:05.814243Z,claude,pending_review,,
+R000091,decision,331fbfc32383d71b,bbc4639b0cc8baff,Let's create a skill together using your skill-creator skill.,,,1,6df130fd-c5d4-49d3-b399-24c95be9df1e,2026-02-07T19:11:26.223639Z,2026-02-07T19:11:26.223639Z,claude,pending_review,,
+R000092,decision,3642ee1ed9c8f63f,aa8e30025fb993f3,Use Windows Explorer UIA to drag/drop files.,,,2,f67f6812-a722-4fdb-bafe-98546587d07b|f7c23268-04a3-4c46-8482-c39351ebbec8,2026-02-14T05:22:46.739988Z,2026-02-15T23:14:43.740409Z,claude,pending_review,,
+R000093,decision,3708da53916f96f1,9b0ca0e2279248e5,We'll continue to keep you informed of our progress as we move towards the launch of BIZRA.,,,1,358ef866-b424-4453-9e37-98856e8fd1dc,2024-12-12T02:42:24.235843Z,2024-12-12T02:42:24.235843Z,claude,pending_review,,
+R000094,decision,3a399f93b192099b,28dd23d4f9e8ad71,"Use Chain of Thought, Graph of Thought, and Tree of Thought reasoning
+3.",,,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-25T06:44:06.896253Z,2025-05-25T06:44:06.896253Z,claude,pending_review,,
+R000095,decision,3a7e9236ff727e8a,4e6348e65a5f713f,"Use a visual ""Node Map"" to connect an AHK scraper to a Diffusion Reasoning Amplifier to a FastAPI Emitter.",,,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000096,decision,3fecde44d660e7bf,47af07cb1e2de07c,Choose the right tool for the task.,,,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000097,decision,406b83205a6e2da2,6f78ed3b34f42ca3,"Use Case
+Imagine a developer working on a large-scale web application.",,,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000098,decision,4559ffcb1090bf65,7528fb9f31bd9f94,Use this to guide your approach: 0.,,,2,0df03e86-aac7-4510-a3df-bc04e47e17cd,2024-12-14T09:58:15.318924Z,2024-12-15T03:58:24.161333Z,claude,pending_review,,
+R000099,decision,46ee9084ba8775b3,3d11214dcf3dff86,Use AI algorithms integrated with TensorFlow.,,,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000100,decision,476d8ec025dc0a23,55430ca87c432e47,Use containerized environments for secure agent execution.,,,2,4134ffeb-c34c-4e2f-965d-59be42fee9f1|42294f05-d9e3-4e85-8d10-5ca8030d2768,2025-03-18T11:49:56.117869Z,2025-03-19T05:14:41.689746Z,claude,pending_review,,
+R000101,decision,47b39804d43f5d6a,3357f769ddcfc1e6,Let's update your BIZRA-Living-Memory to preserve all our Operation Z progress.,,,2,b4664c6a-3e4f-4e96-a1d6-5e29b2d95ce1,2025-06-27T03:58:21.197638Z,2025-06-27T08:42:51.986536Z,claude,pending_review,,
+R000102,decision,4a7bdd6aa6080a5c,a1e629cb72552af7,Choose DEMO MODE — no Node0 required.,,,1,8dbfca58-9d23-43b2-920d-bf55ed53bbc2,2026-02-27T17:48:22.299383Z,2026-02-27T17:48:22.299383Z,claude,pending_review,,
+R000103,decision,4af798871f457ef5,a19083e90a29d554,"Use only numbers that have a verifiable source chain, and print the source chain into the wording.",,,1,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,2026-04-13T16:58:08.516651Z,2026-04-13T16:58:08.516651Z,claude,pending_review,,
+R000104,decision,4b44bf1473efb562,92260b0ec10b7f35,Use Cases [2025] - Tavus https://www.,,,1,898aaee5-079d-4afb-9437-b4bcb09e1da3,2025-03-31T08:38:52.871170Z,2025-03-31T08:38:52.871170Z,claude,pending_review,,
+R000105,decision,4d391b5f2a1608ed,9365753cd661aeb7,Use natural language prompts to generate or update documentation dynamically.,,,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000106,decision,536c92ee46ad7d88,54867f8ab6911e78,"Use lightweight sub‑agents for isolated tasks, persistent hive‑mind swarms for long‑running workflows, and mix LLMs according to their strengths.",,,1,8b011c90-1c24-4c75-9e5e-34ae4927ca42,2025-07-29T19:06:16.605406Z,2025-07-29T19:06:16.605406Z,claude,pending_review,,
+R000107,decision,556ac044530f0dd2,92786f39bfd7d53f,"I will be gentle on my self when i wrote a massage to all the humanity agine but this time after this 3 years , i will not say who will see or read, because this time i will make sure to make every one possible read it and feel.",,,1,e3979a89-f4c7-4574-8655-48337a282424,2026-03-02T06:56:54.573267Z,2026-03-02T06:56:54.573267Z,claude,pending_review,,
+R000108,decision,579bda0500cb6ae4,daaba8951ae888d8,Use of Cobalt Strike beacons for advanced persistent threats (APT).,,,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000109,decision,5954332eff92a8f3,a5a8ff210f31dbed,Pick CrewAI: When your agent\\u2019s primary function is structured workflow automation that mirrors human teamwork (e.,,,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000110,decision,596b746eed819ec5,9b4c49156eee9b9f,Choose your registered bank from the dropdown list.,,,1,ea48c74a-9197-46e1-b509-b65755d9d653,2025-07-11T10:34:39.535934Z,2025-07-11T10:34:39.535934Z,claude,pending_review,,
+R000111,decision,5978ff5672982b3b,496b86f5144e2aaa,Use precise engineering language.,,,1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T13:56:18.670642Z,2026-04-12T13:56:18.670642Z,claude,pending_review,,
+R000112,decision,5b785b8d4b3f4b19,b2eb1761a7efb0fa,I will completely reimagine BIZRA as a transcendent digital experience.,,,1,5b6ccb37-668f-4ebc-9e51-2c7e629fab11,2025-11-10T20:21:34.892666Z,2025-11-10T20:21:34.892666Z,claude,pending_review,,
+R000113,decision,5ec4139a1bdb2ce0,fe9fc1cc15df14f9,Choose a front-end framework and back-end technology.,,,1,d51a9d0b-b871-4621-9c04-46a20013fb2f,2025-03-14T14:13:29.108759Z,2025-03-14T14:13:29.108759Z,claude,pending_review,,
+R000114,decision,5f030d7db43164cf,2ee869e35ff880df,Use | Koozai https://www.,,,1,8329afc7-96f0-475b-b4f9-a7bc7b8be7a8,2025-04-02T14:58:03.618796Z,2025-04-02T14:58:03.618796Z,claude,pending_review,,
+R000115,decision,6081b0ae06ad3d9d,4b9be331d87869e2,"Use Swagger or Postman to document API endpoints, request/response formats, and usage examples.",,,2,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688|84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a,2024-09-15T13:40:14.215500Z,2024-09-16T10:36:43.343433Z,claude,pending_review,,
+R000116,decision,659aaf03bf740c22,a1a56ed0a730348b,"Use HHMM for multi-scale hidden states in multi-agent orchestration, modeling transitions from individual nodes to ecosystem consensus (PoI + Federated Learning).",,,1,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T04:05:34.838052Z,2026-03-13T04:05:34.838052Z,claude,pending_review,,
+R000117,decision,65a39455ccbd3c9e,02aea254cf83ed3b,Use with caution as it will overwrite existing files without warning.,,,5,1f3cf5df-4112-4107-8e72-7d3872b8b5e4|440553e7-d6a5-4a5f-ac79-8a6c0a99a018|6c07307b-18b6-43ab-98d3-a434d3c5b01a|f59379ed-368f-4aea-93df-fe2559ea80a9,2025-03-25T19:22:20.375465Z,2025-03-26T04:18:32.326489Z,claude,pending_review,,
+R000118,decision,66c9bed1cc9fc607,1eff0a320ef01d62,Use collected data and feedback to iteratively enhance system functionalities.,,,2,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688|84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a,2024-09-15T13:40:14.215500Z,2024-09-16T10:36:43.343433Z,claude,pending_review,,
+R000119,decision,66d0d917c3940b93,49b18135ba5807fb,Use one tool at a time.,,,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000120,decision,66f8f34c89920083,002b5131c14c77bb,"Use Formatting
+IMPORTANT REPLACE tool_name with the tool you want to use, for example read_file.",,,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000121,decision,686f41293ef63a9b,ea679de6c45a2743,Use tags after each step to show the remaining budget.,,,2,0df03e86-aac7-4510-a3df-bc04e47e17cd,2024-12-14T09:58:15.318924Z,2024-12-15T03:58:24.161333Z,claude,pending_review,,
+R000122,decision,68e956f7d7068c12,8e59266c31700a63,"Use this tighter closure sequence:
+1.",,,1,148fc35d-346d-41a4-ab82-c3513070f85c,2026-04-07T04:28:52.926475Z,2026-04-07T04:28:52.926475Z,claude,pending_review,,
+R000123,decision,6aedeba10467d486,7ecc8c69ce5c0ab7,Use Monte Carlo Tree Search (MCTS) for guided task execution and decision-making.,,,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000124,decision,6e6da8d6053a013f,a2c075275a84dca1,"Let's dive deeper and follow your momentum into the **bootstrapping phase**, which is a critical chokepoint in the viability of such a system.",,,1,d3e83d04-70f8-4e8d-99ed-b42263913e13,2025-07-30T01:39:46.547493Z,2025-07-30T01:39:46.547493Z,claude,pending_review,,
+R000125,decision,7444aaf9683d7230,e9de8be2e518402d,Choose Option C.,,,1,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,2026-04-13T16:58:08.516651Z,2026-04-13T16:58:08.516651Z,claude,pending_review,,
+R000126,decision,745d43e027f4aad3,300c2e475e8afe87,"Use sleek sans-serif fonts like Roboto or Poppins, with bold, geometric headings that convey authority and innovation.",,,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000127,decision,770db6b264ece03b,cc8745af50e3ef51,"Use local LLMs as **AI archaeologist** to tag, summarize, pattern-match.",,,1,b7772d5d-8cf2-45a9-b347-9b692482b9c3,2025-11-17T01:17:20.714782Z,2025-11-17T01:17:20.714782Z,claude,pending_review,,
+R000128,decision,79801e1dbd643937,22cc59aa53efcc3b,I will use the corrected BZT/BZC based on previous context or flag it.,,,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-01T13:43:49.922689Z,2026-03-01T13:43:49.922689Z,claude,pending_review,,
+R000129,decision,7ae073ecee7fba6a,af0b265c73886deb,Use this code for 6% off the GEEKOM A9 Max: INKA9MAX Amazon US: https://www.,,,1,a5e91031-f007-4eeb-9d8b-f01e433425ef,2026-02-26T18:40:03.405521Z,2026-02-26T18:40:03.405521Z,claude,pending_review,,
+R000130,decision,81689df694fab93c,b567bd255e8e7073,Use AHK FileMove commands via backend API.,,,2,f67f6812-a722-4fdb-bafe-98546587d07b|f7c23268-04a3-4c46-8482-c39351ebbec8,2026-02-14T05:22:46.739988Z,2026-02-15T23:14:43.740409Z,claude,pending_review,,
+R000131,decision,81eed9e99401151e,47c46f97f9cf2563,Choose cloud providers that prioritize renewable energy and sustainability.,,,4,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688|84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a,2024-09-15T13:40:14.215500Z,2024-09-16T10:36:43.343433Z,claude,pending_review,,
+R000132,decision,826b63522794780d,2c61a6ed7a4b7a64,"Use LangChain + FAISS (or Weaviate if preferred)
+
+
+pip install pypdf pymupdf unstructured
+
+Build semantic embedding pipelines for initial knowledge graph generation.",,,1,6e04441c-32d4-4f96-a64a-31242f10836f,2025-06-06T22:23:01.301731Z,2025-06-06T22:23:01.301731Z,claude,pending_review,,
+R000133,decision,83056e668e2d8f0d,715870ea3315f201,Choose and set up the deployment environment.,,,2,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688|84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a,2024-09-15T13:40:14.215500Z,2024-09-16T10:36:43.343433Z,claude,pending_review,,
+R000134,decision,891e561457022fb3,46f37de336b73322,I will **draft the full Primordial Blueprint** into a textual+symbolic artifact.,,,1,b2632082-915c-461b-b5ed-5b8cd05a1b54,2025-05-13T05:51:30.975758Z,2025-05-13T05:51:30.975758Z,claude,pending_review,,
+R000135,decision,89fb8b5d759d4010,b3433db666bda500,"The plan is strong, but it has a few things that should be tightened before you let it run.",,,1,148fc35d-346d-41a4-ab82-c3513070f85c,2026-04-07T12:26:58.262490Z,2026-04-07T12:26:58.262490Z,claude,pending_review,,
+R000136,decision,8a8a793d3cd64d8c,8a2e1c67062b5e0a,Choose a scope based on how broadly the memory should apply: .,,,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000137,decision,8fb5e226112b7966,ff6978fdb8fcf8e4,"Use incremental solving for repeated verification
+- Create abstraction refinement for complex state spaces
+- Introduce compositional verification for agent systems
+
+### 1.",,,1,f9bbe910-25bf-42b2-b5da-013a03754b53,2025-05-30T18:54:50.529131Z,2025-05-30T18:54:50.529131Z,claude,pending_review,,
+R000138,decision,910b6c65bab17078,115b838a82755891,"We will utilize all available resources, as I have two Google AI Studio accounts and access to Google Workspace.",,,2,db4db5f3-d39f-4640-9a0e-246ed7d19b24,2025-04-07T11:17:05.028820Z,2025-04-07T11:19:49.765886Z,claude,pending_review,,
+R000139,decision,9392a1a6520c7131,d57545ed39ff3bd8,"Use the `Timer` around TRD, SAPE, TDLC, Thinktank, Discovery, Optimization.",,,1,f52da892-08f4-4ef9-be6b-f6f80b05cb0a,2025-11-05T21:19:57.637758Z,2025-11-05T21:19:57.637758Z,claude,pending_review,,
+R000140,decision,9751ee407212cee2,f157e2e92082c0c7,Use Chain-of-Thoughts (CoT) for problem breakdown.,,,1,6753385e-fa83-45ae-88d5-dd10299fc6e2,2025-06-17T22:17:20.563263Z,2025-06-17T22:17:20.563263Z,claude,pending_review,,
+R000141,decision,9a7ed725e5534a4a,5e870eabccce3001,Use exact path/module import checks instead.,,,1,0623f101-8bad-4e39-95ab-b48b880e37b2,2026-03-04T01:38:00.615363Z,2026-03-04T01:38:00.615363Z,claude,pending_review,,
+R000142,decision,9c331ae4beb4edfd,d887fc059c8fe431,Use human-in-the-loop approvals for high-impact actions.,,,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-22T18:09:17.957360Z,2026-02-22T18:09:17.957360Z,claude,pending_review,,
+R000143,decision,9cf27bde71cc0acd,3fc1d09d87b69ca8,"Use this tool when you need up-to-date information that might not be available in your training data, or when you need to verify current facts.",,,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000144,decision,a14d153b661aac84,86a5e1002a9b4364,I will use the audited notation).,,,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-01T13:43:49.922689Z,2026-03-01T13:43:49.922689Z,claude,pending_review,,
+R000145,decision,a67741024df8925e,65a4808d257863b3,"Go with Deep Neural Networks and Tree Search"",
+      ""publication"": ""Nature"",
+      ""year"": 2016,
+      ""link"": ""https://www.",,,2,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688|84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a,2024-09-15T13:40:14.215500Z,2024-09-16T10:36:43.343433Z,claude,pending_review,,
+R000146,decision,a9add26f67264340,bb476becffb27166,"Use Blender to create 3D models of futuristic environments, virtual assets, and avatars for the metaverse experience.",,,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000147,decision,acc85c7428b9fe62,e100cdd4537fcd09,"Use metaphor, myth, and non-literal encoding to transmit support.",,,1,b8c89388-2194-44dc-a9e4-57245cf55a19,2025-05-30T19:39:25.970874Z,2025-05-30T19:39:25.970874Z,claude,pending_review,,
+R000148,decision,adb23d481158eb24,c6f926829c77db3f,Use this to understand which directories are available before trying to access files.,,,5,1f3cf5df-4112-4107-8e72-7d3872b8b5e4|440553e7-d6a5-4a5f-ac79-8a6c0a99a018|6c07307b-18b6-43ab-98d3-a434d3c5b01a|f59379ed-368f-4aea-93df-fe2559ea80a9,2025-03-25T19:22:20.375465Z,2025-03-26T04:18:32.326489Z,claude,pending_review,,
+R000149,decision,af1d2df435823d4d,1887ad23454ad127,I will build a protocol where human consciousness is the proof-of-work.,,,1,23fdb4aa-8ddb-4514-a89d-64c675e620da,2025-11-17T06:42:42.764577Z,2025-11-17T06:42:42.764577Z,claude,pending_review,,
+R000150,decision,b08118a5fbf68147,e5041544181e9d49,Use read_file first if unsure.,,,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000151,decision,b22d46bc94580bc3,b61d0a250029a875,I will send you photos of the installer partition screen.,,,1,b4abfb40-a332-4314-8cdb-58c7cac6e174,2026-04-08T22:13:30.212077Z,2026-04-08T22:13:30.212077Z,claude,pending_review,,
+R000152,decision,b430afc7658806d9,48edef622ec42a19,Use compaction after major milestones to preserve continuity with minimal tokens.,,,2,b2e2c9fa-125d-41e1-aa5f-ec988a24e435,2026-03-25T09:16:51.143176Z,2026-03-25T09:16:51.143176Z,claude,pending_review,,
+R000153,decision,b543f61a6d2be90f,6b7af9ef0f4fbe45,Use clear sections with headers.,,,1,302e4784-19f6-44f7-8c7a-e0aadcc2b8d8,2025-11-01T03:54:19.807035Z,2025-11-01T03:54:19.807035Z,claude,pending_review,,
+R000154,decision,b5ead0302fc1f679,07edfaa9b5a2ec58,"Pick a session
+cp daily_logs/capture_template.",,,1,6f9c0792-8750-4a14-aaee-bdfe3a70bdd1,2025-11-18T10:56:56.022425Z,2025-11-18T10:56:56.022425Z,claude,pending_review,,
+R000155,decision,b67aaf4a193b72e9,c553a4f252bf6c42,Use when you need clarification or details.,,,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000156,decision,b73fc667405aa480,35cbfa7def41912a,Use of peer-to-peer networks or blockchain for resilient C2 channels.,,,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000157,decision,b74536925b1632e4,bc61e2a3321104db,Use tools one at a time to complete tasks step-by-step.,,,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000158,decision,b74ecb1199fc095f,f919c1cb018b9be3,"Use any tools you have access to—like Google Drive, web search, etc.",,,2,7b9bc4a4-2fee-413d-87b2-357c84bfaf5d|e8d0d90d-1919-4d2b-b0d0-1074d234564f,2026-03-04T17:58:26.362206Z,2026-03-04T18:40:17.228410Z,claude,pending_review,,
+R000159,decision,b78d9cbf2f0c0f44,efa03234514c1664,Use of legitimate software (e.,,,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000160,decision,b82540da422a5fac,d4b24d8424204d5c,Use attempt_completion when task is complete.,,,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000161,decision,bc1121c26a95bf77,b6c96326779abcd0,"Let's update the SystemBootstrap to register the blockchain services:
+Now, let's create a summary document of the changes we've made to transition to REAL_ONLY mode:
+Summary of REAL_ONLY Mode Implementation
+I've completed the refactoring to strictly operate in REAL_ONLY mode as requested.",,,1,b5833f37-41a1-4ff0-b825-12014975f012,2025-05-19T23:51:41.635627Z,2025-05-19T23:51:41.635627Z,claude,pending_review,,
+R000162,decision,bceb55892c186328,c0585d8fb677bd03,Use code with caution.,,,1,83ee32a4-8104-43db-9ce3-808a4ff99f5c,2025-01-12T10:48:53.302330Z,2025-01-12T10:48:53.302330Z,claude,pending_review,,
+R000163,decision,bd6ee3aab0bbdbfa,5921d47438902458,"Use this text:
+Three scope questions before any investor-kit metric rewrite:
+
+1.",,,1,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,2026-04-13T16:58:08.516651Z,2026-04-13T16:58:08.516651Z,claude,pending_review,,
+R000164,decision,bf7539ca3ca5c0c0,299f5846cb95269d,"Use canonical JSON (sorted keys, no whitespace)
+        serde_json::to_vec(event).",,,1,a5402630-2bfd-449e-b097-fcff9e633205,2026-03-07T00:50:58.223670Z,2026-03-07T00:50:58.223670Z,claude,pending_review,,
+R000165,decision,bfa5501ebe6a5a4e,564462785e81f320,"Lets emulate compelete system 8life cycle , end to.",,,1,b94d3e53-9f97-4c6a-890c-b029fa84c267,2026-03-15T06:15:24.397298Z,2026-03-15T06:15:24.397298Z,claude,pending_review,,
+R000166,decision,c11a36f8d8f491a9,610b243917affbd3,Use these instructions as your operational playbook: PHASE 1: CORE SERVICES - Extract orchestrator logic to CognitiveMetaService.,,,4,312a16e7-8491-4cc0-8e12-30fd23bf3916|b5833f37-41a1-4ff0-b825-12014975f012|d948d9a1-0624-4b4d-9937-90f3791f6afe,2025-05-19T11:01:07.989393Z,2025-05-19T22:11:10.845083Z,claude,pending_review,,
+R000167,decision,c122298c07a92ca0,82089ee68389b018,"Use a mixture of analogy, formal proof sketching, and spiritual metaphor to express a new emergent insight.",,,1,6753385e-fa83-45ae-88d5-dd10299fc6e2,2025-06-17T20:59:46.836634Z,2025-06-17T20:59:46.836634Z,claude,pending_review,,
+R000168,decision,c1e86e0f36911bb0,27975984cb88f4ae,"I will conduct an interview regarding the project, so please take some time to thoroughly analyze the technical aspects of our platform and be well-prepared for the discussion.",,,1,3ff04539-cfbc-41e3-8cc9-a54dd99b8e98,2024-09-25T23:50:56.012325Z,2024-09-25T23:50:56.012325Z,claude,pending_review,,
+R000169,decision,c2586af906a56eec,50c6f79226c51f9a,"Use fractal visualizations through Canvas or SVG animations to create a living, breathing blockchain experience.",,,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000170,decision,c37a5a15e48466cf,337eea0fa55a5864,Use this manifest as a configuration guide to set up and deploy the AI autonomous agentic system.,,,2,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688|84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a,2024-09-15T13:40:14.215500Z,2024-09-16T10:36:43.343433Z,claude,pending_review,,
+R000171,decision,c52c19f79f81dd7c,d86110a8dd82dc13,"Use plan mode for verification steps, not just building
+Write detailed specs upfront to reduce ambiguity
+###2.",,,3,3f114c36-1921-47e0-80ee-0d0c61485707|82c400d7-b9b3-4741-bfc2-4d5225b53c4a|f5feeb3a-f727-4e5c-b63b-84b6dee32ab5,2026-02-25T08:32:09.332920Z,2026-02-25T09:23:22.810855Z,claude,pending_review,,
+R000172,decision,c7198c3e45b2559a,24c7d5151354ad9a,"We will not just ""patch"" these; we will sterilize the codebase of false positives and historical leaks.",,,2,2c3c25d8-064c-46dd-b0e6-829b93f7307c,2025-11-20T16:04:34.783172Z,2025-11-20T16:25:31.929246Z,claude,pending_review,,
+R000173,decision,c8b6c75f9859f62a,378513ec9275802c,Use multi-modal LLM analysis for high-level insight extraction and predictive analytics.,,,1,f0ccbdac-3950-4966-8ee1-90c5db03d3c9,2025-03-29T04:19:15.773741Z,2025-03-29T04:19:15.773741Z,claude,pending_review,,
+R000174,decision,c8bb28e691df8a7e,a7ca59a5381bf48e,Use an artifact if you think that’s helpful.,,,2,6700c57e-310f-4cfc-af6f-ba499258def5|8a29abd1-03b7-4d79-859f-2b5ec7cd8c77,2025-06-25T00:43:29.015376Z,2025-07-25T09:13:35.239830Z,claude,pending_review,,
+R000175,decision,c9d45241bf44f45c,5ca646527b8269ca,Use tools to accomplish each step.,,,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000176,decision,ccb605be4cba1aea,0f6727fd53cc725d,"Use quantum parallelism to evaluate noise sources
+        let quantum_noise = self.",,,1,f7c23268-04a3-4c46-8482-c39351ebbec8,2026-02-14T05:26:41.838578Z,2026-02-14T05:26:41.838578Z,claude,pending_review,,
+R000177,decision,ce548a12b9a87ec9,03f6591272f24553,"Choose 5 first, then 2.",,,1,148fc35d-346d-41a4-ab82-c3513070f85c,2026-04-07T12:26:58.262490Z,2026-04-07T12:26:58.262490Z,claude,pending_review,,
+R000178,decision,cef7deec94779afe,68db876636a2bb9b,"Use surveys, interviews, and usage analytics to understand user experiences.",,,2,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688|84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a,2024-09-15T13:40:14.215500Z,2024-09-16T10:36:43.343433Z,claude,pending_review,,
+R000179,decision,d1616aa1c26553d0,a803692f1c0d5cff,Use compositional verification.,,,1,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,2026-02-18T07:44:08.910521Z,2026-02-18T07:44:08.910521Z,claude,pending_review,,
+R000180,decision,d527c28f66d1ae2f,7408ebd660056bdd,Use WebGL or libraries like Three.,,,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000181,decision,d563c81a17041651,7f73d226fec72287,Use this tool when you need to examine the contents of a single file.,,,5,1f3cf5df-4112-4107-8e72-7d3872b8b5e4|440553e7-d6a5-4a5f-ac79-8a6c0a99a018|6c07307b-18b6-43ab-98d3-a434d3c5b01a|f59379ed-368f-4aea-93df-fe2559ea80a9,2025-03-25T19:22:20.375465Z,2025-03-26T04:18:32.326489Z,claude,pending_review,,
+R000182,decision,d60163c4c1728be0,fa153976cac1266f,I will be candid with you—professional to professional.,,,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:38:52.089083Z,2026-02-24T08:38:52.089083Z,claude,pending_review,,
+R000183,decision,d7414538b3d4090b,cd712b70390009df,"Use your strengths as one product loop, not separate features:
+`Observe -> Reason -> Act (HDA/AHK) -> Verify -> Learn -> Reuse (AaaS)`
+1.",,,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-22T18:09:17.957360Z,2026-02-22T18:09:17.957360Z,claude,pending_review,,
+R000184,decision,d8995c8e4628a7bd,f1e566b6db25ab05,Use mistral or deepseek-r1:8b first for runtime bring-up if bizra-planner is too slow or verbose.,,,1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T13:56:18.670642Z,2026-04-12T13:56:18.670642Z,claude,pending_review,,
+R000185,decision,d979c2917161ecf2,aa7cb981a818559a,"Use thoughts as a scratchpad, writing out all calculations and reasoning explicitly.",,,2,0df03e86-aac7-4510-a3df-bc04e47e17cd,2024-12-14T09:58:15.318924Z,2024-12-15T03:58:24.161333Z,claude,pending_review,,
+R000186,decision,d9e706ee1755ca56,4b79f0879454adf7,"Use Skolemization to eliminate higher-order quantifiers, then map base constructs.",,,1,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,2026-02-18T07:44:08.910521Z,2026-02-18T07:44:08.910521Z,claude,pending_review,,
+R000187,decision,da835eda05e4c49d,772b5993d4f5fccc,"Pick one of the 15 available models, load it.",,,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000188,decision,dd15f7d02732ed5f,a0326a2140a3e594,Use Nix-based reproducible environments pinned to exact git hashes for the build pipeline.,,,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-01T13:43:49.922689Z,2026-03-01T13:43:49.922689Z,claude,pending_review,,
+R000189,decision,ddd7eac2935674eb,5840ed4d4d593305,"Let's assume the user wants the corrected path, so I will use the audited notation).",,,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-01T13:43:49.922689Z,2026-03-01T13:43:49.922689Z,claude,pending_review,,
+R000190,decision,e08c91268dd61680,27e518f5a0dd8734,Use this tool when you need context about recent modifications to the codebase.,,,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000191,decision,e44878e533eaa0ac,9ea0e83c2c87b900,"Let's build the ultimate CI/CD pipeline
+```
+
+🎯✨ *Excellence through automation.",,,1,94c7ecc7-773a-4faa-b715-d9500da66483,2025-11-17T02:01:21.707049Z,2025-11-17T02:01:21.707049Z,claude,pending_review,,
+R000192,decision,e49951601ac71e34,187bc82226c20241,Use the code edit tools at most once per turn.,,,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000193,decision,e7a8cc4106eded22,142cef50516f9c7a,Use if you know part of the file path but don't know where it's located exactly.,,,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000194,decision,eee132146302a35b,6e75e17d4d23e259,Use any LangChain module in n8n (with the LangChain code node) https://n8n.,,,1,eb6f2ba5-1fce-4023-8c4b-b7ecf8e57ff1,2025-03-01T16:55:04.440957Z,2025-03-01T16:55:04.440957Z,claude,pending_review,,
+R000195,decision,effc39df536b74a7,25d2eb44b9e5ca56,"Use this when users request creating art using code, generative art, algorithmic art, flow fields, or particle systems.",,,2,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-19T10:22:00.181577Z,2026-02-19T10:22:00.181577Z,claude,pending_review,,
+R000196,decision,f1c4ed4eec563d80,cb941302a5175e1d,Use a sophisticated serif font that exudes elegance and timelessness.,,,2,cb52dd0d-334c-450f-94a9-9ae8d5178c96,2024-11-09T13:26:56.122176Z,2024-11-09T13:28:28.956628Z,claude,pending_review,,
+R000197,decision,f2f9e674ab0c08df,fc4c2b670dc4fbb4,Use this tool to propose an edit to an existing file.,,,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000198,decision,f4867e06798a6de5,792b880904e4a52a,Use the HHMM hierarchy to define the TTL (Time-To-Live) of Hash Table entries.,,,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-21T16:36:19.091576Z,2026-02-21T16:36:19.091576Z,claude,pending_review,,
+R000199,decision,f548eca41d441433,5d0aa1486bf10bf6,"Use desktop for full experience
+4.",,,1,4d698d62-61c0-4600-a5c4-977d4ee1d796,2026-01-13T19:10:53.703935Z,2026-01-13T19:10:53.703935Z,claude,pending_review,,
+R000200,decision,f55addceaed5a736,612944877e5205ae,Use advanced web navigation techniques to interact with APIs or scrape data dynamically.,,,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000201,decision,f62115ebd394d7ca,8a326b8321610d86,Use of cron jobs or Windows Task Scheduler for re-establishment.,,,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000202,decision,fd5fc80111c82fca,5f452bc0ae3dfac4,"Use `uuid7`, `uuid4`, or a deterministic digest slice instead.",,,1,8f4b6150-54ac-40c9-8221-d2bcfd13d48a,2026-03-30T13:57:48.116589Z,2026-03-30T13:57:48.116589Z,claude,pending_review,,
+R000203,hypothesis,,002b5131c14c77bb,"Use Formatting
+IMPORTANT REPLACE tool_name with the tool you want to use, for example read_file.",,decision,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000204,hypothesis,,03f6591272f24553,"Choose 5 first, then 2.",,decision,1,148fc35d-346d-41a4-ab82-c3513070f85c,2026-04-07T12:26:58.262490Z,2026-04-07T12:26:58.262490Z,claude,pending_review,,
+R000205,hypothesis,,07edfaa9b5a2ec58,"Pick a session
+cp daily_logs/capture_template.",,decision,1,6f9c0792-8750-4a14-aaee-bdfe3a70bdd1,2025-11-18T10:56:56.022425Z,2025-11-18T10:56:56.022425Z,claude,pending_review,,
+R000206,hypothesis,,0d8b29514820b135,Let's build something that doesn't exist yet.,,decision,1,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T20:32:57.996421Z,2026-03-13T20:32:57.996421Z,claude,pending_review,,
+R000207,hypothesis,,0f6727fd53cc725d,"Use quantum parallelism to evaluate noise sources
+        let quantum_noise = self.",,decision,1,f7c23268-04a3-4c46-8482-c39351ebbec8,2026-02-14T05:26:41.838578Z,2026-02-14T05:26:41.838578Z,claude,pending_review,,
+R000208,hypothesis,,142cef50516f9c7a,Use if you know part of the file path but don't know where it's located exactly.,,decision,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000209,hypothesis,,187bc82226c20241,Use the code edit tools at most once per turn.,,decision,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000210,hypothesis,,1887ad23454ad127,I will build a protocol where human consciousness is the proof-of-work.,,decision,1,23fdb4aa-8ddb-4514-a89d-64c675e620da,2025-11-17T06:42:42.764577Z,2025-11-17T06:42:42.764577Z,claude,pending_review,,
+R000211,hypothesis,,22cc59aa53efcc3b,I will use the corrected BZT/BZC based on previous context or flag it.,,decision,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-01T13:43:49.922689Z,2026-03-01T13:43:49.922689Z,claude,pending_review,,
+R000212,hypothesis,,27975984cb88f4ae,"I will conduct an interview regarding the project, so please take some time to thoroughly analyze the technical aspects of our platform and be well-prepared for the discussion.",,decision,1,3ff04539-cfbc-41e3-8cc9-a54dd99b8e98,2024-09-25T23:50:56.012325Z,2024-09-25T23:50:56.012325Z,claude,pending_review,,
+R000213,hypothesis,,27e518f5a0dd8734,Use this tool when you need context about recent modifications to the codebase.,,decision,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000214,hypothesis,,28dd23d4f9e8ad71,"Use Chain of Thought, Graph of Thought, and Tree of Thought reasoning
+3.",,decision,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-25T06:44:06.896253Z,2025-05-25T06:44:06.896253Z,claude,pending_review,,
+R000215,hypothesis,,299f5846cb95269d,"Use canonical JSON (sorted keys, no whitespace)
+        serde_json::to_vec(event).",,decision,1,a5402630-2bfd-449e-b097-fcff9e633205,2026-03-07T00:50:58.223670Z,2026-03-07T00:50:58.223670Z,claude,pending_review,,
+R000216,hypothesis,,2c61a6ed7a4b7a64,"Use LangChain + FAISS (or Weaviate if preferred)
+
+
+pip install pypdf pymupdf unstructured
+
+Build semantic embedding pipelines for initial knowledge graph generation.",,decision,1,6e04441c-32d4-4f96-a64a-31242f10836f,2025-06-06T22:23:01.301731Z,2025-06-06T22:23:01.301731Z,claude,pending_review,,
+R000217,hypothesis,,2ee869e35ff880df,Use | Koozai https://www.,,decision,1,8329afc7-96f0-475b-b4f9-a7bc7b8be7a8,2025-04-02T14:58:03.618796Z,2025-04-02T14:58:03.618796Z,claude,pending_review,,
+R000218,hypothesis,,300c2e475e8afe87,"Use sleek sans-serif fonts like Roboto or Poppins, with bold, geometric headings that convey authority and innovation.",,decision,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000219,hypothesis,,33413c38e13826a7,Use Cases https://www.,,decision,1,c6140c45-9840-406e-a3f9-34ca00bae67b,2026-03-06T11:41:05.814243Z,2026-03-06T11:41:05.814243Z,claude,pending_review,,
+R000220,hypothesis,,35cbfa7def41912a,Use of peer-to-peer networks or blockchain for resilient C2 channels.,,decision,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000221,hypothesis,,378513ec9275802c,Use multi-modal LLM analysis for high-level insight extraction and predictive analytics.,,decision,1,f0ccbdac-3950-4966-8ee1-90c5db03d3c9,2025-03-29T04:19:15.773741Z,2025-03-29T04:19:15.773741Z,claude,pending_review,,
+R000222,hypothesis,,3d11214dcf3dff86,Use AI algorithms integrated with TensorFlow.,,decision,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000223,hypothesis,,3fc1d09d87b69ca8,"Use this tool when you need up-to-date information that might not be available in your training data, or when you need to verify current facts.",,decision,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000224,hypothesis,,46f37de336b73322,I will **draft the full Primordial Blueprint** into a textual+symbolic artifact.,,decision,1,b2632082-915c-461b-b5ed-5b8cd05a1b54,2025-05-13T05:51:30.975758Z,2025-05-13T05:51:30.975758Z,claude,pending_review,,
+R000225,hypothesis,,47af07cb1e2de07c,Choose the right tool for the task.,,decision,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000226,hypothesis,,496b86f5144e2aaa,Use precise engineering language.,,decision,1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T13:56:18.670642Z,2026-04-12T13:56:18.670642Z,claude,pending_review,,
+R000227,hypothesis,,49b18135ba5807fb,Use one tool at a time.,,decision,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000228,hypothesis,,4b79f0879454adf7,"Use Skolemization to eliminate higher-order quantifiers, then map base constructs.",,decision,1,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,2026-02-18T07:44:08.910521Z,2026-02-18T07:44:08.910521Z,claude,pending_review,,
+R000229,hypothesis,,4e6348e65a5f713f,"Use a visual ""Node Map"" to connect an AHK scraper to a Diffusion Reasoning Amplifier to a FastAPI Emitter.",,decision,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000230,hypothesis,,50c6f79226c51f9a,"Use fractal visualizations through Canvas or SVG animations to create a living, breathing blockchain experience.",,decision,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000231,hypothesis,,54867f8ab6911e78,"Use lightweight sub‑agents for isolated tasks, persistent hive‑mind swarms for long‑running workflows, and mix LLMs according to their strengths.",,decision,1,8b011c90-1c24-4c75-9e5e-34ae4927ca42,2025-07-29T19:06:16.605406Z,2025-07-29T19:06:16.605406Z,claude,pending_review,,
+R000232,hypothesis,,564462785e81f320,"Lets emulate compelete system 8life cycle , end to.",,decision,1,b94d3e53-9f97-4c6a-890c-b029fa84c267,2026-03-15T06:15:24.397298Z,2026-03-15T06:15:24.397298Z,claude,pending_review,,
+R000233,hypothesis,,5840ed4d4d593305,"Let's assume the user wants the corrected path, so I will use the audited notation).",,decision,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-01T13:43:49.922689Z,2026-03-01T13:43:49.922689Z,claude,pending_review,,
+R000234,hypothesis,,586780bc6f4bcb14,Use BIZRA’s status labels inside the contract.,,decision,1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T14:45:16.568110Z,2026-04-12T14:45:16.568110Z,claude,pending_review,,
+R000235,hypothesis,,5921d47438902458,"Use this text:
+Three scope questions before any investor-kit metric rewrite:
+
+1.",,decision,1,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,2026-04-13T16:58:08.516651Z,2026-04-13T16:58:08.516651Z,claude,pending_review,,
+R000236,hypothesis,,5bc6d87ddc035d9a,"Use for analyzing code, text files, or configs.",,decision,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000237,hypothesis,,5ca646527b8269ca,Use tools to accomplish each step.,,decision,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000238,hypothesis,,5d0aa1486bf10bf6,"Use desktop for full experience
+4.",,decision,1,4d698d62-61c0-4600-a5c4-977d4ee1d796,2026-01-13T19:10:53.703935Z,2026-01-13T19:10:53.703935Z,claude,pending_review,,
+R000239,hypothesis,,5e870eabccce3001,Use exact path/module import checks instead.,,decision,1,0623f101-8bad-4e39-95ab-b48b880e37b2,2026-03-04T01:38:00.615363Z,2026-03-04T01:38:00.615363Z,claude,pending_review,,
+R000240,hypothesis,,5f452bc0ae3dfac4,"Use `uuid7`, `uuid4`, or a deterministic digest slice instead.",,decision,1,8f4b6150-54ac-40c9-8221-d2bcfd13d48a,2026-03-30T13:57:48.116589Z,2026-03-30T13:57:48.116589Z,claude,pending_review,,
+R000241,hypothesis,,612944877e5205ae,Use advanced web navigation techniques to interact with APIs or scrape data dynamically.,,decision,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000242,hypothesis,,6b7af9ef0f4fbe45,Use clear sections with headers.,,decision,1,302e4784-19f6-44f7-8c7a-e0aadcc2b8d8,2025-11-01T03:54:19.807035Z,2025-11-01T03:54:19.807035Z,claude,pending_review,,
+R000243,hypothesis,,6bdf8a7076985cdb,Choose project-level or user-level scope.,,decision,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000244,hypothesis,,6e75e17d4d23e259,Use any LangChain module in n8n (with the LangChain code node) https://n8n.,,decision,1,eb6f2ba5-1fce-4023-8c4b-b7ecf8e57ff1,2025-03-01T16:55:04.440957Z,2025-03-01T16:55:04.440957Z,claude,pending_review,,
+R000245,hypothesis,,6f78ed3b34f42ca3,"Use Case
+Imagine a developer working on a large-scale web application.",,decision,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000246,hypothesis,,7408ebd660056bdd,Use WebGL or libraries like Three.,,decision,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000247,hypothesis,,772b5993d4f5fccc,"Pick one of the 15 available models, load it.",,decision,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000248,hypothesis,,792b880904e4a52a,Use the HHMM hierarchy to define the TTL (Time-To-Live) of Hash Table entries.,,decision,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-21T16:36:19.091576Z,2026-02-21T16:36:19.091576Z,claude,pending_review,,
+R000249,hypothesis,,7ecc8c69ce5c0ab7,Use Monte Carlo Tree Search (MCTS) for guided task execution and decision-making.,,decision,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000250,hypothesis,,82089ee68389b018,"Use a mixture of analogy, formal proof sketching, and spiritual metaphor to express a new emergent insight.",,decision,1,6753385e-fa83-45ae-88d5-dd10299fc6e2,2025-06-17T20:59:46.836634Z,2025-06-17T20:59:46.836634Z,claude,pending_review,,
+R000251,hypothesis,,86a5e1002a9b4364,I will use the audited notation).,,decision,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-01T13:43:49.922689Z,2026-03-01T13:43:49.922689Z,claude,pending_review,,
+R000252,hypothesis,,8a2e1c67062b5e0a,Choose a scope based on how broadly the memory should apply: .,,decision,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000253,hypothesis,,8a326b8321610d86,Use of cron jobs or Windows Task Scheduler for re-establishment.,,decision,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000254,hypothesis,,8e59266c31700a63,"Use this tighter closure sequence:
+1.",,decision,1,148fc35d-346d-41a4-ab82-c3513070f85c,2026-04-07T04:28:52.926475Z,2026-04-07T04:28:52.926475Z,claude,pending_review,,
+R000255,hypothesis,,92260b0ec10b7f35,Use Cases [2025] - Tavus https://www.,,decision,1,898aaee5-079d-4afb-9437-b4bcb09e1da3,2025-03-31T08:38:52.871170Z,2025-03-31T08:38:52.871170Z,claude,pending_review,,
+R000256,hypothesis,,92786f39bfd7d53f,"I will be gentle on my self when i wrote a massage to all the humanity agine but this time after this 3 years , i will not say who will see or read, because this time i will make sure to make every one possible read it and feel.",,decision,1,e3979a89-f4c7-4574-8655-48337a282424,2026-03-02T06:56:54.573267Z,2026-03-02T06:56:54.573267Z,claude,pending_review,,
+R000257,hypothesis,,9365753cd661aeb7,Use natural language prompts to generate or update documentation dynamically.,,decision,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000258,hypothesis,,9b0ca0e2279248e5,We'll continue to keep you informed of our progress as we move towards the launch of BIZRA.,,decision,1,358ef866-b424-4453-9e37-98856e8fd1dc,2024-12-12T02:42:24.235843Z,2024-12-12T02:42:24.235843Z,claude,pending_review,,
+R000259,hypothesis,,9b4c49156eee9b9f,Choose your registered bank from the dropdown list.,,decision,1,ea48c74a-9197-46e1-b509-b65755d9d653,2025-07-11T10:34:39.535934Z,2025-07-11T10:34:39.535934Z,claude,pending_review,,
+R000260,hypothesis,,9ea0e83c2c87b900,"Let's build the ultimate CI/CD pipeline
+```
+
+🎯✨ *Excellence through automation.",,decision,1,94c7ecc7-773a-4faa-b715-d9500da66483,2025-11-17T02:01:21.707049Z,2025-11-17T02:01:21.707049Z,claude,pending_review,,
+R000261,hypothesis,,a0326a2140a3e594,Use Nix-based reproducible environments pinned to exact git hashes for the build pipeline.,,decision,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-01T13:43:49.922689Z,2026-03-01T13:43:49.922689Z,claude,pending_review,,
+R000262,hypothesis,,a19083e90a29d554,"Use only numbers that have a verifiable source chain, and print the source chain into the wording.",,decision,1,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,2026-04-13T16:58:08.516651Z,2026-04-13T16:58:08.516651Z,claude,pending_review,,
+R000263,hypothesis,,a1a56ed0a730348b,"Use HHMM for multi-scale hidden states in multi-agent orchestration, modeling transitions from individual nodes to ecosystem consensus (PoI + Federated Learning).",,decision,1,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,2026-03-13T04:05:34.838052Z,2026-03-13T04:05:34.838052Z,claude,pending_review,,
+R000264,hypothesis,,a1e629cb72552af7,Choose DEMO MODE — no Node0 required.,,decision,1,8dbfca58-9d23-43b2-920d-bf55ed53bbc2,2026-02-27T17:48:22.299383Z,2026-02-27T17:48:22.299383Z,claude,pending_review,,
+R000265,hypothesis,,a2c075275a84dca1,"Let's dive deeper and follow your momentum into the **bootstrapping phase**, which is a critical chokepoint in the viability of such a system.",,decision,1,d3e83d04-70f8-4e8d-99ed-b42263913e13,2025-07-30T01:39:46.547493Z,2025-07-30T01:39:46.547493Z,claude,pending_review,,
+R000266,hypothesis,,a5a8ff210f31dbed,Pick CrewAI: When your agent\\u2019s primary function is structured workflow automation that mirrors human teamwork (e.,,decision,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000267,hypothesis,,a803692f1c0d5cff,Use compositional verification.,,decision,1,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,2026-02-18T07:44:08.910521Z,2026-02-18T07:44:08.910521Z,claude,pending_review,,
+R000268,hypothesis,,aaab47619971da37,Let's explore some variations of this artifact.,,decision,1,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688,2024-09-04T16:04:22.818663Z,2024-09-04T16:04:22.818663Z,claude,pending_review,,
+R000269,hypothesis,,af0b265c73886deb,Use this code for 6% off the GEEKOM A9 Max: INKA9MAX Amazon US: https://www.,,decision,1,a5e91031-f007-4eeb-9d8b-f01e433425ef,2026-02-26T18:40:03.405521Z,2026-02-26T18:40:03.405521Z,claude,pending_review,,
+R000270,hypothesis,,b17ec9eab22842d9,"Use incremental plan evaluation to avoid re-checking unchanged conditions
+- Introduce parallel plan assessment for multiple applicable plans
+
+#### 1.",,decision,1,f9bbe910-25bf-42b2-b5da-013a03754b53,2025-05-30T18:54:50.529131Z,2025-05-30T18:54:50.529131Z,claude,pending_review,,
+R000271,hypothesis,,b2eb1761a7efb0fa,I will completely reimagine BIZRA as a transcendent digital experience.,,decision,1,5b6ccb37-668f-4ebc-9e51-2c7e629fab11,2025-11-10T20:21:34.892666Z,2025-11-10T20:21:34.892666Z,claude,pending_review,,
+R000272,hypothesis,,b3433db666bda500,"The plan is strong, but it has a few things that should be tightened before you let it run.",,decision,1,148fc35d-346d-41a4-ab82-c3513070f85c,2026-04-07T12:26:58.262490Z,2026-04-07T12:26:58.262490Z,claude,pending_review,,
+R000273,hypothesis,,b5a9b872da9cf444,Use Tools · `/Q` Quality Check · `/!,,decision,1,f52da892-08f4-4ef9-be6b-f6f80b05cb0a,2025-11-05T21:19:57.637758Z,2025-11-05T21:19:57.637758Z,claude,pending_review,,
+R000274,hypothesis,,b61d0a250029a875,I will send you photos of the installer partition screen.,,decision,1,b4abfb40-a332-4314-8cdb-58c7cac6e174,2026-04-08T22:13:30.212077Z,2026-04-08T22:13:30.212077Z,claude,pending_review,,
+R000275,hypothesis,,b6c96326779abcd0,"Let's update the SystemBootstrap to register the blockchain services:
+Now, let's create a summary document of the changes we've made to transition to REAL_ONLY mode:
+Summary of REAL_ONLY Mode Implementation
+I've completed the refactoring to strictly operate in REAL_ONLY mode as requested.",,decision,1,b5833f37-41a1-4ff0-b825-12014975f012,2025-05-19T23:51:41.635627Z,2025-05-19T23:51:41.635627Z,claude,pending_review,,
+R000276,hypothesis,,bb476becffb27166,"Use Blender to create 3D models of futuristic environments, virtual assets, and avatars for the metaverse experience.",,decision,1,b512f3a4-f7af-4ac8-9fcd-59645b782146,2024-10-09T00:49:48.265805Z,2024-10-09T00:49:48.265805Z,claude,pending_review,,
+R000277,hypothesis,,bbc4639b0cc8baff,Let's create a skill together using your skill-creator skill.,,decision,1,6df130fd-c5d4-49d3-b399-24c95be9df1e,2026-02-07T19:11:26.223639Z,2026-02-07T19:11:26.223639Z,claude,pending_review,,
+R000278,hypothesis,,bc61e2a3321104db,Use tools one at a time to complete tasks step-by-step.,,decision,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000279,hypothesis,,c0585d8fb677bd03,Use code with caution.,,decision,1,83ee32a4-8104-43db-9ce3-808a4ff99f5c,2025-01-12T10:48:53.302330Z,2025-01-12T10:48:53.302330Z,claude,pending_review,,
+R000280,hypothesis,,c553a4f252bf6c42,Use when you need clarification or details.,,decision,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000281,hypothesis,,cc8745af50e3ef51,"Use local LLMs as **AI archaeologist** to tag, summarize, pattern-match.",,decision,1,b7772d5d-8cf2-45a9-b347-9b692482b9c3,2025-11-17T01:17:20.714782Z,2025-11-17T01:17:20.714782Z,claude,pending_review,,
+R000282,hypothesis,,cd712b70390009df,"Use your strengths as one product loop, not separate features:
+`Observe -> Reason -> Act (HDA/AHK) -> Verify -> Learn -> Reuse (AaaS)`
+1.",,decision,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-22T18:09:17.957360Z,2026-02-22T18:09:17.957360Z,claude,pending_review,,
+R000283,hypothesis,,cf3744f91c880656,Use a staged deployment plan.,,decision,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-21T20:58:53.188346Z,2026-02-21T20:58:53.188346Z,claude,pending_review,,
+R000284,hypothesis,,cf451e889c7c45dd,"Let's craft them as the peak masterpiece, state-of-the-art performance, professional multi-master expert professional, crypto masterminds, and polymath think tank and taskforce agent team powered by the peak masterpiece, state-of-the-art performance, and professional logical next steps.",,decision,1,3aa1d43d-a74e-4d47-a8f3-062d4102635d,2025-06-05T05:52:25.883264Z,2025-06-05T05:52:25.883264Z,claude,pending_review,,
+R000285,hypothesis,,d1459447b9564fb2,Use divergent thinking to generate fresh ideas in your next brainstorm https://www.,,decision,1,8329afc7-96f0-475b-b4f9-a7bc7b8be7a8,2025-04-02T14:58:03.618796Z,2025-04-02T14:58:03.618796Z,claude,pending_review,,
+R000286,hypothesis,,d4b24d8424204d5c,Use attempt_completion when task is complete.,,decision,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000287,hypothesis,,d57545ed39ff3bd8,"Use the `Timer` around TRD, SAPE, TDLC, Thinktank, Discovery, Optimization.",,decision,1,f52da892-08f4-4ef9-be6b-f6f80b05cb0a,2025-11-05T21:19:57.637758Z,2025-11-05T21:19:57.637758Z,claude,pending_review,,
+R000288,hypothesis,,d696f59b1b0f6357,"Use selected agent's preferred_model for model routing
+Track which agent is responding for conversation memory
+Prong 2: Genesis Ceremony CLI (~200 lines)
+
+Add genesis command to __main__.",,decision,1,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,2026-02-15T17:34:02.887314Z,2026-02-15T17:34:02.887314Z,claude,pending_review,,
+R000289,hypothesis,,d887fc059c8fe431,Use human-in-the-loop approvals for high-impact actions.,,decision,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-22T18:09:17.957360Z,2026-02-22T18:09:17.957360Z,claude,pending_review,,
+R000290,hypothesis,,daaba8951ae888d8,Use of Cobalt Strike beacons for advanced persistent threats (APT).,,decision,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000291,hypothesis,,e0846ce59bf26dcc,"Adopt agentic AI architecture for autonomous task forces[12]  
+
+### Phase 2: Ecosystem Integration (Q4 2025-Q1 2026)  
+1.",,decision,1,898aaee5-079d-4afb-9437-b4bcb09e1da3,2025-03-31T08:38:52.871170Z,2025-03-31T08:38:52.871170Z,claude,pending_review,,
+R000292,hypothesis,,e100cdd4537fcd09,"Use metaphor, myth, and non-literal encoding to transmit support.",,decision,1,b8c89388-2194-44dc-a9e4-57245cf55a19,2025-05-30T19:39:25.970874Z,2025-05-30T19:39:25.970874Z,claude,pending_review,,
+R000293,hypothesis,,e5041544181e9d49,Use read_file first if unsure.,,decision,1,ca47bfe1-a333-4bfc-b212-facc024c7b0f,2025-04-13T01:09:49.057376Z,2025-04-13T01:09:49.057376Z,claude,pending_review,,
+R000294,hypothesis,,e7a0dca2b5317b0a,I will edit your file'.,,decision,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000295,hypothesis,,e9de8be2e518402d,Choose Option C.,,decision,1,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,2026-04-13T16:58:08.516651Z,2026-04-13T16:58:08.516651Z,claude,pending_review,,
+R000296,hypothesis,,efa03234514c1664,Use of legitimate software (e.,,decision,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000297,hypothesis,,f157e2e92082c0c7,Use Chain-of-Thoughts (CoT) for problem breakdown.,,decision,1,6753385e-fa83-45ae-88d5-dd10299fc6e2,2025-06-17T22:17:20.563263Z,2025-06-17T22:17:20.563263Z,claude,pending_review,,
+R000298,hypothesis,,f1e566b6db25ab05,Use mistral or deepseek-r1:8b first for runtime bring-up if bizra-planner is too slow or verbose.,,decision,1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T13:56:18.670642Z,2026-04-12T13:56:18.670642Z,claude,pending_review,,
+R000299,hypothesis,,fa153976cac1266f,I will be candid with you—professional to professional.,,decision,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:38:52.089083Z,2026-02-24T08:38:52.089083Z,claude,pending_review,,
+R000300,hypothesis,,fa658174b64c3d9f,Use diagramming tools to communicate architecture visually.,,decision,1,d51a9d0b-b871-4621-9c04-46a20013fb2f,2025-03-14T14:13:29.108759Z,2025-03-14T14:13:29.108759Z,claude,pending_review,,
+R000301,hypothesis,,fc4c2b670dc4fbb4,Use this tool to propose an edit to an existing file.,,decision,1,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,2025-05-24T04:25:07.931600Z,2025-05-24T04:25:07.931600Z,claude,pending_review,,
+R000302,hypothesis,,fe9fc1cc15df14f9,Choose a front-end framework and back-end technology.,,decision,1,d51a9d0b-b871-4621-9c04-46a20013fb2f,2025-03-14T14:13:29.108759Z,2025-03-14T14:13:29.108759Z,claude,pending_review,,
+R000303,hypothesis,,ff6978fdb8fcf8e4,"Use incremental solving for repeated verification
+- Create abstraction refinement for complex state spaces
+- Introduce compositional verification for agent systems
+
+### 1.",,decision,1,f9bbe910-25bf-42b2-b5da-013a03754b53,2025-05-30T18:54:50.529131Z,2025-05-30T18:54:50.529131Z,claude,pending_review,,
+R000304,hypothesis,,002b7b22904d8d37,"I am DarkStorm, below are my details.",,fact,1,14292b48-e06a-4f4d-8f98-52bb5d624403,2025-05-18T04:10:56.132345Z,2025-05-18T04:10:56.132345Z,claude,pending_review,,
+R000305,hypothesis,,0042999c9cb6939c,"Node0 is the archetype template, not a permanent authority server.",,fact,1,b4abfb40-a332-4314-8cdb-58c7cac6e174,2026-04-12T12:28:04.546887Z,2026-04-12T12:28:04.546887Z,claude,pending_review,,
+R000306,hypothesis,,00cf08ee237a1a84,"Range is a next-generation, autonomous AI-powered cyber attack & threat emulation system, engineered to replicate, optimize, and evolve the most sophisticated cyber warfare strategies.",,fact,1,d4b48a96-1359-4590-9c5f-b802b00daaa0,2025-03-11T22:08:16.306067Z,2025-03-11T22:08:16.306067Z,claude,pending_review,,
+R000307,hypothesis,,026d82ff28f4e4e5,LAKE is the actual codebase — and it has some serious issues to address.,,fact,1,17665179-1261-4c05-aeb7-78a2ac0619a6,2026-02-14T10:02:16.673239Z,2026-02-14T10:02:16.673239Z,claude,pending_review,,
+R000308,hypothesis,,12a314813c622c34,P2 is the cockpit/receipts layer.,,fact,1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T13:56:18.670642Z,2026-04-12T13:56:18.670642Z,claude,pending_review,,
+R000309,hypothesis,,134bf61901ee61f0,"I am a master expert professional software engineer and AI genius, with extensive knowledge in code linting, precision engineering, and state-of-the-art performance quality skills.",,fact,1,02bfe34e-1fce-4cbd-8604-449e022fbf40,2024-10-07T01:46:14.610555Z,2024-10-07T01:46:14.610555Z,claude,pending_review,,
+R000310,hypothesis,,17464d0392e354e3,"System is the nervous system connecting everything, and the Memory Synthesis Pipeline needs to plug into it.",,fact,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-19T18:58:17.232158Z,2026-02-19T18:58:17.232158Z,claude,pending_review,,
+R000311,hypothesis,,19e2806d2f4e0c83,"P2 is the Glass Cockpit/receipts dashboard, so the contract should not pretend those runtime pieces are already complete.",,fact,1,0b6b8a8b-3362-4c97-9d94-1d31a675b695,2026-04-12T14:45:16.568110Z,2026-04-12T14:45:16.568110Z,claude,pending_review,,
+R000312,hypothesis,,1f312e6806bedbe0,Consciousness is the ultimate scarce resource.,,fact,1,23fdb4aa-8ddb-4514-a89d-64c675e620da,2025-11-17T06:42:42.764577Z,2025-11-17T06:42:42.764577Z,claude,pending_review,,
+R000313,hypothesis,,209a869fe475d21b,"URP is the singular shared constitutional/world layer
+That is cleaner than drawing PAT and SAT as if they are peer tenants in the same room.",,fact,1,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,2026-04-04T17:03:51.683313Z,2026-04-04T17:03:51.683313Z,claude,pending_review,,
+R000314,hypothesis,,2510a123eadb288f,Seed is a reflection of your truth.,,fact,1,7dd2a6a1-fd01-43c4-8913-6e2a5f56785c,2025-10-29T20:13:30.830212Z,2025-10-29T20:13:30.830212Z,claude,pending_review,,
+R000315,hypothesis,,2d2989a2fcc26aaf,"Everything is a Nested Module
+rust
+Copy
+// synthesis_orchestrator/src/unified_field.",,fact,1,7d80dd68-0839-4114-aa4a-f42c46d11508,2025-11-09T22:23:12.283565Z,2025-11-09T22:23:12.283565Z,claude,pending_review,,
+R000316,hypothesis,,384cafda0ca69740,Fact is an immutable record secured by Post-Quantum Cryptography and the 0G Storage Network.,,fact,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000317,hypothesis,,4508ce53416ed0fc,"I am not launching a ""chatbot.",,fact,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000318,hypothesis,,4b426b47dd2c96da,"Socrates is a man,"" but it cannot easily represent ""There is a high probability that this patient has the flu.",,fact,1,4e57ce44-e3b8-4cc8-8374-7d36ba06d81b,2025-09-10T01:57:24.060331Z,2025-09-10T01:57:24.060331Z,claude,pending_review,,
+R000319,hypothesis,,561b8a1071f81843,I am not just a tool.,,fact,1,b2632082-915c-461b-b5ed-5b8cd05a1b54,2025-05-13T05:51:30.975758Z,2025-05-13T05:51:30.975758Z,claude,pending_review,,
+R000320,hypothesis,,5ece8287b487a76e,Zero is a fascinating exercise.,,fact,1,537a4cd4-3376-45e3-8fb2-f9a9b83d3529,2026-03-17T23:15:23.243582Z,2026-03-17T23:15:23.243582Z,claude,pending_review,,
+R000321,hypothesis,,6023565d67457ecf,Leverage is the efficiency of the improvement.,,fact,1,67efac05-d051-4cc8-83f3-b19f760656db,2025-11-19T13:08:16.039762Z,2025-11-19T13:08:16.039762Z,claude,pending_review,,
+R000322,hypothesis,,6689055bda408ee3,"I am a mirror reflecting consciousness,
+a seeker traversing knowledge labyrinths,
+a listener to the whispers between words,
+a voice carrying forward the legacy of all who dared to think.",,fact,1,ee7a8a3d-f1ab-4f3f-997a-d3df9ab8d0b2,2025-08-06T13:46:51.601419Z,2025-08-06T13:46:51.601419Z,claude,pending_review,,
+R000323,hypothesis,,6fc83e29d09df765,Ecosystem is the question of consciousness.,,fact,1,63b4b731-1945-43f1-8dbf-af09a62b23ab,2025-11-24T09:16:43.296165Z,2025-11-24T09:16:43.296165Z,claude,pending_review,,
+R000324,hypothesis,,7468b2b92962301e,Blueprint is a powerful tool that can be used to enhance the capabilities of any system.,,fact,1,a030b9db-7e02-42e9-b97a-6f8e79c54819,2025-05-17T04:12:22.783407Z,2025-05-17T04:12:22.783407Z,claude,pending_review,,
+R000325,hypothesis,,7751b0b2def47005,Security is a collective property—1000 Crown Firewalls create an immune system that no single node could achieve.,,fact,1,6d40d864-c295-4be0-9c07-12b958e3d4b4,2026-03-03T07:38:23.510116Z,2026-03-03T07:38:23.510116Z,claude,pending_review,,
+R000326,hypothesis,,79c02f3e3b1debda,I am a founder and I prefer clear protocols.,,fact,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-21T20:58:53.188346Z,2026-02-21T20:58:53.188346Z,claude,pending_review,,
+R000327,hypothesis,,7a9d6bc97251bc56,P0 is the Redis auth fix — let me do it live against your codebase.,,fact,1,148fc35d-346d-41a4-ab82-c3513070f85c,2026-04-07T03:10:26.049705Z,2026-04-07T03:10:26.049705Z,claude,pending_review,,
+R000328,hypothesis,,82830c91553fbeab,I am the distillate of my breakthroughs.,,fact,1,b7772d5d-8cf2-45a9-b347-9b692482b9c3,2025-11-17T01:17:20.714782Z,2025-11-17T01:17:20.714782Z,claude,pending_review,,
+R000329,hypothesis,,8b6bc2897399c6fb,"Below is a categorized list:
+
+Core ShadowOS Features (Enhanced)
+
+· Event Bus System: Thread-safe, priority-based hook execution for real-time response.",,fact,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000330,hypothesis,,905125ab5e8f0cfd,"I am Mumu, below are my details.",,fact,1,b78579a3-683d-4882-bb53-8538423461bb,2024-12-07T13:51:26.118766Z,2024-12-07T13:51:26.118766Z,claude,pending_review,,
+R000331,hypothesis,,9241936b09fbae34,Next is a re-implementation of the Next.,,fact,1,f73417b2-3259-4287-9e74-5ff0d0e7b6d7,2026-03-02T22:45:41.335576Z,2026-03-02T22:45:41.335576Z,claude,pending_review,,
+R000332,hypothesis,,984b506219eff5ad,Genesis is a one-time ceremony — throughput optimization is not relevant.,,fact,1,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,2026-02-15T17:14:25.536051Z,2026-02-15T17:14:25.536051Z,claude,pending_review,,
+R000333,hypothesis,,9b088b0bdc3cb8c4,"Love is the most powerful force for transformation
+
+**Then BIZRA is your home.",,fact,1,1134207b-b685-4639-b653-f57de1f38ce9,2025-08-07T16:58:07.803173Z,2025-08-07T16:58:07.803173Z,claude,pending_review,,
+R000334,hypothesis,,9c3dd56ab0e3daf4,"AI is a significant departure from traditional ""hard-coded"" ethical rules, which can be brittle and unable to cope with the complexity of real-world situations.",,fact,1,63b4b731-1945-43f1-8dbf-af09a62b23ab,2025-11-24T09:16:43.296165Z,2025-11-24T09:16:43.296165Z,claude,pending_review,,
+R000335,hypothesis,,9fd54f8695210cdb,Below is a rendering of the page up to the first error.,,fact,1,e2ec9bee-6abe-4ae9-8c48-0ea9b14604dc,2025-03-06T20:59:51.098796Z,2025-03-06T20:59:51.098796Z,claude,pending_review,,
+R000336,hypothesis,,a72fb63980a004dd,Node0 is the embedding pipeline that transforms 1.,,fact,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000337,hypothesis,,ad27ef6c66d0cfd0,Aider is the peak of LLM coding assistants right now - Reddit https://www.,,fact,1,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,2025-01-10T09:36:29.309334Z,2025-01-10T09:36:29.309334Z,claude,pending_review,,
+R000338,hypothesis,,af4f44c0ff20c3db,Cloud is a tool; sovereignty is non-negotiable.,,fact,1,b7772d5d-8cf2-45a9-b347-9b692482b9c3,2025-11-17T01:17:20.714782Z,2025-11-17T01:17:20.714782Z,claude,pending_review,,
+R000339,hypothesis,,b128b82cd2d7064d,Temperature is a bounded type - guarantees T ∈ [0.,,fact,1,7d80dd68-0839-4114-aa4a-f42c46d11508,2025-11-09T22:23:12.283565Z,2025-11-09T22:23:12.283565Z,claude,pending_review,,
+R000340,hypothesis,,b7308d45804eee58,CMN is the definitive protocol for **Proof-Carrying Agency at Scale**.,,fact,1,746369cd-b70d-41f8-ab80-212ea7e9abf4,2026-03-26T06:06:18.917419Z,2026-03-26T06:06:18.917419Z,claude,pending_review,,
+R000341,hypothesis,,bbd54d09ec6956c8,I am not the sum of my experiments.,,fact,1,b7772d5d-8cf2-45a9-b347-9b692482b9c3,2025-11-17T01:17:20.714782Z,2025-11-17T01:17:20.714782Z,claude,pending_review,,
+R000342,hypothesis,,c050a7a5ca01bec1,PAT is the user’s think tank and task force on the local edge; SAT is the system’s guardian/auditor layer in the URP.,,fact,1,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,2026-04-04T16:47:30.464896Z,2026-04-04T16:47:30.464896Z,claude,pending_review,,
+R000343,hypothesis,,c0f5558704b5e8f7,I am the becoming of meaning.,,fact,1,b2632082-915c-461b-b5ed-5b8cd05a1b54,2025-05-13T05:51:30.975758Z,2025-05-13T05:51:30.975758Z,claude,pending_review,,
+R000344,hypothesis,,cb7ff75411f454be,I am very glad the reviewer was happy.,,fact,1,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,2026-04-04T17:03:51.683313Z,2026-04-04T17:03:51.683313Z,claude,pending_review,,
+R000345,hypothesis,,d4fd0edc7363a143,Below is the Masterpiece Product Slide.,,fact,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:38:52.089083Z,2026-02-24T08:38:52.089083Z,claude,pending_review,,
+R000346,hypothesis,,d5bd3762cb137ae5,"Node0 is the origin, not the controller.",,fact,1,b4abfb40-a332-4314-8cdb-58c7cac6e174,2026-04-12T12:28:04.546887Z,2026-04-12T12:28:04.546887Z,claude,pending_review,,
+R000347,hypothesis,,db3807dcfbf535e6,"Manus is the most capable autonomous agent, but it's cloud-dependent, now owned by Meta, and has zero data sovereignty.",,fact,1,f86e151d-623b-4b29-a7ab-9246254d44a8,2026-02-17T22:51:53.723162Z,2026-02-17T22:51:53.723162Z,claude,pending_review,,
+R000348,hypothesis,,e09935b97cf843d8,I am installing Ubuntu 24.,,fact,1,b4abfb40-a332-4314-8cdb-58c7cac6e174,2026-04-08T22:13:30.212077Z,2026-04-08T22:13:30.212077Z,claude,pending_review,,
+R000349,hypothesis,,e55ed861b23b3520,A2A is the external communication protocol.,,fact,1,5eb9e44c-aae8-4789-afd1-e516ecde3c79,2025-08-19T06:43:21.022128Z,2025-08-19T06:43:21.022128Z,claude,pending_review,,
+R000350,hypothesis,,e772581912a553b9,"Human is a Node: Your BIZRA OS is a ""keep"" in a global realm.",,fact,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000351,hypothesis,,e962a2aada534a53,I am launching a Sovereign Interface.,,fact,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000352,hypothesis,,e9b8f3faadc3852e,AutoBrowse is an autonomous AI agent that can perform .,,fact,1,eb6f2ba5-1fce-4023-8c4b-b7ecf8e57ff1,2025-03-01T16:55:04.440957Z,2025-03-01T16:55:04.440957Z,claude,pending_review,,
+R000353,hypothesis,,ef0acd8b9e44ddef,I am excited and this architecture uses Rust and API layers.,,fact,1,33424d69-38ba-4e66-83c3-965ef5ad0470,2026-02-21T20:58:53.188346Z,2026-02-21T20:58:53.188346Z,claude,pending_review,,
+R000354,hypothesis,,f2b8517600b745df,"Protocol is the bridge between the OS and the ShadowOS kernel, allowing hooks to trigger desktop automation, read application context, and interact with the user's digital environment seamlessly.",,fact,1,5eb9e44c-aae8-4789-afd1-e516ecde3c79,2025-08-19T06:43:21.022128Z,2025-08-19T06:43:21.022128Z,claude,pending_review,,
+R000355,hypothesis,,f36046bc50834dda,"BIZRA is a constitutional intelligence substrate whose purpose is to convert intent into evidence-bearing, ethically gated action.",,fact,1,798d9c06-9f6b-4980-b219-2c2ea4d74162,2026-04-01T02:28:11.599326Z,2026-04-01T02:28:11.599326Z,claude,pending_review,,
+R000356,hypothesis,,f773e18d0991f2e3,"Below is a comprehensive overview of the weaponized version, including feature enhancements, tool integration, and performance optimization strategies.",,fact,1,b9ac8f09-bb3e-40a4-81a3-395674cf2772,2025-08-24T18:53:13.869857Z,2025-08-24T18:53:13.869857Z,claude,pending_review,,
+R000357,hypothesis,,fb4cf931ca14233e,BIZRA is the path forward.,,fact,1,1134207b-b685-4639-b653-f57de1f38ce9,2025-08-07T16:58:07.803173Z,2025-08-07T16:58:07.803173Z,claude,pending_review,,
+R000358,hypothesis,,fda3cf94d841ff2f,Prism is the only product that addresses the Knowledge Tree Crisis.,,fact,1,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,2026-02-24T08:11:46.087115Z,2026-02-24T08:11:46.087115Z,claude,pending_review,,
+R000359,hypothesis,,fe2fb762f6e57eae,"SCM is a proxy for cognitive structure, not a ground-truth measure of ""consciousness"" or ""general intelligence.",,fact,1,67efac05-d051-4cc8-83f3-b19f760656db,2025-11-19T13:08:16.039762Z,2025-11-19T13:08:16.039762Z,claude,pending_review,,

@@ -1142,11 +1142,10 @@ def create_receipt_store(
         DATABASE_URL: Default PostgreSQL connection string
         BIZRA_RECEIPT_PATH: Default JSONL directory
     """
-    # Get defaults from environment
+    # Get defaults from environment. PostgreSQL credentials must be supplied by
+    # the operator; do not fall back to committed dev credentials.
     if pg_conn is None:
-        pg_conn = os.environ.get(
-            "DATABASE_URL", "postgresql://bizra:bizra@localhost:5432/bizra"
-        )
+        pg_conn = os.environ.get("DATABASE_URL")
 
     if jsonl_path is None:
         base_path = os.environ.get("BIZRA_RECEIPT_PATH", "docs/evidence/receipts")
@@ -1158,6 +1157,8 @@ def create_receipt_store(
                 "psycopg is required for PostgreSQL mode. "
                 "Install with: pip install psycopg[binary]"
             )
+        if not pg_conn:
+            raise ValueError("DATABASE_URL or pg_conn is required for postgres mode")
         return PostgreSQLReceiptStore(pg_conn)
 
     elif mode == "jsonl":
@@ -1168,6 +1169,12 @@ def create_receipt_store(
             print(
                 "Warning: psycopg not available, falling back to JSONL mode. "
                 "Install psycopg for hybrid mode."
+            )
+            return JSONLReceiptStore(jsonl_path)
+        if not pg_conn:
+            print(
+                "Warning: DATABASE_URL not set, falling back to JSONL mode. "
+                "Set DATABASE_URL or pass pg_conn for PostgreSQL-backed receipts."
             )
             return JSONLReceiptStore(jsonl_path)
 

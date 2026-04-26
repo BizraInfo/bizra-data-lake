@@ -1,0 +1,60 @@
+{
+  "version": "0.1",
+  "scope": {
+    "exclude_dirs": [
+      ".git", ".venv", ".venv-linux", "venv", "node_modules", "target",
+      "dist", "build", "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache",
+      "omnidirectional_hyperdimensional_audit_v0_1",
+      "extracted",
+      "output",
+      "canon_packs",
+      "evidence",
+      "artifacts"
+    ],
+    "evidence_include_suffixes": [
+      ".md", ".toml", ".lock", ".json", ".yaml", ".yml", ".txt"
+    ],
+    "evidence_include_basenames": [
+      "CLAUDE.md", "README", "MEMORY.md", "Cargo.toml", "Cargo.lock",
+      "pyproject.toml", "package.json", "package-lock.json"
+    ],
+    "secret_scan_roots": [
+      "core", "services", "runtime", "bizra-omega", "frontend/src", "tools",
+      "deploy", "scripts", "docs/contracts"
+    ],
+    "secret_scan_top_level_globs": ["*.env*", "*.yaml", "*.yml", "*.json"],
+    "python_risk_roots": ["core", "services"],
+    "rust_risk_roots": ["bizra-omega"],
+    "claim_scan_roots": [
+      "docs",
+      "tools/cognitive_foundry/claude_lane/REVIEW_HANDOFF.md",
+      "tools/cognitive_foundry/claude_lane/canon_packs/README.md"
+    ],
+    "urp_canonicality_roots": [
+      "docs"
+    ],
+    "website": {
+      "bizra_ai": "https://bizra.ai",
+      "bizra_info": "https://bizra.info"
+    }
+  },
+  "severity_policy": {
+    "secret_finding_min_severity": "HIGH",
+    "unsafe_block_severity": "MEDIUM",
+    "unwrap_in_prod_severity": "LOW",
+    "broad_except_severity": "LOW",
+    "shell_true_severity": "HIGH"
+  },
+  "runtime": {
+    "max_file_bytes_scanned": 524288,
+    "default_no_network": true,
+    "default_strict": false
+  },
+  "output": {
+    "evidence_index_limit": 2000,
+    "claims_register_limit": 500,
+    "code_risk_limit": 1500,
+    "secret_findings_limit": 200,
+    "urp_canonicality_limit": 200
+  }
+}

@@ -1,0 +1,8 @@
+bucket_name,conversation_count,user_message_count,total_chars
+bizra_architecture,143,1086,7844378
+code_implementation,96,650,4882953
+llm_tools_meta,20,162,1183918
+personal_context,41,247,1945401
+strategy_audit,15,118,1208840
+uncategorized,575,4527,27757892
+validation_sprint,23,186,1316871

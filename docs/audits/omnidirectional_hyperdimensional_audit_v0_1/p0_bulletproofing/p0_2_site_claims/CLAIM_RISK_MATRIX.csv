@@ -1,0 +1,21 @@
+claim_id,claim_text,class,severity,liability,source,surface_target,action,replacement_ref,owner,priority,ga_impact,ad_impact
+I1,BIZRA / بذرة,SAFE_NOW,NONE,none,brand_canon,hero+sub,keep,—,operator,LOW,none,none
+I2,The Seed of Sovereign Intelligence,SAFE_NOW,NONE,none,brand_canon,hero+sub,keep,—,operator,LOW,none,none
+I3,بذرة الذكاء السيادي,SAFE_NOW,NONE,none,brand_canon,hero+sub,keep,—,operator,LOW,none,none
+I4,Build with meaning. Act with proof. Grow with Ihsan.,SAFE_NOW,NONE,none,kit_motto,hero+sub,keep,—,operator,LOW,none,none
+I5,ابنِ بالمعنى. اعمل بالبرهان. وانمُ بالإحسان.,SAFE_NOW,NONE,none,kit_motto,hero+sub,keep,—,operator,LOW,none,none
+I6,Every human is a node. Every node is a seed.,SAFE_NOW,NONE,none,brand_canon,hero+sub,keep,—,operator,LOW,none,none
+I7,Not another chatbot. Not another platform that owns you.,SAFE_NOW,NONE,none,kit_launch_copy,hero+sub,keep,—,operator,LOW,none,none
+I8,One human. One node. One sovereign path.,SAFE_NOW,NONE,none,kit_launch_copy,hero+sub,keep,—,operator,LOW,none,none
+C1,local agents / no cloud dependency,REWRITE_REQUIRED,MEDIUM,overstates cloud-optional reality,bizra_ai_pre_check,hero+sub,rewrite,CLAIM_SAFE_REWRITE_PACK.md#C1,operator+web_lead,HIGH,tier-D-blocker,paid-ads-blocker
+C2,no telemetry,SAFE_WITH_RECEIPT,LOW,requires privacy policy,bizra_ai_pre_check,hero+sub,add_receipt_or_soften,CLAIM_SAFE_REWRITE_PACK.md#C2,operator+web_lead,MEDIUM,tier-D-prerequisite,paid-ads-soft
+C3,Ed25519 receipt signatures,INTERNAL_ONLY,LOW,audience mismatch in hero,bizra_ai_pre_check,internal_only,move_off_hero,CLAIM_SAFE_REWRITE_PACK.md#C3,web_lead,MEDIUM,tier-D-soft,paid-ads-soft
+C4,cost per action dropping from about $0.10 toward $0.008,REMOVE_NOW,HIGH,precise-$ without methodology,bizra_ai_pre_check,hero+sub,remove,CLAIM_SAFE_REWRITE_PACK.md#C4,operator+web_lead,HIGH,tier-D-blocker,paid-ads-blocker
+C5,SNR 0.974,REMOVE_NOW,HIGH,exact benchmark without receipt,bizra_ai_pre_check,hero+sub,remove,CLAIM_SAFE_REWRITE_PACK.md#C5,operator+web_lead,HIGH,tier-D-blocker,paid-ads-blocker
+C6,8072 verified tests,SAFE_WITH_RECEIPT,MEDIUM,exact number requires timestamped CI link,bizra_ai_pre_check,hero+sub,add_receipt_or_soften,CLAIM_SAFE_REWRITE_PACK.md#C6,operator+web_lead,MEDIUM,tier-D-prerequisite,paid-ads-soft
+C7,100% pass rate,REWRITE_REQUIRED,HIGH,brittle+compliance-adjacent,bizra_ai_pre_check,hero+sub,rewrite_to_policy_claim,CLAIM_SAFE_REWRITE_PACK.md#C7,operator+web_lead,HIGH,tier-D-blocker,paid-ads-blocker
+C8,Ihsan Gate >= 0.95,SAFE_WITH_RECEIPT,LOW,accurate_to_constants_py_with_context,bizra_ai_pre_check,hero+sub,contextualize,CLAIM_SAFE_REWRITE_PACK.md#C8,operator,MEDIUM,tier-D-prerequisite,paid-ads-soft
+C9,73 of 100 nodes remaining,REMOVE_NOW,HIGH,manufactured-scarcity-without-live-counter,bizra_ai_pre_check,hero+sub,remove_or_wire_counter,CLAIM_SAFE_REWRITE_PACK.md#C9,operator+web_lead,HIGH,tier-D-blocker,paid-ads-blocker
+K1,BIZRA is live.,REWRITE_REQUIRED,MEDIUM,implies production readiness beyond evidence,kit_launch_copy,hero+sub,rewrite_to_the_seed_is_public,CLAIM_SAFE_REWRITE_PACK.md#K1,operator,HIGH,organic-launch-blocker,paid-ads-blocker
+T1,Ed25519 receipt signatures (in consumer hero),INTERNAL_ONLY,LOW,audience mismatch,bizra_ai_pre_check,hero_only,move_to_sub_page,CLAIM_SAFE_REWRITE_PACK.md#C3,web_lead,MEDIUM,tier-D-soft,paid-ads-soft
+T2,PAT/SAT/URP internal terminology,INTERNAL_ONLY,NONE,not_currently_live,watchlist,hero_only,monitor,—,operator,LOW,none,none

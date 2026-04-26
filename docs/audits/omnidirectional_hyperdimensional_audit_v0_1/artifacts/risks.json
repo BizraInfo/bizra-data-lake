@@ -1,0 +1,72 @@
+[
+  {
+    "risk_id": "X001",
+    "finding_id": "F0002",
+    "description": "Non-reproducible build / supply-chain drift",
+    "impact": "MEDIUM",
+    "likelihood": "HIGH",
+    "mitigation_ids": [
+      "M001"
+    ]
+  },
+  {
+    "risk_id": "X002",
+    "finding_id": "F0003",
+    "description": "Non-reproducible build / supply-chain drift",
+    "impact": "MEDIUM",
+    "likelihood": "HIGH",
+    "mitigation_ids": [
+      "M002"
+    ]
+  },
+  {
+    "risk_id": "X003",
+    "finding_id": "F0004",
+    "description": "Non-reproducible build / supply-chain drift",
+    "impact": "MEDIUM",
+    "likelihood": "HIGH",
+    "mitigation_ids": [
+      "M003"
+    ]
+  },
+  {
+    "risk_id": "X004",
+    "finding_id": "F0010",
+    "description": "Public overclaim → ad-platform rejection / regulator risk",
+    "impact": "HIGH",
+    "likelihood": "MEDIUM",
+    "mitigation_ids": [
+      "M004"
+    ]
+  },
+  {
+    "risk_id": "X005",
+    "finding_id": "F0011",
+    "description": "Public overclaim → ad-platform rejection / regulator risk",
+    "impact": "HIGH",
+    "likelihood": "MEDIUM",
+    "mitigation_ids": [
+      "M005"
+    ]
+  },
+  {
+    "risk_id": "X006",
+    "finding_id": "F0013",
+    "description": "SPA shell returned by default — weak SEO / degraded link previews",
+    "impact": "LOW",
+    "likelihood": "HIGH",
+    "mitigation_ids": [
+      "M006"
+    ]
+  },
+  {
+    "risk_id": "X007",
+    "finding_id": "F0014",
+    "description": "SPA shell returned by default — weak SEO / degraded link previews",
+    "impact": "LOW",
+    "likelihood": "HIGH",
+    "mitigation_ids": [
+      "M007"
+    ]
+  }
+]

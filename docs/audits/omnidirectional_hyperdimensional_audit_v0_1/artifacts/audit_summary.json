@@ -1,0 +1,52 @@
+{
+  "duration_seconds": 3.41,
+  "repo_root": "/data/bizra/repos/bizra-data-lake",
+  "out_dir": "/tmp/bizra-omni-audit-refresh",
+  "no_network": true,
+  "counts": {
+    "evidence": 1277,
+    "claims": 500,
+    "findings": 17,
+    "secrets": 0,
+    "code_risks": 1000,
+    "kpis": 6,
+    "gates": 10,
+    "risks": 7,
+    "mitigations": 7,
+    "graph_nodes": 1824,
+    "graph_edges": 30
+  },
+  "snr_counts": {
+    "signal": 9,
+    "watchlist": 7,
+    "noise": 1
+  },
+  "hhmm_counts_by_domain": {
+    "SECURITY": 1,
+    "DEPENDENCY": 3,
+    "CODE_QUALITY": 5,
+    "PUBLIC_CLAIMS": 6,
+    "DOCUMENTATION": 2
+  },
+  "dep_gaps": [
+    "Workspace without Cargo.lock: filedfs/Cargo.toml",
+    "Workspace without Cargo.lock: desktop/rust/Cargo.toml",
+    "SBOM artifact not located in repo (no *.spdx.json / *.cdx.json found)."
+  ],
+  "website_captures": [
+    {
+      "url": "https://bizra.ai",
+      "final_url": "https://bizra.ai/",
+      "status": null,
+      "fetch_ok": false,
+      "redirected": false
+    },
+    {
+      "url": "https://bizra.info",
+      "final_url": "https://bizra.ai/",
+      "status": 302,
+      "fetch_ok": false,
+      "redirected": true
+    }
+  ]
+}

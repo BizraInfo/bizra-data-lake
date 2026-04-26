@@ -1,7 +1,7 @@
 {
   "_comment": "BIZRA Team MCP Configuration — checked into repo for team-wide consistency",
-  "_version": "1.5.0",
-  "_updated": "2026-04-07 — Optimized: removed filesystem (redundant), sequential-thinking (built-in better), claude-flow-sqlite (use CLI). 12→9 servers.",
+  "_version": "1.6.0",
+  "_updated": "2026-04-21 — Repaired repo-local MCP defaults: use the repo venv for Python servers, switch sqlite to the local helper server, and remove the stale claude-flow entry. 9→8 servers.",
 
   "mcpServers": {
     "context7": {
@@ -35,20 +35,20 @@
     },
 
     "sqlite": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sqlite@latest", "--db-path", "/mnt/c/BIZRA-DATA-LAKE/04_GOLD/bizra.db"],
-      "description": "Structured query access to the primary BIZRA SQLite knowledge base"
+      "command": "bash",
+      "args": ["-lc", "repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); cd \"$repo\" && exec \"$repo/.venv/bin/python\" \"$repo/tools/mcp/sqlite_mcp_server.py\" --db-path \"$repo/sovereign_state/living_memory/memory.db\" --server-name bizra-sqlite"],
+      "description": "Structured query access to the repo-local living-memory SQLite database via the bundled read-only MCP server"
     },
 
     "bizra-sovereign": {
-      "command": "python",
-      "args": ["tools/mcp/sovereign_mcp_server.py", "--stdio"],
+      "command": "bash",
+      "args": ["-lc", "repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); cd \"$repo\" && exec \"$repo/.venv/bin/python\" \"$repo/tools/mcp/sovereign_mcp_server.py\" --stdio"],
       "description": "BIZRA Sovereign Engine MCP — constitutional gates, SNR, Ihsan"
     },
 
     "bizra-ecosystem": {
-      "command": "python",
-      "args": ["tools/mcp/ecosystem_mcp_server.py", "--stdio"],
+      "command": "bash",
+      "args": ["-lc", "repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); cd \"$repo\" && exec \"$repo/.venv/bin/python\" \"$repo/tools/mcp/ecosystem_mcp_server.py\" --stdio"],
       "description": "BIZRA Ecosystem health, status, and monitoring"
     },
 
@@ -62,20 +62,6 @@
         "NEO4J_DATABASE": "neo4j"
       },
       "description": "Neo4j Cypher graph queries — wisdom graph (bolt://localhost:7687)"
-    },
-
-    "claude-flow": {
-      "command": "node",
-      "args": ["/usr/lib/node_modules/claude-flow/bin/cli.js", "mcp", "start", "--json"],
-      "cwd": "/mnt/c/BIZRA-DATA-LAKE",
-      "env": {
-        "CLAUDE_FLOW_CONFIG": "/mnt/c/BIZRA-DATA-LAKE/.claude-flow/config.yaml",
-        "BIZRA_DATA_LAKE": "/mnt/c/BIZRA-DATA-LAKE",
-        "REDIS_URL": "redis://127.0.0.1:6379",
-        "REDIS_SYNAPSE_URL": "redis://127.0.0.1:6380",
-        "OLLAMA_HOST": "http://127.0.0.1:11434"
-      },
-      "description": "ruflo/claude-flow v3.5.58 — swarm orchestration, HNSW memory, Q-learning routing, 254 tools (deferred loading)"
     }
   }
 }

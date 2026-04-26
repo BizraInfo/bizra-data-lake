@@ -120,7 +120,7 @@ All 5 gates run as a **fail-closed composite**: any gate failure blocks the cros
    |-- Sentinel   |-- Oracle-S   |-- Ledger
    |-- Conductor  +-- Ambassador
      |
-   URP (Universal Resource Pool — the shared commons)
+  URP (Universal Resource Pool — the shared commons)
 ```
 
 **Direction is one-way.** PAT never receives authority from SAT. Authority flows downward; receipts flow upward. Every crossing through the FATE gate produces a BLAKE3 hash-chained receipt signed with Ed25519.

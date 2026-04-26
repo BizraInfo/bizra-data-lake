@@ -148,12 +148,7 @@ impl From<ManifestHistoryCacheError> for DailyManifestError {
 
 const NS_PER_DAY: u64 = 86_400_000_000_000;
 
-fn manifests_overlap_day(
-    window_start: u64,
-    window_end: u64,
-    day_start: u64,
-    day_end: u64,
-) -> bool {
+fn manifests_overlap_day(window_start: u64, window_end: u64, day_start: u64, day_end: u64) -> bool {
     window_end > day_start && window_start < day_end
 }
 
@@ -1340,8 +1335,12 @@ impl CognitionRuntime {
             let Some(manifest) = record.manifest.as_ref() else {
                 continue;
             };
-            if !manifests_overlap_day(manifest.window_start, manifest.window_end, day_start, day_end)
-            {
+            if !manifests_overlap_day(
+                manifest.window_start,
+                manifest.window_end,
+                day_start,
+                day_end,
+            ) {
                 continue;
             }
             receipt_refs.extend(manifest.receipt_refs.iter().copied());
@@ -3202,8 +3201,18 @@ mod tests {
             let c2 = permit_claim(&e2, 400);
             let r2 = rt.submit_mission(e2, c2).unwrap();
 
-            let m1 = rewrite_manifest_window(&mut rt, r1.envelope.mission_id, day_start + 10, day_start + 20);
-            let m2 = rewrite_manifest_window(&mut rt, r2.envelope.mission_id, day_start + 30, day_start + 40);
+            let m1 = rewrite_manifest_window(
+                &mut rt,
+                r1.envelope.mission_id,
+                day_start + 10,
+                day_start + 20,
+            );
+            let m2 = rewrite_manifest_window(
+                &mut rt,
+                r2.envelope.mission_id,
+                day_start + 30,
+                day_start + 40,
+            );
 
             let sealed = rt
                 .seal_daily_manifest("2026-04-21")
@@ -3310,7 +3319,12 @@ mod tests {
             let e1 = test_mission(1_000);
             let c1 = permit_claim(&e1, 1_100);
             let r1 = rt.submit_mission(e1, c1).unwrap();
-            let _ = rewrite_manifest_window(&mut rt, r1.envelope.mission_id, day_start + 10, day_start + 20);
+            let _ = rewrite_manifest_window(
+                &mut rt,
+                r1.envelope.mission_id,
+                day_start + 10,
+                day_start + 20,
+            );
 
             let sealed1 = rt
                 .seal_daily_manifest("2026-04-21")
@@ -3339,7 +3353,12 @@ mod tests {
                 let env = test_mission(42);
                 let claim = permit_claim(&env, 84);
                 let rec = rt.submit_mission(env, claim).unwrap();
-                let _ = rewrite_manifest_window(&mut rt, rec.envelope.mission_id, day_start + 10, day_start + 20);
+                let _ = rewrite_manifest_window(
+                    &mut rt,
+                    rec.envelope.mission_id,
+                    day_start + 10,
+                    day_start + 20,
+                );
                 expected_manifest = rt
                     .seal_daily_manifest("2026-04-21")
                     .unwrap()

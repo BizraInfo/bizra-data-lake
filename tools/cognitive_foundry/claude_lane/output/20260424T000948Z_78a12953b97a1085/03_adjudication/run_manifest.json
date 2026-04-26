@@ -1,0 +1,17 @@
+{
+  "archive_path": "/home/bizra-operating-system/Downloads/data-43cc0344-1239-4174-867b-25beff52f00f-1776139825-1ff56815-batch-0000.zip",
+  "config": {
+    "hypothesis_max_occurrences": 1,
+    "obsolete_newer_preferred_days": 7
+  },
+  "counts": {
+    "canonical_candidate_decisions": 131,
+    "canonical_candidate_facts": 71,
+    "cluster_registry": 202,
+    "hypothesis_candidates": 157,
+    "obsolete_conflicted_candidates": 0
+  },
+  "run_id": "20260424T000948Z_78a12953b97a1085",
+  "stage": 3,
+  "stage_name": "adjudication"
+}

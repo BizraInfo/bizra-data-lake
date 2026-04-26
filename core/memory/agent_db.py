@@ -179,6 +179,27 @@ class AgentDB:
         """Inject an embedding function: str -> List[float]."""
         self._embedding_fn = fn
 
+    def _drop_mismatched_auto_embedding(
+        self,
+        embedding: Optional[Sequence[float]],
+        *,
+        context: str,
+    ) -> Optional[Sequence[float]]:
+        """Discard auto-generated embeddings that do not match HNSW dimensions."""
+        if embedding is None:
+            return None
+        dim = len(embedding)
+        expected = self._config.hnsw.dimensions
+        if dim != expected:
+            logger.warning(
+                "Skipping auto-generated %s embedding: dim %d != HNSW dim %d",
+                context,
+                dim,
+                expected,
+            )
+            return None
+        return embedding
+
     # ── Store ────────────────────────────────────────────────────────────
 
     def store(
@@ -203,11 +224,16 @@ class AgentDB:
         record_id = hex_digest((content + source).encode())[:16]
 
         # Auto-embed if embedding function is available and no embedding provided
-        if embedding is None and self._embedding_fn is not None:
+        auto_embedded = embedding is None
+        if auto_embedded and self._embedding_fn is not None:
             try:
                 embedding = self._embedding_fn(content)
             except Exception as e:  # noqa: BLE001 — boundary boundary
                 logger.warning(f"Auto-embedding failed: {e}")
+            else:
+                embedding = self._drop_mismatched_auto_embedding(
+                    embedding, context="store"
+                )
 
         now = datetime.now(timezone.utc)
 
@@ -372,11 +398,16 @@ class AgentDB:
 
         # Auto-embed query text if possible
         effective_embedding = query_embedding
-        if effective_embedding is None and query and self._embedding_fn:
+        auto_embedded = effective_embedding is None
+        if auto_embedded and query and self._embedding_fn:
             try:
                 effective_embedding = self._embedding_fn(query)
             except Exception:  # noqa: BLE001 — boundary boundary
                 pass
+            else:
+                effective_embedding = self._drop_mismatched_auto_embedding(
+                    effective_embedding, context="query"
+                )
 
         options = QueryOptions(
             query_text=query,

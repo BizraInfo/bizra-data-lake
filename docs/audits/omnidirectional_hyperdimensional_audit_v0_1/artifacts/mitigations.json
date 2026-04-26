@@ -1,0 +1,44 @@
+[
+  {
+    "mitigation_id": "M001",
+    "description": "Pin lockfiles + publish SBOM in CI.",
+    "effort": "M",
+    "blocks": []
+  },
+  {
+    "mitigation_id": "M002",
+    "description": "Pin lockfiles + publish SBOM in CI.",
+    "effort": "M",
+    "blocks": []
+  },
+  {
+    "mitigation_id": "M003",
+    "description": "Pin lockfiles + publish SBOM in CI.",
+    "effort": "M",
+    "blocks": []
+  },
+  {
+    "mitigation_id": "M004",
+    "description": "Remove or receipt-ify C-class claims before paid launch.",
+    "effort": "S",
+    "blocks": []
+  },
+  {
+    "mitigation_id": "M005",
+    "description": "Remove or receipt-ify C-class claims before paid launch.",
+    "effort": "S",
+    "blocks": []
+  },
+  {
+    "mitigation_id": "M006",
+    "description": "Add OG tags in shell / SSR hero.",
+    "effort": "S",
+    "blocks": []
+  },
+  {
+    "mitigation_id": "M007",
+    "description": "Add OG tags in shell / SSR hero.",
+    "effort": "S",
+    "blocks": []
+  }
+]

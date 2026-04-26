@@ -1,0 +1,22 @@
+{
+  "entries_hash_blake2b_32": "07bd7dfd7a7627efebbfec3bb40ea820d2ddc41593616efaacf2e4536a3030b4",
+  "entry_count": 12,
+  "human_gated": true,
+  "non_promotion_tool": true,
+  "notes": "Canon pack. Content-addressable via entries_hash. NOT cryptographically signed. NOT yet ingested into any canonical BIZRA store. A separate, human-gated tool must perform the final ingest.",
+  "origin_run_id": "20260424T000948Z_78a12953b97a1085",
+  "partition_counts": {
+    "approved_not_promoted": 2,
+    "needs_followup": 32,
+    "other_status": 0,
+    "pending": 288,
+    "rejected": 25,
+    "to_promote": 12
+  },
+  "promoted_at_utc": "2026-04-24T02:14:05Z",
+  "promoter": "bizra-operating-system",
+  "tool": "cognitive_foundry.claude_lane.promote",
+  "tool_version": "0.1.0",
+  "workbook_sha256": "92a26f9dbd682637d5f67890cec4e8474b5c70e23ab920b49f044358d97c52ec",
+  "workbook_source": "/data/bizra/repos/bizra-data-lake/tools/cognitive_foundry/claude_lane/output/20260424T000948Z_78a12953b97a1085/04_review_pack/review_workbook.csv"
+}
