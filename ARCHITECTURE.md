@@ -1,5 +1,7 @@
 # BIZRA Data Lake Architecture v2.0
+
 **Doc Status:** Data pipeline architecture. For the full sovereign runtime architecture, see [ARCHITECTURE_BLUEPRINT_v2.3.0.md](docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md).
+
 ## Comprehensive Technical Documentation
 
 **Document:** BIZRA-ARCH-002
@@ -87,14 +89,16 @@ The BIZRA Data Lake is a unified knowledge repository that transforms scattered 
 
 ### 1.3 Key Metrics
 
-| Metric | Current Value |
-|--------|--------------|
-| Total Nodes | 56,358 |
-| Total Edges | 88,649 |
-| Embedded Chunks | 84,795 |
-| Embedding Dimension | 384 |
-| POI Attestations | 21 |
-| DDAGI Events | 15 |
+
+| Metric              | Current Value |
+| ------------------- | ------------- |
+| Total Nodes         | 56,358        |
+| Total Edges         | 88,649        |
+| Embedded Chunks     | 84,795        |
+| Embedding Dimension | 384           |
+| POI Attestations    | 21            |
+| DDAGI Events        | 15            |
+
 
 ---
 
@@ -130,27 +134,31 @@ C:\BIZRA-DATA-LAKE\
 
 ### 2.2 Core Components
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| Configuration | `bizra_config.py` | Central configuration |
-| Corpus Manager | `corpus_manager.py` | Document parsing |
-| Vector Engine | `vector_engine.py` | Embedding generation |
-| ARTE Engine | `arte_engine.py` | SNR calculation, GoT |
-| Hypergraph Engine | `tools/engines/hypergraph_engine.py` | Graph operations |
-| PAT Engine | `tools/pat_engine.py` | Multi-agent coordination |
-| KEP Bridge | `tools/bridges/kep_bridge.py` | Cross-domain synergies |
-| **WARP Bridge** | `tools/bridges/warp_bridge.py` | **Multi-vector ColBERT retrieval** |
-| Orchestrator | `bizra_orchestrator.py` | Unified query routing |
-| Nexus | `tools/bizra_nexus.py` | Unified engine orchestration |
+
+| Component         | File                                 | Purpose                            |
+| ----------------- | ------------------------------------ | ---------------------------------- |
+| Configuration     | `bizra_config.py`                    | Central configuration              |
+| Corpus Manager    | `corpus_manager.py`                  | Document parsing                   |
+| Vector Engine     | `vector_engine.py`                   | Embedding generation               |
+| ARTE Engine       | `arte_engine.py`                     | SNR calculation, GoT               |
+| Hypergraph Engine | `tools/engines/hypergraph_engine.py` | Graph operations                   |
+| PAT Engine        | `tools/pat_engine.py`                | Multi-agent coordination           |
+| KEP Bridge        | `tools/bridges/kep_bridge.py`        | Cross-domain synergies             |
+| **WARP Bridge**   | `tools/bridges/warp_bridge.py`       | **Multi-vector ColBERT retrieval** |
+| Orchestrator      | `bizra_orchestrator.py`              | Unified query routing              |
+| Nexus             | `tools/bizra_nexus.py`               | Unified engine orchestration       |
+
 
 ### 2.3 Retrieval Engines
 
-| Engine | Type | Speed | Accuracy | Use Case |
-|--------|------|-------|----------|----------|
-| **FAISS HNSW** | Single-vector (384-dim) | ⚡ Fast | ★★★☆ | High-throughput queries |
-| **XTR-WARP** | Multi-vector (ColBERT) | ⚡ Fast | ★★★★ | High-accuracy semantic search |
-| **Graph Traversal** | Structural | ⏱️ Medium | ★★★☆ | Relationship queries |
-| **Hybrid** | Combined | ⏱️ Medium | ★★★★ | Complex reasoning |
+
+| Engine              | Type                    | Speed     | Accuracy | Use Case                      |
+| ------------------- | ----------------------- | --------- | -------- | ----------------------------- |
+| **FAISS HNSW**      | Single-vector (384-dim) | ⚡ Fast    | ★★★☆     | High-throughput queries       |
+| **XTR-WARP**        | Multi-vector (ColBERT)  | ⚡ Fast    | ★★★★     | High-accuracy semantic search |
+| **Graph Traversal** | Structural              | ⏱️ Medium | ★★★☆     | Relationship queries          |
+| **Hybrid**          | Combined                | ⏱️ Medium | ★★★★     | Complex reasoning             |
+
 
 ---
 
@@ -166,14 +174,16 @@ Files → INTAKE → Hash Check → Type Sort → PROCESSED → Parse → INDEXE
 
 ### 3.2 Processing Stages
 
-| Stage | Component | Input | Output |
-|-------|-----------|-------|--------|
-| 1. Intake | DataLakeProcessor.ps1 | Raw files | Sorted files |
-| 2. Parse | corpus_manager.py | Documents | documents.parquet |
-| 3. Chunk | vector_engine.py | Documents | chunks.parquet |
-| 4. Embed | vector_engine.py | Chunks | 384-dim vectors |
-| 5. Index | hypergraph_engine.py | Embeddings | FAISS HNSW |
-| 6. Graph | hypergraph_engine.py | Chunks | NetworkX graph |
+
+| Stage     | Component             | Input      | Output            |
+| --------- | --------------------- | ---------- | ----------------- |
+| 1. Intake | DataLakeProcessor.ps1 | Raw files  | Sorted files      |
+| 2. Parse  | corpus_manager.py     | Documents  | documents.parquet |
+| 3. Chunk  | vector_engine.py      | Documents  | chunks.parquet    |
+| 4. Embed  | vector_engine.py      | Chunks     | 384-dim vectors   |
+| 5. Index  | hypergraph_engine.py  | Embeddings | FAISS HNSW        |
+| 6. Graph  | hypergraph_engine.py  | Chunks     | NetworkX graph    |
+
 
 ### 3.3 Deduplication
 
@@ -297,13 +307,15 @@ Stored in `03_INDEXED/ddagi_consciousness.jsonl`:
 
 ### 5.4 Event Types
 
-| Event | Description | Trigger |
-|-------|-------------|---------|
-| REFLECTION | Self-assessment | Periodic, post-query |
-| LEARNING | Knowledge integration | Novel pattern detection |
-| ADAPTATION | Behavioral adjustment | Performance degradation |
-| SYNTHESIS | Cross-domain insight | Multi-hop completion |
-| ATTESTATION | Cryptographic verification | POI checkpoint |
+
+| Event       | Description                | Trigger                 |
+| ----------- | -------------------------- | ----------------------- |
+| REFLECTION  | Self-assessment            | Periodic, post-query    |
+| LEARNING    | Knowledge integration      | Novel pattern detection |
+| ADAPTATION  | Behavioral adjustment      | Performance degradation |
+| SYNTHESIS   | Cross-domain insight       | Multi-hop completion    |
+| ATTESTATION | Cryptographic verification | POI checkpoint          |
+
 
 ### 5.5 POI Ledger
 
@@ -384,14 +396,16 @@ Personal Agentic Team (PAT) provides multi-agent coordination:
 
 ### 7.2 Agent Roles
 
-| Agent | Role | ThinkingMode |
-|-------|------|--------------|
-| Strategist | Goal decomposition | SYNTHESIS |
-| Researcher | Information gathering | DEEP |
-| Analyst | Pattern recognition | CRITICAL |
-| Creator | Content generation | CREATIVE |
-| Guardian | Quality assurance | CRITICAL |
-| Coordinator | Orchestration | FAST |
+
+| Agent       | Role                  | ThinkingMode |
+| ----------- | --------------------- | ------------ |
+| Strategist  | Goal decomposition    | SYNTHESIS    |
+| Researcher  | Information gathering | DEEP         |
+| Analyst     | Pattern recognition   | CRITICAL     |
+| Creator     | Content generation    | CREATIVE     |
+| Guardian    | Quality assurance     | CRITICAL     |
+| Coordinator | Orchestration         | FAST         |
+
 
 ### 7.3 Backend Support
 
@@ -476,12 +490,14 @@ Metrics Collected:
 
 ### 9.2 Alert Thresholds
 
-| Metric | Warning | Critical |
-|--------|---------|----------|
-| SNR | < 0.99 | < 0.95 |
-| Latency (p95) | > 3000ms | > 5000ms |
-| Error Rate | > 1% | > 5% |
-| Ihsān Compliance | < 95% | < 80% |
+
+| Metric           | Warning  | Critical |
+| ---------------- | -------- | -------- |
+| SNR              | < 0.99   | < 0.95   |
+| Latency (p95)    | > 3000ms | > 5000ms |
+| Error Rate       | > 1%     | > 5%     |
+| Ihsān Compliance | < 95%    | < 80%    |
+
 
 ### 9.3 Self-Healing
 
@@ -576,12 +592,14 @@ See `bizra_config.py` for all configurable parameters.
 
 ### B. File Formats
 
-| File | Format | Schema |
-|------|--------|--------|
-| documents.parquet | Parquet | id, title, content, source, hash |
-| chunks.parquet | Parquet | chunk_id, doc_id, text, embedding |
-| poi_ledger.jsonl | JSONL | See POI Ledger section |
-| graph.json | JSON | NetworkX JSON format |
+
+| File              | Format  | Schema                            |
+| ----------------- | ------- | --------------------------------- |
+| documents.parquet | Parquet | id, title, content, source, hash  |
+| chunks.parquet    | Parquet | chunk_id, doc_id, text, embedding |
+| poi_ledger.jsonl  | JSONL   | See POI Ledger section            |
+| graph.json        | JSON    | NetworkX JSON format              |
+
 
 ### C. Dependencies
 
