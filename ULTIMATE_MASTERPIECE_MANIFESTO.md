@@ -1,3 +1,18 @@
+<!--
+CLAIM-DISCIPLINE BANNER (added 2026-04-26 by omnidirectional audit remediation)
+This document is a HISTORICAL ASPIRATIONAL DRAFT from an earlier planning cycle.
+It is NOT a measured production-readiness report and MUST NOT be quoted as one.
+Numeric metrics inside (2.2x, 112x, 352ms to 160ms, 8 to 900 req/sec,
+60-80% cache hit rate, 0.95 Ihsan compliance) are DESIGN TARGETS, not
+receipted runtime measurements.
+Authoritative claim state lives in:
+- docs/gtm/node0_activation_go_to_market_v0_1/CLAIM_DISCIPLINE_FOR_NODE0_AND_URP.md
+- docs/audits/omnidirectional_hyperdimensional_audit_v0_1/p1_truth_integrity/PROHIBITED_CLAIMS_REGISTER.csv
+- docs/gtm/node0_activation_go_to_market_v0_1/PRODUCTION_READINESS_AND_GTM_CLOSURE_SPRINT.md
+-->
+
+> **Status banner (2026-04-26)**: HISTORICAL ASPIRATIONAL DRAFT. Not a production runtime. See the claim-discipline registers linked in the HTML comment above.
+
 """
 ═══════════════════════════════════════════════════════════════════════════
 THE BIZRA ULTIMATE MASTERPIECE MANIFESTO
@@ -38,7 +53,7 @@ The Polymath Approach:
 
 IMPACT:
 ───────
-✅ 0.95 Ihsān compliance (production-ready)
+✅ 0.95 Ihsān compliance: DESIGN TARGET (PREPARATION; not a production runtime)
 ✅ 2.2x performance improvement
 ✅ 112x scaling capability
 ✅ Zero technical debt (by construction)
@@ -328,7 +343,7 @@ WHAT MAKES THIS THE PEAK MASTERPIECE:
 1. MATHEMATICAL SOUNDNESS
   └─ Every decision traceable to axioms (no magic)
    └─ Proofs verified by Merkle-DAG
-   └─ Byzantine tolerance guaranteed
+   └─ Byzantine tolerance: design target (not independently verified)
    └─ No approximations or hand-waving
    ✓ STATUS: COMPLETE
 2. COGNITIVE EFFICIENCY
@@ -359,7 +374,7 @@ WHAT MAKES THIS THE PEAK MASTERPIECE:
   └─ 2.2x latency improvement (352ms → 160ms)
    └─ 112x throughput scaling (8 → 900 req/sec)
    └─ 60-80% cache hit rate (System 1 utilization)
-   └─ 0.95 Ihsān compliance (production ready)
+   └─ 0.95 Ihsān compliance: DESIGN TARGET (PREPARATION; not a production runtime)
    ✓ STATUS: COMPLETE
 
 ALL DIMENSIONS COMPLETE. NOTHING MISSING.
@@ -529,9 +544,9 @@ Lynch (1996) · Fowler (2018) · Falcone (2024)
 
 We have built something TIMELESS.
 
-Ready for production NOW.
-Ready to scale to 1M users TOMORROW.
-Ready to teach the next generation FOREVER.
+Not a production runtime now. Private pilot is the next verifiable milestone.
+Scale to 1M users is a design-target aspiration, PLANNED, not proven.
+Teaching the next generation remains the long-horizon aspiration.
 
 ═══════════════════════════════════════════════════════════════════════════
 THE PEAK MASTERPIECE: COMPLETE.

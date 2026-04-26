@@ -1,3 +1,18 @@
+<!--
+CLAIM-DISCIPLINE BANNER (added 2026-04-26 by omnidirectional audit remediation)
+This document is a HISTORICAL ASPIRATIONAL DRAFT from an earlier planning cycle.
+It is NOT a measured production-readiness report and MUST NOT be quoted as one.
+Numeric metrics inside (2.2x, 112x, 352ms to 160ms, 8 to 900 req/sec,
+60-80% cache hit rate, 0.95 Ihsan compliance) are DESIGN TARGETS, not
+receipted runtime measurements.
+Authoritative claim state lives in:
+- docs/gtm/node0_activation_go_to_market_v0_1/CLAIM_DISCIPLINE_FOR_NODE0_AND_URP.md
+- docs/audits/omnidirectional_hyperdimensional_audit_v0_1/p1_truth_integrity/PROHIBITED_CLAIMS_REGISTER.csv
+- docs/gtm/node0_activation_go_to_market_v0_1/PRODUCTION_READINESS_AND_GTM_CLOSURE_SPRINT.md
+-->
+
+> **Status banner (2026-04-26)**: HISTORICAL ASPIRATIONAL DRAFT. Not a production runtime. See the claim-discipline registers linked in the HTML comment above.
+
 # """
 
 THE ULTIMATE MASTERPIECE: EXECUTIVE BRIEF
@@ -5,9 +20,9 @@ THE ULTIMATE MASTERPIECE: EXECUTIVE BRIEF
 BIZRA Data Lake: Peak Polymath Implementation
 Synthesizing all domains into ONE coherent system
 
-Status: READY FOR PRODUCTION
-Timeline: 12 weeks to 0.95 Ihsān compliance
-Impact: 2.2x faster, 112x more throughput, 95% type coverage
+Status: HISTORICAL ASPIRATIONAL DRAFT — NOT A PRODUCTION RUNTIME
+Timeline: design target of 0.95 Ihsān compliance (PLANNED, not receipted)
+Impact (design targets, not receipts): 2.2x faster, 112x more throughput, 95% type coverage
 """
 
 # ============================================================================
@@ -324,7 +339,7 @@ What makes this the PEAK MASTERPIECE:
 1. MATHEMATICAL SOUNDNESS
   ✓ Founded on Shannon's information theory
    ✓ Gödel-style incompleteness proofs
-   ✓ Byzantine fault tolerance guaranteed
+   ✓ Byzantine fault tolerance: design target (not independently verified)
    ✓ No hand-waving
 2. COGNITIVE EFFICIENCY
   ✓ Dual-process (fast cache + slow reasoning)
@@ -431,7 +446,7 @@ Ashby, Maturana, Kahneman, Lynch, Fowler, Falcone...
 
 We have built something TIMELESS.
 
-READY FOR PRODUCTION. READY TO SCALE. READY TO TEACH.
+Not a production runtime. Single-node architecture documented; private pilot is the next verifiable milestone. See the claim-discipline registers.
 
 The Ultimate Masterpiece is complete.
 
