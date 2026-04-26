@@ -236,6 +236,37 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
+      - name: "Gate 7: Canonical Truth Pack Freshness (fail-closed)"
+        run: |
+          set -euo pipefail
+          COMMITTED="docs/knowledge/canonical_truth_pack.json"
+          GENERATED="artifacts/canonical-truth-pack/regenerated.json"
+          mkdir -p artifacts/canonical-truth-pack
+          if [ ! -f "$COMMITTED" ]; then
+            echo "::error::Canonical truth pack missing: $COMMITTED"
+            echo "Run: python scripts/generate_canonical_truth_pack.py"
+            exit 1
+          fi
+          python scripts/generate_canonical_truth_pack.py --output "$GENERATED"
+          if ! diff -u "$COMMITTED" "$GENERATED" > artifacts/canonical-truth-pack/diff.txt; then
+            echo "::error::Canonical truth pack is stale. Committed JSON does not match regenerated output."
+            echo "Diff:"
+            cat artifacts/canonical-truth-pack/diff.txt
+            echo ""
+            echo "Fix: run 'python scripts/generate_canonical_truth_pack.py' and commit the updated JSON."
+            exit 1
+          fi
+          echo "Canonical truth pack is fresh."
+
+      - name: "Gate 7: Upload truth-pack artifacts"
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: canonical-truth-pack-${{ github.run_id }}
+          path: artifacts/canonical-truth-pack/
+          retention-days: 30
+          if-no-files-found: ignore
+
   # ═══════════════════════════════════════════════════════════════
   # CROSS-LAYER: Constitutional Threshold Coherence
   # ═══════════════════════════════════════════════════════════════

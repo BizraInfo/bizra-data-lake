@@ -221,3 +221,83 @@ Suppression semantics are now consistent across H1, H2, H3, H4, and H5: a line c
 ### 10.3 Impact on the live tree
 
 Running the full CI invocation (`--ci --verbose --log-path … --summary-json …`) against the current branch before and after the fix yields the **same** verdict (PASS) and the **same** counts (CLEAN_SET 3 files / 0 findings / 0 gating; WATCH_SET 21 files / 22 findings). No production file relied on the buggy file-scope behavior, so the fix has zero observable impact on the current gate while tightening its specification.
+
+---
+
+## 11. Audit v0.3 — activation of the canonical truth pack (2026-04-26)
+
+This pass closes two hidden-golden-gem gaps surfaced by the Omnidirectional pass v0.3:
+
+### 11.1 G1 — `sys.modules` registration defect in `scripts/generate_canonical_truth_pack.py`
+
+The generator loads `core/sovereign/api_exposure_policy.py` dynamically via
+`importlib.util.spec_from_file_location` + `module_from_spec` + `exec_module`. On
+Python 3.12, `@dataclass(frozen=True)` internally calls
+`sys.modules.get(cls.__module__).__dict__`; when the module is not registered in
+`sys.modules`, the lookup returns `None` and fails with
+`AttributeError: 'NoneType' object has no attribute '__dict__'`.
+
+**Reproduction (pre-fix):** `python3 scripts/generate_canonical_truth_pack.py`
+→ traceback at `core/sovereign/api_exposure_policy.py:30`.
+
+**Fix:** register the dynamic module in `sys.modules` before `exec_module`,
+with best-effort cleanup on exception. The fix is strictly scoped to
+`_load_api_policy_module`.
+
+**Regression lock:** `tests/scripts/test_generate_canonical_truth_pack.py::test_load_api_policy_module_resolves_dataclass_classes`.
+
+### 11.2 G2 — probe contract had zero unit tests
+
+Gate 6 (claim-drift probe) had been load-bearing since commit `5699173b` but
+lacked any unit tests; the H4 file-scope-suppression bug slipped past review
+because the probe's contract lived only in comments.
+
+**Closed by:** `tests/tools/audit/test_claim_drift_probe.py` — 26 tests
+covering H0/H1/H4 firing rules, per-line suppression (including the explicit
+regression lock for the file-scope bug fixed in §10), `LogSink` behaviour,
+`_resolve_log_path` policy, and end-to-end `main()` CI exit codes.
+
+### 11.3 G3 — canonical truth pack was orphaned
+
+The 151-line generator committed as `dc732128` was functional (once G1 was
+fixed) but unwired: no committed JSON artifact, no CI reference, no docs
+consumer. Thresholds were still copied by hand into ~20 markdown files.
+
+**Closed by three co-ordinated changes:**
+
+1. **Artifact committed:** `docs/knowledge/canonical_truth_pack.json` —
+   machine-readable snapshot of volatile-but-governed facts
+   (IHSAN / SNR / ADL Gini thresholds; public / bootstrap / authenticated
+   route counts; Rust workspace crate count; workflow file count).
+
+2. **Gate 7 wired into `.github/workflows/canonical-validation-gate.yml`:**
+   regenerates the pack in CI, diffs against the committed copy, fails the
+   build on any drift, and uploads the diff as a 30-day artifact. Pass- and
+   fail-path both verified locally.
+
+3. **Deterministic generation proof:**
+   `test_write_truth_pack_is_deterministic` asserts two back-to-back
+   generations produce byte-identical output — the property Gate 7 relies on.
+
+### 11.4 Outcomes at a glance
+
+| Metric | Before this pass | After this pass |
+|---|---|---|
+| Truth-pack generator | crashes on `@dataclass` | runs clean |
+| Truth-pack JSON in repo | missing | committed |
+| CI freshness enforcement | none | Gate 7 fail-closed |
+| Claim-drift probe tests | 0 | 26 |
+| Truth-pack generator tests | 0 | 12 |
+| Pytest lines added | 0 | 38 tests, <0.3 s runtime |
+| Ruff findings on new code | — | 0 |
+
+### 11.5 Evidence pointers
+
+* Generator fix: `scripts/generate_canonical_truth_pack.py:61-79`
+* Truth-pack JSON: `docs/knowledge/canonical_truth_pack.json`
+* Gate 7 YAML: `.github/workflows/canonical-validation-gate.yml` (§"Gate 7: Canonical Truth Pack Freshness")
+* Tests: `tests/tools/audit/test_claim_drift_probe.py`, `tests/scripts/test_generate_canonical_truth_pack.py`
+
+No constitutional claim or public statement was modified by this pass; the
+delta is pure enforcement infrastructure plus a previously-absent evidence
+artifact.
