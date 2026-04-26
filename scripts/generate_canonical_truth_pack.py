@@ -12,6 +12,7 @@ import argparse
 import importlib.util
 import json
 import re
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -60,13 +61,21 @@ def _count_workflow_files(root: Path = ROOT) -> int:
 
 def _load_api_policy_module(root: Path = ROOT) -> Any:
     policy_path = root / "core" / "sovereign" / "api_exposure_policy.py"
-    spec = importlib.util.spec_from_file_location(
-        "_bizra_canonical_truth_pack_api_policy", policy_path
-    )
+    module_name = "_bizra_canonical_truth_pack_api_policy"
+    spec = importlib.util.spec_from_file_location(module_name, policy_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Could not load API policy module from {policy_path}")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Register in sys.modules BEFORE exec_module. Python 3.12 @dataclass internals
+    # call sys.modules.get(cls.__module__) during class creation; without this
+    # registration the lookup returns None and raises AttributeError. See CPython
+    # Lib/dataclasses.py::_is_type.
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
     return module
 
 

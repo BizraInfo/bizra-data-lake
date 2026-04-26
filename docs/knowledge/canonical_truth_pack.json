@@ -1,0 +1,24 @@
+{
+  "routes": {
+    "by_exposure": {
+      "authenticated": 48,
+      "bootstrap_public": 3,
+      "public": 16
+    },
+    "domains": 29,
+    "source": "core/sovereign/api_exposure_policy.py",
+    "total": 67
+  },
+  "thresholds": {
+    "adl_gini_threshold": 0.35,
+    "source": "core/integration/constants.py",
+    "unified_ihsan_threshold": 0.95,
+    "unified_snr_threshold": 0.85
+  },
+  "workspace": {
+    "rust_crates": 27,
+    "rust_workspace_source": "bizra-omega/Cargo.toml",
+    "workflow_files": 23,
+    "workflow_source": ".github/workflows/"
+  }
+}
