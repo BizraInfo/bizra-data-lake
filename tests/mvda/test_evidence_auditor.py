@@ -61,10 +61,28 @@ class TestAuditorDirect:
         assert result.total_count == 0
         assert not result.all_refs_valid
 
+    @pytest.mark.requires_real_data
     def test_gold_chunk_valid(self):
-        # Use a known chunk_id from the corpus
+        # Use a known chunk_id from the real GOLD corpus.
+        # Skipped in CI: the parquet file is hundreds of MB and lives on the
+        # operator's data lake, not the repo. Local devs run with the full
+        # corpus mounted at $BIZRA_DATA_LAKE_ROOT/04_GOLD/.
+        import os
+
         import pandas as pd
-        df = pd.read_parquet("/data/bizra/04_GOLD/chunks.parquet", columns=["chunk_id"])
+
+        gold_root = os.environ.get(
+            "BIZRA_GOLD_DIR",
+            os.path.join(
+                os.environ.get("BIZRA_DATA_LAKE_ROOT", "/data/bizra"),
+                "04_GOLD",
+            ),
+        )
+        chunks_path = os.path.join(gold_root, "chunks.parquet")
+        if not os.path.exists(chunks_path):
+            pytest.skip(f"GOLD chunks.parquet not present at {chunks_path}")
+
+        df = pd.read_parquet(chunks_path, columns=["chunk_id"])
         real_id = df.iloc[0]["chunk_id"]
         result = audit_evidence([f"04_GOLD:chunk:{real_id}"])
         assert result.valid_count == 1

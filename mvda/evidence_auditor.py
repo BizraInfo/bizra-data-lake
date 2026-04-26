@@ -1,5 +1,6 @@
 """MVDA v0.3 — Evidence Auditor: verifies cited refs actually exist locally."""
 
+import os
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -9,7 +10,16 @@ import pandas as pd
 
 from mvda.config import DATA_LAKE_ROOT
 
-GOLD_DIR = Path("/data/bizra/04_GOLD")
+# GOLD_DIR honors the operator-provided env vars so the auditor works in CI
+# (where the data lake root is the GitHub workspace, no /data/bizra/ mount)
+# and in local dev (where the corpus lives at /data/bizra/04_GOLD).
+GOLD_DIR = Path(
+    os.getenv("BIZRA_GOLD_DIR")
+    or os.path.join(
+        os.getenv("BIZRA_DATA_LAKE_ROOT", "/data/bizra"),
+        "04_GOLD",
+    )
+)
 
 
 @dataclass
