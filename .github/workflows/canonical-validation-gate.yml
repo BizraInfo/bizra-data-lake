@@ -217,6 +217,25 @@ jobs:
         run: |
           python scripts/ci_docs_truth_gate.py
 
+      - name: "Gate 6: Claim-Discipline Drift Probe (CLEAN_SET fail-closed)"
+        run: |
+          mkdir -p artifacts/claim-drift
+          python tools/audit/claim_drift_probe.py \
+            --ci \
+            --verbose \
+            --log-path artifacts/claim-drift/findings.ndjson \
+            --summary-json artifacts/claim-drift/summary.json \
+            --run-id "ci-${GITHUB_SHA::8}"
+
+      - name: "Gate 6: Upload claim-drift artifacts"
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: claim-drift-${{ github.run_id }}
+          path: artifacts/claim-drift/
+          retention-days: 30
+          if-no-files-found: ignore
+
   # ═══════════════════════════════════════════════════════════════
   # CROSS-LAYER: Constitutional Threshold Coherence
   # ═══════════════════════════════════════════════════════════════

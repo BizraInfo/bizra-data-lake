@@ -102,3 +102,74 @@ Two options, pick one:
 - **B. Upgrade to CI gate.** Add a GitHub Action that runs `tools/audit/claim_drift_probe.py` on every PR and fails the build if any H1 finding lands in a file that is NOT in an allowlist (the registers, stop-line docs, and anti-claim documents listed in §7). This converts claim-discipline from an author-time habit into a mergetime gate.
 
 Both options are docs/CI-only. Neither mutates canon, runtime state, or website claims. Authorization required before execution.
+
+---
+
+## 9. Option B executed — 2026-04-26 addendum
+
+Operator chose to proceed with professional peak implementation, authorizing Option B. This section records the activation of the claim-discipline CI gate.
+
+### 9.1 Probe hardening for CI use
+
+`tools/audit/claim_drift_probe.py` gained four additions that preserve backward compatibility:
+
+| Flag / feature | Purpose |
+|----------------|---------|
+| `--ci` | Fail-closed mode. Exits non-zero when any H1 or H4 finding lands in the CLEAN_SET. |
+| `--log-path PATH` | Override for NDJSON output (CI writes into `artifacts/claim-drift/`). |
+| `--summary-json PATH` | Machine-readable verdict for downstream dashboards. |
+| `--verbose` | Prints every WATCH_SET finding to stdout for CI log inspection. |
+| `--run-id` | Tags NDJSON records for this run (CI uses `ci-${GITHUB_SHA::8}`). |
+| `<!-- claim-probe: allow -->` | Line-scoped suppression marker for verbatim register quotations. Use sparingly. |
+
+The probe now partitions its targets into two explicit sets:
+
+- **CLEAN_SET** (gated) — the three masterpiece briefs asserted claim-clean by §3 of this log: `ULTIMATE_MASTERPIECE_EXECUTIVE_BRIEF.md`, `ULTIMATE_MASTERPIECE_MANIFESTO.md`, `ULTIMATE_MASTERPIECE_POLYMATH_SYNTHESIS.md`. Any H1/H4 hit here fails CI.
+- **WATCH_SET** (report-only) — 21 supporting files (strategy, GTM, audit, business). Findings are logged to NDJSON and printed in verbose output but never fail the build; these files legitimately *quote* prohibited phrases while explaining the discipline rule.
+
+This partition lets the gate start at zero false positives today while keeping claim-drift telemetry across the whole doc corpus.
+
+### 9.2 CI wiring
+
+Inserted as Gate 6 in the `layer2-python-sovereign` job of `.github/workflows/canonical-validation-gate.yml`, directly after Gate 5 (Truth Label Enforcement). Two steps:
+
+1. **Gate 6: Claim-Discipline Drift Probe (CLEAN_SET fail-closed)** — runs `tools/audit/claim_drift_probe.py --ci --verbose --log-path artifacts/claim-drift/findings.ndjson --summary-json artifacts/claim-drift/summary.json --run-id "ci-${GITHUB_SHA::8}"`.
+2. **Gate 6: Upload claim-drift artifacts** — `if: always()` upload of the NDJSON log and `summary.json` as the run artifact `claim-drift-${{ github.run_id }}`, 30-day retention. Evidence is retained even on gate failure.
+
+Rationale for placement: `canonical-validation-gate.yml` already enforces constants-vs-docs coherence (Gate 5). Claim discipline is the docs-vs-rule coherence counterpart. Co-locating the two gates keeps the canon-integrity surface in one workflow.
+
+### 9.3 Local verification evidence (pre-merge proof)
+
+All four gate behaviors were verified on branch `prep/node0-closure-receipt-lineage` against the current working tree. Logs written to `.cursor/debug-c98f9f.log` under `runId: "gate-verify"` and `"regression-test"`.
+
+| Test | Command | Expected rc | Actual rc | Verdict |
+|------|---------|-------------|-----------|---------|
+| G1 | `python3 tools/audit/claim_drift_probe.py --ci` | 0 | 0 | PASS — CLEAN_SET 0 gating findings |
+| G2 | `python3 tools/audit/claim_drift_probe.py --verbose --ci` | 0 | 0 | PASS — 22 WATCH_SET findings reported, gate untouched |
+| G3 | `python3 tools/audit/claim_drift_probe.py` (default debug) | 0 | 0 | NDJSON grew by 10,424 bytes to `.cursor/debug-c98f9f.log` |
+| G4 | `python3 tools/audit/claim_drift_probe.py --ci --log-path /tmp/probe_ci.ndjson` | 0 | 0 | 10,519 bytes written to the explicit path |
+| R0 | Baseline `--ci` on clean tree | 0 | 0 | PASS |
+| R1 | `--ci` after injecting `"READY FOR PRODUCTION"` into a CLEAN_SET file | 1 | 1 | FAIL, correctly flags the injected line |
+| R2 | `--ci` with the injected phrase tagged `<!-- claim-probe: allow -->` | 0 | 0 | Suppression works on a single line |
+| R3 | `--ci` after restoring the file from backup | 0 | 0 | PASS |
+| R4 | `git diff --stat` on the mutated file after R3 | empty | empty | No residue |
+
+Outcomes: the gate **provably passes on the current clean tree** (R0, G1), **provably fails on a regression** (R1), **respects per-line suppression** (R2), and **returns to green after revert** (R3, R4). The supporting NDJSON log lines are retained under session `c98f9f`.
+
+### 9.4 What is NOT changed by this CI gate
+
+- No runtime code touched.
+- No existing CI gate is weakened or removed; Gate 6 is strictly additive.
+- No change to `docs/canon/BIZRA_ORIGIN_KERNEL.md`, `MEMORY.md`, or any Rust/Python constant.
+- No change to the website patch plan or to any public site copy.
+- WATCH_SET files are not forced to rewrite anything; they are only monitored. Future expansion of CLEAN_SET requires an explicit follow-up PR that first cleans the target file.
+
+### 9.5 Operator note — promoting a file into CLEAN_SET
+
+1. Manually review every H1 / H4 finding reported by `python3 tools/audit/claim_drift_probe.py --verbose` for that file.
+2. Either rewrite each finding to a truth-labeled form, or annotate the specific line with `<!-- claim-probe: allow -->` **only** when the prohibited phrase is a verbatim register quotation.
+3. Move the file from `WATCH_SET` to `CLEAN_SET` in `tools/audit/claim_drift_probe.py`.
+4. Re-run `python3 tools/audit/claim_drift_probe.py --ci` locally; it must return 0 before committing.
+5. Reference this §9 in the commit message as the gate-expansion authority.
+
+No file should be added to `CLEAN_SET` without this sequence. The gate is only meaningful if CLEAN_SET is kept credible.
