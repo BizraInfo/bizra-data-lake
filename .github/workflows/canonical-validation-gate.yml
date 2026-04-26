@@ -183,7 +183,9 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt --break-system-packages 2>/dev/null || pip install -r requirements.txt
-          pip install pytest pytest-cov ruff black isort
+          # Constitutional pytest slice imports yaml + hypothesis (pyproject [dev]);
+          # requirements.txt is production-only, so install test deps explicitly.
+          pip install pytest pytest-cov ruff black isort pyyaml hypothesis
 
       - name: "Gate 1: Lint (ruff + black + isort)"
         run: |
