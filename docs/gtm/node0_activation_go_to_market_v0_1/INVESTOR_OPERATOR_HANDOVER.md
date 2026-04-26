@@ -11,7 +11,7 @@ BIZRA is a proof-native sovereign AI system with a working single-node foundatio
 - Brand identity and claim-safe launch copy exist.
 - Audit artifacts identify current blockers clearly.
 - URP is canonically Universal Resource Pool.
-- Node0 can now generate and verify a signed local private-pilot handshake artifact. Evidence is registered in `PILOT_EVIDENCE_REGISTER.md`.
+- Node0 can now generate and verify a signed local private-pilot handshake artifact. Evidence is registered in `PILOT_EVIDENCE_REGISTER.md` as MEASURED_LOCAL_ARTIFACT.
 
 ## What Is Not Yet Proven
 

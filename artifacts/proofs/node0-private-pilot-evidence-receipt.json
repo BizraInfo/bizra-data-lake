@@ -1,79 +1,52 @@
 {
-  "schema_version": "1.0.0",
-  "receipt_type": "bizra_development_evidence_receipt_v1",
-  "generated_at": "2026-04-25T23:46:46.379462Z",
-  "description": "Node0 private-pilot GTM handover plus signed local handshake implementation.",
-  "verification_status": "pass_with_pytest_environment_gap",
-  "confidence": "strong_local_cli_verification",
-  "evidence_hash": "a45dd634ef88a6056a0711a6cf79333166918cff13d756a32d82aefafde8fa24",
-  "previous_hash": null,
-  "artifacts": [
-    {
-      "path": "scripts/node0_standalone.py",
-      "bytes": 68414,
-      "sha256": "933c9f4924ba0cc8e07f2c31ebb4b6317aa9f6670c73d0fc14f278e7b69a3fdd"
+  "artifacts": {
+    "handshake": {
+      "path": "artifacts/proofs/node0-private-pilot-handshake.json",
+      "sha256": "62866c282984771e3b24626c3f3fc06ab492c02e11d3b1dde416d995e595dc5b"
     },
-    {
-      "path": "tests/scripts/test_node0_standalone.py",
-      "bytes": 19172,
-      "sha256": "49621f3dd0b54f4f9dffd7a74ab65a267feb187a37b2fb3322aa15818e1857e5"
+    "tampered": {
+      "path": "artifacts/proofs/node0-private-pilot-handshake-tampered.json",
+      "sha256": "28b710465386bb2556fa81df7d2bd58d65efb06d1e7763db4507c2f9be33db12"
     },
-    {
-      "path": "docs/gtm/node0_activation_go_to_market_v0_1/README.md",
-      "bytes": 3503,
-      "sha256": "60c7d90075c53697799c12b9420bea2d2e20cea00f905f60130105dcae432e90"
+    "verify_ok": {
+      "path": "artifacts/proofs/node0-private-pilot-verification-report.json",
+      "sha256": "7ff6fc1755608ae90f6398597dd1ffb2c04bfee38c16fe670eb5fdd01f0afbb0"
     },
-    {
-      "path": "docs/gtm/node0_activation_go_to_market_v0_1/SOURCE_CODE_IMPLEMENTATION_BLUEPRINT.md",
-      "bytes": 4214,
-      "sha256": "2f1f757a494f9bdbf31d2caa744e4ae24336e70df1a8ac130e4804542c84f757"
-    },
-    {
-      "path": "artifacts/proofs/node0-private-pilot-handshake-smoke.json",
-      "bytes": 1226,
-      "sha256": "1159d1caa5b84776b3c73acfeac0cd547939e9ef91216275a0daf08fdf93ceb4"
-    },
-    {
-      "path": "artifacts/proofs/node0-private-pilot-handshake-tampered-smoke.json",
-      "bytes": 1226,
-      "sha256": "b7b4420f71dd799c6c6f4ea4e05e06233735d703854eaef985905fdd0167f927"
-    }
-  ],
-  "verification": {
-    "py_compile": {
-      "status": "pass",
-      "command": "python3 -m py_compile scripts/node0_standalone.py tests/scripts/test_node0_standalone.py"
-    },
-    "pytest": {
-      "status": "not_run",
-      "reason": "system Python has no pytest module and no .venv-linux/.venv was present",
-      "command": "python3 -m pytest tests/scripts/test_node0_standalone.py -q"
-    },
-    "pilot_handshake_smoke": {
-      "status": "pass",
-      "artifact": "artifacts/proofs/node0-private-pilot-handshake-smoke.json",
-      "verify_valid": true,
-      "verify_reason_code": "OK"
-    },
-    "pilot_verify_cli": {
-      "status": "pass",
-      "command": "python3 scripts/node0_standalone.py pilot-verify artifacts/proofs/node0-private-pilot-handshake-smoke.json",
-      "verify_valid": true,
-      "verify_reason_code": "OK"
-    },
-    "pilot_doctor_cli": {
-      "status": "pass",
-      "command": "python3 scripts/node0_standalone.py pilot-doctor",
-      "doctor_status": "ready",
-      "blocking": []
-    },
-    "tamper_rejection": {
-      "status": "pass",
-      "command": "python3 scripts/node0_standalone.py pilot-verify artifacts/proofs/node0-private-pilot-handshake-tampered-smoke.json",
-      "expected_exit_code": 3,
-      "verify_valid": false,
-      "verify_reason_code": "PAYLOAD_DIGEST_MISMATCH"
+    "verify_tampered": {
+      "path": "artifacts/proofs/node0-private-pilot-verification-report-tampered.json",
+      "sha256": "e12404a97ef3683ca25c15797a76bece7c58a3662e3751440b8f629508d4d06b"
     }
   },
-  "receipt_hash": "453068aa93754869332ca62331aaaeeeb28506dfbfeb514908a1ba72f5705407"
+  "inputs": {
+    "operator": "operator",
+    "peer_address": "127.0.0.1:9749",
+    "peer_node_id": "node1-pilot",
+    "project_root": "/tmp/bizra-pilot-wt"
+  },
+  "non_claims": [
+    "no_multi_device_proof",
+    "no_network_transport_proof",
+    "no_urp_bootnode_proof",
+    "no_sat_coordination_proof",
+    "no_production_federation_claim"
+  ],
+  "receipt_sha256": "1e2c0a42c710e94851ee3bb1822f78e7feef9d37428868b514b9a7585e640ede",
+  "schema_version": "1.0.0",
+  "scope": "node0_private_pilot_handshake_local_only",
+  "truth_label": "MEASURED_LOCAL_ARTIFACT",
+  "verification": {
+    "tampered_artifact": {
+      "path": "artifacts/proofs/node0-private-pilot-handshake-tampered.json",
+      "reason_code": "PAYLOAD_DIGEST_MISMATCH",
+      "valid": false
+    },
+    "valid_artifact": {
+      "local_node_id": "node0-unknown",
+      "path": "artifacts/proofs/node0-private-pilot-handshake.json",
+      "peer_node_id": "node1-pilot",
+      "reason_code": "OK",
+      "receipt_hash": "8db56fdd89af5d5e5177bf693099e5a8137bd05a48423c864edff11d0e9d286c",
+      "valid": true
+    }
+  }
 }

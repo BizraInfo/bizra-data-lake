@@ -14,27 +14,39 @@ Verified commands:
 
 ```bash
 python3 -m py_compile scripts/node0_standalone.py tests/scripts/test_node0_standalone.py
+pytest tests/scripts/test_node0_standalone.py -q
 ```
 
 Direct smoke verification generated and verified a local handshake artifact:
 
-- `artifacts/proofs/node0-private-pilot-handshake-smoke.json`
-- `artifacts/proofs/node0-private-pilot-handshake-tampered-smoke.json`
+- `artifacts/proofs/node0-private-pilot-handshake.json`
+- `artifacts/proofs/node0-private-pilot-handshake-tampered.json`
 - `artifacts/proofs/node0-private-pilot-verification-report.json`
+- `artifacts/proofs/node0-private-pilot-verification-report-tampered.json`
 - `artifacts/proofs/node0-private-pilot-evidence-receipt.json`
+
+The evidence pack can be regenerated deterministically (local-only) via:
+
+```bash
+python scripts/ops/generate_private_pilot_evidence_pack.py \
+  --out-dir artifacts/proofs \
+  --peer-node-id node1-pilot \
+  --peer-address 127.0.0.1:9749 \
+  --operator operator
+```
 
 ## Evidence Receipt
 
 | Field | Value |
 |---|---|
 | Receipt file | `artifacts/proofs/node0-private-pilot-evidence-receipt.json` |
-| Receipt hash | `453068aa93754869332ca62331aaaeeeb28506dfbfeb514908a1ba72f5705407` |
-| Verification status | `pass_with_pytest_environment_gap` |
+| Receipt hash | `1e2c0a42c710e94851ee3bb1822f78e7feef9d37428868b514b9a7585e640ede` |
+| Verification status | `pass_with_pytest` |
 | Confidence | `strong_local_cli_verification` |
 
 ## Environment Gap
 
-`pytest` could not run because the system Python environment does not include `pytest`, and no `.venv-linux` or `.venv` interpreter was present in the workspace. Syntax compilation and direct handshake smoke verification passed.
+This register is valid only for environments that can run `pytest`. If `pytest` is missing, fall back to `py_compile` plus direct `pilot-handshake` / `pilot-verify` smoke, but keep the truth label as `MEASURED_LOCAL_ARTIFACT`.
 
 `PILOT_EVIDENCE_REGISTER.md` cites the evidence receipt but is intentionally excluded from the receipt's artifact hash set to avoid self-referential hash churn.
 
