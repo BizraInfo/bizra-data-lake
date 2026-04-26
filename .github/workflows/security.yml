@@ -80,12 +80,15 @@ jobs:
       - name: Run pip-audit
         run: |
           # Match the main CI policy for known, explicitly documented exceptions.
+          # CVE-2026-3219: runner/bundled pip baseline drift — keep in sync with
+          # .github/workflows/ci.yml (lint-python + security-scan pip-audit steps).
           pip-audit \
             --strict \
             --format json \
             --output pip-audit-report.json \
             --ignore-vuln PYSEC-2024-48 \
-            --ignore-vuln CVE-2026-4539
+            --ignore-vuln CVE-2026-4539 \
+            --ignore-vuln CVE-2026-3219
 
   secret-scan:
     name: Secret Detection
