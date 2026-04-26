@@ -103,6 +103,7 @@ markers = [
     "requires_gpu: marks tests that require GPU hardware (CUDA/ROCm)",
     "requires_network: marks tests that require network access",
     "requires_llama_cpp: marks tests that require llama.cpp backend available",
+    "requires_real_data: marks tests that require the real GOLD corpus (04_GOLD/chunks.parquet) — skipped in CI",
     "xdist_group: group tests for serial execution under pytest-xdist",
 ]
 

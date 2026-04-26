@@ -46,6 +46,14 @@ env:
   PYTHONUNBUFFERED: '1'
   COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '25' }}
 
+# Default permissions: read-only for code; coverage-report needs write
+# access to post PR comments (issues/pull-requests). Granted at workflow
+# level so all jobs share a single, audited permission set.
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -117,13 +125,14 @@ jobs:
             -v \
             --tb=short \
             --timeout=30 \
-            -m "not slow and not integration and not requires_ollama and not requires_gpu" \
+            -m "not slow and not integration and not requires_ollama and not requires_gpu and not requires_real_data" \
             ${{ matrix.coverage && '--cov=core --cov-branch --cov-report=xml:coverage-unit.xml --cov-report=term-missing --cov-fail-under=0' || '' }} \
             --junit-xml=junit-unit.xml \
             -n auto \
             2>&1 | tee test-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Upload unit test results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
@@ -213,12 +222,13 @@ jobs:
             -v \
             --tb=short \
             --timeout=120 \
-            -m "integration and not requires_ollama and not requires_gpu and not slow" \
+            -m "integration and not requires_ollama and not requires_gpu and not slow and not requires_real_data" \
             ${{ matrix.coverage && '--cov=core --cov-branch --cov-report=xml:coverage-integration.xml --cov-report=term-missing --cov-fail-under=0' || '' }} \
             --junit-xml=junit-integration.xml \
             2>&1 | tee test-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
           REDIS_URL: redis://localhost:6379
 
       - name: Upload integration test results
@@ -290,6 +300,7 @@ jobs:
             2>&1 | tee token-unit-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Run token integration tests
         run: |
@@ -301,6 +312,7 @@ jobs:
             2>&1 | tee token-integration-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Verify token ledger integrity
         run: |
@@ -385,6 +397,7 @@ jobs:
             2>&1 | tee spearpoint-cockpit-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Run spearpoint E2E integration tests
         run: |
@@ -396,6 +409,7 @@ jobs:
             2>&1 | tee spearpoint-e2e-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Spearpoint pillar summary
         if: always()
@@ -468,6 +482,7 @@ jobs:
             2>&1 | tee seven-layer-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Seven-Layer summary
         if: always()
@@ -507,6 +522,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          # Full history — slow suites include evidence/canonical-truth-pack
+          # tests that resolve historical commit SHAs (e.g. Spearpoint
+          # b08f2208). Shallow clones break `git cat-file -t <sha>` lookups.
+          fetch-depth: 0
 
       - name: Set up Python 3.12
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
@@ -534,7 +554,7 @@ jobs:
             -v \
             --tb=short \
             --timeout=600 \
-            -m "slow and not requires_ollama and not requires_gpu" \
+            -m "slow and not requires_ollama and not requires_gpu and not requires_real_data" \
             --cov=core \
             --cov-branch \
             --cov-report=xml:coverage-slow.xml \
@@ -543,6 +563,7 @@ jobs:
             2>&1 | tee test-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Upload slow test results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4

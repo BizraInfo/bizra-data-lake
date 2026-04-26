@@ -375,10 +375,11 @@ jobs:
             --tb=short \
             -n auto \
             --ignore=tests/e2e_http \
-            -m "not requires_ollama and not requires_gpu and not slow and not e2e_http" \
+            -m "not requires_ollama and not requires_gpu and not slow and not e2e_http and not requires_real_data" \
             ${{ matrix.coverage && '--cov=core --cov-report=xml --cov-report=term-missing' || '' }}
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: "CONST-001: Constitutional constants hash verification"
         run: |
