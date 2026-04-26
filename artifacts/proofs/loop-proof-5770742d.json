@@ -1,0 +1,191 @@
+{
+  "canonical": false,
+  "chain_valid": true,
+  "fate_result": {
+    "evidence_audit": {
+      "all_refs_valid": true,
+      "invalid_count": 0,
+      "invalid_refs": [],
+      "valid_count": 1
+    },
+    "passed": false,
+    "short_circuited": false,
+    "telemetry": {
+      "evidence_valid": false,
+      "ihsan": 0.0,
+      "short_circuited": false,
+      "stages": 3,
+      "total_ms": 23523.9,
+      "verdict": "BLOCKED_BY_IHSAN"
+    },
+    "verdict": {
+      "evidence_sufficient": false,
+      "ihsan_score": 0.0,
+      "model": "gemma4:26b-bizra-16k",
+      "reason": "The output is a placeholder and contains no substantive information, precision, or actual answer.",
+      "verdict": "BLOCKED_BY_IHSAN"
+    }
+  },
+  "genesis_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "manifest_hash": "ac6de25d3e7c03f5041069bc75491c2afed48bf5dbefa275f7112f1e8eea9c18",
+  "mission": "[ExternalAgent] test",
+  "node_id": "node0",
+  "proof_class": "node0_loop_proof",
+  "routing": {
+    "embedding": {
+      "model": "nomic-embed-text",
+      "tier": "embed",
+      "tok_s": "N/A"
+    },
+    "pat.analyst": {
+      "model": "qwen2.5-coder:14b",
+      "tier": "fast",
+      "tok_s": "28.5"
+    },
+    "pat.coordinator": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "pat.creator": {
+      "model": "gemma4:e4b",
+      "tier": "fast",
+      "tok_s": "61.0"
+    },
+    "pat.executor": {
+      "model": "deepseek-r1:7b",
+      "tier": "fast",
+      "tok_s": "54.0"
+    },
+    "pat.guardian": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "pat.researcher": {
+      "model": "gemma4:e4b",
+      "tier": "fast",
+      "tok_s": "61.0"
+    },
+    "pat.strategist": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.ambassador": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.conductor": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.ledger": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.oracle_s": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.sentinel": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    }
+  },
+  "signature": "",
+  "step_count": 6,
+  "steps": [
+    {
+      "action": "mission_accepted",
+      "actor": "mission_gate",
+      "evidence": {
+        "mission": "[ExternalAgent] test",
+        "timestamp": "2026-04-24T21:23:54.451534+00:00"
+      },
+      "hash": "67070291897fb2be49e289225b5f3ce95a1e979d205c1f04a3f2fea76d483348",
+      "seq": 0,
+      "status": "ok",
+      "timestamp": "2026-04-24T21:23:54.451617+00:00"
+    },
+    {
+      "action": "pat_execution",
+      "actor": "pat_researcher (gemma4:e4b)",
+      "evidence": {
+        "answer_length": 28,
+        "confidence": "low",
+        "evidence_count": 1
+      },
+      "hash": "5b9a5993b0e2f414daa703247399863a95a6d30a3ef18b593f24bc1af1f40b0a",
+      "seq": 1,
+      "status": "completed",
+      "timestamp": "2026-04-24T21:23:54.451652+00:00"
+    },
+    {
+      "action": "evidence_audit",
+      "actor": "evidence_auditor",
+      "evidence": {
+        "invalid_count": 0,
+        "invalid_refs": [],
+        "valid_count": 1
+      },
+      "hash": "47ace529afea002f3de1403dd1a9e68bd86562b96ed7865b8eed98bfa4334f6a",
+      "seq": 2,
+      "status": "pass",
+      "timestamp": "2026-04-24T21:24:17.975897+00:00"
+    },
+    {
+      "action": "sat_verdict",
+      "actor": "sat_validator (gemma4:26b-bizra-16k)",
+      "evidence": {
+        "evidence_sufficient": false,
+        "ihsan_score": 0.0,
+        "reason": "The output is a placeholder and contains no substantive information, precision, or actual answer.",
+        "short_circuited": false,
+        "verdict": "BLOCKED_BY_IHSAN"
+      },
+      "hash": "a087c867e0c10e7afd1d3926cfbda4fefb5d7d2b40e9dadbc9131f1688993331",
+      "seq": 3,
+      "status": "blocked_by_ihsan",
+      "timestamp": "2026-04-24T21:24:17.975945+00:00"
+    },
+    {
+      "action": "fate_crossing_complete",
+      "actor": "fate_gate",
+      "evidence": {
+        "passed": false,
+        "telemetry": {
+          "evidence_valid": false,
+          "ihsan": 0.0,
+          "short_circuited": false,
+          "stages": 3,
+          "total_ms": 23523.9,
+          "verdict": "BLOCKED_BY_IHSAN"
+        }
+      },
+      "hash": "41b3c9ee40a1b498a7e91e71857fe156be17b26b41f97a85823b3f114ae21255",
+      "seq": 4,
+      "status": "blocked",
+      "timestamp": "2026-04-24T21:24:17.975964+00:00"
+    },
+    {
+      "action": "manifest_sealed",
+      "actor": "loop_proof",
+      "evidence": {
+        "manifest_hash": "ac6de25d3e7c03f5041069bc75491c2afed48bf5dbefa275f7112f1e8eea9c18",
+        "step_count": 5
+      },
+      "hash": "a9bfea8f39aa2e5714271fe136e04b4a94bd3d5b5ba9ff5758fa99edbe85290d",
+      "seq": 5,
+      "status": "unsigned",
+      "timestamp": "2026-04-24T21:24:17.975982+00:00"
+    }
+  ],
+  "timestamp": "2026-04-24T21:23:54.451534+00:00",
+  "version": "1.0"
+}

@@ -42,7 +42,7 @@ export const CreateResourceSchema = z.object({
   name: z.string().min(1).max(256),
   type: z.enum(["file", "url", "credential", "service", "knowledge", "browser", "terminal"]),
   path: z.string().max(1024).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type CreateResourceInput = z.infer<typeof CreateResourceSchema>;

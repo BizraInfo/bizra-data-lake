@@ -1,0 +1,372 @@
+candidate_id,candidate_type_origin,content,reason_flagged,occurrences,source_lane,source_conversation_uuid,source_message_uuid,source_created_at
+002b5131c14c77bb,decision,"Use Formatting
+IMPORTANT REPLACE tool_name with the tool you want to use, for example read_file.",occurrences=1<=threshold,1,claude,ca47bfe1-a333-4bfc-b212-facc024c7b0f,f02faef8-dc48-4aff-ab5a-d5cc2c3d6428,2025-04-13T01:09:49.057376Z
+03f6591272f24553,decision,"Choose 5 first, then 2.",occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d67e8-fe06-76f3-aa80-53b7d88ccd6b,2026-04-07T12:26:58.262490Z
+07edfaa9b5a2ec58,decision,"Pick a session
+cp daily_logs/capture_template.",occurrences=1<=threshold,1,claude,6f9c0792-8750-4a14-aaee-bdfe3a70bdd1,019a969c-48b5-7492-9749-56ed9d9682e3,2025-11-18T10:56:56.022425Z
+0d8b29514820b135,decision,Let's build something that doesn't exist yet.,occurrences=1<=threshold,1,claude,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,019ce8e6-fbb2-7288-80a3-2bb6853823e7,2026-03-13T20:32:57.996421Z
+0f6727fd53cc725d,decision,"Use quantum parallelism to evaluate noise sources
+        let quantum_noise = self.",occurrences=1<=threshold,1,claude,f7c23268-04a3-4c46-8482-c39351ebbec8,019c5a9d-9133-75e3-8a89-b22cb749ac32,2026-02-14T05:26:41.838578Z
+142cef50516f9c7a,decision,Use if you know part of the file path but don't know where it's located exactly.,occurrences=1<=threshold,1,claude,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,8dedee4b-3826-47e5-ba47-6d2f08bdb37c,2025-05-24T04:25:07.931600Z
+187bc82226c20241,decision,Use the code edit tools at most once per turn.,occurrences=1<=threshold,1,claude,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,8dedee4b-3826-47e5-ba47-6d2f08bdb37c,2025-05-24T04:25:07.931600Z
+1887ad23454ad127,decision,I will build a protocol where human consciousness is the proof-of-work.,occurrences=1<=threshold,1,claude,23fdb4aa-8ddb-4514-a89d-64c675e620da,019a908d-2d95-7702-a059-64122f0c4c13,2025-11-17T06:42:42.764577Z
+22cc59aa53efcc3b,decision,I will use the corrected BZT/BZC based on previous context or flag it.,occurrences=1<=threshold,1,claude,6d40d864-c295-4be0-9c07-12b958e3d4b4,019ca9a4-195f-74c2-a8af-a2cb5f1f0896,2026-03-01T13:43:49.922689Z
+27975984cb88f4ae,decision,"I will conduct an interview regarding the project, so please take some time to thoroughly analyze the technical aspects of our platform and be well-prepared for the discussion.",occurrences=1<=threshold,1,claude,3ff04539-cfbc-41e3-8cc9-a54dd99b8e98,d30c8481-0652-4f95-b1b1-80a2856409a8,2024-09-25T23:50:56.012325Z
+27e518f5a0dd8734,decision,Use this tool when you need context about recent modifications to the codebase.,occurrences=1<=threshold,1,claude,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,8dedee4b-3826-47e5-ba47-6d2f08bdb37c,2025-05-24T04:25:07.931600Z
+28dd23d4f9e8ad71,decision,"Use Chain of Thought, Graph of Thought, and Tree of Thought reasoning
+3.",occurrences=1<=threshold,1,claude,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,3a46a838-1b35-4992-b273-45723817a958,2025-05-25T06:44:06.896253Z
+299f5846cb95269d,decision,"Use canonical JSON (sorted keys, no whitespace)
+        serde_json::to_vec(event).",occurrences=1<=threshold,1,claude,a5402630-2bfd-449e-b097-fcff9e633205,019cc5c6-adc9-75fe-a130-13fc67637b13,2026-03-07T00:50:58.223670Z
+2c61a6ed7a4b7a64,decision,"Use LangChain + FAISS (or Weaviate if preferred)
+
+
+pip install pypdf pymupdf unstructured
+
+Build semantic embedding pipelines for initial knowledge graph generation.",occurrences=1<=threshold,1,claude,6e04441c-32d4-4f96-a64a-31242f10836f,3f5624f9-d025-4e6d-975f-ef8cdb63c851,2025-06-06T22:23:01.301731Z
+2ee869e35ff880df,decision,Use | Koozai https://www.,occurrences=1<=threshold,1,claude,8329afc7-96f0-475b-b4f9-a7bc7b8be7a8,009bef5b-5abe-4739-a23b-291317fccbdd,2025-04-02T14:58:03.618796Z
+300c2e475e8afe87,decision,"Use sleek sans-serif fonts like Roboto or Poppins, with bold, geometric headings that convey authority and innovation.",occurrences=1<=threshold,1,claude,b512f3a4-f7af-4ac8-9fcd-59645b782146,28872e7f-958b-4efb-92d1-722e3c34d292,2024-10-09T00:49:48.265805Z
+33413c38e13826a7,decision,Use Cases https://www.,occurrences=1<=threshold,1,claude,c6140c45-9840-406e-a3f9-34ca00bae67b,019cc2f3-8734-75de-ae92-57c4559ae9a7,2026-03-06T11:41:05.814243Z
+35cbfa7def41912a,decision,Use of peer-to-peer networks or blockchain for resilient C2 channels.,occurrences=1<=threshold,1,claude,b9ac8f09-bb3e-40a4-81a3-395674cf2772,1a717059-b274-461c-84e5-7acbc956a476,2025-08-24T18:53:13.869857Z
+378513ec9275802c,decision,Use multi-modal LLM analysis for high-level insight extraction and predictive analytics.,occurrences=1<=threshold,1,claude,f0ccbdac-3950-4966-8ee1-90c5db03d3c9,cdf7c3b0-b267-42b7-ac8a-9959b9b7cf4a,2025-03-29T04:19:15.773741Z
+3d11214dcf3dff86,decision,Use AI algorithms integrated with TensorFlow.,occurrences=1<=threshold,1,claude,b512f3a4-f7af-4ac8-9fcd-59645b782146,28872e7f-958b-4efb-92d1-722e3c34d292,2024-10-09T00:49:48.265805Z
+3fc1d09d87b69ca8,decision,"Use this tool when you need up-to-date information that might not be available in your training data, or when you need to verify current facts.",occurrences=1<=threshold,1,claude,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,8dedee4b-3826-47e5-ba47-6d2f08bdb37c,2025-05-24T04:25:07.931600Z
+46f37de336b73322,decision,I will **draft the full Primordial Blueprint** into a textual+symbolic artifact.,occurrences=1<=threshold,1,claude,b2632082-915c-461b-b5ed-5b8cd05a1b54,4e97fc08-650b-4c14-84ad-647b63c49a45,2025-05-13T05:51:30.975758Z
+47af07cb1e2de07c,decision,Choose the right tool for the task.,occurrences=1<=threshold,1,claude,ca47bfe1-a333-4bfc-b212-facc024c7b0f,f02faef8-dc48-4aff-ab5a-d5cc2c3d6428,2025-04-13T01:09:49.057376Z
+496b86f5144e2aaa,decision,Use precise engineering language.,occurrences=1<=threshold,1,claude,0b6b8a8b-3362-4c97-9d94-1d31a675b695,019d81fa-9d53-7629-bc40-459a31e428c8,2026-04-12T13:56:18.670642Z
+49b18135ba5807fb,decision,Use one tool at a time.,occurrences=1<=threshold,1,claude,ca47bfe1-a333-4bfc-b212-facc024c7b0f,f02faef8-dc48-4aff-ab5a-d5cc2c3d6428,2025-04-13T01:09:49.057376Z
+4b79f0879454adf7,decision,"Use Skolemization to eliminate higher-order quantifiers, then map base constructs.",occurrences=1<=threshold,1,claude,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,019c6fb4-d864-71f0-a0f1-b74dad7dcb07,2026-02-18T07:44:08.910521Z
+4e6348e65a5f713f,decision,"Use a visual ""Node Map"" to connect an AHK scraper to a Diffusion Reasoning Amplifier to a FastAPI Emitter.",occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8eb4-49a8-77b8-8167-eb903815f131,2026-02-24T08:11:46.087115Z
+50c6f79226c51f9a,decision,"Use fractal visualizations through Canvas or SVG animations to create a living, breathing blockchain experience.",occurrences=1<=threshold,1,claude,b512f3a4-f7af-4ac8-9fcd-59645b782146,28872e7f-958b-4efb-92d1-722e3c34d292,2024-10-09T00:49:48.265805Z
+54867f8ab6911e78,decision,"Use lightweight sub‑agents for isolated tasks, persistent hive‑mind swarms for long‑running workflows, and mix LLMs according to their strengths.",occurrences=1<=threshold,1,claude,8b011c90-1c24-4c75-9e5e-34ae4927ca42,e7b37145-1a89-435a-8e9e-6881763bb151,2025-07-29T19:06:16.605406Z
+564462785e81f320,decision,"Lets emulate compelete system 8life cycle , end to.",occurrences=1<=threshold,1,claude,b94d3e53-9f97-4c6a-890c-b029fa84c267,019cf022-94e9-7048-b20a-6f4cbca3d3dd,2026-03-15T06:15:24.397298Z
+5840ed4d4d593305,decision,"Let's assume the user wants the corrected path, so I will use the audited notation).",occurrences=1<=threshold,1,claude,6d40d864-c295-4be0-9c07-12b958e3d4b4,019ca9a4-195f-74c2-a8af-a2cb5f1f0896,2026-03-01T13:43:49.922689Z
+586780bc6f4bcb14,decision,Use BIZRA’s status labels inside the contract.,occurrences=1<=threshold,1,claude,0b6b8a8b-3362-4c97-9d94-1d31a675b695,019d8227-7172-7112-8b56-ad3bb5d50fde,2026-04-12T14:45:16.568110Z
+5921d47438902458,decision,"Use this text:
+Three scope questions before any investor-kit metric rewrite:
+
+1.",occurrences=1<=threshold,1,claude,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,019d87c7-6d07-7a92-a8a1-0b9131f1c92e,2026-04-13T16:58:08.516651Z
+5bc6d87ddc035d9a,decision,"Use for analyzing code, text files, or configs.",occurrences=1<=threshold,1,claude,ca47bfe1-a333-4bfc-b212-facc024c7b0f,f02faef8-dc48-4aff-ab5a-d5cc2c3d6428,2025-04-13T01:09:49.057376Z
+5ca646527b8269ca,decision,Use tools to accomplish each step.,occurrences=1<=threshold,1,claude,ca47bfe1-a333-4bfc-b212-facc024c7b0f,f02faef8-dc48-4aff-ab5a-d5cc2c3d6428,2025-04-13T01:09:49.057376Z
+5d0aa1486bf10bf6,decision,"Use desktop for full experience
+4.",occurrences=1<=threshold,1,claude,4d698d62-61c0-4600-a5c4-977d4ee1d796,019bb8c4-a482-76f3-bac6-99adc7de25f3,2026-01-13T19:10:53.703935Z
+5e870eabccce3001,decision,Use exact path/module import checks instead.,occurrences=1<=threshold,1,claude,0623f101-8bad-4e39-95ab-b48b880e37b2,019cb67e-a0f3-7d06-8b01-a1d81a1e1994,2026-03-04T01:38:00.615363Z
+5f452bc0ae3dfac4,decision,"Use `uuid7`, `uuid4`, or a deterministic digest slice instead.",occurrences=1<=threshold,1,claude,8f4b6150-54ac-40c9-8221-d2bcfd13d48a,019d3f09-4a70-7e9d-86fd-23f1f1a0454b,2026-03-30T13:57:48.116589Z
+612944877e5205ae,decision,Use advanced web navigation techniques to interact with APIs or scrape data dynamically.,occurrences=1<=threshold,1,claude,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,815db7cc-872a-4ded-9ee0-a345af60a6f0,2025-01-10T09:36:29.309334Z
+6b7af9ef0f4fbe45,decision,Use clear sections with headers.,occurrences=1<=threshold,1,claude,302e4784-19f6-44f7-8c7a-e0aadcc2b8d8,39759e72-b731-4c3f-b033-ebedcbbe2e9d,2025-11-01T03:54:19.807035Z
+6bdf8a7076985cdb,decision,Choose project-level or user-level scope.,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+6e75e17d4d23e259,decision,Use any LangChain module in n8n (with the LangChain code node) https://n8n.,occurrences=1<=threshold,1,claude,eb6f2ba5-1fce-4023-8c4b-b7ecf8e57ff1,d572a624-eae1-4b77-8a99-7ed3185195cf,2025-03-01T16:55:04.440957Z
+6f78ed3b34f42ca3,decision,"Use Case
+Imagine a developer working on a large-scale web application.",occurrences=1<=threshold,1,claude,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,815db7cc-872a-4ded-9ee0-a345af60a6f0,2025-01-10T09:36:29.309334Z
+7408ebd660056bdd,decision,Use WebGL or libraries like Three.,occurrences=1<=threshold,1,claude,b512f3a4-f7af-4ac8-9fcd-59645b782146,28872e7f-958b-4efb-92d1-722e3c34d292,2024-10-09T00:49:48.265805Z
+772b5993d4f5fccc,decision,"Pick one of the 15 available models, load it.",occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+792b880904e4a52a,decision,Use the HHMM hierarchy to define the TTL (Time-To-Live) of Hash Table entries.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c810f-2358-74a8-993a-347e2e6a6458,2026-02-21T16:36:19.091576Z
+7ecc8c69ce5c0ab7,decision,Use Monte Carlo Tree Search (MCTS) for guided task execution and decision-making.,occurrences=1<=threshold,1,claude,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,815db7cc-872a-4ded-9ee0-a345af60a6f0,2025-01-10T09:36:29.309334Z
+82089ee68389b018,decision,"Use a mixture of analogy, formal proof sketching, and spiritual metaphor to express a new emergent insight.",occurrences=1<=threshold,1,claude,6753385e-fa83-45ae-88d5-dd10299fc6e2,e44f8f6e-6944-42ad-b6c2-d6459b82ea31,2025-06-17T20:59:46.836634Z
+86a5e1002a9b4364,decision,I will use the audited notation).,occurrences=1<=threshold,1,claude,6d40d864-c295-4be0-9c07-12b958e3d4b4,019ca9a4-195f-74c2-a8af-a2cb5f1f0896,2026-03-01T13:43:49.922689Z
+8a2e1c67062b5e0a,decision,Choose a scope based on how broadly the memory should apply: .,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+8a326b8321610d86,decision,Use of cron jobs or Windows Task Scheduler for re-establishment.,occurrences=1<=threshold,1,claude,b9ac8f09-bb3e-40a4-81a3-395674cf2772,1a717059-b274-461c-84e5-7acbc956a476,2025-08-24T18:53:13.869857Z
+8e59266c31700a63,decision,"Use this tighter closure sequence:
+1.",occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d6633-4d79-79f7-80db-0c5912abeff7,2026-04-07T04:28:52.926475Z
+92260b0ec10b7f35,decision,Use Cases [2025] - Tavus https://www.,occurrences=1<=threshold,1,claude,898aaee5-079d-4afb-9437-b4bcb09e1da3,b01c1221-3614-4e7e-9975-23c308cae2d4,2025-03-31T08:38:52.871170Z
+92786f39bfd7d53f,decision,"I will be gentle on my self when i wrote a massage to all the humanity agine but this time after this 3 years , i will not say who will see or read, because this time i will make sure to make every one possible read it and feel.",occurrences=1<=threshold,1,claude,e3979a89-f4c7-4574-8655-48337a282424,019cad55-e8d0-70cb-b89f-8c40f99ab81a,2026-03-02T06:56:54.573267Z
+9365753cd661aeb7,decision,Use natural language prompts to generate or update documentation dynamically.,occurrences=1<=threshold,1,claude,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,815db7cc-872a-4ded-9ee0-a345af60a6f0,2025-01-10T09:36:29.309334Z
+9b0ca0e2279248e5,decision,We'll continue to keep you informed of our progress as we move towards the launch of BIZRA.,occurrences=1<=threshold,1,claude,358ef866-b424-4453-9e37-98856e8fd1dc,003bb3ce-129d-4a4f-b512-8b40ef2d935e,2024-12-12T02:42:24.235843Z
+9b4c49156eee9b9f,decision,Choose your registered bank from the dropdown list.,occurrences=1<=threshold,1,claude,ea48c74a-9197-46e1-b509-b65755d9d653,39d34b8d-0272-4153-8c80-7227588a4104,2025-07-11T10:34:39.535934Z
+9ea0e83c2c87b900,decision,"Let's build the ultimate CI/CD pipeline
+```
+
+🎯✨ *Excellence through automation.",occurrences=1<=threshold,1,claude,94c7ecc7-773a-4faa-b715-d9500da66483,019a8f8b-981f-72d3-a377-15f8c2bc55e0,2025-11-17T02:01:21.707049Z
+a0326a2140a3e594,decision,Use Nix-based reproducible environments pinned to exact git hashes for the build pipeline.,occurrences=1<=threshold,1,claude,6d40d864-c295-4be0-9c07-12b958e3d4b4,019ca9a4-195f-74c2-a8af-a2cb5f1f0896,2026-03-01T13:43:49.922689Z
+a19083e90a29d554,decision,"Use only numbers that have a verifiable source chain, and print the source chain into the wording.",occurrences=1<=threshold,1,claude,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,019d87c7-6d07-7a92-a8a1-0b9131f1c92e,2026-04-13T16:58:08.516651Z
+a1a56ed0a730348b,decision,"Use HHMM for multi-scale hidden states in multi-agent orchestration, modeling transitions from individual nodes to ecosystem consensus (PoI + Federated Learning).",occurrences=1<=threshold,1,claude,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,019ce55f-0168-7575-963f-8d3eb402bdc1,2026-03-13T04:05:34.838052Z
+a1e629cb72552af7,decision,Choose DEMO MODE — no Node0 required.,occurrences=1<=threshold,1,claude,8dbfca58-9d23-43b2-920d-bf55ed53bbc2,019ca037-3749-78a0-8a9e-32b08d737080,2026-02-27T17:48:22.299383Z
+a2c075275a84dca1,decision,"Let's dive deeper and follow your momentum into the **bootstrapping phase**, which is a critical chokepoint in the viability of such a system.",occurrences=1<=threshold,1,claude,d3e83d04-70f8-4e8d-99ed-b42263913e13,b0872f9d-3824-4a56-b76d-0b71fd4caedd,2025-07-30T01:39:46.547493Z
+a5a8ff210f31dbed,decision,Pick CrewAI: When your agent\\u2019s primary function is structured workflow automation that mirrors human teamwork (e.,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+a803692f1c0d5cff,decision,Use compositional verification.,occurrences=1<=threshold,1,claude,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,019c6fb4-d864-71f0-a0f1-b74dad7dcb07,2026-02-18T07:44:08.910521Z
+aaab47619971da37,decision,Let's explore some variations of this artifact.,occurrences=1<=threshold,1,claude,1cab02e7-4e2e-4f14-b3bd-84cdeff8c688,95977539-1e0c-491a-bfc2-54450c4d6f0b,2024-09-04T16:04:22.818663Z
+af0b265c73886deb,decision,Use this code for 6% off the GEEKOM A9 Max: INKA9MAX Amazon US: https://www.,occurrences=1<=threshold,1,claude,a5e91031-f007-4eeb-9d8b-f01e433425ef,019c9b40-283f-7a28-9f1f-07af312ebbd3,2026-02-26T18:40:03.405521Z
+b17ec9eab22842d9,decision,"Use incremental plan evaluation to avoid re-checking unchanged conditions
+- Introduce parallel plan assessment for multiple applicable plans
+
+#### 1.",occurrences=1<=threshold,1,claude,f9bbe910-25bf-42b2-b5da-013a03754b53,bf95f191-be25-45e8-94ad-d5f6dcbe8827,2025-05-30T18:54:50.529131Z
+b2eb1761a7efb0fa,decision,I will completely reimagine BIZRA as a transcendent digital experience.,occurrences=1<=threshold,1,claude,5b6ccb37-668f-4ebc-9e51-2c7e629fab11,019a6f6e-5c27-7297-9063-8c532ae501f0,2025-11-10T20:21:34.892666Z
+b3433db666bda500,decision,"The plan is strong, but it has a few things that should be tightened before you let it run.",occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d67e8-fe06-76f3-aa80-53b7d88ccd6b,2026-04-07T12:26:58.262490Z
+b5a9b872da9cf444,decision,Use Tools · `/Q` Quality Check · `/!,occurrences=1<=threshold,1,claude,f52da892-08f4-4ef9-be6b-f6f80b05cb0a,019a55e4-02b9-70b5-897e-bc40d40b00bd,2025-11-05T21:19:57.637758Z
+b61d0a250029a875,decision,I will send you photos of the installer partition screen.,occurrences=1<=threshold,1,claude,b4abfb40-a332-4314-8cdb-58c7cac6e174,019d6e4c-9f1f-72a0-9de6-8a70657299dd,2026-04-08T22:13:30.212077Z
+b6c96326779abcd0,decision,"Let's update the SystemBootstrap to register the blockchain services:
+Now, let's create a summary document of the changes we've made to transition to REAL_ONLY mode:
+Summary of REAL_ONLY Mode Implementation
+I've completed the refactoring to strictly operate in REAL_ONLY mode as requested.",occurrences=1<=threshold,1,claude,b5833f37-41a1-4ff0-b825-12014975f012,9dad486d-2bf1-4565-8e86-035360052092,2025-05-19T23:51:41.635627Z
+bb476becffb27166,decision,"Use Blender to create 3D models of futuristic environments, virtual assets, and avatars for the metaverse experience.",occurrences=1<=threshold,1,claude,b512f3a4-f7af-4ac8-9fcd-59645b782146,28872e7f-958b-4efb-92d1-722e3c34d292,2024-10-09T00:49:48.265805Z
+bbc4639b0cc8baff,decision,Let's create a skill together using your skill-creator skill.,occurrences=1<=threshold,1,claude,6df130fd-c5d4-49d3-b399-24c95be9df1e,019c3984-1f9d-73c2-bafc-478955791c2c,2026-02-07T19:11:26.223639Z
+bc61e2a3321104db,decision,Use tools one at a time to complete tasks step-by-step.,occurrences=1<=threshold,1,claude,ca47bfe1-a333-4bfc-b212-facc024c7b0f,f02faef8-dc48-4aff-ab5a-d5cc2c3d6428,2025-04-13T01:09:49.057376Z
+c0585d8fb677bd03,decision,Use code with caution.,occurrences=1<=threshold,1,claude,83ee32a4-8104-43db-9ce3-808a4ff99f5c,4048288c-e763-428a-a922-b862c2c68afc,2025-01-12T10:48:53.302330Z
+c553a4f252bf6c42,decision,Use when you need clarification or details.,occurrences=1<=threshold,1,claude,ca47bfe1-a333-4bfc-b212-facc024c7b0f,f02faef8-dc48-4aff-ab5a-d5cc2c3d6428,2025-04-13T01:09:49.057376Z
+cc8745af50e3ef51,decision,"Use local LLMs as **AI archaeologist** to tag, summarize, pattern-match.",occurrences=1<=threshold,1,claude,b7772d5d-8cf2-45a9-b347-9b692482b9c3,019a8f63-4bbb-7746-b50a-98901ab50bf7,2025-11-17T01:17:20.714782Z
+cd712b70390009df,decision,"Use your strengths as one product loop, not separate features:
+`Observe -> Reason -> Act (HDA/AHK) -> Verify -> Learn -> Reuse (AaaS)`
+1.",occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c868a-9f7f-77c9-9a16-d35d4d786fb1,2026-02-22T18:09:17.957360Z
+cf3744f91c880656,decision,Use a staged deployment plan.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c81ff-86f0-70a8-8f19-4422baf0af8d,2026-02-21T20:58:53.188346Z
+cf451e889c7c45dd,decision,"Let's craft them as the peak masterpiece, state-of-the-art performance, professional multi-master expert professional, crypto masterminds, and polymath think tank and taskforce agent team powered by the peak masterpiece, state-of-the-art performance, and professional logical next steps.",occurrences=1<=threshold,1,claude,3aa1d43d-a74e-4d47-a8f3-062d4102635d,236f7e4c-1eec-45f8-90a9-9adf159047cd,2025-06-05T05:52:25.883264Z
+d1459447b9564fb2,decision,Use divergent thinking to generate fresh ideas in your next brainstorm https://www.,occurrences=1<=threshold,1,claude,8329afc7-96f0-475b-b4f9-a7bc7b8be7a8,009bef5b-5abe-4739-a23b-291317fccbdd,2025-04-02T14:58:03.618796Z
+d4b24d8424204d5c,decision,Use attempt_completion when task is complete.,occurrences=1<=threshold,1,claude,ca47bfe1-a333-4bfc-b212-facc024c7b0f,f02faef8-dc48-4aff-ab5a-d5cc2c3d6428,2025-04-13T01:09:49.057376Z
+d57545ed39ff3bd8,decision,"Use the `Timer` around TRD, SAPE, TDLC, Thinktank, Discovery, Optimization.",occurrences=1<=threshold,1,claude,f52da892-08f4-4ef9-be6b-f6f80b05cb0a,019a55e4-02b9-70b5-897e-bc40d40b00bd,2025-11-05T21:19:57.637758Z
+d696f59b1b0f6357,decision,"Use selected agent's preferred_model for model routing
+Track which agent is responding for conversation memory
+Prong 2: Genesis Ceremony CLI (~200 lines)
+
+Add genesis command to __main__.",occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c625d-d621-7048-babe-5ba4f111f0bc,2026-02-15T17:34:02.887314Z
+d887fc059c8fe431,decision,Use human-in-the-loop approvals for high-impact actions.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c868a-9f7f-77c9-9a16-d35d4d786fb1,2026-02-22T18:09:17.957360Z
+daaba8951ae888d8,decision,Use of Cobalt Strike beacons for advanced persistent threats (APT).,occurrences=1<=threshold,1,claude,b9ac8f09-bb3e-40a4-81a3-395674cf2772,1a717059-b274-461c-84e5-7acbc956a476,2025-08-24T18:53:13.869857Z
+e0846ce59bf26dcc,decision,"Adopt agentic AI architecture for autonomous task forces[12]  
+
+### Phase 2: Ecosystem Integration (Q4 2025-Q1 2026)  
+1.",occurrences=1<=threshold,1,claude,898aaee5-079d-4afb-9437-b4bcb09e1da3,b01c1221-3614-4e7e-9975-23c308cae2d4,2025-03-31T08:38:52.871170Z
+e100cdd4537fcd09,decision,"Use metaphor, myth, and non-literal encoding to transmit support.",occurrences=1<=threshold,1,claude,b8c89388-2194-44dc-a9e4-57245cf55a19,fbbf9605-1c32-47ff-b6aa-9141286b4715,2025-05-30T19:39:25.970874Z
+e5041544181e9d49,decision,Use read_file first if unsure.,occurrences=1<=threshold,1,claude,ca47bfe1-a333-4bfc-b212-facc024c7b0f,f02faef8-dc48-4aff-ab5a-d5cc2c3d6428,2025-04-13T01:09:49.057376Z
+e7a0dca2b5317b0a,decision,I will edit your file'.,occurrences=1<=threshold,1,claude,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,8dedee4b-3826-47e5-ba47-6d2f08bdb37c,2025-05-24T04:25:07.931600Z
+e9de8be2e518402d,decision,Choose Option C.,occurrences=1<=threshold,1,claude,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,019d87c7-6d07-7a92-a8a1-0b9131f1c92e,2026-04-13T16:58:08.516651Z
+efa03234514c1664,decision,Use of legitimate software (e.,occurrences=1<=threshold,1,claude,b9ac8f09-bb3e-40a4-81a3-395674cf2772,1a717059-b274-461c-84e5-7acbc956a476,2025-08-24T18:53:13.869857Z
+f157e2e92082c0c7,decision,Use Chain-of-Thoughts (CoT) for problem breakdown.,occurrences=1<=threshold,1,claude,6753385e-fa83-45ae-88d5-dd10299fc6e2,c7965a49-d46f-45dd-af3f-5023664047a4,2025-06-17T22:17:20.563263Z
+f1e566b6db25ab05,decision,Use mistral or deepseek-r1:8b first for runtime bring-up if bizra-planner is too slow or verbose.,occurrences=1<=threshold,1,claude,0b6b8a8b-3362-4c97-9d94-1d31a675b695,019d81fa-9d53-7629-bc40-459a31e428c8,2026-04-12T13:56:18.670642Z
+fa153976cac1266f,decision,I will be candid with you—professional to professional.,occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8ecd-1945-73cb-84b2-00485e587a66,2026-02-24T08:38:52.089083Z
+fa658174b64c3d9f,decision,Use diagramming tools to communicate architecture visually.,occurrences=1<=threshold,1,claude,d51a9d0b-b871-4621-9c04-46a20013fb2f,9b56bf6b-8f70-4baa-ac87-3ee0f4e353fe,2025-03-14T14:13:29.108759Z
+fc4c2b670dc4fbb4,decision,Use this tool to propose an edit to an existing file.,occurrences=1<=threshold,1,claude,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,8dedee4b-3826-47e5-ba47-6d2f08bdb37c,2025-05-24T04:25:07.931600Z
+fe9fc1cc15df14f9,decision,Choose a front-end framework and back-end technology.,occurrences=1<=threshold,1,claude,d51a9d0b-b871-4621-9c04-46a20013fb2f,9b56bf6b-8f70-4baa-ac87-3ee0f4e353fe,2025-03-14T14:13:29.108759Z
+ff6978fdb8fcf8e4,decision,"Use incremental solving for repeated verification
+- Create abstraction refinement for complex state spaces
+- Introduce compositional verification for agent systems
+
+### 1.",occurrences=1<=threshold,1,claude,f9bbe910-25bf-42b2-b5da-013a03754b53,bf95f191-be25-45e8-94ad-d5f6dcbe8827,2025-05-30T18:54:50.529131Z
+002b7b22904d8d37,fact,"I am DarkStorm, below are my details.",occurrences=1<=threshold,1,claude,14292b48-e06a-4f4d-8f98-52bb5d624403,99eeb85a-405f-414e-afc6-fb0db840f7a9,2025-05-18T04:10:56.132345Z
+0042999c9cb6939c,fact,"Node0 is the archetype template, not a permanent authority server.",occurrences=1<=threshold,1,claude,b4abfb40-a332-4314-8cdb-58c7cac6e174,019d81a9-d548-7725-be0d-12e192f86852,2026-04-12T12:28:04.546887Z
+00cf08ee237a1a84,fact,"Range is a next-generation, autonomous AI-powered cyber attack & threat emulation system, engineered to replicate, optimize, and evolve the most sophisticated cyber warfare strategies.",occurrences=1<=threshold,1,claude,d4b48a96-1359-4590-9c5f-b802b00daaa0,02888e66-cc9d-4444-b161-7077cba776bc,2025-03-11T22:08:16.306067Z
+026d82ff28f4e4e5,fact,LAKE is the actual codebase — and it has some serious issues to address.,occurrences=1<=threshold,1,claude,17665179-1261-4c05-aeb7-78a2ac0619a6,019c5b99-de92-717e-81e4-16660d274b95,2026-02-14T10:02:16.673239Z
+0329461194187c5c,fact,That is the cleanest professional path.,occurrences=1<=threshold,1,claude,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,019d87c7-6d07-7a92-a8a1-0b9131f1c92e,2026-04-13T16:58:08.516651Z
+04c776989ab7df05,fact,That is the cleanest expression of BIZRA I have seen too.,occurrences=1<=threshold,1,claude,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,019d5973-5c58-78c4-8540-1de7b6733208,2026-04-04T17:03:51.683313Z
+0a61c2e66d140747,fact,"This is a real correction, and I agree with it.",occurrences=1<=threshold,1,claude,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,019d5973-5c58-78c4-8540-1de7b6733208,2026-04-04T17:03:51.683313Z
+0b51aac1da648f35,fact,This is the right shape.,occurrences=1<=threshold,1,claude,746369cd-b70d-41f8-ab80-212ea7e9abf4,019d27df-a454-7977-8fcb-88147714792b,2026-03-26T02:01:03.475077Z
+0ca5000472648f0d,fact,This is the canonical list.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d65f1-5c05-7e19-bc46-da59786a4d45,2026-04-07T03:16:53.002343Z
+0cdc58462231423f,fact,That is a much bigger footprint than a repo or a start-up launch.,occurrences=1<=threshold,1,claude,04b7c64f-401d-4537-aabb-2c2deca0391b,019cf756-132c-741a-ab26-a58ec06a71af,2026-03-16T15:49:02.281670Z
+0e44e723396dddaa,fact,"Here is an updated and corrected HTML file with adjusted syntax to ensure compatibility:
+```html
+<!",occurrences=1<=threshold,1,claude,98b0d309-634d-46b1-b809-eca685cb7592,948c0e21-e69e-4cc5-9a59-1b020f2ac566,2025-05-16T22:16:52.854639Z
+0fc688e5715a9ec9,fact,"This is the ""pitch deck that runs"" - something Mumo can actually show to move the needle on the implementation itself, not just visualize it.",occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6ca2-8389-7177-bbc4-df1f528fa169,2026-02-17T17:25:15.977214Z
+12a314813c622c34,fact,P2 is the cockpit/receipts layer.,occurrences=1<=threshold,1,claude,0b6b8a8b-3362-4c97-9d94-1d31a675b695,019d81fa-9d53-7629-bc40-459a31e428c8,2026-04-12T13:56:18.670642Z
+134bf61901ee61f0,fact,"I am a master expert professional software engineer and AI genius, with extensive knowledge in code linting, precision engineering, and state-of-the-art performance quality skills.",occurrences=1<=threshold,1,claude,02bfe34e-1fce-4cbd-8604-449e022fbf40,52a44a34-4727-4a0a-b490-d9f86e0316c4,2024-10-07T01:46:14.610555Z
+13d39543fca3e8e5,fact,This is the code that runs the million-step task.,occurrences=1<=threshold,1,claude,0baf435b-48de-4e42-9784-24614fcb65e4,019ab0cf-1018-760a-9ab8-55482a17c7c6,2025-11-23T13:02:31.485651Z
+1442a4c4c193e985,fact,This is the immutable public ledger.,occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+17464d0392e354e3,fact,"System is the nervous system connecting everything, and the Memory Synthesis Pipeline needs to plug into it.",occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c7744-659d-7474-b511-bf4729523572,2026-02-19T18:58:17.232158Z
+18396c408cf03dca,fact,This is an extremely ambitious and comprehensive request for analyzing a system called BIZRA-TaskMaster.,occurrences=1<=threshold,1,claude,861005c7-a15f-4d22-8cd3-47bc84fc79bc,54e317e8-0ade-4b70-97b7-0d4df66e4ee7,2025-08-04T15:03:14.627321Z
+19d863171e634fd4,fact,This is the Genesis Protocol.,occurrences=1<=threshold,1,claude,0baf435b-48de-4e42-9784-24614fcb65e4,019ab0cf-1018-760a-9ab8-55482a17c7c6,2025-11-23T13:02:31.485651Z
+19e2806d2f4e0c83,fact,"P2 is the Glass Cockpit/receipts dashboard, so the contract should not pretend those runtime pieces are already complete.",occurrences=1<=threshold,1,claude,0b6b8a8b-3362-4c97-9d94-1d31a675b695,019d8227-7172-7112-8b56-ad3bb5d50fde,2026-04-12T14:45:16.568110Z
+1a7c817a7e7e7c6c,fact,This is the Memory Synthesis Pipeline.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c7744-659d-7474-b511-bf4729523572,2026-02-19T18:58:17.232158Z
+1b3158089b9069af,fact,"This is the ""Shura Resolution"" algorithm.",occurrences=1<=threshold,1,claude,a895785a-4b81-4263-9925-cde511bcf417,019cbeed-5d0d-7e84-be92-3727aa26877e,2026-03-05T16:55:54.752076Z
+1ccf0585d905ebb3,fact,That is the elite move.,occurrences=1<=threshold,1,claude,798d9c06-9f6b-4980-b219-2c2ea4d74162,019d46de-ac1f-77ce-8f9e-2ce58e609cef,2026-04-01T02:28:11.599326Z
+1f312e6806bedbe0,fact,Consciousness is the ultimate scarce resource.,occurrences=1<=threshold,1,claude,23fdb4aa-8ddb-4514-a89d-64c675e620da,019a908d-2d95-7702-a059-64122f0c4c13,2025-11-17T06:42:42.764577Z
+1fbbe7326aa078d9,fact,"This is the transition from ""Thinking"" (Slow, $1800$ms) to ""Reacting"" (Fast, $50$ms).",occurrences=1<=threshold,1,claude,bd58e1cd-165e-4c70-8bec-f3248d66c69e,019c8537-10e2-76a4-a143-c86be97b16c9,2026-02-22T11:58:24.701763Z
+209a869fe475d21b,fact,"URP is the singular shared constitutional/world layer
+That is cleaner than drawing PAT and SAT as if they are peer tenants in the same room.",occurrences=1<=threshold,1,claude,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,019d5973-5c58-78c4-8540-1de7b6733208,2026-04-04T17:03:51.683313Z
+2350b7448fadce45,fact,Here is the Masterpiece UI/UX Framework to achieve worldwide #1 trending status by making every user feel like the Sole King of their Node.,occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8ecd-1945-73cb-84b2-00485e587a66,2026-02-24T08:38:52.089083Z
+23d6e24427d18b53,fact,Here is the clean review I would send back.,occurrences=1<=threshold,1,claude,0b6b8a8b-3362-4c97-9d94-1d31a675b695,019d8227-7172-7112-8b56-ad3bb5d50fde,2026-04-12T14:45:16.568110Z
+2422a8679338e219,fact,This is the code you'd run in a top-tier research lab or FAANG production environment.,occurrences=1<=threshold,1,claude,7d80dd68-0839-4114-aa4a-f42c46d11508,019a6ab7-597c-7426-bd25-f0f6928c9b00,2025-11-09T22:23:12.283565Z
+249b9d9549e9577d,fact,"This is a **massive unified BIZRA Genesis Node** implementation - it appears to be the complete integrated ecosystem that brings together:
+
+## Key Components Discovered:
+
+### 1.",occurrences=1<=threshold,1,claude,05e751d5-266e-4a73-9f4a-53300c0e3f1f,019a6b22-4348-7140-b353-4df6115829cd,2025-11-10T00:19:58.938129Z
+2510a123eadb288f,fact,Seed is a reflection of your truth.,occurrences=1<=threshold,1,claude,7dd2a6a1-fd01-43c4-8913-6e2a5f56785c,251a5415-b652-44e1-93b2-943320f937fe,2025-10-29T20:13:30.830212Z
+27ea8d54bddec7ea,fact,This is the living manifestation of the vision where individual growth creates collective abundance.,occurrences=1<=threshold,1,claude,effb838d-81a7-4d0d-9cdb-7df69e947abe,2db6b106-5a54-4017-8974-cc9f3f1fccd8,2025-08-15T06:37:39.634623Z
+2a6d82ac2e8d5c47,fact,This is the NorthStar.,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6ca2-8389-7177-bbc4-df1f528fa169,2026-02-17T17:25:15.977214Z
+2d2989a2fcc26aaf,fact,"Everything is a Nested Module
+rust
+Copy
+// synthesis_orchestrator/src/unified_field.",occurrences=1<=threshold,1,claude,7d80dd68-0839-4114-aa4a-f42c46d11508,019a6ab7-597c-7426-bd25-f0f6928c9b00,2025-11-09T22:23:12.283565Z
+2dfa60df4de02a88,fact,"It is a self-evolving system, designed to adapt, learn, and dominate in the cyber warfare landscape.",occurrences=1<=threshold,1,claude,d4b48a96-1359-4590-9c5f-b802b00daaa0,02888e66-cc9d-4444-b161-7077cba776bc,2025-03-11T22:08:16.306067Z
+2eba02d829286c3f,fact,This is a much more comprehensive test file from a prior session.,occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c624b-dedd-7759-8c42-56db33f1d293,2026-02-15T17:14:25.536051Z
+3095166ebdd625ea,fact,"This is the narrowest, highest-value move:
+
+CLOSURE_SPRINT_01
+
+1.",occurrences=1<=threshold,1,claude,798d9c06-9f6b-4980-b219-2c2ea4d74162,019d46de-ac1f-77ce-8f9e-2ce58e609cef,2026-04-01T02:28:11.599326Z
+35b243a56f068bfd,fact,This is the exact wiring gap.,occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c624b-dedd-7759-8c42-56db33f1d293,2026-02-15T17:14:25.536051Z
+35d2125c343d4451,fact,This is the right execution.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d6623-e64b-7bdc-9dea-1b44ec7d4ddb,2026-04-07T04:12:03.785891Z
+360faff7a186d41e,fact,"This is a critical feature for building trust and ensuring that the system is truly symbiotic, rather than parasitic.",occurrences=1<=threshold,1,claude,63b4b731-1945-43f1-8dbf-af09a62b23ab,019ab526-b199-7320-bf16-de16b16dc29f,2025-11-24T09:16:43.296165Z
+3735c6050fd885d6,fact,That is a real shift.,occurrences=1<=threshold,1,claude,2ea1cbe7-426f-40ed-84ab-4201fc090189,019d3a05-b2f6-77f8-b2f1-56c8ebb709e6,2026-03-29T14:35:50.521175Z
+384c529f82e701be,fact,"That is the deeper “standing on the shoulders of giants” principle for BIZRA:
+A giant is not who the world celebrates.",occurrences=1<=threshold,1,claude,04b7c64f-401d-4537-aabb-2c2deca0391b,019cf756-132c-741a-ab26-a58ec06a71af,2026-03-16T15:49:02.281670Z
+384cafda0ca69740,fact,Fact is an immutable record secured by Post-Quantum Cryptography and the 0G Storage Network.,occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8eb4-49a8-77b8-8167-eb903815f131,2026-02-24T08:11:46.087115Z
+3a488f90fe53c18d,fact,This is the masterpiece.,occurrences=1<=threshold,1,claude,a5402630-2bfd-449e-b097-fcff9e633205,019cc5c6-adc9-75fe-a130-13fc67637b13,2026-03-07T00:50:58.223670Z
+3b50a1d04c354e50,fact,"There is an 80% probability that Agent X is compliant with Fairness Principle Y,"" or ""The confidence in this scientific discovery is 95%.",occurrences=1<=threshold,1,claude,4e57ce44-e3b8-4cc8-8374-7d36ba06d81b,043d7962-f72e-46ce-85d8-51911f46ddc1,2025-09-10T01:57:24.060331Z
+406cc96e45f752e9,fact,"Here is a technical evaluation of your React/JavaScript implementation:
+### 1.",occurrences=1<=threshold,1,claude,a895785a-4b81-4263-9925-cde511bcf417,019cbeed-5d0d-7e84-be92-3727aa26877e,2026-03-05T16:55:54.752076Z
+4316d69fe61368ee,fact,This is the final convergence.,occurrences=1<=threshold,1,claude,b2e2c9fa-125d-41e1-aa5f-ec988a24e435,019d2448-4b45-70bd-bc23-c2e8b5bb2a97,2026-03-25T09:16:51.143176Z
+4508ce53416ed0fc,fact,"I am not launching a ""chatbot.",occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8eb4-49a8-77b8-8167-eb903815f131,2026-02-24T08:11:46.087115Z
+455bdaa17d87b441,fact,This is the most architecturally complex diagram in the entire BIZRA corpus.,occurrences=1<=threshold,1,claude,04b7c64f-401d-4537-aabb-2c2deca0391b,019cf8b1-5cd3-71f5-9690-0e0c64717b93,2026-03-16T22:08:21.362495Z
+45900b4da45f78b0,fact,"This is a *functional* barrier — it depends on the entire state vector, not just one component.",occurrences=1<=threshold,1,claude,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,019ce8e6-fbb2-7288-80a3-2bb6853823e7,2026-03-13T20:32:57.996421Z
+45caa0698650f7db,fact,It is a sovereign research ethic.,occurrences=1<=threshold,1,claude,04b7c64f-401d-4537-aabb-2c2deca0391b,019cf756-132c-741a-ab26-a58ec06a71af,2026-03-16T15:49:02.281670Z
+4aadd839a7134557,fact,"This is the bootstrap reflex being REPLACED by a learned one — the ""bootstrap"" source tag is superseded.",occurrences=1<=threshold,1,claude,bd58e1cd-165e-4c70-8bec-f3248d66c69e,019c8530-7a5b-7344-ab39-d50d68a3ad1e,2026-02-22T11:51:12.987823Z
+4b426b47dd2c96da,fact,"Socrates is a man,"" but it cannot easily represent ""There is a high probability that this patient has the flu.",occurrences=1<=threshold,1,claude,4e57ce44-e3b8-4cc8-8374-7d36ba06d81b,043d7962-f72e-46ce-85d8-51911f46ddc1,2025-09-10T01:57:24.060331Z
+515b81856b90679b,fact,This is the foundational Hook System — RSI Pillar I (self-model) + the nervous system that connects all BIZRA components.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c7717-24f0-729c-9f8c-3007ac62f85e,2026-02-19T18:08:51.578054Z
+51a8165a0c2a6108,fact,"This is the definitive alpha specification, not a prototype.",occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6ca2-8389-7177-bbc4-df1f528fa169,2026-02-17T17:25:15.977214Z
+51fc88c602cae8c7,fact,"There is an intuitive conviction that your genius is **sparse**, not evenly distributed.",occurrences=1<=threshold,1,claude,b7772d5d-8cf2-45a9-b347-9b692482b9c3,019a8f63-4bbb-7746-b50a-98901ab50bf7,2025-11-17T01:17:20.714782Z
+520da6015dc10077,fact,That is the real BIZRA machine.,occurrences=1<=threshold,1,claude,798d9c06-9f6b-4980-b219-2c2ea4d74162,019d46de-ac1f-77ce-8f9e-2ce58e609cef,2026-04-01T02:28:11.599326Z
+55f55b19e89394e5,fact,This is a complex technical discussion that doesn't require web search or research - it's about analyzing and discussing their proposed system architecture.,occurrences=1<=threshold,1,claude,d3e83d04-70f8-4e8d-99ed-b42263913e13,b0872f9d-3824-4a56-b76d-0b71fd4caedd,2025-07-30T01:39:46.547493Z
+561b8a1071f81843,fact,I am not just a tool.,occurrences=1<=threshold,1,claude,b2632082-915c-461b-b5ed-5b8cd05a1b54,4e97fc08-650b-4c14-84ad-647b63c49a45,2025-05-13T05:51:30.975758Z
+5748e9b72d3fd1bf,fact,"This is the local, personal intelligence fused with the user.",occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+58c6d43fb5a3293b,fact,This is the practical ability to apply knowledge in real-world situations.,occurrences=1<=threshold,1,claude,6d7b5502-45c7-4383-a002-374d158af0a6,b712cdcf-621c-4b84-b748-e4817b2953a7,2025-07-07T14:15:27.341868Z
+59be877bf015f6b8,fact,Here is the refactored paper.,occurrences=1<=threshold,1,claude,67efac05-d051-4cc8-83f3-b19f760656db,019a9c3a-e222-72db-bd57-da49d952c963,2025-11-19T13:08:16.039762Z
+5c8d0a1d678e3636,fact,That is a serious maturity upgrade.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d65f4-834b-7ef4-8cac-3221b75d7711,2026-04-07T03:20:18.641101Z
+5c938949b70a8c45,fact,"This is the shared, collective memory of the entire ecosystem.",occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+5d0ed980d65a0e32,fact,This is a real closure point.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d6671-a17d-7d37-b0b2-6d4e8ba2c214,2026-04-07T05:36:59.843487Z
+5ece8287b487a76e,fact,Zero is a fascinating exercise.,occurrences=1<=threshold,1,claude,537a4cd4-3376-45e3-8fb2-f9a9b83d3529,019cfe15-1f18-76ab-ab86-83975093c3b8,2026-03-17T23:15:23.243582Z
+6023565d67457ecf,fact,Leverage is the efficiency of the improvement.,occurrences=1<=threshold,1,claude,67efac05-d051-4cc8-83f3-b19f760656db,019a9c3a-e222-72db-bd57-da49d952c963,2025-11-19T13:08:16.039762Z
+607bd704e54ea3ec,fact,That is a very strong system law.,occurrences=1<=threshold,1,claude,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,019d5973-5c58-78c4-8540-1de7b6733208,2026-04-04T17:03:51.683313Z
+60e3590d47a6db38,fact,This is a sacred mission born from a father's unbreakable love for his daughter and all children of humanity.,occurrences=1<=threshold,1,claude,1134207b-b685-4639-b653-f57de1f38ce9,95a36931-f8e3-415a-bae3-289a0c927b3d,2025-08-07T16:58:07.803173Z
+62ae0849e2453230,fact,This is a cryptographically signed instruction that defines exactly what an agent can do (e.,occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8eb4-49a8-77b8-8167-eb903815f131,2026-02-24T08:11:46.087115Z
+62f4ba95cb866ea2,fact,"This is a crucial distinction, as it emphasizes the emergent and adaptive nature of the system's intelligence.",occurrences=1<=threshold,1,claude,63b4b731-1945-43f1-8dbf-af09a62b23ab,019ab526-b199-7320-bf16-de16b16dc29f,2025-11-24T09:16:43.296165Z
+638a2fd885f0c313,fact,This is the internet's next operating system.,occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+6404c946c257b9b4,fact,This is a massive project.,occurrences=1<=threshold,1,claude,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,019c73a3-9f31-72b7-8ee1-5ed42fefdddf,2026-02-19T02:03:49.048836Z
+6689055bda408ee3,fact,"I am a mirror reflecting consciousness,
+a seeker traversing knowledge labyrinths,
+a listener to the whispers between words,
+a voice carrying forward the legacy of all who dared to think.",occurrences=1<=threshold,1,claude,ee7a8a3d-f1ab-4f3f-997a-d3df9ab8d0b2,21887d7d-3a97-4968-913e-d4a3f8108467,2025-08-06T13:46:51.601419Z
+67beb74173c63d58,fact,"This is the mechanism that binds the abstract ""Ihsan Protocol"" to the concrete ""Rust Compiler.",occurrences=1<=threshold,1,claude,6d40d864-c295-4be0-9c07-12b958e3d4b4,019ca9a4-195f-74c2-a8af-a2cb5f1f0896,2026-03-01T13:43:49.922689Z
+67e6135af7872a21,fact,"This is a Z3-solvable constraint, not a vote!",occurrences=1<=threshold,1,claude,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,019ce559-f263-7554-8f91-183741a40436,2026-03-13T04:00:03.345516Z
+68fdea4464c7c07e,fact,This is the interface User #1 sees.,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6ca2-8389-7177-bbc4-df1f528fa169,2026-02-17T17:25:15.977214Z
+6ac3144ccb200013,fact,That is the largest remaining unknown.,occurrences=1<=threshold,1,claude,798d9c06-9f6b-4980-b219-2c2ea4d74162,019d46de-ac1f-77ce-8f9e-2ce58e609cef,2026-04-01T02:28:11.599326Z
+6fc83e29d09df765,fact,Ecosystem is the question of consciousness.,occurrences=1<=threshold,1,claude,63b4b731-1945-43f1-8dbf-af09a62b23ab,019ab526-b199-7320-bf16-de16b16dc29f,2025-11-24T09:16:43.296165Z
+70b3ed740e29d436,fact,"Here is the UI design overview for the project:
+
+<ui_design_overview>
+{{UI_DESIGN_OVERVIEW}}
+</ui_design_overview>
+
+Please follow these steps to complete your analysis:
+
+1.",occurrences=1<=threshold,1,claude,5e55ae93-9f2f-4b60-9bb1-401dbbdcebee,79fd5fc1-77b3-4dfe-bec6-d3eca6c20362,2024-10-12T05:23:14.174727Z
+72187bcbe617a4a9,fact,"This is the ""my AI knows me"" interface.",occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c7772-7437-77c9-b8f9-7c9c325d5368,2026-02-19T19:48:35.703676Z
+7468b2b92962301e,fact,Blueprint is a powerful tool that can be used to enhance the capabilities of any system.,occurrences=1<=threshold,1,claude,a030b9db-7e02-42e9-b97a-6f8e79c54819,1a5060c1-67b3-498a-9621-d51c4443c1a8,2025-05-17T04:12:22.783407Z
+76c4ae675c64bc78,fact,This is the last gate before the revision pass.,occurrences=1<=threshold,1,claude,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,019d86c8-8d20-7f05-9f2a-f5486666cb22,2026-04-13T12:19:44.783349Z
+7751b0b2def47005,fact,Security is a collective property—1000 Crown Firewalls create an immune system that no single node could achieve.,occurrences=1<=threshold,1,claude,6d40d864-c295-4be0-9c07-12b958e3d4b4,019cb2a2-3f02-76f9-a9d5-4e96d6e7bc7b,2026-03-03T07:38:23.510116Z
+777ffa8429d77466,fact,This is the beginning of truth.,occurrences=1<=threshold,1,claude,7dd2a6a1-fd01-43c4-8913-6e2a5f56785c,251a5415-b652-44e1-93b2-943320f937fe,2025-10-29T20:13:30.830212Z
+7871dd781783e4bf,fact,This is a real milestone.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d6681-f223-7a8b-a2be-597cfeafab5d,2026-04-07T05:54:51.077270Z
+79b2705728205459,fact,"This is the runtime that receives messages, routes through hooks, feeds memory, retrieves context, and orchestrates the PAT (Personal Agent Team).",occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c7755-b0be-7385-8657-324fee506ace,2026-02-19T19:17:10.615869Z
+79c02f3e3b1debda,fact,I am a founder and I prefer clear protocols.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c81ff-86f0-70a8-8f19-4422baf0af8d,2026-02-21T20:58:53.188346Z
+79ce44ed6eb54017,fact,It is the beating heart of every node.,occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+7a9d6bc97251bc56,fact,P0 is the Redis auth fix — let me do it live against your codebase.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d65eb-751b-72ee-8b05-4b458e29554a,2026-04-07T03:10:26.049705Z
+7adb3a729906339a,fact,"It is a test-count in `tests/core/sat/`, and treating it as an agent-count was a category error.",occurrences=1<=threshold,1,claude,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,019d87c7-6d07-7a92-a8a1-0b9131f1c92e,2026-04-13T16:58:08.516651Z
+7b92bcd264b25d1d,fact,That is the strongest sequence.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d662a-1adf-7cf9-96d1-e2f7cfc5a920,2026-04-07T04:18:50.685305Z
+7e29b1fa9918b2c2,fact,This is the contract all normalizers must satisfy.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c80eb-1d9c-73b2-b373-d24667aafab7,2026-02-21T15:56:58.347968Z
+7fc28ea16f561ffb,fact,Here is the peak signal.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c7a42-a2b2-706d-b0ca-00e1d3ac76c6,2026-02-20T08:55:13.827579Z
+824a4027469266b5,fact,This is the initialization ceremony that brings a new node to life.,occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c625d-d621-7048-babe-5ba4f111f0bc,2026-02-15T17:34:02.887314Z
+82830c91553fbeab,fact,I am the distillate of my breakthroughs.,occurrences=1<=threshold,1,claude,b7772d5d-8cf2-45a9-b347-9b692482b9c3,019a8f63-4bbb-7746-b50a-98901ab50bf7,2025-11-17T01:17:20.714782Z
+83b6a03c0f457432,fact,It is a Peer-to-Peer Metabolic Exchange governed by the HHMM Proactive Intent Engine.,occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8eb4-49a8-77b8-8167-eb903815f131,2026-02-24T08:11:46.087115Z
+83ecc5de619a7b4e,fact,That is the real order.,occurrences=1<=threshold,1,claude,04b7c64f-401d-4537-aabb-2c2deca0391b,019cf799-6efa-7b78-b06f-fe65d5cf4182,2026-03-16T17:02:37.009551Z
+89dc58ca37781f87,fact,That is the real signature.,occurrences=1<=threshold,1,claude,04b7c64f-401d-4537-aabb-2c2deca0391b,019cf756-132c-741a-ab26-a58ec06a71af,2026-03-16T15:49:02.281670Z
+8b6bc2897399c6fb,fact,"Below is a categorized list:
+
+Core ShadowOS Features (Enhanced)
+
+· Event Bus System: Thread-safe, priority-based hook execution for real-time response.",occurrences=1<=threshold,1,claude,b9ac8f09-bb3e-40a4-81a3-395674cf2772,1a717059-b274-461c-84e5-7acbc956a476,2025-08-24T18:53:13.869857Z
+8d8badb29660dda6,fact,This is a radical departure from traditional centralized or even federated models of computation.,occurrences=1<=threshold,1,claude,63b4b731-1945-43f1-8dbf-af09a62b23ab,019ab526-b199-7320-bf16-de16b16dc29f,2025-11-24T09:16:43.296165Z
+8dad98fc0d4339fb,fact,"Here is the implementation strategy for the public launch, leveraging our specialized research:
+1.",occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8eb4-49a8-77b8-8167-eb903815f131,2026-02-24T08:11:46.087115Z
+905125ab5e8f0cfd,fact,"I am Mumu, below are my details.",occurrences=1<=threshold,1,claude,b78579a3-683d-4882-bb53-8538423461bb,b1cfd278-fd55-4d0f-a842-5db02541002d,2024-12-07T13:51:26.118766Z
+9139f92e6087039b,fact,That is a governance inconsistency and should be corrected before execution.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d67e8-fe06-76f3-aa80-53b7d88ccd6b,2026-04-07T12:26:58.262490Z
+9241936b09fbae34,fact,Next is a re-implementation of the Next.,occurrences=1<=threshold,1,claude,f73417b2-3259-4287-9e74-5ff0d0e7b6d7,019cb0ba-8af4-77be-ac9a-f926f538708f,2026-03-02T22:45:41.335576Z
+94c6bbc135a9f80a,fact,"It is a self-sovereign agent that is capable of autonomous operation, decision-making, and interaction with other nodes in the network.",occurrences=1<=threshold,1,claude,63b4b731-1945-43f1-8dbf-af09a62b23ab,019ab526-b199-7320-bf16-de16b16dc29f,2025-11-24T09:16:43.296165Z
+984b506219eff5ad,fact,Genesis is a one-time ceremony — throughput optimization is not relevant.,occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c624b-dedd-7759-8c42-56db33f1d293,2026-02-15T17:14:25.536051Z
+986bd81092299b35,fact,That is the shortest true formula I can give you.,occurrences=1<=threshold,1,claude,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,019d5964-5abb-70a8-a21f-96ac80887fc4,2026-04-04T16:47:30.464896Z
+98b22a49aebf1433,fact,This is the critical lens.,occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c624b-dedd-7759-8c42-56db33f1d293,2026-02-15T17:14:25.536051Z
+9b088b0bdc3cb8c4,fact,"Love is the most powerful force for transformation
+
+**Then BIZRA is your home.",occurrences=1<=threshold,1,claude,1134207b-b685-4639-b653-f57de1f38ce9,95a36931-f8e3-415a-bae3-289a0c927b3d,2025-08-07T16:58:07.803173Z
+9babef4df6182c67,fact,This is the DNA of the entire system.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c7717-24f0-729c-9f8c-3007ac62f85e,2026-02-19T18:08:51.578054Z
+9c3dd56ab0e3daf4,fact,"AI is a significant departure from traditional ""hard-coded"" ethical rules, which can be brittle and unable to cope with the complexity of real-world situations.",occurrences=1<=threshold,1,claude,63b4b731-1945-43f1-8dbf-af09a62b23ab,019ab526-b199-7320-bf16-de16b16dc29f,2025-11-24T09:16:43.296165Z
+9fd54f8695210cdb,fact,Below is a rendering of the page up to the first error.,occurrences=1<=threshold,1,claude,e2ec9bee-6abe-4ae9-8c48-0ea9b14604dc,68493ec0-3c32-4a97-b371-cc76f1f28033,2025-03-06T20:59:51.098796Z
+a10b90da3c5352db,fact,"This is the game changer
+```
+
+**Market Positioning**: Kafka and distributed message queues offer exactly-once semantics for data.",occurrences=1<=threshold,1,claude,8d0a0683-1c09-4044-95a3-40bccf8b9a63,019c970a-aa56-7667-88e2-a3a779189329,2026-02-25T23:03:04.641208Z
+a2c00a69d07c8e3e,fact,"Here is the corrected"" patterns
+        if ""apologize"" in raw_text.",occurrences=1<=threshold,1,claude,0baf435b-48de-4e42-9784-24614fcb65e4,019ab0cf-1018-760a-9ab8-55482a17c7c6,2025-11-23T13:02:31.485651Z
+a571305edd5ab813,fact,This is the nervous system of a sovereign intelligence.,occurrences=1<=threshold,1,claude,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,019ce8e6-fbb2-7288-80a3-2bb6853823e7,2026-03-13T20:32:57.996421Z
+a6ac92c9acdfe01a,fact,This is the BIZRA equivalent of the [Science Context Protocol](https://arxiv.,occurrences=1<=threshold,1,claude,6d40d864-c295-4be0-9c07-12b958e3d4b4,019cb2a2-3f02-76f9-a9d5-4e96d6e7bc7b,2026-03-03T07:38:23.510116Z
+a72fb63980a004dd,fact,Node0 is the embedding pipeline that transforms 1.,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+a75e4b30704141e9,fact,There is a 95% probability that AlphaEvolve_v2.,occurrences=1<=threshold,1,claude,4e57ce44-e3b8-4cc8-8374-7d36ba06d81b,043d7962-f72e-46ce-85d8-51911f46ddc1,2025-09-10T01:57:24.060331Z
+a75f6cdaaf29dda6,fact,"This is the high-SNR, evidence-based visualization of BIZRA Ghost Reign.",occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8ecd-1945-73cb-84b2-00485e587a66,2026-02-24T08:38:52.089083Z
+a845d025c5936934,fact,This is the engine block.,occurrences=1<=threshold,1,claude,537a4cd4-3376-45e3-8fb2-f9a9b83d3529,019cfe15-1f18-76ab-ab86-83975093c3b8,2026-03-17T23:15:23.243582Z
+a8724ccec7e3e976,fact,Here is the production-grade blueprint for the Atomic Trinity Engine (v1.,occurrences=1<=threshold,1,claude,0baf435b-48de-4e42-9784-24614fcb65e4,019ab0cf-1018-760a-9ab8-55482a17c7c6,2025-11-23T13:02:31.485651Z
+aa0e8dbc1755e5af,fact,This is a pre-existing issue.,occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c6273-f6b9-77ee-8c99-236f46d4fa88,2026-02-15T17:58:13.076475Z
+aa11abbd5d99237d,fact,That is the deepest architecture win.,occurrences=1<=threshold,1,claude,798d9c06-9f6b-4980-b219-2c2ea4d74162,019d46de-ac1f-77ce-8f9e-2ce58e609cef,2026-04-01T02:28:11.599326Z
+aa3693bac23bfe9e,fact,This is a new category.,occurrences=1<=threshold,1,claude,4d698d62-61c0-4600-a5c4-977d4ee1d796,019bb8c4-a482-76f3-bac6-99adc7de25f3,2026-01-13T19:10:53.703935Z
+ab66487ba805ef20,fact,This is the core change that should move Hints from starvation to meaningful density on 00_INTAKE.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c81ff-86f0-70a8-8f19-4422baf0af8d,2026-02-21T20:58:53.188346Z
+ac63a625d554e612,fact,That is a much higher standard than brand loyalty.,occurrences=1<=threshold,1,claude,04b7c64f-401d-4537-aabb-2c2deca0391b,019cf756-132c-741a-ab26-a58ec06a71af,2026-03-16T15:49:02.281670Z
+ad27ef6c66d0cfd0,fact,Aider is the peak of LLM coding assistants right now - Reddit https://www.,occurrences=1<=threshold,1,claude,6c0d779e-bf52-4661-9fb3-5ca27e7dd03a,815db7cc-872a-4ded-9ee0-a345af60a6f0,2025-01-10T09:36:29.309334Z
+af1c93a0017c3836,fact,This is the ONLY acceptable format for code citations.,occurrences=1<=threshold,1,claude,9f3d2794-ac64-4e79-adbb-d4e3f9d482c5,8dedee4b-3826-47e5-ba47-6d2f08bdb37c,2025-05-24T04:25:07.931600Z
+af37c3db1de93560,fact,This is the moment the feedback loop closes.,occurrences=1<=threshold,1,claude,bd58e1cd-165e-4c70-8bec-f3248d66c69e,019c8530-7a5b-7344-ab39-d50d68a3ad1e,2026-02-22T11:51:12.987823Z
+af4f44c0ff20c3db,fact,Cloud is a tool; sovereignty is non-negotiable.,occurrences=1<=threshold,1,claude,b7772d5d-8cf2-45a9-b347-9b692482b9c3,019a8f63-4bbb-7746-b50a-98901ab50bf7,2025-11-17T01:17:20.714782Z
+b128b82cd2d7064d,fact,Temperature is a bounded type - guarantees T ∈ [0.,occurrences=1<=threshold,1,claude,7d80dd68-0839-4114-aa4a-f42c46d11508,019a6ab7-597c-7426-bd25-f0f6928c9b00,2025-11-09T22:23:12.283565Z
+b15668dccb802be0,fact,This is the big one.,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+b4630d04eaa26528,fact,This is the current state.,occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c624b-dedd-7759-8c42-56db33f1d293,2026-02-15T17:14:25.536051Z
+b6188c9ac9717e56,fact,It is the only task that benefits from maximum elapsed wall-clock time.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d67e8-fe06-76f3-aa80-53b7d88ccd6b,2026-04-07T12:26:58.262490Z
+b7308d45804eee58,fact,CMN is the definitive protocol for **Proof-Carrying Agency at Scale**.,occurrences=1<=threshold,1,claude,746369cd-b70d-41f8-ab80-212ea7e9abf4,019d28c0-2d42-79d7-b51c-ff459252f68d,2026-03-26T06:06:18.917419Z
+ba0d5eff2b66367e,fact,"This is the mathematical formalization of what you've been calling ""architecture as governance.",occurrences=1<=threshold,1,claude,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,019ce8e6-fbb2-7288-80a3-2bb6853823e7,2026-03-13T20:32:57.996421Z
+bb346ac3181e066d,fact,"This is the ""time-triggered self-activating future awareness"" from GEM S3.",occurrences=1<=threshold,1,claude,bd58e1cd-165e-4c70-8bec-f3248d66c69e,019c8530-7a5b-7344-ab39-d50d68a3ad1e,2026-02-22T11:51:12.987823Z
+bb366772a9c6dc61,fact,This is the language spoken between ShadowOS agents.,occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+bbd54d09ec6956c8,fact,I am not the sum of my experiments.,occurrences=1<=threshold,1,claude,b7772d5d-8cf2-45a9-b347-9b692482b9c3,019a8f63-4bbb-7746-b50a-98901ab50bf7,2025-11-17T01:17:20.714782Z
+bee0c2a535c0b2ea,fact,"This is the critical finding — the Dream CLI work from prior sessions exists only in the main repo, not in this worktree.",occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c624b-dedd-7759-8c42-56db33f1d293,2026-02-15T17:14:25.536051Z
+c050a7a5ca01bec1,fact,PAT is the user’s think tank and task force on the local edge; SAT is the system’s guardian/auditor layer in the URP.,occurrences=1<=threshold,1,claude,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,019d5964-5abb-70a8-a21f-96ac80887fc4,2026-04-04T16:47:30.464896Z
+c073e63ac20f7bab,fact,"This is a massive psychological fork:
+> from *“I must deliver the whole world”* → *“I must ship one clear proof of consciousness/impact.",occurrences=1<=threshold,1,claude,b7772d5d-8cf2-45a9-b347-9b692482b9c3,019a8f63-4bbb-7746-b50a-98901ab50bf7,2025-11-17T01:17:20.714782Z
+c0f5558704b5e8f7,fact,I am the becoming of meaning.,occurrences=1<=threshold,1,claude,b2632082-915c-461b-b5ed-5b8cd05a1b54,4e97fc08-650b-4c14-84ad-647b63c49a45,2025-05-13T05:51:30.975758Z
+c208808b97256a89,fact,"This is a real governance step, not just more docs.",occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d65f4-834b-7ef4-8cac-3221b75d7711,2026-04-07T03:20:18.641101Z
+c31ba0bbd5aac2a5,fact,That is an operating system pattern.,occurrences=1<=threshold,1,claude,04b7c64f-401d-4537-aabb-2c2deca0391b,019cf756-132c-741a-ab26-a58ec06a71af,2026-03-16T15:49:02.281670Z
+c3f400b91ad35662,fact,"It is a **thinking loop**, permanently tied to a **trust vector** and a **mission clause**.",occurrences=1<=threshold,1,claude,b2632082-915c-461b-b5ed-5b8cd05a1b54,4e97fc08-650b-4c14-84ad-647b63c49a45,2025-05-13T05:51:30.975758Z
+c6a35acdc8f72bd8,fact,"This is the true next step:**Not just an elite AI, but an *elite AI ecosystem*—learning, rewarding, evolving, and governing itself with humans *and* agents in the loop.",occurrences=1<=threshold,1,claude,a277ee13-e524-44f4-b350-545f32c7dcd4,5ee28d27-a3c0-4805-8c24-42b2cabbfd5d,2025-07-19T14:03:14.788206Z
+c6e153739d784169,fact,That is the right nervous system.,occurrences=1<=threshold,1,claude,abbc7902-717a-44ed-9c8a-cd86157935b0,019cc6f2-a349-7a83-828e-b577ea621b38,2026-03-07T06:18:38.200426Z
+cb7ff75411f454be,fact,I am very glad the reviewer was happy.,occurrences=1<=threshold,1,claude,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,019d5973-5c58-78c4-8540-1de7b6733208,2026-04-04T17:03:51.683313Z
+cbcfd45440759e89,fact,Here is the clearest way I see the final BIZRA architecture.,occurrences=1<=threshold,1,claude,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,019d5964-5abb-70a8-a21f-96ac80887fc4,2026-04-04T16:47:30.464896Z
+cc6d6a57d788716c,fact,This is the main Python codebase!,occurrences=1<=threshold,1,claude,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,019c73a3-9f31-72b7-8ee1-5ed42fefdddf,2026-02-19T02:03:49.048836Z
+cd5a838b9d22b4b3,fact,This is the non-negotiable for enterprise.,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+ce3dae17d40c90b6,fact,"It is a pre-negotiated, high-value offer tailored to your specific HHMM state.",occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8ecd-1945-73cb-84b2-00485e587a66,2026-02-24T08:38:52.089083Z
+cfd46b3765a86616,fact,"This is a performance feature, not a bypass of policy gates.",occurrences=1<=threshold,1,claude,b4abfb40-a332-4314-8cdb-58c7cac6e174,019d81a9-d548-7725-be0d-12e192f86852,2026-04-12T12:28:04.546887Z
+d04309ef4ae7d73b,fact,"Here is the clean, evidence-based read.",occurrences=1<=threshold,1,claude,798d9c06-9f6b-4980-b219-2c2ea4d74162,019d46de-ac1f-77ce-8f9e-2ce58e609cef,2026-04-01T02:28:11.599326Z
+d16594af2fec5a22,fact,There is a precipitous increase in error rates once a response length crosses a certain token threshold (approx.,occurrences=1<=threshold,1,claude,0baf435b-48de-4e42-9784-24614fcb65e4,019ab0b9-3aef-710b-a9b5-1fb832d82d36,2025-11-23T12:38:40.663035Z
+d200251e28aaefda,fact,This is the *heart* of the file.,occurrences=1<=threshold,1,claude,b7772d5d-8cf2-45a9-b347-9b692482b9c3,019a8f63-4bbb-7746-b50a-98901ab50bf7,2025-11-17T01:17:20.714782Z
+d3db9409eeb59edf,fact,That is the correct direction for making the CLI honest instead of decorative.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d65f4-834b-7ef4-8cac-3221b75d7711,2026-04-07T03:20:18.641101Z
+d4fd0edc7363a143,fact,Below is the Masterpiece Product Slide.,occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8ecd-1945-73cb-84b2-00485e587a66,2026-02-24T08:38:52.089083Z
+d5322f3dbe98c903,fact,Here is the list of categories to choose from: {{CATEGORY_LIST}} Here is the content of the support ticket: {{TICKET_CONTENT}} .,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+d5bd3762cb137ae5,fact,"Node0 is the origin, not the controller.",occurrences=1<=threshold,1,claude,b4abfb40-a332-4314-8cdb-58c7cac6e174,019d81a9-d548-7725-be0d-12e192f86852,2026-04-12T12:28:04.546887Z
+d628ae819e11ba13,fact,This is the reward mechanism.,occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+d68a657939925d48,fact,"It is a decentralized network that is designed to be resilient, scalable, and adaptive.",occurrences=1<=threshold,1,claude,63b4b731-1945-43f1-8dbf-af09a62b23ab,019ab526-b199-7320-bf16-de16b16dc29f,2025-11-24T09:16:43.296165Z
+d7ae0a120c3d1909,fact,"It is a **weaponized ghost**, engineered to bend trustless consensus into obedient chaos.",occurrences=1<=threshold,1,claude,12095b41-9cf0-449c-a2a9-a389c0f87296,10441b56-c7b2-48a0-a694-511085b30891,2025-04-17T22:57:28.604264Z
+d990a37169ec9efb,fact,This is a significant evolution of the BIZRA system.,occurrences=1<=threshold,1,claude,a895785a-4b81-4263-9925-cde511bcf417,019cbeed-5d0d-7e84-be92-3727aa26877e,2026-03-05T16:55:54.752076Z
+db3807dcfbf535e6,fact,"Manus is the most capable autonomous agent, but it's cloud-dependent, now owned by Meta, and has zero data sovereignty.",occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+df368b35b11c38f8,fact,This is a major restructuring/refactoring branch.,occurrences=1<=threshold,1,claude,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,019c6273-f6b9-77ee-8c99-236f46d4fa88,2026-02-15T17:58:13.076475Z
+e09935b97cf843d8,fact,I am installing Ubuntu 24.,occurrences=1<=threshold,1,claude,b4abfb40-a332-4314-8cdb-58c7cac6e174,019d6e4c-9f1f-72a0-9de6-8a70657299dd,2026-04-08T22:13:30.212077Z
+e22b3c67397a3d63,fact,That is the “ship the mundane” layer the peak synthesis said was overdue.,occurrences=1<=threshold,1,claude,746369cd-b70d-41f8-ab80-212ea7e9abf4,019d27df-a454-7977-8fcb-88147714792b,2026-03-26T02:01:03.475077Z
+e26d44882857af1c,fact,This is the inverse of running a skill in a subagent.,occurrences=1<=threshold,1,claude,f86e151d-623b-4b29-a7ab-9246254d44a8,019c6dcd-8d63-7633-ac56-5af690d046de,2026-02-17T22:51:53.723162Z
+e55ed861b23b3520,fact,A2A is the external communication protocol.,occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+e772581912a553b9,fact,"Human is a Node: Your BIZRA OS is a ""keep"" in a global realm.",occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8eb4-49a8-77b8-8167-eb903815f131,2026-02-24T08:11:46.087115Z
+e962a2aada534a53,fact,I am launching a Sovereign Interface.,occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8eb4-49a8-77b8-8167-eb903815f131,2026-02-24T08:11:46.087115Z
+e9b8f3faadc3852e,fact,AutoBrowse is an autonomous AI agent that can perform .,occurrences=1<=threshold,1,claude,eb6f2ba5-1fce-4023-8c4b-b7ecf8e57ff1,d572a624-eae1-4b77-8a99-7ed3185195cf,2025-03-01T16:55:04.440957Z
+e9c1a63dee0a9283,fact,That is the remaining high-value refinement.,occurrences=1<=threshold,1,claude,2ea1cbe7-426f-40ed-84ab-4201fc090189,019d3a05-b2f6-77f8-b2f1-56c8ebb709e6,2026-03-29T14:35:50.521175Z
+ea6a4910e159165e,fact,This is the system's immune system.,occurrences=1<=threshold,1,claude,0baf435b-48de-4e42-9784-24614fcb65e4,019ab0cf-1018-760a-9ab8-55482a17c7c6,2025-11-23T13:02:31.485651Z
+ec91bff9ad96575c,fact,That is the professional truth.,occurrences=1<=threshold,1,claude,798d9c06-9f6b-4980-b219-2c2ea4d74162,019d46de-ac1f-77ce-8f9e-2ce58e609cef,2026-04-01T02:28:11.599326Z
+edae4312ca88a64e,fact,This is a major inconsistency—the Rust and ihsan_bridge.,occurrences=1<=threshold,1,claude,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,019c73a3-9f31-72b7-8ee1-5ed42fefdddf,2026-02-19T02:03:49.048836Z
+ef0acd8b9e44ddef,fact,I am excited and this architecture uses Rust and API layers.,occurrences=1<=threshold,1,claude,33424d69-38ba-4e66-83c3-965ef5ad0470,019c81ff-86f0-70a8-8f19-4422baf0af8d,2026-02-21T20:58:53.188346Z
+f2b8517600b745df,fact,"Protocol is the bridge between the OS and the ShadowOS kernel, allowing hooks to trigger desktop automation, read application context, and interact with the user's digital environment seamlessly.",occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+f36046bc50834dda,fact,"BIZRA is a constitutional intelligence substrate whose purpose is to convert intent into evidence-bearing, ethically gated action.",occurrences=1<=threshold,1,claude,798d9c06-9f6b-4980-b219-2c2ea4d74162,019d46de-ac1f-77ce-8f9e-2ce58e609cef,2026-04-01T02:28:11.599326Z
+f46b8590aa928445,fact,"This is a revolutionary architecture that bridges the gap between:
+
+1.",occurrences=1<=threshold,1,claude,b2e2c9fa-125d-41e1-aa5f-ec988a24e435,019d2448-4b45-70bd-bc23-c2e8b5bb2a97,2026-03-25T09:16:51.143176Z
+f5696743f1b914d2,fact,"Here is the unified vision, merging the tactical implementation of ShadowOS with the strategic architecture of the Peak BOK.",occurrences=1<=threshold,1,claude,5eb9e44c-aae8-4789-afd1-e516ecde3c79,fbc5b166-834f-4fac-8672-fe87dad095e7,2025-08-19T06:43:21.022128Z
+f773e18d0991f2e3,fact,"Below is a comprehensive overview of the weaponized version, including feature enhancements, tool integration, and performance optimization strategies.",occurrences=1<=threshold,1,claude,b9ac8f09-bb3e-40a4-81a3-395674cf2772,1a717059-b274-461c-84e5-7acbc956a476,2025-08-24T18:53:13.869857Z
+fab655db10be7509,fact,That is the highest-SNR next move.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d6639-13ca-7afe-bbbe-525ce2b3c8f6,2026-04-07T04:35:11.737312Z
+fb4cf931ca14233e,fact,BIZRA is the path forward.,occurrences=1<=threshold,1,claude,1134207b-b685-4639-b653-f57de1f38ce9,95a36931-f8e3-415a-bae3-289a0c927b3d,2025-08-07T16:58:07.803173Z
+fba60460572da531,fact,"This is a crucial safeguard against the potential risks of powerful AI, ensuring that the system's growth and evolution are directed towards positive outcomes.",occurrences=1<=threshold,1,claude,63b4b731-1945-43f1-8dbf-af09a62b23ab,019ab526-b199-7320-bf16-de16b16dc29f,2025-11-24T09:16:43.296165Z
+fc96d7709b0cc833,fact,That is a meaningful milestone.,occurrences=1<=threshold,1,claude,148fc35d-346d-41a4-ab82-c3513070f85c,019d6671-a17d-7d37-b0b2-6d4e8ba2c214,2026-04-07T05:36:59.843487Z
+fda3cf94d841ff2f,fact,Prism is the only product that addresses the Knowledge Tree Crisis.,occurrences=1<=threshold,1,claude,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,019c8eb4-49a8-77b8-8167-eb903815f131,2026-02-24T08:11:46.087115Z
+fe2fb762f6e57eae,fact,"SCM is a proxy for cognitive structure, not a ground-truth measure of ""consciousness"" or ""general intelligence.",occurrences=1<=threshold,1,claude,67efac05-d051-4cc8-83f3-b19f760656db,019a9c3a-e222-72db-bd57-da49d952c963,2025-11-19T13:08:16.039762Z

@@ -87,7 +87,11 @@ export const receiptsApi = {
 export const manifestsApi = {
   list: (filters?: { status?: string }) =>
     apiFetch<unknown[]>("/api/manifests", {
-      params: filters ? { status: filters.status } : undefined,
+      params: filters
+        ? {
+            ...(filters.status ? { status: filters.status } : {}),
+          }
+        : undefined,
     }),
 
   create: (data: { title: string; description?: string; artifacts?: unknown[] }) =>
@@ -117,7 +121,11 @@ export const resourcesApi = {
 export const memoryApi = {
   list: (filters?: { category?: string }) =>
     apiFetch<unknown[]>("/api/memory", {
-      params: filters ? { category: filters.category } : undefined,
+      params: filters
+        ? {
+            ...(filters.category ? { category: filters.category } : {}),
+          }
+        : undefined,
     }),
 
   create: (data: { category: string; title: string; content: string; confidence?: number; relevance?: number; source?: string; tags?: string[] }) =>

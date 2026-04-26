@@ -208,8 +208,14 @@ function AppShell() {
     toggleMemoryView,
     getStageProgress,
   } = useMissionStore();
-  const { isOnboarded, completeOnboarding } = useDEMAStore();
+  const {
+    isOnboarded,
+    completeOnboarding,
+    activationStatus,
+    activationError,
+  } = useDEMAStore();
   const mounted = useMounted();
+  const activationPending = activationStatus === "activating";
 
   const progress = getStageProgress();
   const showStageProgress = currentStage !== "idle";
@@ -262,6 +268,8 @@ function AppShell() {
             <h1 className="text-2xl font-semibold tracking-tight mb-2">DEMA</h1>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Your sovereign operator face. One face, many lawful surfaces.
+              Principal activation is only complete after the cognition gateway
+              returns an authoritative envelope.
             </p>
           </div>
           <div className="space-y-3 mb-8">
@@ -287,11 +295,19 @@ function AppShell() {
               </motion.div>
             ))}
           </div>
+          {activationError && (
+            <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {activationError}
+            </div>
+          )}
           <button
-            onClick={() => completeOnboarding("Operator")}
-            className="w-full h-11 rounded-lg bg-trust text-trust-foreground font-medium text-sm hover:opacity-90 transition-opacity cursor-pointer"
+            onClick={() => {
+              void completeOnboarding("Operator");
+            }}
+            disabled={activationPending}
+            className="w-full h-11 rounded-lg bg-trust text-trust-foreground font-medium text-sm hover:opacity-90 transition-opacity cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Begin
+            {activationPending ? "Activating..." : "Request activation"}
           </button>
         </motion.div>
       </div>

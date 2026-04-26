@@ -39,12 +39,12 @@ on:
       coverage_threshold:
         description: 'Coverage threshold (%)'
         required: false
-        default: '25'
+        default: '65'
         type: string
 
 env:
   PYTHONUNBUFFERED: '1'
-  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '25' }}
+  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '65' }}
 
 concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
@@ -109,6 +109,7 @@ jobs:
       - name: Run unit tests
         id: unit_tests
         run: |
+          set -o pipefail
           pytest tests/ \
             -v \
             --tb=short \
@@ -205,6 +206,7 @@ jobs:
       - name: Run integration tests
         id: integration_tests
         run: |
+          set -o pipefail
           pytest tests/integration/ tests/ \
             -v \
             --tb=short \
@@ -274,6 +276,7 @@ jobs:
 
       - name: Run token unit tests
         run: |
+          set -o pipefail
           pytest tests/core/token/ \
             -v \
             --tb=short \
@@ -289,6 +292,7 @@ jobs:
 
       - name: Run token integration tests
         run: |
+          set -o pipefail
           pytest tests/integration/test_token_integration.py \
             -v \
             --tb=short \
@@ -373,6 +377,7 @@ jobs:
 
       - name: Run spearpoint cockpit unit tests
         run: |
+          set -o pipefail
           pytest tests/core/sovereign/test_spearpoint_cockpit.py \
             -v \
             --tb=short \
@@ -384,6 +389,7 @@ jobs:
 
       - name: Run spearpoint E2E integration tests
         run: |
+          set -o pipefail
           pytest tests/integration/test_spearpoint_e2e.py \
             -v \
             --tb=short \
@@ -456,6 +462,7 @@ jobs:
 
       - name: Run 7-Layer stack integration tests
         run: |
+          set -o pipefail
           pytest tests/integration/test_seven_layer_stack.py \
             -v \
             --tb=short \
@@ -526,6 +533,7 @@ jobs:
 
       - name: Run slow tests
         run: |
+          set -o pipefail
           pytest tests/ \
             -v \
             --tb=short \
@@ -654,8 +662,8 @@ jobs:
 
           # Detect corrupted coverage data (0% indicates xdist worker crashes)
           if (( $(echo "$coverage_pct == 0.0" | bc -l) )); then
-            echo "::warning::Coverage data corrupted (0%) — likely xdist worker crashes. Skipping threshold check."
-            exit 0
+            echo "::error::Coverage data corrupted (0%) — likely xdist worker crashes. Failing closed."
+            exit 1
           fi
 
           # Compare with threshold

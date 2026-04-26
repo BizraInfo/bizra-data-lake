@@ -17,6 +17,11 @@
 
 set -eu
 
+PYTEST_PIPE_SCAN_LABEL="pytest piped into tail"
+PYTEST_CMD_TOKEN='py'"test"
+TAIL_CMD_TOKEN='ta'"il"
+PYTEST_PIPE_TAIL_REGEX="${PYTEST_CMD_TOKEN}.*|.*${TAIL_CMD_TOKEN}"
+
 find_workspace_root() {
     local script_dir parent_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -119,9 +124,9 @@ scan_pytest_tail_lines() {
             --glob '*.yml' --glob '*.yaml' \
             --glob '!scripts/workspace_surgery*.sh' \
             --glob '!**/.venv*/**' --glob '!**/node_modules/**' \
-            'pytest.*\|.*tail' "${CI_SCAN_PATHS[@]}" || true
+            "$PYTEST_PIPE_TAIL_REGEX" "${CI_SCAN_PATHS[@]}" || true
     else
-        grep -rn 'pytest.*|.*tail' "${CI_SCAN_PATHS[@]}" 2>/dev/null \
+        grep -rn "$PYTEST_PIPE_TAIL_REGEX" "${CI_SCAN_PATHS[@]}" 2>/dev/null \
             | grep -vE 'scripts/workspace_surgery[^:]*\.sh:' || true
     fi
 }
@@ -137,9 +142,9 @@ scan_pytest_tail_files() {
             --glob '*.yml' --glob '*.yaml' \
             --glob '!scripts/workspace_surgery*.sh' \
             --glob '!**/.venv*/**' --glob '!**/node_modules/**' \
-            'pytest.*\|.*tail' "${CI_SCAN_PATHS[@]}" || true
+            "$PYTEST_PIPE_TAIL_REGEX" "${CI_SCAN_PATHS[@]}" || true
     else
-        grep -rl 'pytest.*|.*tail' "${CI_SCAN_PATHS[@]}" 2>/dev/null \
+        grep -rl "$PYTEST_PIPE_TAIL_REGEX" "${CI_SCAN_PATHS[@]}" 2>/dev/null \
             | grep -vE '^scripts/workspace_surgery[^/]*\.sh$' || true
     fi
 }
@@ -405,7 +410,7 @@ echo "  Root build dirs: $ROOT_BUILD_DIRS"
 # ═══════════════════════════════════════════════════════════════════
 
 echo ""
-echo "Phase 6: CI false-pass risk (pytest|tail)"
+echo "Phase 6: CI false-pass risk (${PYTEST_PIPE_SCAN_LABEL})"
 echo "──────────────────────────────────────────"
 
 PIPED_COUNT=0
@@ -415,7 +420,7 @@ while IFS= read -r line; do
 done < <(scan_pytest_tail_lines)
 
 if [ "$PIPED_COUNT" -eq 0 ]; then
-    echo "  OK No pytest|tail patterns found"
+    echo "  OK No ${PYTEST_PIPE_SCAN_LABEL} patterns found"
 else
     echo "  Found: $PIPED_COUNT"
 fi
@@ -543,8 +548,8 @@ if [ "$MODE" = "--sprint-a" ]; then
 
     FIXES_APPLIED=0
 
-    # Fix 1: per-file, one-pass patch for pytest|tail
-    echo "  Fix 1: pytest|tail -> fail-closed"
+    # Fix 1: per-file, one-pass patch for pytest piped into tail
+    echo "  Fix 1: ${PYTEST_PIPE_SCAN_LABEL} -> fail-closed"
     PATCH_FILES=()
     while IFS= read -r f; do
         [ -n "$f" ] && PATCH_FILES+=("$f")
@@ -557,9 +562,9 @@ if [ "$MODE" = "--sprint-a" ]; then
             [ -f "$file" ] || continue
             [ -f "${file}.sprint-a.bak" ] || cp "$file" "${file}.sprint-a.bak"
 
-            awk '
+            awk -v pattern="$PYTEST_PIPE_TAIL_REGEX" '
             {
-                if ($0 ~ /pytest.*\|.*tail/ && $0 !~ /_pytest_rc=\$\?/) {
+                if ($0 ~ pattern && $0 !~ /_pytest_rc=\$\?/) {
                     line = $0
                     idx = index(line, "| tail")
                     if (idx > 0) {

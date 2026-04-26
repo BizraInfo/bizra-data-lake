@@ -46,6 +46,12 @@ class TestAgentDBStore:
         rec = db.store("Episode content", kind=MemoryKind.EPISODIC)
         assert rec.kind == MemoryKind.EPISODIC
 
+    def test_store_drops_mismatched_auto_embedding(self, db):
+        db.set_embedding_fn(lambda _text: [0.1, 0.2, 0.3])
+        rec = db.store("Auto-embed mismatch should not fail")
+        assert rec.embedding is None
+        assert db.count == 1
+
 
 class TestAgentDBSearch:
     def test_search_by_keyword(self, db):
@@ -98,6 +104,13 @@ class TestAgentDBSearch:
         results = db.search("Archived retrieval", include_archived=True)
         assert len(results) == 1
         assert results[0].record.state == RecordState.ARCHIVED
+
+    def test_search_falls_back_when_auto_query_embedding_mismatched(self, db):
+        db.store("Keyword fallback search still works")
+        db.set_embedding_fn(lambda _text: [0.1, 0.2, 0.3])
+        results = db.search("keyword fallback")
+        assert len(results) >= 1
+        assert "fallback" in results[0].record.content.lower()
 
 
 class TestAgentDBRetrieve:

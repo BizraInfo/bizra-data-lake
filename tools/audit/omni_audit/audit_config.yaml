@@ -1,0 +1,99 @@
+# Omnidirectional Hyper-dimensional Audit Engine — configuration
+# Pure-data config. Read-only. Consumed by run_audit.py.
+
+version: "0.1"
+
+scope:
+  # Paths we deliberately DO NOT scan (content size / scope noise).
+  exclude_dirs:
+    - ".git"
+    - ".venv"
+    - ".venv-linux"
+    - "venv"
+    - "node_modules"
+    - "target"
+    - "dist"
+    - "build"
+    - "__pycache__"
+    - ".mypy_cache"
+    - ".pytest_cache"
+    - ".ruff_cache"
+    - "docs/audits/omnidirectional_hyperdimensional_audit_v0_1"
+    - "docs/brand/public_launch_media_kit_v0_1/extracted"
+    - "tools/cognitive_foundry/claude_lane/output"
+    - "tools/cognitive_foundry/claude_lane/canon_packs"
+    - "evidence"
+    - "artifacts"
+
+  # Evidence-index scope: focus on doctrine + manifest + config.
+  evidence_include_globs:
+    - "**/*.md"
+    - "**/Cargo.toml"
+    - "**/Cargo.lock"
+    - "**/pyproject.toml"
+    - "**/requirements*.txt"
+    - "**/package.json"
+    - "**/package-lock.json"
+    - "**/*.yaml"
+    - "**/*.yml"
+    - "**/CLAUDE.md"
+    - "**/README*"
+
+  # Secret-scan scope: scan widely but exclude archived/extracted content.
+  secret_scan_roots:
+    - "core"
+    - "services"
+    - "runtime"
+    - "bizra-omega"
+    - "frontend/src"
+    - "tools"
+    - "deploy"
+    - "scripts"
+    - "docs/contracts"
+    # Top-level .env/.yaml/.json files are handled by secret_scan_top_level_globs.
+  secret_scan_top_level_globs:
+    - "*.env*"
+    - "*.yaml"
+    - "*.yml"
+    - "*.json"
+
+  # Code-risk scan scope.
+  python_risk_roots:
+    - "core"
+    - "services"
+    - "tools/audit/omni_audit"   # self-scan excluded for known patterns
+  rust_risk_roots:
+    - "bizra-omega"
+
+  # Doctrine / high-value docs for claim scanning.
+  claim_scan_roots:
+    - "docs"
+    - "tools/cognitive_foundry/claude_lane/REVIEW_HANDOFF.md"
+    - "tools/cognitive_foundry/claude_lane/canon_packs/README.md"
+
+  # Canonical acronym drift scan.
+  urp_canonicality_roots:
+    - "docs"
+
+  website:
+    bizra_ai: "https://bizra.ai"
+    bizra_info: "https://bizra.info"
+
+severity_policy:
+  secret_finding_min_severity: "HIGH"
+  unsafe_block_severity: "MEDIUM"
+  unwrap_in_prod_severity: "LOW"
+  broad_except_severity: "LOW"
+  shell_true_severity: "HIGH"
+
+runtime:
+  max_file_bytes_scanned: 524288    # 512 KB cap per file for text pattern scans
+  default_no_network: true
+  default_strict: false
+
+output:
+  evidence_index_limit: 2000        # at most this many items in evidence_index
+  claims_register_limit: 500
+  code_risk_limit: 1000
+  secret_findings_limit: 200
+  urp_canonicality_limit: 200

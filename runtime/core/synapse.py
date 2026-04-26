@@ -77,7 +77,7 @@ logger = logging.getLogger("synapse")
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-SYNAPSE_URL = os.getenv("SYNAPSE_URL", "rediss://:bizra_synapse_secure@127.0.0.1:6379")
+SYNAPSE_URL = os.getenv("SYNAPSE_URL")
 SYNAPSE_PREFIX = os.getenv("SYNAPSE_PREFIX", "bizra")
 PRESENCE_TTL = int(os.getenv("SYNAPSE_PRESENCE_TTL", "30"))  # seconds
 EVENT_STREAM_MAXLEN = int(os.getenv("SYNAPSE_EVENT_MAXLEN", "10000"))
@@ -231,6 +231,9 @@ class SynapseConnection:
         """Establish Redis connection with TLS support."""
         if self._connected:
             return True
+        if not self._url:
+            logger.warning("SYNAPSE_URL not set; synapse connection disabled.")
+            return False
 
         try:
             import redis

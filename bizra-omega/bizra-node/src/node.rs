@@ -186,7 +186,9 @@ impl Node {
             experience_ledger: bizra_core::ExperienceLedger::new(),
             seed_ledger: crate::seed_ledger::SeedLedger::new(1.0),
             identity_registry: {
-                let mut reg = crate::identity_registry::IdentityRegistry::new();
+                let signing_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
+                let mut reg =
+                    crate::identity_registry::IdentityRegistry::with_node_key(signing_key);
                 reg.mint_genesis_agents(); // 12 founding agents with Ed25519 keys
                 reg
             },
@@ -766,6 +768,37 @@ mod tests {
     fn node_registers_action_receipt_post_deliver_hook() {
         let node = Node::new(NodeConfig::default());
         assert!(node.action_executor().post_deliver_hook_count() >= 1);
+    }
+
+    #[test]
+    fn node_installs_receipt_signing_identity_by_default() {
+        let mut node = Node::new(NodeConfig::default());
+        let verifying_key = node
+            .identity_registry
+            .node_verifying_key()
+            .cloned()
+            .expect("default node should expose a verifying key");
+        let models = vec!["qwen2.5:3b".to_string()];
+
+        let result = {
+            let signing_key = node
+                .identity_registry
+                .node_signing_key()
+                .expect("default node should expose a signing key");
+            crate::mission_bridge::execute_governed_mission(
+                &mut node.runtime,
+                &node.ihsan,
+                "Verify default receipt signing",
+                1773662000,
+                &models,
+                None,
+                Some(signing_key),
+            )
+        };
+
+        assert!(result.receipt.is_signed());
+        assert_ne!(result.receipt.signature, [0u8; 64]);
+        assert!(result.receipt.verify_signature(&verifying_key));
     }
 
     #[test]

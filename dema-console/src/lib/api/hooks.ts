@@ -5,7 +5,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { receiptsApi, manifestsApi, resourcesApi, memoryApi, actionsApi, trustApi } from "./client";
-import type { Receipt, Manifest, Resource, MemoryEntry, ActionLog } from "@/types";
+import type { Receipt, Manifest, Resource, MemoryEntry, ActionLog } from "@/lib/types";
 
 // ─── Query Key Factory ────────────────────────────────────────
 

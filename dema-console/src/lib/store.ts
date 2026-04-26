@@ -4,6 +4,14 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { create } from "zustand";
+import type { ActivatePrincipalResponseContract } from "@/bindings/ActivatePrincipalResponseContract";
+import { activatePrincipal as requestPrincipalActivation } from "./gateway-client";
+import {
+  createInactiveTrustState,
+  projectActivatedTrustState,
+  summarizeActivationFailure,
+  type ActivationStatus,
+} from "./activation-state";
 import type {
   Screen,
   TrustState,
@@ -44,16 +52,7 @@ import type {
 // Cycle-8 PR#28 face polish: inactive default replaces fabricated demo
 // principal. UI MUST read isActive=false as "no principal activated"
 // and show an activation-prompt surface, NOT a populated trust panel.
-const DEMO_TRUST_STATE: TrustState = {
-  principalId: "",
-  principalName: "",
-  level: "citizen",
-  score: 0,
-  maxScore: 100,
-  lastVerified: new Date(0).toISOString(),
-  sessionId: "",
-  isActive: false,
-};
+const DEMO_TRUST_STATE: TrustState = createInactiveTrustState();
 
 // NO_SHADOW_STATE: these arrays start empty. The chain is empty until
 // the operator seals something real. The face MUST NOT display
@@ -86,6 +85,14 @@ const DEMO_STATE_GAP: StateGap = {
   ideal: "Fully autonomous multi-agent ecosystem with self-optimization, cryptographic governance, and impact-weighted consensus.",
   gapPercent: 28,
   nextAction: "Explore DEMA operator modes and begin your first mission.",
+  urgency: "low",
+};
+
+const UNAVAILABLE_STATE_GAP: StateGap = {
+  current: null,
+  ideal: null,
+  gapPercent: null,
+  nextAction: null,
   urgency: "low",
 };
 
@@ -558,9 +565,12 @@ interface DEMAStore {
 
   // Onboarding
   isOnboarded: boolean;
-  completeOnboarding: (name: string) => void;
+  completeOnboarding: (name: string) => Promise<void>;
   onboardingStep: number;
   setOnboardingStep: (step: number) => void;
+  activationStatus: ActivationStatus;
+  activationError: string | null;
+  activationEnvelope: ActivatePrincipalResponseContract | null;
 
   // Trust
   trustState: TrustState;
@@ -654,14 +664,43 @@ export const useDEMAStore = create<DEMAStore>((set) => ({
 
   // Onboarding
   isOnboarded: false,
-  completeOnboarding: (name) =>
+  completeOnboarding: async (name) => {
+    const principalName = name.trim() || "Operator";
     set({
-      isOnboarded: true,
-      currentScreen: "dashboard",
-      trustState: { ...DEMO_TRUST_STATE, principalName: name },
-    }),
+      activationStatus: "activating",
+      activationError: null,
+      activationEnvelope: null,
+    });
+    const outcome = await requestPrincipalActivation({
+      principalName,
+    });
+    if (outcome.kind === "ok") {
+      set({
+        isOnboarded: true,
+        currentScreen: "dashboard",
+        onboardingStep: 0,
+        trustState: projectActivatedTrustState(principalName, outcome.data),
+        stateGap: UNAVAILABLE_STATE_GAP,
+        activationStatus: "activated",
+        activationError: null,
+        activationEnvelope: outcome.data,
+      });
+      return;
+    }
+    set({
+      isOnboarded: false,
+      trustState: createInactiveTrustState(),
+      stateGap: DEMO_STATE_GAP,
+      activationStatus: outcome.kind,
+      activationError: summarizeActivationFailure(outcome),
+      activationEnvelope: null,
+    });
+  },
   onboardingStep: 0,
   setOnboardingStep: (step) => set({ onboardingStep: step }),
+  activationStatus: "idle",
+  activationError: null,
+  activationEnvelope: null,
 
   // Trust
   trustState: DEMO_TRUST_STATE,

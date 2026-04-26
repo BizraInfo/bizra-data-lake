@@ -11,6 +11,22 @@ from starlette.testclient import TestClient
 from scripts.node0_standalone import Node0StandaloneManager, create_app
 
 
+def _private_key_hex() -> str:
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ed25519
+
+    key = ed25519.Ed25519PrivateKey.generate()
+    return key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).hex()
+
+
+def _public_key_hex(private_key_hex: str) -> str:
+    return Node0StandaloneManager._ed25519_public_key_hex(private_key_hex)
+
+
 def _make_genesis_json(
     state_dir: Path, node_id: str = "node0-test"
 ) -> dict[str, object]:
@@ -143,6 +159,66 @@ def test_health_is_degraded_without_activation(tmp_path: Path) -> None:
     assert report["status"] == "degraded"
     assert report["gates"]["identity_credentials"] is False
     assert report["gates"]["assets_file"] is False
+
+
+def test_pilot_doctor_requires_docs_and_lifecycle_gates(tmp_path: Path) -> None:
+    manager = Node0StandaloneManager(project_root=tmp_path)
+
+    report = manager.pilot_doctor()
+
+    assert report["status"] == "blocked"
+    assert "private_pilot_plan" in report["blocking"]
+    assert "genesis_authority_valid" in report["blocking"]
+    assert report["next_milestone"].startswith("close blocking")
+
+
+def test_pilot_handshake_signs_and_verifies(tmp_path: Path) -> None:
+    manager = Node0StandaloneManager(project_root=tmp_path)
+    signer = _private_key_hex()
+    peer = _private_key_hex()
+    out = tmp_path / "pilot" / "handshake.json"
+
+    receipt = manager.create_pilot_handshake(
+        peer_node_id="node1-test",
+        peer_public_key=_public_key_hex(peer),
+        peer_address="127.0.0.1:9749",
+        operator="tester",
+        private_key_hex=signer,
+        out_path=out,
+    )
+
+    assert out.exists()
+    assert receipt["status"] == "signed"
+    assert receipt["verification"]["local_signature_valid"] is True
+
+    verified = manager.verify_pilot_handshake(out)
+
+    assert verified["valid"] is True
+    assert verified["reason_code"] == "OK"
+    assert verified["peer_node_id"] == "node1-test"
+
+
+def test_pilot_handshake_verifier_rejects_tampering(tmp_path: Path) -> None:
+    manager = Node0StandaloneManager(project_root=tmp_path)
+    signer = _private_key_hex()
+    peer = _private_key_hex()
+    out = tmp_path / "pilot" / "handshake.json"
+    manager.create_pilot_handshake(
+        peer_node_id="node1-test",
+        peer_public_key=_public_key_hex(peer),
+        peer_address="127.0.0.1:9749",
+        operator="tester",
+        private_key_hex=signer,
+        out_path=out,
+    )
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    payload["payload"]["peer_address"] = "127.0.0.1:9999"
+    out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    verified = manager.verify_pilot_handshake(out)
+
+    assert verified["valid"] is False
+    assert verified["reason_code"] == "PAYLOAD_DIGEST_MISMATCH"
 
 
 def test_health_is_read_only_for_lifecycle_v2(tmp_path: Path) -> None:

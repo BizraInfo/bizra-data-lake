@@ -1,0 +1,25 @@
+{
+  "content_hash_blake2b_32": "9df8f20bc251955ff54ec17d7bf2fbac37d33868586ddcbcd935d37f608c0357",
+  "entries_hash_blake2b_32": "9df8f20bc251955ff54ec17d7bf2fbac37d33868586ddcbcd935d37f608c0357",
+  "entry_count": 25,
+  "hash_model": "v2_split_content_and_issuance",
+  "human_gated": true,
+  "issuance_hash_blake2b_32": "67d1f4c852710e6430992cb5b24ca9306a46a418fb8b2e9a3cf5974b83633535",
+  "non_promotion_tool": true,
+  "notes": "Canon pack v0.2.0 (split-hash model). content_hash identifies the reviewed content (deterministic across reruns). issuance_hash identifies this specific promotion event. NOT cryptographically signed. NOT yet ingested into any canonical BIZRA store. A separate, human-gated tool must perform the final ingest.",
+  "origin_run_id": "20260424T000948Z_78a12953b97a1085",
+  "partition_counts": {
+    "approved_not_promoted": 19,
+    "needs_followup": 78,
+    "other_status": 0,
+    "pending": 157,
+    "rejected": 80,
+    "to_promote": 25
+  },
+  "promoted_at_utc": "2026-04-24T03:19:02Z",
+  "promoter": "bizra-operating-system",
+  "tool": "cognitive_foundry.claude_lane.promote",
+  "tool_version": "0.2.0",
+  "workbook_sha256": "5097d4e8cf0522db2f46f7f4f732f76d3e9443f3b5562be87db64bc026aae092",
+  "workbook_source": "/data/bizra/repos/bizra-data-lake/tools/cognitive_foundry/claude_lane/output/20260424T000948Z_78a12953b97a1085/04_review_pack/review_workbook.csv"
+}

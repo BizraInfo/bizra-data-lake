@@ -31,14 +31,21 @@ export type MemoryCategory = "preference" | "context" | "knowledge" | "poi";
 export type ResearchDepth = "quick" | "deep" | "exhaustive";
 
 export interface TrustState {
-  principalId: string;
+  principalId: string | null;
   principalName: string;
-  level: TrustLevel;
-  score: number;
-  maxScore: number;
+  level: TrustLevel | null;
+  score: number | null;
+  maxScore: number | null;
   lastVerified: string | null;
-  sessionId: string;
+  sessionId: string | null;
   isActive: boolean;
+  chainHead: string | null;
+  missionId: string | null;
+  missionReceiptId: string | null;
+  activationReceiptId: string | null;
+  finalStage: string | null;
+  profileHash: string | null;
+  cacheWarning: string | null;
 }
 
 export interface Receipt {
@@ -112,10 +119,10 @@ export interface MemoryEntry {
 }
 
 export interface StateGap {
-  current: string;
-  ideal: string;
-  gapPercent: number;
-  nextAction: string;
+  current: string | null;
+  ideal: string | null;
+  gapPercent: number | null;
+  nextAction: string | null;
   urgency: "low" | "medium" | "high" | "critical";
 }
 

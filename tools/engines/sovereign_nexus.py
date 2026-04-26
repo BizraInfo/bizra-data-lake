@@ -45,15 +45,28 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+# Allow running as a direct script (python tools/engines/sovereign_nexus.py)
+# in addition to module-style imports. Without this shim, sys.path[0] points
+# at tools/engines/, so the top-level `bizra_config` module (repo root) is
+# unreachable and the next import would raise ModuleNotFoundError.
+if __package__ in (None, ""):
+    import sys as _sys
+
+    _REPO_ROOT = Path(__file__).resolve().parents[2]
+    if str(_REPO_ROOT) not in _sys.path:
+        _sys.path.insert(0, str(_REPO_ROOT))
+
+from bizra_config import DATA_LAKE_ROOT, GOLD_PATH, INDEXED_PATH
+
 # ═══════════════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════════════
 
 
 class Config:
-    DATA_LAKE = Path(r"C:\BIZRA-DATA-LAKE")
-    GOLD = DATA_LAKE / "04_GOLD"
-    INDEXED = DATA_LAKE / "03_INDEXED"
+    DATA_LAKE = DATA_LAKE_ROOT
+    GOLD = GOLD_PATH
+    INDEXED = INDEXED_PATH
     KNOWLEDGE = INDEXED / "knowledge"
     GRAPH = INDEXED / "graph"
     NEXUS_GRAPH = GOLD / "sovereign_nexus_graph.json"
