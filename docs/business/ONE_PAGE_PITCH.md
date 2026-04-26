@@ -22,26 +22,30 @@ You get **7 personal AI agents** (PAT) that work for you 24/7. Navigate, researc
 
 ## Traction (Verified — Run `cargo test` Yourself)
 
-| Evidence | Number | Verified |
-|----------|--------|----------|
-| Python production code | **259,000 LOC** | `find core/ -name "*.py" \| wc -l` |
-| Constitutional proof tests | **983** | proof_engine + pci + token + sat + urp + zpk |
-| Total test suite | **11,605** | `pytest --co -q` |
-| Rust crates | **24** (compiles clean) | `cargo check --workspace` |
-| PAT-7 agents exercised | **7/7** through FATE gate | All ≤157 LOC |
-| SAT-5 gates active | **5/5**, 59 checks | Sentinel + Oracle + Ledger + Conductor + Ambassador |
-| Minting ceremony | Ed25519 keypair + 12 agents | `onboard_user()` verified |
-| Funding received | **$0** | |
-| Solo founder duration | **35 months** (Ramadan 2023) | البذرة dated 2023-06-29 |
+
+| Evidence                   | Number                       | Verified                                            |
+| -------------------------- | ---------------------------- | --------------------------------------------------- |
+| Python production code     | **259,000 LOC**              | `find core/ -name "*.py" | wc -l`                   |
+| Constitutional proof tests | **983**                      | proof_engine + pci + token + sat + urp + zpk        |
+| Total test suite           | **11,605**                   | `pytest --co -q`                                    |
+| Rust crates                | **24** (compiles clean)      | `cargo check --workspace`                           |
+| PAT-7 agents exercised     | **7/7** through FATE gate    | All ≤157 LOC                                        |
+| SAT-5 gates active         | **5/5**, 59 checks           | Sentinel + Oracle + Ledger + Conductor + Ambassador |
+| Minting ceremony           | Ed25519 keypair + 12 agents  | `onboard_user()` verified                           |
+| Funding received           | **$0**                       |                                                     |
+| Solo founder duration      | **35 months** (Ramadan 2023) | البذرة dated 2023-06-29                             |
+
 
 ## Market
 
-| Segment | Size |
-|---------|------|
-| AI Agent Market (2030) | $52.6B |
-| Islamic Finance (global) | $3.6T |
-| Sovereign AI (Gulf committed) | $100B+ |
-| **BIZRA TAM** | **$850B** |
+
+| Segment                       | Size      |
+| ----------------------------- | --------- |
+| AI Agent Market (2030)        | $52.6B    |
+| Islamic Finance (global)      | $3.6T     |
+| Sovereign AI (Gulf committed) | $100B+    |
+| **BIZRA TAM**                 | **$850B** |
+
 
 ## SEED Token Economics (MMRPG Flywheel)
 
@@ -53,14 +57,16 @@ Standing on 20 years of gaming economics (WoW, EVE, FFXIV) + 1,400 years of Isla
 
 ## Competitive Moat
 
-| Us | Them (LangChain, OpenClaw, Devin) |
-|----|-----|
-| Constitutional governance (type-enforced) | None |
-| Signed receipt chain (BLAKE3 + Ed25519) | None |
-| Islamic finance protocol (ExactAmount) | None |
-| 12,644 tests, 6 formal proofs | Maybe a few hundred tests |
-| Founder evaluated by same SAT as all users | Founder keeps special tokens |
-| Open source (MIT), binary runs on Android | Proprietary or cloud-only |
+
+| Us                                         | Them (LangChain, OpenClaw, Devin) |
+| ------------------------------------------ | --------------------------------- |
+| Constitutional governance (type-enforced)  | None                              |
+| Signed receipt chain (BLAKE3 + Ed25519)    | None                              |
+| Islamic finance protocol (ExactAmount)     | None                              |
+| 12,644 tests, 6 formal proofs              | Maybe a few hundred tests         |
+| Founder evaluated by same SAT as all users | Founder keeps special tokens      |
+| Open source (MIT), binary runs on Android  | Proprietary or cloud-only         |
+
 
 ## Comparables
 
@@ -77,5 +83,5 @@ The code is public. The tests pass. The receipts are signed. The founder paid Za
 
 ---
 
-*Mumo Beshr | Founder & CEO | m.beshr@bizra.info | Dubai, UAE*
+*Mumo Beshr | Founder & CEO | [m.beshr@bizra.info](mailto:m.beshr@bizra.info) | Dubai, UAE*
 *بذرة واحدة تصنع غابة — One seed makes a forest.*
