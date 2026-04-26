@@ -70,11 +70,18 @@ jobs:
         run: |
           # rustfmt.toml uses nightly-only options (imports_granularity, group_imports)
           # which emit warnings on stable. Check format compliance, tolerate config warnings.
-          cargo fmt --all -- --check 2>&1 | tee /tmp/fmt_output.txt || true
+          set +e
+          cargo fmt --all -- --check 2>&1 | tee /tmp/fmt_output.txt
+          status=${PIPESTATUS[0]}
+          set -e
           # Fail only if actual formatting differences found (not config warnings)
           if grep -q "^Diff in" /tmp/fmt_output.txt; then
             echo "::error::Formatting differences found"
             exit 1
+          fi
+          if [ "$status" -ne 0 ]; then
+            echo "::error::cargo fmt failed"
+            exit "$status"
           fi
 
       - name: "Gate 2: Clippy (zero warnings)"
@@ -95,7 +102,9 @@ jobs:
 
       - name: "Gate 4: Full Workspace Tests"
         working-directory: bizra-omega
-        run: cargo test --workspace --all-features 2>&1 | tee /tmp/rust_test_output.txt
+        run: |
+          set -o pipefail
+          cargo test --workspace --all-features 2>&1 | tee /tmp/rust_test_output.txt
 
       - name: "Gate 5: Test Count Verification"
         working-directory: bizra-omega
@@ -178,20 +187,22 @@ jobs:
 
       - name: "Gate 1: Lint (ruff + black + isort)"
         run: |
-          ruff check core/ --select E,F,W --ignore E501 || true
-          black --check core/ --quiet || true
-          isort --check core/ --quiet || true
+          ruff check core/ --select E,F,W --ignore E501
+          black --check core/ --quiet
+          isort --check core/ --quiet
 
       - name: "Gate 2: Constitutional Tests"
         run: |
+          set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
             -k "constitutional or ihsan or snr or invariant or gate" \
             --junitxml=/tmp/constitutional_tests.xml \
-            2>&1 | tee /tmp/python_constitutional.txt || true
+            2>&1 | tee /tmp/python_constitutional.txt
 
       - name: "Gate 3: Full Python Test Suite"
         run: |
+          set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
             --junitxml=/tmp/python_tests.xml \
@@ -204,7 +215,57 @@ jobs:
 
       - name: "Gate 5: Truth Label Enforcement"
         run: |
-          python scripts/ci_docs_truth_gate.py 2>/dev/null || echo "Truth gate script not found — skipping"
+          python scripts/ci_docs_truth_gate.py
+
+      - name: "Gate 6: Claim-Discipline Drift Probe (CLEAN_SET fail-closed)"
+        run: |
+          mkdir -p artifacts/claim-drift
+          python tools/audit/claim_drift_probe.py \
+            --ci \
+            --verbose \
+            --log-path artifacts/claim-drift/findings.ndjson \
+            --summary-json artifacts/claim-drift/summary.json \
+            --run-id "ci-${GITHUB_SHA::8}"
+
+      - name: "Gate 6: Upload claim-drift artifacts"
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: claim-drift-${{ github.run_id }}
+          path: artifacts/claim-drift/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: "Gate 7: Canonical Truth Pack Freshness (fail-closed)"
+        run: |
+          set -euo pipefail
+          COMMITTED="docs/knowledge/canonical_truth_pack.json"
+          GENERATED="artifacts/canonical-truth-pack/regenerated.json"
+          mkdir -p artifacts/canonical-truth-pack
+          if [ ! -f "$COMMITTED" ]; then
+            echo "::error::Canonical truth pack missing: $COMMITTED"
+            echo "Run: python scripts/generate_canonical_truth_pack.py"
+            exit 1
+          fi
+          python scripts/generate_canonical_truth_pack.py --output "$GENERATED"
+          if ! diff -u "$COMMITTED" "$GENERATED" > artifacts/canonical-truth-pack/diff.txt; then
+            echo "::error::Canonical truth pack is stale. Committed JSON does not match regenerated output."
+            echo "Diff:"
+            cat artifacts/canonical-truth-pack/diff.txt
+            echo ""
+            echo "Fix: run 'python scripts/generate_canonical_truth_pack.py' and commit the updated JSON."
+            exit 1
+          fi
+          echo "Canonical truth pack is fresh."
+
+      - name: "Gate 7: Upload truth-pack artifacts"
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: canonical-truth-pack-${{ github.run_id }}
+          path: artifacts/canonical-truth-pack/
+          retention-days: 30
+          if-no-files-found: ignore
 
   # ═══════════════════════════════════════════════════════════════
   # CROSS-LAYER: Constitutional Threshold Coherence

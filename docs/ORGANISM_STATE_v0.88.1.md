@@ -37,30 +37,32 @@ Layer 0: EVIDENCE            — BLAKE3 chains, Ed25519, JSONL       [VERIFIED]
 
 ## 2. Verified Maturity Matrix
 
-| Component | Status | Evidence |
-|-----------|--------|---------|
-| 10-stage mission pipeline | **VERIFIED** | 11+ missions executed, receipts chained, SEED earned |
-| URP constitutional membrane | **VERIFIED** | Minted, persistent, 4 Z3-verified properties, 27 tests |
-| Z3 formal proofs | **VERIFIED** | All 4 membrane properties UNSAT under violation, CI-gated |
-| Membrane tax | **VERIFIED** | 0.007ms per mission (0.00003% of inference latency) |
-| Adversarial resilience | **VERIFIED** | 82.3% attacks blocked; 17.7% = genuinely constitutional work |
-| Typed error taxonomy | **VERIFIED** | 349 LOC, receiptable boundary failures, 5 tests green |
-| Receipt chain threading | **VERIFIED** | Cross-session BLAKE3 linking, chain_head persisted |
-| Home Base awareness | **VERIFIED** | 1,732 files, 63 dirs, real hardware via PowerShell detection |
-| PAT daemon | **VERIFIED** | Running (PID verified), Cycle 1: 60 changes, 62 queued items |
-| Proactive executor | **VERIFIED** | PDF converted, ArXiv opened, Guardian gate functional |
-| FAISS semantic search | **VERIFIED** | 84,795 vectors, 0.5s cached load, 5ms query |
-| Spearpoint self-improvement | **VERIFIED** | 126x speedup (153ms → 1.21ms), zero quality degradation |
-| Sovereign identity | **VERIFIED** | 12 agents minted (Ed25519), system prompt active |
-| SEED economics | **VERIFIED** | 22 SEED earned, Zakat 2.5% auto-deducted, Gini gate at 0.35 |
-| Bus dialect unification | **VERIFIED** | FanoutEventBus, dead-letter evidence, event_publisher 96% coverage |
-| Invite system | **VERIFIED** | 5 BLAKE3-derived codes, single-use, 30-day TTL |
-| Security audit | **VERIFIED** | 0 secrets in code/history, 8 credentials rotated, CI scanning |
-| Autopoiesis wiring | **PARTIAL** | Opt-in (BIZRA_AUTOPOIESIS_ENABLED), wired but not exercised in production |
-| Onboarding wizard | **PARTIAL** | JSX prototype complete, not deployed to bizra.ai |
-| Reflex compilation loop | **PARTIAL** | Proven at 126x, needs 30 days daily usage for production reflexes |
-| Voice interface | **TARGET** | Not built |
-| Mobile sync (Z Fold6) | **TARGET** | Termux build path established, not connected |
+
+| Component                   | Status       | Evidence                                                                  |
+| --------------------------- | ------------ | ------------------------------------------------------------------------- |
+| 10-stage mission pipeline   | **VERIFIED** | 11+ missions executed, receipts chained, SEED earned                      |
+| URP constitutional membrane | **VERIFIED** | Minted, persistent, 4 Z3-verified properties, 27 tests                    |
+| Z3 formal proofs            | **VERIFIED** | All 4 membrane properties UNSAT under violation, CI-gated                 |
+| Membrane tax                | **VERIFIED** | 0.007ms per mission (0.00003% of inference latency)                       |
+| Adversarial resilience      | **VERIFIED** | 82.3% attacks blocked; 17.7% = genuinely constitutional work              |
+| Typed error taxonomy        | **VERIFIED** | 349 LOC, receiptable boundary failures, 5 tests green                     |
+| Receipt chain threading     | **VERIFIED** | Cross-session BLAKE3 linking, chain_head persisted                        |
+| Home Base awareness         | **VERIFIED** | 1,732 files, 63 dirs, real hardware via PowerShell detection              |
+| PAT daemon                  | **VERIFIED** | Running (PID verified), Cycle 1: 60 changes, 62 queued items              |
+| Proactive executor          | **VERIFIED** | PDF converted, ArXiv opened, Guardian gate functional                     |
+| FAISS semantic search       | **VERIFIED** | 84,795 vectors, 0.5s cached load, 5ms query                               |
+| Spearpoint self-improvement | **VERIFIED** | 126x speedup (153ms → 1.21ms), zero quality degradation                   |
+| Sovereign identity          | **VERIFIED** | 12 agents minted (Ed25519), system prompt active                          |
+| SEED economics              | **VERIFIED** | 22 SEED earned, Zakat 2.5% auto-deducted, Gini gate at 0.35               |
+| Bus dialect unification     | **VERIFIED** | FanoutEventBus, dead-letter evidence, event_publisher 96% coverage        |
+| Invite system               | **VERIFIED** | 5 BLAKE3-derived codes, single-use, 30-day TTL                            |
+| Security audit              | **VERIFIED** | 0 secrets in code/history, 8 credentials rotated, CI scanning             |
+| Autopoiesis wiring          | **PARTIAL**  | Opt-in (BIZRA_AUTOPOIESIS_ENABLED), wired but not exercised in production |
+| Onboarding wizard           | **PARTIAL**  | JSX prototype complete, not deployed to bizra.ai                          |
+| Reflex compilation loop     | **PARTIAL**  | Proven at 126x, needs 30 days daily usage for production reflexes         |
+| Voice interface             | **TARGET**   | Not built                                                                 |
+| Mobile sync (Z Fold6)       | **TARGET**   | Termux build path established, not connected                              |
+
 
 **Verified: 17/21. Partial: 3/21. Target: 2/21. Fabricated: 0/21.**
 
@@ -68,15 +70,17 @@ Layer 0: EVIDENCE            — BLAKE3 chains, Ed25519, JSONL       [VERIFIED]
 
 ## 3. Open Tensions
 
-| # | Tension | Status | Resolution Path |
-|---|---------|--------|-----------------|
-| 1 | Black/isort formatting drift | Fixed 3x this session | Enforce in pre-commit; CI gate now active |
-| 2 | Rust CI tests flaky (2 integration) | Pass locally, fail in CI | Cache invalidation or test isolation |
-| 3 | Docs Quality gate | Contract-sensitive change guard triggers | Auto-doc-touch in pre-commit |
-| 4 | PAT daemon WSL-only | Runs in WSL2 bash | Windows service + mobile daemon |
-| 5 | Autopoiesis unexercised | Wired, loop never ran | 30 days daily usage activates it |
-| 6 | Federation semantics begin at genesis | Membrane and sea model active | Multi-node exercise awaits Node2 |
-| 7 | Governed RSI safety claim | Strongest architectural basis | Not formally proven end-to-end yet |
+
+| #   | Tension                               | Status                                   | Resolution Path                           |
+| --- | ------------------------------------- | ---------------------------------------- | ----------------------------------------- |
+| 1   | Black/isort formatting drift          | Fixed 3x this session                    | Enforce in pre-commit; CI gate now active |
+| 2   | Rust CI tests flaky (2 integration)   | Pass locally, fail in CI                 | Cache invalidation or test isolation      |
+| 3   | Docs Quality gate                     | Contract-sensitive change guard triggers | Auto-doc-touch in pre-commit              |
+| 4   | PAT daemon WSL-only                   | Runs in WSL2 bash                        | Windows service + mobile daemon           |
+| 5   | Autopoiesis unexercised               | Wired, loop never ran                    | 30 days daily usage activates it          |
+| 6   | Federation semantics begin at genesis | Membrane and sea model active            | Multi-node exercise awaits Node2          |
+| 7   | Governed RSI safety claim             | Strongest architectural basis            | Not formally proven end-to-end yet        |
+
 
 ---
 

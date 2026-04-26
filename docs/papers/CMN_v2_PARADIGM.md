@@ -59,7 +59,7 @@ The private key never leaves the device. PAT agents follow only the user's instr
 
 ### 3.2 Layer 2: Constitutional Membrane (URP)
 
-The Universal Resource Protocol (URP) is the constitutional membrane between local sovereignty and network participation. It houses:
+The Universal Resource Pool (URP) is the constitutional membrane between local sovereignty and network participation. It houses:
 
 - A System Agentic Team (SAT-5) per node: agents that operate within the URP on behalf of the network (not on behalf of the user)
 - The House of Wisdom: a governed knowledge substrate with provenance-tracked, constitutionally filtered retrieval

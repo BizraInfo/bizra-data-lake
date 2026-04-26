@@ -1,0 +1,8 @@
+{
+  "valid": true,
+  "reason_code": "OK",
+  "receipt_hash": "8db56fdd89af5d5e5177bf693099e5a8137bd05a48423c864edff11d0e9d286c",
+  "local_node_id": "node0-unknown",
+  "peer_node_id": "node1-pilot",
+  "path": "artifacts/proofs/node0-private-pilot-handshake.json"
+}

@@ -1,0 +1,112 @@
+{
+  "archive_path": "/home/bizra-operating-system/Downloads/data-43cc0344-1239-4174-867b-25beff52f00f-1776139825-1ff56815-batch-0000.zip",
+  "completed_at_utc": "2026-04-24T00:09:50.968647+00:00",
+  "output_root": "/data/bizra/repos/bizra-data-lake/tools/cognitive_foundry/claude_lane/output/20260424T000948Z_78a12953b97a1085",
+  "pipeline": "cognitive_foundry.claude_lane",
+  "pipeline_version": "0.1.0-pilot",
+  "run_id": "20260424T000948Z_78a12953b97a1085",
+  "stage_summaries": {
+    "stage_1_inventory": {
+      "archive_path": "/home/bizra-operating-system/Downloads/data-43cc0344-1239-4174-867b-25beff52f00f-1776139825-1ff56815-batch-0000.zip",
+      "config": {
+        "top_signal_k": 50,
+        "top_signal_min_turns": 4,
+        "topic_bucket_names": [
+          "bizra_architecture",
+          "validation_sprint",
+          "strategy_audit",
+          "code_implementation",
+          "personal_context",
+          "llm_tools_meta",
+          "os_system_setup",
+          "cli_workflow",
+          "research_knowledge"
+        ]
+      },
+      "counts": {
+        "buckets": 10,
+        "conversations": 806,
+        "projects": 12,
+        "top_signal_sessions": 50
+      },
+      "run_id": "20260424T000948Z_78a12953b97a1085",
+      "stage": 1,
+      "stage_name": "inventory"
+    },
+    "stage_2_distillation": {
+      "archive_path": "/home/bizra-operating-system/Downloads/data-43cc0344-1239-4174-867b-25beff52f00f-1776139825-1ff56815-batch-0000.zip",
+      "config": {
+        "decision_patterns": [
+          "\\bI\\s+(decided|chose|will|am going to)\\s+([^\\.\\?\\!]{5,300})[\\.!]",
+          "\\b(Let'?s|We'?ll|We\\s+will)\\s+([^\\.\\?\\!]{5,300})[\\.!]",
+          "\\b(Go\\s+with|Choose|Use|Pick|Adopt)\\s+([^\\.\\?\\!]{3,200})[\\.!]",
+          "\\bThe\\s+(plan|approach|decision)\\s+is\\s+([^\\.\\?\\!]{3,300})[\\.!]"
+        ],
+        "fact_patterns": [
+          "\\bI\\s+(am|'m)\\s+([a-zA-Z][^\\.\\?\\!]{5,180})[\\.!]",
+          "\\bMy\\s+(name|role|job|company|tool|workstation|workflow)\\s+(is|are)\\s+([^\\.\\?\\!]{3,180})[\\.!]",
+          "\\b(?!(?:It|This|That|These|Those|He|She|They|We|I|You|There|Here|My|Our|Your|Its|Their|A|An|The)\\b)([A-Z][A-Za-z0-9_]+)\\s+is\\s+(a|an|the)\\s+([^\\.\\?\\!]{3,180})[\\.!]",
+          "\\bI\\s+(live|work|am based)\\s+in\\s+([A-Z][a-zA-Z]+)[\\.,!]"
+        ],
+        "include_assistant_text_in_distillation": false,
+        "reasoning_markers": [
+          "because",
+          "therefore",
+          "so that",
+          "which means",
+          "consequently",
+          "as a result",
+          "given that",
+          "the reason is",
+          "that implies",
+          "it follows that"
+        ]
+      },
+      "counts": {
+        "contradiction_candidates": 0,
+        "decision_candidates": 175,
+        "fact_candidates": 103,
+        "reasoning_exemplars": 205
+      },
+      "run_id": "20260424T000948Z_78a12953b97a1085",
+      "stage": 2,
+      "stage_name": "distillation"
+    },
+    "stage_3_adjudication": {
+      "archive_path": "/home/bizra-operating-system/Downloads/data-43cc0344-1239-4174-867b-25beff52f00f-1776139825-1ff56815-batch-0000.zip",
+      "config": {
+        "hypothesis_max_occurrences": 1,
+        "obsolete_newer_preferred_days": 7
+      },
+      "counts": {
+        "canonical_candidate_decisions": 131,
+        "canonical_candidate_facts": 71,
+        "cluster_registry": 202,
+        "hypothesis_candidates": 157,
+        "obsolete_conflicted_candidates": 0
+      },
+      "run_id": "20260424T000948Z_78a12953b97a1085",
+      "stage": 3,
+      "stage_name": "adjudication"
+    },
+    "stage_4_review_pack": {
+      "archive_path": "/home/bizra-operating-system/Downloads/data-43cc0344-1239-4174-867b-25beff52f00f-1776139825-1ff56815-batch-0000.zip",
+      "counts": {
+        "decisions_for_review": 131,
+        "facts_for_review": 71,
+        "hypotheses_for_review": 157,
+        "workbook_rows": 359
+      },
+      "run_id": "20260424T000948Z_78a12953b97a1085",
+      "stage": 4,
+      "stage_name": "review_pack"
+    }
+  },
+  "stages_requested": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "started_at_utc": "2026-04-24T00:09:48.710370+00:00"
+}

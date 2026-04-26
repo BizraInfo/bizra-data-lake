@@ -1,0 +1,27 @@
+{
+  "brand": {
+    "name": "BIZRA",
+    "arabic": "بذرة",
+    "tagline": "The Seed of Sovereign Intelligence",
+    "arabic_tagline": "بذرة الذكاء السيادي",
+    "motto": "Build with meaning. Act with proof. Grow with Ihsan.",
+    "arabic_motto": "ابنِ بالمعنى. اعمل بالبرهان. وانمُ بالإحسان.",
+    "domain": "bizra.ai",
+    "email": "hello@bizra.ai",
+    "handle": "@bizra_ai"
+  },
+  "colors": {
+    "genesis_gold": "#C9A962",
+    "celestial_navy": "#0A1628",
+    "origin_black": "#050B14",
+    "pure_white": "#FFFFFF",
+    "ivory": "#F6F2E9"
+  },
+  "typography": {
+    "display": "Georgia or Cinzel/Playfair",
+    "interface": "Inter/Arial",
+    "arabic": "Amiri/Tahoma",
+    "mono": "JetBrains Mono"
+  },
+  "claim_discipline": "If not measured, phrase as direction. If measured, cite receipt. If uncertain, mark uncertain."
+}

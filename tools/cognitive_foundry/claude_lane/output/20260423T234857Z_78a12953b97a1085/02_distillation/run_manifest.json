@@ -1,0 +1,39 @@
+{
+  "archive_path": "/home/bizra-operating-system/Downloads/data-43cc0344-1239-4174-867b-25beff52f00f-1776139825-1ff56815-batch-0000.zip",
+  "config": {
+    "decision_patterns": [
+      "\\bI\\s+(decided|chose|will|am going to)\\s+([^\\.\\?\\!]{5,300})[\\.!]",
+      "\\b(Let'?s|We'?ll|We\\s+will)\\s+([^\\.\\?\\!]{5,300})[\\.!]",
+      "\\b(Go\\s+with|Choose|Use|Pick|Adopt)\\s+([^\\.\\?\\!]{3,200})[\\.!]",
+      "\\bThe\\s+(plan|approach|decision)\\s+is\\s+([^\\.\\?\\!]{3,300})[\\.!]"
+    ],
+    "fact_patterns": [
+      "\\bI\\s+(am|'m)\\s+([a-zA-Z][^\\.\\?\\!]{5,180})[\\.!]",
+      "\\bMy\\s+(name|role|job|company|tool|workstation|workflow)\\s+(is|are)\\s+([^\\.\\?\\!]{3,180})[\\.!]",
+      "\\b([A-Z][A-Za-z0-9_]+)\\s+is\\s+(a|an|the)\\s+([^\\.\\?\\!]{3,180})[\\.!]",
+      "\\bI\\s+(live|work|am based)\\s+in\\s+([A-Z][a-zA-Z]+)[\\.,!]"
+    ],
+    "include_assistant_text_in_distillation": false,
+    "reasoning_markers": [
+      "because",
+      "therefore",
+      "so that",
+      "which means",
+      "consequently",
+      "as a result",
+      "given that",
+      "the reason is",
+      "that implies",
+      "it follows that"
+    ]
+  },
+  "counts": {
+    "contradiction_candidates": 0,
+    "decision_candidates": 175,
+    "fact_candidates": 332,
+    "reasoning_exemplars": 4651
+  },
+  "run_id": "20260423T234857Z_78a12953b97a1085",
+  "stage": 2,
+  "stage_name": "distillation"
+}

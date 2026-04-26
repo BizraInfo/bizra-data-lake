@@ -15,8 +15,8 @@ database:
     - pgcrypto
     - vector  # pgvector for embeddings
   
-  # Connection (override via BIZRA_PG_DSN env var)
-  default_dsn: "postgresql://bizra:bizra_dev_password@localhost:5432/bizra"
+  # Connection must be supplied by the operator. Do not commit default passwords.
+  dsn_env: BIZRA_PG_DSN
   
   # Connection pool settings
   pool:

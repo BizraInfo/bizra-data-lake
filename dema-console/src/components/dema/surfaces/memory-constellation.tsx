@@ -38,6 +38,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { timeAgo, trustLevelColor, receiptStatusColor, receiptStatusDot } from '@/lib/helpers/dema';
+import {
+  formatOptionalText,
+  formatTrustLevel,
+  formatTrustScore,
+  trustScoreProgress,
+} from '@/lib/activation-state';
 import type {
   MemoryCategory,
   ResourceType,
@@ -327,8 +333,8 @@ function ProfileTab() {
               <User className="h-5 w-5 text-trust" />
             </div>
             <div>
-              <p className="text-sm font-semibold">{trustState.principalName}</p>
-              <p className="text-[10px] text-muted-foreground dema-mono">{trustState.principalId}</p>
+              <p className="text-sm font-semibold">{formatOptionalText(trustState.principalName)}</p>
+              <p className="text-[10px] text-muted-foreground dema-mono">{formatOptionalText(trustState.principalId)}</p>
             </div>
           </div>
 
@@ -336,26 +342,27 @@ function ProfileTab() {
             <div className="p-3 rounded-lg bg-background/50 border border-border/30">
               <p className="text-[10px] text-muted-foreground mb-1">Trust Level</p>
               <div className="flex items-center gap-2">
-                <Shield className={cn('h-4 w-4', trustLevelColor(trustState.level))} />
-                <span className={cn('text-sm font-semibold', trustLevelColor(trustState.level))}>
-                  {trustState.level.charAt(0).toUpperCase() + trustState.level.slice(1)}
+                <Shield className={cn('h-4 w-4', trustLevelColor(trustState.level ?? ''))} />
+                <span className={cn('text-sm font-semibold', trustLevelColor(trustState.level ?? ''))}>
+                  {formatTrustLevel(trustState.level)}
                 </span>
               </div>
               <p className="text-[9px] text-muted-foreground mt-1">
-                {TRUST_LEVEL_DESCRIPTIONS[trustState.level]}
+                {trustState.level
+                  ? TRUST_LEVEL_DESCRIPTIONS[trustState.level]
+                  : 'Authoritative trust level unavailable'}
               </p>
             </div>
 
             <div className="p-3 rounded-lg bg-background/50 border border-border/30">
               <p className="text-[10px] text-muted-foreground mb-1">Trust Score</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-lg font-semibold tabular-nums">{trustState.score}</span>
-                <span className="text-[10px] text-muted-foreground">/ {trustState.maxScore}</span>
+                <span className="text-lg font-semibold tabular-nums">{formatTrustScore(trustState.score, trustState.maxScore)}</span>
               </div>
               <div className="w-full h-1 rounded-full bg-muted mt-1.5">
                 <div
                   className="h-full rounded-full bg-trust transition-all"
-                  style={{ width: `${(trustState.score / trustState.maxScore) * 100}%` }}
+                  style={{ width: `${trustScoreProgress(trustState.score, trustState.maxScore)}%` }}
                 />
               </div>
             </div>
@@ -365,7 +372,7 @@ function ProfileTab() {
             <div className="flex items-center gap-1.5">
               <Clock className="h-3 w-3 text-muted-foreground" />
               <span className="text-[10px] text-muted-foreground">
-                {trustState.lastVerified ? timeAgo(trustState.lastVerified) : 'Never'}
+                {trustState.lastVerified ? timeAgo(trustState.lastVerified) : '—'}
               </span>
             </div>
             <div className="flex items-center gap-1.5">

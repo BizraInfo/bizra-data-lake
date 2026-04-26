@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_type": "bizra_node0_private_pilot_handshake_v1",
+  "truth_label": "MEASURED_LOCAL_ARTIFACT",
+  "status": "signed",
+  "payload": {
+    "protocol": "bizra-node0-private-pilot-handshake-v1",
+    "local_node_id": "node0_ce5af35c848ce889",
+    "peer_node_id": "node1-smoke",
+    "peer_public_key": "36b11ac487697dd1230249b34f4b1e5acf8246f9b16f2222cd4fc3a3fd40076a",
+    "peer_address": "127.0.0.1:9999",
+    "operator": "smoke-test",
+    "created_at": "2026-04-25T23:44:52.891444Z",
+    "nonce": "0bc597674e0e4a089bbbc74f20b44558",
+    "previous_receipt_hash": "",
+    "non_claims": [
+      "not_production_federation",
+      "not_open_discovery",
+      "not_genesis_100"
+    ]
+  },
+  "payload_digest_alg": "sha256",
+  "payload_digest": "eb91ecd98fe50982730f84e143fc1d6cf41019392ab30fc2a5505a4f6e975ab2",
+  "receipt_hash": "23a37b92513164211009fb4a0e823c46a73b8e89cffea924c08645dd7bc76fcd",
+  "signature": "80672f6d3541e043c336bdeeced2315eac9856a250e459257ad9c7bd7134b86744b667444c0c0f63296fd630206b7b664cda924417c339d8226b65ae8ad51b02",
+  "signer_public_key": "139b8875a9c033c5b051e6b6a7300a634e2c21f1bd89c88dfd71d098067f434a",
+  "verification": {
+    "local_signature_valid": true
+  }
+}

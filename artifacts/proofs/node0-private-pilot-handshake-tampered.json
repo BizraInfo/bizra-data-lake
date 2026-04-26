@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_type": "bizra_node0_private_pilot_handshake_v1",
+  "truth_label": "MEASURED_LOCAL_ARTIFACT",
+  "status": "signed",
+  "payload": {
+    "protocol": "bizra-node0-private-pilot-handshake-v1",
+    "local_node_id": "node0-unknown",
+    "peer_node_id": "node1-pilot",
+    "peer_public_key": "8ab5413009a88715f92258e95f0e322e669574501333494ecd14c85f80259b13",
+    "peer_address": "127.0.0.1:9999",
+    "operator": "operator",
+    "created_at": "2026-04-26T19:29:37.363487Z",
+    "nonce": "bf9fd03ff8dd4b1a844650b3b47004e8",
+    "previous_receipt_hash": "8678ef71cb872941dc778c7e12ef5722a8497c4325f146f2172ae590fc1e3c69",
+    "non_claims": [
+      "not_production_federation",
+      "not_open_discovery",
+      "not_genesis_100"
+    ]
+  },
+  "payload_digest_alg": "sha256",
+  "payload_digest": "7f540cb15590d175b13e122e92172f195814b6e5198f1b1210a540a5a1e399cc",
+  "receipt_hash": "8db56fdd89af5d5e5177bf693099e5a8137bd05a48423c864edff11d0e9d286c",
+  "signature": "b847b8c52bdef2831dc7aa327147d07467396fba5e5254397361be4170af4c976f80307bb038c7a8f9924aa634b8c54cda135eb4b2f2b806290d956aeb775306",
+  "signer_public_key": "dc5696ee6db9491cc3cb5ae49336b7dd948e9fe787f659e4e188196cc77ada9f",
+  "verification": {
+    "local_signature_valid": true
+  }
+}

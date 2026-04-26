@@ -51,6 +51,8 @@ import {
   RadioTower,
 } from "lucide-react";
 
+type DEMAStoreState = ReturnType<typeof useDEMAStore.getState>;
+
 // ═══════════════════════════════════════════════════════════════
 // Constants & Mappings
 // ═══════════════════════════════════════════════════════════════
@@ -139,7 +141,7 @@ function formatTimestampShort(ts: string): string {
 // Tab 1: System Health
 // ═══════════════════════════════════════════════════════════════
 
-function HealthSummaryBar({ systemHealth }: { systemHealth: ReturnType<typeof useDEMAStore>["systemHealth"] }) {
+function HealthSummaryBar({ systemHealth }: { systemHealth: DEMAStoreState["systemHealth"] }) {
   const healthy = systemHealth.filter((h) => h.status === "healthy").length;
   const degraded = systemHealth.filter((h) => h.status === "degraded").length;
   const down = systemHealth.filter((h) => h.status === "down").length;
@@ -221,7 +223,7 @@ function HealthSummaryBar({ systemHealth }: { systemHealth: ReturnType<typeof us
   );
 }
 
-function HealthCard({ health }: { health: ReturnType<typeof useDEMAStore>["systemHealth"][number] }) {
+function HealthCard({ health }: { health: DEMAStoreState["systemHealth"][number] }) {
   const config = COMPONENT_CONFIG[health.component];
   const statusCfg = STATUS_CONFIG[health.status];
   const Icon = config.icon;
@@ -655,7 +657,7 @@ function MetricCard({
 function LatencyDistributionCard({
   latest,
 }: {
-  latest: ReturnType<typeof useDEMAStore>["performanceSnapshots"][number];
+  latest: DEMAStoreState["performanceSnapshots"][number];
 }) {
   const maxLatency = Math.max(latest.p99Latency, latest.p95Latency, latest.p50Latency);
 
@@ -701,7 +703,7 @@ function LatencyDistributionCard({
 function PerformanceLineChart({
   snapshots,
 }: {
-  snapshots: ReturnType<typeof useDEMAStore>["performanceSnapshots"];
+  snapshots: DEMAStoreState["performanceSnapshots"];
 }) {
   const width = 700;
   const height = 220;

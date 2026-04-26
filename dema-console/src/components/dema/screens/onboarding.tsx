@@ -42,6 +42,8 @@ import {
   Eye,
   EyeOff,
   BookOpen,
+  Brain,
+  Compass,
   Star,
   Fingerprint,
   Rocket,
@@ -959,7 +961,8 @@ function StageIdentityMint({
         </div>
         <h2 className="text-xl font-bold">Your Sovereign Identity</h2>
         <p className="text-sm text-muted-foreground">
-          DEMA is now creating your local identity, node identity, and first trust state.
+          DEMA is preparing a principal-activation request. Identity fields remain
+          unavailable until the cognition gateway returns an authoritative envelope.
         </p>
       </div>
 
@@ -981,11 +984,11 @@ function StageIdentityMint({
 
           <div className="space-y-2">
             {[
-              { label: "Principal ID", value: `prin-${Math.random().toString(36).slice(2, 10)}`, icon: Fingerprint },
-              { label: "Node Identity", value: `node-0-${Math.random().toString(36).slice(2, 6)}`, icon: Monitor },
-              { label: "Trust Level", value: "Citizen", icon: Shield },
-              { label: "Session ID", value: `sess-${Math.random().toString(36).slice(2, 10)}`, icon: Lock },
-              { label: "First Receipt", value: "Identity Activation", icon: CheckCircle2 },
+              { label: "Principal ID", value: "Assigned by gateway", icon: Fingerprint },
+              { label: "Node Identity", value: "Bound at activation", icon: Monitor },
+              { label: "Trust Level", value: "Unavailable until authoritative source", icon: Shield },
+              { label: "Session ID", value: "—", icon: Lock },
+              { label: "First Receipt", value: "Issued on successful activation", icon: CheckCircle2 },
             ].map((item) => {
               const I = item.icon;
               return (
@@ -1001,7 +1004,8 @@ function StageIdentityMint({
           </div>
 
           <p className="text-[10px] text-muted-foreground text-center">
-            All identity data is stored locally on your device. DEMA does not transmit your identity to any external server.
+            DEMA requests activation through the local cognition gateway. It does not
+            invent identity fields in the face before the runtime returns them.
           </p>
         </CardContent>
       </Card>
@@ -1117,9 +1121,13 @@ function StageFirstMission({
 // ─── Stage 10: Activation Complete ─────────────────────────────
 function StageActivationComplete({
   name,
+  activationPending,
+  activationError,
   onComplete,
 }: {
   name: string;
+  activationPending: boolean;
+  activationError: string | null;
   onComplete: () => void;
 }) {
   return (
@@ -1129,22 +1137,23 @@ function StageActivationComplete({
           <CheckCircle2 className="h-10 w-10 text-success" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Welcome, {name}</h1>
+          <h1 className="text-2xl font-bold">Ready, {name}</h1>
           <p className="text-sm text-success font-medium mt-1">
-            Your sovereign session is now active
+            Request principal activation from the cognition gateway
           </p>
         </div>
       </div>
 
       <p className="text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-        You are now a sovereign operator. Your trust strip is visible, your identity is minted,
-        and your first receipt has been issued. Everything stays on your device.
+        DEMA only marks activation complete after the authoritative gateway returns
+        a lawful activation envelope. Fields the gateway does not provide remain
+        unavailable until another authoritative surface supplies them.
       </p>
 
       {/* What you see now */}
       <Card className="border-border/30 max-w-sm mx-auto">
         <CardContent className="p-5 space-y-3">
-          <h3 className="text-sm font-semibold text-left">Your persistent home shows:</h3>
+          <h3 className="text-sm font-semibold text-left">After successful activation, your home can show:</h3>
           <div className="space-y-2">
             {[
               { label: "Who you are", icon: User, color: "text-trust" },
@@ -1166,8 +1175,19 @@ function StageActivationComplete({
         </CardContent>
       </Card>
 
-      <Button size="lg" onClick={onComplete} className="bg-trust hover:bg-trust/90 text-trust-foreground">
-        Enter DEMA
+      {activationError && (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {activationError}
+        </div>
+      )}
+
+      <Button
+        size="lg"
+        onClick={onComplete}
+        disabled={activationPending}
+        className="bg-trust hover:bg-trust/90 text-trust-foreground disabled:opacity-60"
+      >
+        {activationPending ? "Activating..." : "Enter DEMA"}
         <ArrowRight className="h-4 w-4 ml-2" />
       </Button>
 
@@ -1181,7 +1201,13 @@ function StageActivationComplete({
 // ─── Main Onboarding Screen ────────────────────────────────────
 
 export function OnboardingScreen() {
-  const { completeOnboarding, onboardingStep, setOnboardingStep } = useDEMAStore();
+  const {
+    completeOnboarding,
+    onboardingStep,
+    setOnboardingStep,
+    activationStatus,
+    activationError,
+  } = useDEMAStore();
   const [name, setName] = useState("");
   const [work, setWork] = useState("");
   const [goal, setGoal] = useState("");
@@ -1199,7 +1225,7 @@ export function OnboardingScreen() {
 
   const handleContinue = () => {
     if (onboardingStep === TOTAL_STAGES) {
-      completeOnboarding(name.trim() || "Operator");
+      void completeOnboarding(name.trim() || "Operator");
     } else {
       setOnboardingStep(onboardingStep + 1);
     }
@@ -1284,7 +1310,11 @@ export function OnboardingScreen() {
         return (
           <StageActivationComplete
             name={name}
-            onComplete={() => completeOnboarding(name.trim() || "Operator")}
+            activationPending={activationStatus === "activating"}
+            activationError={activationError}
+            onComplete={() => {
+              void completeOnboarding(name.trim() || "Operator");
+            }}
           />
         );
       default:

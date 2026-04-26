@@ -1,0 +1,92 @@
+[
+  {
+    "gate_id": "G_A1",
+    "tier": "A",
+    "label": "Node0 identity sealed (genesis)",
+    "status": "PASS",
+    "evidence_path": "docs/canon/NODE0_DEFINITION_OF_DONE.md (if present) or memory anchor.",
+    "owner": "operator",
+    "next_action": "Keep sealed; do not alter genesis."
+  },
+  {
+    "gate_id": "G_A2",
+    "tier": "A",
+    "label": "Canonical receipt emits on every effect",
+    "status": "PASS",
+    "evidence_path": "bizra-omega/bizra-core/src/canonical_receipt.rs",
+    "owner": "operator",
+    "next_action": "Periodic contract tests."
+  },
+  {
+    "gate_id": "G_B1",
+    "tier": "B",
+    "label": "Reflex persistence across restart",
+    "status": "PASS",
+    "evidence_path": "bizra-omega/bizra-agent/src/persistence.rs",
+    "owner": "operator",
+    "next_action": "None."
+  },
+  {
+    "gate_id": "G_B2",
+    "tier": "B",
+    "label": "FATE gate chain wired end-to-end",
+    "status": "PASS",
+    "evidence_path": "Node0 closure row 4 replay test",
+    "owner": "operator",
+    "next_action": "None."
+  },
+  {
+    "gate_id": "G_C1",
+    "tier": "C",
+    "label": "Dema face reads authoritative chain head",
+    "status": "PASS",
+    "evidence_path": "services/node_gateway/ + trust-surface",
+    "owner": "operator",
+    "next_action": "None."
+  },
+  {
+    "gate_id": "G_C2",
+    "tier": "C",
+    "label": "Canon-store ingestion gate spec exists",
+    "status": "FAIL",
+    "evidence_path": "(not created yet)",
+    "owner": "operator",
+    "next_action": "Spec-first design; no code until authorized."
+  },
+  {
+    "gate_id": "G_D1",
+    "tier": "D",
+    "label": "Public site claim discipline in place",
+    "status": "FAIL",
+    "evidence_path": "docs/brand/public_launch_readiness/PUBLIC_CLAIMS_REGISTER.md",
+    "owner": "operator",
+    "next_action": "Remove or receipt-ify C4/C5/C7/C9 on bizra.ai."
+  },
+  {
+    "gate_id": "G_D2",
+    "tier": "D",
+    "label": "Privacy policy published",
+    "status": "NOT_TESTED",
+    "evidence_path": "(unknown — check bizra.ai sub-pages)",
+    "owner": "operator",
+    "next_action": "Publish or disable 'no telemetry' / 'no cloud' claims."
+  },
+  {
+    "gate_id": "G_D3",
+    "tier": "D",
+    "label": "Headless-Chromium DOM capture of live site",
+    "status": "NOT_TESTED",
+    "evidence_path": "(not performed)",
+    "owner": "operator",
+    "next_action": "Capture + version for future audits."
+  },
+  {
+    "gate_id": "G_E1",
+    "tier": "E",
+    "label": "Genesis-100 cohort scaling path defined",
+    "status": "BLOCKED",
+    "evidence_path": "(no GTM doc set on disk)",
+    "owner": "operator",
+    "next_action": "Author Node0→100 activation plan."
+  }
+]

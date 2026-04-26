@@ -181,9 +181,8 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
-          # Gate dependencies
-          pip install ruff mypy bandit 2>/dev/null || true
+          pip install -e ".[dev]"
+          pip install ruff mypy bandit
 
       - name: Spine → Enforce
         env:
@@ -198,8 +197,7 @@ jobs:
             --coverage-xml coverage.xml \
             --pyproject pyproject.toml \
             $SKIP_ARG \
-            --json || true
-          # Non-blocking for now (gates report only)
+            --json
 
   # ═══════════════════════════════════════════════════════════════════════════
   # STAGE 4: PR Summary

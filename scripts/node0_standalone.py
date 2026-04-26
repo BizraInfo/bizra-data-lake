@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import hmac
 import json
 import logging
@@ -99,6 +100,7 @@ class Node0StandaloneManager:
         self.awareness_path = self.state_root / "pat_awareness.json"
         self.urp_path = self.state_root / "urp_pledge.json"
         self.lifecycle_path = self.state_root / "node0_lifecycle.json"
+        self.private_pilot_dir = self.state_root / "private_pilot"
         self.identity_dir.mkdir(parents=True, exist_ok=True)
 
     def activate(
@@ -424,6 +426,180 @@ class Node0StandaloneManager:
         proof_path = self.state_root / "node0_mvsa_proof.json"
         return _read_json(proof_path, default={}) or {}
 
+    def pilot_doctor(self) -> dict[str, Any]:
+        """Read-only private-pilot readiness report."""
+        lifecycle = self.lifecycle()
+        health = self.health()
+        docs_root = (
+            self.project_root
+            / "docs"
+            / "gtm"
+            / "node0_activation_go_to_market_v0_1"
+        )
+        required_docs = {
+            "private_pilot_plan": docs_root / "NODE0_PRIVATE_PILOT_PLAN.md",
+            "onboarding_runbook": docs_root / "USER_NODE_ONBOARDING_RUNBOOK.md",
+            "hardware_profile": docs_root / "MINIMUM_HARDWARE_PROFILE.md",
+            "kill_switch": docs_root / "OPERATOR_KILL_SWITCH_AND_INCIDENT_RUNBOOK.md",
+            "claim_discipline": docs_root / "CLAIM_DISCIPLINE_FOR_NODE0_AND_URP.md",
+        }
+        doc_gates = {name: path.exists() for name, path in required_docs.items()}
+        lifecycle_gates = lifecycle.get("gates", {})
+        required_lifecycle = {
+            "genesis_authority_valid": bool(
+                lifecycle_gates.get("genesis_authority_valid")
+            ),
+            "identity_ready": bool(lifecycle_gates.get("identity_ready")),
+            "urp_signed": bool(lifecycle_gates.get("urp_signed")),
+            "urp_verified": bool(lifecycle_gates.get("urp_verified")),
+            "mvsa_network_bootstrap_ok": bool(
+                lifecycle_gates.get("mvsa_network_bootstrap_ok")
+            ),
+            "mvsa_self_validation_ok": bool(
+                lifecycle_gates.get("mvsa_self_validation_ok")
+            ),
+        }
+        readiness = {
+            **doc_gates,
+            **required_lifecycle,
+            "operator_kill_switch_documented": doc_gates["kill_switch"],
+        }
+        blocking = [name for name, ok in readiness.items() if not ok]
+        status = "ready" if not blocking else "blocked"
+        return {
+            "schema_version": "1.0.0",
+            "generated_at": _utc_now(),
+            "status": status,
+            "node_id": health.get("node_id", "unknown"),
+            "truth_label": "MEASURED" if status == "ready" else "PARTIAL",
+            "readiness": readiness,
+            "blocking": blocking,
+            "next_milestone": (
+                "two-node signed receipt handshake"
+                if status == "ready"
+                else "close blocking readiness gates before onboarding user devices"
+            ),
+        }
+
+    def create_pilot_handshake(
+        self,
+        *,
+        peer_node_id: str,
+        peer_public_key: str,
+        peer_address: str,
+        operator: str,
+        private_key_hex: str | None = None,
+        previous_receipt_hash: str | None = None,
+        out_path: Path | None = None,
+    ) -> dict[str, Any]:
+        """Create a signed private-pilot handshake artifact.
+
+        This intentionally stops at a local signed artifact. It proves the
+        operator-controlled node can commit to a peer boundary without claiming
+        production discovery, routing, or consensus.
+        """
+        signing_key = private_key_hex or self._load_operational_private_key()
+        if not signing_key:
+            raise RuntimeError(
+                "No operational signing key available. Run activate first or pass "
+                "--private-key-hex for an isolated pilot test."
+            )
+        self._validate_hex_key(peer_public_key, expected_bytes=32, field="peer_public_key")
+        if previous_receipt_hash:
+            self._validate_hex_key(
+                previous_receipt_hash,
+                expected_bytes=32,
+                field="previous_receipt_hash",
+            )
+
+        local_node_id = self._local_node_id()
+        created_at = _utc_now()
+        nonce = uuid.uuid4().hex
+        payload = self._pilot_handshake_payload(
+            local_node_id=local_node_id,
+            peer_node_id=peer_node_id,
+            peer_public_key=peer_public_key,
+            peer_address=peer_address,
+            operator=operator,
+            created_at=created_at,
+            nonce=nonce,
+            previous_receipt_hash=previous_receipt_hash,
+        )
+        payload_digest = self._pilot_payload_digest(payload)
+        signature = self._ed25519_sign_digest(payload_digest, signing_key)
+        receipt_hash = self._pilot_receipt_hash(payload_digest, signature)
+        receipt = {
+            "schema_version": "1.0.0",
+            "receipt_type": "bizra_node0_private_pilot_handshake_v1",
+            "truth_label": "MEASURED_LOCAL_ARTIFACT",
+            "status": "signed",
+            "payload": payload,
+            "payload_digest_alg": "sha256",
+            "payload_digest": payload_digest,
+            "receipt_hash": receipt_hash,
+            "signature": signature,
+            "signer_public_key": self._ed25519_public_key_hex(signing_key),
+            "verification": {
+                "local_signature_valid": self.verify_pilot_handshake_payload(
+                    {
+                        "payload": payload,
+                        "payload_digest": payload_digest,
+                        "receipt_hash": receipt_hash,
+                        "signature": signature,
+                        "signer_public_key": self._ed25519_public_key_hex(
+                            signing_key
+                        ),
+                    }
+                )["valid"]
+            },
+        }
+
+        target = out_path or (
+            self.private_pilot_dir
+            / "handshakes"
+            / f"{created_at.replace(':', '').replace('-', '')}-{nonce}.json"
+        )
+        _write_json(target, receipt)
+        receipt["path"] = str(target)
+        return receipt
+
+    def verify_pilot_handshake(self, receipt_path: Path) -> dict[str, Any]:
+        receipt = _read_json(receipt_path, default=None)
+        if not isinstance(receipt, dict):
+            return {
+                "valid": False,
+                "reason_code": "RECEIPT_NOT_READABLE",
+                "path": str(receipt_path),
+            }
+        result = self.verify_pilot_handshake_payload(receipt)
+        result["path"] = str(receipt_path)
+        return result
+
+    def verify_pilot_handshake_payload(self, receipt: dict[str, Any]) -> dict[str, Any]:
+        """Verify a private-pilot handshake artifact fail-closed."""
+        payload = receipt.get("payload")
+        if not isinstance(payload, dict):
+            return {"valid": False, "reason_code": "MISSING_PAYLOAD"}
+        payload_digest = receipt.get("payload_digest", "")
+        expected_digest = self._pilot_payload_digest(payload)
+        if not hmac.compare_digest(str(payload_digest), expected_digest):
+            return {"valid": False, "reason_code": "PAYLOAD_DIGEST_MISMATCH"}
+        signature = str(receipt.get("signature", ""))
+        signer_public_key = str(receipt.get("signer_public_key", ""))
+        if not self._ed25519_verify_digest(expected_digest, signature, signer_public_key):
+            return {"valid": False, "reason_code": "SIGNATURE_INVALID"}
+        receipt_hash = str(receipt.get("receipt_hash", ""))
+        expected_hash = self._pilot_receipt_hash(expected_digest, signature)
+        if not hmac.compare_digest(receipt_hash, expected_hash):
+            return {"valid": False, "reason_code": "RECEIPT_HASH_MISMATCH"}
+        return {
+            "valid": True,
+            "reason_code": "OK",
+            "receipt_hash": expected_hash,
+            "local_node_id": payload.get("local_node_id"),
+            "peer_node_id": payload.get("peer_node_id"),
+        }
+
     def prove_mvsa(self) -> dict[str, Any]:
         """Run the Rust-backed MVSA proof and update lifecycle v2."""
         try:
@@ -542,6 +718,124 @@ class Node0StandaloneManager:
         from core.sovereign.node0_authority import require_authority
 
         return require_authority(self.state_root, self.project_root)
+
+    def _local_node_id(self) -> str:
+        lifecycle = self.lifecycle()
+        node_id = lifecycle.get("node_id")
+        if isinstance(node_id, str) and node_id:
+            return node_id
+        credentials = self._load_existing_operational_credentials()
+        if credentials is not None:
+            credential_node_id = getattr(credentials, "node_id", "")
+            if credential_node_id:
+                return str(credential_node_id)
+        return "node0-unknown"
+
+    def _load_operational_private_key(self) -> str | None:
+        credentials = self._load_existing_operational_credentials()
+        if credentials is None:
+            return None
+        private_key = getattr(credentials, "private_key", None)
+        if isinstance(private_key, str) and private_key:
+            return private_key
+        return None
+
+    @staticmethod
+    def _validate_hex_key(value: str, *, expected_bytes: int, field: str) -> None:
+        try:
+            raw = bytes.fromhex(value)
+        except ValueError as exc:
+            raise ValueError(f"{field} must be hex") from exc
+        if len(raw) != expected_bytes:
+            raise ValueError(f"{field} must be {expected_bytes} bytes")
+
+    @staticmethod
+    def _pilot_handshake_payload(
+        *,
+        local_node_id: str,
+        peer_node_id: str,
+        peer_public_key: str,
+        peer_address: str,
+        operator: str,
+        created_at: str,
+        nonce: str,
+        previous_receipt_hash: str | None,
+    ) -> dict[str, Any]:
+        return {
+            "protocol": "bizra-node0-private-pilot-handshake-v1",
+            "local_node_id": local_node_id,
+            "peer_node_id": peer_node_id,
+            "peer_public_key": peer_public_key,
+            "peer_address": peer_address,
+            "operator": operator,
+            "created_at": created_at,
+            "nonce": nonce,
+            "previous_receipt_hash": previous_receipt_hash or "",
+            "non_claims": [
+                "not_production_federation",
+                "not_open_discovery",
+                "not_genesis_100",
+            ],
+        }
+
+    @staticmethod
+    def _pilot_payload_digest(payload: dict[str, Any]) -> str:
+        canonical = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        )
+        if not canonical.isascii():
+            raise ValueError("pilot handshake payload must canonicalize to ASCII")
+        material = b"bizra-node0-private-pilot-handshake-v1:" + canonical.encode(
+            "ascii"
+        )
+        return hashlib.sha256(material).hexdigest()
+
+    @staticmethod
+    def _pilot_receipt_hash(payload_digest: str, signature: str) -> str:
+        material = f"bizra-node0-private-pilot-receipt-v1:{payload_digest}:{signature}"
+        return hashlib.sha256(material.encode("ascii")).hexdigest()
+
+    @staticmethod
+    def _ed25519_public_key_hex(private_key_hex: str) -> str:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ed25519
+
+        private_key = ed25519.Ed25519PrivateKey.from_private_bytes(
+            bytes.fromhex(private_key_hex)
+        )
+        return private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        ).hex()
+
+    @staticmethod
+    def _ed25519_sign_digest(digest_hex: str, private_key_hex: str) -> str:
+        from cryptography.hazmat.primitives.asymmetric import ed25519
+
+        private_key = ed25519.Ed25519PrivateKey.from_private_bytes(
+            bytes.fromhex(private_key_hex)
+        )
+        return private_key.sign(bytes.fromhex(digest_hex)).hex()
+
+    @staticmethod
+    def _ed25519_verify_digest(
+        digest_hex: str, signature_hex: str, public_key_hex: str
+    ) -> bool:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric import ed25519
+
+        try:
+            public_key = ed25519.Ed25519PublicKey.from_public_bytes(
+                bytes.fromhex(public_key_hex)
+            )
+            public_key.verify(bytes.fromhex(signature_hex), bytes.fromhex(digest_hex))
+            return True
+        except (InvalidSignature, ValueError):
+            return False
 
     def _run_mvsa_proof(self) -> dict[str, Any] | None:
         """Execute the Rust MVSA proof binary."""
@@ -1019,6 +1313,39 @@ async def _cmd_prove_mvsa(args: argparse.Namespace) -> int:
         return 3
 
 
+async def _cmd_pilot_doctor(args: argparse.Namespace) -> int:
+    manager = Node0StandaloneManager()
+    result = manager.pilot_doctor()
+    _print_json(result)
+    return 0 if result.get("status") == "ready" else 3
+
+
+async def _cmd_pilot_handshake(args: argparse.Namespace) -> int:
+    manager = Node0StandaloneManager()
+    try:
+        result = manager.create_pilot_handshake(
+            peer_node_id=args.peer_node_id,
+            peer_public_key=args.peer_public_key,
+            peer_address=args.peer_address,
+            operator=args.operator,
+            private_key_hex=args.private_key_hex,
+            previous_receipt_hash=args.previous_receipt_hash,
+            out_path=Path(args.out).resolve() if args.out else None,
+        )
+    except (RuntimeError, ValueError) as exc:
+        _print_json({"ok": False, "status": "blocked", "reason": str(exc)})
+        return 3
+    _print_json({"ok": True, "status": "signed", "receipt": result})
+    return 0
+
+
+async def _cmd_pilot_verify(args: argparse.Namespace) -> int:
+    manager = Node0StandaloneManager()
+    result = manager.verify_pilot_handshake(Path(args.receipt).resolve())
+    _print_json(result)
+    return 0 if result.get("valid") else 3
+
+
 async def _cmd_task(args: argparse.Namespace) -> int:
     manager = Node0StandaloneManager()
     result = await manager.run_task(
@@ -1436,6 +1763,37 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("prove-mvsa", help="Run Rust-backed MVSA proof and update lifecycle")
 
+    sub.add_parser(
+        "pilot-doctor",
+        help="Read-only readiness report for private user-node pilot",
+    )
+
+    p_pilot_handshake = sub.add_parser(
+        "pilot-handshake",
+        help="Create a signed private-pilot peer handshake artifact",
+    )
+    p_pilot_handshake.add_argument("--peer-node-id", required=True)
+    p_pilot_handshake.add_argument("--peer-public-key", required=True)
+    p_pilot_handshake.add_argument("--peer-address", required=True)
+    p_pilot_handshake.add_argument("--operator", default="MoMo")
+    p_pilot_handshake.add_argument(
+        "--private-key-hex",
+        default=None,
+        help="Optional isolated pilot signing key; defaults to local operational signer",
+    )
+    p_pilot_handshake.add_argument("--previous-receipt-hash", default=None)
+    p_pilot_handshake.add_argument(
+        "--out",
+        default=None,
+        help="Optional output JSON path for the signed handshake artifact",
+    )
+
+    p_pilot_verify = sub.add_parser(
+        "pilot-verify",
+        help="Verify a signed private-pilot handshake artifact",
+    )
+    p_pilot_verify.add_argument("receipt", help="Path to handshake JSON artifact")
+
     p_task = sub.add_parser("task", help="Run one autonomous task")
     p_task.add_argument("description", help="Mission description")
     p_task.add_argument(
@@ -1459,6 +1817,9 @@ async def _dispatch(args: argparse.Namespace) -> int:
     handlers = {
         "activate": _cmd_activate,
         "prove-mvsa": _cmd_prove_mvsa,
+        "pilot-doctor": _cmd_pilot_doctor,
+        "pilot-handshake": _cmd_pilot_handshake,
+        "pilot-verify": _cmd_pilot_verify,
         "health": _cmd_health,
         "task": _cmd_task,
         "serve": _cmd_serve,

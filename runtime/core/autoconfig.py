@@ -318,17 +318,11 @@ class AutoConfigurator:
             or "http://localhost:11434"
         )
         lmstudio_url = os.getenv("LMSTUDIO_URL") or "http://localhost:1234"
-        # Use host-mapped port (6380), not Docker-internal synapse:6379
-        redis_url = (
-            os.getenv("BIZRA_REDIS_URL")
-            or "redis://:bizra_synapse_secure@localhost:6380"
-        )
+        redis_url = os.getenv("BIZRA_REDIS_URL")
         neo4j_url = os.getenv("WISDOM_URL") or "bolt://localhost:7474"
-        neo4j_auth_raw = os.getenv("NEO4J_AUTH") or "neo4j/bizra"
+        neo4j_auth_raw = os.getenv("NEO4J_AUTH")
         chromadb_url = os.getenv("VECTORS_URL") or "http://localhost:8001"
-        postgres_url = (
-            os.getenv("DATABASE_URL") or "postgresql://bizra:bizra@localhost:5433/bizra"
-        )
+        postgres_url = os.getenv("DATABASE_URL")
 
         neo4j_auth = None
         if neo4j_auth_raw and neo4j_auth_raw.lower() != "none":
@@ -339,13 +333,30 @@ class AutoConfigurator:
         tasks = {
             "ollama": self.probe_ollama(ollama_url, timeout),
             "lmstudio": self.probe_lmstudio(lmstudio_url, timeout),
-            "redis": self.probe_redis(redis_url, timeout),
             "chromadb": self.probe_chromadb(chromadb_url, timeout),
-            "postgres": self.probe_postgres(postgres_url, timeout),
         }
+        static_results = {}
+
+        if redis_url:
+            tasks["redis"] = self.probe_redis(redis_url, timeout)
+        else:
+            static_results["redis"] = ServiceProbeResult(
+                False, error="BIZRA_REDIS_URL not set"
+            )
+
+        if postgres_url:
+            tasks["postgres"] = self.probe_postgres(postgres_url, timeout)
+        else:
+            static_results["postgres"] = ServiceProbeResult(
+                False, error="DATABASE_URL not set"
+            )
 
         if neo4j_auth:
             tasks["neo4j"] = self.probe_neo4j(neo4j_url, neo4j_auth, timeout)
+        else:
+            static_results["neo4j"] = ServiceProbeResult(
+                False, error="NEO4J_AUTH not set"
+            )
 
         # Global 5s timeout on all probes combined
         try:
@@ -356,7 +367,7 @@ class AutoConfigurator:
         except asyncio.TimeoutError:
             results = [ServiceProbeResult(False, error="global timeout")] * len(tasks)
 
-        return {
+        dynamic_results = {
             k: (
                 v
                 if isinstance(v, ServiceProbeResult)
@@ -364,6 +375,8 @@ class AutoConfigurator:
             )
             for k, v in zip(tasks.keys(), results)
         }
+        dynamic_results.update(static_results)
+        return dynamic_results
 
     def _find_model(self, wanted: str, available: List[str]) -> Optional[str]:
         """Find a model in available list, with family-level fuzzy matching.

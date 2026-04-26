@@ -1,0 +1,2 @@
+contact_id,segment,source_channel,contacted_date,response_state,A3_S4_confirmed,interview_scheduled,notes
+C000_EXAMPLE_DELETE_BEFORE_USE,A3,LinkedIn_post_CARD_1_2026-04-23,2026-04-23,EXAMPLE_scheduled,EXAMPLE_Y,2026-04-24_10:00_GST,"EXAMPLE ROW — NOT REAL DATA. Demonstrates column shape. Response states vocabulary: pending | responded | qualified | scheduled | completed | disqualified | released | adjacent_segment. Delete this row before real data entry."

@@ -1,0 +1,179 @@
+{
+  "tree": {
+    "SECURITY": {
+      "secrets": {
+        "Secret-pattern scanner surfaced 35 candidate match(es). Review each for false po": {
+          "evidence": [],
+          "actions": [
+            "Triage each match; rotate any real credential; add allow-listed paths."
+          ]
+        }
+      }
+    },
+    "DEPENDENCY": {
+      "lockfiles": {
+        "Workspace without Cargo.lock: filedfs/Cargo.toml": {
+          "evidence": [],
+          "actions": [
+            "Add/pin lockfile; establish SBOM generation in CI."
+          ]
+        },
+        "Workspace without Cargo.lock: desktop/rust/Cargo.toml": {
+          "evidence": [],
+          "actions": [
+            "Add/pin lockfile; establish SBOM generation in CI."
+          ]
+        },
+        "SBOM artifact not located in repo (no *.spdx.json / *.cdx.json found).": {
+          "evidence": [],
+          "actions": [
+            "Add/pin lockfile; establish SBOM generation in CI."
+          ]
+        }
+      }
+    },
+    "CODE_QUALITY": {
+      "RS_UNWRAP": {
+        "Rust .unwrap() usage — failure modes become panics. Review hot paths. (1254 occu": {
+          "evidence": [],
+          "actions": [
+            "Triage; establish rule-level budgets; raise severity on hot paths."
+          ]
+        }
+      },
+      "RS_UNSAFE_BLOCK": {
+        "Rust unsafe { } blocks — document invariants + add tests. (6 occurrences)": {
+          "evidence": [],
+          "actions": [
+            "Triage; establish rule-level budgets; raise severity on hot paths."
+          ]
+        }
+      },
+      "PY_SHELL_TRUE": {
+        "Python subprocess shell=True — command-injection surface. (1 occurrences)": {
+          "evidence": [],
+          "actions": [
+            "Triage; establish rule-level budgets; raise severity on hot paths."
+          ]
+        }
+      },
+      "PY_BROAD_EXCEPT": {
+        "Python broad `except Exception` — may mask errors. (126 occurrences)": {
+          "evidence": [],
+          "actions": [
+            "Triage; establish rule-level budgets; raise severity on hot paths."
+          ]
+        }
+      },
+      "RS_TODO": {
+        "Rust TODO/FIXME markers — tech-debt signal. (3 occurrences)": {
+          "evidence": [],
+          "actions": [
+            "Triage; establish rule-level budgets; raise severity on hot paths."
+          ]
+        }
+      },
+      "PY_TODO": {
+        "Python TODO/FIXME markers — tech-debt signal. (4 occurrences)": {
+          "evidence": [],
+          "actions": [
+            "Triage; establish rule-level budgets; raise severity on hot paths."
+          ]
+        }
+      }
+    },
+    "PUBLIC_CLAIMS": {
+      "prohibited": {
+        "20 PROHIBITED-class claim patterns matched across scanned docs.": {
+          "evidence": [
+            "docs/PROJECT_HANDOVER.md",
+            "docs/THREAT-MODEL-V3.md",
+            "docs/THREAT-MODEL-V3.md",
+            "docs/ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md",
+            "docs/KERNEL.md"
+          ],
+          "actions": [
+            "Rewrite or remove each PROHIBITED match before any public reuse."
+          ]
+        }
+      },
+      "needs_rewrite": {
+        "94 NEEDS_REWRITE claim patterns matched (exact numbers / brittle / cost).": {
+          "evidence": [
+            "docs/BATCHING_QUICK_START.md",
+            "docs/ELITE_ASSESSMENT_v2.2.0.md",
+            "docs/ELITE_ASSESSMENT_v2.2.0.md",
+            "docs/ELITE_ASSESSMENT_v2.2.0.md",
+            "docs/bizra-now-vs-future-image-v1.md"
+          ],
+          "actions": [
+            "Remove from hero copy; move to under-the-hood page with receipts."
+          ]
+        }
+      },
+      "proof_required": {
+        "367 PROOF_REQUIRED claim patterns — need public receipt chain.": {
+          "evidence": [
+            "docs/OPTIMIZATION_QUICK_REFERENCE.md",
+            "docs/OPTIMIZATION_QUICK_REFERENCE.md",
+            "docs/OPTIMIZATION_QUICK_REFERENCE.md",
+            "docs/CI_CLOSURE_LEDGER.md",
+            "docs/CI_CLOSURE_LEDGER.md"
+          ],
+          "actions": [
+            "Publish a receipt per claim OR soften to directional wording."
+          ]
+        }
+      },
+      "website_rendering": {
+        "Website https://bizra.ai is client-side-rendered; non-JS fetchers see only shell": {
+          "evidence": [],
+          "actions": [
+            "Add OG meta tags in shell HTML; consider SSR/prerender for link-preview surfaces."
+          ]
+        },
+        "Website https://bizra.info is client-side-rendered; non-JS fetchers see only she": {
+          "evidence": [],
+          "actions": [
+            "Add OG meta tags in shell HTML; consider SSR/prerender for link-preview surfaces."
+          ]
+        }
+      },
+      "redirects": {
+        "bizra.info 302 → bizra.ai confirmed; no split claim surface.": {
+          "evidence": [],
+          "actions": [
+            "None — keep as brand-defense redirect."
+          ]
+        }
+      }
+    },
+    "DOCUMENTATION": {
+      "doctrine_surface_area": {
+        "48 doctrine-class documents present (manifestos, canonical docs, READMEs).": {
+          "evidence": [],
+          "actions": [
+            "Index and deduplicate; canon-store ingestion gate is the single forward path for doctrine → runtime."
+          ]
+        }
+      },
+      "agent_instructions": {
+        "Top-level CLAUDE.md present — stable high-level agent contract.": {
+          "evidence": [
+            "CLAUDE.md"
+          ],
+          "actions": [
+            "Review quarterly; keep in sync with module decomposition."
+          ]
+        }
+      }
+    }
+  },
+  "counts_by_domain": {
+    "SECURITY": 1,
+    "DEPENDENCY": 3,
+    "CODE_QUALITY": 6,
+    "PUBLIC_CLAIMS": 6,
+    "DOCUMENTATION": 2
+  }
+}

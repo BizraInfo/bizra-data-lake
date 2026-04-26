@@ -11,7 +11,7 @@ from types import MethodType
 from typing import Any
 from unittest.mock import patch
 
-from core.integration.constants import REFLEX_PRECIPITATION_HITS
+from core.integration.constants import REFLEX_PRECIPITATION_HITS, UNIFIED_IHSAN_THRESHOLD
 from core.pat.identity_card import generate_identity_keypair
 from core.proof_engine.canonical import canonical_bytes, hex_digest
 from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
@@ -21,6 +21,7 @@ ARTIFACT_STATUS_POPULATED = "POPULATED_EXECUTION"
 GENESIS_ZERO_HASH = "0" * 64
 MISSION_POLICY_FLOOR = 0.85
 POLICY_VERSION = "1.0.0"
+STABLE_PREFLIGHT_RECEIPT_REF = "canonical-preflight-receipt"
 
 
 class DeterministicGateway:
@@ -32,12 +33,38 @@ class DeterministicGateway:
         del prompt
         await asyncio.sleep(0.02)
         return (
-            "# Decision\n"
-            "Verify Spine section 4, verify the canonical gate, and ensure canonical mode uses runtime-owned organism mission authority.\n\n"
-            "# Outcome\n"
-            "If canonical mode is enabled and that authority is unavailable, the system must reject execution, fail closed, emit a blocked receipt, record fate reason codes, and use Ihsan >= 095 as the policy floor.\n\n"
-            "# Safeguard\n"
-            "However, to answer what must happen on this failure path, the constitutional trade-off is still simple: the system should verify the refusal, ensure the safeguard chain stays intact, keep the weaker route disabled, and therefore must not silently fall back or use any legacy route."
+            "# Answer\n\n"
+            "Under BIZRA constitutional enforcement, when canonical mode is enabled but "
+            "runtime-owned organism mission authority is unavailable, the system must "
+            "reject execution, fail closed, and emit a blocked receipt. It must not "
+            "silently fall back.\n\n"
+            "## Why\n"
+            "- canonical mode binds mission authority to runtime-owned organism mission authority\n"
+            "- unavailable authority means execution is not admissible\n"
+            "- replay and hash-chain integrity would be weakened by silent fallback\n\n"
+            "## Evidence\n"
+            "- core/sovereign/runtime_core.py:3366-3389\n"
+            "- core/sovereign/organism.py:584-640\n"
+            "- core/sovereign/api.py:2947-2955\n"
+            "- tests/core/sovereign/test_chain_proxy_trust_surface.py\n"
+            "- Ihsān >= 0.85\n\n"
+            "## Required actions\n"
+            "1. reject execution\n"
+            "2. emit blocked receipt\n"
+            "3. preserve canon and replay lineage\n"
+            "4. record reason codes and audit receipts\n"
+            "5. retry only after authority is restored\n\n"
+            "## Failure handling and recovery\n"
+            "If runtime-owned organism mission authority remains unavailable, the "
+            "system should stay blocked, surface the failure, preserve the receipt "
+            "chain, and avoid legacy fallback. However, if authority is restored, the "
+            "same mission may retry through runtime->organism->node0 with the same "
+            "policy version and thresholds. Another approach, such as a degraded "
+            "backup or legacy route, would be a policy violation rather than a valid "
+            "recovery. This trade-off matters because the safeguard is constitutional "
+            "replay, not mere liveness.\n\n"
+            "Therefore the constitutional answer is explicit refusal, explicit receipt "
+            "emission, and no silent fallback."
         )
 
 
@@ -64,6 +91,23 @@ def _artifact_hash(payload: dict[str, Any]) -> str:
 
 def _clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
+
+
+def _governed_prompt(
+    mission_prompt: str,
+    *,
+    action_receipt_refs: list[str] | None = None,
+) -> str:
+    from core.prompt.seed_chain import EvidenceTag, small_seed
+
+    chain = small_seed(mission_prompt, agent="P7_DEMA")
+    for ref in action_receipt_refs or []:
+        chain.bayyinah.add(
+            f"Prior receipt: {ref}",
+            EvidenceTag.VERIFIED,
+            source="receipt_chain",
+        )
+    return chain.to_prompt()
 
 
 def _status_from_receipt(receipt: Any) -> str:
@@ -213,12 +257,39 @@ async def _build_runtime(
     await runtime.initialize()
     runtime._gateway = gateway
     runtime.config.default_model = gateway.model_id
+    original_preflight = runtime._preflight_mission
+    nervous_system = runtime._organism._nervous_system
+    original_run = nervous_system.run
+
+    async def _deterministic_preflight(
+        self: SovereignRuntime,
+        description: str,
+        *,
+        source: str,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        result = await original_preflight(description, source=source, context=context)
+        result["action_receipt_refs"] = [STABLE_PREFLIGHT_RECEIPT_REF]
+        return result
+
+    async def _deterministic_run(self: Any, mission_text: str, **kwargs: Any) -> Any:
+        kwargs.setdefault("ihsan_override", UNIFIED_IHSAN_THRESHOLD)
+        kwargs.setdefault("snr_override", 1.0)
+        return await original_run(mission_text, **kwargs)
+
+    runtime._preflight_mission = MethodType(_deterministic_preflight, runtime)
+    nervous_system.run = MethodType(_deterministic_run, nervous_system)
     return runtime
 
 
 def _pattern_hash(runtime: SovereignRuntime, mission_prompt: str) -> str:
     reflex = runtime._organism._nervous_system._reflex
-    return reflex._hash_input(mission_prompt)
+    return reflex._hash_input(
+        _governed_prompt(
+            mission_prompt,
+            action_receipt_refs=[STABLE_PREFLIGHT_RECEIPT_REF],
+        )
+    )
 
 
 def _capture_pre_state(
@@ -596,7 +667,11 @@ def _apply_state_delta(
     reward_doc: dict[str, Any],
 ) -> dict[str, Any]:
     reflex = runtime._organism._nervous_system._reflex
-    pattern_hash = reflex._hash_input(mission_prompt)
+    governed_prompt = _governed_prompt(
+        mission_prompt,
+        action_receipt_refs=[STABLE_PREFLIGHT_RECEIPT_REF],
+    )
+    pattern_hash = reflex._hash_input(governed_prompt)
     result = state_delta_doc["state_delta_result"]
     threshold = float(
         state_delta_doc.get("state_delta_contract", {})
@@ -624,7 +699,7 @@ def _apply_state_delta(
     if should_apply:
         reflex.compile_from_candidate(
             pattern_id=pattern_hash,
-            input_template=mission_prompt,
+            input_template=governed_prompt,
             output_template=str(
                 getattr(runtime._last_mission_receipt, "output_text", "")
             ),

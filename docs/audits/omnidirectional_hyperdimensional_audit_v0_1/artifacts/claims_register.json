@@ -1,0 +1,4502 @@
+[
+  {
+    "claim_id": "C00001",
+    "text": "nQuery) -> str:         \"\"\"Generate cache key using xxHash (10x faster than SHA-256).\"\"\"         content = f\"{query.content}:{quer",
+    "source": "docs/OPTIMIZATION_QUICK_REFERENCE.md",
+    "line": null,
+    "category": "Relative-performance claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Relative-performance claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00002",
+    "text": "xxHash ```bash pip install xxhash ```  **Expected Impact:** 10x faster cache key (-66% cache hit latency, +1 point)  ---  ## 🟡 OPT",
+    "source": "docs/OPTIMIZATION_QUICK_REFERENCE.md",
+    "line": null,
+    "category": "Relative-performance claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Relative-performance claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00003",
+    "text": "opy=entropy, potential=potential) ```  **Expected Impact:** 4x faster projections (+0.5 points)  ---  ## 🟣 OPTIMIZATION #6: Order",
+    "source": "docs/OPTIMIZATION_QUICK_REFERENCE.md",
+    "line": null,
+    "category": "Relative-performance claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Relative-performance claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00004",
+    "text": "# Inference Batching - Quick Start Guide  **Status:** ✓ PRODUCTION READY **Performance:** 4.5x - 9x throughput improvement **Default",
+    "source": "docs/BATCHING_QUICK_START.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00005",
+    "text": "0.704, needs signing keys + bridge ports | CI-incompatible, local-only | | Security Scan | Blocked by quality gate | Unblock after",
+    "source": "docs/CI_CLOSURE_LEDGER.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00006",
+    "text": "_check::* never referenced | Removed import | `7b4468e` | | Z3 ImportError cascade (13) | `ImportError` not caught in Z3FA",
+    "source": "docs/CI_CLOSURE_LEDGER.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00007",
+    "text": "+ Multi-Agent Swarm Analysis **Status:** ✅ FATE-CERTIFIED | Production-Ready with Remediation Roadmap  ---  ``` ╔═══════════════════════",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00008",
+    "text": "----------|-------|---------| | **Architecture** | 96/100 | Production-ready polyglot sovereignty stack | | **Security** | 87/100 | 2 CR",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00009",
+    "text": "age | 8 new tests | | Integration tests | 5 new scenarios | Live fire expansion |  ### Week 5-8: Scalability Hardening  | Ta",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00010",
+    "text": "Inference** ``` runConstitutionChallenge()     → challenges.ihsan ≥ 0.95 AND challenges.snr ≥ 0.85         → create_capability_card(",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00011",
+    "text": "** `Unknown` result returns error, not false-positive  #### Ed25519 Signature Semantics **Location:** `core/pci/crypto.py`  - D",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00012",
+    "text": "a `hmac.compare_digest()` prevents timing attacks - 32-byte Ed25519 keys with proper serialization/deserialization  #### Symbol",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00013",
+    "text": "ne target | | **Capability Cards** | `capability_card.py` | Ed25519-signed model credentials |  #### Gate Chain Composition Pri",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00014",
+    "text": "ation (implicit dataclass)             │ │  ├── SIGNATURE — Ed25519 verification                          │ │  ├── TIMESTAMP —",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00015",
+    "text": "ious peer injection, Sybil attacks **Remediation:** Require Ed25519 signatures on all gossip messages  ### HIGH (P1)  | ID | Fi",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00016",
+    "text": "║ ║   Ihsān (Excellence) ≥ 0.95  — Z3 SMT verified                                ║ ║   SNR (Sign",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00017",
+    "text": "hat fire rarely but guarantee mathematical certainty.  #### Z3 SMT Formal Verification **Location:** `native/fate-binding/",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00018",
+    "text": "ust /// Verify that a score meets the Ihsān threshold using Z3 pub fn verify(&self, score: f64) -> Result<bool> {     let",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00019",
+    "text": "er.assert(&constraint);      match solver.check() {         z3::SatResult::Sat => Ok(true),         z3::SatResult::Unsat =",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00020",
+    "text": "r.check() {         z3::SatResult::Sat => Ok(true),         z3::SatResult::Unsat => Ok(false),         z3::SatResult::Unkn",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00021",
+    "text": "k(true),         z3::SatResult::Unsat => Ok(false),         z3::SatResult::Unknown => Err(...)     } } ```  **Analysis:**",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00022",
+    "text": "**Analysis:** - ✅ **Mathematical Proof:** Not heuristic — Z3 generates a formal satisfiability proof - ✅ **Proof Certifi",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00023",
+    "text": "geometric mean) | | **Ihsān Gate** | `z3_ihsan.rs` | Formal Z3 proof, not heuristic | | **BFT Consensus** | `core/federati",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00024",
+    "text": "│ │  │ FATE Validator  │──→ Z3 SMT formal proof                               │ │  └──────",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00025",
+    "text": "lidation Rigor vs. Creative Inference  **Manifestation:** - Z3 SMT provides mathematical certainty for Ihsān threshold - B",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00026",
+    "text": "sensus.py:76` | 0.95 | ✅ ENFORCED (vote rejection) | | FATE Z3 Verifier | `z3_ihsan.rs:27-59` | 0.95 | ✅ ENFORCED (formal",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00027",
+    "text": "rd | Raises `ValueError` | `capability_card.py:248-254` | | Z3 Verifier | Returns `false` on Unsat, `Error` on Unknown | `",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00028",
+    "text": "he SAPE Framework analysis reveals:  1. **SYMBOLIC Layer:** Z3 SMT formal verification provides mathematical certainty for",
+    "source": "docs/ELITE_ASSESSMENT_v2.2.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00029",
+    "text": "**Integrated now** — what is on origin, proven by tests or live verification, or sealed by ADR - **Future image** — what is",
+    "source": "docs/bizra-now-vs-future-image-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00030",
+    "text": "le-read projection over Python-authored `sovereign_state/`, live-verified against real 2026-04-13 activation chain - ✅ **Dur",
+    "source": "docs/bizra-now-vs-future-image-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00031",
+    "text": "trospective (reward 0.998): `cycle-6/retrospective.md` - G1 live-verification: `cycle-6/g1-live-verification.md`  ## Signatu",
+    "source": "docs/bizra-now-vs-future-image-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00032",
+    "text": "cle-6/retrospective.md` - G1 live-verification: `cycle-6/g1-live-verification.md`  ## Signature  Filed: Mumo (Muhammad Beshr",
+    "source": "docs/bizra-now-vs-future-image-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00033",
+    "text": "isted resource root model** (Cycle-7 Stage 4/E scope) - ✅ **Local-only Node0 URP view** and **local-only Proof-of-Impact basis** (",
+    "source": "docs/bizra-now-vs-future-image-v1.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00034",
+    "text": "-7 Stage 4/E scope) - ✅ **Local-only Node0 URP view** and **local-only Proof-of-Impact basis** (Cycle-7 scope, not yet code)  ---",
+    "source": "docs/bizra-now-vs-future-image-v1.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00035",
+    "text": "st; structurally impossible to fake success - ✅ **Canonical BLAKE3 chain with Python-parity** — Cycle-6 G1 closed: Rust-side d",
+    "source": "docs/bizra-now-vs-future-image-v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00036",
+    "text": ",600+ lines). Investor-grade architecture with C4 diagrams, ISO 27001 risk registers, Lyapunov stability proofs | | **Jan 2026 –",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Unsubstantiated certification",
+    "classification": "PROHIBITED",
+    "rationale": "Unsubstantiated certification pattern matched in doc."
+  },
+  {
+    "claim_id": "C00037",
+    "text": "iance validation | 53 | | **Q4 2026** | Federation protocol live, multi-node network | 54 | | **2027** | Public beta, market",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00038",
+    "text": "-|----------|-----------| | GoT synthesis fallback produces SNR 0.083 | Mission quality scoring underreports | P1 | RLM-powered G",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00039",
+    "text": "rkflows, SHA-256 pinned | | **Constitutional Thresholds** | Ihsan >= 0.95, SNR >= 0.85, Gini <= 0.40 | | **Hardware Substrate** | MSI",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00040",
+    "text": "NGINE               │ │  SEED (utility)     │            │  Ed25519 identity mint       │ │  BLOOM (governance) │            │",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00041",
+    "text": "ay │   ├── pci/                 # Proof-Carrying Inference, Ed25519 │   ├── reasoning/           # Entropy router, Graph-of-Tho",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00042",
+    "text": "ependencies) | Package | Purpose | |---------|---------| | `ed25519-blake2b` | Identity minting, transaction signing | | `numpy",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00043",
+    "text": "ust (Key Crates) | Crate | Purpose | |-------|---------| | `ed25519-dalek` | Cryptographic signatures | | `blake3` | SIMD-optim",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00044",
+    "text": "et | Unsigned evidence receipts | P2 | Generate and persist Ed25519 key | | LM Studio single-model concurrency | Sequential age",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00045",
+    "text": "ecurity** | Post-quantum signatures (CRYSTALS-Dilithium-5), BLAKE3 hashing, Shamir social recovery | Bernstein (2012), Shamir",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00046",
+    "text": "identity mint       │ │  BLOOM (governance) │            │  BLAKE3 hash chains          │ │  IMPT (reputation)  │            │",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00047",
+    "text": "--------| | `ed25519-dalek` | Cryptographic signatures | | `blake3` | SIMD-optimized hashing | | `tokio` | Async runtime | | `",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00048",
+    "text": "deration | `core/inference/dp_fedlora.py` | | Audit trail | BLAKE3 hash-chained evidence ledger | `sovereign_state/evidence.js",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00049",
+    "text": "m-5 post-quantum    │ │  2.5% zakat         │            │  Z3 formal verification      │ └─────────────────────┘",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00050",
+    "text": "Nervous system + Ihsan gate │   ├── fate-binding/        # Z3 + Dilithium post-quantum │   ├── iceoryx-bridge/      # Zer",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00051",
+    "text": "` | SIMD-optimized hashing | | `tokio` | Async runtime | | `z3` | Formal verification (FATE gates) | | `pqcrypto-mldsa` |",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00052",
+    "text": "romotion | Markov (1906), Tulving (1972) | | **Security** | Post-quantum signatures (CRYSTALS-Dilithium-5), BLAKE3 hashing, Shamir s",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00053",
+    "text": "(1972) | | **Security** | Post-quantum signatures (CRYSTALS-Dilithium-5), BLAKE3 hashing, Shamir social recovery | Bernstein (201",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00054",
+    "text": "ash chains          │ │  IMPT (reputation)  │            │  Dilithium-5 post-quantum    │ │  2.5% zakat         │            │  Z",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00055",
+    "text": "│ │  IMPT (reputation)  │            │  Dilithium-5 post-quantum    │ │  2.5% zakat         │            │  Z3 formal verifi",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00056",
+    "text": "ous system + Ihsan gate │   ├── fate-binding/        # Z3 + Dilithium post-quantum │   ├── iceoryx-bridge/      # Zero-copy IPC │",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00057",
+    "text": "+ Ihsan gate │   ├── fate-binding/        # Z3 + Dilithium post-quantum │   ├── iceoryx-bridge/      # Zero-copy IPC │   └── bizra-",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00058",
+    "text": "` | Formal verification (FATE gates) | | `pqcrypto-mldsa` | Post-quantum signatures | | `iceoryx2` | Zero-copy IPC | | `pyo3` | Pyth",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00059",
+    "text": "itHub Actions (7/7 workflows) | `ci.yml`, `release.yml` | | Post-quantum crypto | CRYSTALS-Dilithium-5 via `pqcrypto_mldsa` | `fate-",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00060",
+    "text": "`ci.yml`, `release.yml` | | Post-quantum crypto | CRYSTALS-Dilithium-5 via `pqcrypto_mldsa` | `fate-binding/src/dilithium.rs` |",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00061",
+    "text": "YSTALS-Dilithium-5 via `pqcrypto_mldsa` | `fate-binding/src/dilithium.rs` | | Data sovereignty | Edge-first inference, DP-FedLoRA",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00062",
+    "text": "بذرة, \"seed\") is a sovereign agentic operating system where every human is a node, every node is sovereign, and every action is ethically con",
+    "source": "docs/PROJECT_HANDOVER.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00063",
+    "text": "k nonce uniqueness | REJECT_NONCE_REPLAY | | IHSAN | Verify Ihsan >= 0.95 | REJECT_IHSAN_BELOW_MIN | | SNR | Verify SNR >= 0.85 | REJ",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00064",
+    "text": "LAYER 2: PROTOCOL SECURITY                     | |  - Ed25519 Signatures                                           | |  -",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00065",
+    "text": "Signature Verification | ACTIVE | All messages signed with Ed25519 | | Rate Limiting | ACTIVE | Desktop Bridge: 20 req/s per c",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00066",
+    "text": "ejected if > 120s clock skew | | Signed Receipts | ACTIVE | Ed25519-signed receipts for all skill invocations | | Skill FATE Ga",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00067",
+    "text": "Status | Description | |---------|--------|-------------| | Ed25519 Signatures | ACTIVE | All messages cryptographically signed",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00068",
+    "text": "------------------------------------+ | Digital Signature | Ed25519      | RFC 8032    | 256-bit         | | Hashing",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00069",
+    "text": "| |   | Node Private Key  | <-- Ed25519, 32 bytes                    | |   +-------------------+",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00070",
+    "text": "| |   | Node Public Key   | <-- Ed25519, 32 bytes, shared            | |   +-------------------+",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00071",
+    "text": "_message()                                           | |   [Ed25519 Signature] <-- 64 bytes                               | |",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00072",
+    "text": "e envelope structure | REJECT_SCHEMA | | SIGNATURE | Verify Ed25519 signature | REJECT_SIGNATURE | | TIMESTAMP | Check clock sk",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00073",
+    "text": "Prevents stale state injection | | Signature Verification | Ed25519 on all messages | Prevents message forgery | | Dedup Cache",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00074",
+    "text": "Signatures                                           | |  - BLAKE3 Hashing                                               | |",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00075",
+    "text": "atures | ACTIVE | All messages cryptographically signed | | BLAKE3 Hashing | ACTIVE | Fast, secure content hashing | | Domain",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00076",
+    "text": "| RFC 8032    | 256-bit         | | Hashing           | BLAKE3       | Modern      | 256-bit output  | | Canonicalization",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00077",
+    "text": "in_separated_digest()                                | |   [BLAKE3 Digest]     <-- Prefix: \"bizra-pci-v1:\"                | |",
+    "source": "docs/SECURITY-ARCHITECTURE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00078",
+    "text": "ation and recovery | | 3 | **Proof DPS** | Receipt minting, BLAKE3 chain integrity | | 4 | **Impact Support** | Proof-of-Impac",
+    "source": "docs/al-mithaq-al-tasisi.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00079",
+    "text": "<[0.0, 1.0], must be ≥ 0.95 for PERMIT>,   evidence:      <BLAKE3 chain of binding evidence>,   reflex_time:   <microseconds,",
+    "source": "docs/al-mithaq-al-tasisi.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00080",
+    "text": "icroseconds, S2-deliberate or S1-reflex>,   hash:          <BLAKE3 of the receipt itself>,   prev_hash:     <BLAKE3 of the pre",
+    "source": "docs/al-mithaq-al-tasisi.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00081",
+    "text": "<BLAKE3 of the receipt itself>,   prev_hash:     <BLAKE3 of the previous receipt in this chain>, } ```  The Genesis",
+    "source": "docs/al-mithaq-al-tasisi.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00082",
+    "text": "of this document (to be computed at canonicalization):** `<BLAKE3 pending>` **Chains to Genesis:** `350d642099bde68b` **Ratif",
+    "source": "docs/al-mithaq-al-tasisi.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00083",
+    "text": "-proofspace` | Block validation, RFC 8785 canonicalization, LIVE/DEAD/PENDING verdicts | | `bizra-telescript` | Mobile agent",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00084",
+    "text": "LOC | ~390,000 | Combined Python + Rust | | Quality gates | SNR 0.90, Ihsan 0.96, Coverage 56.65% | CI enforced (`.github/workfl",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00085",
+    "text": ", ethicist, evaluator) All benchmarks: task_completion 1.0, SNR 0.95 Chain ID: bizra-main-alpha ```  Each attestation includes:",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00086",
+    "text": "s** | Cryptographically-enforced, not advisory (Ihsan 0.96, SNR 0.90) | | **Sovereignty** | Local-first by design, federate-when",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00087",
+    "text": "------------|----------| | Proof-Carrying Inference (PCI) | Ed25519 signatures over every inference envelope | `core/pci/envelo",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00088",
+    "text": "-------|---------| | `bizra-core` | Constitution, identity (Ed25519), FATE gates, Islamic finance primitives | | `bizra-federat",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00089",
+    "text": "FT consensus:  - **Transport**: Authenticated channels with Ed25519 key exchange - **Consensus**: 67% quorum (Byzantine fault t",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00090",
+    "text": "ier and version - FATE gate pass/fail results with scores - Ed25519 signature from the originating node - Timestamp and chain p",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00091",
+    "text": "-------| | Spoofing | MITIGATED | Node identity binding via Ed25519 keypairs | | Tampering | MITIGATED | PCI envelope signature",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00092",
+    "text": "compatibility (SEC-001) | CRITICAL | Python SHA-256 vs Rust BLAKE3 in non-PCI paths. 12h remediation planned. Blocks federatio",
+    "source": "docs/BIZRA_TECHNICAL_BRIEF_INVESTORS.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00093",
+    "text": "sequentially., Target: Wire 5 remaining terminal views with live data + demo fallback., Time: ~2 hours. Zero new architectur",
+    "source": "docs/MY_COMPLETE_SEASON_FOLDER_MAP.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00094",
+    "text": "ipts. SEED settlement for verified work. The moment this is live, BIZRA moves from a sovereign personal OS to a network.  Th",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00095",
+    "text": "ion as of March 2026.  Perplexity Computer is cloud-only at $200 per month. No ownership. No local execution. No economic layer.  Clau",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Explicit cost figure",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Explicit cost figure pattern matched in doc."
+  },
+  {
+    "claim_id": "C00096",
+    "text": ", files, APIs, models | | 4 | Verify | FATE Gate validates: Ihsan ≥ 0.95, ZANN_ZERO, RIBA_ZERO | | 5 | Mint | Verified work produces",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00097",
+    "text": "+ SAT-5 (system governance) - FATE Gate judiciary: Z3 SMT + Ihsan ≥ 0.95 + ZANN_ZERO + RIBA_ZERO - 4-tier cognitive cascade:   - L0",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00098",
+    "text": "through the FATE Gate — a formal verification layer running Z3 SMT constraint checking. The gate requires an Ihsan score o",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00099",
+    "text": "council) + SAT-5 (system governance) - FATE Gate judiciary: Z3 SMT + Ihsan ≥ 0.95 + ZANN_ZERO + RIBA_ZERO - 4-tier cogniti",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00100",
+    "text": "udiciary of the parliament. It runs formal verification via Z3 SMT — the same constraint-solving technology used in aerosp",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00101",
+    "text": "y work, which demonstrated a 7.55x speedup. The FATE Gate's Z3 SMT integration aligns with FormalJudge (Zhou et al., Febru",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00102",
+    "text": "-  **Mission Statement (closing, full-slide display):**  > \"Every human is a node. Every node is a seed. Every seed has infinite potential.\"",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00103",
+    "text": "(closing, full-slide display):**  > \"Every human is a node. Every node is a seed. Every seed has infinite potential.\" > > بذرة واحدة تصنع غا",
+    "source": "docs/BIZRA_Pitch_Deck_Script.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00104",
+    "text": "e transition was canonicalized?  As of Cycle-5 G3: **yes**, live-verified via curl and via the dema CLI. Receipt `38037484..",
+    "source": "docs/bizra-trust-compiler-thesis.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00105",
+    "text": "ain as noise-resistant communication channel; domain-tagged BLAKE3 as error-correcting code against semantic drift. - **البذرة",
+    "source": "docs/bizra-trust-compiler-thesis.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00106",
+    "text": "per epoch ```  ### Cryptographic Primitives ``` Signature: Ed25519(sk, message) → σ Verification: Verify(pk, message, σ) → {tr",
+    "source": "docs/SAPE_FRAMEWORK_INTEGRATION.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00107",
+    "text": "ATE dimensions implemented - [x] Merkle DAG structure - [x] Ed25519 signatures - [ ] Formal verification (TLA+ specs)  ### Abst",
+    "source": "docs/SAPE_FRAMEWORK_INTEGRATION.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00108",
+    "text": "ent | Location | Notes | |-----------|----------|-------| | Ed25519 Keypair Generation | `core/pci/crypto.py` | `generate_keypa",
+    "source": "docs/SOVEREIGNTY.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00109",
+    "text": "Gold) | | No External Telemetry | Architecture | Confirmed: no telemetry calls | | Parquet/DuckDB Backend | `vector_engine.py` | Loc",
+    "source": "docs/SOVEREIGNTY.md",
+    "line": null,
+    "category": "Zero-telemetry claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Zero-telemetry claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00110",
+    "text": "\"from core.sovereignty import audit; audit.run()\"  # Verify no telemetry grep -r \"telemetry\\|analytics\\|tracking\" --include=\"*.py\" |",
+    "source": "docs/SOVEREIGNTY.md",
+    "line": null,
+    "category": "Zero-telemetry claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Zero-telemetry claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00111",
+    "text": "ification | `core/pci/crypto.py` | `verify_signature()` | | BLAKE3 Domain Separation | `core/pci/crypto.py` | Prefix: `bizra-p",
+    "source": "docs/SOVEREIGNTY.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00112",
+    "text": "ansport-layer crypto (TLS), git object hashing (SHA-1), and Ed25519's internal > SHA-512 are out of scope — those are governed",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00113",
+    "text": "ng, mint court evidence | | **PCI** (identity, signing) | **Ed25519** pre-image via **BLAKE3** | `blake3` + `pynacl` | Message",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00114",
+    "text": "a **BLAKE3** | `blake3` + `pynacl` | Message hashing before Ed25519 signature | | **Rust workspace** (bizra-core) | **BLAKE3**",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00115",
+    "text": "BIZRA-authored receipt chains use BLAKE3 exclusively.  4. **Ed25519 signing** uses BLAKE3 as the pre-image hash (not SHA-512, w",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00116",
+    "text": "** uses BLAKE3 as the pre-image hash (not SHA-512, which is Ed25519's internal hash). This means the signed value is `Ed25519.s",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00117",
+    "text": "s Ed25519's internal hash). This means the signed value is `Ed25519.sign(BLAKE3(message))`.  ## Verification  ```bash # Verify",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00118",
+    "text": "-|---|---|---| | **Proof Engine** (receipts, canonical) | **BLAKE3** | `blake3` PyPI (1.0.8+) | Receipt digests, canonical has",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00119",
+    "text": "-| | **Proof Engine** (receipts, canonical) | **BLAKE3** | `blake3` PyPI (1.0.8+) | Receipt digests, canonical hashing, cross-",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00120",
+    "text": "erop with Rust | | **Autopoietic Cycles** (reverify.py) | **BLAKE3** (primary) / BLAKE2B-256 (fallback) | `blake3` PyPI / `has",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00121",
+    "text": "rify.py) | **BLAKE3** (primary) / BLAKE2B-256 (fallback) | `blake3` PyPI / `hashlib.blake2b` stdlib | Cycle artifact manifest",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00122",
+    "text": "| **PCI** (identity, signing) | **Ed25519** pre-image via **BLAKE3** | `blake3` + `pynacl` | Message hashing before Ed25519 si",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00123",
+    "text": "dentity, signing) | **Ed25519** pre-image via **BLAKE3** | `blake3` + `pynacl` | Message hashing before Ed25519 signature | |",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00124",
+    "text": "e Ed25519 signature | | **Rust workspace** (bizra-core) | **BLAKE3** | `blake3` crate | Must produce identical hashes to Pytho",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00125",
+    "text": "gnature | | **Rust workspace** (bizra-core) | **BLAKE3** | `blake3` crate | Must produce identical hashes to Python `blake3` f",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00126",
+    "text": "| `blake3` crate | Must produce identical hashes to Python `blake3` for cross-language receipts | | **Loop Proof** (manifest)",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00127",
+    "text": "r cross-language receipts | | **Loop Proof** (manifest) | **BLAKE3** via `canonical.blake3_digest()` | `blake3` PyPI | Loop pr",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00128",
+    "text": "(manifest) | **BLAKE3** via `canonical.blake3_digest()` | `blake3` PyPI | Loop proof manifest hash |  ## Design Decisions  1.",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00129",
+    "text": "yPI | Loop proof manifest hash |  ## Design Decisions  1. **BLAKE3 is the primary digest for all new code.** It is faster than",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00130",
+    "text": "tion.  2. **BLAKE2B-256 is acceptable as a fallback** when `blake3` PyPI is not available (e.g., minimal Docker images, CI wit",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00131",
+    "text": "nd third-party libraries. BIZRA-authored receipt chains use BLAKE3 exclusively.  4. **Ed25519 signing** uses BLAKE3 as the pre",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00132",
+    "text": "chains use BLAKE3 exclusively.  4. **Ed25519 signing** uses BLAKE3 as the pre-image hash (not SHA-512, which is Ed25519's inte",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00133",
+    "text": "nternal hash). This means the signed value is `Ed25519.sign(BLAKE3(message))`.  ## Verification  ```bash # Verify BLAKE3 is in",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00134",
+    "text": ".sign(BLAKE3(message))`.  ## Verification  ```bash # Verify BLAKE3 is installed and produces expected output python -c \" impor",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00135",
+    "text": "s installed and produces expected output python -c \" import blake3 h = blake3.blake3(b'bizra').hexdigest() assert h == '5e8f0f",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00136",
+    "text": "and produces expected output python -c \" import blake3 h = blake3.blake3(b'bizra').hexdigest() assert h == '5e8f0f08e2c1e6b56",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00137",
+    "text": "oduces expected output python -c \" import blake3 h = blake3.blake3(b'bizra').hexdigest() assert h == '5e8f0f08e2c1e6b56db5dd3d",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00138",
+    "text": "a8ae8c6e6f0a8b0d6c4e2a0f8d6b4a2c0e8f6'[:64] or True print(f'BLAKE3 operational: {h[:16]}...') \" ```  ## Cross-Language Interop",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00139",
+    "text": "module `core.proof_engine.canonical` must produce identical BLAKE3 digests for the same input. This is verified by `tests/core",
+    "source": "docs/DIGEST_SPEC.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00140",
+    "text": "to-noise ratio [0.0, 1.0].             ttl_seconds: Time-to-live in seconds.          Returns:             Signed PCIEnvelop",
+    "source": "docs/INTEGRATION_CONTRACTS.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00141",
+    "text": "ad: Dict[str, Any]     signature: str              # Base64 Ed25519 signature     public_key: str             # Base64 Ed25519",
+    "source": "docs/INTEGRATION_CONTRACTS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00142",
+    "text": "Ed25519 signature     public_key: str             # Base64 Ed25519 public key  @dataclass class VerificationResult:     \"\"\"Res",
+    "source": "docs/INTEGRATION_CONTRACTS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00143",
+    "text": "1. Check TTL not expired             2. Verify Ed25519 signature             3. Check ihsan_score >= 0.95",
+    "source": "docs/INTEGRATION_CONTRACTS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00144",
+    "text": ": Optional[str]     payload_hash: str     node_hash: str  # blake3(state || timestamp || parent_hash || payload_hash)  @datacl",
+    "source": "docs/INTEGRATION_CONTRACTS.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00145",
+    "text": "-------| | GDPR | Data encryption, audit logs | PARTIAL | | SOC 2 | Access controls, monitoring | PARTIAL | | ISO 27001 | Com",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Unsubstantiated certification",
+    "classification": "PROHIBITED",
+    "rationale": "Unsubstantiated certification pattern matched in doc."
+  },
+  {
+    "claim_id": "C00146",
+    "text": "RTIAL | | SOC 2 | Access controls, monitoring | PARTIAL | | ISO 27001 | Comprehensive security framework | PARTIAL |  ---  ## 11.",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Unsubstantiated certification",
+    "classification": "PROHIBITED",
+    "rationale": "Unsubstantiated certification pattern matched in doc."
+  },
+  {
+    "claim_id": "C00147",
+    "text": "dium-severity issues: 5 - Cryptographic foundations: SOUND (Ed25519 + BLAKE3)  ---  ## 1. System Architecture Overview  ### 1.1",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00148",
+    "text": "--------------| | TB-1 | Internet <-> Node | UDP transport, Ed25519 signatures | | TB-2 | Node <-> Node | Mutual authentication",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00149",
+    "text": "Identity Spoofing | Attacker claims to be legitimate node | Ed25519 public key binding in peer registry | MITIGATED | | S-002 |",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00150",
+    "text": "ctions are STRONG. The system correctly binds identities to Ed25519 keypairs and verifies signatures before processing.  ### 2.",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00151",
+    "text": "odify vote signatures | Domain-separated BLAKE3 digest with Ed25519 verification | MITIGATED | | T-003 | Timestamp Manipulation",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00152",
+    "text": "--------|----------|----------|------------| | Signatures | Ed25519 | 256-bit | RFC 8032 | STRONG | | Hashing | BLAKE3 | 256-bi",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00153",
+    "text": "------|---------------|----------------| | Key Generation | Ed25519 via cryptography library | ADEQUATE | | Key Storage | Hex s",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00154",
+    "text": "e limiting   - IP reputation scoring  Layer 2: Protocol   - Ed25519 signatures (already implemented)   - Domain-separated hashi",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00155",
+    "text": "---------|----------------| | Identity Management | ID.AM | Ed25519 keypairs, peer registry | | Access Control | PR.AC | FATE G",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00156",
+    "text": "alized AI governance system. The cryptographic foundations (Ed25519 + BLAKE3) are sound, the BFT consensus implementation corre",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00157",
+    "text": "ity issues: 5 - Cryptographic foundations: SOUND (Ed25519 + BLAKE3)  ---  ## 1. System Architecture Overview  ### 1.1 Security",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00158",
+    "text": "Vote Tampering | Modify vote signatures | Domain-separated BLAKE3 digest with Ed25519 verification | MITIGATED | | T-003 | Ti",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00159",
+    "text": "tures | Ed25519 | 256-bit | RFC 8032 | STRONG | | Hashing | BLAKE3 | 256-bit | Modern | STRONG | | JSON Canonicalization | JCS",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00160",
+    "text": "eparated_digest(canonical_data: bytes) -> str:     hasher = blake3.blake3()     hasher.update(PCI_DOMAIN_PREFIX.encode('utf-8'",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00161",
+    "text": "d_digest(canonical_data: bytes) -> str:     hasher = blake3.blake3()     hasher.update(PCI_DOMAIN_PREFIX.encode('utf-8'))",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00162",
+    "text": "governance system. The cryptographic foundations (Ed25519 + BLAKE3) are sound, the BFT consensus implementation correctly prev",
+    "source": "docs/THREAT-MODEL-V3.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00163",
+    "text": "mean: - **Reinventing every primitive.** BIZRA uses BLAKE3, Ed25519, standard cryptographic primitives — these are open, peer-r",
+    "source": "docs/bizra-native-sovereignty-v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00164",
+    "text": "dden PAT/SAT; mission-runtime connector; local persistence; local-only URP view; local-only PoI basis. - **Future image (not yet):",
+    "source": "docs/bizra-native-sovereignty-v1.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00165",
+    "text": "-runtime connector; local persistence; local-only URP view; local-only PoI basis. - **Future image (not yet):** HyperBlockTree acr",
+    "source": "docs/bizra-native-sovereignty-v1.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00166",
+    "text": "oes not mean: - **Reinventing every primitive.** BIZRA uses BLAKE3, Ed25519, standard cryptographic primitives — these are ope",
+    "source": "docs/bizra-native-sovereignty-v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00167",
+    "text": "roof Engine | `tests/core/proof_engine/` | ~553 | Receipts, Ed25519, BLAKE3, evidence ledger, POI | | Sovereign Runtime | `test",
+    "source": "docs/TESTING.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00168",
+    "text": "Token System | `tests/core/token/` | ~87 | Ledger, minting, Ed25519 transactions | | Skills | `tests/core/skills/` | ~83 | Skil",
+    "source": "docs/TESTING.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00169",
+    "text": "ne | `tests/core/proof_engine/` | ~553 | Receipts, Ed25519, BLAKE3, evidence ledger, POI | | Sovereign Runtime | `tests/core/s",
+    "source": "docs/TESTING.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00170",
+    "text": "ename  Batch rename files with pattern expansion + optional BLAKE3 hash suffix. **Dry-run by default.**  | Input | Type | Requ",
+    "source": "docs/SMART_FILE_MANAGEMENT.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00171",
+    "text": "| `{n}` | Sequential number | `1`, `2`, `3` | | `{hash}` | BLAKE3 content hash (16 chars) | `a1b2c3d4e5f6g7h8` | | `{date}` |",
+    "source": "docs/SMART_FILE_MANAGEMENT.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00172",
+    "text": "of tokens (`_SAFE_TOKENS`). No dynamic code execution.  ### BLAKE3 Hashing  File content hashing uses BLAKE3 via `core.proof_e",
+    "source": "docs/SMART_FILE_MANAGEMENT.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00173",
+    "text": "e execution.  ### BLAKE3 Hashing  File content hashing uses BLAKE3 via `core.proof_engine.canonical.hex_digest()` (SEC-001 com",
+    "source": "docs/SMART_FILE_MANAGEMENT.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00174",
+    "text": "hex_digest()` (SEC-001 compliant). Falls back to SHA-256 if BLAKE3 is unavailable.  ### FATE Gate  All skill invocations pass",
+    "source": "docs/SMART_FILE_MANAGEMENT.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00175",
+    "text": "+-- [4.5.3] Incident Response Plan         +-- [4.5.4] Go-Live Approval ```  ### 2.2 WBS Dictionary  | WBS ID | Task Name",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00176",
+    "text": "rational dashboards | 5+ dashboards | 2 days | | 4.5.4 | Go-Live Approval | Final launch authorization | Sign-off document |",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00177",
+    "text": "|===|   [4.5.4] Go-Live",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00178",
+    "text": "ts (3d)  <-- Required for production     |     v [4.5.4] Go-Live Approval (1d)  <-- Final gate  ----------------------------",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00179",
+    "text": "ity stack deployed<br>- Operations runbook complete<br>- Go-live approval obtained |  ---  ## 4. Resource Allocation Matrix",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00180",
+    "text": "cident Response Plan | A | C | R | C | C | C | | 4.5.4 | Go-Live Approval | R | I | A | A | A | I |  ---  ## 6. Risk Registe",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00181",
+    "text": "ready Week 9 | Manual deployment for launch, pipeline post-GA |  ---  ## 7. Quality Management Plan  ### 7.1 Quality Obje",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00182",
+    "text": "ion complete and reviewed - [ ] Training delivered - [ ] Go-live checklist complete - [ ] Stakeholder approval obtained  ---",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00183",
+    "text": "| Bi-weekly | Risk register update | TL | Meeting | | **Go-Live Readiness** | All Stakeholders | Week 11-12 | Checklist rev",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00184",
+    "text": "on validation | K8s cluster (3 nodes) | DE | | Production | Live service | K8s cluster (5+ nodes) | Ops | | Chaos | Failure",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00185",
+    "text": "y** | Development + Infrastructure | | **Quality Target** | Ihsan >= 0.95, SNR >= 0.85 |  ### 1.2 Phase Status Summary  | Phase | Des",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00186",
+    "text": "tomated quality gates 5. Docker/K8s deployment validated 6. Ihsan >= 0.95 enforced at all gate chains  ---  ## 2. Work Breakdown Stru",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00187",
+    "text": "validated (<5 min RTO) [ ] All stakeholders signed off [ ] Ihsan >= 0.95 verified in production smoke test =========================",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00188",
+    "text": "--------------|-------------| | 2.1.1 | Identity & Crypto | Ed25519 signing, BLAKE3 hashing | 5 passing tests | 3 days | | 2.1.",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00189",
+    "text": "ode | Code fix + tests | 2 days | | 3.1.2 | Signed Gossip | Ed25519 signatures on gossip | Code fix + tests | 3 days | | 3.2.3",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00190",
+    "text": "Target | Status | |--------|---------|--------|--------| | Ed25519 sign | 57K/sec | >10K/sec | PASS | | Ed25519 verify | 28K/s",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00191",
+    "text": "--|--------| | Ed25519 sign | 57K/sec | >10K/sec | PASS | | Ed25519 verify | 28K/sec | >10K/sec | PASS | | BLAKE3 hash | 5.8M/s",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00192",
+    "text": "-----------| | 2.1.1 | Identity & Crypto | Ed25519 signing, BLAKE3 hashing | 5 passing tests | 3 days | | 2.1.2 | PCI Envelope",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00193",
+    "text": "c | PASS | | Ed25519 verify | 28K/sec | >10K/sec | PASS | | BLAKE3 hash | 5.8M/sec | >1M/sec | PASS | | PCI envelope create |",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00194",
+    "text": "--|-------------|-----------| | **Ihsan Score** | >= 0.95 | Z3 SMT formal verification | Every gate passage | | **SNR Scor",
+    "source": "docs/PROJECT_MANAGEMENT_ROADMAP_v1.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00195",
+    "text": "VEREIGN\"   payload: \"JSON-serialized message\"   signature: \"Ed25519 signature\"   timestamp: \"ISO-8601\"   ttl: \"Seconds until ex",
+    "source": "docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00196",
+    "text": "1.0]\"  verification:   1. Check TTL not expired   2. Verify Ed25519 signature   3. Check ihsan_score >= 0.95   4. Check snr_sco",
+    "source": "docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00197",
+    "text": "```  ### 9.2 Cryptographic Primitives  ```yaml signatures: Ed25519   - Fast verification (100,000+/sec)   - 256-bit security",
+    "source": "docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00198",
+    "text": "Federation layer (gossip, consensus) [x] PCI protocol with Ed25519 [ ] NTU Rust port (in spec) ```  ### 11.2 Phase 2: Performa",
+    "source": "docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00199",
+    "text": "active -> active: \"branch()\"  merkle_dag:   hash_algorithm: BLAKE3   node_content: (state, timestamp, parent_hash, payload_has",
+    "source": "docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00200",
+    "text": "256-bit security   - Deterministic (reproducible)  hashing: BLAKE3   - 2x faster than SHA-256   - SIMD optimized   - Tree mode",
+    "source": "docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00201",
+    "text": "urity   - Deterministic (reproducible)  hashing: BLAKE3   - 2x faster than SHA-256   - SIMD optimized   - Tree mode for parallel",
+    "source": "docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md",
+    "line": null,
+    "category": "Relative-performance claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Relative-performance claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00202",
+    "text": "ite | >= 0.98 | Production-critical | | T1 High | >= 0.95 | Production-ready | | T2 Standard | >= 0.90 | General use | | T3 Acceptable |",
+    "source": "docs/DEVOPS_BLUEPRINT.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00203",
+    "text": "every stage. No deployment proceeds without SNR >= 0.85 and Ihsan >= 0.95 (production).",
+    "source": "docs/DEVOPS_BLUEPRINT.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00204",
+    "text": "reduction (Central Limit Theorem). With 100 nodes, error is 10x smaller than with 1 node. With 10,000 nodes, error is 100x smaller.",
+    "source": "docs/REVERSE_SCALING_PROOF.md",
+    "line": null,
+    "category": "Relative-performance claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Relative-performance claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00205",
+    "text": "-----| | Cryptographic Integrity | signature_valid | 100% | Ed25519 verify | | State Authenticity | merkle_proof_valid | 100% |",
+    "source": "docs/IHSAN_COMPLIANCE_MATRIX.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00206",
+    "text": "in core/elite/compute_market.py # # Trustworthiness: #   - Ed25519 signature verification           (core/pci/envelope.py) #",
+    "source": "docs/IHSAN_COMPLIANCE_MATRIX.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00207",
+    "text": "gnature verification           (core/pci/envelope.py) #   - BLAKE3 content hashing                   (core/proof_engine/canoni",
+    "source": "docs/IHSAN_COMPLIANCE_MATRIX.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00208",
+    "text": "│  │  - Synthesis        │ ││     │  │  │ - Feedback  │  │  Ihsan≥0.99 │  │  - Abstraction      │ ││     │  │  └─────────────┘  └─",
+    "source": "docs/BIZRA-ECOSYSTEM-MAP.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00209",
+    "text": "sion Point detection | | Safety Stack | 7-layer validation (Ihsan >= 0.99) | | Synergy Detector | Cross-domain pattern recognition |",
+    "source": "docs/BIZRA-ECOSYSTEM-MAP.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00210",
+    "text": "OUNDATIONAL TRUTH**: BIZRA (بذرة) means \"seed\" in Arabic. > Every human is a node. Every node is a seed. Every seed has infinite potential. >",
+    "source": "docs/BIZRA-ECOSYSTEM-MAP.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00211",
+    "text": "ZRA (بذرة) means \"seed\" in Arabic. > Every human is a node. Every node is a seed. Every seed has infinite potential. > This document describ",
+    "source": "docs/BIZRA-ECOSYSTEM-MAP.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00212",
+    "text": ", loop proof, Ihsan scoring, evidence audit | | pci | 122 | Ed25519 signing, RFC 8785 canonicalization, domain separation | | t",
+    "source": "docs/METRICS_CANONICAL.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00213",
+    "text": "t verifies | |---|---|---| | proof_engine | 703 | Receipts, BLAKE3 chains, FATE gate, loop proof, Ihsan scoring, evidence audi",
+    "source": "docs/METRICS_CANONICAL.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00214",
+    "text": "JSON parse   - verify_signature()       | 0.5ms          | Ed25519   - _merge_node_state()      | 0.1ms          | dict lookup",
+    "source": "docs/PERFORMANCE_ENGINEERING_PLAN.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00215",
+    "text": "| O(1) ConsensusEngine.cast_vote()  | 2ms            | Ed25519 sign ConsensusEngine.receive_vote()| 3ms           | verify",
+    "source": "docs/PERFORMANCE_ENGINEERING_PLAN.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00216",
+    "text": "fy + quorum   - verify_signature()       | 0.5ms          | Ed25519   - duplicate check          | O(votes)       | linear scan",
+    "source": "docs/PERFORMANCE_ENGINEERING_PLAN.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00217",
+    "text": "ashMap | | Batch verify | O(v*0.5ms) | **O(v*5us)** | Batch Ed25519 | | Quorum check | O(1) | **O(1)** | Same |  ---  ## 4. Opt",
+    "source": "docs/PERFORMANCE_ENGINEERING_PLAN.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00218",
+    "text": "``  ### 9.2 Signature Batch Verification  ```rust /// Batch Ed25519 verification using ed25519-dalek pub fn batch_verify_signat",
+    "source": "docs/PERFORMANCE_ENGINEERING_PLAN.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00219",
+    "text": "Verification  ```rust /// Batch Ed25519 verification using ed25519-dalek pub fn batch_verify_signatures(     messages: &[&[u8]",
+    "source": "docs/PERFORMANCE_ENGINEERING_PLAN.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00220",
+    "text": "ed25519_dalek::verify_batch;      // Batch verification is ~2x faster than individual     verify_batch(messages, signatures, publ",
+    "source": "docs/PERFORMANCE_ENGINEERING_PLAN.md",
+    "line": null,
+    "category": "Relative-performance claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Relative-performance claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00221",
+    "text": "--data-dir sovereign_state/genesis ```  Pipeline: ceremony (BLAKE3 identity) -> orchestrator (12-step bootstrap) -> heartbeat",
+    "source": "docs/ELITE_FULLSTACK_BLUEPRINT.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00222",
+    "text": "# Wiring Guide — Demo → Live Backend  The cockpit runs in demo mode by default (hardcode",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00223",
+    "text": "data, simulated missions). Three changes connect it to the live NODE0 backend.  ## Prerequisites  Verify these are running:",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00224",
+    "text": "dge (9742) all responding.  ---  ## Change 1: Ghost Panel — live suggestions  **File:** `src/App.jsx`  Find the `GHOSTS` arr",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00225",
+    "text": "=> ({ ...p, ghosts: GHOSTS })); ```  Ghost Panel now shows live suggestions from `self_harness.py → ghost_ws.py`.  ---  ##",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00226",
+    "text": "harness.py → ghost_ws.py`.  ---  ## Change 2: Trust Panel — live verification  **File:** `src/App.jsx`  Add import and polli",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00227",
+    "text": "erval(interval); }, [s.up]); ```  Trust Panel now polls the live kernel every 5 seconds.  ---  ## Change 3: Mission executio",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00228",
+    "text": "nel every 5 seconds.  ---  ## Change 3: Mission execution — live 9-stage pipeline  **File:** `src/App.jsx`  Add import:  ```",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00229",
+    "text": "`quest` function, replace the simulated stage messages with live SSE:  ```javascript // Replace the stageMessages loop with:",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00230",
+    "text": "s now execute through the real 9-stage MissionExecutor with live stage streaming.  ---  ## Verification  After all 3 changes",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00231",
+    "text": "**Trust Panel**: Right rail should show 5 green checks with live Ihsan score. 3. **Mission**: Type a quest. Watch 9 stages l",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00232",
+    "text": "SAT-5 agents working inside.  ## Change 4 (optional): URP — live resource pool  ```javascript import { fetchURP } from \"./br",
+    "source": "docs/WIRING_GUIDE.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00233",
+    "text": "tate survives restarts (JSONL + JSON snapshot) | | bizra.ai live data | **VERIFIED** | Real metrics via API (12,680 tests, 2",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00234",
+    "text": "t/s).  2. **URP genesis minted** — Constitutional membrane live with 100,000 SEED treasury, 2,500 Zakat pool, 5 SAT agents.",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00235",
+    "text": "d hardcoded 8,237 tests, now shows real 12,680. API returns live metrics. CI fully GREEN (8/8).  5. **Ollama model config**",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00236",
+    "text": "| **VERIFIED** | Python/Rust thresholds match (Ihsan 0.95, SNR 0.85, T0 0.98) | | Autopoiesis wiring | **PARTIAL** | Opt-in, wi",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00237",
+    "text": "[VERIFIED] Layer 0: EVIDENCE             — BLAKE3 chains, Ed25519, JSONL             [VERIFIED] ```  ---  ## 2. Verified Matu",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00238",
+    "text": "n | | Sovereign identity | **VERIFIED** | 12 agents minted (Ed25519), system prompt active | | SEED economics | **VERIFIED** |",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00239",
+    "text": "ge grows         [VERIFIED] Layer 0: EVIDENCE             — BLAKE3 chains, Ed25519, JSONL             [VERIFIED] ```  ---  ##",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00240",
+    "text": "| | Receipt chain threading | **VERIFIED** | Cross-session BLAKE3 linking, chain_head persisted | | Home Base awareness | **V",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00241",
+    "text": "blisher 96% coverage | | Invite system | **VERIFIED** | 10+ BLAKE3-derived codes, single-use, 30-day TTL | | Security audit |",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00242",
+    "text": "ted, 4 knowledge entries, membrane rejects Ihsan < 0.95 | | Z3 formal proofs | **VERIFIED** | All 4 membrane properties UN",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00243",
+    "text": "2. Run 117 PCI tests pytest tests/core/pci/ -q  # 3. Run 18 Z3 membrane proofs pytest tests/core/proofs/test_membrane_prop",
+    "source": "docs/ORGANISM_STATE_v0.89.0.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00244",
+    "text": "or Cycle-6 G1.  Origin state at paste time: - `278273d6` G1 live-verified (Cycle-6 close) - `1e50d970` G1 Phase 2 HTTP handl",
+    "source": "docs/bizra-replay-mismatch-guard-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00245",
+    "text": "+ right answer) - Cycle-6 G1 closure evidence: `cycle-6/g1-live-verification.md` - Triggering commit at paste time: `650a55",
+    "source": "docs/bizra-replay-mismatch-guard-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00246",
+    "text": "identified | | Nuclear rollback tested | NOT tested against live repo (procedure documented only) |  ---  *Filed per DevOps",
+    "source": "docs/ROLLBACK-RUNBOOK-Cycle-5.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00247",
+    "text": "Computer orchestrates multiple models but is cloud-only at \\$200/month with no user ownership. Claude Code ships a capable desktop",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Explicit cost figure",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Explicit cost figure pattern matched in doc."
+  },
+  {
+    "claim_id": "C00248",
+    "text": "log entry. It is a first-class architectural primitive: an Ed25519-signed artifact that captures the full execution lineage of",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00249",
+    "text": "Surface                                               │ │  Ed25519-signed CycleReceipts · Daily Manifests · Evidence Bundles",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00250",
+    "text": "tion · Invariant enforcement │ │  BLAKE3 hasher (349 LOC) · Ed25519 signing · Sippar (485 LOC)       │ └───────────────────────",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00251",
+    "text": "nts, the cryptographic primitives (BLAKE3 canonical hasher, Ed25519 signing), and the fail-closed policy membrane. No runtime i",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00252",
+    "text": "re federation.  **L5 — Proof Surface:** The evidence plane. Ed25519-signed CycleReceipts, daily manifests (24-hour BLAKE3 aggre",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00253",
+    "text": "gate_passed is false             | | `signature`          | Ed25519 bytes  | Cryptographic signature over all above fields   |",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00254",
+    "text": "able without a central authority.  Receipts are signed with Ed25519. Batch verification via SIMD is supported for high-throughp",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00255",
+    "text": "aining a compact, auditable 349-LOC Rust implementation.  **Ed25519 Signatures:** All CycleReceipts are signed with Ed25519. Ba",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00256",
+    "text": "**Ed25519 Signatures:** All CycleReceipts are signed with Ed25519. Batch verification is supported for SIMD-accelerated repla",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00257",
+    "text": "ZRA is not yet using ML-DSA in production receipt signing — Ed25519 remains the active scheme — but the dependency exists and t",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00258",
+    "text": "5 LOC Rust, Babylonian regular numbers                  | | Ed25519 Receipt Signing          | VERIFIED  | 7+ signed receipts o",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00259",
+    "text": "in               | VERIFIED  | 7+ receipts, BLAKE3-chained, Ed25519-signed               | | Daily Manifest                   |",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00260",
+    "text": "--- | ----- | ------------ | | Signed receipts    | 7+    | Ed25519 verified | | Daily manifests    | 2     | BLAKE3 hash confi",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00261",
+    "text": "* — runs entirely on user hardware, no mandatory telemetry, no cloud dependency 2. **Agent Market** — skills become composable, tradeable o",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00262",
+    "text": "2.5-32b, llava-7b, qwen2.5-coder-32b) with Ollama fallback. No cloud dependency required.  **L4 — Operator Surface:** The human-facing shel",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00263",
+    "text": "ure | | AutoHotkey (2003–present) | Local-first automation, no cloud dependency | BYOB model architecture; no mandatory telemetry | | Model",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00264",
+    "text": "e proof of impact yield. Receipts chain into each other via BLAKE3 hashing, forming an evidence trail that is tamper-evident b",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00265",
+    "text": "ed CycleReceipts · Daily Manifests · Evidence Bundles  │ │  BLAKE3 hash chaining · Benchmark campaigns · Replay artifacts",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00266",
+    "text": "ng · Monotonic gate maturation · Invariant enforcement │ │  BLAKE3 hasher (349 LOC) · Ed25519 signing · Sippar (485 LOC)",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00267",
+    "text": "s, the three hard invariants, the cryptographic primitives (BLAKE3 canonical hasher, Ed25519 signing), and the fail-closed pol",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00268",
+    "text": "ane. Ed25519-signed CycleReceipts, daily manifests (24-hour BLAKE3 aggregations), evidence bundles for external review, and be",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00269",
+    "text": "────────────  ────────────── L0      Reflex Cache      O(1) BLAKE3 hash lookup        < 1 ms L1      Pattern Recall    Cosine",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00270",
+    "text": "te     Full context ```  **L0 — Reflex Cache:** Exact-match BLAKE3 hash lookup against a registry of validated, constitutional",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00271",
+    "text": "cates  7    Receipt Chain          Emit CycleReceipt, chain BLAKE3 hash  8    Metabolic Ledger       Record emission, apply de",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00272",
+    "text": "core at admission/rejection      | | `pivot_chain_hash`   | BLAKE3 hex     | Hash of previous receipt in the chain           |",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00273",
+    "text": "production; currently produced on-demand). It contains:  - BLAKE3 hash of all receipts produced in the period - Total Ihsan s",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00274",
+    "text": "ion or non-admission.\"  ### 7.2 Cryptographic Primitives  **BLAKE3 Canonical Hasher (349 LOC, 11 domains):** BLAKE3 is used as",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00275",
+    "text": "mitives  **BLAKE3 Canonical Hasher (349 LOC, 11 domains):** BLAKE3 is used as the canonical hash function across 11 distinct d",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00276",
+    "text": "ity, Mission-State serialization, and others. The choice of BLAKE3 over SHA-256 or SHA-3 reflects its parallel construction (s",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00277",
+    "text": "frozen objects, 2,111 LOC, v0.89.1                      | | BLAKE3 Canonical Hasher          | VERIFIED  | 349 LOC, 11 domains",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00278",
+    "text": "CycleReceipt chain               | VERIFIED  | 7+ receipts, BLAKE3-chained, Ed25519-signed               | | Daily Manifest",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00279",
+    "text": "wired; L0 reflex registry sparse            | | L0 Reflex (BLAKE3 hash, O(1))    | WIRED     | Infrastructure present; reflex",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00280",
+    "text": "| 7+    | Ed25519 verified | | Daily manifests    | 2     | BLAKE3 hash confirmed | | Benchmark campaigns| 3     | Performance",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00281",
+    "text": "eval speedup | L0–L3 cognitive cascade; L0 Reflex uses O(1) BLAKE3 hash below 1 ms | Academic preprint | | Zhou et al., \"Forma",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00282",
+    "text": "ntly frozen members. The receipt chain is producing signed, BLAKE3-chained evidence. The 25 Rust crates, 72 Python subpackages",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00283",
+    "text": "n). Every agent action passes through a FATE Gate backed by Z3 SMT formal verification before any state mutation is admitt",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00284",
+    "text": "ore ≥ 0.95 required to proceed  6    SSO / FATE Check       Z3 SMT verification of constitutional predicates  7    Receipt",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00285",
+    "text": "e FATE Gate.  The gate operates in two phases:  **Phase 1 — Z3 SMT Verification:** The proposal is represented as a formal",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00286",
+    "text": "l is represented as a formal predicate and submitted to the Z3 Satisfiability Modulo Theories solver. Constitutional predi",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00287",
+    "text": "mprovement over LLM-as-Judge baselines using neuro-symbolic Z3 oversight. BIZRA extends that principle by making Z3 verifi",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00288",
+    "text": "mbolic Z3 oversight. BIZRA extends that principle by making Z3 verification mandatory rather than optional, and by couplin",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00289",
+    "text": "eipts on Node0                               | | FATE Gate (Z3 SMT)               | VERIFIED  | Z3 solver integrated; reje",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00290",
+    "text": "| | FATE Gate (Z3 SMT)               | VERIFIED  | Z3 solver integrated; rejection receipts emitted          | |",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00291",
+    "text": "ot an invention. The individual mechanisms — tiered memory, Z3 SMT verification, cryptographic seal chains, constitutional",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00292",
+    "text": "ademic preprint | | Zhou et al., \"FormalJudge\" (Feb 2026) | Z3 SMT neuro-symbolic oversight improves over LLM-as-Judge by",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00293",
+    "text": "oversight improves over LLM-as-Judge by 16.6% | FATE Gate: Z3 SMT mandatory before any consequential state mutation | arX",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00294",
+    "text": "itutional invariants are compiled. The FATE Gate is running Z3 SMT verification. The 12-agent parliament holds two permane",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00295",
+    "text": "lJudge. Key result: 16.6% improvement over LLM-as-Judge via Z3 SMT formal verification. BIZRA implementation: FATE Gate ma",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00296",
+    "text": "mal verification. BIZRA implementation: FATE Gate mandatory Z3 verification.  3. **Krishnamoorthy, A.** \"Meta-Sealing: Cry",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00297",
+    "text": "; no signing key is transmitted to any external service.  **Post-Quantum Readiness:** The Cargo.toml includes `pqcrypto-mldsa` as a",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00298",
+    "text": "Lattice Digital Signature Algorithm, NIST FIPS 204) is the post-quantum signature scheme. BIZRA is not yet using ML-DSA in producti",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00299",
+    "text": "Ambassador; Phase 3 target                             | | Post-Quantum (ML-DSA)            | PLANNED   | pqcrypto-mldsa in Cargo.t",
+    "source": "docs/BIZRA_Technical_White_Paper_v1.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00300",
+    "text": "`hashlib.sha256` calls in `core/` — classify as PCI-path or local-only | 2h | PAT-RSC | | 2 | Migrate PCI-adjacent paths (`epigeno",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00301",
+    "text": "les (`epigenome.py`, `evidence_ledger.py`), while Rust uses BLAKE3 exclusively. The PCI protocol itself is aligned (both use B",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00302",
+    "text": "3 exclusively. The PCI protocol itself is aligned (both use BLAKE3 with `bizra-pci-v1:` domain separation), but **non-PCI path",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00303",
+    "text": "f with SHA-256 and Node B (Rust) attempts verification with BLAKE3, verification fails silently.  ### Affected Components  | M",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00304",
+    "text": "-----------|----------| | `core/pci/crypto.py` (PCI path) | BLAKE3 | BLAKE3 | | `core/pci/epigenome.py` (adaptation) | SHA-256",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00305",
+    "text": "--|----------| | `core/pci/crypto.py` (PCI path) | BLAKE3 | BLAKE3 | | `core/pci/epigenome.py` (adaptation) | SHA-256 | BLAKE3",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00306",
+    "text": "BLAKE3 | | `core/pci/epigenome.py` (adaptation) | SHA-256 | BLAKE3 | | `core/proof_engine/evidence_ledger.py` | SHA-256 | BLAK",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00307",
+    "text": "AKE3 | | `core/proof_engine/evidence_ledger.py` | SHA-256 | BLAKE3 | | `core/auth/user_store.py` (passwords) | PBKDF2-SHA256 |",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00308",
+    "text": "for passwords) | | `bizra-omega/bizra-core/` (all paths) | BLAKE3 | BLAKE3 |  ### Remediation Plan  | Step | Action | Effort",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00309",
+    "text": "words) | | `bizra-omega/bizra-core/` (all paths) | BLAKE3 | BLAKE3 |  ### Remediation Plan  | Step | Action | Effort | Owner |",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00310",
+    "text": "CI-adjacent paths (`epigenome.py`, `evidence_ledger.py`) to BLAKE3 | 4h | Engineering | | 3 | Create cross-language interop te",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00311",
+    "text": "| Document which contexts use SHA-256 (password hashing) vs BLAKE3 (everything else) | 1h | PAT-SYN | | 5 | Add CI gate: any n",
+    "source": "docs/STRATEGIC_RISKS_v1.0.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00312",
+    "text": "SSOT)   Ihsan: 0.95 production, 0.99 strict, 1.0 runtime   SNR:   0.85 minimum, 0.95 T1, 0.98 T0/elite   Gini:  <= 0.35 operationa",
+    "source": "docs/BIZRA_CANONICAL_BLUEPRINT.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00313",
+    "text": "|            |          |                    hash_chain    Z3/fallback  Gini gate                                      |",
+    "source": "docs/BIZRA_CANONICAL_BLUEPRINT.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00314",
+    "text": "(default-deny, stricter than Z3) ```  ### Cross-Language Bridge  ``` Python (core/)  <──PyO",
+    "source": "docs/BIZRA_CANONICAL_BLUEPRINT.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00315",
+    "text": "_ZERO)   IHSAN_FLOOR      — Excellence is minimum (0.99 for Z3-proven)  Layer 1: Constitutional Thresholds (constants.py S",
+    "source": "docs/BIZRA_CANONICAL_BLUEPRINT.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00316",
+    "text": "ath (NOT protocol tax)  Layer 3: Gate Chain (fail-closed)   Z3 FATE → conservative_fallback → reject   5 Alpha gates (weig",
+    "source": "docs/BIZRA_CANONICAL_BLUEPRINT.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00317",
+    "text": "AP placeholder, dead links, packaging dep, Rust version | | Z3 cascade | 1 | ImportError not caught → 13 test failures | |",
+    "source": "docs/BIZRA_CANONICAL_BLUEPRINT.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00318",
+    "text": "a-cognition-gateway` — Axum HTTP projection, 7 tests green, live-curled end-to-end - `dema` CLI binary — 7-command operator",
+    "source": "docs/why-dema-wins.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00319",
+    "text": "ptional | | Logs | **Cryptographic chain of every action** (BLAKE3, domain-separated, replayable) |  No shipping system combin",
+    "source": "docs/why-dema-wins.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00320",
+    "text": "ter CI run python -m core.devops.quality_trend record \\   --snr 0.92 --coverage 42 --mypy-errors 1580 \\   --tests-total 200 --te",
+    "source": "docs/QUALITY_MANAGEMENT_GUIDE.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00321",
+    "text": "0x performance improvement for: - Cryptographic operations (Ed25519 signing, BLAKE3 hashing) - Constitutional gate validation -",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00322",
+    "text": "er) digest = rust.pyo3_domain_digest(b\"message content\")  # Ed25519 signing (50x faster) signature, public_key = rust.pyo3_sign",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00323",
+    "text": "Rust | Speedup | |-----------|--------|------|---------| | Ed25519 sign | 570/sec | 57K/sec | 100x | | Ed25519 verify | 280/se",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00324",
+    "text": "--|---------| | Ed25519 sign | 570/sec | 57K/sec | 100x | | Ed25519 verify | 280/sec | 28K/sec | 100x | | BLAKE3 hash | 290K/se",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00325",
+    "text": "enchmarks └── Cargo.toml                  # Workspace root (ed25519-dalek, tokio, blake3) ```  ## Troubleshooting  ### PyO3 Imp",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00326",
+    "text": "gn/test_rust_lifecycle.py -v ```  ---  *Standing on Giants: Ed25519 (Bernstein), BLAKE3 (O'Connor), Axum (Tokio Team)*",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00327",
+    "text": "provement for: - Cryptographic operations (Ed25519 signing, BLAKE3 hashing) - Constitutional gate validation - PCI envelope cr",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00328",
+    "text": "ec | 100x | | Ed25519 verify | 280/sec | 28K/sec | 100x | | BLAKE3 hash | 290K/sec | 5.8M/sec | 20x | | PCI envelope | 940/sec",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00329",
+    "text": "ml                  # Workspace root (ed25519-dalek, tokio, blake3) ```  ## Troubleshooting  ### PyO3 Import Fails  ```bash #",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00330",
+    "text": "e.py -v ```  ---  *Standing on Giants: Ed25519 (Bernstein), BLAKE3 (O'Connor), Axum (Tokio Team)*",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00331",
+    "text": "lid = rust.pyo3_check_snr(0.90)  # Domain-separated digest (20x faster) digest = rust.pyo3_domain_digest(b\"message content\")  # Ed",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Relative-performance claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Relative-performance claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00332",
+    "text": ".pyo3_domain_digest(b\"message content\")  # Ed25519 signing (50x faster) signature, public_key = rust.pyo3_sign(b\"message\") ```  ##",
+    "source": "docs/RUST_INTEGRATION.md",
+    "line": null,
+    "category": "Relative-performance claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Relative-performance claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00333",
+    "text": "cal format.** Read the authoritative writer; verify against live data; then port. 4. **Narrow-real scope.** Each arc closes",
+    "source": "docs/BIZRA-activation-board-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00334",
+    "text": "**Current state (post-Cycle-6):** G1 durable-read COMPLETE (live-verified); submit_mission PROVEN; rehydrate_mission PROVEN;",
+    "source": "docs/BIZRA-activation-board-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00335",
+    "text": "success on bad input) - [ ] Every new chain operation has a live-fixture byte-parity test if it interacts with `sovereign_st",
+    "source": "docs/BIZRA-activation-board-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00336",
+    "text": "rent state (post-Cycle-6):** Restart-survival exercised (G1 live curl). Rollback runbook exists. Release binary builds clean",
+    "source": "docs/BIZRA-activation-board-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00337",
+    "text": "end/` retained as historical. Cycle-5 G3b shipped the first live principal-activation flow; receipt `62a35dcd…` sealed throu",
+    "source": "docs/BIZRA-activation-board-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00338",
+    "text": "led through external proxy. `dema` CLI ships 7 subcommands; live-walk verified.  **Acceptance signals for future commits in",
+    "source": "docs/BIZRA-activation-board-v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00339",
+    "text": "ry | defined process, QA, CM, measurement, risk control | | SOC 2 Type II | target | access control, monitoring, change manag",
+    "source": "docs/ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md",
+    "line": null,
+    "category": "Unsubstantiated certification",
+    "classification": "PROHIBITED",
+    "rationale": "Unsubstantiated certification pattern matched in doc."
+  },
+  {
+    "claim_id": "C00340",
+    "text": "lic, authenticated, and administrative APIs. 3. Introduce a production-ready control plane for identity, secrets, observability, change",
+    "source": "docs/ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00341",
+    "text": "internal alpha -> controlled pilot -> production canary -> GA - architecture strategy: Python remains the edge/orchestrat",
+    "source": "docs/ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00342",
+    "text": "ke, performance sanity, operational checks | | Production | live traffic | canary + SLO-based promotion |  ### 6.3 Deploymen",
+    "source": "docs/ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00343",
+    "text": "d - change failure and incident metrics within targets - go-live sign-off completed  ## 8. Success Metrics  | Metric | Targe",
+    "source": "docs/ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00344",
+    "text": "---|---| | Authentication | OIDC/SAML for enterprise users, Ed25519 for node identity, API keys only for scoped machine access",
+    "source": "docs/ENTERPRISE_IMPLEMENTATION_BLUEPRINT.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00345",
+    "text": "Kernel  **Mission:** BIZRA is a decentralized developmental AGI operating system that turns every human into a sovereign no",
+    "source": "docs/KERNEL.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00346",
+    "text": "-|-------------|--------| | I-1 | Excellence or rejection | Ihsan >= 0.95 | `UNIFIED_IHSAN_THRESHOLD`, fail-closed gate | `core/integ",
+    "source": "docs/KERNEL.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00347",
+    "text": "ypair | | Node | 0.10 - 0.20 | First mission completed with Ihsan >= 0.85 | | Apprentice | 0.20 - 0.35 | 10+ qualified episodes, 50%+",
+    "source": "docs/KERNEL.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00348",
+    "text": "y:243` | | I-4 | Sovereignty absolute | Keys = LOCAL_ONLY | Ed25519 generated on-device, never transmitted | `core/sovereign/ge",
+    "source": "docs/KERNEL.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00349",
+    "text": "1 | Sovereign Node | `core/sovereign/genesis_identity.py` — Ed25519, HD agent keys | 332 | | L2 | Agentic Development | `core/s",
+    "source": "docs/KERNEL.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00350",
+    "text": "-----------| | Seed | 0.00 - 0.10 | Install Node0, generate Ed25519 keypair | | Node | 0.10 - 0.20 | First mission completed wi",
+    "source": "docs/KERNEL.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00351",
+    "text": "alidation   crypto.py            # Timing-safe comparisons, Ed25519  core/inference/   gateway.py           # BatchingInference",
+    "source": "docs/EVIDENCE_PACK_A_PLUS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00352",
+    "text": "─ sovereign_spearpoint.py     # Foundation: SNR/Ihsan calc, Z3 verification ├── config.py                   # SpearpointCo",
+    "source": "docs/SPEARPOINT.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00353",
+    "text": "namic Self-Harnessing, Self-RLVR, Distributed Decentralized AGI Operating System**  Every word is a technical specification",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00354",
+    "text": "ride | `constants.py:602` — `SAT_AGENTS_PER_NODE = 5` | | **AGI** | 7-agent PAT ensemble, 47-state HHMM, Graph-of-Thoughts,",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00355",
+    "text": "| Ed25519 keypair creation | | Node | 0.10 | First mission, Ihsan >= 0.85 | | Apprentice | 0.20 | 10+ episodes, 50%+ qualified | | Bu",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00356",
+    "text": "| Sovereign execution | Runs locally, no cloud dependency, Ed25519 identity | Others require accounts on their servers |  ---",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00357",
+    "text": "/proof_engine/genesis_ceremony.py` — canonical genesis with Ed25519 keypair  PAT-7: Atlas (Planner), Oracle (Researcher), Forge",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00358",
+    "text": "de | | Auditable | No (weights opaque) | Yes (hash-chained, Ed25519 signed) | | Gameable | Yes (reward hacking) | No (constitut",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00359",
+    "text": "Score | Unlock | |-------|-------|--------| | Seed | 0.00 | Ed25519 keypair creation | | Node | 0.10 | First mission, Ihsan >=",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00360",
+    "text": "-> ActionReceipt produced (Ihsan-scored, hash-chained, Ed25519-signed)       -> process_tick() evaluates receipt         -",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00361",
+    "text": "oetry. This is architecture:  - **Every human is a node** — Ed25519 identity (`genesis_ceremony.py:161`), 12 agents (`constants",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00362",
+    "text": "| Others silo users | | Sovereign execution | Runs locally, no cloud dependency, Ed25519 identity | Others require accounts on their server",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00363",
+    "text": "graph)  BIZRA is a sovereign mission operating system where every human is a node, every node is a seed, and verified work continuously turns",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00364",
+    "text": "reign mission operating system where every human is a node, every node is a seed, and verified work continuously turns into memory, reflex,",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00365",
+    "text": "ery step is constitutional.  ### The Complete Sentence  > **Every human is a node. Every node is a seed. Every seed has infinite potential.**",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00366",
+    "text": "nal.  ### The Complete Sentence  > **Every human is a node. Every node is a seed. Every seed has infinite potential.**  This is not poetry.",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00367",
+    "text": "otential.**  This is not poetry. This is architecture:  - **Every human is a node** — Ed25519 identity (`genesis_ceremony.py:161`), 12 agents",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00368",
+    "text": "state directory, local memory stores, local execution.  - **Every node is a seed** — SAT agents join the universal pool. Compiled reflexes p",
+    "source": "docs/BIZRA_IDENTITY_CANON.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00369",
+    "text": "tate(         node_id=\"NODE0-GENESIS\",         public_key=\"<ed25519-public-hex>\",         identity_card={...},         pat_agen",
+    "source": "docs/GENESIS_STATE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00370",
+    "text": "covery Phrase  24-word BIP39-compatible phrase derived from Ed25519 private key entropy:  ```python # Generate from private key",
+    "source": "docs/GENESIS_STATE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00371",
+    "text": "| `str` | Unique node identifier | | `public_key` | `str` | Ed25519 public key (hex) | | `identity_card` | `dict` | Signed iden",
+    "source": "docs/GENESIS_STATE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00372",
+    "text": "256-word BIP39 subset provides 192 bits of entropy (exceeds Ed25519's 128-bit security level)",
+    "source": "docs/GENESIS_STATE.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00373",
+    "text": "se_to_private_key(words) -> str` | Recover key from phrase (BLAKE3 KDF expansion) | | `entropy_to_phrase(bytes, count) -> List",
+    "source": "docs/GENESIS_STATE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00374",
+    "text": "---  # 🌱 BIZRA STRATEGY DECK ## **Distributed Decentralized AGI Operating System**  **بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيم",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00375",
+    "text": "or \"seed\") is the world's first **Distributed Decentralized AGI Operating System** that:  | Problem | BIZRA Solution | Veri",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00376",
+    "text": "slamic finance institutions | $28B | Only Shariah-compliant AGI OS | | Sovereign nations (data laws) | $35B | Full GDPR/sov",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00377",
+    "text": "--  # THE SHARIAH ADVANTAGE  ## 2B+ Muslims. Zero Compliant AGI Platforms.  ### Market Reality  | Statistic | Value | |----",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00378",
+    "text": "GUMENT  ## Why BIZRA Will Win  1. **First Mover in Verified AGI**: No competitor has kernel-level ethical constraints 2. **",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00379",
+    "text": "--  # THE THREE KERNEL INVARIANTS  ## Hardcoded. Immutable. Unbreakable.  ```python # ⛔ THESE CANNOT BE OVERRIDDEN BY ANY AI, ANY I",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Cryptographic-finality claim",
+    "classification": "PROHIBITED",
+    "rationale": "Cryptographic-finality claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00380",
+    "text": "0 nodes - 📋 10 enterprise customers - 📋 Compute marketplace live - 📋 First federated network  ## Phase 4: Forest (2028-2030)",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00381",
+    "text": "tact:** [REDACTED FOR STRATEGY DECK]  **What We Offer:** 1. Live technical demonstration (NODE0) 2. Constitution walkthrough",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00382",
+    "text": "d** | Free | 1 | Community | Full DDAGI OS | | **Sprout** | $99/mo | 10 | Email | + Priority updates | | **Tree** | $999/mo",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Explicit cost figure",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Explicit cost figure pattern matched in doc."
+  },
+  {
+    "claim_id": "C00383",
+    "text": "* | $99/mo | 10 | Email | + Priority updates | | **Tree** | $999/mo | 100 | 24/7 | + Custom models | | **Forest** | Custom |",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Explicit cost figure",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Explicit cost figure pattern matched in doc."
+  },
+  {
+    "claim_id": "C00384",
+    "text": "---------|-----------|-----------| | GPU Hours (RTX 4090) | $2.50/hr | 5% | | Storage (TB/mo) | $5/TB | 5% | | Bandwidth (TB)",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Explicit cost figure",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Explicit cost figure pattern matched in doc."
+  },
+  {
+    "claim_id": "C00385",
+    "text": "GPU Hours (RTX 4090) | $2.50/hr | 5% | | Storage (TB/mo) | $5/TB | 5% | | Bandwidth (TB) | $0.05/GB | 5% | | Model Inferen",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Explicit cost figure",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Explicit cost figure pattern matched in doc."
+  },
+  {
+    "claim_id": "C00386",
+    "text": "| 5% | | Storage (TB/mo) | $5/TB | 5% | | Bandwidth (TB) | $0.05/GB | 5% | | Model Inference (1M tokens) | $0.50 | 5% |  ---",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Explicit cost figure",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Explicit cost figure pattern matched in doc."
+  },
+  {
+    "claim_id": "C00387",
+    "text": "| 3 | Third Fact Protocol | Mind → Soul → Body → Witness | Z3 + PQC | | 4 | Economic Sovereignty v2 | URP + Harberger + T",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00388",
+    "text": "Article I | | Centralized control | **8B nodes possible** — every human is a node | NODE0 Genesis Covenant | | No ethical gate | **Ihsān thre",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00389",
+    "text": "le by design | Kernel Invariant #1 |  ---  # THE VISION  ## Every Human is a Node. Every Node is a Seed. Every Seed has Infinite Potential.",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00390",
+    "text": "nvariant #1 |  ---  # THE VISION  ## Every Human is a Node. Every Node is a Seed. Every Seed has Infinite Potential.  ```",
+    "source": "docs/BIZRA_STRATEGY_DECK_2026.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00391",
+    "text": "#### Remediation Steps 1. [ ] Create `.hooks.sig` file with Ed25519 signatures 2. [ ] Verify signatures before hook execution 3",
+    "source": "docs/CVE-REMEDIATION-PLAN.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00392",
+    "text": "core/federation/node.py` **Status:** OPEN  #### Description Ed25519 keypairs are generated once at node initialization with no",
+    "source": "docs/CVE-REMEDIATION-PLAN.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00393",
+    "text": "Gate Execution Order (Actuator)  1. **Python FATE Gate** — Ihsan >= 0.95 constitutional check 2. **Shannon Entropy Gate** — H(X) >=",
+    "source": "docs/DESKTOP_BRIDGE.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00394",
+    "text": "bility, Transparency, Ethics) → **Rust GateChain** (Schema, Ihsan >=0.95, SNR >=0.85) → **InferenceGateway** → **BLAKE3 Hash**. Ever",
+    "source": "docs/DESKTOP_BRIDGE.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00395",
+    "text": "ptEngine      │                                       │  └─ BLAKE3 content hashing   │                                       └",
+    "source": "docs/DESKTOP_BRIDGE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00396",
+    "text": "ferenceGateway** — LM Studio / Ollama / Cloud fallback 4. **BLAKE3 Hash** — `content_hash` field via Rust `domain_separated_di",
+    "source": "docs/DESKTOP_BRIDGE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00397",
+    "text": "\"hash_validated\": true     },     \"origin_digest\": \"<blake3-hex>\",     \"fate_score\": 0.97,     \"snr_score\": 0.95,     \"",
+    "source": "docs/DESKTOP_BRIDGE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00398",
+    "text": "\"structure\": \"Serialized UIA tree snapshot\",       \"hash\": \"BLAKE3 hash of structure\"     }   },   \"id\": 1 } ```  ---  ## Arch",
+    "source": "docs/DESKTOP_BRIDGE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00399",
+    "text": "chema, Ihsan >=0.95, SNR >=0.85) → **InferenceGateway** → **BLAKE3 Hash**. Every `invoke_skill` flows through: **FATE Gate** →",
+    "source": "docs/DESKTOP_BRIDGE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00400",
+    "text": "n` (thresholds in `status`), and `domain_separated_digest` (BLAKE3 hashing). If Rust is not compiled, all Rust features degrad",
+    "source": "docs/DESKTOP_BRIDGE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00401",
+    "text": "n - quarterly penetration test - annual external review for SOC 2 scope  ## 8. Compliance Verification  Evidence required:  -",
+    "source": "docs/QUALITY_ASSURANCE_STRATEGY.md",
+    "line": null,
+    "category": "Unsubstantiated certification",
+    "classification": "PROHIBITED",
+    "rationale": "Unsubstantiated certification pattern matched in doc."
+  },
+  {
+    "claim_id": "C00402",
+    "text": "[VERIFIED] Layer 0: EVIDENCE            — BLAKE3 chains, Ed25519, JSONL       [VERIFIED] ```  ---  ## 2. Verified Maturity M",
+    "source": "docs/ORGANISM_STATE_v0.88.1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00403",
+    "text": "n | | Sovereign identity | **VERIFIED** | 12 agents minted (Ed25519), system prompt active | | SEED economics | **VERIFIED** |",
+    "source": "docs/ORGANISM_STATE_v0.88.1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00404",
+    "text": "nowledge grows    [VERIFIED] Layer 0: EVIDENCE            — BLAKE3 chains, Ed25519, JSONL       [VERIFIED] ```  ---  ## 2. Ver",
+    "source": "docs/ORGANISM_STATE_v0.88.1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00405",
+    "text": "| | Receipt chain threading | **VERIFIED** | Cross-session BLAKE3 linking, chain_head persisted | | Home Base awareness | **V",
+    "source": "docs/ORGANISM_STATE_v0.88.1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00406",
+    "text": "publisher 96% coverage | | Invite system | **VERIFIED** | 5 BLAKE3-derived codes, single-use, 30-day TTL | | Security audit |",
+    "source": "docs/ORGANISM_STATE_v0.88.1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00407",
+    "text": "stitutional membrane | **VERIFIED** | Minted, persistent, 4 Z3-verified properties, 27 tests | | Z3 formal proofs | **VERI",
+    "source": "docs/ORGANISM_STATE_v0.88.1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00408",
+    "text": "Minted, persistent, 4 Z3-verified properties, 27 tests | | Z3 formal proofs | **VERIFIED** | All 4 membrane properties UN",
+    "source": "docs/ORGANISM_STATE_v0.88.1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00409",
+    "text": "2. Run 117 PCI tests pytest tests/core/pci/ -q  # 3. Run 18 Z3 membrane proofs pytest tests/core/proofs/test_membrane_prop",
+    "source": "docs/ORGANISM_STATE_v0.88.1.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00410",
+    "text": "verification, Audit trail, Transparency, Ethics) backed by Z3 theorem proving and Dilithium post-quantum signatures. The",
+    "source": "docs/MONEYSHOT_POSITIONING.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00411",
+    "text": "local, fallback, cloud emergency) | | Formal Verification | Z3 solver + Dilithium signatures | | Coverage Target | 95% (ra",
+    "source": "docs/MONEYSHOT_POSITIONING.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00412",
+    "text": "ATE + Ihsan + Telescript) | | Verification | None | Formal (Z3 theorem proving) | | Token Economics | None | Triple-token",
+    "source": "docs/MONEYSHOT_POSITIONING.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00413",
+    "text": "ail, Transparency, Ethics) backed by Z3 theorem proving and Dilithium post-quantum signatures. The Evidence Ledger records every",
+    "source": "docs/MONEYSHOT_POSITIONING.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00414",
+    "text": "parency, Ethics) backed by Z3 theorem proving and Dilithium post-quantum signatures. The Evidence Ledger records every decision, eve",
+    "source": "docs/MONEYSHOT_POSITIONING.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00415",
+    "text": "ack, cloud emergency) | | Formal Verification | Z3 solver + Dilithium signatures | | Coverage Target | 95% (ratcheting from 60%)",
+    "source": "docs/MONEYSHOT_POSITIONING.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00416",
+    "text": "t | | Offline Operation | No | Yes (LM Studio / Ollama) | | Post-Quantum Security | No | Yes (Dilithium signatures) | | Agent Accoun",
+    "source": "docs/MONEYSHOT_POSITIONING.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00417",
+    "text": "(LM Studio / Ollama) | | Post-Quantum Security | No | Yes (Dilithium signatures) | | Agent Accountability | No | Per-agent Ihsan",
+    "source": "docs/MONEYSHOT_POSITIONING.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00418",
+    "text": "║ # ║            Distributed Decentralized AGI Operating System (DDAGI OS)         ║ # ╠══════════════════",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00419",
+    "text": "is an operating system for human sovereignty in the age of AGI,   enforced by consent, verified by evidence, and governed",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00420",
+    "text": "perations within the BIZRA ecosystem.  **RECOGNIZING** that artificial general intelligence is not a distant dream but an emergent reality requiring ca",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00421",
+    "text": "hing;  **REJECTING** both reckless acceleration that treats AGI as extraction tool and fearful deceleration that treats AGI",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00422",
+    "text": "AGI as extraction tool and fearful deceleration that treats AGI as existential threat;  **EMBRACING** the Third Fact: that",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00423",
+    "text": "to serving the vision of human flourishing through ethical artificial general intelligence, and to tending this garden with إحسان in all things.  ---",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "AGI claim",
+    "classification": "PROHIBITED",
+    "rationale": "AGI claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00424",
+    "text": "rust) | الأمانة | Cryptographic attestation, audit trails | Ed25519 signatures | | **شورى** (Consultation) | الشورى | Collectiv",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00425",
+    "text": "Cryptographic attestation     attestation_signature: str  # Ed25519     validator_pubkey: str ```  ## § 5.2 Impact Weight Distr",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00426",
+    "text": "| Rajab 27, 1447 AH - **Signatures**: Founding validators (Ed25519) - **Ihsān Score**: 99.7%  ## § 10.2 Attestation  > We, the",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00427",
+    "text": "name: \"Formal Logic\"       actor: \"The Body proves via Z3\"       implementation: \"Z3 SMT solver validates logical con",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00428",
+    "text": "actor: \"The Body proves via Z3\"       implementation: \"Z3 SMT solver validates logical consistency\"       output: \"pr",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00429",
+    "text": "actor: \"The Witness signs via PQC\"       implementation: \"Post-Quantum Cryptographic signature (Dilithium/Kyber)\"       output: \"s",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00430",
+    "text": "implementation: \"Post-Quantum Cryptographic signature (Dilithium/Kyber)\"       output: \"signed_receipt with merkle_proof\"",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00431",
+    "text": "mentation: \"Post-Quantum Cryptographic signature (Dilithium/Kyber)\"       output: \"signed_receipt with merkle_proof\"      esc",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00432",
+    "text": "═════════════════════════════════════════════════════╝ # # \"Every Human is a Node. Every Node is a Seed. Every Seed has Infinite Potential.\"",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00433",
+    "text": "══════════════════════════════╝ # # \"Every Human is a Node. Every Node is a Seed. Every Seed has Infinite Potential.\" # # v1.1.0 is a SEALED",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00434",
+    "text": "declare a different path: every human is a sovereign node, every node is a seed,   and every seed can grow into a forest of collaborative i",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00435",
+    "text": "━━━━━━━━━━━━━━━━━━━━  axioms:   - number: 1     statement: \"Every Human is a Node\"     elaboration: |       A node is a sovereign entity. The",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00436",
+    "text": "boundaries, not algorithms\"    - number: 2     statement: \"Every Node is a Seed\"     elaboration: |       Every node can rebuild core capab",
+    "source": "docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md",
+    "line": null,
+    "category": "Movement line",
+    "classification": "BRAND_SAFE",
+    "rationale": "Movement line pattern matched in doc."
+  },
+  {
+    "claim_id": "C00437",
+    "text": "ocs Drift | OpenAPI/version/route claims do not fully match live service router implementations in artifact pack. |  ---  ##",
+    "source": "docs/MASTER_MULTI_LENS_AUDIT_2026-03-03.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00438",
+    "text": "print audit returned `weighted_score = 1.0` and `normalized SNR = 0.9926`, with all configured control planes passing. 2. The repo e",
+    "source": "docs/BIZRA_CONVERGENCE_BLUEPRINT_2026-03-19.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00439",
+    "text": "- review wallet and agent extensions,    - keep LM Studio local-only,    - require auth where local APIs are enabled. 5. Consoli",
+    "source": "docs/BIZRA_CONVERGENCE_BLUEPRINT_2026-03-19.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00440",
+    "text": "│ │ PCI Protocol    │ Proof-Carrying Inference with Ed25519 signatures          │ │ Storage         │ Data Lake + Vecto",
+    "source": "docs/ELITE_IMPLEMENTATION_BLUEPRINT.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00441",
+    "text": "t breaker for anomalous patterns 4. Graceful degradation to local-only mode ```  ---  ## 6. SAPE Framework Integration  ### 6.1 Sy",
+    "source": "docs/ELITE_IMPLEMENTATION_BLUEPRINT.md",
+    "line": null,
+    "category": "Local-only / no-cloud claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Local-only / no-cloud claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00442",
+    "text": "e.json ```  This gate does not depend on the current repo's live malformed artifacts. It creates a known-good fixture, prove",
+    "source": "docs/claude_flow_memory_map.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00443",
+    "text": "tools/claude_flow_memory_adapter.py export --as-sovereign --snr 0.0 \\   --out 04_GOLD/claude_flow_sovereign.jsonl ```  Notes: -",
+    "source": "docs/claude_flow_memory_map.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00444",
+    "text": "ward compatible:** Original serial mode still available ✓ **Production ready:** Tested, monitored, documented ✓ **Standing on giants:**",
+    "source": "docs/P0-P1_BATCHING_IMPLEMENTATION.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00445",
+    "text": "ipts/moneyshot_demo.py`) functional in both `--mock` and `--live` modes - Evidence Ledger appending correctly with BLAKE3 ha",
+    "source": "docs/ALPHA_100_ROLLOUT.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00446",
+    "text": "rates, user activity) - Landing page with registration form live  ### Success Metrics  | Metric | Target | |--------|-------",
+    "source": "docs/ALPHA_100_ROLLOUT.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00447",
+    "text": "sues, account problems | 24 hours | | Weekly Office Hours | Live Q&A, demo sessions | Scheduled (Thursdays, 1 hour) |  ---",
+    "source": "docs/ALPHA_100_ROLLOUT.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00448",
+    "text": "hing 100 users. It is about finding the 10 users who cannot live without BIZRA, then using their conviction to reach the nex",
+    "source": "docs/ALPHA_100_ROLLOUT.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00449",
+    "text": "d `--live` modes - Evidence Ledger appending correctly with BLAKE3 hashes  ### Success Metrics  | Metric | Target | |--------|",
+    "source": "docs/ALPHA_100_ROLLOUT.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00450",
+    "text": "e operational with threshold >= 0.95 - FATE binding active (Z3 + Dilithium) - MoneyShot demo script (`scripts/moneyshot_de",
+    "source": "docs/ALPHA_100_ROLLOUT.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00451",
+    "text": "rational with threshold >= 0.95 - FATE binding active (Z3 + Dilithium) - MoneyShot demo script (`scripts/moneyshot_demo.py`) func",
+    "source": "docs/ALPHA_100_ROLLOUT.md",
+    "line": null,
+    "category": "Post-quantum claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Post-quantum claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00452",
+    "text": "### activate  Full genesis activation pipeline: ceremony (BLAKE3 cryptographic identity) -> orchestrator (12-step bootstrap)",
+    "source": "docs/CLI_REFERENCE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00453",
+    "text": "`--seed-phrase PHRASE` | — | Passphrase to derive seed via BLAKE3 | | `--data-dir DIR` | `sovereign_state/genesis` | Output d",
+    "source": "docs/CLI_REFERENCE.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00454",
+    "text": "constitutional thresholds: Rust verified ```  ### 6.7 Run a Live Mission  ```bash cd /mnt/c/BIZRA-DATA-LAKE source .venv/bin",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00455",
+    "text": "d).log\" ```  ### 7.2 Monitor the Heartbeat  ```bash # Watch live heartbeat log tail -f /mnt/b/BIZRA-SOVEREIGN/heartbeat/hear",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00456",
+    "text": "Constitutional thresholds: cross-language sync VERIFIED [ ] Live mission: Ihsān gate PASSED [ ] Heartbeat daemon: started (2",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00457",
+    "text": "es a BLAKE3 identity hash from your profile 2. Generates an Ed25519 keypair (your node's signing identity) 3. Writes a sealed g",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00458",
+    "text": "═════════════════════╝ # [✓] BLAKE3 identity computed # [✓] Ed25519 keypair generated # [✓] Genesis seal written # [✓] Constitu",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00459",
+    "text": "ify trust chain with the CLI bizra trust  # Expected: # [✓] Ed25519 signature: VALID # [✓] BLAKE3 identity: MATCHES # [✓] Genes",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00460",
+    "text": "tes specifically cargo test -p bizra-protocol    # BLAKE3 + Ed25519 chain cargo test -p bizra-sippar      # Zero-drift Babyloni",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00461",
+    "text": "gate: PASSED (score ≥ 0.85) # [✓] Mission receipt: SIGNED (Ed25519) # [✓] Mission complete ```  ---  ## Part 7 — Run the 24-Ho",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00462",
+    "text": "set to MoMo / Dubai / GMT+4 [ ] Genesis ceremony completed (Ed25519 keypair sealed) [ ] bizra trust: VALID [ ] first_breath.py:",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00463",
+    "text": "Understand What Happens  The genesis ceremony: 1. Derives a BLAKE3 identity hash from your profile 2. Generates an Ed25519 key",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00464",
+    "text": "IZRA-DATA-LAKE/.env | xargs)  # Run genesis — replace <your-blake3-hash> with your chosen operator hash # To generate a determ",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00465",
+    "text": "ny      ║ # ╚═══════════════════════════════════════╝ # [✓] BLAKE3 identity computed # [✓] Ed25519 keypair generated # [✓] Gen",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00466",
+    "text": "zra trust  # Expected: # [✓] Ed25519 signature: VALID # [✓] BLAKE3 identity: MATCHES # [✓] Genesis manifest: SEALED # [✓] Trus",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00467",
+    "text": "ional crates specifically cargo test -p bizra-protocol    # BLAKE3 + Ed25519 chain cargo test -p bizra-sippar      # Zero-drif",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00468",
+    "text": "model (LM Studio or Ollama fallback) - Redis ping latency - BLAKE3 tick hash (tamper-evident chain)  ### 7.3 Package the Evide",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00469",
+    "text": "-cli/config/sovereign_profile.yaml $BUNDLE_DIR/  # Generate BLAKE3 manifest of the entire bundle find $BUNDLE_DIR -type f | so",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00470",
+    "text": "9 passed Python PCI tests: 117 passed Ihsān threshold: 0.95 BLAKE3 identity: SEALED\"  # Push tag to remote git push origin v1.",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00471",
+    "text": "| Constitutional evidence, genesis proofs, heartbeat logs, BLAKE3 manifests | Immutable — never delete. Compress monthly to `",
+    "source": "docs/BIZRA_NODE0_PRODUCTION_SETUP_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00472",
+    "text": "year fractal visualization │   │   ├── ImpactCounter.tsx  # Live impact metrics │   │   └── WaitlistForm.tsx │   └── styles/",
+    "source": "docs/WEBSITE_PLAN.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00473",
+    "text": "Social links  ### Phase 2: Full Site (Week 2-3) - All pages live - Blog active - Documentation started  ### Phase 3: Communi",
+    "source": "docs/WEBSITE_PLAN.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00474",
+    "text": "Node0 Sovereign Engine | **SNR Score:** 0.96 **Grounding:** Live container state + 9,443 collected tests + commit history th",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00475",
+    "text": "ce | Ethical scoring, SNR/Ihsan gates, health score (0.9091 live) | | H2 / Evolutionary | SAPE elevation, architectural muta",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00476",
+    "text": "-state HHMM taxonomy** defined in constants.py (5 initially live), 4 complexity tiers.  ### Why This Is The Real Pattern  Th",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00477",
+    "text": "ick`)  ### Gem 3: Self-Verifying Growth Engine (Phase 71 -- Live)  The Seed Potential Engine is now **live in production con",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00478",
+    "text": "gine (Phase 71 -- Live)  The Seed Potential Engine is now **live in production container** (verified 2026-03-06):  ```json {",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00479",
+    "text": "ribution is undefined.  ### Gap 6: Autonomous Loop Stubbed  Live health check shows `autonomous_loop: \"stub\"`. The proactive",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00480",
+    "text": "developer assistance |  ### Track 2: Security Hardening to GA (Weeks 3-10)  | Week | Deliverable | Success Gate | |------",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00481",
+    "text": "_under=60` in pyproject.toml, CI green |  ---  ## Appendix: Live System State (2026-03-06 16:29 GST)  ### Container Health `",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Production-readiness implication",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Production-readiness implication pattern matched in doc."
+  },
+  {
+    "claim_id": "C00482",
+    "text": ". **Proof gating** collapses exploration into hash-chained, Ed25519-signed artifacts 5. **CI/SLO gates** promote artifacts from",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00483",
+    "text": "-> Converge -> Prove)       + Proof gating (SHA-256 chain, Ed25519 signature) ```  This stack fans out, explores low-probabili",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00484",
+    "text": "fiable Trust  The security posture is unusually coherent: - Ed25519 attestations on all mission receipts - BLAKE3 hashing (with",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00485",
+    "text": "coherent: - Ed25519 attestations on all mission receipts - BLAKE3 hashing (with SEC-001 legacy SHA-256 gate) - Fail-closed al",
+    "source": "docs/SAPE_SNR_MASTER_AUDIT_v1.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00486",
+    "text": "-----------------------------+  |  | |  |  | algorithm:    \"Ed25519\"                                       |  |  | |  |  | sign",
+    "source": "docs/ARCHITECTURE_DIAGRAMS.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00487",
+    "text": "--------------------------------+  |  | |  |     | digest = blake3(DOMAIN_PREFIX + canonical_json(payload))  |  |  | |  |",
+    "source": "docs/ARCHITECTURE_DIAGRAMS.md",
+    "line": null,
+    "category": "Hashing claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Hashing claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00488",
+    "text": "Missing | GAP |  #### 3-Pass Process  ``` PASS 1: DIVERGE (SNR 0.90)   - BIZRA: SAPEOptimizer DATA layer   - Status: IMPLEMENTE",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00489",
+    "text": "mizer DATA layer   - Status: IMPLEMENTED  PASS 2: CONVERGE (SNR 0.95)   - BIZRA: SAPEOptimizer INFORMATION->KNOWLEDGE layers   -",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00490",
+    "text": "N->KNOWLEDGE layers   - Status: IMPLEMENTED  PASS 3: PROVE (SNR 0.99)   - BIZRA: Z3 formal verification + PCI envelope   - Statu",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Exact SNR number",
+    "classification": "NEEDS_REWRITE",
+    "rationale": "Exact SNR number pattern matched in doc."
+  },
+  {
+    "claim_id": "C00491",
+    "text": "ng at each phase 5. **Constitutional Compliance**: Maintain Ihsan >= 0.95 at all times, targeting 0.992  ---  **Standing on the Shoul",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Ihsan-threshold claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Ihsan-threshold claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00492",
+    "text": "| PCI Envelope | `/core/pci/envelope.py` | IMPLEMENTED | | Ed25519 Signatures | Crypto Module | `/core/pci/crypto.py` | IMPLEM",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Cryptography claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Cryptography claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00493",
+    "text": "anager, Tiered inference | MEDIUM | | **FATE Governance** | Z3 SMT Formal Verification | FATE Gate with thresholds | LOW |",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00494",
+    "text": "------------------+ |  LAYER 6: FATE GOVERNANCE HYPERVISOR (Z3 SMT)                               | |  Blueprint: Formal v",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00495",
+    "text": "tional AI                           | |  BIZRA: FATE Gate + Z3 (native/fate-binding/src/z3_ihsan.rs)          [90%] | |  G",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00496",
+    "text": "fate-binding/src/z3_ihsan.rs)          [90%] | |  Gap: Full Z3 integration in Python layer",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00497",
+    "text": "| IMPLEMENTED | | **Symbolic Harness** | Formal reasoning | Z3 SMT integration | PARTIAL | | **Abstraction Elevator** | La",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00498",
+    "text": "- Status: IMPLEMENTED  PASS 3: PROVE (SNR 0.99)   - BIZRA: Z3 formal verification + PCI envelope   - Status: PARTIAL (nee",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00499",
+    "text": "verification + PCI envelope   - Status: PARTIAL (needs full Z3 integration) ```  #### 9-Probe Defense Matrix  | Probe | Pu",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  },
+  {
+    "claim_id": "C00500",
+    "text": "e foundation integration | 4 weeks | Data Lake | | GAP-09 | Z3 Full Integration | Python-Rust Z3 bridge completion | 3 wee",
+    "source": "docs/DDAGI_IMPLEMENTATION_ROADMAP.md",
+    "line": null,
+    "category": "Formal-verification claim",
+    "classification": "PROOF_REQUIRED",
+    "rationale": "Formal-verification claim pattern matched in doc."
+  }
+]
