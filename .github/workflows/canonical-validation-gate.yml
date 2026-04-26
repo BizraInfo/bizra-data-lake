@@ -187,7 +187,9 @@ jobs:
 
       - name: "Gate 1: Lint (ruff + black + isort)"
         run: |
-          ruff check core/ --select E,F,W --ignore E501
+          # Use project ruff config (pyproject.toml) — same contract as ci.yml lint-python.
+          # Do not override --select/--ignore here; that drifted from E402/E741/F403 ignores.
+          ruff check core/
           black --check core/ --quiet
           isort --check core/ --quiet
 
