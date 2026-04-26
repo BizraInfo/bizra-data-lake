@@ -62,10 +62,17 @@ jobs:
 
       - name: Security audit dependencies (pip-audit)
         run: |
+          set -euo pipefail
           # PYSEC-2024-48: urllib3 DoS via header regex — mitigated by httpx usage, no direct urllib3 calls
           # CVE-2026-4539: pygments 2.19.2 — transitive dep, no direct exposure in BIZRA code paths
           # CVE-2026-3219: CI_RUNNER_ENVIRONMENT_DRIFT / TEMPORARY_ALLOWLIST_PENDING_UPSTREAM_FIX.
-          # Triggered by GitHub runner pip 26.0.1; review/remove once runner pip or pip-audit baseline no longer flags it.
+          # Triggered by GitHub runner pip 26.0.1. Tracking + hygiene context: https://github.com/BizraInfo/bizra-data-lake/pull/51
+          # Review-by (YYYY-MM-DD): force removal or documented extension — fail closed after this date.
+          EXPIRY="2026-10-01"
+          if [ "$(date -u +%Y-%m-%d)" \> "$EXPIRY" ]; then
+            echo "::error::CVE-2026-3219 pip-audit allowlist expired (review-by ${EXPIRY}). Remove --ignore-vuln CVE-2026-3219 or extend with written justification."
+            exit 1
+          fi
           # Constitutional: security scans MUST block — no || true, no silent swallow
           pip-audit --strict --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
 
@@ -344,6 +351,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: [lint-python]
+    env:
+      # Deterministic path resolution for every pytest step in this job (ROLLOUT-001,
+      # CANONICAL-001, etc.), not only the main matrix run.
+      BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
     strategy:
       fail-fast: false
       matrix:
@@ -379,7 +390,6 @@ jobs:
             ${{ matrix.coverage && '--cov=core --cov-report=xml --cov-report=term-missing' || '' }}
         env:
           PYTHONPATH: ${{ github.workspace }}
-          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: "CONST-001: Constitutional constants hash verification"
         run: |
@@ -1653,11 +1663,17 @@ jobs:
 
       - name: Python Dependency Scan (pip-audit)
         run: |
+          set -euo pipefail
           pip install -e ".[dev]"
           # PYSEC-2024-48: urllib3 DoS via header regex — mitigated by httpx usage
           # CVE-2026-4539: pygments 2.19.2 — transitive dep, no direct exposure
           # CVE-2026-3219: CI_RUNNER_ENVIRONMENT_DRIFT / TEMPORARY_ALLOWLIST_PENDING_UPSTREAM_FIX.
-          # Triggered by GitHub runner pip 26.0.1; review/remove once runner pip or pip-audit baseline no longer flags it.
+          # Triggered by GitHub runner pip 26.0.1. Tracking: https://github.com/BizraInfo/bizra-data-lake/pull/51
+          EXPIRY="2026-10-01"
+          if [ "$(date -u +%Y-%m-%d)" \> "$EXPIRY" ]; then
+            echo "::error::CVE-2026-3219 pip-audit allowlist expired (review-by ${EXPIRY}). Remove --ignore-vuln CVE-2026-3219 or extend with written justification."
+            exit 1
+          fi
           pip-audit --strict --desc --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
 
       - name: Rust Security Audit

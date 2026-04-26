@@ -1,4 +1,4 @@
-"""Conftest for search tests.
+"""[ENFORCEMENT: WIRED] Conftest for search tests.
 
 This conftest used to construct module-level ``faiss``/``pandas`` mocks and
 inject them into ``sys.modules`` at import time. That pattern leaked into

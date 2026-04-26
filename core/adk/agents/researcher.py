@@ -11,6 +11,7 @@ import os
 import subprocess
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import List
 
 from bizra_config import DATA_LAKE_ROOT
@@ -81,13 +82,11 @@ class ResearcherAgent(Agent):
         # Documentation search. llm-stack.md lives outside the repo on Node0
         # native Linux (/data/bizra/docs/); include both so the evidence path
         # still works when DATA_LAKE_ROOT resolves to the repo checkout.
-        from pathlib import Path as _Path
-
         for doc in [
             DATA_LAKE_ROOT / "BIZRA_CANONICAL.md",
             DATA_LAKE_ROOT / "ARCHITECTURE.md",
             DATA_LAKE_ROOT / "docs" / "llm-stack.md",
-            _Path("/data/bizra/docs/llm-stack.md"),
+            Path("/data/bizra/docs/llm-stack.md"),
         ]:
             if doc.exists():
                 try:

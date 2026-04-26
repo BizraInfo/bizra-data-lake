@@ -2801,9 +2801,7 @@ def create_fastapi_app(runtime: Any) -> Any:
         """
         import httpx  # local import — httpx is already in pyproject.toml deps
 
-        gateway_base = os.getenv(
-            "BIZRA_COGNITION_GATEWAY_URL", "http://localhost:7421"
-        )
+        gateway_base = os.getenv("BIZRA_COGNITION_GATEWAY_URL", "http://localhost:7421")
         upstream_url = f"{gateway_base.rstrip('/')}/chain"
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -2890,9 +2888,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 # Step 2: fetch latest receipt detail (skip for empty chain)
                 is_genesis = length == 0 or not head or head == ("0" * 64)
                 if not is_genesis:
-                    receipt_resp = await client.get(
-                        f"{gateway_base}/chain/{head}"
-                    )
+                    receipt_resp = await client.get(f"{gateway_base}/chain/{head}")
                     if receipt_resp.status_code == 200:
                         result["latestReceipt"] = receipt_resp.json()
                     else:
