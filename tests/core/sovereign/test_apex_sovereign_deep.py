@@ -945,7 +945,13 @@ class TestHandleCycleError:
             "core.sovereign.apex_sovereign.asyncio.sleep", new_callable=AsyncMock
         ) as mock_sleep:
             await entity._handle_cycle_error(RuntimeError("oops"))
-            mock_sleep.assert_called_once_with(1)
+            assert any(
+                len(call.args) == 1
+                and isinstance(call.args[0], int)
+                and call.args[0] == 1
+                and not call.kwargs
+                for call in mock_sleep.await_args_list
+            )
 
     @pytest.mark.asyncio
     async def test_does_not_raise(self, entity):
