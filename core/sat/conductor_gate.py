@@ -18,9 +18,10 @@ PASS = CheckStatus.PASS
 FAIL = CheckStatus.FAIL
 PARTIAL = CheckStatus.PARTIAL
 NOT_IMPL = CheckStatus.NOT_IMPLEMENTED
+SKIPPED = CheckStatus.SKIPPED
 
 
-def conductor_verify() -> GateResult:
+def conductor_verify(skip_slow: bool = False) -> GateResult:
     """Layer 4: Operational Readiness — 13 checks."""
     checks: list[CheckResult] = []
 
@@ -181,26 +182,29 @@ def conductor_verify() -> GateResult:
     )
 
     # 5.19 CLI doctor
-    code, out = _run(
-        [
-            "python",
-            "-m",
-            "pytest",
-            "tests/core/sovereign/",
-            "-q",
-            "--timeout=30",
-            "-k",
-            "doctor or health_check or diagnostics",
-            "-x",
-        ],
-        timeout=90,
-    )
-    checks.append(
-        CheckResult(
-            "cli_doctor",
-            PASS if code == 0 else PARTIAL,
-            last_line(out),
+    if skip_slow:
+        checks.append(CheckResult("cli_doctor", SKIPPED, "Skipped (--skip-slow)"))
+    else:
+        code, out = _run(
+            [
+                "python",
+                "-m",
+                "pytest",
+                "tests/core/sovereign/",
+                "-q",
+                "--timeout=30",
+                "-k",
+                "doctor or health_check or diagnostics",
+                "-x",
+            ],
+            timeout=90,
         )
-    )
+        checks.append(
+            CheckResult(
+                "cli_doctor",
+                PASS if code == 0 else PARTIAL,
+                last_line(out),
+            )
+        )
 
     return GateResult(agent="Conductor", layer="OPERATIONAL_READINESS", checks=checks)

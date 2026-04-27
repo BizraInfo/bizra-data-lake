@@ -64,10 +64,14 @@ def evaluate_all_gates(
 
     gates = {
         "sentinel": lambda: sentinel_verify(skip_slow=skip_slow),
-        "oracle_s": lambda: oracle_s_verify(skip_manual=skip_manual),
+        "oracle_s": lambda: oracle_s_verify(
+            skip_manual=skip_manual, skip_slow=skip_slow
+        ),
         "ledger": lambda: ledger_verify(),
-        "conductor": lambda: conductor_verify(),
-        "ambassador": lambda: ambassador_verify(skip_manual=skip_manual),
+        "conductor": lambda: conductor_verify(skip_slow=skip_slow),
+        "ambassador": lambda: ambassador_verify(
+            skip_manual=skip_manual, skip_slow=skip_slow
+        ),
     }
 
     results: Dict[str, GateResult] = {}

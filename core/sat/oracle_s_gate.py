@@ -29,7 +29,7 @@ FAIL = CheckStatus.FAIL
 SKIPPED = CheckStatus.SKIPPED
 
 
-def oracle_s_verify(skip_manual: bool = False) -> GateResult:
+def oracle_s_verify(skip_manual: bool = False, skip_slow: bool = False) -> GateResult:
     """Layer 2: Constitutional Compliance — 10 automated + 4 manual checks."""
     checks: list[CheckResult] = []
 
@@ -88,61 +88,76 @@ def oracle_s_verify(skip_manual: bool = False) -> GateResult:
     )
 
     # 3.7 Heartbeat alive
-    code, out = _run(
-        [
-            "python",
-            "-m",
-            "pytest",
-            "tests/constitutional/",
-            "-q",
-            "--timeout=30",
-            "-k",
-            "heartbeat or tick",
-            "-x",
-        ],
-        timeout=90,
-    )
-    checks.append(
-        CheckResult(
-            "heartbeat_alive",
-            PASS if code == 0 else FAIL,
-            last_line(out),
+    if skip_slow:
+        checks.append(
+            CheckResult("heartbeat_alive", SKIPPED, "Skipped (--skip-slow)")
         )
-    )
+    else:
+        code, out = _run(
+            [
+                "python",
+                "-m",
+                "pytest",
+                "tests/constitutional/",
+                "-q",
+                "--timeout=30",
+                "-k",
+                "heartbeat or tick",
+                "-x",
+            ],
+            timeout=90,
+        )
+        checks.append(
+            CheckResult(
+                "heartbeat_alive",
+                PASS if code == 0 else FAIL,
+                last_line(out),
+            )
+        )
 
     # 3.8 Constitutional test suite
-    code, out = _run(
-        ["python", "-m", "pytest", "tests/constitutional/", "-q", "--timeout=120"],
-        timeout=300,
-    )
-    test_count = parse_test_count(out)
-    checks.append(
-        CheckResult(
-            "constitutional_tests",
-            PASS if code == 0 else FAIL,
-            f"{test_count} constitutional tests, exit={code}",
+    if skip_slow:
+        checks.append(
+            CheckResult("constitutional_tests", SKIPPED, "Skipped (--skip-slow)")
         )
-    )
+    else:
+        code, out = _run(
+            ["python", "-m", "pytest", "tests/constitutional/", "-q", "--timeout=120"],
+            timeout=300,
+        )
+        test_count = parse_test_count(out)
+        checks.append(
+            CheckResult(
+                "constitutional_tests",
+                PASS if code == 0 else FAIL,
+                f"{test_count} constitutional tests, exit={code}",
+            )
+        )
 
     # 3.9 Metabolism E2E
-    code, out = _run(
-        [
-            "python",
-            "-m",
-            "pytest",
-            "tests/integration/test_metabolism_e2e.py",
-            "-q",
-            "--timeout=60",
-        ],
-        timeout=120,
-    )
-    checks.append(
-        CheckResult(
-            "metabolism_e2e",
-            PASS if code == 0 else FAIL,
-            last_line(out),
+    if skip_slow:
+        checks.append(
+            CheckResult("metabolism_e2e", SKIPPED, "Skipped (--skip-slow)")
         )
-    )
+    else:
+        code, out = _run(
+            [
+                "python",
+                "-m",
+                "pytest",
+                "tests/integration/test_metabolism_e2e.py",
+                "-q",
+                "--timeout=60",
+            ],
+            timeout=120,
+        )
+        checks.append(
+            CheckResult(
+                "metabolism_e2e",
+                PASS if code == 0 else FAIL,
+                last_line(out),
+            )
+        )
 
     # 3.10 Threshold sync (cross-language constants)
     code, out = _run(

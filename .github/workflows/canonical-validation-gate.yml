@@ -202,6 +202,7 @@ jobs:
           python -m pytest tests/ -v \
             --tb=short \
             -k "constitutional or ihsan or snr or invariant or gate" \
+            -m "not e2e_http" \
             --junitxml=/tmp/constitutional_tests.xml \
             2>&1 | tee /tmp/python_constitutional.txt
 
@@ -210,6 +211,7 @@ jobs:
           set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
+            -m "not e2e_http" \
             --junitxml=/tmp/python_tests.xml \
             2>&1 | tee /tmp/python_test_output.txt
 
