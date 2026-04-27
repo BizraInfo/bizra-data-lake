@@ -14,7 +14,7 @@ Available subagents for delegation:
 - `/agents sovereign-planner` — Strategic planning
 
 ### Memory System
-- Session memory persists via claude-flow daemon
+- Session memory persists via the configured MCP memory server
 - Failures logged to memory namespace
 - Context preserved across compaction
 
@@ -38,13 +38,13 @@ Available subagents for delegation:
 - `/snr-check` — Signal-to-noise analysis
 
 ### MCP Servers
-- filesystem — File system access
 - memory — Persistent memory
 - github — GitHub integration
-- fetch — HTTP fetching
 - brave-search — Web search
-- sqlite — Database queries
-- sequential-thinking — Enhanced reasoning
+- sqlite — Repo-local SQLite queries
+- bizra-sovereign — Sovereign Engine queries
+- bizra-ecosystem — Ecosystem bridge queries
+- Additional MCP servers depend on the active client config (`.mcp.json` for Claude Code, `.codex/config.toml` for Codex)
 
 ## Quality Standards
 - SNR Threshold: ≥ 0.95 (Ihsān constraint)

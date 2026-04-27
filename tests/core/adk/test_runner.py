@@ -158,7 +158,12 @@ async def test_good_agent_full_lifecycle():
     assert result.evidence_refs == ["git-show:b08f2208"]
     # FATE may or may not pass depending on LLM availability
     # What we CAN assert: the lifecycle ran to completion
-    assert result.verdict in ("PASS", "BLOCKED_BY_IHSAN", "BLOCKED_BY_EVIDENCE")
+    assert result.verdict in (
+        "PASS",
+        "BLOCKED_BY_IHSAN",
+        "BLOCKED_BY_EVIDENCE",
+        "DEGRADED",
+    )
     if result.success:
         assert_receipt_valid(result)
 

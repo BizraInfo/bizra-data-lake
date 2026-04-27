@@ -10,6 +10,13 @@ from core.sovereign.api import SovereignAPIServer, create_fastapi_app
 from core.sovereign.runtime_types import RuntimeMetrics
 
 
+@pytest.fixture(autouse=True)
+def _allow_anonymous_fastapi_auth(monkeypatch: pytest.MonkeyPatch) -> None:
+    """FastAPI metrics tests exercise handlers, not auth boundaries."""
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+    monkeypatch.delenv("BIZRA_ENV", raising=False)
+
+
 def _runtime_with_metrics(state_dir=None) -> MagicMock:
     import tempfile
     from pathlib import Path

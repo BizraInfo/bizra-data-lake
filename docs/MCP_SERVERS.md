@@ -1,28 +1,44 @@
 # MCP Server Configuration
 
-> 10 Model Context Protocol servers configured for the BIZRA agentic ecosystem.
+> Checked-in MCP defaults are split by client: **8 Claude Code servers** in `.mcp.json` and **11 Codex servers** in `.codex/config.toml` (**10 enabled by default + optional `brave-search` disabled until `BRAVE_API_KEY` is available**).
 
 ## Server Inventory
+
+### Claude Code (`.mcp.json`)
 
 | # | Server | Transport | Command | Tools | Status |
 |---|--------|-----------|---------|-------|--------|
 | 1 | `context7` | stdio | `npx @upstash/context7-mcp` | Library docs | Configured |
-| 2 | `filesystem` | stdio | `npx @modelcontextprotocol/server-filesystem` | File ops | Configured |
-| 3 | `memory` | stdio | `npx @modelcontextprotocol/server-memory` | KG memory | Configured |
-| 4 | `sequential-thinking` | stdio | `npx @modelcontextprotocol/server-sequential-thinking` | Reasoning | Configured |
-| 5 | `github` | stdio | `npx @modelcontextprotocol/server-github` | GitHub API | Configured |
-| 6 | `brave-search` | stdio | `npx @modelcontextprotocol/server-brave-search` | Web search | Configured |
-| 7 | `sqlite` | stdio | `npx @modelcontextprotocol/server-sqlite --db-path 04_GOLD/bizra.db` | SQL over BIZRA DB | Configured |
-| 8 | `claude-flow-sqlite` | stdio | `npx @modelcontextprotocol/server-sqlite --db-path .swarm/memory.db` | SQL over agent memory | Configured |
-| 9 | `bizra-sovereign` | stdio | `python tools/mcp/sovereign_mcp_server.py --stdio` | 10 tools | Configured |
-| 10 | `bizra-ecosystem` | stdio | `python tools/mcp/ecosystem_mcp_server.py --stdio` | 5 tools | Configured |
+| 2 | `memory` | stdio | `npx @modelcontextprotocol/server-memory` | KG memory | Configured |
+| 3 | `github` | stdio | `npx @modelcontextprotocol/server-github` | GitHub API | Configured |
+| 4 | `brave-search` | stdio | `npx @modelcontextprotocol/server-brave-search` | Web search | Configured |
+| 5 | `sqlite` | stdio | `bash -lc 'repo=$(git rev-parse --show-toplevel); exec "$repo/.venv/bin/python" "$repo/tools/mcp/sqlite_mcp_server.py" ...'` | SQL over living-memory DB | Configured |
+| 6 | `bizra-sovereign` | stdio | `bash -lc 'repo=$(git rev-parse --show-toplevel); exec "$repo/.venv/bin/python" "$repo/tools/mcp/sovereign_mcp_server.py" --stdio'` | 10 tools | Configured |
+| 7 | `bizra-ecosystem` | stdio | `bash -lc 'repo=$(git rev-parse --show-toplevel); exec "$repo/.venv/bin/python" "$repo/tools/mcp/ecosystem_mcp_server.py" --stdio'` | 5 tools | Configured |
+| 8 | `neo4j-cypher` | stdio | `uvx mcp-neo4j-cypher` | Neo4j graph queries | Configured |
+
+### Codex (`.codex/config.toml`)
+
+| # | Server | Transport | Command | Tools | Status |
+|---|--------|-----------|---------|-------|--------|
+| 1 | `openaiDeveloperDocs` | streamable HTTP | `https://developers.openai.com/mcp` | OpenAI docs | Configured |
+| 2 | `context7` | stdio | `npx @upstash/context7-mcp` | Library docs | Configured |
+| 3 | `filesystem` | stdio | `npx @modelcontextprotocol/server-filesystem` | File ops | Configured |
+| 4 | `memory` | stdio | `npx @modelcontextprotocol/server-memory` | KG memory | Configured |
+| 5 | `sequential-thinking` | stdio | `npx @modelcontextprotocol/server-sequential-thinking` | Reasoning | Configured |
+| 6 | `github` | stdio | `npx @modelcontextprotocol/server-github` | GitHub API | Configured |
+| 7 | `brave-search` | stdio | `npx @modelcontextprotocol/server-brave-search` | Web search | Optional, disabled by default |
+| 8 | `sqlite` | stdio | `bash -lc 'repo=$(git rev-parse --show-toplevel); exec "$repo/.venv/bin/python" "$repo/tools/mcp/sqlite_mcp_server.py" ...'` | SQL over living-memory DB | Configured |
+| 9 | `claude-flow-sqlite` | stdio | `bash -lc 'repo=$(git rev-parse --show-toplevel); exec "$repo/.venv/bin/python" "$repo/tools/mcp/sqlite_mcp_server.py" ...'` | SQL over agent memory | Configured |
+| 10 | `bizra-sovereign` | stdio | `bash -lc 'repo=$(git rev-parse --show-toplevel); exec "$repo/.venv/bin/python" "$repo/tools/mcp/sovereign_mcp_server.py" --stdio'` | 10 tools | Configured |
+| 11 | `bizra-ecosystem` | stdio | `bash -lc 'repo=$(git rev-parse --show-toplevel); exec "$repo/.venv/bin/python" "$repo/tools/mcp/ecosystem_mcp_server.py" --stdio'` | 5 tools | Configured |
 
 ## Configuration
 
-**Files**: `.mcp.json` (team-wide) and `.codex/config.toml` (Codex project-local)
+**Files**: `.mcp.json` (team-wide Claude Code config) and `.codex/config.toml` (Codex project-local config)
 
 Claude Code reads `.mcp.json` on startup. Codex reads `.codex/config.toml` for trusted projects.
-Community servers are fetched on-demand via `npx -y`. Custom Python servers use `python` or `/usr/bin/python3`.
+Community servers are fetched on-demand via `npx -y` / `uvx`. Repo-local Python servers are launched through `bash -lc` so they can resolve the repository root and then use the repo virtual environment at `./.venv/bin/python`.
 
 ### Environment Variables
 
@@ -30,8 +46,15 @@ Community servers are fetched on-demand via `npx -y`. Custom Python servers use 
 |----------|---------|-------------|
 | `GITHUB_TOKEN` | github | GitHub Personal Access Token (mapped to `GITHUB_PERSONAL_ACCESS_TOKEN` for Codex) |
 | `BRAVE_API_KEY` | brave-search | Brave Search API key |
+| `NEO4J_PASSWORD` | neo4j-cypher | Password for the local Neo4j instance |
 
-Set in shell profile or `.env`. `.mcp.json` uses `${VAR}` syntax; `.codex/config.toml` forwards `BRAVE_API_KEY` directly and remaps `GITHUB_TOKEN` inside the launcher command.
+Set in shell profile or `.env`. `.mcp.json` uses `${VAR}` syntax; `.codex/config.toml` forwards env vars directly and remaps `GITHUB_TOKEN` inside the launcher command.
+
+Codex disables `brave-search` by default because the upstream server exits during MCP initialization when `BRAVE_API_KEY` is missing, causing startup to report `MCP startup incomplete`. To enable it for a session after exporting the key:
+
+```bash
+codex -c 'mcp_servers.brave-search.enabled=true'
+```
 
 ## Custom Python Servers
 
@@ -64,7 +87,7 @@ Set in shell profile or `.env`. `.mcp.json` uses `${VAR}` syntax; `.codex/config
 | `perform_daughter_test` | "Would I be proud if my daughter saw this?" |
 | `mcp_health` | Server performance metrics |
 
-### Additional Servers (Not in .mcp.json)
+### Additional Servers (Not enabled by default)
 
 | Server | File | Framework | Tools |
 |--------|------|-----------|-------|
@@ -72,6 +95,7 @@ Set in shell profile or `.env`. `.mcp.json` uses `${VAR}` syntax; `.codex/config
 | `peak_mcp_server.py` | `tools/mcp/peak_mcp_server.py` | MCP SDK | `peak_query`, `peak_verify`, `peak_status`, `peak_command` |
 | `mcp_gateway.py` | `tools/mcp/mcp_gateway.py` | FastAPI | HTTP REST (`/query`, `/ingest`, `/health`) |
 | `mcp_lake_bridge.py` | `tools/mcp/mcp_lake_bridge.py` | MCP SDK | Data pipeline bridge (ingest, chunks, search) |
+| `claude-flow` | external install | Node CLI | Optional swarm orchestration; keep out of checked-in defaults until the local install path and config file are stable |
 
 ## V3 Performance Optimizations
 
@@ -119,13 +143,37 @@ Every server exposes `mcp_health` returning: `uptime_seconds`, `query_count`, `e
 ### Server won't start
 
 1. **Check Python has MCP**: `python -c "from mcp.server import Server; print('OK')"`
-2. **Check FastMCP**: `python -c "from fastmcp import FastMCP; print('OK')"`
-3. **Install if missing**: `pip install mcp fastmcp` (or use venv: `source .venv-linux/bin/activate`)
+2. **Check the repo venv can load FastMCP**: `./.venv/bin/python -c "from mcp.server.fastmcp import FastMCP; print('OK')"`
+3. **If missing, reinstall repo deps**: `source .venv/bin/activate && pip install -e '.[dev]'`
 
 ### "Server disconnected" error
 
-Usually means the Python executable can't be found or MCP SDK not installed.
-Verify: `which python && python --version`
+Usually means the repo virtualenv is missing or the command path is stale.
+Verify: `ls .venv/bin/python && ./.venv/bin/python --version`
+
+### Codex Linux sandbox (`bwrap`) fails with "Operation not permitted"
+
+Codex `workspace-write` sandbox mode uses bubblewrap and requires Linux user
+namespaces. If you see errors like:
+
+- `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`
+- `No permissions to create new namespace`
+
+run the preflight/remediation script from the repo root:
+
+```bash
+./scripts/ops/codex_linux_userns_preflight.sh
+./scripts/ops/codex_linux_userns_preflight.sh --apply
+```
+
+The `--apply` mode sets and persists:
+
+- `kernel.unprivileged_userns_clone=1` (when supported by your distro/kernel)
+- `user.max_user_namespaces` to a safe non-zero value (minimum target `28633`)
+
+If the preflight still reports a failed `bwrap` namespace probe, your host runtime
+is likely blocking namespace operations (common in nested/containerized environments).
+For trusted repos only, use Codex `sandbox_mode = "danger-full-access"` as a fallback.
 
 ### Brain shows 0 nodes (DEGRADED)
 
@@ -139,7 +187,7 @@ If `/doctor` shows "MCP config is not a valid JSON", check that `.mcp.json` has 
 
 ```bash
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}' \
-  | timeout 35 python tools/mcp/sovereign_mcp_server.py --stdio 2>/dev/null | head -1
+  | timeout 35 ./.venv/bin/python tools/mcp/sovereign_mcp_server.py --stdio 2>/dev/null | head -1
 ```
 
 Expected: JSON response with `protocolVersion` and `serverInfo`.

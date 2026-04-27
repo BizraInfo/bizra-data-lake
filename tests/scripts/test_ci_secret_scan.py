@@ -31,7 +31,7 @@ def test_scan_file_flags_real_secret_in_json(tmp_path: Path) -> None:
     path = tmp_path / ".claude" / "settings.local.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        '{"allow":["Bash(export LM_STUDIO_API_KEY=\\"sk-lm-TEST:placeholder\\")"]}',
+        '{"allow":["Bash(export LM_STUDIO_API_KEY=\\"sk-lm-a1b2c3d4e5f6g7h8\\")"]}',
         encoding="utf-8",
     )
 

@@ -1,0 +1,5 @@
+{
+  "valid": false,
+  "reason_code": "PAYLOAD_DIGEST_MISMATCH",
+  "path": "artifacts/proofs/node0-private-pilot-handshake-tampered.json"
+}

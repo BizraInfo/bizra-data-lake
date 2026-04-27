@@ -160,6 +160,8 @@ API_ROUTE_POLICIES: tuple[APIRoutePolicy, ...] = (
         "/v1/token/supply",
         "/v1/token/verify",
         "/v1/sel/verify",
+        "/v1/chain",
+        "/v1/chain/latest",
     ),
     *_policies(
         "GET",

@@ -1,0 +1,51 @@
+rank,conversation_uuid,name,signal_score,turn_count,user_turn_count,total_chars,topic_buckets
+1,abbc7902-717a-44ed-9c8a-cd86157935b0,Command syntax reference,264.5,267,131,799843,uncategorized
+2,7f554703-77fe-4cae-b6c4-f6c78b1b28cb,Linux migration boot issue,244.0,244,122,128394,uncategorized
+3,051101b7-7ba8-428a-a9ab-33dfcfbbf8ef,Semantic Synonym Generator,243.0,242,122,135650,uncategorized
+4,33424d69-38ba-4e66-83c3-965ef5ad0470,Persistence,239.0,240,119,983110,uncategorized
+5,1d1bb4b9-c3af-4cc7-93dc-d0218880c523,Command shortcuts reference,221.0,230,106,797154,uncategorized
+6,a895785a-4b81-4263-9925-cde511bcf417,Command shortcuts reference,212.5,215,105,707203,uncategorized
+7,b4abfb40-a332-4314-8cdb-58c7cac6e174,Ubuntu 24.04 partition verification for RAID 0 migration,199.0,200,99,342269,bizra_architecture
+8,59945155-cdd9-4aa7-824f-54ea4ac27064,Saturday schedule codes,182.0,182,91,653506,uncategorized
+9,0623f101-8bad-4e39-95ab-b48b880e37b2,Command shortcuts reference,154.5,165,72,519126,uncategorized
+10,537a4cd4-3376-45e3-8fb2-f9a9b83d3529,Reverse engineering autonomous AI agents,151.0,152,75,631345,llm_tools_meta
+11,04b7c64f-401d-4537-aabb-2c2deca0391b,Installing llmfit with all dependencies,144.0,140,74,466062,uncategorized
+12,73861e4f-bd79-4885-af3a-8f7f63cd9ebf,Signal-to-noise optimization in recursive thought systems,143.5,147,70,383212,bizra_architecture|validation_sprint|code_implementation
+13,f86e151d-623b-4b29-a7ab-9246254d44a8,Command shortcuts reference,131.5,135,64,642628,uncategorized
+14,82c400d7-b9b3-4741-bfc2-4d5225b53c4a,Keyboard shortcuts and timestamps,123.5,125,61,490704,uncategorized
+15,895beb73-4c58-4bd8-80da-66c86480ac73,Keyboard shortcuts reference,120.5,123,59,663031,uncategorized
+16,148fc35d-346d-41a4-ab82-c3513070f85c,Keyboard symbols and special characters,118.0,118,59,427510,uncategorized
+17,746369cd-b70d-41f8-ab80-212ea7e9abf4,Command abbreviations reference,104.5,107,51,278182,uncategorized
+18,a7284cb2-9e2f-44bc-b9a4-91f2e6ca0607,Keyboard shortcuts reference,86.5,87,43,257208,uncategorized
+19,6753385e-fa83-45ae-88d5-dd10299fc6e2,Mumu-BIZRA Kernel Initialization,81.0,82,40,239411,bizra_architecture|personal_context
+20,5c7eb78c-b030-48a0-8d98-6de81bbf0b41,Systems online status check,71.0,72,35,362566,uncategorized
+21,6d40d864-c295-4be0-9c07-12b958e3d4b4,Sprint delivery and ledger state fixes,68.5,69,34,253922,uncategorized
+22,92704d1c-8a60-40eb-8dfe-fbe5cc54195b,Forensic Accounting Report on RP Gems DMCC,64.0,64,32,33561,uncategorized
+23,811d9e34-c074-48ec-96cd-534d5429a185,Activating BIZRA's Advanced Cognitive Architecture,63.5,63,32,203869,bizra_architecture
+24,5bd74831-8d56-4ed4-9005-c5fe2cd0ea77,BIZRA Sippar Protocol: Babylonian mathematics meets Byzantine consensus,63.0,58,34,341891,bizra_architecture|code_implementation
+25,f7c23268-04a3-4c46-8482-c39351ebbec8,Command syntax reference,63.0,66,30,208458,uncategorized
+26,6d129bff-fc32-42f6-90ac-1c9084f261d2,Greet and Assist,62.0,62,31,79231,uncategorized
+27,1b05ff63-4f3c-4c1b-96ca-fad2987c94c9,Solidity Smart Contract Code Review,60.0,60,30,22040,uncategorized
+28,5c5ab192-5fbf-403f-9c70-d96f15cf7d99,Professor Synapse activation,60.0,60,30,489913,uncategorized
+29,6f9c0792-8750-4a14-aaee-bdfe3a70bdd1,SAPE and BIZRA framework initialization,60.0,60,30,435744,bizra_architecture
+30,18301932-9524-405e-9907-d2a164ae9198,Cryptic character sequence,58.0,58,29,118819,uncategorized
+31,91af3a0c-1893-42e0-98d4-8cd0b84ca4fc,Frontend design,58.0,58,29,186062,uncategorized
+32,84a6d99a-75b9-4dd6-a1e5-ee30c757eb6a,AI Autonomous Think Tank Assistance,56.0,56,28,216560,uncategorized
+33,b94d3e53-9f97-4c6a-890c-b029fa84c267,Command shortcuts reference,56.0,56,28,195815,uncategorized
+34,ca47bfe1-a333-4bfc-b212-facc024c7b0f,Enhancing Code Analysis with AI-Powered Linter,54.0,54,27,121048,code_implementation
+35,68841491-0844-4e70-8205-89211c837903,"Explainer Video Guide: Types, Benefits, and Best Practices",53.5,53,27,98324,uncategorized
+36,1a755d63-e96a-4c81-ab18-7e3ac69f2b14,Analyzing Fake Tokens on Binance Smart Chain,53.0,48,29,275458,uncategorized
+37,0c99f852-848d-4c38-9d9b-07c6fe52744c,Forgotten programming languages and systems,50.5,51,25,195064,uncategorized
+38,647c2108-c830-4be8-b1cd-90c4756898a3,Arabic Translation Preserving Meaning and Style,50.5,51,25,35941,uncategorized
+39,3b62f9d6-0113-400d-ab09-5ee5b838c980,Slash command reference,49.0,48,25,72631,uncategorized
+40,2ea1cbe7-426f-40ed-84ab-4201fc090189,Bizra autopoietic loop,48.5,49,24,207693,bizra_architecture
+41,a58b9515-b28c-434b-9a5f-2f0b27d4b880,Command syntax reference,48.5,49,24,146922,uncategorized
+42,e83ed4a4-5f71-418f-b1c7-4335cc937116,Restoring AI Assistant Context,48.5,47,25,128785,uncategorized
+43,0b6b8a8b-3362-4c97-9d94-1d31a675b695,Keyboard command shortcuts,46.5,47,23,223804,uncategorized
+44,5d932268-ed52-49ad-bba1-a7bfcd16deb0,ASPH architecture and agent-level gating strategy,46.5,47,23,124566,strategy_audit
+45,9faf903d-5bae-40e5-9930-dfa58087dac2,Enabling Autonomous BIZRA Development,46.0,46,23,132472,bizra_architecture
+46,efef28f6-dda1-4553-aa7e-9d78e9fde10f,Autonomous Ultra Thinking Protocol,46.0,46,23,84296,bizra_architecture
+47,1eebc951-7ec5-4bed-998f-bff9f2fed818,Keyboard shortcut commands,45.5,45,23,341746,uncategorized
+48,5c639921-605c-42b4-8d25-35b0082a4c6f,System Startup and Capabilities,45.5,45,23,35414,uncategorized
+49,f3894d4a-6016-4c33-b98f-b0430f72508f,Command shortcuts reference,42.5,45,20,129630,uncategorized
+50,3ff04539-cfbc-41e3-8cc9-a54dd99b8e98,Simulating Software Engineering Expertise with AI Agents,42.0,42,21,113018,uncategorized

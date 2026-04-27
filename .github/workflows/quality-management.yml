@@ -28,6 +28,9 @@ on:
 
 env:
   PYTHON_VERSION: '3.12'
+  # Coverage CI uses the deterministic memory fallback instead of optional
+  # hnswlib native wheels on GitHub-hosted runners.
+  BIZRA_MEMORY_DISABLE_HNSWLIB: '1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -70,7 +73,7 @@ jobs:
         run: |
           python -m pytest tests/ \
             --cov=core --cov-report=xml:coverage.xml --cov-report=term-missing \
-            -m "not requires_ollama and not requires_gpu and not slow" \
+            -m "not requires_ollama and not requires_gpu and not slow and not e2e_http" \
             --timeout=30 --maxfail=200 -x -q || true
 
       - name: Run Ratchet Check

@@ -1,0 +1,191 @@
+{
+  "canonical": false,
+  "chain_valid": true,
+  "fate_result": {
+    "evidence_audit": {
+      "all_refs_valid": true,
+      "invalid_count": 0,
+      "invalid_refs": [],
+      "valid_count": 1
+    },
+    "passed": true,
+    "short_circuited": false,
+    "telemetry": {
+      "evidence_valid": true,
+      "ihsan": 1.0,
+      "short_circuited": false,
+      "stages": 3,
+      "total_ms": 18526.3,
+      "verdict": "PASS"
+    },
+    "verdict": {
+      "evidence_sufficient": true,
+      "ihsan_score": 1.0,
+      "model": "gemma4:26b-bizra-16k",
+      "reason": "The claim is directly supported by the provided evidence reference.",
+      "verdict": "PASS"
+    }
+  },
+  "genesis_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "manifest_hash": "03e88a457a47df4f9c89788235fac986834cedc7f80911c543e28ad84f17a57e",
+  "mission": "[GoodAgent] What is the Spearpoint seal?",
+  "node_id": "node0",
+  "proof_class": "node0_loop_proof",
+  "routing": {
+    "embedding": {
+      "model": "nomic-embed-text",
+      "tier": "embed",
+      "tok_s": "N/A"
+    },
+    "pat.analyst": {
+      "model": "qwen2.5-coder:14b",
+      "tier": "fast",
+      "tok_s": "28.5"
+    },
+    "pat.coordinator": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "pat.creator": {
+      "model": "gemma4:e4b",
+      "tier": "fast",
+      "tok_s": "61.0"
+    },
+    "pat.executor": {
+      "model": "deepseek-r1:7b",
+      "tier": "fast",
+      "tok_s": "54.0"
+    },
+    "pat.guardian": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "pat.researcher": {
+      "model": "gemma4:e4b",
+      "tier": "fast",
+      "tok_s": "61.0"
+    },
+    "pat.strategist": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.ambassador": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.conductor": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.ledger": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.oracle_s": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    },
+    "sat.sentinel": {
+      "model": "gemma4:26b-bizra-16k",
+      "tier": "deep",
+      "tok_s": "19.83"
+    }
+  },
+  "signature": "",
+  "step_count": 6,
+  "steps": [
+    {
+      "action": "mission_accepted",
+      "actor": "mission_gate",
+      "evidence": {
+        "mission": "[GoodAgent] What is the Spearpoint seal?",
+        "timestamp": "2026-04-24T21:23:19.584315+00:00"
+      },
+      "hash": "67070291897fb2be49e289225b5f3ce95a1e979d205c1f04a3f2fea76d483348",
+      "seq": 0,
+      "status": "ok",
+      "timestamp": "2026-04-24T21:23:19.584387+00:00"
+    },
+    {
+      "action": "pat_execution",
+      "actor": "pat_researcher (gemma4:e4b)",
+      "evidence": {
+        "answer_length": 39,
+        "confidence": "high",
+        "evidence_count": 1
+      },
+      "hash": "5b9a5993b0e2f414daa703247399863a95a6d30a3ef18b593f24bc1af1f40b0a",
+      "seq": 1,
+      "status": "completed",
+      "timestamp": "2026-04-24T21:23:19.584418+00:00"
+    },
+    {
+      "action": "evidence_audit",
+      "actor": "evidence_auditor",
+      "evidence": {
+        "invalid_count": 0,
+        "invalid_refs": [],
+        "valid_count": 1
+      },
+      "hash": "47ace529afea002f3de1403dd1a9e68bd86562b96ed7865b8eed98bfa4334f6a",
+      "seq": 2,
+      "status": "pass",
+      "timestamp": "2026-04-24T21:23:38.110975+00:00"
+    },
+    {
+      "action": "sat_verdict",
+      "actor": "sat_validator (gemma4:26b-bizra-16k)",
+      "evidence": {
+        "evidence_sufficient": true,
+        "ihsan_score": 1.0,
+        "reason": "The claim is directly supported by the provided evidence reference.",
+        "short_circuited": false,
+        "verdict": "PASS"
+      },
+      "hash": "8f95e20d36d5eb9988dda5f4335ef3dba91af989b1ae1ad1503b4eab911ca99b",
+      "seq": 3,
+      "status": "pass",
+      "timestamp": "2026-04-24T21:23:38.111012+00:00"
+    },
+    {
+      "action": "fate_crossing_complete",
+      "actor": "fate_gate",
+      "evidence": {
+        "passed": true,
+        "telemetry": {
+          "evidence_valid": true,
+          "ihsan": 1.0,
+          "short_circuited": false,
+          "stages": 3,
+          "total_ms": 18526.3,
+          "verdict": "PASS"
+        }
+      },
+      "hash": "5e47c3ad96d0c846bd6e787abf0f0d4232c2bfba9693fb87e642b2e5d7ed176d",
+      "seq": 4,
+      "status": "pass",
+      "timestamp": "2026-04-24T21:23:38.111025+00:00"
+    },
+    {
+      "action": "manifest_sealed",
+      "actor": "loop_proof",
+      "evidence": {
+        "manifest_hash": "03e88a457a47df4f9c89788235fac986834cedc7f80911c543e28ad84f17a57e",
+        "step_count": 5
+      },
+      "hash": "ae9f40b5e413c2d3c4819dc8e1b5bee69209c46310d0fe5667d0033fd0614395",
+      "seq": 5,
+      "status": "unsigned",
+      "timestamp": "2026-04-24T21:23:38.111039+00:00"
+    }
+  ],
+  "timestamp": "2026-04-24T21:23:19.584315+00:00",
+  "version": "1.0"
+}

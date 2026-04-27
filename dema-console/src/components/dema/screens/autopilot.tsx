@@ -727,8 +727,9 @@ function PredictionRow({
     prediction.currentValue !== 0
       ? ((change / Math.abs(prediction.currentValue)) * 100).toFixed(1)
       : "0";
+  const numericChangePercent = Number(changePercent);
 
-  const barWidth = Math.abs(changePercent) > 100 ? 100 : Math.abs(Number(changePercent));
+  const barWidth = Math.abs(numericChangePercent) > 100 ? 100 : Math.abs(numericChangePercent);
 
   return (
     <div className="flex items-center gap-3 py-3 px-4 rounded-lg hover:bg-accent/20 transition-colors">

@@ -2,6 +2,7 @@
 
 import { useDEMAStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { formatTrustLevel, formatTrustScore } from "@/lib/activation-state";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -175,13 +176,13 @@ export function DEMA_Sidebar() {
               />
               {sidebarOpen && (
                 <span className="text-[11px] truncate dema-fade-in">
-                  {trustState.level} · {trustState.score}/{trustState.maxScore}
+                  {formatTrustLevel(trustState.level)} · {formatTrustScore(trustState.score, trustState.maxScore)}
                 </span>
               )}
             </div>
           </TooltipTrigger>
           <TooltipContent side="right" className="text-xs">
-            Trust: {trustState.level} ({trustState.score}/{trustState.maxScore})
+            Trust: {formatTrustLevel(trustState.level)} ({formatTrustScore(trustState.score, trustState.maxScore)})
           </TooltipContent>
         </Tooltip>
 

@@ -1,0 +1,50 @@
+[
+  {
+    "kpi_id": "K01",
+    "label": "Ihsan threshold",
+    "target": ">=0.95",
+    "measured": null,
+    "source": "core/integration/constants.py",
+    "classification": "TARGET"
+  },
+  {
+    "kpi_id": "K02",
+    "label": "ADL Gini hard gate",
+    "target": "<=0.35",
+    "measured": null,
+    "source": "core/integration/constants.py",
+    "classification": "TARGET"
+  },
+  {
+    "kpi_id": "K03",
+    "label": "CI coverage floor",
+    "target": ">=65%",
+    "measured": null,
+    "source": "pyproject.toml",
+    "classification": "TARGET"
+  },
+  {
+    "kpi_id": "K04",
+    "label": "Public cost-per-action",
+    "target": "directional only",
+    "measured": null,
+    "source": "bizra.ai (pre-check)",
+    "classification": "UNVERIFIED"
+  },
+  {
+    "kpi_id": "K05",
+    "label": "Public SNR",
+    "target": "directional only",
+    "measured": null,
+    "source": "bizra.ai (pre-check)",
+    "classification": "UNVERIFIED"
+  },
+  {
+    "kpi_id": "K06",
+    "label": "Test-count claim",
+    "target": "receipt-backed link",
+    "measured": null,
+    "source": "bizra.ai (pre-check)",
+    "classification": "UNVERIFIED"
+  }
+]

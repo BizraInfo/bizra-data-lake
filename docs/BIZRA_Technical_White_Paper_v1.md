@@ -240,7 +240,7 @@ P5 Crown's frozen status means that no mission, however high-priority, can bypas
 
 ### 4.2 SAT-5 — System Agentic Team (System-Governed, URP-Governed)
 
-SAT-5 is the system governance council of five agents, owned by the BIZRA node and governed by the Universal Rights Protocol (URP). SAT-5 agents enforce constitutional constraints across the full node — they are not the user's servants but the constitution's enforcers.
+SAT-5 is the system governance council of five agents, owned by the BIZRA node and governed through the Universal Resource Pool (URP). SAT-5 agents enforce constitutional constraints across the full node — they are not the user's servants but the constitution's enforcers.
 
 | ID  | Name       | Role            | Status  | Function                                           |
 | --- | ---------- | --------------- | ------- | -------------------------------------------------- |
@@ -262,7 +262,7 @@ The governing principle, in three sentences:
 
 > **PAT serves the person. SAT serves the constitution. URP serves the world.**
 
-PAT-7 proposals that fail constitutional review are rejected with a signed receipt. SAT-5 agents that detect a constitutional violation halt execution and escalate. The URP (Universal Rights Protocol) defines what no node-level instruction can override: the rights that accrue to every participant in the ecosystem regardless of their node's configuration.
+PAT-7 proposals that fail constitutional review are rejected with a signed receipt. SAT-5 agents that detect a constitutional violation halt execution and escalate. The Universal Resource Pool (URP) records and reconciles what no node-level instruction can override: the rights that accrue to every participant in the ecosystem regardless of their node's configuration.
 
 This three-tier separation is the architectural answer to the alignment problem at the single-node level. The user's will is respected within constitutional bounds. The constitution's bounds are enforced by agents immune to user instruction. The URP defines the bounds that no constitution can remove.
 

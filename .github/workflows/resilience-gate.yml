@@ -177,16 +177,29 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Python deps and start server
+        env:
+          # Canary smoke validates that core API endpoints serve a 200 from an
+          # unauthenticated probe (Argo Rollouts canary AnalysisTemplate, K8s
+          # liveness/readiness equivalents). The auth-hardened endpoints
+          # (/v1/health, /v1/status) require a token in production. We enable
+          # the dev-only anonymous-auth flag here. core/auth/middleware.py
+          # _anonymous_auth_allowed() forcibly ignores this flag when
+          # BIZRA_ENV=production, so flipping it on in CI cannot leak into a
+          # real deployment.
+          BIZRA_AUTH_ALLOW_ANONYMOUS: "true"
+          BIZRA_ENV: "ci"
         run: |
           pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
           # Start API server in background for E2E tests
-          python -m core.sovereign serve --host 0.0.0.0 --port 8000 &
+          BIZRA_AUTH_ALLOW_ANONYMOUS=true BIZRA_ENV=ci \
+            python -m core.sovereign serve --host 0.0.0.0 --port 8000 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
 
-          # Wait for server to be ready
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:8000/v1/health >/dev/null 2>&1; then
+          # Wait for server to be ready (use unauth liveness probe so the
+          # readiness loop never confuses a stuck server with an auth 401)
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/v1/health/live >/dev/null 2>&1; then
               echo "Server ready after ${i}s"
               break
             fi

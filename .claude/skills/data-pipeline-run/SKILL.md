@@ -1,6 +1,8 @@
 ---
 name: data-pipeline-run
-description: Run the BIZRA 4-stage data pipeline with validation between stages. Stages: corpus_manager -> vector_engine -> langextract_engine -> arte_engine.
+description: >-
+  Run the BIZRA 4-stage data pipeline with validation between stages.
+  Stages: corpus_manager -> vector_engine -> langextract_engine -> arte_engine.
 disable-model-invocation: true
 ---
 

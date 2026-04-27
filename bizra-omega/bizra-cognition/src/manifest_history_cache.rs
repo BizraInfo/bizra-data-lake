@@ -23,7 +23,7 @@ use serde_json::{json, Value};
 use crate::canonical_hasher::Blake3Hash;
 use crate::manifest_artifact::ManifestArtifact;
 
-pub const CACHE_SCHEMA_VERSION: &str = "v1";
+pub const CACHE_SCHEMA_VERSION: &str = "v2-daily-manifests";
 pub const DEMA_CACHE_DIRNAME: &str = "dema_cache";
 pub const MANIFEST_HISTORY_FILENAME: &str = "manifest_history.json";
 
@@ -38,6 +38,7 @@ pub struct ManifestHistorySnapshot {
 /// machinery, so reads do not need the full payload store.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ManifestSummary {
+    pub date_key: String,
     pub manifest_id: Blake3Hash,
     pub window_start: u64,
     pub window_end: u64,
@@ -47,9 +48,10 @@ pub struct ManifestSummary {
     pub chain_head_at_generation: Blake3Hash,
 }
 
-impl From<&ManifestArtifact> for ManifestSummary {
-    fn from(m: &ManifestArtifact) -> Self {
+impl ManifestSummary {
+    pub fn from_daily_manifest(date_key: String, m: &ManifestArtifact) -> Self {
         ManifestSummary {
+            date_key,
             manifest_id: m.manifest_id,
             window_start: m.window_start,
             window_end: m.window_end,
@@ -179,6 +181,7 @@ impl ManifestHistoryCache {
         for m in &snapshot.manifests {
             let refs: Vec<String> = m.receipt_refs.iter().map(hex_encode).collect();
             manifests_json.push(json!({
+                "date_key": m.date_key,
                 "manifest_id": hex_encode(&m.manifest_id),
                 "window_start": m.window_start,
                 "window_end": m.window_end,
@@ -276,6 +279,14 @@ impl ManifestHistoryCache {
                 path: path.clone(),
                 reason: "manifest is not an object",
             })?;
+            let date_key = mobj
+                .get("date_key")
+                .and_then(|x| x.as_str())
+                .ok_or(ManifestHistoryCacheError::Malformed {
+                    path: path.clone(),
+                    reason: "missing date_key",
+                })?
+                .to_string();
             let manifest_id = field_hex(mobj, &path, "manifest_id")?;
             let window_start = mobj.get("window_start").and_then(|x| x.as_u64()).ok_or(
                 ManifestHistoryCacheError::Malformed {
@@ -317,6 +328,7 @@ impl ManifestHistoryCache {
             )? as u32;
             let chain_head_at_generation = field_hex(mobj, &path, "chain_head_at_generation")?;
             manifests.push(ManifestSummary {
+                date_key,
                 manifest_id,
                 window_start,
                 window_end,
@@ -403,6 +415,7 @@ mod tests {
 
     fn sample_summary(seed: u8) -> ManifestSummary {
         ManifestSummary {
+            date_key: format!("2023-11-{:02}", 10 + seed),
             manifest_id: [seed; 32],
             window_start: 1_700_000_000_000 + seed as u64,
             window_end: 1_700_000_000_500 + seed as u64,
@@ -504,11 +517,12 @@ mod tests {
         fs::create_dir_all(cache.cache_dir()).unwrap();
         let zero = "0000000000000000000000000000000000000000000000000000000000000000";
         let body = format!(
-            r#"{{"schema_version":"v1","chain_head":"{z}","manifests":[
-            {{"manifest_id":"XYZ","window_start":0,"window_end":0,
+            r#"{{"schema_version":"{schema}","chain_head":"{z}","manifests":[
+            {{"date_key":"2026-04-21","manifest_id":"XYZ","window_start":0,"window_end":0,
               "receipt_refs":[],"integrity_hash":"{z}","receipt_count":0,
               "chain_head_at_generation":"{z}"}}
             ]}}"#,
+            schema = CACHE_SCHEMA_VERSION,
             z = zero
         );
         fs::write(cache.history_path(), body.as_bytes()).unwrap();
@@ -547,7 +561,8 @@ mod tests {
             vec![[0x11; 32], [0x22; 32], [0x33; 32]],
             [0xAA; 32],
         );
-        let s = ManifestSummary::from(&m);
+        let s = ManifestSummary::from_daily_manifest("2026-04-21".into(), &m);
+        assert_eq!(s.date_key, "2026-04-21");
         assert_eq!(s.manifest_id, m.manifest_id);
         assert_eq!(s.window_start, m.window_start);
         assert_eq!(s.window_end, m.window_end);

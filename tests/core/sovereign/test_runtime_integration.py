@@ -125,6 +125,7 @@ class TestComponentImports:
 # ===========================================================================
 
 
+@pytest.mark.slow
 @pytest.mark.xdist_group(name="runtime_heavy")
 class TestRuntimeInitialization:
     """Test SovereignRuntime lifecycle: creation, init, component wiring, shutdown."""
@@ -222,6 +223,8 @@ class TestRuntimeInitialization:
 # ===========================================================================
 
 
+@pytest.mark.slow
+@pytest.mark.xdist_group(name="runtime_heavy")
 class TestRealComponentsLoad:
     """Verify that real components are loaded (not stubs) when feature flags are enabled.
 
@@ -315,6 +318,7 @@ class TestRealComponentsLoad:
 # ===========================================================================
 
 
+@pytest.mark.slow
 @pytest.mark.xdist_group(name="runtime_heavy")
 class TestStubFallback:
     """When feature flags are disabled, verify stubs are used."""
@@ -614,6 +618,7 @@ class TestEvidenceLedgerIntegration:
 # ===========================================================================
 
 
+@pytest.mark.slow
 @pytest.mark.xdist_group(name="runtime_heavy")
 class TestRuntimeShutdownSafety:
     """Extra lifecycle safety tests for double-init, double-shutdown, etc."""

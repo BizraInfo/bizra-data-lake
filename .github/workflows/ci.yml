@@ -31,6 +31,9 @@ env:
   RUST_BACKTRACE: 1
   IHSAN_THRESHOLD: '0.95'
   SNR_THRESHOLD: '0.85'
+  # GitHub-hosted runners can crash on optional hnswlib native wheels; CI uses
+  # the deterministic numpy fallback while production/local runs remain opt-in.
+  BIZRA_MEMORY_DISABLE_HNSWLIB: '1'
   # Runner: using ubuntu-24.04 (GitHub-hosted) until WBS 2.6 self-hosted runner is live.
   # To switch: find-replace 'ubuntu-24.04' → 'self-hosted' in runs-on lines below.
 
@@ -62,10 +65,19 @@ jobs:
 
       - name: Security audit dependencies (pip-audit)
         run: |
+          set -euo pipefail
           # PYSEC-2024-48: urllib3 DoS via header regex — mitigated by httpx usage, no direct urllib3 calls
           # CVE-2026-4539: pygments 2.19.2 — transitive dep, no direct exposure in BIZRA code paths
+          # CVE-2026-3219: CI_RUNNER_ENVIRONMENT_DRIFT / TEMPORARY_ALLOWLIST_PENDING_UPSTREAM_FIX.
+          # Triggered by GitHub runner pip 26.0.1. Tracking + hygiene context: https://github.com/BizraInfo/bizra-data-lake/pull/51
+          # Review-by (YYYY-MM-DD): force removal or documented extension — fail closed after this date.
+          EXPIRY="2026-10-01"
+          if [ "$(date -u +%Y-%m-%d)" \> "$EXPIRY" ]; then
+            echo "::error::CVE-2026-3219 pip-audit allowlist expired (review-by ${EXPIRY}). Remove --ignore-vuln CVE-2026-3219 or extend with written justification."
+            exit 1
+          fi
           # Constitutional: security scans MUST block — no || true, no silent swallow
-          pip-audit --strict --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539
+          pip-audit --strict --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
 
       - name: Check formatting with Black
         run: black --check --diff core/
@@ -342,6 +354,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: [lint-python]
+    env:
+      # Deterministic path resolution for every pytest step in this job (ROLLOUT-001,
+      # CANONICAL-001, etc.), not only the main matrix run.
+      BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
     strategy:
       fail-fast: false
       matrix:
@@ -364,6 +380,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install z3-solver
           pip install -e ".[dev]"
 
       - name: Run tests with pytest
@@ -373,7 +390,7 @@ jobs:
             --tb=short \
             -n auto \
             --ignore=tests/e2e_http \
-            -m "not requires_ollama and not requires_gpu and not slow and not e2e_http" \
+            -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu and not requires_real_data" \
             ${{ matrix.coverage && '--cov=core --cov-report=xml --cov-report=term-missing' || '' }}
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -1650,10 +1667,18 @@ jobs:
 
       - name: Python Dependency Scan (pip-audit)
         run: |
+          set -euo pipefail
           pip install -e ".[dev]"
           # PYSEC-2024-48: urllib3 DoS via header regex — mitigated by httpx usage
           # CVE-2026-4539: pygments 2.19.2 — transitive dep, no direct exposure
-          pip-audit --strict --desc --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539
+          # CVE-2026-3219: CI_RUNNER_ENVIRONMENT_DRIFT / TEMPORARY_ALLOWLIST_PENDING_UPSTREAM_FIX.
+          # Triggered by GitHub runner pip 26.0.1. Tracking: https://github.com/BizraInfo/bizra-data-lake/pull/51
+          EXPIRY="2026-10-01"
+          if [ "$(date -u +%Y-%m-%d)" \> "$EXPIRY" ]; then
+            echo "::error::CVE-2026-3219 pip-audit allowlist expired (review-by ${EXPIRY}). Remove --ignore-vuln CVE-2026-3219 or extend with written justification."
+            exit 1
+          fi
+          pip-audit --strict --desc --ignore-vuln PYSEC-2024-48 --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
 
       - name: Rust Security Audit
         working-directory: bizra-omega

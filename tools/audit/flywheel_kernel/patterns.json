@@ -1,0 +1,104 @@
+{
+  "schema": "bizra.flywheel.pattern_registry.v1",
+  "patterns": [
+    {
+      "pattern_id": "FW-P001",
+      "name": "Secret scanner noise collapse",
+      "stage": "Signal extraction",
+      "signal": "Secret findings are dominated by duplicates, self-reference, logs, placeholders, or env substitutions.",
+      "root_cause": "The scanner confuses review artifacts and inert examples with live credential material.",
+      "intervention": "Deduplicate roots, skip known log/self-scan paths, suppress placeholders and env substitutions, then rerun audit.",
+      "guard": "Secret findings must be zero or human-triaged before launch-oriented work proceeds.",
+      "trigger_globs": [
+        "tools/audit/omni_audit/secret_pattern_scanner.py",
+        "tools/audit/omni_audit/audit_config.*",
+        ".env*",
+        "**/*.env"
+      ],
+      "next_action": "Run omni audit and inspect secret_findings.json."
+    },
+    {
+      "pattern_id": "FW-P002",
+      "name": "Dev-default credential fallback",
+      "stage": "Correction engine",
+      "signal": "Runtime code contains credential-bearing fallback URLs or auth defaults.",
+      "root_cause": "Local bootstrap convenience leaked into runtime configuration paths.",
+      "intervention": "Require operator-supplied env vars or explicit arguments; degrade only to non-network local persistence.",
+      "guard": "Credential-bearing defaults must not be committed in runtime, scripts, or config.",
+      "trigger_globs": [
+        "runtime/**/*.py",
+        "runtime/**/*.rs",
+        "runtime/**/*.yaml",
+        "scripts/**/*.sh",
+        "deploy/**/*.yaml"
+      ],
+      "next_action": "Scan for credential-bearing URLs and auth defaults before merge."
+    },
+    {
+      "pattern_id": "FW-P003",
+      "name": "YAML inline-comment config drift",
+      "stage": "Pre-execution guard",
+      "signal": "Audit config values parse as strings when inline comments follow scalar values.",
+      "root_cause": "Tiny YAML loader did not strip comments outside quoted strings.",
+      "intervention": "Strip inline comments before scalar coercion and add parser regression tests.",
+      "guard": "Audit config must load through the default CLI path before generated reports are trusted.",
+      "trigger_globs": [
+        "tools/audit/omni_audit/run_audit.py",
+        "tools/audit/omni_audit/secret_pattern_scanner.py",
+        "tools/audit/omni_audit/audit_config.yaml"
+      ],
+      "next_action": "Run default no-network audit smoke test."
+    },
+    {
+      "pattern_id": "FW-P004",
+      "name": "Truth-integrity public claim debt",
+      "stage": "Truth alignment",
+      "signal": "PROHIBITED, NEEDS_REWRITE, or PROOF_REQUIRED claims remain after P0 secret cleanup.",
+      "root_cause": "Marketing and doctrine text can move faster than receipt-backed evidence.",
+      "intervention": "Remove, soften, or receipt-link exact public claims before launch or paid distribution.",
+      "guard": "Paid/public launch is blocked while prohibited or unreceipted exact claims remain.",
+      "trigger_globs": [
+        "docs/brand/**",
+        "frontend/**",
+        "dema-console/**",
+        "docs/**/*.md"
+      ],
+      "next_action": "Shift priority to public claim discipline when secrets are zero."
+    },
+    {
+      "pattern_id": "FW-P005",
+      "name": "Supply-chain reproducibility gap",
+      "stage": "Trust engine",
+      "signal": "Cargo.lock or SBOM artifacts are missing for releasable workspaces.",
+      "root_cause": "Build reproducibility and attestation are not yet first-class release gates.",
+      "intervention": "Add lockfiles, SBOM generation, and dependency advisory/license policy.",
+      "guard": "Release promotion requires lockfile and SBOM evidence.",
+      "trigger_globs": [
+        "**/Cargo.toml",
+        "**/package.json",
+        "pyproject.toml",
+        "requirements*.txt"
+      ],
+      "next_action": "Generate reproducibility artifacts after truth-integrity blockers close."
+    },
+    {
+      "pattern_id": "FW-P006",
+      "name": "Runtime panic and command-execution surface",
+      "stage": "Runtime hardening",
+      "signal": "Hot-path unwrap, panic, shell=True, broad except, or dynamic execution findings remain.",
+      "root_cause": "Prototype acceleration leaves implicit failure behavior in production-adjacent paths.",
+      "intervention": "Classify by hot path, replace fail-open behavior with typed errors, and add regression tests.",
+      "guard": "Promotion requires hot-path panic and command execution review.",
+      "trigger_globs": [
+        "core/**/*.py",
+        "runtime/**/*.py",
+        "runtime/**/*.yaml",
+        "scripts/**/*.sh",
+        "deploy/**/*.yaml",
+        "bizra-omega/**/*.rs",
+        "runtime/**/*.rs"
+      ],
+      "next_action": "Triage code_risks.json by rule and subsystem."
+    }
+  ]
+}

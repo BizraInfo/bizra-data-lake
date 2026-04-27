@@ -22,34 +22,39 @@ NOT_IMPL = CheckStatus.NOT_IMPLEMENTED
 SKIPPED = CheckStatus.SKIPPED
 
 
-def ambassador_verify(skip_manual: bool = False) -> GateResult:
+def ambassador_verify(skip_manual: bool = False, skip_slow: bool = False) -> GateResult:
     """Layer 5: Human Verification — 4 automated + 15 manual checks."""
     checks: list[CheckResult] = []
 
     # === AUTOMATED TRUST GATES ===
 
     # 6.11 Network isolation
-    netpol_exists = path_exists("deploy/k8s/base/networkpolicy.yaml")
-    code, out = _run(
-        [
-            "python",
-            "-m",
-            "pytest",
-            "tests/",
-            "-q",
-            "--timeout=30",
-            "-k",
-            "offline or network_isolation or fail_closed",
-        ],
-        timeout=60,
-    )
-    checks.append(
-        CheckResult(
-            "network_isolation",
-            PASS if code == 0 and netpol_exists else PARTIAL,
-            f"NetworkPolicy: {'yes' if netpol_exists else 'no'}, tests: exit={code}",
+    if skip_slow:
+        checks.append(
+            CheckResult("network_isolation", SKIPPED, "Skipped (--skip-slow)")
         )
-    )
+    else:
+        netpol_exists = path_exists("deploy/k8s/base/networkpolicy.yaml")
+        code, out = _run(
+            [
+                "python",
+                "-m",
+                "pytest",
+                "tests/",
+                "-q",
+                "--timeout=30",
+                "-k",
+                "offline or network_isolation or fail_closed",
+            ],
+            timeout=60,
+        )
+        checks.append(
+            CheckResult(
+                "network_isolation",
+                PASS if code == 0 and netpol_exists else PARTIAL,
+                f"NetworkPolicy: {'yes' if netpol_exists else 'no'}, tests: exit={code}",
+            )
+        )
 
     # 6.12 Receipt export/verify
     evidence_scripts = path_exists(

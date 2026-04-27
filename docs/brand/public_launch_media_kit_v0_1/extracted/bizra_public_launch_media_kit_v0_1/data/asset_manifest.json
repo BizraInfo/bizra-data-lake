@@ -1,0 +1,282 @@
+[
+  {
+    "path": "README_HANDOFF.md",
+    "bytes": 578,
+    "sha256": "182611d9e1a73e8aa6f675fae0e9f71893d2ac7e0c48408343a3a19e671db7ec"
+  },
+  {
+    "path": "assets/editable_svg/BIZRA_avatar_dark.svg",
+    "bytes": 2122,
+    "sha256": "984617034ce5dfae72bdb26baa3f2d51c38656e3ab5f836113d9f1d67bb81720"
+  },
+  {
+    "path": "assets/editable_svg/BIZRA_launch_post_1080.svg",
+    "bytes": 2849,
+    "sha256": "eebda04f5feee48aed3f8bf8096268405dea3b5b87ff1637b5c9be6c56e0b0b4"
+  },
+  {
+    "path": "assets/editable_svg/BIZRA_linkedin_cover_1584x396.svg",
+    "bytes": 2481,
+    "sha256": "f2f91aa6778d9cde0c005dda61dba7bb41d161a830f4eb1d68b6cd940a7d0b7a"
+  },
+  {
+    "path": "assets/editable_svg/BIZRA_logo_lockup_dark.svg",
+    "bytes": 2719,
+    "sha256": "cfb877eb45a8da16fd82d68d3be770eadca5a40e42054c117120fe29b7688e27"
+  },
+  {
+    "path": "assets/editable_svg/BIZRA_manifesto_poster_1080x1350.svg",
+    "bytes": 3039,
+    "sha256": "ff96639e7036d867f1725bf4844b1eaeab36dedd7cd9075b8afc930f64b881a7"
+  },
+  {
+    "path": "assets/editable_svg/BIZRA_seed_emblem.svg",
+    "bytes": 2101,
+    "sha256": "84ddacb67e311475c7c1fb5fe5bfeadacfeaf08020bb85402f2ac68179544790"
+  },
+  {
+    "path": "assets/editable_svg/BIZRA_website_hero_1920x1080.svg",
+    "bytes": 2811,
+    "sha256": "973d041008a53e57f9e7a67061d93dd96389b0eacc20e68c94e6d826b00999b3"
+  },
+  {
+    "path": "assets/editable_svg/BIZRA_x_header_1500x500.svg",
+    "bytes": 2488,
+    "sha256": "73b055234c52a5b617a6ec78909257b525c065f4e83c3f475373916cbae94761"
+  },
+  {
+    "path": "assets/editable_svg/BIZRA_youtube_banner_2560x1440.svg",
+    "bytes": 2614,
+    "sha256": "420f5a761a63ca91fd65c3fd029a8111a18f3aef1f473cb962679ee27c00823e"
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_01_master_media_kit_overview_1440x1080.png",
+    "bytes": 1774460,
+    "sha256": "d84d16f79296c28b3b70298491f150dac06361e78c348294ad795caa6e9d7c94",
+    "width": 1440,
+    "height": 1080
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_01_master_media_kit_overview_1440x1080.webp",
+    "bytes": 238440,
+    "sha256": "cfdce22ac3d852acd2fbd3d9204e5b8712f7c6ce6ccfae4add6498ab035602d7",
+    "width": 1440,
+    "height": 1080
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_02_logo_system_1080x1350.png",
+    "bytes": 1469875,
+    "sha256": "0bacbf0230927985d8e7d72994978dfd7d7be9af5b9a91b3abd2dc20f7ec73bc",
+    "width": 1080,
+    "height": 1350
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_02_logo_system_1080x1350.webp",
+    "bytes": 188354,
+    "sha256": "289b4ca58a085c988896aa510a3176e3cf2a7801ac6aa1f0b5b309236876bf9e",
+    "width": 1080,
+    "height": 1350
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_03_social_profile_kit_1080x1350.png",
+    "bytes": 1451701,
+    "sha256": "ad2eeb8db70408c8f0e4db29931ddd7bf87ed6029c55b50ed139eef991586755",
+    "width": 1080,
+    "height": 1350
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_03_social_profile_kit_1080x1350.webp",
+    "bytes": 212878,
+    "sha256": "e8a0f5a66ad9c8eac3e210301d87dfe35ea34b75b27319f1d7d458252acb8e04",
+    "width": 1080,
+    "height": 1350
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_04_launch_announcement_1080x1080.png",
+    "bytes": 1471819,
+    "sha256": "89ae900dc304c68e6215a51ec499da09ec3d7ee72acba1228a4eaceb9544639e",
+    "width": 1080,
+    "height": 1080
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_04_launch_announcement_1080x1080.webp",
+    "bytes": 180896,
+    "sha256": "4ad18cb4f70365077610acda3c557612088f0065e53d83824991062d8ee08c52",
+    "width": 1080,
+    "height": 1080
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_05_manifesto_poster_1080x1350.png",
+    "bytes": 1836304,
+    "sha256": "1962be84ce33122e3c71f9eaf30944e11fc9ad98b716a7e756257cdcca81d9b3",
+    "width": 1080,
+    "height": 1350
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_05_manifesto_poster_1080x1350.webp",
+    "bytes": 221420,
+    "sha256": "fc7b7a644e655c7d0cf7a6d6cb9eefb42e6ddd57aab69e31a99e5c434e25dc5c",
+    "width": 1080,
+    "height": 1350
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_06_product_value_infographic_1080x1350.png",
+    "bytes": 1695508,
+    "sha256": "0f998d33e19af72b61856334205a9bdbd5407afa96d876ac15ecb9d2780031e7",
+    "width": 1080,
+    "height": 1350
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_06_product_value_infographic_1080x1350.webp",
+    "bytes": 203066,
+    "sha256": "88533ddd3d0419d4233b36fa5203bbc9f9bcb94cfdbfff52efef2a2c1720c460",
+    "width": 1080,
+    "height": 1350
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_07_website_hero_1920x1080.png",
+    "bytes": 852153,
+    "sha256": "4f6157655cfae3b3a6e119a934402069380ddf0ad9f24c24ac2b2a0db90c44db",
+    "width": 1920,
+    "height": 1080
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_08_ad_creative_set_1080x1350.png",
+    "bytes": 1767966,
+    "sha256": "49c3be1ecfd2ec9c51ad95696f29d0854f4475a15caa90e3562538a5f31e7a2a",
+    "width": 1080,
+    "height": 1350
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_09_stationery_mockup_1440x1080.png",
+    "bytes": 2030762,
+    "sha256": "05c2f1b6b85d172719c2b9eee5c28765da048e635bed2b1563b8b828f11eacda",
+    "width": 1440,
+    "height": 1080
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_10_presentation_cover_1920x1080.png",
+    "bytes": 2188681,
+    "sha256": "5bc6aea02e45393902fe52f0ca16ceb73f33c0894c924c1ef19f5ccbeb90fd20",
+    "width": 1920,
+    "height": 1080
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_11_product_vision_board_1440x1080.png",
+    "bytes": 1389575,
+    "sha256": "619aac67a42552ed151b667fe7b8e27f1b4ccfbb24fcf4acf7f412b4fbdf7106",
+    "width": 1440,
+    "height": 1080
+  },
+  {
+    "path": "assets/ready_to_post/BIZRA_avatar_from_launch_1024x1024.png",
+    "bytes": 1347881,
+    "sha256": "f14ee8f71bf0540da3a3de25187a309e0eed4e682f0770641687c74a7743b456",
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_01_master_media_kit_overview.png",
+    "bytes": 1848197,
+    "sha256": "b6894f53de5c8d7a1737a3bf28e2822399f50bbdb6b415b1f4ed339835d11747",
+    "width": 1448,
+    "height": 1086
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_02_logo_system_concept.png",
+    "bytes": 1618221,
+    "sha256": "f8b722d4b8189ec8f44bc1af9055b7de8db48b39faeb6ca378aeb20694e3d38d",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_03_social_profile_kit_concept.png",
+    "bytes": 1589346,
+    "sha256": "7f62cedd264e780e8861f29dfb51326d47e6e47d6fe0f46961474e7012c85892",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_04_launch_announcement_concept.png",
+    "bytes": 1983813,
+    "sha256": "0f86f6e0b47c3c11b03b1cf432904cb7f9828a9e6407ac2aea37107071b72c0b",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_05_manifesto_poster_concept.png",
+    "bytes": 2020214,
+    "sha256": "c1b677667b65a8389908945a9b049bf072890f77f2a45872ce5a5498c812162a",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_06_product_value_infographic_concept.png",
+    "bytes": 1861627,
+    "sha256": "4d9bac02cc1b4bcaa2083a0fbc7577751d2b206c4c833e98bbb5a3b007e10ae2",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_07_website_hero_concept.png",
+    "bytes": 1961783,
+    "sha256": "65280303c9f37c6831ba174a3017e8fced645c0e869976f3f4f44034591f79ad",
+    "width": 1672,
+    "height": 941
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_08_ad_creative_set_concept.png",
+    "bytes": 1934238,
+    "sha256": "059112b79b6c924c1ebf2033c704c9741fd0100fed0d69fa5491c92cc22e6afe",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_09_stationery_mockup_concept.png",
+    "bytes": 2161468,
+    "sha256": "2cbdf3b30deedb730074f05e4f9b56701af90056e3c7ed159cfd4da403e3621d",
+    "width": 1448,
+    "height": 1086
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_10_presentation_cover_concept.png",
+    "bytes": 1839721,
+    "sha256": "c7f565022090ad911ff114da148e664e130d2b2711ce017828782784555a7df2",
+    "width": 1672,
+    "height": 941
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_11_product_vision_board_concept.png",
+    "bytes": 1453447,
+    "sha256": "f3c92e52a10bc1b9b6a27a0cffe7ff05e58840fdd7f5e312b2c89088a9ed1a91",
+    "width": 1448,
+    "height": 1086
+  },
+  {
+    "path": "assets/rendered_concepts/BIZRA_12_brand_identity_board_concept.png",
+    "bytes": 1808270,
+    "sha256": "069207ded439427216fbbe4b3018570f170e7fb3a7e1c0b8e7a08a88ba1b06ea",
+    "width": 1448,
+    "height": 1086
+  },
+  {
+    "path": "copy/BIZRA_LAUNCH_COPY.md",
+    "bytes": 457,
+    "sha256": "b56c909dac979edccbfb1119f28226e89e91727fc15bcb2db67ede51f048c234"
+  },
+  {
+    "path": "data/bizra_visual_tokens.json",
+    "bytes": 883,
+    "sha256": "960914782d19c7807a125e433183a26a6c110866120246993e45197dec5f7370"
+  },
+  {
+    "path": "docs/ASSET_USAGE_NOTES.md",
+    "bytes": 207,
+    "sha256": "4300d3bb492492911cc74e9e4dc6f359773449e18430f5d6ef2ceae1f69556b5"
+  },
+  {
+    "path": "docs/CLAIM_DISCIPLINE.md",
+    "bytes": 289,
+    "sha256": "27408571379765eaa52779d87779120974e7c5036baf05082eb5d2a54ce6cdfe"
+  }
+]

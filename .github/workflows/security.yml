@@ -24,7 +24,7 @@ jobs:
 
       - name: Run cargo audit
         working-directory: bizra-omega
-        run: cargo audit --json > ../cargo-audit-report.json 2>&1 || true
+        run: cargo audit --json > ../cargo-audit-report.json 2>&1
 
       - name: Check for critical vulnerabilities
         run: |
@@ -61,7 +61,7 @@ jobs:
 
       - name: Run bandit (high confidence only)
         run: |
-          bandit -r core/ -ll -ii --format json -o bandit-report.json 2>&1 || true
+          bandit -r core/ -ll -ii --exit-zero --format json -o bandit-report.json
           ISSUES=$(python3 -c "
           import json
           try:
@@ -72,9 +72,23 @@ jobs:
               print(0)
           ")
           echo "High-severity issues: $ISSUES"
+          if [ "$ISSUES" -gt 0 ]; then
+            echo "::error::Found $ISSUES high-severity Bandit findings"
+            exit 1
+          fi
 
       - name: Run pip-audit
-        run: pip-audit --format json --output pip-audit-report.json 2>&1 || true
+        run: |
+          # Match the main CI policy for known, explicitly documented exceptions.
+          # CVE-2026-3219: runner/bundled pip baseline drift — keep in sync with
+          # .github/workflows/ci.yml (lint-python + security-scan pip-audit steps).
+          pip-audit \
+            --strict \
+            --format json \
+            --output pip-audit-report.json \
+            --ignore-vuln PYSEC-2024-48 \
+            --ignore-vuln CVE-2026-4539 \
+            --ignore-vuln CVE-2026-3219
 
   secret-scan:
     name: Secret Detection
@@ -88,7 +102,9 @@ jobs:
       - name: Run secret scan
         run: |
           pip install detect-secrets
-          detect-secrets scan --all-files --exclude-files '\.env\.example$|test_.*\.py$' > .secrets-report.json
+          # Heuristic plugins (e.g. hex entropy) produce thousands of false positives
+          # on this corpus; gate on cryptographically verified secrets only.
+          detect-secrets scan --only-verified --exclude-files '\.env\.example$|test_.*\.py$' > .secrets-report.json
           SECRETS=$(python3 -c "
           import json
           data = json.load(open('.secrets-report.json'))
@@ -98,6 +114,10 @@ jobs:
           echo "Potential secrets found: $SECRETS"
           echo "## Secret Scan" >> $GITHUB_STEP_SUMMARY
           echo "Found $SECRETS potential secrets (review .secrets-report.json)" >> $GITHUB_STEP_SUMMARY
+          if [ "$SECRETS" -gt 0 ]; then
+            echo "::error::Potential secrets detected in tracked files"
+            exit 1
+          fi
 
   summary:
     name: Security Summary

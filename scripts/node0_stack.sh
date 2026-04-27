@@ -174,11 +174,19 @@ cmd_status() {
 
     # Redis
     local redis_ok
-    redis_ok=$(redis-cli -p 6379 -a bizra PING 2>/dev/null | grep -c PONG || true)
+    if [ -n "${BIZRA_REDIS_CACHE_PASSWORD:-}" ]; then
+        redis_ok=$(redis-cli -p 6379 -a "$BIZRA_REDIS_CACHE_PASSWORD" PING 2>/dev/null | grep -c PONG || true)
+    else
+        redis_ok=$(redis-cli -p 6379 PING 2>/dev/null | grep -c PONG || true)
+    fi
     if [ "$redis_ok" = "1" ]; then ok "Redis Cache :6379 (PONG)"; else fail "Redis Cache :6379"; fi
 
     local synapse_ok
-    synapse_ok=$(redis-cli -p 6380 -a bizra_synapse_secure PING 2>/dev/null | grep -c PONG || true)
+    if [ -n "${BIZRA_REDIS_PASSWORD:-}" ]; then
+        synapse_ok=$(redis-cli -p 6380 -a "$BIZRA_REDIS_PASSWORD" PING 2>/dev/null | grep -c PONG || true)
+    else
+        synapse_ok=$(redis-cli -p 6380 PING 2>/dev/null | grep -c PONG || true)
+    fi
     if [ "$synapse_ok" = "1" ]; then ok "Redis Synapse :6380 (PONG)"; else warn "Redis Synapse :6380 (AUTH?)"; fi
 
     # Ollama

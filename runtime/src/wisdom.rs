@@ -65,12 +65,15 @@ impl HouseOfWisdom {
     pub fn from_env() -> Self {
         let uri =
             std::env::var("WISDOM_URL").unwrap_or_else(|_| "bolt://localhost:7687".to_string());
-        let auth = std::env::var("NEO4J_AUTH").unwrap_or_else(|_| "neo4j/bizra_wisdom".to_string());
+        let auth = std::env::var("NEO4J_AUTH").unwrap_or_default();
 
         let (user, password) = auth
             .split_once('/')
             .map(|(u, p)| (u.to_string(), p.to_string()))
-            .unwrap_or_else(|| ("neo4j".to_string(), "bizra_wisdom".to_string()));
+            .unwrap_or_else(|| {
+                warn!("NEO4J_AUTH not set or invalid; Neo4j connection is not configured");
+                ("".to_string(), "".to_string())
+            });
 
         Self::new(uri, user, password)
     }

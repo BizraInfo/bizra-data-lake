@@ -39,12 +39,23 @@ on:
       coverage_threshold:
         description: 'Coverage threshold (%)'
         required: false
-        default: '25'
+        default: '65'
         type: string
 
 env:
   PYTHONUNBUFFERED: '1'
-  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '25' }}
+  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '65' }}
+  # GitHub's Python 3.11 runners can execute incompatible optional hnswlib wheels.
+  # Keep fast CI on the deterministic numpy fallback; production remains opt-in.
+  BIZRA_MEMORY_DISABLE_HNSWLIB: '1'
+
+# Default permissions: read-only for code; coverage-report needs write
+# access to post PR comments (issues/pull-requests). Granted at workflow
+# level so all jobs share a single, audited permission set.
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
@@ -57,7 +68,7 @@ jobs:
   unit-tests:
     name: Unit Tests (Python ${{ matrix.python-version }}${{ matrix.optional-deps && ', full' || '' }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -72,6 +83,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          # Full history — evidence auditor tests verify real commit SHAs via
+          # `git cat-file -t <sha>`; a shallow clone makes those lookups fail.
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
@@ -99,6 +114,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install z3-solver
           pip install pytest pytest-cov pytest-asyncio pytest-timeout pytest-xdist
           if [ "${{ matrix.optional-deps }}" = "true" ]; then
             pip install -e ".[dev,full]"
@@ -109,17 +125,19 @@ jobs:
       - name: Run unit tests
         id: unit_tests
         run: |
+          set -o pipefail
           pytest tests/ \
             -v \
             --tb=short \
-            --timeout=30 \
-            -m "not slow and not integration and not requires_ollama and not requires_gpu" \
+            --timeout=120 \
+            -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu and not requires_real_data" \
             ${{ matrix.coverage && '--cov=core --cov-branch --cov-report=xml:coverage-unit.xml --cov-report=term-missing --cov-fail-under=0' || '' }} \
             --junit-xml=junit-unit.xml \
-            -n auto \
+            -n 4 \
             2>&1 | tee test-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Upload unit test results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
@@ -205,16 +223,18 @@ jobs:
       - name: Run integration tests
         id: integration_tests
         run: |
+          set -o pipefail
           pytest tests/integration/ tests/ \
             -v \
             --tb=short \
             --timeout=120 \
-            -m "integration and not requires_ollama and not requires_gpu and not slow" \
+            -m "integration and not requires_ollama and not requires_gpu and not slow and not requires_real_data" \
             ${{ matrix.coverage && '--cov=core --cov-branch --cov-report=xml:coverage-integration.xml --cov-report=term-missing --cov-fail-under=0' || '' }} \
             --junit-xml=junit-integration.xml \
             2>&1 | tee test-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
           REDIS_URL: redis://localhost:6379
 
       - name: Upload integration test results
@@ -274,6 +294,7 @@ jobs:
 
       - name: Run token unit tests
         run: |
+          set -o pipefail
           pytest tests/core/token/ \
             -v \
             --tb=short \
@@ -286,9 +307,11 @@ jobs:
             2>&1 | tee token-unit-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Run token integration tests
         run: |
+          set -o pipefail
           pytest tests/integration/test_token_integration.py \
             -v \
             --tb=short \
@@ -297,6 +320,7 @@ jobs:
             2>&1 | tee token-integration-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Verify token ledger integrity
         run: |
@@ -373,6 +397,7 @@ jobs:
 
       - name: Run spearpoint cockpit unit tests
         run: |
+          set -o pipefail
           pytest tests/core/sovereign/test_spearpoint_cockpit.py \
             -v \
             --tb=short \
@@ -381,9 +406,11 @@ jobs:
             2>&1 | tee spearpoint-cockpit-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Run spearpoint E2E integration tests
         run: |
+          set -o pipefail
           pytest tests/integration/test_spearpoint_e2e.py \
             -v \
             --tb=short \
@@ -392,6 +419,7 @@ jobs:
             2>&1 | tee spearpoint-e2e-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Spearpoint pillar summary
         if: always()
@@ -456,6 +484,7 @@ jobs:
 
       - name: Run 7-Layer stack integration tests
         run: |
+          set -o pipefail
           pytest tests/integration/test_seven_layer_stack.py \
             -v \
             --tb=short \
@@ -464,6 +493,7 @@ jobs:
             2>&1 | tee seven-layer-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Seven-Layer summary
         if: always()
@@ -503,6 +533,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          # Full history — slow suites include evidence/canonical-truth-pack
+          # tests that resolve historical commit SHAs (e.g. Spearpoint
+          # b08f2208). Shallow clones break `git cat-file -t <sha>` lookups.
+          fetch-depth: 0
 
       - name: Set up Python 3.12
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
@@ -526,11 +561,12 @@ jobs:
 
       - name: Run slow tests
         run: |
+          set -o pipefail
           pytest tests/ \
             -v \
             --tb=short \
             --timeout=600 \
-            -m "slow and not requires_ollama and not requires_gpu" \
+            -m "slow and not requires_ollama and not requires_gpu and not requires_real_data" \
             --cov=core \
             --cov-branch \
             --cov-report=xml:coverage-slow.xml \
@@ -539,6 +575,7 @@ jobs:
             2>&1 | tee test-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
+          BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
 
       - name: Upload slow test results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
@@ -654,8 +691,8 @@ jobs:
 
           # Detect corrupted coverage data (0% indicates xdist worker crashes)
           if (( $(echo "$coverage_pct == 0.0" | bc -l) )); then
-            echo "::warning::Coverage data corrupted (0%) — likely xdist worker crashes. Skipping threshold check."
-            exit 0
+            echo "::error::Coverage data corrupted (0%) — likely xdist worker crashes. Failing closed."
+            exit 1
           fi
 
           # Compare with threshold

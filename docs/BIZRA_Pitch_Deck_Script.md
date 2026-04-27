@@ -314,7 +314,7 @@ Each Phase Proves Value Before the Next Phase Begins
 
 **Phase 3 — Turn Nodes Into Ecosystem**
 - Agent-to-Agent (A2A) protocols
-- Universal Reasoning Protocol (URP) leases
+- Universal Resource Pool (URP) leases
 - Capability tokens: skills trade between nodes
 - The network effect is the verified work graph
 

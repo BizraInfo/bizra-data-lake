@@ -16,8 +16,11 @@ Test classes:
 7. TestDiagnostics             - is_loaded, vector_count, metadata properties
 """
 
+import sys
 import uuid
+from importlib.machinery import ModuleSpec
 from pathlib import Path
+from types import ModuleType
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -37,9 +40,17 @@ from core.search.vector_search import (  # noqa: E402
     _resolve_root,
 )
 
-# Mocks are injected by tests/core/search/conftest.py — import from there
-from tests.core.search.conftest import mock_faiss as _mock_faiss
-from tests.core.search.conftest import mock_pd_module as _mock_pd_module
+# Local mocks are installed into sys.modules by the autouse fixture below.
+_mock_faiss = ModuleType("faiss")
+_mock_faiss.__spec__ = ModuleSpec("faiss", loader=None)
+_mock_faiss.METRIC_L2 = 1  # type: ignore[attr-defined]
+_mock_faiss.METRIC_INNER_PRODUCT = 0  # type: ignore[attr-defined]
+_mock_faiss.read_index = MagicMock()  # type: ignore[attr-defined]
+
+_mock_pd_module = ModuleType("pandas")
+_mock_pd_module.__spec__ = ModuleSpec("pandas", loader=None)
+_mock_pd_module.read_parquet = MagicMock()  # type: ignore[attr-defined]
+_mock_pd_module.DataFrame = MagicMock  # type: ignore[attr-defined]
 
 # ---------------------------------------------------------------------------
 # Fixture: reset mocks between tests so side_effect / return_value don't leak
@@ -47,8 +58,10 @@ from tests.core.search.conftest import mock_pd_module as _mock_pd_module
 
 
 @pytest.fixture(autouse=True)
-def _reset_mocks():
+def _reset_mocks(monkeypatch):
     """Reset mock faiss and pandas between tests; restore originals at session end."""
+    monkeypatch.setitem(sys.modules, "faiss", _mock_faiss)
+    monkeypatch.setitem(sys.modules, "pandas", _mock_pd_module)
     _mock_faiss.read_index.reset_mock()
     _mock_faiss.read_index.side_effect = None
     _mock_faiss.read_index.return_value = MagicMock()

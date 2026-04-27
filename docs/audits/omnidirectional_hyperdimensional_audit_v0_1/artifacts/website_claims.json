@@ -1,0 +1,24 @@
+[
+  {
+    "url": "https://bizra.ai",
+    "final_url": "https://bizra.ai/",
+    "status": null,
+    "redirected": false,
+    "fetch_ok": false,
+    "source": "operator pre-check",
+    "blocks": [
+      {
+        "text": "BIZRA | The Sovereign Future. local agents / no cloud dependency / no telemetry. Ed25519 receipt signatures. cost per action dropping from about $0.10 toward $0.008. SNR 0.974. 8,072 verified tests. 100% pass rate. Ihsan Gate >= 0.95. 73 of 100 nodes remaining. "
+      }
+    ]
+  },
+  {
+    "url": "https://bizra.info",
+    "final_url": "https://bizra.ai/",
+    "status": 302,
+    "redirected": true,
+    "fetch_ok": false,
+    "source": "operator pre-check + session observation",
+    "blocks": []
+  }
+]

@@ -41,6 +41,7 @@ import platform
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 try:
     import redis.asyncio as aioredis
@@ -56,11 +57,22 @@ logger = logging.getLogger("pat_memory")
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Use host-mapped port (6380), not Docker-internal synapse:6379 with TLS
-REDIS_URL = os.getenv("BIZRA_REDIS_URL", "redis://:bizra_synapse_secure@localhost:6380")
+REDIS_URL = os.getenv("BIZRA_REDIS_URL")
 REDIS_KEY_PREFIX = "bizra:pat:memory"
 SESSION_HISTORY_LIMIT = 50
 EVIDENCE_PATH = Path("docs/evidence/receipts/pat_memory")
+
+
+def _safe_url_display(url: Optional[str]) -> str:
+    if not url:
+        return "<not configured>"
+    parsed = urlparse(url)
+    if not parsed.hostname:
+        return "<unparseable>"
+    host = parsed.hostname
+    if parsed.port:
+        host = f"{host}:{parsed.port}"
+    return f"{parsed.scheme}://{host}"
 
 
 def _get_cold_storage_path() -> Path:
@@ -167,7 +179,7 @@ class PATMemoryStore:
             return True
 
         # Connect to Redis (hot layer)
-        if REDIS_AVAILABLE:
+        if REDIS_AVAILABLE and REDIS_URL:
             try:
                 self._redis = aioredis.from_url(
                     REDIS_URL,
@@ -177,10 +189,15 @@ class PATMemoryStore:
                 )
                 await self._redis.ping()
                 self._connected = True
-                logger.info(f"PAT Memory connected to Redis: {REDIS_URL}")
+                logger.info(
+                    "PAT Memory connected to Redis: %s",
+                    _safe_url_display(REDIS_URL),
+                )
             except Exception as e:
                 logger.warning(f"Redis unavailable: {e}. Using cold storage only.")
                 self._connected = False
+        elif not REDIS_URL:
+            logger.warning("BIZRA_REDIS_URL not set. Using cold storage only.")
         else:
             logger.warning("redis-py not installed. Using cold storage only.")
 
@@ -727,7 +744,7 @@ async def main():
     # Default: Show status
     print("\n📊 PAT MEMORY STATUS\n")
     print(f"Cold storage: {COLD_STORAGE_PATH}")
-    print(f"Redis URL: {REDIS_URL}")
+    print(f"Redis URL: {_safe_url_display(REDIS_URL)}")
     print(f"Connected: {memory._connected}")
     print(f"Categories: {', '.join(memory._categories)}")
     print("\nRun with --help for options")

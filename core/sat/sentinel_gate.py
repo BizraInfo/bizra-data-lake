@@ -25,33 +25,47 @@ def sentinel_verify(skip_slow: bool = False) -> GateResult:
     """Layer 1: Structural Integrity — 12 checks."""
     checks: list[CheckResult] = []
 
-    # 1.1 All tests pass
     if skip_slow:
-        checks.append(
-            CheckResult("tests_pass", CheckStatus.SKIPPED, "Skipped (--skip-slow)")
-        )
-    else:
-        code, out = _run(
-            [
-                "python",
-                "-m",
-                "pytest",
-                "tests/",
-                "-q",
-                "--timeout=60",
-                "-m",
-                "not slow and not requires_ollama and not requires_gpu and not requires_network",
-            ],
-            timeout=600,
-        )
-        count = parse_test_count(out)
-        checks.append(
-            CheckResult(
+        checks.extend(
+            CheckResult(name, CheckStatus.SKIPPED, "Skipped (--skip-slow)")
+            for name in [
                 "tests_pass",
-                PASS if code == 0 else FAIL,
-                f"{count} tests passed, exit={code}",
-            )
+                "zero_criticals",
+                "type_safe",
+                "lint_clean",
+                "coverage_floor",
+                "ci_green",
+                "auth_closed",
+                "prod_guard",
+                "no_secrets",
+                "identity_works",
+                "chain_valid",
+            ]
         )
+        return GateResult(agent="Sentinel", layer="STRUCTURAL_INTEGRITY", checks=checks)
+
+    # 1.1 All tests pass
+    code, out = _run(
+        [
+            "python",
+            "-m",
+            "pytest",
+            "tests/",
+            "-q",
+            "--timeout=60",
+            "-m",
+            "not slow and not requires_ollama and not requires_gpu and not requires_network",
+        ],
+        timeout=600,
+    )
+    count = parse_test_count(out)
+    checks.append(
+        CheckResult(
+            "tests_pass",
+            PASS if code == 0 else FAIL,
+            f"{count} tests passed, exit={code}",
+        )
+    )
 
     # 1.2 Zero CRITICAL security findings
     if _has_tool("bandit"):
@@ -99,34 +113,29 @@ def sentinel_verify(skip_slow: bool = False) -> GateResult:
     )
 
     # 1.5 Coverage floor
-    if skip_slow:
-        checks.append(
-            CheckResult("coverage_floor", CheckStatus.SKIPPED, "Skipped (--skip-slow)")
+    code, out = _run(
+        [
+            "python",
+            "-m",
+            "pytest",
+            "tests/",
+            "-q",
+            "--timeout=60",
+            "--cov=core",
+            "--cov-report=term-missing",
+            "--cov-fail-under=38",
+            "-m",
+            "not slow and not requires_ollama and not requires_gpu",
+        ],
+        timeout=600,
+    )
+    checks.append(
+        CheckResult(
+            "coverage_floor",
+            PASS if code == 0 else FAIL,
+            last_line(out),
         )
-    else:
-        code, out = _run(
-            [
-                "python",
-                "-m",
-                "pytest",
-                "tests/",
-                "-q",
-                "--timeout=60",
-                "--cov=core",
-                "--cov-report=term-missing",
-                "--cov-fail-under=38",
-                "-m",
-                "not slow and not requires_ollama and not requires_gpu",
-            ],
-            timeout=600,
-        )
-        checks.append(
-            CheckResult(
-                "coverage_floor",
-                PASS if code == 0 else FAIL,
-                last_line(out),
-            )
-        )
+    )
 
     # 1.6 CI pipeline (check last GitHub Actions run)
     if _has_tool("gh"):

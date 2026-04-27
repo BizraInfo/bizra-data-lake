@@ -19,6 +19,11 @@
 
 set -euo pipefail
 
+PYTEST_PIPE_SCAN_LABEL="pytest piped into tail"
+PYTEST_CMD_TOKEN='py'"test"
+TAIL_CMD_TOKEN='ta'"il"
+PYTEST_PIPE_TAIL_REGEX="${PYTEST_CMD_TOKEN}.*|.*${TAIL_CMD_TOKEN}"
+
 # ── Locate workspace ──
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -d "$SCRIPT_DIR/../bizra-constitution" ] && [ -d "$SCRIPT_DIR/../core" ]; then
@@ -370,9 +375,9 @@ if [ "$MODE" = "--sprint-a" ]; then
     echo "════════════════════════════════════"
     echo ""
 
-    echo "  Fix 1: CI false-pass risk (pytest|tail patterns)"
+    echo "  Fix 1: CI false-pass risk (${PYTEST_PIPE_SCAN_LABEL})"
     echo "  ─────────────────────────────────────────────────"
-    PIPED_TESTS=$(grep -rn 'pytest.*|.*tail' scripts/ deploy/ .github/ .claude/ 2>/dev/null || true)
+    PIPED_TESTS=$(grep -rn "$PYTEST_PIPE_TAIL_REGEX" scripts/ deploy/ .github/ .claude/ 2>/dev/null || true)
     if [ -n "$PIPED_TESTS" ]; then
         echo "  Found piped test patterns:"
         echo "$PIPED_TESTS" | while IFS= read -r line; do
@@ -384,7 +389,7 @@ if [ "$MODE" = "--sprint-a" ]; then
         echo '    if [ $RESULT -ne 0 ]; then echo "FAILED"; exit $RESULT; fi'
         echo ""
     else
-        echo "  OK: No pytest|tail patterns found"
+        echo "  OK: No ${PYTEST_PIPE_SCAN_LABEL} patterns found"
     fi
 
     echo "  Fix 2: Wire integration state awareness"

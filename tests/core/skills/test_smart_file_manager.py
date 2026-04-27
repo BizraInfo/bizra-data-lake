@@ -470,6 +470,8 @@ class TestMerge:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.slow
+@pytest.mark.xdist_group("runtime_heavy")
 class TestClassify:
     """Tests for AI-powered classify operation (extension-fallback path)."""
 

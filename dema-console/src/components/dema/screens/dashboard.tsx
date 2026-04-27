@@ -23,6 +23,12 @@ import {
   receiptStatusDot,
   urgencyColor,
 } from "@/lib/helpers/dema";
+import {
+  formatOptionalText,
+  formatTrustLevel,
+  formatTrustScore,
+  trustScoreProgress,
+} from "@/lib/activation-state";
 import { cn } from "@/lib/utils";
 
 function StatsGrid() {
@@ -35,12 +41,12 @@ function StatsGrid() {
   const stats = [
     {
       label: "Trust Score",
-      value: `${trustState.score}/${trustState.maxScore}`,
-      sub: trustState.level,
+      value: formatTrustScore(trustState.score, trustState.maxScore),
+      sub: formatTrustLevel(trustState.level),
       icon: Shield,
       color: "text-trust",
       bg: "bg-trust/5",
-      progress: (trustState.score / trustState.maxScore) * 100,
+      progress: trustScoreProgress(trustState.score, trustState.maxScore),
     },
     {
       label: "Verified Receipts",
@@ -101,6 +107,7 @@ function StatsGrid() {
 
 function StateGapPanel() {
   const { stateGap } = useDEMAStore();
+  const hasGap = typeof stateGap.gapPercent === "number";
 
   return (
     <Card className="border-border/50 bg-card/50">
@@ -110,8 +117,8 @@ function StateGapPanel() {
             <ArrowRight className="h-4 w-4 text-gap" />
             <CardTitle className="text-sm font-medium">Current → Ideal Gap</CardTitle>
           </div>
-          <Badge variant="outline" className={cn("text-[10px]", urgencyColor(stateGap.urgency))}>
-            {stateGap.urgency}
+          <Badge variant="outline" className={cn("text-[10px]", hasGap ? urgencyColor(stateGap.urgency) : "bg-muted text-muted-foreground border-border")}>
+            {hasGap ? stateGap.urgency : "unavailable"}
           </Badge>
         </div>
       </CardHeader>
@@ -119,13 +126,15 @@ function StateGapPanel() {
         <div className="relative">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
             <span>Current</span>
-            <span className="font-mono font-medium text-foreground">{stateGap.gapPercent}%</span>
+            <span className="font-mono font-medium text-foreground">
+              {hasGap ? `${stateGap.gapPercent}%` : "—"}
+            </span>
             <span>Ideal</span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-warning to-success rounded-full transition-all duration-700"
-              style={{ width: `${stateGap.gapPercent}%` }}
+              style={{ width: `${hasGap ? stateGap.gapPercent : 0}%` }}
             />
           </div>
         </div>
@@ -135,13 +144,13 @@ function StateGapPanel() {
             <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
               Current State
             </div>
-            <p className="text-xs leading-relaxed">{stateGap.current}</p>
+            <p className="text-xs leading-relaxed">{formatOptionalText(stateGap.current)}</p>
           </div>
           <div className="p-3 rounded-lg bg-trust/5 border border-trust/10">
             <div className="text-[10px] font-medium text-trust uppercase tracking-wider mb-1.5">
               Ideal State
             </div>
-            <p className="text-xs leading-relaxed text-trust-foreground">{stateGap.ideal}</p>
+            <p className="text-xs leading-relaxed text-trust-foreground">{formatOptionalText(stateGap.ideal)}</p>
           </div>
         </div>
 
@@ -152,7 +161,7 @@ function StateGapPanel() {
               Next Admissible Action
             </span>
           </div>
-          <p className="text-xs leading-relaxed">{stateGap.nextAction}</p>
+          <p className="text-xs leading-relaxed">{formatOptionalText(stateGap.nextAction)}</p>
         </div>
       </CardContent>
     </Card>

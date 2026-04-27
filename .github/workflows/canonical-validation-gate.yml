@@ -35,6 +35,9 @@ env:
   IHSAN_THRESHOLD: "0.95"
   SNR_THRESHOLD: "0.85"
   ADL_GINI_THRESHOLD: "0.35"
+  # GitHub-hosted runners can crash on optional hnswlib native wheels; canonical
+  # Python gates use the deterministic numpy fallback.
+  BIZRA_MEMORY_DISABLE_HNSWLIB: "1"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
@@ -70,11 +73,18 @@ jobs:
         run: |
           # rustfmt.toml uses nightly-only options (imports_granularity, group_imports)
           # which emit warnings on stable. Check format compliance, tolerate config warnings.
-          cargo fmt --all -- --check 2>&1 | tee /tmp/fmt_output.txt || true
+          set +e
+          cargo fmt --all -- --check 2>&1 | tee /tmp/fmt_output.txt
+          status=${PIPESTATUS[0]}
+          set -e
           # Fail only if actual formatting differences found (not config warnings)
           if grep -q "^Diff in" /tmp/fmt_output.txt; then
             echo "::error::Formatting differences found"
             exit 1
+          fi
+          if [ "$status" -ne 0 ]; then
+            echo "::error::cargo fmt failed"
+            exit "$status"
           fi
 
       - name: "Gate 2: Clippy (zero warnings)"
@@ -95,7 +105,9 @@ jobs:
 
       - name: "Gate 4: Full Workspace Tests"
         working-directory: bizra-omega
-        run: cargo test --workspace --all-features 2>&1 | tee /tmp/rust_test_output.txt
+        run: |
+          set -o pipefail
+          cargo test --workspace --all-features 2>&1 | tee /tmp/rust_test_output.txt
 
       - name: "Gate 5: Test Count Verification"
         working-directory: bizra-omega
@@ -162,9 +174,14 @@ jobs:
   layer2-python-sovereign:
     name: "L2: Python Constitutional Tests"
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
+    env:
+      BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # Evidence-audit constitutional tests validate historical git-show refs.
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -174,37 +191,110 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt --break-system-packages 2>/dev/null || pip install -r requirements.txt
-          pip install pytest pytest-cov ruff black isort
+          # Constitutional pytest slice imports yaml + hypothesis (pyproject [dev]);
+          # requirements.txt is production-only, so install test deps explicitly.
+          # pytest-asyncio: async tests (matches pyproject + tests.yml / phase65 gates).
+          pip install pytest pytest-cov "pytest-asyncio>=0.23.0" pytest-timeout pytest-xdist ruff black isort pyyaml hypothesis z3-solver
 
       - name: "Gate 1: Lint (ruff + black + isort)"
         run: |
-          ruff check core/ --select E,F,W --ignore E501 || true
-          black --check core/ --quiet || true
-          isort --check core/ --quiet || true
+          # Use project ruff config (pyproject.toml) — same contract as ci.yml lint-python.
+          # Do not override --select/--ignore here; that drifted from E402/E741/F403 ignores.
+          ruff check core/
+          black --check core/ --quiet
+          isort --check core/ --quiet
 
       - name: "Gate 2: Constitutional Tests"
         run: |
+          set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
+            --timeout=120 \
             -k "constitutional or ihsan or snr or invariant or gate" \
+            -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu and not requires_real_data" \
             --junitxml=/tmp/constitutional_tests.xml \
-            2>&1 | tee /tmp/python_constitutional.txt || true
+            -n 4 \
+            2>&1 | tee /tmp/python_constitutional.txt
 
-      - name: "Gate 3: Full Python Test Suite"
+      - name: "Gate 3: Canonical Spearpoint Proof"
         run: |
+          set -o pipefail
+          python -m pytest tests/scripts/test_canonical_spearpoint_v1.py -v \
+            --tb=short \
+            --timeout=120 \
+            --junitxml=/tmp/canonical_spearpoint_tests.xml \
+            2>&1 | tee /tmp/canonical_spearpoint_output.txt
+
+      - name: "Gate 4: Full Python Test Suite"
+        run: |
+          set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
+            --timeout=120 \
+            -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu and not requires_real_data" \
+            --ignore=tests/scripts/test_canonical_spearpoint_v1.py \
             --junitxml=/tmp/python_tests.xml \
+            -n 4 \
             2>&1 | tee /tmp/python_test_output.txt
 
-      - name: "Gate 4: Test Count Verification"
+      - name: "Gate 5: Test Count Verification"
         run: |
           TOTAL=$(grep -oP '\d+ passed' /tmp/python_test_output.txt | head -1 | awk '{print $1}')
           echo "::notice::Python tests passed: ${TOTAL:-0}"
 
-      - name: "Gate 5: Truth Label Enforcement"
+      - name: "Gate 6: Truth Label Enforcement"
         run: |
-          python scripts/ci_docs_truth_gate.py 2>/dev/null || echo "Truth gate script not found — skipping"
+          python scripts/ci_docs_truth_gate.py
+
+      - name: "Gate 7: Claim-Discipline Drift Probe (CLEAN_SET fail-closed)"
+        run: |
+          mkdir -p artifacts/claim-drift
+          python tools/audit/claim_drift_probe.py \
+            --ci \
+            --verbose \
+            --log-path artifacts/claim-drift/findings.ndjson \
+            --summary-json artifacts/claim-drift/summary.json \
+            --run-id "ci-${GITHUB_SHA::8}"
+
+      - name: "Gate 7: Upload claim-drift artifacts"
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: claim-drift-${{ github.run_id }}
+          path: artifacts/claim-drift/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: "Gate 8: Canonical Truth Pack Freshness (fail-closed)"
+        run: |
+          set -euo pipefail
+          COMMITTED="docs/knowledge/canonical_truth_pack.json"
+          GENERATED="artifacts/canonical-truth-pack/regenerated.json"
+          mkdir -p artifacts/canonical-truth-pack
+          if [ ! -f "$COMMITTED" ]; then
+            echo "::error::Canonical truth pack missing: $COMMITTED"
+            echo "Run: python scripts/generate_canonical_truth_pack.py"
+            exit 1
+          fi
+          python scripts/generate_canonical_truth_pack.py --output "$GENERATED"
+          if ! diff -u "$COMMITTED" "$GENERATED" > artifacts/canonical-truth-pack/diff.txt; then
+            echo "::error::Canonical truth pack is stale. Committed JSON does not match regenerated output."
+            echo "Diff:"
+            cat artifacts/canonical-truth-pack/diff.txt
+            echo ""
+            echo "Fix: run 'python scripts/generate_canonical_truth_pack.py' and commit the updated JSON."
+            exit 1
+          fi
+          echo "Canonical truth pack is fresh."
+
+      - name: "Gate 8: Upload truth-pack artifacts"
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: canonical-truth-pack-${{ github.run_id }}
+          path: artifacts/canonical-truth-pack/
+          retention-days: 30
+          if-no-files-found: ignore
 
   # ═══════════════════════════════════════════════════════════════
   # CROSS-LAYER: Constitutional Threshold Coherence

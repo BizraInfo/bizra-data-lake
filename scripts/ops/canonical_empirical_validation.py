@@ -142,6 +142,7 @@ async def _flagship_metabolism_async() -> dict[str, Any]:
         "EVENT_LOG_PATH",
         "BIZRA_RECEIPT_PRIVATE_KEY_HEX",
         "BIZRA_TICK_INTERVAL_S",
+        "REFLEX_PERSISTENCE_PATH",
     ]
 
     with tempfile.TemporaryDirectory() as temp_dir_str:
@@ -150,6 +151,9 @@ async def _flagship_metabolism_async() -> dict[str, Any]:
         os.environ["BIZRA_AUTH_ALLOW_ANONYMOUS"] = "true"
         os.environ["SEMANTIC_MEMORY_PATH"] = str(temp_dir / "memory")
         os.environ["EVENT_LOG_PATH"] = str(temp_dir / "events")
+        # Isolated reflex store — avoid S1 short-circuit from a warm host-wide
+        # /tmp/bizra-mission/reflexes.json that skips MissionOrchestrator + receipt queue.
+        os.environ["REFLEX_PERSISTENCE_PATH"] = str(temp_dir / "reflexes.json")
         os.environ["BIZRA_RECEIPT_PRIVATE_KEY_HEX"] = (
             "1111111111111111111111111111111111111111111111111111111111111111"
         )
@@ -165,6 +169,9 @@ async def _flagship_metabolism_async() -> dict[str, Any]:
         runtime._constitutional_event_log = []
         runtime._constitutional_reflex_cache = {}
         runtime.inference_gateway = None
+        # MagicMock would otherwise synthesize a truthy _node0 and skip the legacy
+        # tick bridge that appends ActionReceipts to _constitutional_receipts.
+        runtime._node0 = None
 
         bus_task: asyncio.Task[Any] | None = None
         event_bus_module._global_bus = None

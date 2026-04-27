@@ -1,0 +1,12 @@
+{
+  "archive_path": "/home/bizra-operating-system/Downloads/data-43cc0344-1239-4174-867b-25beff52f00f-1776139825-1ff56815-batch-0000.zip",
+  "counts": {
+    "decisions_for_review": 131,
+    "facts_for_review": 236,
+    "hypotheses_for_review": 292,
+    "workbook_rows": 659
+  },
+  "run_id": "20260423T234857Z_78a12953b97a1085",
+  "stage": 4,
+  "stage_name": "review_pack"
+}

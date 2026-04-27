@@ -6,6 +6,18 @@
 
 ---
 
+[![CI Status](https://github.com/BizraInfo/bizra-data-lake/actions/workflows/ci.yml/badge.svg)](https://github.com/BizraInfo/bizra-data-lake/actions/workflows/ci.yml)
+[![Discord](https://img.shields.io/badge/Discord-Community-informational)](./COMMUNITY.md)
+[![Roadmap](https://img.shields.io/badge/Roadmap-Public-success)](./ROADMAP.md)
+
+[Public Roadmap](ROADMAP.md) · [Community Guide](COMMUNITY.md)
+
+## Community
+
+Norms, discussion, and onboarding: [COMMUNITY.md](COMMUNITY.md).
+
+---
+
 ## What BIZRA Is
 
 BIZRA is not "AI + blockchain." It is four interlocking systems in one: a **Personal Operating System** that runs entirely on your hardware; an **Agent Market** where skills become composable, tradeable objects; an **Impact Economy** where value is minted from verified work rather than extracted from data or debt; and a **Constitutional Trust Layer** that enforces ethical constraints in code, not policy. Every agent action is signed, receipted, and auditable. The machine works for the human — not the platform.

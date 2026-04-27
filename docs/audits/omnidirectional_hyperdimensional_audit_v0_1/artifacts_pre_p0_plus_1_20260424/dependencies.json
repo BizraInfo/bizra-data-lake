@@ -1,0 +1,4428 @@
+{
+  "rust": {
+    "manifests": [
+      {
+        "path": "filedfs/Cargo.toml",
+        "dep_count": 0,
+        "deps": []
+      },
+      {
+        "path": "runtime/Cargo.toml",
+        "dep_count": 39,
+        "deps": [
+          {
+            "name": "tokio",
+            "version": "1.41",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "async-trait",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "futures",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_yaml",
+            "version": "0.9",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "axum",
+            "version": "0.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tower",
+            "version": "0.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tower-http",
+            "version": "0.6",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "reqwest",
+            "version": "0.12",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "clap",
+            "version": "4.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "indicatif",
+            "version": "0.17",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "console",
+            "version": "0.15",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "comfy-table",
+            "version": "=7.1.3",
+            "section": "dependencies",
+            "strict_pin": true
+          },
+          {
+            "name": "thiserror",
+            "version": "=1.0.69",
+            "section": "dependencies",
+            "strict_pin": true
+          },
+          {
+            "name": "tracing",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing-subscriber",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "uuid",
+            "version": "1.11",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "sha2",
+            "version": "0.10.9",
+            "section": "dependencies",
+            "strict_pin": true
+          },
+          {
+            "name": "prometheus",
+            "version": "0.14.0",
+            "section": "dependencies",
+            "strict_pin": true
+          },
+          {
+            "name": "lazy_static",
+            "version": "1.5.0",
+            "section": "dependencies",
+            "strict_pin": true
+          },
+          {
+            "name": "neo4rs",
+            "version": "0.8.0",
+            "section": "dependencies",
+            "strict_pin": true
+          },
+          {
+            "name": "fastembed",
+            "version": "4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "image",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "home",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "getrandom",
+            "version": "0.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "url",
+            "version": "2.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "redis",
+            "version": "0.27",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "1.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "2.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chacha20poly1305",
+            "version": "0.10",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hostname",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio-native-tls",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "dialoguer",
+            "version": "0.12.0",
+            "section": "dependencies",
+            "strict_pin": true
+          },
+          {
+            "name": "regex",
+            "version": "1.11",
+            "section": "dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "runtime/crates/bizra-gateway/Cargo.toml",
+        "dep_count": 15,
+        "deps": [
+          {
+            "name": "tokio",
+            "version": "1.41",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "async-trait",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "actix-web",
+            "version": "4.9",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "actix-ws",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "actix-service",
+            "version": "2.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "actix-http",
+            "version": "3.9",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "futures-util",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "thiserror",
+            "version": "2.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "uuid",
+            "version": "1.11",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "sha2",
+            "version": "0.10.9",
+            "section": "dependencies",
+            "strict_pin": true
+          }
+        ]
+      },
+      {
+        "path": "runtime/crates/finance-v1/Cargo.toml",
+        "dep_count": 14,
+        "deps": [
+          {
+            "name": "axum",
+            "version": "0.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tower",
+            "version": "0.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tower-http",
+            "version": "0.6",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "reqwest",
+            "version": "0.12",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing-subscriber",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "uuid",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "redis",
+            "version": "0.27",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "dashmap",
+            "version": "6.0",
+            "section": "dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "runtime/crates/bizra_bridge/Cargo.toml",
+        "dep_count": 4,
+        "deps": [
+          {
+            "name": "pyo3",
+            "version": "0.20",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-node0/bizra-omega/Cargo.toml",
+        "dep_count": 0,
+        "deps": []
+      },
+      {
+        "path": "bizra-node0/bizra-omega/bizra-resourcepool/Cargo.toml",
+        "dep_count": 11,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-proofspace",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-telescript",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-federation",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "json-canon",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rust_decimal",
+            "version": "1.34",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio-test",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "criterion",
+            "version": "0.5",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "proptest",
+            "version": "1.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-node0/bizra-omega/bizra-proofspace/Cargo.toml",
+        "dep_count": 8,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "json-canon",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "regex",
+            "version": "1.10",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "once_cell",
+            "version": "1.19",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio-test",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "criterion",
+            "version": "0.5",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-node0/bizra-omega/bizra-core/Cargo.toml",
+        "dep_count": 1,
+        "deps": [
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-node0/bizra-omega/bizra-telescript/Cargo.toml",
+        "dep_count": 3,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio-test",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "criterion",
+            "version": "0.5",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-node0/bizra-omega/bizra-federation/Cargo.toml",
+        "dep_count": 6,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "2.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "getrandom",
+            "version": "0.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "desktop/rust/Cargo.toml",
+        "dep_count": 0,
+        "deps": []
+      },
+      {
+        "path": "bizra-omega/Cargo.toml",
+        "dep_count": 0,
+        "deps": []
+      },
+      {
+        "path": "bizra-omega/bizra-autopoiesis/Cargo.toml",
+        "dep_count": 2,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-cognition-gateway/Cargo.toml",
+        "dep_count": 15,
+        "deps": [
+          {
+            "name": "bizra-cognition",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing-subscriber",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "axum",
+            "version": "0.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "clap",
+            "version": "4.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "reqwest",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ts-rs",
+            "version": "10",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tower",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tempfile",
+            "version": "3.10",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-cognition/Cargo.toml",
+        "dep_count": 5,
+        "deps": [
+          {
+            "name": "blake3",
+            "version": "1.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "sled",
+            "version": "0.34",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tempfile",
+            "version": "3.10",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-agent/Cargo.toml",
+        "dep_count": 13,
+        "deps": [
+          {
+            "name": "bizra-hooks",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-memory",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-telescript",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-action",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-ttrl",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-autopoiesis",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "toml",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tempfile",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-hooks/Cargo.toml",
+        "dep_count": 0,
+        "deps": []
+      },
+      {
+        "path": "bizra-omega/bizra-resourcepool/Cargo.toml",
+        "dep_count": 12,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-proofspace",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-telescript",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-federation",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-sippar",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "json-canon",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rust_decimal",
+            "version": "1.34",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio-test",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "criterion",
+            "version": "0.5",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "proptest",
+            "version": "1.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/fate-binding/Cargo.toml",
+        "dep_count": 18,
+        "deps": [
+          {
+            "name": "napi",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "napi-derive",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "z3",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "pqcrypto-mldsa",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "pqcrypto-traits",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "thiserror",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-proofspace",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "napi-build",
+            "version": "2.1",
+            "section": "build-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-proofspace/Cargo.toml",
+        "dep_count": 12,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "json-canon",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "regex",
+            "version": "1.10",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "once_cell",
+            "version": "1.19",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-action",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-mission",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-sippar",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio-test",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "fate-binding",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "criterion",
+            "version": "0.5",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-python/Cargo.toml",
+        "dep_count": 21,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-agent",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-inference",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-autopoiesis",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-federation",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-hooks",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-memory",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-action",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-resourcepool",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "pyo3",
+            "version": "0.24",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rust_decimal",
+            "version": "1.34",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "uuid",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "pqcrypto-mldsa",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "pqcrypto-traits",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "pyo3-build-config",
+            "version": "0.24",
+            "section": "build-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-tests/Cargo.toml",
+        "dep_count": 17,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-mission",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-inference",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-federation",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-autopoiesis",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "1.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "2.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "uuid",
+            "version": "1.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "proptest",
+            "version": "1.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "proptest-derive",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "mockall",
+            "version": "0.12",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tempfile",
+            "version": "3.10",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio-test",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "criterion",
+            "version": "0.5",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-core/Cargo.toml",
+        "dep_count": 2,
+        "deps": [
+          {
+            "name": "bizra-sippar",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-inference/Cargo.toml",
+        "dep_count": 2,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-cli/Cargo.toml",
+        "dep_count": 18,
+        "deps": [
+          {
+            "name": "ratatui",
+            "version": "0.30",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "crossterm",
+            "version": "0.28",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "1.35",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "clap",
+            "version": "4.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing-subscriber",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "futures",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-node",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-mission",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "2.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-memory/Cargo.toml",
+        "dep_count": 1,
+        "deps": [
+          {
+            "name": "bizra-hooks",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-ttrl/Cargo.toml",
+        "dep_count": 4,
+        "deps": [
+          {
+            "name": "blake3",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "thiserror",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-sippar/Cargo.toml",
+        "dep_count": 0,
+        "deps": []
+      },
+      {
+        "path": "bizra-omega/bizra-mission/Cargo.toml",
+        "dep_count": 6,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "2.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-installer/Cargo.toml",
+        "dep_count": 9,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-inference",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "clap",
+            "version": "4.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "dirs",
+            "version": "5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "toml",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ureq",
+            "version": "2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tempfile",
+            "version": "3.9",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-telescript/Cargo.toml",
+        "dep_count": 3,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio-test",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "criterion",
+            "version": "0.5",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-api/Cargo.toml",
+        "dep_count": 25,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-inference",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-federation",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-autopoiesis",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "axum",
+            "version": "0.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tower",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tower-http",
+            "version": "0.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "clap",
+            "version": "4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "uuid",
+            "version": "1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing-subscriber",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "thiserror",
+            "version": "1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "metrics",
+            "version": "0.21",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "metrics-exporter-prometheus",
+            "version": "0.12",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "dirs",
+            "version": "5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "dashmap",
+            "version": "6",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio-test",
+            "version": "0.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tempfile",
+            "version": "3",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-hypergraph/Cargo.toml",
+        "dep_count": 0,
+        "deps": []
+      },
+      {
+        "path": "bizra-omega/bizra-efi/Cargo.toml",
+        "dep_count": 1,
+        "deps": [
+          {
+            "name": "uefi",
+            "version": "0.37",
+            "section": "dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-node/Cargo.toml",
+        "dep_count": 17,
+        "deps": [
+          {
+            "name": "bizra-hooks",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-memory",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-agent",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-action",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "2.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-telescript",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-inference",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-mission",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-proofspace",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-federation",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tempfile",
+            "version": "3",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-protocol/Cargo.toml",
+        "dep_count": 12,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-telescript",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-action",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "thiserror",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-hunter/Cargo.toml",
+        "dep_count": 23,
+        "deps": [
+          {
+            "name": "crossbeam",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "crossbeam-queue",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "1.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rustc-hash",
+            "version": "1.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rayon",
+            "version": "1.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "1.35",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "toml",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "chrono",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing",
+            "version": "0.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing-subscriber",
+            "version": "0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "parking_lot",
+            "version": "0.12",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "lru",
+            "version": "0.16",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "thiserror",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "2.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "clap",
+            "version": "4.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "criterion",
+            "version": "0.5",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "proptest",
+            "version": "1.4",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tempfile",
+            "version": "3",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-action/Cargo.toml",
+        "dep_count": 6,
+        "deps": [
+          {
+            "name": "blake3",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-mission",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bizra-proofspace",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-federation/Cargo.toml",
+        "dep_count": 6,
+        "deps": [
+          {
+            "name": "bizra-core",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519-dalek",
+            "version": "2.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rand",
+            "version": "0.8",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "hex",
+            "version": "0.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "getrandom",
+            "version": "0.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/iceoryx-bridge/Cargo.toml",
+        "dep_count": 13,
+        "deps": [
+          {
+            "name": "iceoryx2",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "napi",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "napi-derive",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "serde_json",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "rmp-serde",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tokio",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "thiserror",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "anyhow",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tracing",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "memmap2",
+            "version": "",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "criterion",
+            "version": "",
+            "section": "dev-dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "napi-build",
+            "version": "2.1",
+            "section": "build-dependencies",
+            "strict_pin": false
+          }
+        ]
+      }
+    ],
+    "locks": [
+      "runtime/Cargo.lock",
+      "bizra-node0/bizra-omega/Cargo.lock",
+      "bizra-omega/Cargo.lock",
+      "bizra-omega/bizra-efi/Cargo.lock",
+      "bizra-omega/bizra-action/Cargo.lock"
+    ]
+  },
+  "python": {
+    "requirements": [
+      {
+        "path": "requirements.flywheel.txt",
+        "dep_count": 9,
+        "unpinned": [
+          "httpx",
+          "fastapi",
+          "uvicorn[standard]",
+          "websockets",
+          "numpy",
+          "faster-whisper",
+          "edge-tts",
+          "anyio",
+          "cryptography"
+        ],
+        "deps": [
+          {
+            "name": "httpx",
+            "version": "0.25.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "fastapi",
+            "version": "0.109.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "uvicorn[standard]",
+            "version": "0.27.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "websockets",
+            "version": "12.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "numpy",
+            "version": "1.26.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "faster-whisper",
+            "version": "1.0.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "edge-tts",
+            "version": "6.1.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "anyio",
+            "version": "4.2.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "cryptography",
+            "version": "41.0.0",
+            "op": "",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "requirements.txt",
+        "dep_count": 19,
+        "unpinned": [
+          "numpy",
+          "pandas",
+          "torch",
+          "cryptography",
+          "httpx",
+          "pydantic",
+          "fastapi",
+          "uvicorn",
+          "networkx",
+          "scikit-learn",
+          "plotly",
+          "pyarrow",
+          "aiofiles",
+          "python-multipart",
+          "tqdm",
+          "blake3",
+          "pynacl",
+          "hnswlib",
+          "mcp[cli]"
+        ],
+        "deps": [
+          {
+            "name": "numpy",
+            "version": "1.24.0,<3.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pandas",
+            "version": "2.0.0,<3.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "torch",
+            "version": "2.0.0,<3.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "cryptography",
+            "version": "46.0.5,<47.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "httpx",
+            "version": "0.24.0,<1.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pydantic",
+            "version": "2.0.0,<3.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "fastapi",
+            "version": "0.100.0,<1.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "uvicorn",
+            "version": "0.22.0,<1.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "networkx",
+            "version": "3.0,<4.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "scikit-learn",
+            "version": "1.3.0,<2.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "plotly",
+            "version": "5.15.0,<6.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pyarrow",
+            "version": "12.0.0,<19.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "aiofiles",
+            "version": "23.0.0,<25.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "python-multipart",
+            "version": "0.0.6,<1.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "tqdm",
+            "version": "4.65.0,<5.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "0.3.3,<2.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pynacl",
+            "version": "1.5.0,<2.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "hnswlib",
+            "version": "0.8.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "mcp[cli]",
+            "version": "1.0.0,<2.0",
+            "op": "",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "services/node_gateway/requirements.txt",
+        "dep_count": 9,
+        "unpinned": [
+          "fastapi",
+          "starlette"
+        ],
+        "deps": [
+          {
+            "name": "fastapi",
+            "version": "0.118.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "starlette",
+            "version": "0.47.2",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "uvicorn[standard]",
+            "version": "0.30.6",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "pydantic",
+            "version": "2.8.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "httpx",
+            "version": "0.27.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "python-dotenv",
+            "version": "1.0.1",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "redis",
+            "version": "5.0.8",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "numpy",
+            "version": "2.1.3",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "blake3",
+            "version": "1.0.8",
+            "op": "",
+            "strict_pin": true
+          }
+        ]
+      },
+      {
+        "path": "services/jarvis/requirements.txt",
+        "dep_count": 22,
+        "unpinned": [
+          "PyJWT[crypto]"
+        ],
+        "deps": [
+          {
+            "name": "fastapi",
+            "version": "0.110.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "uvicorn[standard]",
+            "version": "0.29.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "nats-py",
+            "version": "2.7.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "redis",
+            "version": "5.0.3",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "aiofiles",
+            "version": "23.2.1",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "playwright",
+            "version": "1.42.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "beautifulsoup4",
+            "version": "4.12.3",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "duckduckgo-search",
+            "version": "4.5.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "sqlalchemy[asyncio]",
+            "version": "2.0.28",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "asyncpg",
+            "version": "0.29.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "pydantic",
+            "version": "2.6.4",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "pydantic-settings",
+            "version": "2.2.1",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "slowapi",
+            "version": "0.1.9",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "structlog",
+            "version": "24.1.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "opentelemetry-api",
+            "version": "1.23.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "opentelemetry-sdk",
+            "version": "1.23.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "opentelemetry-exporter-jaeger",
+            "version": "1.21.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "langchain-ollama",
+            "version": "0.1.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "PyJWT[crypto]",
+            "version": "2.8.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "passlib[bcrypt]",
+            "version": "1.7.4",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "tenacity",
+            "version": "8.2.3",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "numpy",
+            "version": "1.26.4",
+            "op": "",
+            "strict_pin": true
+          }
+        ]
+      },
+      {
+        "path": ".tmp_prod_artifacts_v2/services/node_gateway/requirements.txt",
+        "dep_count": 8,
+        "unpinned": [],
+        "deps": [
+          {
+            "name": "fastapi",
+            "version": "0.115.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "uvicorn[standard]",
+            "version": "0.30.6",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "pydantic",
+            "version": "2.8.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "httpx",
+            "version": "0.27.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "python-dotenv",
+            "version": "1.0.1",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "redis",
+            "version": "5.0.8",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "numpy",
+            "version": "2.1.3",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "blake3",
+            "version": "1.0.8",
+            "op": "",
+            "strict_pin": true
+          }
+        ]
+      },
+      {
+        "path": ".tmp_prod_artifacts_v2/services/urp_knowledge_graph/requirements.txt",
+        "dep_count": 6,
+        "unpinned": [],
+        "deps": [
+          {
+            "name": "fastapi",
+            "version": "0.115.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "uvicorn[standard]",
+            "version": "0.30.6",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "pydantic",
+            "version": "2.8.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "httpx",
+            "version": "0.27.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "python-dotenv",
+            "version": "1.0.1",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "redis",
+            "version": "5.0.8",
+            "op": "",
+            "strict_pin": true
+          }
+        ]
+      },
+      {
+        "path": ".tmp_prod_artifacts_v2/services/urp_verification/requirements.txt",
+        "dep_count": 6,
+        "unpinned": [],
+        "deps": [
+          {
+            "name": "fastapi",
+            "version": "0.115.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "uvicorn[standard]",
+            "version": "0.30.6",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "pydantic",
+            "version": "2.8.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "httpx",
+            "version": "0.27.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "python-dotenv",
+            "version": "1.0.1",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "redis",
+            "version": "5.0.8",
+            "op": "",
+            "strict_pin": true
+          }
+        ]
+      },
+      {
+        "path": ".tmp_prod_artifacts_v2/services/urp_registry/requirements.txt",
+        "dep_count": 6,
+        "unpinned": [],
+        "deps": [
+          {
+            "name": "fastapi",
+            "version": "0.115.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "uvicorn[standard]",
+            "version": "0.30.6",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "pydantic",
+            "version": "2.8.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "httpx",
+            "version": "0.27.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "python-dotenv",
+            "version": "1.0.1",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "redis",
+            "version": "5.0.8",
+            "op": "",
+            "strict_pin": true
+          }
+        ]
+      },
+      {
+        "path": ".tmp_prod_artifacts_v2/services/urp_consensus/requirements.txt",
+        "dep_count": 6,
+        "unpinned": [],
+        "deps": [
+          {
+            "name": "fastapi",
+            "version": "0.115.0",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "uvicorn[standard]",
+            "version": "0.30.6",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "pydantic",
+            "version": "2.8.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "httpx",
+            "version": "0.27.2",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "python-dotenv",
+            "version": "1.0.1",
+            "op": "",
+            "strict_pin": true
+          },
+          {
+            "name": "redis",
+            "version": "5.0.8",
+            "op": "",
+            "strict_pin": true
+          }
+        ]
+      }
+    ],
+    "pyproject": [
+      {
+        "path": "pyproject.toml",
+        "dep_count": 18,
+        "deps": [
+          {
+            "name": "numpy",
+            "version": "1.24.0,<3.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pandas",
+            "version": "2.0.0,<3.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "torch",
+            "version": "2.0.0,<3.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "cryptography",
+            "version": "46.0.5,<47.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "httpx",
+            "version": "0.24.0,<1.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pydantic",
+            "version": "2.0.0,<3.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "fastapi",
+            "version": "0.100.0,<1.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "uvicorn",
+            "version": "0.22.0,<1.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "networkx",
+            "version": "3.0,<4.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "scikit-learn",
+            "version": "1.3.0,<2.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "plotly",
+            "version": "5.15.0,<6.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pyarrow",
+            "version": "12.0.0,<19.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "aiofiles",
+            "version": "23.0.0,<25.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "python-multipart",
+            "version": "0.0.6,<1.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "tqdm",
+            "version": "4.65.0,<5.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "0.3.3,<2.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pynacl",
+            "version": "1.5.0,<2.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "hnswlib",
+            "version": "0.8.0",
+            "op": "",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-node0/pyproject.toml",
+        "dep_count": 7,
+        "deps": [
+          {
+            "name": "pyyaml",
+            "version": "6.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "ed25519",
+            "version": "1.5",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pynacl",
+            "version": "1.5.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "blake3",
+            "version": "0.4.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "cryptography",
+            "version": "41.0",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "httpx",
+            "version": "0.27",
+            "op": "",
+            "strict_pin": false
+          },
+          {
+            "name": "pydantic",
+            "version": "2.0",
+            "op": "",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/bizra-python/pyproject.toml",
+        "dep_count": 0,
+        "deps": []
+      }
+    ]
+  },
+  "node": {
+    "manifests": [
+      {
+        "path": "frontend/package.json",
+        "dep_count": 21,
+        "deps": [
+          {
+            "name": "react",
+            "version": "^18.3.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-dom",
+            "version": "^18.3.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@testing-library/dom",
+            "version": "^10.4.1",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@testing-library/jest-dom",
+            "version": "^6.6.3",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@testing-library/react",
+            "version": "^16.1.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@types/chai",
+            "version": "^5.2.3",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@types/node",
+            "version": "^25.3.5",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@types/react",
+            "version": "^18.3.12",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@types/react-dom",
+            "version": "^18.3.1",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@typescript-eslint/eslint-plugin",
+            "version": "^8.15.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@typescript-eslint/parser",
+            "version": "^8.15.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@vitejs/plugin-react",
+            "version": "^4.3.4",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@vitest/coverage-v8",
+            "version": "^2.1.9",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "eslint",
+            "version": "^9.15.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "eslint-plugin-react-hooks",
+            "version": "^5.0.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "jsdom",
+            "version": "^25.0.1",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "typescript",
+            "version": "^5.7.2",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "vite",
+            "version": "^6.4.2",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "vite-bundle-visualizer",
+            "version": "^1.2.1",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "vitest",
+            "version": "^2.1.8",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "web-vitals",
+            "version": "^4.2.4",
+            "section": "devDependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "src/package.json",
+        "dep_count": 6,
+        "deps": [
+          {
+            "name": "@modelcontextprotocol/sdk",
+            "version": "^1.0.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "multicast-dns",
+            "version": "^7.2.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@types/node",
+            "version": "^20.11.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tsx",
+            "version": "^4.21.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "typescript",
+            "version": "^5.3.3",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@bizra/fate-binding",
+            "version": "workspace:*",
+            "section": "peerDependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "dema-console/package.json",
+        "dep_count": 75,
+        "deps": [
+          {
+            "name": "@dnd-kit/core",
+            "version": "^6.3.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@dnd-kit/sortable",
+            "version": "^10.0.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@dnd-kit/utilities",
+            "version": "^3.2.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@hookform/resolvers",
+            "version": "^5.1.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@mdxeditor/editor",
+            "version": "^3.39.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@prisma/client",
+            "version": "^6.11.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-accordion",
+            "version": "^1.2.11",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-alert-dialog",
+            "version": "^1.1.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-aspect-ratio",
+            "version": "^1.1.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-avatar",
+            "version": "^1.1.10",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-checkbox",
+            "version": "^1.3.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-collapsible",
+            "version": "^1.1.11",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-context-menu",
+            "version": "^2.2.15",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-dialog",
+            "version": "^1.1.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-dropdown-menu",
+            "version": "^2.1.15",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-hover-card",
+            "version": "^1.1.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-label",
+            "version": "^2.1.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-menubar",
+            "version": "^1.1.15",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-navigation-menu",
+            "version": "^1.2.13",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-popover",
+            "version": "^1.1.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-progress",
+            "version": "^1.1.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-radio-group",
+            "version": "^1.3.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-scroll-area",
+            "version": "^1.2.9",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-select",
+            "version": "^2.2.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-separator",
+            "version": "^1.1.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-slider",
+            "version": "^1.3.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-slot",
+            "version": "^1.2.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-switch",
+            "version": "^1.2.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-tabs",
+            "version": "^1.1.12",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-toast",
+            "version": "^1.2.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-toggle",
+            "version": "^1.1.9",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-toggle-group",
+            "version": "^1.1.10",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-tooltip",
+            "version": "^1.2.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@reactuses/core",
+            "version": "^6.0.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@tanstack/react-query",
+            "version": "^5.82.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@tanstack/react-table",
+            "version": "^8.21.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "class-variance-authority",
+            "version": "^0.7.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "clsx",
+            "version": "^2.1.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "cmdk",
+            "version": "^1.1.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "date-fns",
+            "version": "^4.1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "embla-carousel-react",
+            "version": "^8.6.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "framer-motion",
+            "version": "^12.23.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "input-otp",
+            "version": "^1.4.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "lucide-react",
+            "version": "^0.525.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "next",
+            "version": "^16.1.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "next-intl",
+            "version": "^4.3.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "next-themes",
+            "version": "^0.4.6",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "prisma",
+            "version": "^6.11.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react",
+            "version": "^19.0.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-day-picker",
+            "version": "^9.8.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-dom",
+            "version": "^19.0.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-hook-form",
+            "version": "^7.60.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-markdown",
+            "version": "^10.1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-resizable-panels",
+            "version": "^3.0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-syntax-highlighter",
+            "version": "^15.6.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "recharts",
+            "version": "^2.15.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "sharp",
+            "version": "^0.34.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "sonner",
+            "version": "^2.0.6",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tailwind-merge",
+            "version": "^3.3.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tailwindcss-animate",
+            "version": "^1.0.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "uuid",
+            "version": "^11.1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "vaul",
+            "version": "^1.1.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "zod",
+            "version": "^4.0.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "zustand",
+            "version": "^5.0.6",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@tailwindcss/postcss",
+            "version": "^4",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@types/react",
+            "version": "^19",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@types/react-dom",
+            "version": "^19",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bun-types",
+            "version": "^1.3.4",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "eslint",
+            "version": "^9",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "eslint-config-next",
+            "version": "^16.1.1",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "playwright",
+            "version": "^1.59.1",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tailwindcss",
+            "version": "^4",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tsx",
+            "version": "^4.21.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tw-animate-css",
+            "version": "^1.3.5",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "typescript",
+            "version": "^5",
+            "section": "devDependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "dema-console/.next/package.json",
+        "dep_count": 0,
+        "deps": []
+      },
+      {
+        "path": "dema-console/.next/standalone/package.json",
+        "dep_count": 75,
+        "deps": [
+          {
+            "name": "@dnd-kit/core",
+            "version": "^6.3.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@dnd-kit/sortable",
+            "version": "^10.0.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@dnd-kit/utilities",
+            "version": "^3.2.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@hookform/resolvers",
+            "version": "^5.1.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@mdxeditor/editor",
+            "version": "^3.39.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@prisma/client",
+            "version": "^6.11.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-accordion",
+            "version": "^1.2.11",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-alert-dialog",
+            "version": "^1.1.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-aspect-ratio",
+            "version": "^1.1.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-avatar",
+            "version": "^1.1.10",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-checkbox",
+            "version": "^1.3.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-collapsible",
+            "version": "^1.1.11",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-context-menu",
+            "version": "^2.2.15",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-dialog",
+            "version": "^1.1.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-dropdown-menu",
+            "version": "^2.1.15",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-hover-card",
+            "version": "^1.1.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-label",
+            "version": "^2.1.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-menubar",
+            "version": "^1.1.15",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-navigation-menu",
+            "version": "^1.2.13",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-popover",
+            "version": "^1.1.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-progress",
+            "version": "^1.1.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-radio-group",
+            "version": "^1.3.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-scroll-area",
+            "version": "^1.2.9",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-select",
+            "version": "^2.2.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-separator",
+            "version": "^1.1.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-slider",
+            "version": "^1.3.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-slot",
+            "version": "^1.2.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-switch",
+            "version": "^1.2.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-tabs",
+            "version": "^1.1.12",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-toast",
+            "version": "^1.2.14",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-toggle",
+            "version": "^1.1.9",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-toggle-group",
+            "version": "^1.1.10",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@radix-ui/react-tooltip",
+            "version": "^1.2.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@reactuses/core",
+            "version": "^6.0.5",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@tanstack/react-query",
+            "version": "^5.82.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@tanstack/react-table",
+            "version": "^8.21.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "class-variance-authority",
+            "version": "^0.7.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "clsx",
+            "version": "^2.1.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "cmdk",
+            "version": "^1.1.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "date-fns",
+            "version": "^4.1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "embla-carousel-react",
+            "version": "^8.6.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "framer-motion",
+            "version": "^12.23.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "input-otp",
+            "version": "^1.4.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "lucide-react",
+            "version": "^0.525.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "next",
+            "version": "^16.1.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "next-intl",
+            "version": "^4.3.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "next-themes",
+            "version": "^0.4.6",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "prisma",
+            "version": "^6.11.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react",
+            "version": "^19.0.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-day-picker",
+            "version": "^9.8.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-dom",
+            "version": "^19.0.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-hook-form",
+            "version": "^7.60.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-markdown",
+            "version": "^10.1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-resizable-panels",
+            "version": "^3.0.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-syntax-highlighter",
+            "version": "^15.6.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "recharts",
+            "version": "^2.15.4",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "sharp",
+            "version": "^0.34.3",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "sonner",
+            "version": "^2.0.6",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tailwind-merge",
+            "version": "^3.3.1",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tailwindcss-animate",
+            "version": "^1.0.7",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "uuid",
+            "version": "^11.1.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "vaul",
+            "version": "^1.1.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "zod",
+            "version": "^4.0.2",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "zustand",
+            "version": "^5.0.6",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@tailwindcss/postcss",
+            "version": "^4",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@types/react",
+            "version": "^19",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@types/react-dom",
+            "version": "^19",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "bun-types",
+            "version": "^1.3.4",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "eslint",
+            "version": "^9",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "eslint-config-next",
+            "version": "^16.1.1",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "playwright",
+            "version": "^1.59.1",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tailwindcss",
+            "version": "^4",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tsx",
+            "version": "^4.21.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "tw-animate-css",
+            "version": "^1.3.5",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "typescript",
+            "version": "^5",
+            "section": "devDependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "dema-console/.next/standalone/.next/package.json",
+        "dep_count": 0,
+        "deps": []
+      },
+      {
+        "path": "filedfs/package.json",
+        "dep_count": 8,
+        "deps": [
+          {
+            "name": "@tauri-apps/api",
+            "version": "^2.0.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@tauri-apps/plugin-shell",
+            "version": "^2.0.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react",
+            "version": "^18.3.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "react-dom",
+            "version": "^18.3.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "ws",
+            "version": "^8.18.0",
+            "section": "dependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@tauri-apps/cli",
+            "version": "^2.0.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "@vitejs/plugin-react",
+            "version": "^4.3.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          },
+          {
+            "name": "vite",
+            "version": "^5.4.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          }
+        ]
+      },
+      {
+        "path": "bizra-omega/fate-binding/package.json",
+        "dep_count": 1,
+        "deps": [
+          {
+            "name": "@napi-rs/cli",
+            "version": "^2.18.0",
+            "section": "devDependencies",
+            "strict_pin": false
+          }
+        ]
+      }
+    ],
+    "locks": [
+      "frontend/package-lock.json",
+      "dema-console/package-lock.json"
+    ]
+  },
+  "gaps": [
+    "Workspace without Cargo.lock: filedfs/Cargo.toml",
+    "Workspace without Cargo.lock: desktop/rust/Cargo.toml",
+    "SBOM artifact not located in repo (no *.spdx.json / *.cdx.json found)."
+  ]
+}

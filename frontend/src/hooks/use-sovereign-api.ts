@@ -341,13 +341,23 @@ function useFetch<T>(
   options?: {
     intervalMs?: number;
     transform?: (payload: unknown) => T;
+    resetOnError?: boolean;
   },
 ): FetchResult<T> {
   const [data, setData] = useState<T>(fallback);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const intervalMs = options?.intervalMs ?? 30000;
-  const transform = options?.transform;
+  const resetOnError = options?.resetOnError ?? false;
+
+  // Inline object/function literals at call sites (e.g. useChainLatest's
+  // fallback) get a new identity each render. Capturing them in refs keeps
+  // the polling effect stable instead of re-firing on every render, which
+  // would compound under setInterval mocks that don't honor clearInterval.
+  const fallbackRef = useRef(fallback);
+  fallbackRef.current = fallback;
+  const transformRef = useRef(options?.transform);
+  transformRef.current = options?.transform;
 
   useEffect(() => {
     let mounted = true;
@@ -358,11 +368,15 @@ function useFetch<T>(
         if (!mounted) {
           return;
         }
+        const transform = transformRef.current;
         setData(transform ? transform(payload) : (payload as T));
         setError(null);
       } catch (err) {
         if (!mounted) {
           return;
+        }
+        if (resetOnError) {
+          setData(fallbackRef.current);
         }
         setError(err instanceof Error ? err.message : "Request failed");
       } finally {
@@ -381,7 +395,7 @@ function useFetch<T>(
       mounted = false;
       window.clearInterval(timer);
     };
-  }, [intervalMs, path, transform]);
+  }, [intervalMs, path, resetOnError]);
 
   return { data, error, loading };
 }
@@ -795,6 +809,126 @@ export function useMemoryStats() {
       db_size_mb: 0,
     },
     { transform: normalizeMemoryStats },
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TRUST SURFACE — row 6 (Node0 Closure Sprint, 2026-04-21)
+// ═══════════════════════════════════════════════════════════════════
+//
+// Authoritative receipt chain head proxied from the Rust cognition-gateway
+// via /v1/chain. This is Dema's public truth-surface binding: the chain
+// IS the evidence of lawful operation; the web face reveals it verbatim.
+// When the proxy returns 503 (gateway unreachable), useChainHead's `error`
+// state is set — the UI MUST show that honestly, never fabricate a head.
+
+export interface ChainHead {
+  head: string; // 64-char hex, or "" when gateway unreachable
+  length: number;
+  latestTimestamp: number | null;
+  sovereignEnvelopes?: number;
+  sovereignEntries?: number;
+}
+
+function normalizeChainHead(payload: unknown): ChainHead {
+  const data = asObject(payload);
+  return {
+    head: asString(data.head, ""),
+    length: asNumber(data.length, 0),
+    latestTimestamp:
+      typeof data.latestTimestamp === "number" ? data.latestTimestamp : null,
+    sovereignEnvelopes:
+      typeof data.sovereignEnvelopes === "number"
+        ? data.sovereignEnvelopes
+        : undefined,
+    sovereignEntries:
+      typeof data.sovereignEntries === "number"
+        ? data.sovereignEntries
+        : undefined,
+  };
+}
+
+export function useChainHead() {
+  return useFetch<ChainHead>(
+    "/v1/chain",
+    { head: "", length: 0, latestTimestamp: null },
+    { transform: normalizeChainHead },
+  );
+}
+
+// Latest receipt detail — kind + timestamp from the head of the chain.
+// Sourced from /v1/chain/latest which combines Rust gateway's
+// GET /chain + GET /chain/{head} into one authoritative payload.
+// When chain is at genesis (length=0) or gateway unreachable,
+// latestReceipt is null — UI must render that as honest absence.
+
+export interface LatestReceipt {
+  id: string;
+  kind: string; // e.g. "MissionApproved", "PrincipalActivation"
+  timestamp: number | null;
+  // Additional fields vary by receipt kind — kept loose for forward compat.
+  [key: string]: unknown;
+}
+
+export interface ChainLatest {
+  head: string;
+  length: number;
+  latestTimestamp: number | null;
+  latestReceipt: LatestReceipt | null;
+  latestReceiptError: {
+    upstream_status: number;
+    detail: string;
+  } | null;
+}
+
+function normalizeLatestReceipt(payload: unknown): LatestReceipt | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+  const data = asObject(payload);
+  const id = asString(data.id, "");
+  const kind = asString(data.kind, "");
+  if (!id && !kind) {
+    return null;
+  }
+  const timestamp =
+    typeof data.timestamp === "number" ? data.timestamp : null;
+  // Preserve the full upstream payload for forward-compat surfaces; the
+  // id/kind/timestamp triple is the canonical minimum contract this hook
+  // promises.
+  return { ...data, id, kind, timestamp } as LatestReceipt;
+}
+
+function normalizeChainLatest(payload: unknown): ChainLatest {
+  const data = asObject(payload);
+  const latestReceiptError = asObject(data.latestReceiptError);
+  return {
+    head: asString(data.head, ""),
+    length: asNumber(data.length, 0),
+    latestTimestamp:
+      typeof data.latestTimestamp === "number" ? data.latestTimestamp : null,
+    latestReceipt: normalizeLatestReceipt(data.latestReceipt),
+    latestReceiptError:
+      Object.keys(latestReceiptError).length === 0
+        ? null
+        : {
+            upstream_status: asNumber(latestReceiptError.upstream_status),
+            detail: asString(latestReceiptError.detail),
+          },
+  };
+}
+
+export function useChainLatest() {
+  return useFetch<ChainLatest>(
+    "/v1/chain/latest",
+    {
+      head: "",
+      length: 0,
+      latestTimestamp: null,
+      latestReceipt: null,
+      latestReceiptError: null,
+    },
+    { transform: normalizeChainLatest, resetOnError: true },
   );
 }
 

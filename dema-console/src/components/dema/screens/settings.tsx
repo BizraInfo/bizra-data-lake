@@ -42,6 +42,12 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { timeAgo, memoryCategoryIcon, memoryCategoryColor, confidenceBarColor } from "@/lib/helpers/dema";
+import {
+  formatOptionalText,
+  formatTrustLevel,
+  formatTrustScore,
+  trustScoreProgress,
+} from "@/lib/activation-state";
 import { cn } from "@/lib/utils";
 import type { MemoryCategory } from "@/lib/types";
 
@@ -221,7 +227,7 @@ function MemoryPanel() {
 }
 
 function TrustSettings() {
-  const { trustState, updateTrustState } = useDEMAStore();
+  const { trustState } = useDEMAStore();
 
   return (
     <Card className="border-border/30">
@@ -235,24 +241,34 @@ function TrustSettings() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label className="text-xs text-muted-foreground">Principal</Label>
-            <p className="text-sm font-medium mt-1">{trustState.principalName}</p>
+            <p className="text-sm font-medium mt-1">{formatOptionalText(trustState.principalName)}</p>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Trust Level</Label>
             <Badge variant="outline" className="mt-1.5 text-xs">
-              {trustState.level}
+              {formatTrustLevel(trustState.level)}
             </Badge>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Trust Score</Label>
             <div className="flex items-center gap-2 mt-1.5">
-              <Progress value={(trustState.score / trustState.maxScore) * 100} className="h-1.5 flex-1" />
-              <span className="text-xs font-mono">{trustState.score}/{trustState.maxScore}</span>
+              <Progress value={trustScoreProgress(trustState.score, trustState.maxScore)} className="h-1.5 flex-1" />
+              <span className="text-xs font-mono">{formatTrustScore(trustState.score, trustState.maxScore)}</span>
             </div>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Session</Label>
-            <p className="text-xs font-mono mt-1.5">{trustState.sessionId.slice(0, 16)}</p>
+            <p className="text-xs font-mono mt-1.5">{trustState.sessionId ? trustState.sessionId.slice(0, 16) : "—"}</p>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Chain Head</Label>
+            <p className="text-xs font-mono mt-1.5">{trustState.chainHead ? trustState.chainHead.slice(0, 16) : "—"}</p>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Activation Receipt</Label>
+            <p className="text-xs font-mono mt-1.5">
+              {trustState.activationReceiptId ? trustState.activationReceiptId.slice(0, 16) : "—"}
+            </p>
           </div>
         </div>
       </CardContent>

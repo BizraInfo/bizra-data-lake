@@ -35,8 +35,13 @@ async def test_researcher_gathers_evidence():
 
 
 @pytest.mark.asyncio
+@pytest.mark.requires_ollama
 async def test_researcher_refuses_without_evidence():
-    """A question with no local evidence should produce honest refusal."""
+    """A question with no local evidence should produce honest refusal.
+
+    Reaches Ollama when refs land (git-show b08f2208 always matches), so this
+    test requires a live Ollama backend to exercise the FATE-block path.
+    """
     agent = ResearcherAgent()
     mission = make_test_mission("What is the airspeed velocity of an unladen swallow?")
     result = await agent.run(mission)
@@ -47,6 +52,7 @@ async def test_researcher_refuses_without_evidence():
 
 
 @pytest.mark.asyncio
+@pytest.mark.requires_ollama
 async def test_researcher_full_lifecycle():
     """Full end-to-end: question -> evidence -> Ollama -> FATE -> receipt -> loop proof."""
     agent = ResearcherAgent()
@@ -62,7 +68,11 @@ async def test_researcher_full_lifecycle():
 
     # FATE may pass or block depending on Ollama output quality
     assert result.verdict in (
-        "PASS", "BLOCKED_BY_IHSAN", "BLOCKED_BY_EVIDENCE", "REFUSED", "DEGRADED",
+        "PASS",
+        "BLOCKED_BY_IHSAN",
+        "BLOCKED_BY_EVIDENCE",
+        "REFUSED",
+        "DEGRADED",
     )
 
     if result.success:
@@ -74,6 +84,7 @@ async def test_researcher_full_lifecycle():
 
 
 @pytest.mark.asyncio
+@pytest.mark.requires_ollama
 async def test_researcher_loop_proof_structure():
     """Verify the loop proof has the expected structure."""
     agent = ResearcherAgent()
@@ -106,6 +117,7 @@ async def test_researcher_evidence_verified():
 
 
 @pytest.mark.asyncio
+@pytest.mark.requires_ollama
 async def test_researcher_receipt_signed():
     """If FATE passes, the receipt should be signed."""
     agent = ResearcherAgent()
@@ -121,6 +133,13 @@ async def test_researcher_receipt_signed():
 async def test_researcher_under_200_loc():
     """Kill gate: the agent file must be under 200 lines."""
     from pathlib import Path
-    agent_file = Path(__file__).parent.parent.parent.parent / "core" / "adk" / "agents" / "researcher.py"
+
+    agent_file = (
+        Path(__file__).parent.parent.parent.parent
+        / "core"
+        / "adk"
+        / "agents"
+        / "researcher.py"
+    )
     lines = agent_file.read_text().count("\n") + 1
     assert lines <= 200, f"Researcher is {lines} LOC, exceeds 200 LOC limit"

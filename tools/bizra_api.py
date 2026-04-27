@@ -5,6 +5,7 @@
 # Standing on Giants: FastAPI patterns, OpenAPI spec, async excellence
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -187,13 +188,21 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
         redoc_url="/redoc",
     )
 
-    # CORS middleware
+    # CORS middleware — wildcard + credentials is both insecure and rejected by
+    # browsers, so default to an explicit localhost allowlist unless overridden.
+    _cors_origins = [
+        origin.strip()
+        for origin in os.getenv(
+            "BIZRA_CORS_ORIGINS", "http://localhost:3000,http://localhost:5173"
+        ).split(",")
+        if origin.strip()
+    ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=_cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
     )
 
     # ========================================================================
