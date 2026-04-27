@@ -89,9 +89,7 @@ def oracle_s_verify(skip_manual: bool = False, skip_slow: bool = False) -> GateR
 
     # 3.7 Heartbeat alive
     if skip_slow:
-        checks.append(
-            CheckResult("heartbeat_alive", SKIPPED, "Skipped (--skip-slow)")
-        )
+        checks.append(CheckResult("heartbeat_alive", SKIPPED, "Skipped (--skip-slow)"))
     else:
         code, out = _run(
             [
@@ -136,9 +134,7 @@ def oracle_s_verify(skip_manual: bool = False, skip_slow: bool = False) -> GateR
 
     # 3.9 Metabolism E2E
     if skip_slow:
-        checks.append(
-            CheckResult("metabolism_e2e", SKIPPED, "Skipped (--skip-slow)")
-        )
+        checks.append(CheckResult("metabolism_e2e", SKIPPED, "Skipped (--skip-slow)"))
     else:
         code, out = _run(
             [
