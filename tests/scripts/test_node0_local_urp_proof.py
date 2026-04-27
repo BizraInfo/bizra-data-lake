@@ -262,6 +262,12 @@ def test_generator_idempotent_against_unchanged_state(tmp_path):
     """Re-running the generator produces identical chain heads."""
     import subprocess
 
+    # sovereign_state is local-only / gitignored. The 8 contract tests above
+    # validate the committed artifacts and run anywhere. This idempotence
+    # test re-invokes the generator, which needs sovereign_state present.
+    if not (REPO_ROOT / "sovereign_state" / "urp_pledge.json").exists():
+        pytest.skip("sovereign_state/urp_pledge.json absent (local-only state)")
+
     venv_py = REPO_ROOT / ".venv" / "bin" / "python3"
     py = str(venv_py if venv_py.exists() else "python3")
     before = _read("node0_local_urp_status.json")["chain_head"]
