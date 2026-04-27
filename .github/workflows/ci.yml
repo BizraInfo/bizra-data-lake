@@ -31,6 +31,9 @@ env:
   RUST_BACKTRACE: 1
   IHSAN_THRESHOLD: '0.95'
   SNR_THRESHOLD: '0.85'
+  # GitHub-hosted runners can crash on optional hnswlib native wheels; CI uses
+  # the deterministic numpy fallback while production/local runs remain opt-in.
+  BIZRA_MEMORY_DISABLE_HNSWLIB: '1'
   # Runner: using ubuntu-24.04 (GitHub-hosted) until WBS 2.6 self-hosted runner is live.
   # To switch: find-replace 'ubuntu-24.04' → 'self-hosted' in runs-on lines below.
 

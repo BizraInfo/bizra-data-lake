@@ -28,6 +28,9 @@ on:
 
 env:
   PYTHON_VERSION: '3.12'
+  # Coverage CI uses the deterministic memory fallback instead of optional
+  # hnswlib native wheels on GitHub-hosted runners.
+  BIZRA_MEMORY_DISABLE_HNSWLIB: '1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

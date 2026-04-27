@@ -45,6 +45,9 @@ on:
 env:
   PYTHONUNBUFFERED: '1'
   COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '65' }}
+  # GitHub's Python 3.11 runners can execute incompatible optional hnswlib wheels.
+  # Keep fast CI on the deterministic numpy fallback; production remains opt-in.
+  BIZRA_MEMORY_DISABLE_HNSWLIB: '1'
 
 # Default permissions: read-only for code; coverage-report needs write
 # access to post PR comments (issues/pull-requests). Granted at workflow

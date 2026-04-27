@@ -35,6 +35,9 @@ env:
   IHSAN_THRESHOLD: "0.95"
   SNR_THRESHOLD: "0.85"
   ADL_GINI_THRESHOLD: "0.35"
+  # GitHub-hosted runners can crash on optional hnswlib native wheels; canonical
+  # Python gates use the deterministic numpy fallback.
+  BIZRA_MEMORY_DISABLE_HNSWLIB: "1"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
