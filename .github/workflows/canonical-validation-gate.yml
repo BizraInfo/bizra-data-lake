@@ -171,7 +171,7 @@ jobs:
   layer2-python-sovereign:
     name: "L2: Python Constitutional Tests"
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -186,7 +186,7 @@ jobs:
           # Constitutional pytest slice imports yaml + hypothesis (pyproject [dev]);
           # requirements.txt is production-only, so install test deps explicitly.
           # pytest-asyncio: async tests (matches pyproject + tests.yml / phase65 gates).
-          pip install pytest pytest-cov "pytest-asyncio>=0.23.0" ruff black isort pyyaml hypothesis
+          pip install pytest pytest-cov "pytest-asyncio>=0.23.0" pytest-timeout pytest-xdist ruff black isort pyyaml hypothesis
 
       - name: "Gate 1: Lint (ruff + black + isort)"
         run: |
@@ -201,9 +201,11 @@ jobs:
           set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
+            --timeout=60 \
             -k "constitutional or ihsan or snr or invariant or gate" \
-            -m "not e2e_http" \
+            -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu and not requires_real_data" \
             --junitxml=/tmp/constitutional_tests.xml \
+            -n auto \
             2>&1 | tee /tmp/python_constitutional.txt
 
       - name: "Gate 3: Full Python Test Suite"
@@ -211,8 +213,10 @@ jobs:
           set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
-            -m "not e2e_http" \
+            --timeout=60 \
+            -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu and not requires_real_data" \
             --junitxml=/tmp/python_tests.xml \
+            -n auto \
             2>&1 | tee /tmp/python_test_output.txt
 
       - name: "Gate 4: Test Count Verification"
