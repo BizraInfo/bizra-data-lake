@@ -46,12 +46,12 @@ def _free_port() -> int:
 
 
 def _headers(
-    token: str = DEFAULT_TOKEN,
+    token: str | None = None,
     ts_ms: int | None = None,
     nonce: str | None = None,
 ) -> dict[str, Any]:
     return {
-        "X-BIZRA-TOKEN": token,
+        "X-BIZRA-TOKEN": token or os.getenv("BIZRA_BRIDGE_TOKEN", DEFAULT_TOKEN),
         "X-BIZRA-TS": ts_ms if ts_ms is not None else int(time.time() * 1000),
         "X-BIZRA-NONCE": nonce or uuid.uuid4().hex,
     }
@@ -556,7 +556,7 @@ async def _check_snr_contract() -> GateCheck:
 
 def _check_secret_hygiene() -> GateCheck:
     proc = subprocess.run(
-        ["python", "scripts/ci_secret_scan.py"],
+        [sys.executable, "scripts/ci_secret_scan.py"],
         cwd=ROOT,
         capture_output=True,
         text=True,
