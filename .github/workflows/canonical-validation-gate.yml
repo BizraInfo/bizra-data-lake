@@ -172,6 +172,8 @@ jobs:
     name: "L2: Python Constitutional Tests"
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      BIZRA_DATA_LAKE_ROOT: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
