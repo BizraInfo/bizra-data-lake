@@ -1,0 +1,51 @@
+{
+  "artifact_chain": [
+    {
+      "chain_link": "9a7b42982b85fe015788598d7c717e8017cd3ecbafd394686ab72367178227de",
+      "name": "sat5_urp_registration"
+    },
+    {
+      "chain_link": "8e5d2271ed5b9310165e3d131631cab572145d79b835083679dc32474cf7049d",
+      "name": "urp_skill_registry_receipt"
+    },
+    {
+      "chain_link": "95d475cd33fadc09d54d23e61f3050f35bf41516dfc4ef540274064ae9903eb3",
+      "name": "urp_knowledge_pack_receipt"
+    },
+    {
+      "chain_link": "cdeda8fa866d9cbf5dce6ef1137dea4a84bd3d9be1486a1bde20972e093c4a84",
+      "name": "urp_resource_offer_receipt"
+    },
+    {
+      "chain_link": "9936ef6468e29ea9e1c8732accc7eab4458cf77e615726d0c7d961bcb31b6a36",
+      "name": "poi_sandbox_record"
+    },
+    {
+      "chain_link": "a840d91871f13b93f02e77b63338f835545d7c596939d2354b3bbd34a69a4e29",
+      "name": "urp_local_registry"
+    }
+  ],
+  "chain_head": "a840d91871f13b93f02e77b63338f835545d7c596939d2354b3bbd34a69a4e29",
+  "chain_link": "4fc2b43defd2c72311ef3d920b88106b3fa3b6956c49f259f9bd4a8b5752e2e9",
+  "generated_at": "2026-04-27T00:00:00Z",
+  "genesis_hash": "a7f68f1f74f2c0898cb1f1db6e83633674f17ee1c0161704ac8d85f8a773c25b",
+  "kind": "node0_local_urp_status",
+  "node_id": "node0_ce5af35c848ce889",
+  "pat_count": 7,
+  "payload_digest": "b60a53b0184216f1da0faf67fde18ba8ae749533df636ba3eaad06265822fadc",
+  "previous_chain_link": "a840d91871f13b93f02e77b63338f835545d7c596939d2354b3bbd34a69a4e29",
+  "privacy_contract": {
+    "external_data": "none",
+    "private_keys": "never_emitted",
+    "public_keys": "16-hex-char prefix only",
+    "scope": "local_only"
+  },
+  "registry_chain_link": "a840d91871f13b93f02e77b63338f835545d7c596939d2354b3bbd34a69a4e29",
+  "sat_count": 5,
+  "schema_version": "0.1.0",
+  "truth_label": "URP_LOCAL_ACTIVE",
+  "urp_pledge_hash": "f651fd24c63c9fc4",
+  "urp_signature_verified": true,
+  "urp_signed": true,
+  "urp_signer_public_key_prefix": "6fdba1095ba21ee0"
+}

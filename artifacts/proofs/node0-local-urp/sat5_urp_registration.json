@@ -1,0 +1,79 @@
+{
+  "agents": [
+    {
+      "agent_id": "sat_validator_97b0999e",
+      "canonical_slot": "S1",
+      "capabilities": [
+        "verify",
+        "attest",
+        "reject"
+      ],
+      "frozen": false,
+      "public_key_prefix": "97b0999e9a03fae1",
+      "registered_in_urp": true,
+      "role": "Validator"
+    },
+    {
+      "agent_id": "sat_oracle_861d9442",
+      "canonical_slot": "S2",
+      "capabilities": [
+        "fetch",
+        "anchor",
+        "timestamp"
+      ],
+      "frozen": true,
+      "public_key_prefix": "861d944209e5dcd2",
+      "registered_in_urp": true,
+      "role": "Oracle"
+    },
+    {
+      "agent_id": "sat_mediator_00257978",
+      "canonical_slot": "S3",
+      "capabilities": [
+        "arbitrate",
+        "negotiate",
+        "resolve"
+      ],
+      "frozen": false,
+      "public_key_prefix": "0025797829517743",
+      "registered_in_urp": true,
+      "role": "Mediator"
+    },
+    {
+      "agent_id": "sat_archivist_b3cec3b1",
+      "canonical_slot": "S4",
+      "capabilities": [
+        "index",
+        "preserve",
+        "retrieve"
+      ],
+      "frozen": false,
+      "public_key_prefix": "b3cec3b12abca276",
+      "registered_in_urp": true,
+      "role": "Archivist"
+    },
+    {
+      "agent_id": "sat_sentinel_43e8fc56",
+      "canonical_slot": "S5",
+      "capabilities": [
+        "detect",
+        "alert",
+        "defend"
+      ],
+      "frozen": false,
+      "public_key_prefix": "43e8fc56859c7bfd",
+      "registered_in_urp": true,
+      "role": "Sentinel"
+    }
+  ],
+  "chain_link": "9a7b42982b85fe015788598d7c717e8017cd3ecbafd394686ab72367178227de",
+  "generated_at": "2026-04-27T00:00:00Z",
+  "kind": "sat5_urp_registration",
+  "node_id": "node0_ce5af35c848ce889",
+  "payload_digest": "df6b7e39ef23a53b046bd0f26e2855ec3f384e7a7e13aa0c874d11eda3c002c9",
+  "previous_chain_link": "0000000000000000000000000000000000000000000000000000000000000000",
+  "sat_count": 5,
+  "schema_version": "0.1.0",
+  "truth_label": "URP_LOCAL_ACTIVE",
+  "urp_membership": "local_singleton"
+}

@@ -1,0 +1,19 @@
+{
+  "chain_link": "95d475cd33fadc09d54d23e61f3050f35bf41516dfc4ef540274064ae9903eb3",
+  "generated_at": "2026-04-27T00:00:00Z",
+  "kind": "urp_knowledge_pack_receipt",
+  "node_id": "node0_ce5af35c848ce889",
+  "pack": {
+    "content_hash": "cd6cb94dbcf473608627bdc023708f04ba669c7da37612031f14b3020e95198e",
+    "ihsan_score_sandbox": 0.97,
+    "pack_id": "bizra.origin_kernel.v1",
+    "scope": "local_only",
+    "size_bytes": 7585,
+    "source": "docs/canon/BIZRA_ORIGIN_KERNEL.md",
+    "title": "BIZRA Origin Kernel (canonical reference)"
+  },
+  "payload_digest": "efeb2b67f36f9b1a55db1d711b2abed2d79b609f9bc14bb325687b2607e5d1cc",
+  "previous_chain_link": "8e5d2271ed5b9310165e3d131631cab572145d79b835083679dc32474cf7049d",
+  "schema_version": "0.1.0",
+  "truth_label": "URP_LOCAL_ACTIVE"
+}

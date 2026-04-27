@@ -1,0 +1,37 @@
+{
+  "chain_link": "a840d91871f13b93f02e77b63338f835545d7c596939d2354b3bbd34a69a4e29",
+  "generated_at": "2026-04-27T00:00:00Z",
+  "genesis_hash": "a7f68f1f74f2c0898cb1f1db6e83633674f17ee1c0161704ac8d85f8a773c25b",
+  "kind": "urp_local_registry",
+  "node_id": "node0_ce5af35c848ce889",
+  "payload_digest": "2a757135a33ba0a0c42b16435abe0af0d02c85fc0388003ddc811d2ba45431a0",
+  "previous_chain_link": "9936ef6468e29ea9e1c8732accc7eab4458cf77e615726d0c7d961bcb31b6a36",
+  "registered_knowledge_packs": [
+    {
+      "pack_id": "bizra.origin_kernel.v1",
+      "receipt_chain_link": "95d475cd33fadc09d54d23e61f3050f35bf41516dfc4ef540274064ae9903eb3"
+    }
+  ],
+  "registered_poi_records": [
+    {
+      "receipt_chain_link": "9936ef6468e29ea9e1c8732accc7eab4458cf77e615726d0c7d961bcb31b6a36",
+      "record_id": "poi_sandbox_node0_ce5af35c84_v1"
+    }
+  ],
+  "registered_resource_offers": [
+    {
+      "idempotency_key": "e07318b30ef14226b5c5d5f0ce258c75cc7941b11ddfa3e2c0b59507c16a3090",
+      "offer_id": "local_offer_node0_ce5af35c84_v1",
+      "receipt_chain_link": "cdeda8fa866d9cbf5dce6ef1137dea4a84bd3d9be1486a1bde20972e093c4a84"
+    }
+  ],
+  "registered_skills": [
+    {
+      "receipt_chain_link": "8e5d2271ed5b9310165e3d131631cab572145d79b835083679dc32474cf7049d",
+      "skill_id": "node0.health.report.v1"
+    }
+  ],
+  "sat_registration_chain_link": "9a7b42982b85fe015788598d7c717e8017cd3ecbafd394686ab72367178227de",
+  "schema_version": "0.1.0",
+  "truth_label": "URP_LOCAL_ACTIVE"
+}

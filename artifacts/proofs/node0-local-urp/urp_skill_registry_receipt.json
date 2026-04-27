@@ -1,0 +1,18 @@
+{
+  "chain_link": "8e5d2271ed5b9310165e3d131631cab572145d79b835083679dc32474cf7049d",
+  "generated_at": "2026-04-27T00:00:00Z",
+  "kind": "urp_skill_registry_receipt",
+  "node_id": "node0_ce5af35c848ce889",
+  "payload_digest": "9b0f65f15435b00ab627cd90c6591259ded00795bddaed060fd3072898a38144",
+  "previous_chain_link": "9a7b42982b85fe015788598d7c717e8017cd3ecbafd394686ab72367178227de",
+  "schema_version": "0.1.0",
+  "skill": {
+    "description": "Single-node health snapshot conformant to lifecycle v2",
+    "ihsan_floor": 0.95,
+    "owner_node": "node0_ce5af35c848ce889",
+    "scope": "local_only",
+    "skill_id": "node0.health.report.v1"
+  },
+  "skill_content_hash": "e505fa434bfe4a595445b285e1e2db79ee5396168d5069315e40143729b2fe50",
+  "truth_label": "URP_LOCAL_ACTIVE"
+}
