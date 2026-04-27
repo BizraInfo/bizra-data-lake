@@ -1,0 +1,25 @@
+{
+  "chain_link": "cdeda8fa866d9cbf5dce6ef1137dea4a84bd3d9be1486a1bde20972e093c4a84",
+  "generated_at": "2026-04-27T00:00:00Z",
+  "kind": "urp_resource_offer_receipt",
+  "node_id": "node0_ce5af35c848ce889",
+  "offer": {
+    "compute": {
+      "cpu_arch": "x86_64",
+      "ram_gb_pledged": 125,
+      "vram_gb_pledged": 16
+    },
+    "consent": "explicit_local_only",
+    "contributor_node": "node0_ce5af35c848ce889",
+    "external_data_access": "none",
+    "idempotency_key": "e07318b30ef14226b5c5d5f0ce258c75cc7941b11ddfa3e2c0b59507c16a3090",
+    "network": "loopback",
+    "offer_id": "local_offer_node0_ce5af35c84_v1",
+    "scope": "local_only",
+    "storage_gb_pledged": 0
+  },
+  "payload_digest": "3dc19e0e9204dd355ed7a207007255f608cd81d7b57dbdc02704080bb779a666",
+  "previous_chain_link": "95d475cd33fadc09d54d23e61f3050f35bf41516dfc4ef540274064ae9903eb3",
+  "schema_version": "0.1.0",
+  "truth_label": "URP_LOCAL_ACTIVE"
+}

@@ -1,0 +1,23 @@
+{
+  "chain_link": "9936ef6468e29ea9e1c8732accc7eab4458cf77e615726d0c7d961bcb31b6a36",
+  "generated_at": "2026-04-27T00:00:00Z",
+  "kind": "poi_sandbox_record",
+  "node_id": "node0_ce5af35c848ce889",
+  "payload_digest": "a8cd36af24f1b6485808067a2e92c758a91fc936374f5dd1016d59108c446647",
+  "previous_chain_link": "cdeda8fa866d9cbf5dce6ef1137dea4a84bd3d9be1486a1bde20972e093c4a84",
+  "record": {
+    "action": "node0_local_urp_active",
+    "bloom_credit_sandbox": 0,
+    "contributor_node": "node0_ce5af35c848ce889",
+    "evidence_receipt_id_ref": "182813d7bc794e39",
+    "ihsan_score_sandbox": 0.95,
+    "impact_score_sandbox": 1.0,
+    "ledger_phase": "POI_SANDBOX",
+    "monetary_value": "none",
+    "record_id": "poi_sandbox_node0_ce5af35c84_v1",
+    "seed_credit_sandbox": 0,
+    "snr_score_sandbox": 0.9776676111790307
+  },
+  "schema_version": "0.1.0",
+  "truth_label": "POI_SANDBOX"
+}
