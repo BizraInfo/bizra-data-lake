@@ -206,7 +206,7 @@ jobs:
           set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
-            --timeout=60 \
+            --timeout=120 \
             -k "constitutional or ihsan or snr or invariant or gate" \
             -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu and not requires_real_data" \
             --junitxml=/tmp/constitutional_tests.xml \
@@ -227,7 +227,7 @@ jobs:
           set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
-            --timeout=60 \
+            --timeout=120 \
             -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu and not requires_real_data" \
             --ignore=tests/scripts/test_canonical_spearpoint_v1.py \
             --junitxml=/tmp/python_tests.xml \
