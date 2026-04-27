@@ -515,7 +515,9 @@ class HNSWIndex:
                     len(meta.get("id_map", {})) + 1000,
                 )
 
-                idx = hnswlib.Index(space=self._config.space, dim=self._config.dimensions)
+                idx = hnswlib.Index(
+                    space=self._config.space, dim=self._config.dimensions
+                )
                 idx.load_index(str(path), max_elements=self._config.max_elements)
                 idx.set_ef(self._config.ef_search)
                 self._index = idx
