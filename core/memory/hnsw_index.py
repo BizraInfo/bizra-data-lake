@@ -24,7 +24,9 @@ Standing on Giants:
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
+from types import ModuleType
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -33,14 +35,25 @@ from .config import HNSWConfig
 
 logger = logging.getLogger(__name__)
 
-# Try to import hnswlib; fall back to numpy brute-force
-try:
-    import hnswlib
+_HNSWLIB: ModuleType | None = None
+_HNSWLIB_IMPORT_ATTEMPTED = False
 
-    _HAS_HNSWLIB = True
-except ImportError:
-    _HAS_HNSWLIB = False
-    logger.warning("hnswlib not installed — falling back to numpy cosine scan")
+
+def _load_hnswlib() -> ModuleType | None:
+    """Load optional hnswlib lazily so collection-only imports stay safe."""
+    global _HNSWLIB, _HNSWLIB_IMPORT_ATTEMPTED
+    if os.getenv("BIZRA_MEMORY_DISABLE_HNSWLIB", "").lower() in {"1", "true", "yes"}:
+        return None
+    if _HNSWLIB_IMPORT_ATTEMPTED:
+        return _HNSWLIB
+    _HNSWLIB_IMPORT_ATTEMPTED = True
+    try:
+        import hnswlib
+    except ImportError:
+        logger.warning("hnswlib not installed — falling back to numpy cosine scan")
+        return None
+    _HNSWLIB = hnswlib
+    return _HNSWLIB
 
 
 class ScalarQuantizer:
@@ -161,7 +174,7 @@ class HNSWIndex:
         self._reverse_map: dict[str, int] = {}  # record_id -> internal_id
         self._next_internal_id: int = 0
         self._initialized = False
-        self._use_hnswlib = _HAS_HNSWLIB
+        self._use_hnswlib = False
 
         # Fallback storage (numpy brute-force)
         self._fallback_vectors: dict[str, np.ndarray] = {}
@@ -215,8 +228,10 @@ class HNSWIndex:
         """Create or re-create the index in memory."""
         if self._config.auto_tune:
             self._auto_tune_params()
-        if self._use_hnswlib:
-            idx = hnswlib.Index(space=self._config.space, dim=self._config.dimensions)  # type: ignore[name-defined]
+        hnswlib = _load_hnswlib()
+        self._use_hnswlib = hnswlib is not None
+        if hnswlib is not None:
+            idx = hnswlib.Index(space=self._config.space, dim=self._config.dimensions)
             idx.init_index(
                 max_elements=self._config.max_elements,
                 M=self._config.m,
@@ -483,7 +498,9 @@ class HNSWIndex:
 
     def load(self, path: Path) -> bool:
         """Load index from disk. Returns True if loaded successfully."""
-        if self._use_hnswlib:
+        hnswlib = _load_hnswlib()
+        self._use_hnswlib = hnswlib is not None
+        if hnswlib is not None:
             import json
 
             meta_path = path.with_suffix(".meta.json")
@@ -498,9 +515,7 @@ class HNSWIndex:
                     len(meta.get("id_map", {})) + 1000,
                 )
 
-                idx = hnswlib.Index(  # type: ignore[name-defined]
-                    space=self._config.space, dim=self._config.dimensions
-                )
+                idx = hnswlib.Index(space=self._config.space, dim=self._config.dimensions)
                 idx.load_index(str(path), max_elements=self._config.max_elements)
                 idx.set_ef(self._config.ef_search)
                 self._index = idx
