@@ -82,6 +82,18 @@ def pytest_configure(config):
     )
 
 
+def pytest_collection_modifyitems(config, items):
+    """Classify tests/integration/ tests so unit gates can reliably deselect them."""
+    integration_root = Path(__file__).parent / "integration"
+    for item in items:
+        try:
+            item_path = Path(item.path)
+        except TypeError:
+            continue
+        if item_path.is_relative_to(integration_root):
+            item.add_marker(pytest.mark.integration)
+
+
 @pytest.fixture(autouse=True)
 def _isolate_receipt_key_env():
     """Prevent key env pollution between tests that mutate receipt signing env.
