@@ -213,27 +213,37 @@ jobs:
             -n auto \
             2>&1 | tee /tmp/python_constitutional.txt
 
-      - name: "Gate 3: Full Python Test Suite"
+      - name: "Gate 3: Canonical Spearpoint Proof"
+        run: |
+          set -o pipefail
+          python -m pytest tests/scripts/test_canonical_spearpoint_v1.py -v \
+            --tb=short \
+            --timeout=120 \
+            --junitxml=/tmp/canonical_spearpoint_tests.xml \
+            2>&1 | tee /tmp/canonical_spearpoint_output.txt
+
+      - name: "Gate 4: Full Python Test Suite"
         run: |
           set -o pipefail
           python -m pytest tests/ -v \
             --tb=short \
             --timeout=60 \
             -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu and not requires_real_data" \
+            --ignore=tests/scripts/test_canonical_spearpoint_v1.py \
             --junitxml=/tmp/python_tests.xml \
             -n auto \
             2>&1 | tee /tmp/python_test_output.txt
 
-      - name: "Gate 4: Test Count Verification"
+      - name: "Gate 5: Test Count Verification"
         run: |
           TOTAL=$(grep -oP '\d+ passed' /tmp/python_test_output.txt | head -1 | awk '{print $1}')
           echo "::notice::Python tests passed: ${TOTAL:-0}"
 
-      - name: "Gate 5: Truth Label Enforcement"
+      - name: "Gate 6: Truth Label Enforcement"
         run: |
           python scripts/ci_docs_truth_gate.py
 
-      - name: "Gate 6: Claim-Discipline Drift Probe (CLEAN_SET fail-closed)"
+      - name: "Gate 7: Claim-Discipline Drift Probe (CLEAN_SET fail-closed)"
         run: |
           mkdir -p artifacts/claim-drift
           python tools/audit/claim_drift_probe.py \
@@ -243,7 +253,7 @@ jobs:
             --summary-json artifacts/claim-drift/summary.json \
             --run-id "ci-${GITHUB_SHA::8}"
 
-      - name: "Gate 6: Upload claim-drift artifacts"
+      - name: "Gate 7: Upload claim-drift artifacts"
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
@@ -252,7 +262,7 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
-      - name: "Gate 7: Canonical Truth Pack Freshness (fail-closed)"
+      - name: "Gate 8: Canonical Truth Pack Freshness (fail-closed)"
         run: |
           set -euo pipefail
           COMMITTED="docs/knowledge/canonical_truth_pack.json"
@@ -274,7 +284,7 @@ jobs:
           fi
           echo "Canonical truth pack is fresh."
 
-      - name: "Gate 7: Upload truth-pack artifacts"
+      - name: "Gate 8: Upload truth-pack artifacts"
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
