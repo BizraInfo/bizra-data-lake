@@ -71,7 +71,7 @@ jobs:
         run: |
           python -m pytest tests/ \
             --cov=core --cov-report=xml:coverage.xml --cov-report=term-missing \
-            -m "not requires_ollama and not requires_gpu and not slow and not e2e_http" \
+            -m "not slow and not integration and not e2e_http and not requires_ollama and not requires_gpu" \
             --timeout=60 -q || true
 
       - name: Spine → Ratchet
