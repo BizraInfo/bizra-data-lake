@@ -3,11 +3,11 @@
     "by_exposure": {
       "authenticated": 48,
       "bootstrap_public": 3,
-      "public": 16
+      "public": 18
     },
-    "domains": 29,
+    "domains": 30,
     "source": "core/sovereign/api_exposure_policy.py",
-    "total": 67
+    "total": 69
   },
   "thresholds": {
     "adl_gini_threshold": 0.35,

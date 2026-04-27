@@ -76,6 +76,58 @@ def _excerpt(line: str, start: int, end: int, radius: int = 80) -> str:
     return line[lo:hi].strip()
 
 
+def _record_table_cell_expansions(
+    *,
+    rel: str,
+    line_no: int,
+    line: str,
+    seen: set[tuple[str, int, str]],
+    observations: List[dict],
+    limit: int,
+) -> bool:
+    """Parse markdown table cells in URP canonical definition docs for known expansions."""
+
+    if not rel.endswith("URP_CANONICAL_DEFINITION.md") or "|" not in line:
+        return False
+    if line.strip().startswith("|---") or line.strip().startswith("| ---"):
+        return False
+
+    known = (CANONICAL_EXPANSION, *ALTERNATE_EXPANSIONS.keys())
+    for cell in (c.strip() for c in line.split("|")):
+        if not cell:
+            continue
+        expansion = _normalize_expansion(cell)
+        if expansion not in known:
+            continue
+        key = (rel, line_no, expansion)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        if expansion == CANONICAL_EXPANSION:
+            classification = "CANONICAL"
+        else:
+            classification = (
+                "DOCUMENTED_ALIAS"
+                if rel.endswith("URP_CANONICAL_DEFINITION.md")
+                else "ALTERNATE"
+            )
+        observations.append(
+            {
+                "path": rel,
+                "line": line_no,
+                "expansion": expansion,
+                "classification": classification,
+                "canonical_expansion": CANONICAL_EXPANSION,
+                "note": ALTERNATE_EXPANSIONS.get(expansion, ""),
+                "excerpt": _excerpt(line, 0, len(line)),
+            }
+        )
+        if len(observations) >= limit:
+            return True
+    return False
+
+
 def scan(
     repo_root: Path,
     roots: List[str],
@@ -129,6 +181,16 @@ def scan(
                 )
                 if len(observations) >= limit:
                     return observations
+
+            if _record_table_cell_expansions(
+                rel=rel,
+                line_no=line_no,
+                line=line,
+                seen=seen,
+                observations=observations,
+                limit=limit,
+            ):
+                return observations
 
     observations.sort(key=lambda item: (item["classification"], item["path"], item["line"]))
     return observations

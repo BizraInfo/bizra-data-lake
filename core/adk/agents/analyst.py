@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import urllib.error
 import urllib.request
 from typing import List
@@ -42,7 +43,7 @@ class AnalystAgent(Agent):
         # Test counts by module
         try:
             r = subprocess.run(
-                [".venv/bin/python", "-m", "pytest", "--co", "-q"],
+                [sys.executable, "-m", "pytest", "--co", "-q"],
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -105,20 +106,22 @@ class AnalystAgent(Agent):
         except ImportError:
             pass
 
-        # Rust workspace status
-        try:
-            r = subprocess.run(
-                ["cargo", "check", "--workspace", "--message-format=short"],
-                capture_output=True,
-                text=True,
-                timeout=60,
-                cwd=str(DATA_LAKE_ROOT / "bizra-omega"),
-            )
-            status = "PASS" if r.returncode == 0 else "FAIL"
-            evidence_parts.append(f"Rust workspace cargo check: {status}")
-            refs.append("cargo:workspace-check")
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass
+        # Rust workspace status (skip in CI: cargo check is slow and starves the
+        # unit-test slice under pytest-xdist + pytest-timeout).
+        if os.environ.get("CI") != "true":
+            try:
+                r = subprocess.run(
+                    ["cargo", "check", "--workspace", "--message-format=short"],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    cwd=str(DATA_LAKE_ROOT / "bizra-omega"),
+                )
+                status = "PASS" if r.returncode == 0 else "FAIL"
+                evidence_parts.append(f"Rust workspace cargo check: {status}")
+                refs.append("cargo:workspace-check")
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
 
         # Git stats
         try:
