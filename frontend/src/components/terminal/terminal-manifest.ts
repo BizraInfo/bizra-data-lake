@@ -8,7 +8,8 @@ export type TerminalViewId =
   | "skills"
   | "network"
   | "settings"
-  | "cockpit";
+  | "cockpit"
+  | "goal";
 
 export interface TerminalViewMeta {
   id: TerminalViewId;
@@ -127,6 +128,14 @@ export const TERMINAL_VIEW_META: TerminalViewMeta[] = [
     emoji: "⬡",
     accentHex: "#1D9E75",
     description: "Constitutional pipeline: Intent → Evidence.",
+  },
+  {
+    id: "goal",
+    label: "Goal",
+    shortcut: "9",
+    emoji: "⬢",
+    accentHex: "#22C55E",
+    description: "§9 four-state loop: Current → Ideal → Gap → Next.",
   },
 ];
 

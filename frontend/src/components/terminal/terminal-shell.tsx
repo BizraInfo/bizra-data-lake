@@ -13,10 +13,11 @@ const TerminalSkills = lazy(() => import("./terminal-skills"));
 const TerminalNetwork = lazy(() => import("./terminal-network"));
 const TerminalSettings = lazy(() => import("./terminal-settings"));
 const OperatorCockpit = lazy(() => import("../OperatorCockpit"));
+const TerminalGoal = lazy(() => import("./terminal-goal"));
 
 // ─── Types ──────────────────────────────────────────────────────
 
-type ViewId = "dashboard" | "mission" | "timeline" | "memory" | "skills" | "network" | "settings" | "cockpit";
+type ViewId = "dashboard" | "mission" | "timeline" | "memory" | "skills" | "network" | "settings" | "cockpit" | "goal";
 
 interface ViewDef {
   id: ViewId;
@@ -37,6 +38,7 @@ const LAZY_COMPONENTS: Record<ViewId, React.LazyExoticComponent<() => JSX.Elemen
   network: TerminalNetwork,
   settings: TerminalSettings,
   cockpit: OperatorCockpit,
+  goal: TerminalGoal,
 };
 
 const VIEWS: ViewDef[] = TERMINAL_VIEW_META.map((meta) => ({
