@@ -83,14 +83,14 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    """Classify tests/integration/ tests so unit gates can reliably deselect them."""
+    """Classify integration tests so unit gates can reliably deselect them."""
     integration_root = Path(__file__).parent / "integration"
     for item in items:
         try:
             item_path = Path(item.path)
         except TypeError:
             continue
-        if item_path.is_relative_to(integration_root):
+        if item_path.is_relative_to(integration_root) or "integration" in item_path.name:
             item.add_marker(pytest.mark.integration)
 
 
