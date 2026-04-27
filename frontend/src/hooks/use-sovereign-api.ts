@@ -348,8 +348,16 @@ function useFetch<T>(
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const intervalMs = options?.intervalMs ?? 30000;
-  const transform = options?.transform;
   const resetOnError = options?.resetOnError ?? false;
+
+  // Inline object/function literals at call sites (e.g. useChainLatest's
+  // fallback) get a new identity each render. Capturing them in refs keeps
+  // the polling effect stable instead of re-firing on every render, which
+  // would compound under setInterval mocks that don't honor clearInterval.
+  const fallbackRef = useRef(fallback);
+  fallbackRef.current = fallback;
+  const transformRef = useRef(options?.transform);
+  transformRef.current = options?.transform;
 
   useEffect(() => {
     let mounted = true;
@@ -360,6 +368,7 @@ function useFetch<T>(
         if (!mounted) {
           return;
         }
+        const transform = transformRef.current;
         setData(transform ? transform(payload) : (payload as T));
         setError(null);
       } catch (err) {
@@ -367,7 +376,7 @@ function useFetch<T>(
           return;
         }
         if (resetOnError) {
-          setData(fallback);
+          setData(fallbackRef.current);
         }
         setError(err instanceof Error ? err.message : "Request failed");
       } finally {
@@ -386,7 +395,7 @@ function useFetch<T>(
       mounted = false;
       window.clearInterval(timer);
     };
-  }, [fallback, intervalMs, path, resetOnError, transform]);
+  }, [intervalMs, path, resetOnError]);
 
   return { data, error, loading };
 }
