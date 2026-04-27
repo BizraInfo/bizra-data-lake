@@ -34,9 +34,7 @@ class DailyLogEntry:
 
     def __post_init__(self) -> None:
         if self.kind not in VALID_KINDS:
-            raise ValueError(
-                f"kind must be one of {VALID_KINDS}, got {self.kind!r}"
-            )
+            raise ValueError(f"kind must be one of {VALID_KINDS}, got {self.kind!r}")
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

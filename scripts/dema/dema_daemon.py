@@ -108,9 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if not args.once:
-        parser.error(
-            "Only --once is supported in v0.1 (no continuous loop yet)."
-        )
+        parser.error("Only --once is supported in v0.1 (no continuous loop yet).")
 
     out = tick(args.root)
     print(json.dumps(out, indent=2, sort_keys=True))

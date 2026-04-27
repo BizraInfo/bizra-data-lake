@@ -37,7 +37,6 @@ from core.dema import (  # noqa: E402
     ReceiptWriter,
 )
 
-
 # ── Core module tests ────────────────────────────────────────────────
 
 
@@ -289,9 +288,9 @@ def test_dema_writes_only_under_sovereign_state(tmp_path, monkeypatch):
     ]
     root_str = str(tmp_path.resolve())
     for p in written_paths:
-        assert Path(p).resolve().is_relative_to(tmp_path.resolve()), (
-            f"path {p} escaped sandbox root {root_str}"
-        )
+        assert (
+            Path(p).resolve().is_relative_to(tmp_path.resolve())
+        ), f"path {p} escaped sandbox root {root_str}"
 
 
 def test_no_canon_or_memory_md_is_listed_in_touched_paths(tmp_path):

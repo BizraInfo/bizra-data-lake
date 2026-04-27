@@ -81,7 +81,9 @@ class MissionStateMachine:
                 if next_admissible_action is not None
                 else existing.next_admissible_action
             ),
-            truth_label=truth_label if truth_label is not None else existing.truth_label,
+            truth_label=(
+                truth_label if truth_label is not None else existing.truth_label
+            ),
             timestamp=_utc_now(),
         )
         self.path.write_text(

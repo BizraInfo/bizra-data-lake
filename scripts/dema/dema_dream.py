@@ -75,9 +75,7 @@ def dream(
                 {
                     "phase": phase,
                     "kind": "orientation",
-                    "summary": (
-                        f"reviewing {len(today)} log entries from today"
-                    ),
+                    "summary": (f"reviewing {len(today)} log entries from today"),
                     "ts": _utc_now(),
                 }
             )
@@ -104,9 +102,7 @@ def dream(
                     continue
                 seen.add(entry.kind)
                 if entry.receipt_id:
-                    recalls.append(
-                        {"kind": entry.kind, "receipt_id": entry.receipt_id}
-                    )
+                    recalls.append({"kind": entry.kind, "receipt_id": entry.receipt_id})
                 if len(recalls) >= 5:
                     break
             candidate_notes.append(
