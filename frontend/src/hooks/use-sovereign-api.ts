@@ -386,7 +386,7 @@ function useFetch<T>(
       mounted = false;
       window.clearInterval(timer);
     };
-  }, [intervalMs, path, transform]);
+  }, [fallback, intervalMs, path, resetOnError, transform]);
 
   return { data, error, loading };
 }
