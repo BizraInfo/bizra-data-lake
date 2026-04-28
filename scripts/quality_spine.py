@@ -461,6 +461,25 @@ def _run_tool(
     )
 
 
+def _failure_detail(result: subprocess.CompletedProcess, fallback: str) -> str:
+    """Return a compact, actionable failure line from subprocess output."""
+    output = "\n".join(
+        part.strip() for part in (result.stdout, result.stderr) if part.strip()
+    )
+    if not output:
+        return fallback
+
+    ansi_re = re.compile(r"\x1b\[[0-9;]*m")
+    for raw_line in reversed(output.splitlines()):
+        line = ansi_re.sub("", raw_line).strip()
+        if not line:
+            continue
+        if set(line) <= {"-", "_", "=", "⎯", "[", "]", "/", "1"}:
+            continue
+        return line[:500]
+    return fallback
+
+
 def gate_python_tests(ws: Path) -> GateResult:
     r = _run_tool(
         [
@@ -667,27 +686,40 @@ def gate_frontend(ws: Path) -> GateResult:
         )
     install = _run_tool(["npm", "ci", "--no-audit", "--no-fund"], fe, 300)
     if install.returncode != 0:
-        output = "\n".join(
-            part.strip() for part in (install.stdout, install.stderr) if part.strip()
+        return GateResult(
+            "frontend",
+            "quality",
+            False,
+            0.0,
+            0.05,
+            _failure_detail(install, f"npm ci exit {install.returncode}"),
         )
-        detail = (
-            output.splitlines()[-1] if output else f"npm ci exit {install.returncode}"
-        )
-        return GateResult("frontend", "quality", False, 0.0, 0.05, detail)
-    r = _run_tool(["npm", "run", "ci"], fe, 600)
-    output = "\n".join(part.strip() for part in (r.stdout, r.stderr) if part.strip())
-    detail = (
-        "PASS"
-        if r.returncode == 0
-        else (output.splitlines()[-1] if output else f"npm run ci exit {r.returncode}")
-    )
+
+    frontend_stages = [
+        ("typecheck", ["npm", "run", "typecheck"], 180),
+        ("lint", ["npm", "run", "lint"], 180),
+        ("test", ["npm", "run", "test"], 300),
+        ("build", ["npm", "run", "build"], 300),
+    ]
+    for stage, cmd, timeout in frontend_stages:
+        result = _run_tool(cmd, fe, timeout)
+        if result.returncode != 0:
+            return GateResult(
+                "frontend",
+                "quality",
+                False,
+                0.0,
+                0.05,
+                f"{stage}: {_failure_detail(result, f'{stage} exit {result.returncode}')}",
+            )
+
     return GateResult(
         "frontend",
         "quality",
-        r.returncode == 0,
-        1.0 if r.returncode == 0 else 0.0,
+        True,
+        1.0,
         0.05,
-        detail,
+        "PASS",
     )
 
 
