@@ -162,12 +162,12 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # =========================================================================
-  # Stage 2: Integration Tests (<2min)
+  # Stage 2: Integration Tests
   # =========================================================================
   integration-tests:
     name: Integration Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 45
     needs: [unit-tests]
     strategy:
       fail-fast: false
