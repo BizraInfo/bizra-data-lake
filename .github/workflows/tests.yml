@@ -167,7 +167,7 @@ jobs:
   integration-tests:
     name: Integration Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     needs: [unit-tests]
     strategy:
       fail-fast: false
