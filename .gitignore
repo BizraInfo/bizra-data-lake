@@ -319,3 +319,5 @@ vendor/
 ruvector.db
 bizra-omega/ruvector.db
 .env
+.claude/scheduled_tasks.lock
+artifacts/proofs/loop-proof-*.json
