@@ -49,7 +49,7 @@ const ACTIVE_NODE: NodeState = {
 
 describe('Wallet Hardening: Race Conditions', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   // ═══ TEST 1: Version monotonicity prevents stale overwrites ═══
@@ -58,7 +58,6 @@ describe('Wallet Hardening: Race Conditions', () => {
     // Simulate: slow poll returns AFTER a fast WebSocket-triggered refresh
     let resolveSlowFetch: ((val: typeof mockBalance) => void) | undefined;
     const slowPromise = new Promise<typeof mockBalance>(r => { resolveSlowFetch = r; });
-    void resolveSlowFetch; // Will be called when slow promise resolves
 
     const updatedBalance = { seed: 100.0, bloom: 5.0, locked_seed: 10.0 };
 
@@ -71,8 +70,10 @@ describe('Wallet Hardening: Race Conditions', () => {
 
     const { result } = renderHook(() => useWallet(ACTIVE_NODE));
 
-    // Wait for initial state to settle
-    await waitFor(() => expect(result.current.loading).toBe(false), { timeout: 1000 }).catch(() => {});
+    await act(async () => {
+      resolveSlowFetch?.(mockBalance);
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     // If the hook uses version checking, the slow result should be dropped
     // and the fast result should win. The version counter ensures this.
@@ -180,7 +181,7 @@ describe('Wallet Hardening: Race Conditions', () => {
 
 describe('Wallet Hardening: Economic Integrity', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('zakat is always exactly 2.5% of gross', async () => {

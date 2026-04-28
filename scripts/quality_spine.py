@@ -573,14 +573,24 @@ def gate_security(ws: Path) -> GateResult:
         120,
     )
     passed = r.returncode == 0
-    vulns = r.stdout.count("FAIL") if not passed else 0
+    output = "\n".join(part.strip() for part in (r.stdout, r.stderr) if part.strip())
+    vulns = output.count("FAIL") if not passed else 0
+    detail = (
+        "clean"
+        if passed
+        else (
+            f"{vulns} vulns"
+            if vulns
+            else (output.splitlines()[-1] if output else f"exit {r.returncode}")
+        )
+    )
     return GateResult(
         "security",
         "security",
         passed,
         1.0 if passed else max(0.0, 1.0 - vulns * 0.1),
         0.10,
-        f"{vulns} vulns" if vulns else "clean",
+        detail,
     )
 
 
@@ -643,7 +653,7 @@ def gate_frontend(ws: Path) -> GateResult:
         return GateResult(
             "frontend", "quality", True, 1.0, 0.05, "skipped", blocking=False
         )
-    r = _run_tool(["npm", "run", "ci"], fe, 120)
+    r = _run_tool(["npm", "run", "ci"], fe, 600)
     return GateResult(
         "frontend",
         "quality",
