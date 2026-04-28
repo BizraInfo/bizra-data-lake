@@ -173,9 +173,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.11', '3.12']
-        include:
-          - python-version: '3.12'
-            coverage: true
 
     services:
       redis:
