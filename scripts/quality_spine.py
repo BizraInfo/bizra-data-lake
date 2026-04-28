@@ -567,8 +567,20 @@ def gate_mypy_ratchet(ws: Path) -> GateResult:
 
 
 def gate_security(ws: Path) -> GateResult:
+    requirements = ws / "requirements.txt"
+    cmd = [
+        sys.executable,
+        "-m",
+        "pip_audit",
+        "--strict",
+        "--progress-spinner=off",
+    ]
+    if requirements.exists():
+        cmd.extend(["-r", str(requirements)])
+    else:
+        cmd.append("--skip-editable")
     r = _run_tool(
-        [sys.executable, "-m", "pip_audit", "--strict", "--progress-spinner=off"],
+        cmd,
         ws,
         120,
     )
@@ -653,14 +665,29 @@ def gate_frontend(ws: Path) -> GateResult:
         return GateResult(
             "frontend", "quality", True, 1.0, 0.05, "skipped", blocking=False
         )
+    install = _run_tool(["npm", "ci", "--no-audit", "--no-fund"], fe, 300)
+    if install.returncode != 0:
+        output = "\n".join(
+            part.strip() for part in (install.stdout, install.stderr) if part.strip()
+        )
+        detail = (
+            output.splitlines()[-1] if output else f"npm ci exit {install.returncode}"
+        )
+        return GateResult("frontend", "quality", False, 0.0, 0.05, detail)
     r = _run_tool(["npm", "run", "ci"], fe, 600)
+    output = "\n".join(part.strip() for part in (r.stdout, r.stderr) if part.strip())
+    detail = (
+        "PASS"
+        if r.returncode == 0
+        else (output.splitlines()[-1] if output else f"npm run ci exit {r.returncode}")
+    )
     return GateResult(
         "frontend",
         "quality",
         r.returncode == 0,
         1.0 if r.returncode == 0 else 0.0,
         0.05,
-        "PASS" if r.returncode == 0 else "FAIL",
+        detail,
     )
 
 
