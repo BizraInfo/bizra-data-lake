@@ -15,6 +15,12 @@ from __future__ import annotations
 from core.dema.daily_log import DailyLog, DailyLogEntry
 from core.dema.mission_state import FourStateModel, MissionStateMachine
 from core.dema.profile import DemaProfile, ProfileStore
+from core.dema.proof_convergence import (
+    ProofConvergenceResult,
+    ProofConvergenceVerifier,
+    ProofSignal,
+    converge_proofs,
+)
 from core.dema.receipts import DemaReceipt, ReceiptWriter
 
 __all__ = [
@@ -24,6 +30,10 @@ __all__ = [
     "DailyLog",
     "FourStateModel",
     "MissionStateMachine",
+    "ProofSignal",
+    "ProofConvergenceResult",
+    "ProofConvergenceVerifier",
+    "converge_proofs",
     "DemaReceipt",
     "ReceiptWriter",
 ]
