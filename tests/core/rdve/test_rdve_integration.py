@@ -238,6 +238,8 @@ class TestRDVERuntimeWiring:
 # ===========================================================================
 
 
+@pytest.mark.xdist_group(name="runtime_heavy")
+@CI_PY312_RDVE_RUNTIME_QUARANTINE
 class TestRDVEHealthVisibility:
     """Verify /v1/health subsystem checks detect RDVE correctly.
 
