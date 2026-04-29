@@ -226,6 +226,46 @@ export interface TerminalStateSnapshot {
   restart_required?: boolean;
 }
 
+export interface Node0Readiness {
+  status: "green" | "yellow" | "red";
+  generated_at: string;
+  product_shell: {
+    available: boolean;
+    version: string;
+    default_view: string;
+  };
+  proof_surface: {
+    available: boolean;
+    source: string;
+  };
+  runtime: {
+    live: boolean;
+    state: string;
+    ihsan_score: number;
+    snr_score: number;
+  };
+  boot_service: {
+    status: "booted" | "not_booted" | "unavailable" | "error";
+    booted: boolean;
+    node_id: string;
+    total_breaths: number;
+    chain_hash: string;
+    error: string;
+  };
+  spearpoint: {
+    status: "pass" | "fail" | "unknown";
+    artifact_status: string;
+    run_id: string;
+    mode: string;
+    timestamp_utc: string;
+    targets_completed: number;
+    official_submission: boolean;
+    classification: string;
+    reason?: string;
+  };
+  next_action: string;
+}
+
 export interface TerminalStreamEvent {
   topic: string;
   severity: "info" | "notice" | "warning" | "critical";
@@ -543,6 +583,64 @@ function normalizeMemoryStats(payload: unknown): MemoryStats {
     procedural_count: asNumber(data.procedural_count),
     total_entries: asNumber(data.total_entries),
     db_size_mb: asNumber(data.db_size_mb),
+  };
+}
+
+function normalizeNode0Readiness(payload: unknown): Node0Readiness {
+  const data = asObject(payload);
+  const productShell = asObject(data.product_shell);
+  const proofSurface = asObject(data.proof_surface);
+  const runtime = asObject(data.runtime);
+  const bootService = asObject(data.boot_service);
+  const spearpoint = asObject(data.spearpoint);
+  const status = asString(data.status, "red");
+  const bootStatus = asString(bootService.status, "unavailable");
+  const spearpointStatus = asString(spearpoint.status, "unknown");
+
+  return {
+    status: ["green", "yellow", "red"].includes(status)
+      ? (status as Node0Readiness["status"])
+      : "red",
+    generated_at: asString(data.generated_at),
+    product_shell: {
+      available: Boolean(productShell.available),
+      version: asString(productShell.version),
+      default_view: asString(productShell.default_view, "node0"),
+    },
+    proof_surface: {
+      available: Boolean(proofSurface.available),
+      source: asString(proofSurface.source, "mission_receipt"),
+    },
+    runtime: {
+      live: Boolean(runtime.live),
+      state: asString(runtime.state, "unknown"),
+      ihsan_score: asNumber(runtime.ihsan_score),
+      snr_score: asNumber(runtime.snr_score),
+    },
+    boot_service: {
+      status: ["booted", "not_booted", "unavailable", "error"].includes(bootStatus)
+        ? (bootStatus as Node0Readiness["boot_service"]["status"])
+        : "unavailable",
+      booted: Boolean(bootService.booted),
+      node_id: asString(bootService.node_id),
+      total_breaths: asNumber(bootService.total_breaths),
+      chain_hash: asString(bootService.chain_hash),
+      error: asString(bootService.error),
+    },
+    spearpoint: {
+      status: ["pass", "fail", "unknown"].includes(spearpointStatus)
+        ? (spearpointStatus as Node0Readiness["spearpoint"]["status"])
+        : "unknown",
+      artifact_status: asString(spearpoint.artifact_status, "missing"),
+      run_id: asString(spearpoint.run_id),
+      mode: asString(spearpoint.mode),
+      timestamp_utc: asString(spearpoint.timestamp_utc),
+      targets_completed: asNumber(spearpoint.targets_completed),
+      official_submission: Boolean(spearpoint.official_submission),
+      classification: asString(spearpoint.classification, "internal_strict_harness"),
+      reason: asString(spearpoint.reason),
+    },
+    next_action: asString(data.next_action, "start or repair Dema service"),
   };
 }
 
@@ -967,6 +1065,51 @@ export function useTerminalState() {
       restart_required: false,
     },
     { intervalMs: 5000 },
+  );
+}
+
+export function useNode0Readiness() {
+  return useFetch<Node0Readiness>(
+    "/v1/node0/readiness",
+    {
+      status: "red",
+      generated_at: "",
+      product_shell: {
+        available: false,
+        version: "",
+        default_view: "node0",
+      },
+      proof_surface: {
+        available: false,
+        source: "mission_receipt",
+      },
+      runtime: {
+        live: false,
+        state: "unknown",
+        ihsan_score: 0,
+        snr_score: 0,
+      },
+      boot_service: {
+        status: "unavailable",
+        booted: false,
+        node_id: "",
+        total_breaths: 0,
+        chain_hash: "",
+        error: "",
+      },
+      spearpoint: {
+        status: "unknown",
+        artifact_status: "missing",
+        run_id: "",
+        mode: "",
+        timestamp_utc: "",
+        targets_completed: 0,
+        official_submission: false,
+        classification: "internal_strict_harness",
+      },
+      next_action: "start or repair Dema service",
+    },
+    { transform: normalizeNode0Readiness, intervalMs: 10000, resetOnError: true },
   );
 }
 

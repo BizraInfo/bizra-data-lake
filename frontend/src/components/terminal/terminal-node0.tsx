@@ -3,7 +3,7 @@
 import {
   useChainLatest,
   useMemoryStats,
-  useSeedPotential,
+  useNode0Readiness,
   useSovereignHealth,
   useTerminalState,
 } from "@/hooks/use-sovereign-api";
@@ -52,12 +52,19 @@ function formatLastReceipt(kind: string, timestamp: number | null): string {
   return `${kind} at ${rendered}`;
 }
 
+function readinessState(ready: boolean, failed = false): ReadinessState {
+  if (ready) {
+    return "ready";
+  }
+  return failed ? "warn" : "planned";
+}
+
 export default function TerminalNode0() {
   const { data: health, error: healthError, loading: healthLoading } = useSovereignHealth();
-  const { data: potential } = useSeedPotential();
   const { data: terminalState } = useTerminalState();
   const { data: chainLatest, error: chainError, loading: chainLoading } = useChainLatest();
   const { data: memory } = useMemoryStats();
+  const { data: readiness } = useNode0Readiness();
 
   const live = !healthLoading && !healthError && (health.running || health.live_status === "LIVE");
   const ihsan = typeof health.ihsan_score === "number" ? health.ihsan_score : null;
@@ -75,6 +82,10 @@ export default function TerminalNode0() {
   const memoryEntries = memory.total_entries;
   const missionReady = live && terminalState.state !== "error";
   const proofReady = chainReady || latestReceipt !== null;
+  const bootReady = readiness.boot_service.booted;
+  const spearpointReady = readiness.spearpoint.status === "pass";
+  const spearpointFailed = readiness.spearpoint.status === "fail";
+  const readinessLabel = readiness.status.toUpperCase();
 
   return (
     <div data-testid="node0-shell" className="p-4 max-w-5xl mx-auto space-y-4">
@@ -96,21 +107,25 @@ export default function TerminalNode0() {
           <div
             data-testid="node0-live-state"
             className={`rounded-lg border px-3 py-2 text-xs font-mono ${
-              live
+              readiness.status === "green"
                 ? "border-emerald-800/60 bg-emerald-950/20 text-emerald-300"
+                : readiness.status === "yellow"
+                ? "border-amber-800/60 bg-amber-950/20 text-amber-300"
                 : "border-red-800/60 bg-red-950/20 text-red-300"
             }`}
           >
-            {live ? "NODE0 LIVE" : "NODE0 OFFLINE"}
+            NODE0 {readinessLabel}
           </div>
         </div>
 
         <div className="grid sm:grid-cols-4 gap-3 mt-5 text-xs">
           <div className="rounded-lg bg-slate-950/50 border border-slate-800 p-3">
             <div className="text-slate-500 uppercase tracking-wider mb-1">
-              Runtime
+              Runtime / Boot
             </div>
-            <div className="text-slate-200 font-mono">{terminalState.state}</div>
+            <div className="text-slate-200 font-mono">
+              {terminalState.state} / {readiness.boot_service.status}
+            </div>
           </div>
           <div className="rounded-lg bg-slate-950/50 border border-slate-800 p-3">
             <div className="text-slate-500 uppercase tracking-wider mb-1">
@@ -129,9 +144,12 @@ export default function TerminalNode0() {
           </div>
           <div className="rounded-lg bg-slate-950/50 border border-slate-800 p-3">
             <div className="text-slate-500 uppercase tracking-wider mb-1">
-              Tier
+              Spearpoint
             </div>
-            <div className="text-slate-200 font-mono">{potential.tier}</div>
+            <div data-testid="node0-spearpoint-status" className="text-slate-200 font-mono">
+              {readiness.spearpoint.status}
+              {readiness.spearpoint.run_id ? ` #${readiness.spearpoint.run_id}` : ""}
+            </div>
           </div>
         </div>
       </header>
@@ -161,9 +179,13 @@ export default function TerminalNode0() {
         />
         <ReadinessCard
           testId="node0-step-next"
-          title="4. Continue"
-          state="planned"
-          body="Next product layers: boot service, memory import, voice, and safe desktop/browser action."
+          title="4. Evaluate"
+          state={readinessState(spearpointReady, spearpointFailed)}
+          body={
+            spearpointReady
+              ? "Last internal Spearpoint strict run passed; treat it as readiness evidence, not public leaderboard proof."
+              : "Run the internal Spearpoint strict harness before making benchmark-readiness claims."
+          }
         />
       </section>
 
@@ -174,12 +196,13 @@ export default function TerminalNode0() {
           </h2>
           <ol className="space-y-2 text-sm text-slate-300">
             <li>1. Dema opens to this Node0 shell.</li>
-            <li>2. Operator presses Mission and submits one task.</li>
-            <li>3. Runtime returns a mission receipt.</li>
-            <li>4. Proof Surface shows claim, source, verdict, and export lock.</li>
-            <li>5. Next action is explicit instead of hidden in backend logs.</li>
-          </ol>
-        </div>
+             <li>2. Operator presses Mission and submits one task.</li>
+             <li>3. Runtime returns a mission receipt.</li>
+             <li>4. Proof Surface shows claim, source, verdict, and export lock.</li>
+             <li>5. Node0 readiness shows boot state and last Spearpoint status.</li>
+             <li>6. Next action is explicit instead of hidden in backend logs.</li>
+           </ol>
+         </div>
 
         <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
@@ -188,7 +211,9 @@ export default function TerminalNode0() {
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-400">Proof panel</span>
-              <span className="text-emerald-300">visible</span>
+              <span className={readiness.proof_surface.available ? "text-emerald-300" : "text-red-300"}>
+                {readiness.proof_surface.available ? "visible" : "unavailable"}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-400">Memory entries</span>
@@ -196,11 +221,28 @@ export default function TerminalNode0() {
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-400">Boot/service packaging</span>
-              <span className="text-amber-300">planned</span>
+              <span
+                data-testid="node0-boot-service-status"
+                className={bootReady ? "text-emerald-300" : "text-amber-300"}
+              >
+                {readiness.boot_service.status}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400">Last Spearpoint strict run</span>
+              <span className={spearpointReady ? "text-emerald-300" : "text-amber-300"}>
+                {readiness.spearpoint.status}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-400">Voice + desktop action</span>
               <span className="text-slate-500">not integrated</span>
+            </div>
+            <div className="border-t border-slate-800 pt-2 flex items-center justify-between gap-3">
+              <span className="text-slate-400">Next action</span>
+              <span data-testid="node0-next-action" className="text-violet-300">
+                {readiness.next_action}
+              </span>
             </div>
           </div>
         </div>

@@ -229,6 +229,7 @@ API_ROUTE_POLICIES: tuple[APIRoutePolicy, ...] = (
         "/v1/auth/me",
         "/v1/seed/potential",
         "/v1/seed/episodes",
+        "/v1/node0/readiness",
         "/v1/node/value",
         "/v1/node/lifecycle",
         "/v1/network/effect",
