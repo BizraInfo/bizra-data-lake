@@ -114,6 +114,56 @@ def test_proof_surface_id_is_deterministic_for_same_inputs():
     assert left.surface_id == right.surface_id
 
 
+def test_proof_surface_id_changes_for_different_missing_sources():
+    claim_source = ClaimSource(
+        claim="Sovereignty reveal is backed by a receipt",
+        source="receipt panel",
+    )
+    receipt_missing = build_proof_surface(
+        claim_source,
+        [ProofSignal(source="auditor", passed=True, evidence_refs=("a1",))],
+        requested_decision="notify",
+        required_sources=("receipt", "auditor"),
+    )
+    replay_missing = build_proof_surface(
+        claim_source,
+        [ProofSignal(source="auditor", passed=True, evidence_refs=("a1",))],
+        requested_decision="notify",
+        required_sources=("public_key_replay", "auditor"),
+    )
+
+    assert receipt_missing.missing_sources == ("receipt",)
+    assert replay_missing.missing_sources == ("public_key_replay",)
+    assert receipt_missing.surface_id != replay_missing.surface_id
+
+
+def test_proof_surface_id_changes_for_different_blocking_sources():
+    claim_source = ClaimSource(
+        claim="Export is blocked by a failed proof source",
+        source="receipt panel",
+    )
+    receipt_blocked = build_proof_surface(
+        claim_source,
+        [
+            ProofSignal(source="receipt", passed=False, evidence_refs=("r1",)),
+            ProofSignal(source="auditor", passed=True, evidence_refs=("a1",)),
+        ],
+        requested_decision="notify",
+    )
+    auditor_blocked = build_proof_surface(
+        claim_source,
+        [
+            ProofSignal(source="receipt", passed=True, evidence_refs=("r1",)),
+            ProofSignal(source="auditor", passed=False, evidence_refs=("a1",)),
+        ],
+        requested_decision="notify",
+    )
+
+    assert receipt_blocked.blocking_sources == ("receipt",)
+    assert auditor_blocked.blocking_sources == ("auditor",)
+    assert receipt_blocked.surface_id != auditor_blocked.surface_id
+
+
 def test_surface_to_dict_is_json_safe_and_matches_csl_shape():
     convergence = converge_proofs(
         [ProofSignal(source="receipt", passed=True)],

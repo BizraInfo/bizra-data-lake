@@ -156,16 +156,23 @@ def proof_surface_from_convergence(
         and convergence.converged
         and convergence.verdict != DecisionVerdict.FORBID.value
     )
+    evidence_auditor_verdict = convergence.verdict
     surface_seed = {
+        "schema_version": SCHEMA_VERSION,
         "claim": claim_source.claim,
         "source": claim_source.source,
         "truth_label": claim_source.truth_label,
         "decision": convergence.verdict,
+        "decision_reason": decision_reason,
+        "evidence_auditor_verdict": evidence_auditor_verdict,
         "converged": convergence.converged,
         "receipt_id": receipt_id,
+        "receipt_export_ready": receipt_export_ready,
         "evidence_refs": evidence_refs,
         "reasons": list(convergence.reasons),
         "sources": list(convergence.sources),
+        "blocking_sources": list(convergence.blocking_sources),
+        "missing_sources": list(convergence.missing_sources),
     }
 
     return ProofSurface(
@@ -176,7 +183,7 @@ def proof_surface_from_convergence(
         truth_label=claim_source.truth_label,
         decision=convergence.verdict,
         decision_reason=decision_reason,
-        evidence_auditor_verdict=convergence.verdict,
+        evidence_auditor_verdict=evidence_auditor_verdict,
         converged=convergence.converged,
         receipt_id=receipt_id,
         receipt_export_ready=receipt_export_ready,
