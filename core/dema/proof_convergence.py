@@ -59,8 +59,10 @@ class ProofSignal:
     evidence_refs: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
-        if not self.source.strip():
+        source = self.source.strip()
+        if not source:
             raise ValueError("source must be non-empty")
+        object.__setattr__(self, "source", source)
         if self.truth_label not in DISPLAY_TRUTH_LABELS:
             raise ValueError(
                 f"truth_label must be one of {DISPLAY_TRUTH_LABELS}, "
@@ -118,7 +120,13 @@ class ProofConvergenceVerifier:
             )
             raise ValueError(f"duplicate proof signal sources: {duplicates}")
 
-        required = tuple(sorted(set(required_sources)))
+        normalized_required = []
+        for source in required_sources:
+            normalized = source.strip()
+            if not normalized:
+                raise ValueError("required_sources must be non-empty")
+            normalized_required.append(normalized)
+        required = tuple(sorted(set(normalized_required)))
         missing = tuple(source for source in required if source not in sources)
         evidence_refs = tuple(
             ref for signal in ordered for ref in sorted(signal.evidence_refs)

@@ -36,6 +36,7 @@ from core.dema.csl import (  # noqa: E402
     RISK_LEVELS,
     ApprovalStatus,
     CanonicalFourStateModel,
+    CanonicalProofSurface,
     CanonicalProactiveProposal,
     CanonicalReceiptEnvelope,
     DecisionVerdict,
@@ -221,4 +222,27 @@ def test_canonical_proactive_proposal_covers_proposal_keys():
     assert missing_in_csl == set(), (
         f"ProactiveProposal has fields {missing_in_csl} not in CSL shape; "
         "add them to CanonicalProactiveProposal."
+    )
+
+
+def test_canonical_proof_surface_covers_surface_keys():
+    from core.dema.proof_convergence import ProofSignal
+    from core.dema.proof_surface import ClaimSource, build_proof_surface
+
+    surface = build_proof_surface(
+        ClaimSource(
+            claim="receipt landed",
+            source="local receipt store",
+            evidence_ref="receipt:abc",
+        ),
+        [ProofSignal(source="receipt", passed=True, evidence_refs=("receipt:abc",))],
+        requested_decision="notify",
+        receipt_id="abc",
+    )
+    keys = set(surface.to_dict().keys())
+    csl_keys = set(CanonicalProofSurface.__annotations__.keys())
+    missing_in_csl = keys - csl_keys
+    assert missing_in_csl == set(), (
+        f"ProofSurface has fields {missing_in_csl} not in CSL shape; "
+        "add them to CanonicalProofSurface."
     )

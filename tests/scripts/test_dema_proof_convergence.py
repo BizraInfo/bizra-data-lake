@@ -120,3 +120,32 @@ def test_rejects_duplicate_sources():
                 ProofSignal(source="receipt", passed=True),
             ]
         )
+
+
+def test_source_identities_are_canonicalized_before_convergence():
+    verifier = ProofConvergenceVerifier()
+
+    with pytest.raises(ValueError, match="duplicate proof signal sources"):
+        verifier.verify(
+            [
+                ProofSignal(source="receipt", passed=True),
+                ProofSignal(source=" receipt ", passed=True),
+            ]
+        )
+
+    result = verifier.verify(
+        [ProofSignal(source=" receipt ", passed=True)],
+        required_sources=("receipt", " public_key_replay "),
+    )
+
+    assert result.sources == ("receipt",)
+    assert result.missing_sources == ("public_key_replay",)
+
+
+def test_rejects_blank_required_sources():
+    verifier = ProofConvergenceVerifier()
+
+    with pytest.raises(ValueError, match="required_sources must be non-empty"):
+        verifier.verify(
+            [ProofSignal(source="receipt", passed=True)], required_sources=(" ",)
+        )

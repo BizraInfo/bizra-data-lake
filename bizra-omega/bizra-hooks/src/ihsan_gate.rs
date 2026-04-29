@@ -94,20 +94,24 @@ impl GateConfig {
             emit_events: true,
         }
     }
-}
 
-impl Default for GateConfig {
-    fn default() -> Self {
-        // BIZRA_ENV=prod → fail-closed (Reject). Otherwise → development (Observe).
+    fn from_env_value(value: Option<&str>) -> Self {
+        // BIZRA_ENV=prod|production -> fail-closed (Reject).
+        // Otherwise -> development (Observe).
         // Standing on Giants: Al-Ghazali — Ihsan is not optional in production.
-        let is_prod = std::env::var("BIZRA_ENV")
-            .map(|v| v == "prod" || v == "production")
-            .unwrap_or(false);
+        let is_prod = matches!(value, Some("prod" | "production"));
         if is_prod {
             Self::production()
         } else {
             Self::development()
         }
+    }
+}
+
+impl Default for GateConfig {
+    fn default() -> Self {
+        let env_value = std::env::var("BIZRA_ENV").ok();
+        Self::from_env_value(env_value.as_deref())
     }
 }
 
@@ -592,9 +596,7 @@ mod tests {
     /// This proves the fail-closed membrane activates in production.
     #[test]
     fn test_env_gate_default_is_observe_without_prod_env() {
-        // Clear any stale env to ensure we test the "no BIZRA_ENV" path
-        std::env::remove_var("BIZRA_ENV");
-        let config = GateConfig::default();
+        let config = GateConfig::from_env_value(None);
         assert_eq!(
             config.policy,
             GatePolicy::Observe,
@@ -605,10 +607,7 @@ mod tests {
     /// Wire 2 regression: BIZRA_ENV=prod activates fail-closed Reject policy.
     #[test]
     fn test_env_gate_prod_selects_reject() {
-        std::env::set_var("BIZRA_ENV", "prod");
-        let config = GateConfig::default();
-        // Restore immediately to avoid poisoning other tests
-        std::env::remove_var("BIZRA_ENV");
+        let config = GateConfig::from_env_value(Some("prod"));
 
         assert_eq!(
             config.policy,
@@ -620,9 +619,7 @@ mod tests {
     /// Wire 2 regression: BIZRA_ENV=production (long form) also activates Reject.
     #[test]
     fn test_env_gate_production_long_form_selects_reject() {
-        std::env::set_var("BIZRA_ENV", "production");
-        let config = GateConfig::default();
-        std::env::remove_var("BIZRA_ENV");
+        let config = GateConfig::from_env_value(Some("production"));
 
         assert_eq!(
             config.policy,

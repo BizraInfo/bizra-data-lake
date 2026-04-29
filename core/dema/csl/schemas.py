@@ -65,3 +65,29 @@ class CanonicalProactiveProposal(TypedDict):
     decision: str
     decision_reason: str
     timestamp: str
+
+
+class CanonicalProofSurface(TypedDict):
+    """A2-A5 proof surface projected for operator-facing UI panels.
+
+    String values for ``truth_label`` MUST be in DISPLAY_TRUTH_LABELS.
+    String values for ``decision`` and ``evidence_auditor_verdict`` MUST be in
+    DECISION_VERDICTS.
+    """
+
+    schema_version: str
+    surface_id: str
+    claim: str
+    source: str
+    truth_label: str
+    decision: str
+    decision_reason: str
+    evidence_auditor_verdict: str
+    converged: bool
+    receipt_id: str | None
+    receipt_export_ready: bool
+    evidence_refs: list[str]
+    reasons: list[str]
+    sources: list[str]
+    blocking_sources: list[str]
+    missing_sources: list[str]

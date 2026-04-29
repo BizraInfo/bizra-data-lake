@@ -21,6 +21,12 @@ from core.dema.proof_convergence import (
     ProofSignal,
     converge_proofs,
 )
+from core.dema.proof_surface import (
+    ClaimSource,
+    ProofSurface,
+    build_proof_surface,
+    proof_surface_from_convergence,
+)
 from core.dema.receipts import DemaReceipt, ReceiptWriter
 
 __all__ = [
@@ -34,6 +40,10 @@ __all__ = [
     "ProofConvergenceResult",
     "ProofConvergenceVerifier",
     "converge_proofs",
+    "ClaimSource",
+    "ProofSurface",
+    "build_proof_surface",
+    "proof_surface_from_convergence",
     "DemaReceipt",
     "ReceiptWriter",
 ]
