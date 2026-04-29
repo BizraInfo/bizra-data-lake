@@ -165,6 +165,7 @@ class TestRDVEOrchestratorUnit:
 
 
 @pytest.mark.xdist_group(name="runtime_heavy")
+@pytest.mark.runtime_boot
 @CI_PY312_RDVE_FULL_RUNTIME_QUARANTINE
 class TestRDVERuntimeWiring:
     """Verify RDVE is wired into SovereignRuntime after initialize()."""
@@ -239,6 +240,7 @@ class TestRDVERuntimeWiring:
 
 
 @pytest.mark.xdist_group(name="runtime_heavy")
+@pytest.mark.runtime_boot
 @CI_PY312_RDVE_FULL_RUNTIME_QUARANTINE
 class TestRDVEHealthVisibility:
     """Verify /v1/health subsystem checks detect RDVE correctly.

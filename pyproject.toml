@@ -106,6 +106,7 @@ markers = [
     "requires_real_data: marks tests that require the real GOLD corpus (04_GOLD/chunks.parquet) — skipped in CI",
     "e2e_http: marks tests that need a running API server",
     "pyo3_bridge: marks tests that require PyO3 bindings (maturin develop)",
+    "runtime_boot: marks full SovereignRuntime boot tests (excluded from Python 3.12 PR integration CI)",
     "xdist_group: group tests for serial execution under pytest-xdist",
 ]
 
