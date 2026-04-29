@@ -37,8 +37,8 @@ from core.dema.csl.labels import (
 )
 from core.dema.csl.schemas import (
     CanonicalFourStateModel,
-    CanonicalProofSurface,
     CanonicalProactiveProposal,
+    CanonicalProofSurface,
     CanonicalReceiptEnvelope,
 )
 
