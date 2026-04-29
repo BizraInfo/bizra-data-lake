@@ -102,6 +102,21 @@ vi.mock('../src/hooks/use-sovereign-api', () => ({
   useTerminalState: () => ({
     data: { state: 'ready', execution_path: 'SYSTEM_2_NOVEL', mission_id: '' },
   }),
+  useChainLatest: () => ({
+    data: {
+      head: 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+      length: 7,
+      latestTimestamp: 1745180214,
+      latestReceipt: {
+        id: 'receipt-hash-001',
+        kind: 'MissionApproved',
+        timestamp: 1745180214,
+      },
+      latestReceiptError: null,
+    },
+    error: null,
+    loading: false,
+  }),
   useModelRoutingSettings: () => ({
     modelRouting: { planner: 'gpt-4.1', executor: 'gpt-4.1-mini' },
     permissionDefaults: {
@@ -304,12 +319,34 @@ afterEach(() => {
 import TerminalDashboard from '../src/components/terminal/terminal-dashboard';
 import TerminalMission from '../src/components/terminal/terminal-mission';
 import TerminalMemory from '../src/components/terminal/terminal-memory';
+import TerminalNode0 from '../src/components/terminal/terminal-node0';
 import TerminalSettings from '../src/components/terminal/terminal-settings';
 import TerminalNetwork from '../src/components/terminal/terminal-network';
 import TerminalSkills from '../src/components/terminal/terminal-skills';
+import TerminalShell from '../src/components/terminal/terminal-shell';
 import TerminalTimeline from '../src/components/terminal/terminal-timeline';
 
 describe.sequential('Terminal Panels', () => {
+  it('Node0 shell renders the visible Dema product loop', () => {
+    render(<TerminalNode0 />);
+    expect(screen.getByTestId('node0-shell')).toBeTruthy();
+    expect(screen.getByText(/Dema Node0 Product Shell v0.1/i)).toBeTruthy();
+    expect(screen.getByTestId('node0-live-state')).toHaveTextContent('NODE0 LIVE');
+    expect(screen.getByTestId('node0-step-dema')).toHaveTextContent(/See Dema/i);
+    expect(screen.getByTestId('node0-step-mission')).toHaveTextContent(/Submit task/i);
+    expect(screen.getByTestId('node0-step-proof')).toHaveTextContent(/Inspect proof/i);
+    expect(screen.getByText(/Proof Surface shows claim, source, verdict/i)).toBeTruthy();
+    expect(screen.getByText(/Voice \+ desktop action/i)).toBeTruthy();
+  });
+
+  it('Terminal shell opens on Node0 and can switch to Mission with shortcut 2', async () => {
+    render(<TerminalShell />);
+    expect(await screen.findByTestId('node0-shell')).toBeTruthy();
+    fireEvent.keyDown(window, { key: '2' });
+    expect(await screen.findByText('Mission')).toBeTruthy();
+    expect(screen.getByText(/Submit once. Approve once/i)).toBeTruthy();
+  });
+
   it('Dashboard renders headings and metrics', () => {
     render(<TerminalDashboard />);
     expect(screen.getByText('Dashboard')).toBeTruthy();
