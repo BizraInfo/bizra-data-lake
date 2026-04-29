@@ -1,6 +1,7 @@
 "use client";
 
 export type TerminalViewId =
+  | "node0"
   | "dashboard"
   | "mission"
   | "timeline"
@@ -65,6 +66,14 @@ export const TERMINAL_THEME = {
 } as const;
 
 export const TERMINAL_VIEW_META: TerminalViewMeta[] = [
+  {
+    id: "node0",
+    label: "Node0",
+    shortcut: "0",
+    emoji: "◉",
+    accentHex: "#8B5CF6",
+    description: "Dema product shell: open, act, receipt, inspect proof.",
+  },
   {
     id: "dashboard",
     label: "Dashboard",

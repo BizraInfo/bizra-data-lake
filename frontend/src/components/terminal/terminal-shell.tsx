@@ -6,6 +6,7 @@ import { TERMINAL_VIEW_META } from "./terminal-manifest";
 
 // ─── Lazy-load views ────────────────────────────────────────────
 const TerminalDashboard = lazy(() => import("./terminal-dashboard"));
+const TerminalNode0 = lazy(() => import("./terminal-node0"));
 const TerminalMission = lazy(() => import("./terminal-mission"));
 const TerminalTimeline = lazy(() => import("./terminal-timeline"));
 const TerminalMemory = lazy(() => import("./terminal-memory"));
@@ -17,7 +18,7 @@ const TerminalGoal = lazy(() => import("./terminal-goal"));
 
 // ─── Types ──────────────────────────────────────────────────────
 
-type ViewId = "dashboard" | "mission" | "timeline" | "memory" | "skills" | "network" | "settings" | "cockpit" | "goal";
+type ViewId = "node0" | "dashboard" | "mission" | "timeline" | "memory" | "skills" | "network" | "settings" | "cockpit" | "goal";
 
 interface ViewDef {
   id: ViewId;
@@ -30,6 +31,7 @@ interface ViewDef {
 // ─── Constants (canonical view metadata from terminal-manifest) ──
 
 const LAZY_COMPONENTS: Record<ViewId, React.LazyExoticComponent<() => JSX.Element>> = {
+  node0: TerminalNode0,
   dashboard: TerminalDashboard,
   mission: TerminalMission,
   timeline: TerminalTimeline,
@@ -315,17 +317,17 @@ function NavBar({
 // ─── Main Shell ─────────────────────────────────────────────────
 
 export default function TerminalShell() {
-  const [activeView, setActiveView] = useState<ViewId>("dashboard");
+  const [activeView, setActiveView] = useState<ViewId>("node0");
 
-  // Keyboard shortcuts (1-7)
+  // Keyboard shortcuts use the manifest's explicit shortcut field.
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Don't capture when typing in inputs
     const tag = (e.target as HTMLElement)?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-    const idx = parseInt(e.key) - 1;
-    if (idx >= 0 && idx < VIEWS.length) {
-      setActiveView(VIEWS[idx].id);
+    const view = VIEWS.find((candidate) => candidate.shortcut === e.key);
+    if (view) {
+      setActiveView(view.id);
     }
   }, []);
 
@@ -353,7 +355,7 @@ export default function TerminalShell() {
 
       {/* Footer */}
       <footer className="px-4 py-1 bg-slate-950 border-t border-slate-800/30 flex items-center justify-between text-[9px] text-slate-700">
-        <span>Keys 1-7: switch views · Every action receipted · All data local</span>
+        <span>Keys 0-9: switch views · Every action receipted · All data local</span>
         <span>One mission, one proof, remembered forever</span>
       </footer>
     </div>
