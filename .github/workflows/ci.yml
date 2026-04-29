@@ -1116,8 +1116,8 @@ jobs:
             -v --tb=short --timeout=60 \
             2>&1 | tee /tmp/phase77-output.log
           exit_code=${PIPESTATUS[0]}
-          passed=$(grep -c ' PASSED' /tmp/phase77-output.log || echo "0")
-          failed=$(grep -c ' FAILED' /tmp/phase77-output.log || echo "0")
+          passed=$(grep -c ' PASSED' /tmp/phase77-output.log || true)
+          failed=$(grep -c ' FAILED' /tmp/phase77-output.log || true)
           echo "phase77_passed=${passed}" >> "$GITHUB_OUTPUT"
           echo "phase77_failed=${failed}" >> "$GITHUB_OUTPUT"
           echo "| Check | Count |" >> $GITHUB_STEP_SUMMARY

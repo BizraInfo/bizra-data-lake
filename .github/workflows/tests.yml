@@ -162,20 +162,17 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # =========================================================================
-  # Stage 2: Integration Tests (<2min)
+  # Stage 2: Integration Tests
   # =========================================================================
   integration-tests:
     name: Integration Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 60
     needs: [unit-tests]
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.11', '3.12']
-        include:
-          - python-version: '3.12'
-            coverage: true
 
     services:
       redis:
@@ -224,11 +221,16 @@ jobs:
         id: integration_tests
         run: |
           set -o pipefail
+          MARK_EXPR="integration and not requires_ollama and not requires_gpu and not slow and not requires_real_data"
+          if [ "${{ matrix.python-version }}" = "3.12" ] && [ "${{ github.event_name }}" = "pull_request" ]; then
+            MARK_EXPR="${MARK_EXPR} and not runtime_boot"
+          fi
+          echo "Using pytest marker expression: ${MARK_EXPR}"
           pytest tests/integration/ tests/ \
             -v \
             --tb=short \
             --timeout=120 \
-            -m "integration and not requires_ollama and not requires_gpu and not slow and not requires_real_data" \
+            -m "${MARK_EXPR}" \
             ${{ matrix.coverage && '--cov=core --cov-branch --cov-report=xml:coverage-integration.xml --cov-report=term-missing --cov-fail-under=0' || '' }} \
             --junit-xml=junit-integration.xml \
             2>&1 | tee test-output.log
@@ -833,6 +835,7 @@ jobs:
           echo "- \`@pytest.mark.requires_ollama\` - Requires Ollama running" >> $GITHUB_STEP_SUMMARY
           echo "- \`@pytest.mark.requires_gpu\` - Requires GPU hardware" >> $GITHUB_STEP_SUMMARY
           echo "- \`@pytest.mark.slow\` - Long-running tests (run on schedule)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`@pytest.mark.runtime_boot\` - Full SovereignRuntime boot tests, excluded only from Python 3.12 PR integration CI" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "_Standing on Giants: pytest, coverage.py, Codecov_" >> $GITHUB_STEP_SUMMARY

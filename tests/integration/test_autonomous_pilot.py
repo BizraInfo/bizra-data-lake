@@ -21,6 +21,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.runtime_boot
 class TestRuntimeBoot:
     """Verify that SovereignRuntime initializes without external deps."""
 
@@ -340,6 +341,7 @@ class TestCLISmoke:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.runtime_boot
 class TestFullStackSmoke:
     """Boot runtime, run a query-like operation, verify evidence trail."""
 

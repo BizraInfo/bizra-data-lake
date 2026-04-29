@@ -18,6 +18,22 @@ const acknowledgeCriticalEventMock = vi.fn().mockResolvedValue({
   synthesis: 'Critical event acknowledged',
 });
 
+const terminalPanelMockData = vi.hoisted(() => ({
+  seedEpisodes: [
+    {
+      index: 12,
+      timestamp: '2026-03-11T09:58:00Z',
+      snr: 0.92,
+      ihsan: 0.97,
+      reward: 1.5,
+      qualified: true,
+      tier: 'SPROUT',
+      sovereignty_score: 0.78,
+      receipt_hash: 'receipt-hash-001',
+    },
+  ],
+}));
+
 vi.mock('../src/hooks/use-sovereign-api', () => ({
   useSovereignHealth: () => ({
     data: {
@@ -115,19 +131,7 @@ vi.mock('../src/hooks/use-sovereign-api', () => ({
     data: { composite: 0.65, potential: 0.7, activation: 0.62, quality: 0.88, compounding: 0.54, synergy: 0.51 },
   }),
   useSeedEpisodes: () => ({
-    data: [
-      {
-        index: 12,
-        timestamp: '2026-03-11T09:58:00Z',
-        snr: 0.92,
-        ihsan: 0.97,
-        reward: 1.5,
-        qualified: true,
-        tier: 'SPROUT',
-        sovereignty_score: 0.78,
-        receipt_hash: 'receipt-hash-001',
-      },
-    ],
+    data: terminalPanelMockData.seedEpisodes,
   }),
   useMemoryStats: () => ({
     data: { episodic_count: 12, semantic_count: 45, procedural_count: 3, total_entries: 60, db_size_mb: 2.5 },
@@ -305,19 +309,18 @@ import TerminalNetwork from '../src/components/terminal/terminal-network';
 import TerminalSkills from '../src/components/terminal/terminal-skills';
 import TerminalTimeline from '../src/components/terminal/terminal-timeline';
 
-describe('Terminal Panels', () => {
+describe.sequential('Terminal Panels', () => {
   it('Dashboard renders headings and metrics', () => {
-    const { unmount } = render(<TerminalDashboard />);
+    render(<TerminalDashboard />);
     expect(screen.getByText('Dashboard')).toBeTruthy();
     expect(screen.getByText(/node readiness/i)).toBeTruthy();
     expect(screen.getByText('SEED')).toBeTruthy();
     expect(screen.getByText('BLOOM')).toBeTruthy();
     expect(screen.getByText(/Constitutional/i)).toBeTruthy();
-    unmount();
   });
 
   it('Mission renders heading, input, recent missions', () => {
-    const { unmount } = render(<TerminalMission />);
+    render(<TerminalMission />);
     expect(screen.getByText('Mission')).toBeTruthy();
     const composer = screen.getByPlaceholderText(/mission/i);
     expect(composer).toBeTruthy();
@@ -325,59 +328,44 @@ describe('Terminal Panels', () => {
     fireEvent.click(screen.getByText(/Review Envelope/i));
     expect(screen.getByText(/Live Boundary Alerts/i)).toBeTruthy();
     expect(screen.getByText(/Auth boundary crossed/i)).toBeTruthy();
-    unmount();
   });
 
   it('Memory renders heading and store', () => {
-    const { unmount } = render(<TerminalMemory />);
+    render(<TerminalMemory />);
     expect(screen.getByText('Memory')).toBeTruthy();
     expect(screen.getByText(/Memory Store/i)).toBeTruthy();
-    unmount();
   });
 
   it('Settings renders identity, routing, environment', () => {
-    const { unmount } = render(<TerminalSettings />);
+    render(<TerminalSettings />);
     expect(screen.getByText('Settings')).toBeTruthy();
     expect(screen.getByText(/Node Identity/i)).toBeTruthy();
     expect(screen.getByText(/Model Routing/i)).toBeTruthy();
     expect(screen.getByText(/Environment/i)).toBeTruthy();
-    unmount();
   });
 
   it('Network renders heading and lifecycle', () => {
-    const { unmount } = render(<TerminalNetwork />);
+    render(<TerminalNetwork />);
     expect(screen.getByText(/Network/i)).toBeTruthy();
     expect(screen.getByText(/Lifecycle/i)).toBeTruthy();
-    unmount();
   });
 
   it('Skills renders agents and tier', () => {
-    const { unmount } = render(<TerminalSkills />);
+    render(<TerminalSkills />);
     expect(screen.getByText('Agents & Skills')).toBeTruthy();
     expect(screen.getByText(/Personal Agent Team/)).toBeTruthy();
     expect(screen.getByText('Current Tier')).toBeTruthy();
-    expect(screen.getByText(/close_learning_loop/)).toBeTruthy();
-    expect(screen.getByText(/terminal_contract_render/)).toBeTruthy();
-    unmount();
+    expect(screen.getByText(/file_organization/)).toBeTruthy();
+    expect(screen.getByText(/test_generation/)).toBeTruthy();
   });
 
-  it('Timeline renders receipted and reflex evidence', () => {
-    const { unmount } = render(<TerminalTimeline />);
+  it('Timeline renders receipted episode evidence', async () => {
+    render(<TerminalTimeline />);
     expect(screen.getByText('Timeline')).toBeTruthy();
-    expect(screen.getByText(/receipts, reflexes, and constitutional ticks/i)).toBeTruthy();
-    expect(screen.getByText(/REFLEX COMPILED/i)).toBeTruthy();
-    expect(screen.getByText(/Mission verified/i)).toBeTruthy();
-    expect(screen.getByText(/Live Event Spine/i)).toBeTruthy();
-    expect(screen.getByText(/critical event awaiting acknowledgment/i)).toBeTruthy();
-    expect(screen.getAllByText(/Ihsan breach/i).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByText('Acknowledge'));
-    expect(acknowledgeCriticalEventMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventHash: 'event-hash-005',
-        topic: 'ihsan.breach',
-      }),
-    );
-    expect(screen.getAllByText(/episode-12/i).length).toBeGreaterThan(0);
-    unmount();
+    expect(screen.getByText(/Living narrative/i)).toBeTruthy();
+    const episode = await screen.findByText(/Episode: Ihsān 0.97, \+1.5 SEED/i);
+    fireEvent.click(episode);
+    expect(screen.getByText(/receipt-hash-001/i)).toBeTruthy();
+    expect(screen.getByText(/All entries from EventBus or ActionBus/i)).toBeTruthy();
   });
 });

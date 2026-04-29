@@ -182,6 +182,8 @@ research_archive/
 !.claude/skills/cross-lang-sync/**
 !.claude/skills/data-pipeline-run/
 !.claude/skills/data-pipeline-run/**
+.claude/skills/**/__pycache__/
+.claude/skills/**/*.py[cod]
 .claude/statusline.*
 # .mcp.json — tracked for team MCP server sharing
 
@@ -319,3 +321,5 @@ vendor/
 ruvector.db
 bizra-omega/ruvector.db
 .env
+.claude/scheduled_tasks.lock
+artifacts/proofs/loop-proof-*.json
