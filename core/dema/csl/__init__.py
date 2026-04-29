@@ -37,6 +37,7 @@ from core.dema.csl.labels import (
 )
 from core.dema.csl.schemas import (
     CanonicalFourStateModel,
+    CanonicalProofSurface,
     CanonicalProactiveProposal,
     CanonicalReceiptEnvelope,
 )
@@ -58,4 +59,5 @@ __all__ = [
     "CanonicalReceiptEnvelope",
     "CanonicalFourStateModel",
     "CanonicalProactiveProposal",
+    "CanonicalProofSurface",
 ]
