@@ -20,7 +20,6 @@ from typing import Iterable
 
 from core.dema.csl import DECISION_VERDICTS, DISPLAY_TRUTH_LABELS, DecisionVerdict
 
-
 _DECISION_PRECEDENCE: dict[str, int] = {
     DecisionVerdict.AUTO_LOW_RISK.value: 0,
     DecisionVerdict.NOTIFY.value: 1,
@@ -114,7 +113,9 @@ class ProofConvergenceVerifier:
         ordered = tuple(sorted(signals, key=lambda s: s.source))
         sources = tuple(signal.source for signal in ordered)
         if len(set(sources)) != len(sources):
-            duplicates = sorted({source for source in sources if sources.count(source) > 1})
+            duplicates = sorted(
+                {source for source in sources if sources.count(source) > 1}
+            )
             raise ValueError(f"duplicate proof signal sources: {duplicates}")
 
         required = tuple(sorted(set(required_sources)))
