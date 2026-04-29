@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { ProofSurfacePayload } from "@/lib/dema-proof-surface";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -61,6 +62,7 @@ export interface MissionReceipt {
     surviving_branches: number;
     detail: string;
   } | null;
+  proof_surface?: ProofSurfacePayload | null;
 }
 
 export interface CriticalAcknowledgmentReceipt {

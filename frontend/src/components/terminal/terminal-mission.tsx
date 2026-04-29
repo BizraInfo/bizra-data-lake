@@ -9,6 +9,8 @@ import {
   useTerminalState,
   useTerminalStream,
 } from "@/hooks/use-sovereign-api";
+import { proofSurfaceForMissionReceipt } from "@/lib/dema-proof-surface";
+import ProofSurfacePanel from "./proof-surface-panel";
 
 type MissionStage = "draft" | "review" | "executing" | "completed";
 
@@ -89,6 +91,7 @@ function ReceiptView({ receipt }: { receipt: MissionReceipt }) {
     receipt.execution_path === "SYSTEM_1_CACHE_HIT" &&
     Boolean(receipt.reflex_pattern);
   const reasoningProof = receipt.reasoning_proof;
+  const proofSurface = proofSurfaceForMissionReceipt(receipt);
 
   return (
     <div className="border border-slate-700/50 rounded-lg p-4 bg-slate-900/40">
@@ -116,6 +119,10 @@ function ReceiptView({ receipt }: { receipt: MissionReceipt }) {
       </div>
 
       <p className="text-sm text-slate-200 mb-3">{receipt.synthesis}</p>
+
+      <div className="mb-3">
+        <ProofSurfacePanel surface={proofSurface} />
+      </div>
 
       <div className="grid sm:grid-cols-3 gap-3 mb-3">
         <div className="bg-slate-950/60 rounded-lg p-3">
