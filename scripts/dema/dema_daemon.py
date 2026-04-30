@@ -139,12 +139,6 @@ def _acquire_lock(root: Path) -> tuple[bool, str, Path]:
         os.close(fd)
         raise
 
-    existing = _read_pid(path)
-    if existing is not None and existing != current_pid and _process_alive(existing):
-        fcntl.flock(fd, fcntl.LOCK_UN)
-        os.close(fd)
-        return False, f"another dema daemon already running (pid={existing})", path
-
     os.ftruncate(fd, 0)
     os.write(fd, str(current_pid).encode("utf-8"))
     os.fsync(fd)

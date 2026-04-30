@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -10,6 +13,8 @@ from unittest.mock import MagicMock
 from starlette.testclient import TestClient
 
 from core.sovereign.api import create_fastapi_app
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 class _Node0Stub:
@@ -71,6 +76,51 @@ def _write_spearpoint_summary(path: Path) -> None:
     )
 
 
+def _start_daemon_process(state_dir: Path) -> subprocess.Popen[str]:
+    daemon_root = state_dir / "dema"
+    cmd = [
+        sys.executable,
+        str(REPO_ROOT / "scripts" / "dema" / "dema_daemon.py"),
+        "--loop",
+        "--interval-seconds",
+        "30",
+        "--max-ticks",
+        "2",
+        "--max-seconds",
+        "60",
+        "--root",
+        str(daemon_root),
+    ]
+    proc = subprocess.Popen(
+        cmd,
+        cwd=str(REPO_ROOT),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    pid_path = daemon_root / "runtime" / "dema_daemon.pid"
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        if pid_path.exists():
+            return proc
+        if proc.poll() is not None:
+            break
+        time.sleep(0.05)
+    stdout, stderr = proc.communicate(timeout=1)
+    raise AssertionError(f"Dema daemon did not start. stdout={stdout} stderr={stderr}")
+
+
+def _stop_daemon_process(proc: subprocess.Popen[str]) -> None:
+    if proc.poll() is not None:
+        return
+    proc.terminate()
+    try:
+        proc.communicate(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate(timeout=5)
+
+
 def test_node0_readiness_reports_green_when_booted_and_spearpoint_passed(
     tmp_path: Path,
     monkeypatch,
@@ -83,11 +133,15 @@ def test_node0_readiness_reports_green_when_booted_and_spearpoint_passed(
     campaign_dir = tmp_path / "spearpoint"
     monkeypatch.setenv("BIZRA_SPEARPOINT_CAMPAIGN_DIR", str(campaign_dir))
     _write_spearpoint_summary(campaign_dir)
+    daemon_proc = _start_daemon_process(tmp_path)
 
-    app = create_fastapi_app(_runtime(tmp_path, node0=_Node0Stub()))
-    client = TestClient(app)
+    try:
+        app = create_fastapi_app(_runtime(tmp_path, node0=_Node0Stub()))
+        client = TestClient(app)
 
-    response = client.get("/v1/node0/readiness")
+        response = client.get("/v1/node0/readiness")
+    finally:
+        _stop_daemon_process(daemon_proc)
 
     assert response.status_code == 200
     data = response.json()
@@ -122,6 +176,14 @@ def test_node0_readiness_reports_green_when_booted_and_spearpoint_passed(
     assert data["local_action_executor"]["server_executes"] is False
     assert data["local_action_executor"]["records_receipts"] is True
     assert data["local_action_executor"]["requires_user_confirmation"] is True
+    assert data["always_on_daemon"]["available"] is True
+    assert data["always_on_daemon"]["status"] == "running"
+    assert data["always_on_daemon"]["mode"] == "local_ambient_loop"
+    assert data["always_on_daemon"]["pid"] > 0
+    assert data["always_on_daemon"]["requires_operator_confirmation"] is True
+    assert data["always_on_daemon"]["server_executes"] is False
+    assert data["always_on_daemon"]["no_public_network_listener"] is True
+    assert data["always_on_daemon"]["root"] == str(tmp_path / "dema")
     assert data["spearpoint"]["status"] == "pass"
     assert data["spearpoint"]["run_id"] == "run-123"
     assert data["spearpoint"]["official_submission"] is False
@@ -151,3 +213,38 @@ def test_node0_readiness_reports_missing_spearpoint_without_fabricating_pass(
     assert data["boot_service"]["status"] == "unavailable"
     assert data["spearpoint"]["status"] == "unknown"
     assert data["spearpoint"]["artifact_status"] == "missing"
+
+
+def test_node0_readiness_surfaces_stopped_always_on_daemon(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+    monkeypatch.setenv(
+        "BIZRA_USERSTORE_MASTER_SECRET",
+        "test-node0-readiness-master-secret",
+    )
+    campaign_dir = tmp_path / "spearpoint"
+    monkeypatch.setenv("BIZRA_SPEARPOINT_CAMPAIGN_DIR", str(campaign_dir))
+    _write_spearpoint_summary(campaign_dir)
+
+    app = create_fastapi_app(_runtime(tmp_path, node0=_Node0Stub()))
+    client = TestClient(app)
+
+    response = client.get("/v1/node0/readiness")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "yellow"
+    assert data["next_action"] == "start always-on daemon"
+    assert data["always_on_daemon"]["available"] is True
+    assert data["always_on_daemon"]["status"] == "stopped"
+    assert data["always_on_daemon"]["pid"] == 0
+    assert data["always_on_daemon"]["root"] == str(tmp_path / "dema")
+    assert data["always_on_daemon"]["status_command"] == (
+        f"python scripts/dema/dema_service.py status --root {tmp_path / 'dema'}"
+    )
+    assert data["always_on_daemon"]["start_command"] == (
+        "python scripts/dema/dema_daemon.py --loop --interval-seconds 60 "
+        f"--root {tmp_path / 'dema'}"
+    )

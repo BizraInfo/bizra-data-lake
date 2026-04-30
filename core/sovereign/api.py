@@ -45,6 +45,7 @@ import hashlib
 import json
 import logging
 import os
+import shlex
 import sqlite3
 import threading
 import time
@@ -1906,6 +1907,7 @@ def create_fastapi_app(runtime: Any) -> Any:
             boot_status = "not_booted"
 
         spearpoint = _load_spearpoint_campaign_summary()
+        always_on_daemon = _node0_always_on_daemon_snapshot()
         runtime_live = bool(health.get("running", False))
         product_shell_available = True
         proof_surface_available = True
@@ -1927,7 +1929,9 @@ def create_fastapi_app(runtime: Any) -> Any:
                 memory_import_available = False
         spearpoint_passed = spearpoint.get("status") == "pass"
 
-        if runtime_live and booted and spearpoint_passed:
+        daemon_running = always_on_daemon.get("status") == "running"
+
+        if runtime_live and booted and spearpoint_passed and daemon_running:
             readiness = "green"
             next_action = "submit mission"
         elif runtime_live and proof_surface_available:
@@ -1936,6 +1940,8 @@ def create_fastapi_app(runtime: Any) -> Any:
                 next_action = "start Node0 boot service"
             elif not spearpoint_passed:
                 next_action = "run internal Spearpoint strict campaign"
+            elif not daemon_running:
+                next_action = "start always-on daemon"
             else:
                 next_action = "submit mission"
         else:
@@ -2005,8 +2011,96 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "records_receipts": True,
                 "truth_label": "[ENFORCEMENT: WIRED]",
             },
+            "always_on_daemon": always_on_daemon,
             "spearpoint": spearpoint,
             "next_action": next_action,
+        }
+
+    def _resolve_dema_daemon_root() -> _Path:
+        config = getattr(runtime, "config", None)
+        raw_state_dir = getattr(config, "state_dir", None) if config else None
+        if isinstance(raw_state_dir, _Path):
+            state_dir = raw_state_dir
+        elif isinstance(raw_state_dir, (str, os.PathLike)):
+            state_dir = _Path(raw_state_dir)
+        else:
+            state_dir = _Path("sovereign_state")
+        return state_dir if state_dir.name == "dema" else state_dir / "dema"
+
+    def _latest_dema_tick(root: _Path) -> dict[str, Any] | None:
+        logs_dir = root / "logs"
+        if not logs_dir.exists():
+            return None
+        for path in sorted(logs_dir.glob("*.jsonl"), reverse=True)[:3]:
+            try:
+                with path.open("rb") as handle:
+                    handle.seek(0, os.SEEK_END)
+                    size = handle.tell()
+                    handle.seek(max(0, size - 65536), os.SEEK_SET)
+                    lines = handle.read().decode("utf-8", errors="replace").splitlines()
+            except OSError:
+                logger.debug("Unable to read Dema daemon log %s", path, exc_info=True)
+                continue
+            for line in reversed(lines):
+                if not line.strip():
+                    continue
+                try:
+                    item = json.loads(line)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    logger.debug("Skipping malformed Dema daemon log line in %s", path)
+                    continue
+                if isinstance(item, dict) and item.get("kind") == "tick":
+                    return item
+        return None
+
+    def _node0_always_on_daemon_snapshot() -> dict[str, Any]:
+        """Return non-mutating visibility into the local Dema daemon."""
+        root = _resolve_dema_daemon_root()
+        repo_root = _Path(__file__).resolve().parents[2]
+        daemon_script = repo_root / "scripts" / "dema" / "dema_daemon.py"
+        service_script = repo_root / "scripts" / "dema" / "dema_service.py"
+        pid_path = root / "runtime" / "dema_daemon.pid"
+        available = daemon_script.exists() and service_script.exists()
+        runtime_status: dict[str, Any] = {
+            "status": "unavailable",
+            "pid": 0,
+            "lock_path": str(pid_path),
+        }
+        if available:
+            try:
+                from scripts.dema import dema_service
+
+                runtime_status = dema_service.daemon_runtime_status(root)
+            except (ImportError, OSError, RuntimeError, TypeError, ValueError):
+                logger.debug("Dema daemon runtime status unavailable", exc_info=True)
+        latest_tick = _latest_dema_tick(root)
+        quoted_root = shlex.quote(str(root))
+
+        return {
+            "available": available,
+            "status": str(runtime_status.get("status", "unavailable")),
+            "mode": "local_ambient_loop",
+            "pid": int(runtime_status.get("pid") or 0),
+            "lock_path": str(runtime_status.get("lock_path", pid_path)),
+            "root": str(root),
+            "last_tick_at": (
+                str(latest_tick.get("timestamp", "")) if latest_tick else ""
+            ),
+            "last_receipt_id": (
+                str(latest_tick.get("receipt_id", "")) if latest_tick else ""
+            ),
+            "requires_operator_confirmation": True,
+            "server_executes": False,
+            "no_public_network_listener": True,
+            "writes_under_state_dir": True,
+            "status_command": (
+                f"python scripts/dema/dema_service.py status --root {quoted_root}"
+            ),
+            "start_command": (
+                "python scripts/dema/dema_daemon.py --loop --interval-seconds 60 "
+                f"--root {quoted_root}"
+            ),
+            "truth_label": "[ENFORCEMENT: WIRED]",
         }
 
     def _schedule_bus_event(

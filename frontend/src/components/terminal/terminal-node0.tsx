@@ -91,6 +91,7 @@ export default function TerminalNode0() {
   const voiceInputReady = readiness.voice_input.available && voiceInput.supported;
   const desktopActionReady = readiness.desktop_browser_action.available;
   const localActionReady = readiness.local_action_executor.available;
+  const daemonReady = readiness.always_on_daemon.status === "running";
   const spearpointReady = readiness.spearpoint.status === "pass";
   const spearpointFailed = readiness.spearpoint.status === "fail";
   const readinessLabel = readiness.status.toUpperCase();
@@ -275,6 +276,15 @@ export default function TerminalNode0() {
                 {readiness.desktop_browser_action.status}
               </span>
             </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400">Always-on daemon</span>
+              <span
+                data-testid="node0-always-on-daemon-status"
+                className={daemonReady ? "text-emerald-300" : "text-amber-300"}
+              >
+                {readiness.always_on_daemon.status}
+              </span>
+            </div>
             <div className="border-t border-slate-800 pt-2 flex items-center justify-between gap-3">
               <span className="text-slate-400">Next action</span>
               <span data-testid="node0-next-action" className="text-violet-300">
@@ -406,6 +416,47 @@ export default function TerminalNode0() {
               ? "Executing..."
               : "Copy readiness note"}
           </button>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+          <div>
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Always-On Daemon v0.1
+            </h2>
+            <p className="text-sm text-slate-300 max-w-2xl">
+              Node0 can stay present through the local Dema ambient loop. This
+              shell only reports daemon state; starting it still requires an
+              explicit operator command and confirmation.
+            </p>
+            <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-slate-500">PID</span>{" "}
+                <span data-testid="node0-always-on-daemon-pid" className="font-mono text-slate-200">
+                  {readiness.always_on_daemon.pid || "--"}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500">Last tick</span>{" "}
+                <span data-testid="node0-always-on-daemon-last-tick" className="font-mono text-slate-200">
+                  {readiness.always_on_daemon.last_tick_at || "none"}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-md border border-slate-800 bg-black/20 px-3 py-2 text-xs max-w-md">
+            <div className="text-[10px] uppercase tracking-wider text-slate-500">
+              Start command
+            </div>
+            <code data-testid="node0-always-on-daemon-command" className="mt-1 block text-violet-200 break-all">
+              {readiness.always_on_daemon.start_command}
+            </code>
+            <div className="mt-2 text-slate-400">
+              server_executes:{" "}
+              {readiness.always_on_daemon.server_executes ? "true" : "false"}
+            </div>
+          </div>
         </div>
       </section>
     </div>
