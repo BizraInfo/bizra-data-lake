@@ -107,6 +107,15 @@ def test_node0_readiness_reports_green_when_booted_and_spearpoint_passed(
     assert data["voice_input"]["requires_user_gesture"] is True
     assert data["voice_input"]["stores_audio"] is False
     assert data["voice_input"]["auto_submit"] is False
+    assert data["desktop_browser_action"]["available"] is True
+    assert data["desktop_browser_action"]["status"] == "preview_only"
+    assert data["desktop_browser_action"]["mode"] == "client_handoff_only"
+    assert data["desktop_browser_action"]["server_executes"] is False
+    assert data["desktop_browser_action"]["requires_user_confirmation"] is True
+    assert data["desktop_browser_action"]["allowed_actions"] == [
+        "open_url",
+        "copy_text",
+    ]
     assert data["spearpoint"]["status"] == "pass"
     assert data["spearpoint"]["run_id"] == "run-123"
     assert data["spearpoint"]["official_submission"] is False

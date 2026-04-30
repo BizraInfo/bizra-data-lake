@@ -87,6 +87,7 @@ export default function TerminalNode0() {
   const bootReady = readiness.boot_service.booted;
   const memoryImportReady = readiness.memory_import.available;
   const voiceInputReady = readiness.voice_input.available && voiceInput.supported;
+  const desktopActionReady = readiness.desktop_browser_action.available;
   const spearpointReady = readiness.spearpoint.status === "pass";
   const spearpointFailed = readiness.spearpoint.status === "fail";
   const readinessLabel = readiness.status.toUpperCase();
@@ -110,8 +111,8 @@ export default function TerminalNode0() {
             </h1>
             <p className="text-sm text-slate-400 mt-2 max-w-2xl">
               This is the visible Node0 entry point: local readiness, mission
-              path, receipt/proof visibility, and the next action without
-              claiming voice, desktop action, or daemon packaging as complete.
+              path, receipt/proof visibility, memory, voice, and bounded
+              browser handoff without claiming server-side desktop automation.
             </p>
           </div>
           <div
@@ -264,8 +265,11 @@ export default function TerminalNode0() {
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-400">Desktop action</span>
-              <span data-testid="node0-desktop-action-status" className="text-slate-500">
-                not integrated
+              <span
+                data-testid="node0-desktop-action-status"
+                className={desktopActionReady ? "text-emerald-300" : "text-amber-300"}
+              >
+                {readiness.desktop_browser_action.status}
               </span>
             </div>
             <div className="border-t border-slate-800 pt-2 flex items-center justify-between gap-3">
@@ -322,6 +326,38 @@ export default function TerminalNode0() {
           {voiceInput.error ? (
             <p className="mt-2 text-xs text-red-300">{voiceInput.error}</p>
           ) : null}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+          <div>
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Desktop/browser action v0.1
+            </h2>
+            <p
+              data-testid="node0-action-boundary"
+              className="text-sm text-slate-300 max-w-2xl"
+            >
+              Node0 can prepare authenticated action intents for explicit client
+              handoff only. Allowed actions are{" "}
+              {readiness.desktop_browser_action.allowed_actions.join(", ") || "none"}.
+              The server never launches apps, mutates files, or automates the
+              browser in v0.1.
+            </p>
+          </div>
+          <div className="rounded-md border border-slate-800 bg-black/20 px-3 py-2 text-xs">
+            <div className="text-[10px] uppercase tracking-wider text-slate-500">
+              Execution mode
+            </div>
+            <div className="mt-1 font-mono text-slate-200">
+              {readiness.desktop_browser_action.mode}
+            </div>
+            <div className="mt-1 text-slate-400">
+              server_executes:{" "}
+              {readiness.desktop_browser_action.server_executes ? "true" : "false"}
+            </div>
+          </div>
         </div>
       </section>
     </div>
