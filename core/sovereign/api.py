@@ -45,6 +45,7 @@ import hashlib
 import json
 import logging
 import os
+import sqlite3
 import threading
 import time
 import uuid
@@ -273,6 +274,16 @@ try:
         context_ids: Optional[list[str]] = None
         include_archived: bool = False
         debug_scores: bool = False
+
+    class MemoryImportModel(_PydanticBaseModel):
+        """Request model for bounded, user-provided Node0 memory import."""
+
+        title: str
+        content: str
+        source_type: str = "user_text"
+        tags: list[str] = _PydanticField(default_factory=list)
+        owner_marker: str = "local-owner"
+        consent: bool = False
 
     # Phase 31: Cognitive Fusion request model
     class CognitiveFuseModel(_PydanticBaseModel):
@@ -1843,6 +1854,7 @@ def create_fastapi_app(runtime: Any) -> Any:
         """Compose Node0 product, boot, proof, and evaluation readiness."""
         health = _health_snapshot()
         node0 = getattr(runtime, "_node0", None)
+        agent_db = getattr(runtime, "_agent_db", None)
         node0_health: dict[str, Any] = {}
         boot_error = ""
 
@@ -1876,6 +1888,22 @@ def create_fastapi_app(runtime: Any) -> Any:
         runtime_live = bool(health.get("running", False))
         product_shell_available = True
         proof_surface_available = True
+        memory_import_available = agent_db is not None
+        memory_import_count = 0
+        if agent_db is not None:
+            try:
+                raw_stats = agent_db.stats()
+                if isinstance(raw_stats, dict):
+                    for stats_key in (
+                        "total_records",
+                        "total_entries",
+                        "active_records",
+                    ):
+                        if stats_key in raw_stats:
+                            memory_import_count = int(raw_stats[stats_key] or 0)
+                            break
+            except (RuntimeError, TypeError, ValueError, AttributeError):
+                memory_import_available = False
         spearpoint_passed = spearpoint.get("status") == "pass"
 
         if runtime_live and booted and spearpoint_passed:
@@ -1918,6 +1946,15 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "total_breaths": int(node0_health.get("total_breaths", 0) or 0),
                 "chain_hash": str(node0_health.get("chain_hash", "")),
                 "error": boot_error,
+            },
+            "memory_import": {
+                "available": memory_import_available,
+                "status": "ready" if memory_import_available else "unavailable",
+                "mode": "single_user_provided_record",
+                "imported_records": memory_import_count,
+                "requires_consent": True,
+                "source": "agent_db",
+                "truth_label": "[ENFORCEMENT: WIRED]",
             },
             "spearpoint": spearpoint,
             "next_action": next_action,
@@ -5952,6 +5989,132 @@ def create_fastapi_app(runtime: Any) -> Any:
             logger.exception("AgentDB search failed")
             return JSONResponse(
                 status_code=500, content={"error": "Internal server error"}
+            )
+
+    @app.post("/v1/memory/import")
+    async def memory_import(body: MemoryImportModel, request: Request):
+        """Import one explicit user-provided memory record into AgentDB.
+
+        This intentionally does not scan local files or ingest arbitrary paths.
+        Node0 Memory Import v0.1 accepts only a bounded payload supplied by the
+        authenticated caller, with consent recorded in memory metadata.
+        """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        agent_db = getattr(runtime, "_agent_db", None)
+        if agent_db is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "AgentDB not initialized"},
+            )
+
+        title = body.title.strip()
+        content = body.content.strip()
+        source_type = body.source_type.strip().lower().replace(" ", "_")
+        owner_marker = body.owner_marker.strip()
+
+        if not title:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Title required"},
+            )
+        if not content:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Content required"},
+            )
+        if not body.consent:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Explicit consent required"},
+            )
+        if not owner_marker:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Owner marker required"},
+            )
+        if len(title) > 200:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Title exceeds 200 characters"},
+            )
+        if len(content) > 20000:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Content exceeds 20000 characters"},
+            )
+        if source_type not in {
+            "user_text",
+            "preference",
+            "project_context",
+            "note",
+            "mission_context",
+        }:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid source_type"},
+            )
+
+        try:
+            from core.memory.types import MemoryKind
+
+            tags = [
+                tag.strip().lower().replace(" ", "_")
+                for tag in list(dict.fromkeys(body.tags))[:16]
+                if tag.strip()
+            ]
+            if "node0_import" not in tags:
+                tags.append("node0_import")
+
+            truth_label = "[ENFORCEMENT: WIRED]"
+            imported_at = _utcnow_iso()
+            record = agent_db.store(
+                content=f"{title}\n\n{content}",
+                kind=MemoryKind.SEMANTIC,
+                importance=0.7,
+                source=f"node0_memory_import:{source_type}",
+                source_id=str(uuid.uuid4()),
+                tags=tags,
+                metadata={
+                    "title": title,
+                    "source_type": source_type,
+                    "owner_marker": owner_marker,
+                    "consent": True,
+                    "imported_at": imported_at,
+                    "truth_label": truth_label,
+                    "import_mode": "single_user_provided_record",
+                },
+            )
+            return {
+                "memory_id": record.id,
+                "stored": True,
+                "status": "stored",
+                "truth_label": truth_label,
+                "source_label": f"user_provided:{source_type}",
+                "next_action": "search memory or submit mission",
+            }
+        except (
+            ImportError,
+            OSError,
+            RuntimeError,
+            sqlite3.Error,
+            ValueError,
+            TypeError,
+        ) as exc:
+            logger.warning("Memory import failed: %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "memory_id": "",
+                    "stored": False,
+                    "status": "failed",
+                    "error": str(exc) or "Memory import failed",
+                    "truth_label": "[ENFORCEMENT: WIRED]",
+                    "source_label": f"user_provided:{source_type}",
+                    "next_action": "repair AgentDB memory layer",
+                },
             )
 
     @app.get("/v1/memory/stats")

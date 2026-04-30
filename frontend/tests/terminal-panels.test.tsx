@@ -144,6 +144,15 @@ vi.mock('../src/hooks/use-sovereign-api', () => ({
         chain_hash: 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
         error: '',
       },
+      memory_import: {
+        available: true,
+        status: 'ready',
+        mode: 'single_user_provided_record',
+        imported_records: 60,
+        requires_consent: true,
+        source: 'agent_db',
+        truth_label: '[ENFORCEMENT: WIRED]',
+      },
       spearpoint: {
         status: 'pass',
         artifact_status: 'found',
@@ -379,6 +388,7 @@ describe.sequential('Terminal Panels', () => {
     expect(screen.getByTestId('node0-step-proof')).toHaveTextContent(/Inspect proof/i);
     expect(screen.getByTestId('node0-step-next')).toHaveTextContent(/Spearpoint strict run passed/i);
     expect(screen.getByTestId('node0-boot-service-status')).toHaveTextContent('booted');
+    expect(screen.getByTestId('node0-memory-import-status')).toHaveTextContent('ready');
     expect(screen.getByTestId('node0-spearpoint-status')).toHaveTextContent('pass #23e385a2c870');
     expect(screen.getByTestId('node0-next-action')).toHaveTextContent('submit mission');
     expect(screen.getByText(/Voice \+ desktop action/i)).toBeTruthy();

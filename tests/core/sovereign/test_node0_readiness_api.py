@@ -22,6 +22,11 @@ class _Node0Stub:
         }
 
 
+class _AgentDBStatsStub:
+    def stats(self) -> dict[str, object]:
+        return {"total_records": 3}
+
+
 def _runtime(state_dir: Path, *, node0: object | None = None) -> MagicMock:
     runtime = MagicMock()
     runtime.config = SimpleNamespace(state_dir=state_dir)
@@ -34,6 +39,7 @@ def _runtime(state_dir: Path, *, node0: object | None = None) -> MagicMock:
     runtime._constitutional_wallets = []
     runtime._last_tick_result = None
     runtime._node0 = node0
+    runtime._agent_db = _AgentDBStatsStub()
     return runtime
 
 
@@ -91,6 +97,10 @@ def test_node0_readiness_reports_green_when_booted_and_spearpoint_passed(
     assert data["proof_surface"]["available"] is True
     assert data["boot_service"]["status"] == "booted"
     assert data["boot_service"]["node_id"] == "node0-test"
+    assert data["memory_import"]["available"] is True
+    assert data["memory_import"]["status"] == "ready"
+    assert data["memory_import"]["mode"] == "single_user_provided_record"
+    assert data["memory_import"]["requires_consent"] is True
     assert data["spearpoint"]["status"] == "pass"
     assert data["spearpoint"]["run_id"] == "run-123"
     assert data["spearpoint"]["official_submission"] is False

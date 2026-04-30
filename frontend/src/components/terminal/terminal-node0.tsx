@@ -83,6 +83,7 @@ export default function TerminalNode0() {
   const missionReady = live && terminalState.state !== "error";
   const proofReady = chainReady || latestReceipt !== null;
   const bootReady = readiness.boot_service.booted;
+  const memoryImportReady = readiness.memory_import.available;
   const spearpointReady = readiness.spearpoint.status === "pass";
   const spearpointFailed = readiness.spearpoint.status === "fail";
   const readinessLabel = readiness.status.toUpperCase();
@@ -218,6 +219,15 @@ export default function TerminalNode0() {
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-400">Memory entries</span>
               <span className="font-mono text-slate-200">{memoryEntries}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400">Memory import</span>
+              <span
+                data-testid="node0-memory-import-status"
+                className={memoryImportReady ? "text-emerald-300" : "text-amber-300"}
+              >
+                {readiness.memory_import.status}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-400">Boot/service packaging</span>
