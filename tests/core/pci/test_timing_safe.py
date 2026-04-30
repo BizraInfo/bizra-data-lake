@@ -314,8 +314,9 @@ class TestSignatureVerificationSecurity:
         # Valid signature
         assert verify_signature(digest, signature, pub) is True
 
-        # Tampered signature (flip one byte)
-        tampered_sig = "00" + signature[2:]
+        # Tampered signature (flip one byte deterministically).
+        first_byte = int(signature[:2], 16) ^ 0x01
+        tampered_sig = f"{first_byte:02x}" + signature[2:]
         assert verify_signature(digest, tampered_sig, pub) is False
 
         # Wrong digest
