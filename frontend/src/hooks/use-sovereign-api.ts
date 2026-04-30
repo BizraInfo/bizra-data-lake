@@ -261,6 +261,15 @@ export interface Node0Readiness {
     source: string;
     truth_label: string;
   };
+  voice_input: {
+    available: boolean;
+    status: "browser_required" | "ready" | "unsupported";
+    mode: string;
+    requires_user_gesture: boolean;
+    stores_audio: boolean;
+    auto_submit: boolean;
+    truth_label: string;
+  };
   spearpoint: {
     status: "pass" | "fail" | "unknown";
     artifact_status: string;
@@ -602,10 +611,12 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
   const runtime = asObject(data.runtime);
   const bootService = asObject(data.boot_service);
   const memoryImport = asObject(data.memory_import);
+  const voiceInput = asObject(data.voice_input);
   const spearpoint = asObject(data.spearpoint);
   const status = asString(data.status, "red");
   const bootStatus = asString(bootService.status, "unavailable");
   const memoryImportStatus = asString(memoryImport.status, "unavailable");
+  const voiceInputStatus = asString(voiceInput.status, "unsupported");
   const spearpointStatus = asString(spearpoint.status, "unknown");
 
   return {
@@ -648,6 +659,17 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
       requires_consent: memoryImport.requires_consent !== false,
       source: asString(memoryImport.source, "agent_db"),
       truth_label: asString(memoryImport.truth_label, "[ENFORCEMENT: WIRED]"),
+    },
+    voice_input: {
+      available: Boolean(voiceInput.available),
+      status: ["browser_required", "ready", "unsupported"].includes(voiceInputStatus)
+        ? (voiceInputStatus as Node0Readiness["voice_input"]["status"])
+        : "unsupported",
+      mode: asString(voiceInput.mode, "browser_speech_recognition"),
+      requires_user_gesture: voiceInput.requires_user_gesture !== false,
+      stores_audio: Boolean(voiceInput.stores_audio),
+      auto_submit: Boolean(voiceInput.auto_submit),
+      truth_label: asString(voiceInput.truth_label, "[ENFORCEMENT: WIRED]"),
     },
     spearpoint: {
       status: ["pass", "fail", "unknown"].includes(spearpointStatus)
@@ -1126,6 +1148,15 @@ export function useNode0Readiness() {
         imported_records: 0,
         requires_consent: true,
         source: "agent_db",
+        truth_label: "[ENFORCEMENT: WIRED]",
+      },
+      voice_input: {
+        available: false,
+        status: "unsupported",
+        mode: "browser_speech_recognition",
+        requires_user_gesture: true,
+        stores_audio: false,
+        auto_submit: false,
         truth_label: "[ENFORCEMENT: WIRED]",
       },
       spearpoint: {

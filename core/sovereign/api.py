@@ -1956,6 +1956,15 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "source": "agent_db",
                 "truth_label": "[ENFORCEMENT: WIRED]",
             },
+            "voice_input": {
+                "available": True,
+                "status": "browser_required",
+                "mode": "browser_speech_recognition",
+                "requires_user_gesture": True,
+                "stores_audio": False,
+                "auto_submit": False,
+                "truth_label": "[ENFORCEMENT: WIRED]",
+            },
             "spearpoint": spearpoint,
             "next_action": next_action,
         }

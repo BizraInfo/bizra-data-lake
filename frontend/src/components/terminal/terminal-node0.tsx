@@ -7,6 +7,7 @@ import {
   useSovereignHealth,
   useTerminalState,
 } from "@/hooks/use-sovereign-api";
+import { useNode0VoiceInput } from "@/hooks/use-node0-voice-input";
 
 type ReadinessState = "ready" | "warn" | "planned";
 
@@ -65,6 +66,7 @@ export default function TerminalNode0() {
   const { data: chainLatest, error: chainError, loading: chainLoading } = useChainLatest();
   const { data: memory } = useMemoryStats();
   const { data: readiness } = useNode0Readiness();
+  const voiceInput = useNode0VoiceInput();
 
   const live = !healthLoading && !healthError && (health.running || health.live_status === "LIVE");
   const ihsan = typeof health.ihsan_score === "number" ? health.ihsan_score : null;
@@ -84,9 +86,16 @@ export default function TerminalNode0() {
   const proofReady = chainReady || latestReceipt !== null;
   const bootReady = readiness.boot_service.booted;
   const memoryImportReady = readiness.memory_import.available;
+  const voiceInputReady = readiness.voice_input.available && voiceInput.supported;
   const spearpointReady = readiness.spearpoint.status === "pass";
   const spearpointFailed = readiness.spearpoint.status === "fail";
   const readinessLabel = readiness.status.toUpperCase();
+  const voiceInputStatus = voiceInput.supported
+    ? voiceInput.status
+    : readiness.voice_input.available
+    ? "unsupported"
+    : readiness.voice_input.status;
+  const voicePreview = voiceInput.transcript || voiceInput.interimTranscript;
 
   return (
     <div data-testid="node0-shell" className="p-4 max-w-5xl mx-auto space-y-4">
@@ -245,8 +254,19 @@ export default function TerminalNode0() {
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-400">Voice + desktop action</span>
-              <span className="text-slate-500">not integrated</span>
+              <span className="text-slate-400">Voice input</span>
+              <span
+                data-testid="node0-voice-input-status"
+                className={voiceInputReady ? "text-emerald-300" : "text-amber-300"}
+              >
+                {voiceInputStatus}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400">Desktop action</span>
+              <span data-testid="node0-desktop-action-status" className="text-slate-500">
+                not integrated
+              </span>
             </div>
             <div className="border-t border-slate-800 pt-2 flex items-center justify-between gap-3">
               <span className="text-slate-400">Next action</span>
@@ -255,6 +275,53 @@ export default function TerminalNode0() {
               </span>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+          <div>
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Voice input v0.1
+            </h2>
+            <p className="text-sm text-slate-300 max-w-2xl">
+              Browser speech recognition can draft a mission transcript after an
+              explicit button press. Audio stays in the browser; Dema does not
+              upload, store, or auto-submit voice input in v0.1.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              data-testid="node0-voice-start"
+              onClick={voiceInput.start}
+              disabled={!voiceInput.supported || voiceInput.isListening}
+              className="rounded-md border border-violet-700/60 px-3 py-2 text-xs font-semibold text-violet-200 disabled:cursor-not-allowed disabled:border-slate-800 disabled:text-slate-500"
+            >
+              {voiceInput.isListening ? "Listening..." : "Start voice"}
+            </button>
+            <button
+              type="button"
+              onClick={voiceInput.isListening ? voiceInput.stop : voiceInput.clear}
+              className="rounded-md border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300"
+            >
+              {voiceInput.isListening ? "Stop" : "Clear"}
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 rounded-md border border-slate-800 bg-black/20 p-3">
+          <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">
+            Transcript preview
+          </div>
+          <p data-testid="node0-voice-transcript" className="text-sm text-slate-300">
+            {voicePreview ||
+              (voiceInput.supported
+                ? "Press Start voice and speak one mission draft."
+                : "Browser speech recognition is unavailable in this environment.")}
+          </p>
+          {voiceInput.error ? (
+            <p className="mt-2 text-xs text-red-300">{voiceInput.error}</p>
+          ) : null}
         </div>
       </section>
     </div>

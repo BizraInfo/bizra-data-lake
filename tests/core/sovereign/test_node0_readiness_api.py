@@ -101,6 +101,12 @@ def test_node0_readiness_reports_green_when_booted_and_spearpoint_passed(
     assert data["memory_import"]["status"] == "ready"
     assert data["memory_import"]["mode"] == "single_user_provided_record"
     assert data["memory_import"]["requires_consent"] is True
+    assert data["voice_input"]["available"] is True
+    assert data["voice_input"]["status"] == "browser_required"
+    assert data["voice_input"]["mode"] == "browser_speech_recognition"
+    assert data["voice_input"]["requires_user_gesture"] is True
+    assert data["voice_input"]["stores_audio"] is False
+    assert data["voice_input"]["auto_submit"] is False
     assert data["spearpoint"]["status"] == "pass"
     assert data["spearpoint"]["run_id"] == "run-123"
     assert data["spearpoint"]["official_submission"] is False

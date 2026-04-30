@@ -153,6 +153,15 @@ vi.mock('../src/hooks/use-sovereign-api', () => ({
         source: 'agent_db',
         truth_label: '[ENFORCEMENT: WIRED]',
       },
+      voice_input: {
+        available: true,
+        status: 'browser_required',
+        mode: 'browser_speech_recognition',
+        requires_user_gesture: true,
+        stores_audio: false,
+        auto_submit: false,
+        truth_label: '[ENFORCEMENT: WIRED]',
+      },
       spearpoint: {
         status: 'pass',
         artifact_status: 'found',
@@ -389,9 +398,12 @@ describe.sequential('Terminal Panels', () => {
     expect(screen.getByTestId('node0-step-next')).toHaveTextContent(/Spearpoint strict run passed/i);
     expect(screen.getByTestId('node0-boot-service-status')).toHaveTextContent('booted');
     expect(screen.getByTestId('node0-memory-import-status')).toHaveTextContent('ready');
+    expect(screen.getByTestId('node0-voice-input-status')).toHaveTextContent('unsupported');
+    expect(screen.getByTestId('node0-voice-start')).toBeDisabled();
+    expect(screen.getByTestId('node0-voice-transcript')).toHaveTextContent(/unavailable/i);
     expect(screen.getByTestId('node0-spearpoint-status')).toHaveTextContent('pass #23e385a2c870');
     expect(screen.getByTestId('node0-next-action')).toHaveTextContent('submit mission');
-    expect(screen.getByText(/Voice \+ desktop action/i)).toBeTruthy();
+    expect(screen.getByTestId('node0-desktop-action-status')).toHaveTextContent('not integrated');
   });
 
   it('Terminal shell opens on Node0 and can switch to Mission with shortcut 2', async () => {
