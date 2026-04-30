@@ -178,6 +178,69 @@ def test_memory_search_rejects_invalid_kind(client: TestClient) -> None:
     assert response.status_code == 400
 
 
+def test_memory_import_stores_single_consented_record(
+    client: TestClient,
+    agent_db: AgentDB,
+) -> None:
+    response = client.post(
+        "/v1/memory/import",
+        json={
+            "title": "Mumu working preference",
+            "content": "Prefer concise proof-first Node0 updates.",
+            "source_type": "preference",
+            "tags": ["Dema", "Continuity"],
+            "owner_marker": "mumu-local",
+            "consent": True,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["stored"] is True
+    assert payload["memory_id"]
+    assert payload["truth_label"] == "[ENFORCEMENT: WIRED]"
+    assert payload["source_label"] == "user_provided:preference"
+
+    record = agent_db.retrieve(payload["memory_id"])
+    assert record is not None
+    assert record.source == "node0_memory_import:preference"
+    assert "node0_import" in record.tags
+    assert record.metadata["owner_marker"] == "mumu-local"
+    assert record.metadata["consent"] is True
+
+
+def test_memory_import_rejects_missing_content(client: TestClient) -> None:
+    response = client.post(
+        "/v1/memory/import",
+        json={
+            "title": "Empty import",
+            "content": "   ",
+            "source_type": "note",
+            "owner_marker": "mumu-local",
+            "consent": True,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "Content required"
+
+
+def test_memory_import_requires_explicit_consent(client: TestClient) -> None:
+    response = client.post(
+        "/v1/memory/import",
+        json={
+            "title": "No consent import",
+            "content": "This should not be stored.",
+            "source_type": "note",
+            "owner_marker": "mumu-local",
+            "consent": False,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "Explicit consent required"
+
+
 def test_memory_stats_expose_index_health_fields(client: TestClient) -> None:
     response = client.get("/v1/memory/stats")
 

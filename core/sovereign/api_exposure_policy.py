@@ -198,6 +198,7 @@ API_ROUTE_POLICIES: tuple[APIRoutePolicy, ...] = (
         "/v1/spearpoint/improve",
         "/v1/spearpoint/pattern",
         "/v1/sel/retrieve",
+        "/v1/memory/import",
         "/v1/memory/search",
         "/v1/cognitive/fuse",
         "/v1/judgment/simulate",

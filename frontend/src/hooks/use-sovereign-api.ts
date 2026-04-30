@@ -252,6 +252,15 @@ export interface Node0Readiness {
     chain_hash: string;
     error: string;
   };
+  memory_import: {
+    available: boolean;
+    status: "ready" | "unavailable";
+    mode: string;
+    imported_records: number;
+    requires_consent: boolean;
+    source: string;
+    truth_label: string;
+  };
   spearpoint: {
     status: "pass" | "fail" | "unknown";
     artifact_status: string;
@@ -592,9 +601,11 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
   const proofSurface = asObject(data.proof_surface);
   const runtime = asObject(data.runtime);
   const bootService = asObject(data.boot_service);
+  const memoryImport = asObject(data.memory_import);
   const spearpoint = asObject(data.spearpoint);
   const status = asString(data.status, "red");
   const bootStatus = asString(bootService.status, "unavailable");
+  const memoryImportStatus = asString(memoryImport.status, "unavailable");
   const spearpointStatus = asString(spearpoint.status, "unknown");
 
   return {
@@ -626,6 +637,17 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
       total_breaths: asNumber(bootService.total_breaths),
       chain_hash: asString(bootService.chain_hash),
       error: asString(bootService.error),
+    },
+    memory_import: {
+      available: Boolean(memoryImport.available),
+      status: ["ready", "unavailable"].includes(memoryImportStatus)
+        ? (memoryImportStatus as Node0Readiness["memory_import"]["status"])
+        : "unavailable",
+      mode: asString(memoryImport.mode, "single_user_provided_record"),
+      imported_records: asNumber(memoryImport.imported_records),
+      requires_consent: memoryImport.requires_consent !== false,
+      source: asString(memoryImport.source, "agent_db"),
+      truth_label: asString(memoryImport.truth_label, "[ENFORCEMENT: WIRED]"),
     },
     spearpoint: {
       status: ["pass", "fail", "unknown"].includes(spearpointStatus)
@@ -1096,6 +1118,15 @@ export function useNode0Readiness() {
         total_breaths: 0,
         chain_hash: "",
         error: "",
+      },
+      memory_import: {
+        available: false,
+        status: "unavailable",
+        mode: "single_user_provided_record",
+        imported_records: 0,
+        requires_consent: true,
+        source: "agent_db",
+        truth_label: "[ENFORCEMENT: WIRED]",
       },
       spearpoint: {
         status: "unknown",
