@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import hashlib
 import pytest
 from starlette.testclient import TestClient
 
@@ -51,6 +52,11 @@ def test_node0_action_intent_accepts_bounded_browser_handoff(
     assert payload["accepted"] is True
     assert payload["status"] == "ready_for_user_handoff"
     assert payload["action_type"] == "open_url"
+    assert payload["target"] == "https://example.com/demo"
+    assert (
+        payload["target_hash"]
+        == hashlib.sha256(b"https://example.com/demo").hexdigest()
+    )
     assert payload["handoff_method"] == "window_open"
     assert payload["server_executed"] is False
     assert payload["truth_label"] == "[ENFORCEMENT: WIRED]"
@@ -125,3 +131,104 @@ def test_node0_action_intent_requires_authentication(
     )
 
     assert response.status_code in {401, 503}
+
+
+def test_node0_local_action_receipt_records_browser_client_execution(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+    app = create_fastapi_app(_runtime(tmp_path))
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.post(
+        "/v1/node0/local-action/receipt",
+        json={
+            "action_id": "action-123",
+            "action_type": "copy_text",
+            "result": "executed",
+            "execution_channel": "browser_client",
+            "user_confirmed": True,
+            "target_preview": "Copied bounded text",
+            "target_hash": hashlib.sha256(b"Copied bounded text").hexdigest(),
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["recorded"] is True
+    assert payload["status"] == "executed"
+    assert payload["action_id"] == "action-123"
+    assert payload["execution_channel"] == "browser_client"
+    assert payload["server_executed"] is False
+    assert payload["target_hash"] == hashlib.sha256(b"Copied bounded text").hexdigest()
+    assert payload["truth_label"] == "[ENFORCEMENT: WIRED]"
+
+
+def test_node0_local_action_receipt_rejects_missing_user_confirmation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+    app = create_fastapi_app(_runtime(tmp_path))
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.post(
+        "/v1/node0/local-action/receipt",
+        json={
+            "action_id": "action-123",
+            "action_type": "copy_text",
+            "execution_channel": "browser_client",
+            "user_confirmed": False,
+            "target_hash": hashlib.sha256(b"Copied bounded text").hexdigest(),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "User confirmation required"
+
+
+def test_node0_local_action_receipt_rejects_server_execution_channel(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+    app = create_fastapi_app(_runtime(tmp_path))
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.post(
+        "/v1/node0/local-action/receipt",
+        json={
+            "action_id": "action-123",
+            "action_type": "open_url",
+            "execution_channel": "server",
+            "user_confirmed": True,
+            "target_hash": hashlib.sha256(b"https://example.com").hexdigest(),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "Invalid execution_channel"
+
+
+def test_node0_local_action_receipt_requires_target_hash(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+    app = create_fastapi_app(_runtime(tmp_path))
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.post(
+        "/v1/node0/local-action/receipt",
+        json={
+            "action_id": "action-123",
+            "action_type": "copy_text",
+            "execution_channel": "browser_client",
+            "user_confirmed": True,
+            "target_hash": "",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "Valid target hash required"

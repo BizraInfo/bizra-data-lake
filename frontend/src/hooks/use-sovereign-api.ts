@@ -279,6 +279,16 @@ export interface Node0Readiness {
     server_executes: boolean;
     truth_label: string;
   };
+  local_action_executor: {
+    available: boolean;
+    status: "browser_client_ready" | "unavailable";
+    mode: string;
+    allowed_actions: string[];
+    requires_user_confirmation: boolean;
+    server_executes: boolean;
+    records_receipts: boolean;
+    truth_label: string;
+  };
   spearpoint: {
     status: "pass" | "fail" | "unknown";
     artifact_status: string;
@@ -291,6 +301,41 @@ export interface Node0Readiness {
     reason?: string;
   };
   next_action: string;
+}
+
+export interface Node0ActionIntentResult {
+  action_id: string;
+  accepted: boolean;
+  status: string;
+  action_type: "open_url" | "copy_text";
+  label: string;
+  target: string;
+  target_preview: string;
+  target_hash: string;
+  execution_mode: string;
+  handoff_method: string;
+  server_executed: boolean;
+  requires_user_confirmation: boolean;
+  truth_label: string;
+  source_label: string;
+  next_action: string;
+}
+
+export interface Node0LocalActionReceipt {
+  receipt_id: string;
+  action_id: string;
+  recorded: boolean;
+  status: "executed" | "blocked" | "failed";
+  action_type: "open_url" | "copy_text";
+  execution_channel: "browser_client";
+  server_executed: boolean;
+  target_preview: string;
+  target_hash: string;
+  recorded_at: string;
+  truth_label: string;
+  source_label: string;
+  next_action: string;
+  error?: string;
 }
 
 export interface TerminalStreamEvent {
@@ -622,6 +667,7 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
   const memoryImport = asObject(data.memory_import);
   const voiceInput = asObject(data.voice_input);
   const desktopBrowserAction = asObject(data.desktop_browser_action);
+  const localActionExecutor = asObject(data.local_action_executor);
   const spearpoint = asObject(data.spearpoint);
   const status = asString(data.status, "red");
   const bootStatus = asString(bootService.status, "unavailable");
@@ -629,6 +675,10 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
   const voiceInputStatus = asString(voiceInput.status, "unsupported");
   const desktopBrowserActionStatus = asString(
     desktopBrowserAction.status,
+    "unavailable",
+  );
+  const localActionExecutorStatus = asString(
+    localActionExecutor.status,
     "unavailable",
   );
   const spearpointStatus = asString(spearpoint.status, "unknown");
@@ -697,6 +747,22 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
       server_executes: Boolean(desktopBrowserAction.server_executes),
       truth_label: asString(
         desktopBrowserAction.truth_label,
+        "[ENFORCEMENT: WIRED]",
+      ),
+    },
+    local_action_executor: {
+      available: Boolean(localActionExecutor.available),
+      status: ["browser_client_ready", "unavailable"].includes(localActionExecutorStatus)
+        ? (localActionExecutorStatus as Node0Readiness["local_action_executor"]["status"])
+        : "unavailable",
+      mode: asString(localActionExecutor.mode, "explicit_user_gesture"),
+      allowed_actions: asStringArray(localActionExecutor.allowed_actions),
+      requires_user_confirmation:
+        localActionExecutor.requires_user_confirmation !== false,
+      server_executes: Boolean(localActionExecutor.server_executes),
+      records_receipts: Boolean(localActionExecutor.records_receipts),
+      truth_label: asString(
+        localActionExecutor.truth_label,
         "[ENFORCEMENT: WIRED]",
       ),
     },
@@ -1197,6 +1263,16 @@ export function useNode0Readiness() {
         server_executes: false,
         truth_label: "[ENFORCEMENT: WIRED]",
       },
+      local_action_executor: {
+        available: false,
+        status: "unavailable",
+        mode: "explicit_user_gesture",
+        allowed_actions: [],
+        requires_user_confirmation: true,
+        server_executes: false,
+        records_receipts: false,
+        truth_label: "[ENFORCEMENT: WIRED]",
+      },
       spearpoint: {
         status: "unknown",
         artifact_status: "missing",
@@ -1211,6 +1287,45 @@ export function useNode0Readiness() {
     },
     { transform: normalizeNode0Readiness, intervalMs: 10000, resetOnError: true },
   );
+}
+
+export async function createNode0ActionIntent(args: {
+  actionType: "open_url" | "copy_text";
+  target: string;
+  label?: string;
+}): Promise<Node0ActionIntentResult> {
+  return requestJson<Node0ActionIntentResult>("/v1/node0/action-intent", {
+    method: "POST",
+    body: JSON.stringify({
+      action_type: args.actionType,
+      target: args.target,
+      label: args.label ?? "",
+      consent: true,
+    }),
+  });
+}
+
+export async function recordNode0LocalActionReceipt(args: {
+  actionId: string;
+  actionType: "open_url" | "copy_text";
+  result: "executed" | "blocked" | "failed";
+  targetPreview: string;
+  targetHash: string;
+  error?: string;
+}): Promise<Node0LocalActionReceipt> {
+  return requestJson<Node0LocalActionReceipt>("/v1/node0/local-action/receipt", {
+    method: "POST",
+    body: JSON.stringify({
+      action_id: args.actionId,
+      action_type: args.actionType,
+      result: args.result,
+      execution_channel: "browser_client",
+      user_confirmed: true,
+      target_preview: args.targetPreview,
+      target_hash: args.targetHash,
+      error: args.error ?? "",
+    }),
+  });
 }
 
 export function useSignatureInfo() {

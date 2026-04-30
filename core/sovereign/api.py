@@ -294,6 +294,18 @@ try:
         label: str = ""
         consent: bool = False
 
+    class Node0LocalActionReceiptModel(_PydanticBaseModel):
+        """Request model for recording explicit browser-client action execution."""
+
+        action_id: str
+        action_type: str
+        result: str = "executed"
+        execution_channel: str = "browser_client"
+        user_confirmed: bool = False
+        target_preview: str = ""
+        target_hash: str = ""
+        error: str = ""
+
     # Phase 31: Cognitive Fusion request model
     class CognitiveFuseModel(_PydanticBaseModel):
         """Request model for /v1/cognitive/fuse — direct cognitive fusion pipeline."""
@@ -1981,6 +1993,16 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "allowed_actions": ["open_url", "copy_text"],
                 "requires_user_confirmation": True,
                 "server_executes": False,
+                "truth_label": "[ENFORCEMENT: WIRED]",
+            },
+            "local_action_executor": {
+                "available": True,
+                "status": "browser_client_ready",
+                "mode": "explicit_user_gesture",
+                "allowed_actions": ["copy_text", "open_url"],
+                "requires_user_confirmation": True,
+                "server_executes": False,
+                "records_receipts": True,
                 "truth_label": "[ENFORCEMENT: WIRED]",
             },
             "spearpoint": spearpoint,
@@ -6200,6 +6222,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "Copy text exceeds 5000 characters"},
             )
 
+        target_hash = hashlib.sha256(target.encode("utf-8")).hexdigest()
         target_preview = target if len(target) <= 200 else f"{target[:197]}..."
         truth_label = "[ENFORCEMENT: WIRED]"
         return {
@@ -6208,7 +6231,9 @@ def create_fastapi_app(runtime: Any) -> Any:
             "status": "ready_for_user_handoff",
             "action_type": action_type,
             "label": label,
+            "target": target,
             "target_preview": target_preview,
+            "target_hash": target_hash,
             "execution_mode": "client_handoff_only",
             "handoff_method": handoff_method,
             "server_executed": False,
@@ -6216,6 +6241,110 @@ def create_fastapi_app(runtime: Any) -> Any:
             "truth_label": truth_label,
             "source_label": "user_confirmed_action_intent",
             "next_action": "confirm action in the local browser",
+        }
+
+    @app.post("/v1/node0/local-action/receipt")
+    async def node0_local_action_receipt(
+        body: Node0LocalActionReceiptModel,
+        request: Request,
+    ):
+        """Record an explicit browser-client local action receipt.
+
+        The action itself must already have happened in the local browser after
+        a user gesture. This endpoint records the receipt and never executes an
+        OS command, launches an application, or automates a browser.
+        """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        action_id = body.action_id.strip()
+        action_type = body.action_type.strip().lower().replace(" ", "_")
+        result = body.result.strip().lower().replace(" ", "_")
+        execution_channel = body.execution_channel.strip().lower().replace(" ", "_")
+        target_preview = body.target_preview.strip()
+        target_hash = body.target_hash.strip().lower()
+        error = body.error.strip()
+
+        if not action_id:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Action id required"},
+            )
+        if len(action_id) > 80:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Action id exceeds 80 characters"},
+            )
+        if action_type not in {"open_url", "copy_text"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid action_type"},
+            )
+        if result not in {"executed", "blocked", "failed"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid result"},
+            )
+        if execution_channel != "browser_client":
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid execution_channel"},
+            )
+        if not body.user_confirmed:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "User confirmation required"},
+            )
+        if len(target_preview) > 220:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Target preview exceeds 220 characters"},
+            )
+        if len(target_hash) != 64 or any(
+            character not in "0123456789abcdef" for character in target_hash
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Valid target hash required"},
+            )
+        if len(error) > 500:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Error detail exceeds 500 characters"},
+            )
+
+        recorded_at = _utcnow_iso()
+        receipt_id = str(uuid.uuid4())
+        _schedule_bus_event(
+            "node0.local_action.receipted",
+            {
+                "receipt_id": receipt_id,
+                "action_id": action_id,
+                "action_type": action_type,
+                "result": result,
+                "execution_channel": execution_channel,
+                "target_hash": target_hash,
+                "server_executed": False,
+                "recorded_at": recorded_at,
+            },
+            source="node0",
+        )
+        return {
+            "receipt_id": receipt_id,
+            "action_id": action_id,
+            "recorded": True,
+            "status": result,
+            "action_type": action_type,
+            "execution_channel": execution_channel,
+            "server_executed": False,
+            "target_preview": target_preview,
+            "target_hash": target_hash,
+            "recorded_at": recorded_at,
+            "truth_label": "[ENFORCEMENT: WIRED]",
+            "source_label": "browser_client_local_action",
+            "next_action": "inspect receipt or submit next mission",
+            **({"error": error} if error else {}),
         }
 
     @app.get("/v1/memory/stats")

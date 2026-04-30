@@ -1,13 +1,13 @@
 {
   "routes": {
     "by_exposure": {
-      "authenticated": 51,
+      "authenticated": 52,
       "bootstrap_public": 3,
       "public": 18
     },
     "domains": 31,
     "source": "core/sovereign/api_exposure_policy.py",
-    "total": 72
+    "total": 73
   },
   "thresholds": {
     "adl_gini_threshold": 0.35,
