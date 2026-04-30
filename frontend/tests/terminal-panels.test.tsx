@@ -117,6 +117,48 @@ vi.mock('../src/hooks/use-sovereign-api', () => ({
     error: null,
     loading: false,
   }),
+  useNode0Readiness: () => ({
+    data: {
+      status: 'green',
+      generated_at: '2026-04-29T23:31:57Z',
+      product_shell: {
+        available: true,
+        version: '0.1',
+        default_view: 'node0',
+      },
+      proof_surface: {
+        available: true,
+        source: 'mission_receipt',
+      },
+      runtime: {
+        live: true,
+        state: 'healthy',
+        ihsan_score: 0.97,
+        snr_score: 0.92,
+      },
+      boot_service: {
+        status: 'booted',
+        booted: true,
+        node_id: 'node0-test',
+        total_breaths: 2,
+        chain_hash: 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+        error: '',
+      },
+      spearpoint: {
+        status: 'pass',
+        artifact_status: 'found',
+        run_id: '23e385a2c870',
+        mode: 'strict',
+        timestamp_utc: '2026-04-29T23:31:57Z',
+        targets_completed: 3,
+        official_submission: false,
+        classification: 'internal_strict_harness',
+      },
+      next_action: 'submit mission',
+    },
+    error: null,
+    loading: false,
+  }),
   useModelRoutingSettings: () => ({
     modelRouting: { planner: 'gpt-4.1', executor: 'gpt-4.1-mini' },
     permissionDefaults: {
@@ -331,11 +373,14 @@ describe.sequential('Terminal Panels', () => {
     render(<TerminalNode0 />);
     expect(screen.getByTestId('node0-shell')).toBeTruthy();
     expect(screen.getByText(/Dema Node0 Product Shell v0.1/i)).toBeTruthy();
-    expect(screen.getByTestId('node0-live-state')).toHaveTextContent('NODE0 LIVE');
+    expect(screen.getByTestId('node0-live-state')).toHaveTextContent('NODE0 GREEN');
     expect(screen.getByTestId('node0-step-dema')).toHaveTextContent(/See Dema/i);
     expect(screen.getByTestId('node0-step-mission')).toHaveTextContent(/Submit task/i);
     expect(screen.getByTestId('node0-step-proof')).toHaveTextContent(/Inspect proof/i);
-    expect(screen.getByText(/Proof Surface shows claim, source, verdict/i)).toBeTruthy();
+    expect(screen.getByTestId('node0-step-next')).toHaveTextContent(/Spearpoint strict run passed/i);
+    expect(screen.getByTestId('node0-boot-service-status')).toHaveTextContent('booted');
+    expect(screen.getByTestId('node0-spearpoint-status')).toHaveTextContent('pass #23e385a2c870');
+    expect(screen.getByTestId('node0-next-action')).toHaveTextContent('submit mission');
     expect(screen.getByText(/Voice \+ desktop action/i)).toBeTruthy();
   });
 

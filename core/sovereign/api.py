@@ -1755,6 +1755,174 @@ def create_fastapi_app(runtime: Any) -> Any:
             ),
         }
 
+    def _load_spearpoint_campaign_summary() -> dict[str, Any]:
+        """Load the latest local True Spearpoint campaign summary."""
+        campaign_dir = os.environ.get(
+            "BIZRA_SPEARPOINT_CAMPAIGN_DIR",
+            "/tmp/spearpoint-campaign",
+        ).strip()
+        if not campaign_dir:
+            return {
+                "status": "unknown",
+                "artifact_status": "not_configured",
+                "reason": "BIZRA_SPEARPOINT_CAMPAIGN_DIR is empty",
+                "official_submission": False,
+            }
+
+        summary_path = _Path(campaign_dir) / "campaign_summary.json"
+        if not summary_path.exists():
+            return {
+                "status": "unknown",
+                "artifact_status": "missing",
+                "reason": "campaign_summary.json not found",
+                "official_submission": False,
+            }
+
+        try:
+            payload = json.loads(summary_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return {
+                "status": "fail",
+                "artifact_status": "invalid",
+                "reason": str(exc),
+                "official_submission": False,
+            }
+
+        if not isinstance(payload, dict):
+            return {
+                "status": "fail",
+                "artifact_status": "invalid",
+                "reason": "campaign_summary.json must contain a JSON object",
+                "official_submission": False,
+            }
+
+        targets = payload.get("targets", [])
+        target_summaries = []
+        all_gates_passed = True
+        if isinstance(targets, list):
+            for item in targets:
+                if not isinstance(item, dict):
+                    all_gates_passed = False
+                    continue
+                gates = item.get("gates", {})
+                gate_passed = isinstance(gates, dict) and all(
+                    isinstance(gate, dict) and gate.get("passed") is True
+                    for gate in gates.values()
+                )
+                all_gates_passed = all_gates_passed and gate_passed
+                target_summaries.append(
+                    {
+                        "target": str(item.get("target", "")),
+                        "baseline_score": item.get("baseline_score"),
+                        "final_score": item.get("final_score"),
+                        "gates_passed": gate_passed,
+                    }
+                )
+        else:
+            all_gates_passed = False
+
+        summary_status = str(payload.get("status", "unknown")).lower()
+        status_label = (
+            "pass"
+            if summary_status == "success" and all_gates_passed and target_summaries
+            else "fail"
+        )
+        return {
+            "status": status_label,
+            "artifact_status": "found",
+            "run_id": str(payload.get("run_id", "")),
+            "mode": str(payload.get("mode", "")),
+            "timestamp_utc": str(payload.get("timestamp_utc", "")),
+            "targets_completed": len(target_summaries),
+            "targets": target_summaries,
+            "official_submission": False,
+            "classification": "internal_strict_harness",
+        }
+
+    def _node0_readiness_snapshot() -> dict[str, Any]:
+        """Compose Node0 product, boot, proof, and evaluation readiness."""
+        health = _health_snapshot()
+        node0 = getattr(runtime, "_node0", None)
+        node0_health: dict[str, Any] = {}
+        boot_error = ""
+
+        if node0 is not None:
+            health_fn = getattr(node0, "health", None)
+            if callable(health_fn):
+                try:
+                    raw_health = health_fn()
+                    if isinstance(raw_health, dict):
+                        node0_health = _json_safe(raw_health)
+                except (
+                    RuntimeError,
+                    AttributeError,
+                    TypeError,
+                    ValueError,
+                    OSError,
+                ) as exc:
+                    boot_error = str(exc)
+
+        booted = bool(node0_health.get("booted", False))
+        if node0 is None:
+            boot_status = "unavailable"
+        elif boot_error:
+            boot_status = "error"
+        elif booted:
+            boot_status = "booted"
+        else:
+            boot_status = "not_booted"
+
+        spearpoint = _load_spearpoint_campaign_summary()
+        runtime_live = bool(health.get("running", False))
+        product_shell_available = True
+        proof_surface_available = True
+        spearpoint_passed = spearpoint.get("status") == "pass"
+
+        if runtime_live and booted and spearpoint_passed:
+            readiness = "green"
+            next_action = "submit mission"
+        elif runtime_live and proof_surface_available:
+            readiness = "yellow"
+            if not booted:
+                next_action = "start Node0 boot service"
+            elif not spearpoint_passed:
+                next_action = "run internal Spearpoint strict campaign"
+            else:
+                next_action = "submit mission"
+        else:
+            readiness = "red"
+            next_action = "start or repair Dema service"
+
+        return {
+            "status": readiness,
+            "generated_at": _utcnow_iso(),
+            "product_shell": {
+                "available": product_shell_available,
+                "version": "0.1",
+                "default_view": "node0",
+            },
+            "proof_surface": {
+                "available": proof_surface_available,
+                "source": "mission_receipt",
+            },
+            "runtime": {
+                "live": runtime_live,
+                "state": health.get("status", "unknown"),
+                "ihsan_score": health.get("ihsan_score", 0.0),
+                "snr_score": health.get("snr_score", 0.0),
+            },
+            "boot_service": {
+                "status": boot_status,
+                "booted": booted,
+                "node_id": str(node0_health.get("node_id", "")),
+                "total_breaths": int(node0_health.get("total_breaths", 0) or 0),
+                "chain_hash": str(node0_health.get("chain_hash", "")),
+                "error": boot_error,
+            },
+            "spearpoint": spearpoint,
+            "next_action": next_action,
+        }
+
     def _schedule_bus_event(
         topic: str, payload: dict[str, Any], source: str = "api"
     ) -> None:
@@ -2751,6 +2919,18 @@ def create_fastapi_app(runtime: Any) -> Any:
         if auth_error is not None:
             return auth_error
         return _health_snapshot()
+
+    @app.get(
+        "/v1/node0/readiness",
+        tags=["node0"],
+        summary="Node0 product, boot, proof, and evaluation readiness",
+    )
+    async def node0_readiness(request: Request):
+        """Return the operator-facing Node0 readiness contract."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+        return _node0_readiness_snapshot()
 
     @app.get("/v1/status", tags=["health"], summary="Runtime status snapshot")
     async def status(request: Request):
