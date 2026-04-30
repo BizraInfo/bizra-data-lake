@@ -53,6 +53,7 @@ from collections import deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 logger = logging.getLogger("sovereign.api")
 
@@ -283,6 +284,14 @@ try:
         source_type: str = "user_text"
         tags: list[str] = _PydanticField(default_factory=list)
         owner_marker: str = "local-owner"
+        consent: bool = False
+
+    class Node0ActionIntentModel(_PydanticBaseModel):
+        """Request model for bounded Node0 desktop/browser action handoff."""
+
+        action_type: str
+        target: str
+        label: str = ""
         consent: bool = False
 
     # Phase 31: Cognitive Fusion request model
@@ -1963,6 +1972,15 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "requires_user_gesture": True,
                 "stores_audio": False,
                 "auto_submit": False,
+                "truth_label": "[ENFORCEMENT: WIRED]",
+            },
+            "desktop_browser_action": {
+                "available": True,
+                "status": "preview_only",
+                "mode": "client_handoff_only",
+                "allowed_actions": ["open_url", "copy_text"],
+                "requires_user_confirmation": True,
+                "server_executes": False,
                 "truth_label": "[ENFORCEMENT: WIRED]",
             },
             "spearpoint": spearpoint,
@@ -6125,6 +6143,80 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "next_action": "repair AgentDB memory layer",
                 },
             )
+
+    @app.post("/v1/node0/action-intent")
+    async def node0_action_intent(body: Node0ActionIntentModel, request: Request):
+        """Validate a bounded Node0 desktop/browser action intent.
+
+        v0.1 prepares an explicit client-side handoff only. The server does not
+        launch applications, mutate files, fetch URLs, or automate a browser.
+        """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
+        action_type = body.action_type.strip().lower().replace(" ", "_")
+        target = body.target.strip()
+        label = body.label.strip()
+
+        if action_type not in {"open_url", "copy_text"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid action_type"},
+            )
+        if not target:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Target required"},
+            )
+        if not body.consent:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Explicit user confirmation required"},
+            )
+        if len(label) > 120:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Label exceeds 120 characters"},
+            )
+
+        handoff_method = "clipboard_write"
+        if action_type == "open_url":
+            if len(target) > 2048:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "URL exceeds 2048 characters"},
+                )
+            parsed = urlparse(target)
+            if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Only http(s) URLs are allowed"},
+                )
+            handoff_method = "window_open"
+        elif len(target) > 5000:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Copy text exceeds 5000 characters"},
+            )
+
+        target_preview = target if len(target) <= 200 else f"{target[:197]}..."
+        truth_label = "[ENFORCEMENT: WIRED]"
+        return {
+            "action_id": str(uuid.uuid4()),
+            "accepted": True,
+            "status": "ready_for_user_handoff",
+            "action_type": action_type,
+            "label": label,
+            "target_preview": target_preview,
+            "execution_mode": "client_handoff_only",
+            "handoff_method": handoff_method,
+            "server_executed": False,
+            "requires_user_confirmation": True,
+            "truth_label": truth_label,
+            "source_label": "user_confirmed_action_intent",
+            "next_action": "confirm action in the local browser",
+        }
 
     @app.get("/v1/memory/stats")
     async def memory_stats(request: Request):

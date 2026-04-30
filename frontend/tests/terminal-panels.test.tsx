@@ -162,6 +162,15 @@ vi.mock('../src/hooks/use-sovereign-api', () => ({
         auto_submit: false,
         truth_label: '[ENFORCEMENT: WIRED]',
       },
+      desktop_browser_action: {
+        available: true,
+        status: 'preview_only',
+        mode: 'client_handoff_only',
+        allowed_actions: ['open_url', 'copy_text'],
+        requires_user_confirmation: true,
+        server_executes: false,
+        truth_label: '[ENFORCEMENT: WIRED]',
+      },
       spearpoint: {
         status: 'pass',
         artifact_status: 'found',
@@ -403,7 +412,8 @@ describe.sequential('Terminal Panels', () => {
     expect(screen.getByTestId('node0-voice-transcript')).toHaveTextContent(/unavailable/i);
     expect(screen.getByTestId('node0-spearpoint-status')).toHaveTextContent('pass #23e385a2c870');
     expect(screen.getByTestId('node0-next-action')).toHaveTextContent('submit mission');
-    expect(screen.getByTestId('node0-desktop-action-status')).toHaveTextContent('not integrated');
+    expect(screen.getByTestId('node0-desktop-action-status')).toHaveTextContent('preview_only');
+    expect(screen.getByTestId('node0-action-boundary')).toHaveTextContent(/client handoff only/i);
   });
 
   it('Terminal shell opens on Node0 and can switch to Mission with shortcut 2', async () => {

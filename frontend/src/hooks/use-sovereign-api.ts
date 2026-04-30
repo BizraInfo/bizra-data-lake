@@ -270,6 +270,15 @@ export interface Node0Readiness {
     auto_submit: boolean;
     truth_label: string;
   };
+  desktop_browser_action: {
+    available: boolean;
+    status: "preview_only" | "unavailable";
+    mode: string;
+    allowed_actions: string[];
+    requires_user_confirmation: boolean;
+    server_executes: boolean;
+    truth_label: string;
+  };
   spearpoint: {
     status: "pass" | "fail" | "unknown";
     artifact_status: string;
@@ -612,11 +621,16 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
   const bootService = asObject(data.boot_service);
   const memoryImport = asObject(data.memory_import);
   const voiceInput = asObject(data.voice_input);
+  const desktopBrowserAction = asObject(data.desktop_browser_action);
   const spearpoint = asObject(data.spearpoint);
   const status = asString(data.status, "red");
   const bootStatus = asString(bootService.status, "unavailable");
   const memoryImportStatus = asString(memoryImport.status, "unavailable");
   const voiceInputStatus = asString(voiceInput.status, "unsupported");
+  const desktopBrowserActionStatus = asString(
+    desktopBrowserAction.status,
+    "unavailable",
+  );
   const spearpointStatus = asString(spearpoint.status, "unknown");
 
   return {
@@ -670,6 +684,21 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
       stores_audio: Boolean(voiceInput.stores_audio),
       auto_submit: Boolean(voiceInput.auto_submit),
       truth_label: asString(voiceInput.truth_label, "[ENFORCEMENT: WIRED]"),
+    },
+    desktop_browser_action: {
+      available: Boolean(desktopBrowserAction.available),
+      status: ["preview_only", "unavailable"].includes(desktopBrowserActionStatus)
+        ? (desktopBrowserActionStatus as Node0Readiness["desktop_browser_action"]["status"])
+        : "unavailable",
+      mode: asString(desktopBrowserAction.mode, "client_handoff_only"),
+      allowed_actions: asStringArray(desktopBrowserAction.allowed_actions),
+      requires_user_confirmation:
+        desktopBrowserAction.requires_user_confirmation !== false,
+      server_executes: Boolean(desktopBrowserAction.server_executes),
+      truth_label: asString(
+        desktopBrowserAction.truth_label,
+        "[ENFORCEMENT: WIRED]",
+      ),
     },
     spearpoint: {
       status: ["pass", "fail", "unknown"].includes(spearpointStatus)
@@ -1157,6 +1186,15 @@ export function useNode0Readiness() {
         requires_user_gesture: true,
         stores_audio: false,
         auto_submit: false,
+        truth_label: "[ENFORCEMENT: WIRED]",
+      },
+      desktop_browser_action: {
+        available: false,
+        status: "unavailable",
+        mode: "client_handoff_only",
+        allowed_actions: [],
+        requires_user_confirmation: true,
+        server_executes: false,
         truth_label: "[ENFORCEMENT: WIRED]",
       },
       spearpoint: {
