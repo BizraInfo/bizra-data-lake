@@ -45,6 +45,7 @@ import hashlib
 import json
 import logging
 import os
+import sqlite3
 import threading
 import time
 import uuid
@@ -6094,7 +6095,14 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "source_label": f"user_provided:{source_type}",
                 "next_action": "search memory or submit mission",
             }
-        except (RuntimeError, ValueError, TypeError) as exc:
+        except (
+            ImportError,
+            OSError,
+            RuntimeError,
+            sqlite3.Error,
+            ValueError,
+            TypeError,
+        ) as exc:
             logger.warning("Memory import failed: %s", exc)
             return JSONResponse(
                 status_code=500,
@@ -6107,12 +6115,6 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "source_label": f"user_provided:{source_type}",
                     "next_action": "repair AgentDB memory layer",
                 },
-            )
-        except Exception:  # noqa: BLE001 — API boundary
-            logger.exception("Memory import failed")
-            return JSONResponse(
-                status_code=500,
-                content={"error": "Internal server error"},
             )
 
     @app.get("/v1/memory/stats")
