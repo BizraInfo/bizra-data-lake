@@ -17,6 +17,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -87,27 +88,54 @@ def test_loop_max_ticks_exits_safely(tmp_path, monkeypatch):
 def test_loop_lock_refuses_second_instance(tmp_path, monkeypatch):
     _onboard(tmp_path, monkeypatch)
 
-    # Plant a live pid in the lock (this process is alive by definition).
-    runtime = tmp_path / "runtime"
-    runtime.mkdir(parents=True, exist_ok=True)
-    pid_path = runtime / "dema_daemon.pid"
-    pid_path.write_text(str(os.getpid()), encoding="utf-8")
-
-    out = _run(
-        "dema_daemon.py",
+    cmd = [
+        sys.executable,
+        str(REPO_ROOT / "scripts" / "dema" / "dema_daemon.py"),
         "--loop",
         "--interval-seconds",
-        "0",
+        "30",
         "--max-ticks",
-        "1",
-        root=tmp_path,
-        expect_zero=False,
+        "2",
+        "--max-seconds",
+        "60",
+        "--root",
+        str(tmp_path),
+    ]
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=str(REPO_ROOT),
     )
-    assert out["ok"] is False
-    assert "already running" in out["reason"]
-    # Pre-planted lock file should NOT have been overwritten / removed.
-    assert pid_path.exists()
-    pid_path.unlink()  # cleanup
+    pid_path = tmp_path / "runtime" / "dema_daemon.pid"
+    deadline = time.monotonic() + 5
+    try:
+        while time.monotonic() < deadline and not pid_path.exists():
+            assert proc.poll() is None
+            time.sleep(0.05)
+        assert pid_path.exists()
+
+        out = _run(
+            "dema_daemon.py",
+            "--loop",
+            "--interval-seconds",
+            "0",
+            "--max-ticks",
+            "1",
+            root=tmp_path,
+            expect_zero=False,
+        )
+        assert out["ok"] is False
+        assert "already running" in out["reason"] or "lock" in out["reason"]
+    finally:
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.communicate(timeout=5)
 
 
 def test_loop_reclaims_stale_lock(tmp_path, monkeypatch):
@@ -213,9 +241,23 @@ def test_service_status_shape(tmp_path, monkeypatch):
     out = _run("dema_service.py", "status", root=tmp_path)
     assert out["kind"] == "dema_service_status"
     assert out["running"] is False
+    assert out["status"] == "stopped"
     assert out["profile_present"] is True
     assert out["lock_path"].endswith("dema_daemon.pid")
     assert out["log_today_count"] >= 1  # onboarding counted
+
+
+def test_service_status_does_not_trust_unlocked_live_pid(tmp_path, monkeypatch):
+    _onboard(tmp_path, monkeypatch)
+    runtime = tmp_path / "runtime"
+    runtime.mkdir(parents=True, exist_ok=True)
+    (runtime / "dema_daemon.pid").write_text(str(os.getpid()), encoding="utf-8")
+
+    out = _run("dema_service.py", "status", root=tmp_path)
+
+    assert out["running"] is False
+    assert out["status"] == "stale_pid"
+    assert out["lock_held"] is False
 
 
 def test_service_start_once_emits_tick_receipt(tmp_path, monkeypatch):

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -52,10 +53,55 @@ WINDOWS_NOT_NATIVE_TODAY = (
 )
 
 
-def cmd_status(root: Path) -> dict[str, Any]:
-    pid_path = dema_daemon._pid_file(root)
+def _pid_file_path(root: Path) -> Path:
+    return Path(root) / "runtime" / "dema_daemon.pid"
+
+
+def _lock_held_by_other_process(pid_path: Path) -> bool:
+    if dema_daemon.fcntl is None or not pid_path.exists():
+        return False
+    try:
+        fd = os.open(pid_path, os.O_RDWR)
+    except OSError:
+        return False
+    try:
+        try:
+            dema_daemon.fcntl.flock(
+                fd,
+                dema_daemon.fcntl.LOCK_EX | dema_daemon.fcntl.LOCK_NB,
+            )
+            dema_daemon.fcntl.flock(fd, dema_daemon.fcntl.LOCK_UN)
+            return False
+        except BlockingIOError:
+            return True
+    finally:
+        os.close(fd)
+
+
+def daemon_runtime_status(root: Path) -> dict[str, Any]:
+    pid_path = _pid_file_path(root)
     pid = dema_daemon._read_pid(pid_path)
-    alive = bool(pid and dema_daemon._process_alive(pid))
+    lock_held = _lock_held_by_other_process(pid_path)
+    process_alive = bool(pid and dema_daemon._process_alive(pid))
+    running = process_alive and lock_held
+    if running:
+        status = "running"
+    elif pid is not None:
+        status = "stale_pid"
+    else:
+        status = "stopped"
+    return {
+        "status": status,
+        "running": running,
+        "pid": pid,
+        "lock_path": str(pid_path),
+        "lock_held": lock_held,
+        "process_alive": process_alive,
+    }
+
+
+def cmd_status(root: Path) -> dict[str, Any]:
+    runtime_status = daemon_runtime_status(root)
 
     profile = ProfileStore(root).load()
     state = MissionStateMachine(root).get()
@@ -70,9 +116,11 @@ def cmd_status(root: Path) -> dict[str, Any]:
     return {
         "kind": "dema_service_status",
         "schema_version": "0.1.0",
-        "running": alive,
-        "pid": pid,
-        "lock_path": str(pid_path),
+        "running": runtime_status["running"],
+        "status": runtime_status["status"],
+        "pid": runtime_status["pid"],
+        "lock_path": runtime_status["lock_path"],
+        "lock_held": runtime_status["lock_held"],
         "profile_present": profile is not None,
         "mission_truth_label": state.truth_label,
         "log_today_count": len(today),

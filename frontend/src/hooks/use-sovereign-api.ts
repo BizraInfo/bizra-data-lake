@@ -289,6 +289,23 @@ export interface Node0Readiness {
     records_receipts: boolean;
     truth_label: string;
   };
+  always_on_daemon: {
+    available: boolean;
+    status: "running" | "stopped" | "stale_pid" | "unavailable";
+    mode: string;
+    pid: number;
+    lock_path: string;
+    root: string;
+    last_tick_at: string;
+    last_receipt_id: string;
+    requires_operator_confirmation: boolean;
+    server_executes: boolean;
+    no_public_network_listener: boolean;
+    writes_under_state_dir: boolean;
+    status_command: string;
+    start_command: string;
+    truth_label: string;
+  };
   spearpoint: {
     status: "pass" | "fail" | "unknown";
     artifact_status: string;
@@ -668,6 +685,7 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
   const voiceInput = asObject(data.voice_input);
   const desktopBrowserAction = asObject(data.desktop_browser_action);
   const localActionExecutor = asObject(data.local_action_executor);
+  const alwaysOnDaemon = asObject(data.always_on_daemon);
   const spearpoint = asObject(data.spearpoint);
   const status = asString(data.status, "red");
   const bootStatus = asString(bootService.status, "unavailable");
@@ -681,6 +699,7 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
     localActionExecutor.status,
     "unavailable",
   );
+  const alwaysOnDaemonStatus = asString(alwaysOnDaemon.status, "unavailable");
   const spearpointStatus = asString(spearpoint.status, "unknown");
 
   return {
@@ -765,6 +784,35 @@ function normalizeNode0Readiness(payload: unknown): Node0Readiness {
         localActionExecutor.truth_label,
         "[ENFORCEMENT: WIRED]",
       ),
+    },
+    always_on_daemon: {
+      available: Boolean(alwaysOnDaemon.available),
+      status: ["running", "stopped", "stale_pid", "unavailable"].includes(
+        alwaysOnDaemonStatus,
+      )
+        ? (alwaysOnDaemonStatus as Node0Readiness["always_on_daemon"]["status"])
+        : "unavailable",
+      mode: asString(alwaysOnDaemon.mode, "local_ambient_loop"),
+      pid: asNumber(alwaysOnDaemon.pid),
+      lock_path: asString(alwaysOnDaemon.lock_path),
+      root: asString(alwaysOnDaemon.root),
+      last_tick_at: asString(alwaysOnDaemon.last_tick_at),
+      last_receipt_id: asString(alwaysOnDaemon.last_receipt_id),
+      requires_operator_confirmation:
+        alwaysOnDaemon.requires_operator_confirmation !== false,
+      server_executes: Boolean(alwaysOnDaemon.server_executes),
+      no_public_network_listener:
+        alwaysOnDaemon.no_public_network_listener !== false,
+      writes_under_state_dir: alwaysOnDaemon.writes_under_state_dir !== false,
+      status_command: asString(
+        alwaysOnDaemon.status_command,
+        "python scripts/dema/dema_service.py status --root sovereign_state/dema",
+      ),
+      start_command: asString(
+        alwaysOnDaemon.start_command,
+        "python scripts/dema/dema_daemon.py --loop --interval-seconds 60 --root sovereign_state/dema",
+      ),
+      truth_label: asString(alwaysOnDaemon.truth_label, "[ENFORCEMENT: WIRED]"),
     },
     spearpoint: {
       status: ["pass", "fail", "unknown"].includes(spearpointStatus)
@@ -1271,6 +1319,24 @@ export function useNode0Readiness() {
         requires_user_confirmation: true,
         server_executes: false,
         records_receipts: false,
+        truth_label: "[ENFORCEMENT: WIRED]",
+      },
+      always_on_daemon: {
+        available: false,
+        status: "unavailable",
+        mode: "local_ambient_loop",
+        pid: 0,
+        lock_path: "",
+        root: "",
+        last_tick_at: "",
+        last_receipt_id: "",
+        requires_operator_confirmation: true,
+        server_executes: false,
+        no_public_network_listener: true,
+        writes_under_state_dir: true,
+        status_command: "python scripts/dema/dema_service.py status --root sovereign_state/dema",
+        start_command:
+          "python scripts/dema/dema_daemon.py --loop --interval-seconds 60 --root sovereign_state/dema",
         truth_label: "[ENFORCEMENT: WIRED]",
       },
       spearpoint: {

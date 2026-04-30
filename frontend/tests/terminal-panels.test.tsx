@@ -183,6 +183,24 @@ vi.mock('../src/hooks/use-sovereign-api', () => ({
         records_receipts: true,
         truth_label: '[ENFORCEMENT: WIRED]',
       },
+      always_on_daemon: {
+        available: true,
+        status: 'running',
+        mode: 'local_ambient_loop',
+        pid: 4242,
+        lock_path: 'sovereign_state/dema/runtime/dema_daemon.pid',
+        root: 'sovereign_state/dema',
+        last_tick_at: '2026-04-30T12:00:00Z',
+        last_receipt_id: 'daemon-receipt-001',
+        requires_operator_confirmation: true,
+        server_executes: false,
+        no_public_network_listener: true,
+        writes_under_state_dir: true,
+        status_command: 'python scripts/dema/dema_service.py status',
+        start_command:
+          'python scripts/dema/dema_daemon.py --loop --interval-seconds 60 --root sovereign_state/dema',
+        truth_label: '[ENFORCEMENT: WIRED]',
+      },
       spearpoint: {
         status: 'pass',
         artifact_status: 'found',
@@ -429,6 +447,14 @@ describe.sequential('Terminal Panels', () => {
     expect(screen.getByTestId('node0-local-action-status')).toHaveTextContent('browser_client_ready');
     expect(screen.getByTestId('node0-local-action-receipt')).toHaveTextContent('no receipt yet');
     expect(screen.getByTestId('node0-local-action-copy')).toBeEnabled();
+    expect(screen.getByTestId('node0-always-on-daemon-status')).toHaveTextContent('running');
+    expect(screen.getByTestId('node0-always-on-daemon-pid')).toHaveTextContent('4242');
+    expect(screen.getByTestId('node0-always-on-daemon-last-tick')).toHaveTextContent(
+      '2026-04-30T12:00:00Z',
+    );
+    expect(screen.getByTestId('node0-always-on-daemon-command')).toHaveTextContent(
+      'python scripts/dema/dema_daemon.py --loop --interval-seconds 60 --root sovereign_state/dema',
+    );
   });
 
   it('Terminal shell opens on Node0 and can switch to Mission with shortcut 2', async () => {

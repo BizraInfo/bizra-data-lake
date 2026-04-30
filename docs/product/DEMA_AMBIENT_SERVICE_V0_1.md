@@ -1,7 +1,7 @@
 # Dema Ambient Service v0.1
 
 **Date:** 2026-04-27 GST
-**Status:** PLANNED → first implementation slice
+**Status:** IMPLEMENTED → daemon loop + Node0 readiness visibility
 **Scope:** Phase A0.5 of the Dema GTM Masterplan v0.1.
 **Truth label:** MEASURED at the file level (every artifact emitted is a real
   receipt over real local state); DERIVED at the product-promise level until
@@ -52,6 +52,15 @@ print-systemd-user-unit      Emits a Linux systemd --user unit file.
 print-windows-task-command   Emits a Task Scheduler command (placeholder).
 doctor                       Sanity check; non-zero exit on findings.
 ```
+
+### `/v1/node0/readiness` — extended
+
+Node0 readiness now includes an `always_on_daemon` block that reports the
+local daemon's availability, PID/lock state, last tick receipt, bounded start
+command, and safety boundary. Running state is lock-aware, not PID-only, and
+the reported commands include the same `--root` path that readiness observes.
+This is status-only: the API does not start, stop, signal, or supervise the
+daemon.
 
 ### `tests/scripts/test_dema_ambient_service.py` — new
 
