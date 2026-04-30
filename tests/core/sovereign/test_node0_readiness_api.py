@@ -116,6 +116,12 @@ def test_node0_readiness_reports_green_when_booted_and_spearpoint_passed(
         "open_url",
         "copy_text",
     ]
+    assert data["local_action_executor"]["available"] is True
+    assert data["local_action_executor"]["status"] == "browser_client_ready"
+    assert data["local_action_executor"]["mode"] == "explicit_user_gesture"
+    assert data["local_action_executor"]["server_executes"] is False
+    assert data["local_action_executor"]["records_receipts"] is True
+    assert data["local_action_executor"]["requires_user_confirmation"] is True
     assert data["spearpoint"]["status"] == "pass"
     assert data["spearpoint"]["run_id"] == "run-123"
     assert data["spearpoint"]["official_submission"] is False

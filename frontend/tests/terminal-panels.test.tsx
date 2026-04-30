@@ -102,6 +102,8 @@ vi.mock('../src/hooks/use-sovereign-api', () => ({
   useTerminalState: () => ({
     data: { state: 'ready', execution_path: 'SYSTEM_2_NOVEL', mission_id: '' },
   }),
+  createNode0ActionIntent: vi.fn(),
+  recordNode0LocalActionReceipt: vi.fn(),
   useChainLatest: () => ({
     data: {
       head: 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
@@ -169,6 +171,16 @@ vi.mock('../src/hooks/use-sovereign-api', () => ({
         allowed_actions: ['open_url', 'copy_text'],
         requires_user_confirmation: true,
         server_executes: false,
+        truth_label: '[ENFORCEMENT: WIRED]',
+      },
+      local_action_executor: {
+        available: true,
+        status: 'browser_client_ready',
+        mode: 'explicit_user_gesture',
+        allowed_actions: ['copy_text', 'open_url'],
+        requires_user_confirmation: true,
+        server_executes: false,
+        records_receipts: true,
         truth_label: '[ENFORCEMENT: WIRED]',
       },
       spearpoint: {
@@ -414,6 +426,9 @@ describe.sequential('Terminal Panels', () => {
     expect(screen.getByTestId('node0-next-action')).toHaveTextContent('submit mission');
     expect(screen.getByTestId('node0-desktop-action-status')).toHaveTextContent('preview_only');
     expect(screen.getByTestId('node0-action-boundary')).toHaveTextContent(/client handoff only/i);
+    expect(screen.getByTestId('node0-local-action-status')).toHaveTextContent('browser_client_ready');
+    expect(screen.getByTestId('node0-local-action-receipt')).toHaveTextContent('no receipt yet');
+    expect(screen.getByTestId('node0-local-action-copy')).toBeEnabled();
   });
 
   it('Terminal shell opens on Node0 and can switch to Mission with shortcut 2', async () => {
@@ -421,7 +436,7 @@ describe.sequential('Terminal Panels', () => {
     expect(await screen.findByTestId('node0-shell')).toBeTruthy();
     fireEvent.keyDown(window, { key: '2' });
     expect(await screen.findByText('Mission')).toBeTruthy();
-    expect(screen.getByText(/Submit once. Approve once/i)).toBeTruthy();
+    expect(await screen.findByText(/Submit once. Approve once/i)).toBeTruthy();
   });
 
   it('Dashboard renders headings and metrics', () => {

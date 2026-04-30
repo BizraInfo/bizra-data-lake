@@ -8,6 +8,7 @@ import {
   useTerminalState,
 } from "@/hooks/use-sovereign-api";
 import { useNode0VoiceInput } from "@/hooks/use-node0-voice-input";
+import { useNode0LocalActionExecutor } from "@/hooks/use-node0-local-action-executor";
 
 type ReadinessState = "ready" | "warn" | "planned";
 
@@ -67,6 +68,7 @@ export default function TerminalNode0() {
   const { data: memory } = useMemoryStats();
   const { data: readiness } = useNode0Readiness();
   const voiceInput = useNode0VoiceInput();
+  const localActionExecutor = useNode0LocalActionExecutor();
 
   const live = !healthLoading && !healthError && (health.running || health.live_status === "LIVE");
   const ihsan = typeof health.ihsan_score === "number" ? health.ihsan_score : null;
@@ -88,6 +90,7 @@ export default function TerminalNode0() {
   const memoryImportReady = readiness.memory_import.available;
   const voiceInputReady = readiness.voice_input.available && voiceInput.supported;
   const desktopActionReady = readiness.desktop_browser_action.available;
+  const localActionReady = readiness.local_action_executor.available;
   const spearpointReady = readiness.spearpoint.status === "pass";
   const spearpointFailed = readiness.spearpoint.status === "fail";
   const readinessLabel = readiness.status.toUpperCase();
@@ -358,6 +361,51 @@ export default function TerminalNode0() {
               {readiness.desktop_browser_action.server_executes ? "true" : "false"}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+          <div>
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Local action executor v0.1
+            </h2>
+            <p className="text-sm text-slate-300 max-w-2xl">
+              Executor runs only after a local user gesture in the browser
+              client, then records a receipt. Server execution remains{" "}
+              {readiness.local_action_executor.server_executes ? "enabled" : "disabled"}.
+            </p>
+            <div className="mt-3 text-xs text-slate-400">
+              <span data-testid="node0-local-action-status">
+                {readiness.local_action_executor.status}
+              </span>
+              {" · "}
+              <span data-testid="node0-local-action-receipt">
+                {localActionExecutor.lastReceipt?.receipt_id ?? "no receipt yet"}
+              </span>
+            </div>
+            {localActionExecutor.error ? (
+              <p className="mt-2 text-xs text-red-300">{localActionExecutor.error}</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            data-testid="node0-local-action-copy"
+            disabled={!localActionReady || localActionExecutor.status === "executing"}
+            onClick={() => {
+              void localActionExecutor.execute({
+                actionType: "copy_text",
+                target: "Dema Node0 local action executor is ready.",
+                label: "Copy executor readiness note",
+                userGestureConfirmed: true,
+              });
+            }}
+            className="rounded-md border border-violet-700/60 px-3 py-2 text-xs font-semibold text-violet-200 disabled:cursor-not-allowed disabled:border-slate-800 disabled:text-slate-500"
+          >
+            {localActionExecutor.status === "executing"
+              ? "Executing..."
+              : "Copy readiness note"}
+          </button>
         </div>
       </section>
     </div>

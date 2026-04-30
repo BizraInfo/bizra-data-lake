@@ -201,6 +201,7 @@ API_ROUTE_POLICIES: tuple[APIRoutePolicy, ...] = (
         "/v1/memory/import",
         "/v1/memory/search",
         "/v1/node0/action-intent",
+        "/v1/node0/local-action/receipt",
         "/v1/cognitive/fuse",
         "/v1/judgment/simulate",
         "/v1/onboarding/teach",
