@@ -28,6 +28,10 @@ post to social. It is the part of Dema that:
 
 It is the foundation Phase A1 (Goal Surface) builds on.
 
+Identity boundary: this kernel currently runs as **DEMA-0 / Node0-DEMA** on
+Node0. `DEMA_IDENTITY_MODEL_V0_1.md` is the prerequisite doctrine for keeping
+Node0-private memory separate from DEMA Core and URP-shareable knowledge.
+
 ---
 
 ## §2 Storage layout (all gitignored)
