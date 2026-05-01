@@ -1028,6 +1028,7 @@ Examples:
             result = DemaCommand().execute(cmd_args)
             sys.exit(result.exit_code)
         dema_parser.print_help()
+        sys.exit(2)
     elif args.command == "onboard":
         run_onboard(args.name, args.node_dir, args.json)
     elif args.command == "dashboard":

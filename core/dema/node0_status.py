@@ -128,6 +128,7 @@ def probe_lm_studio(*, timeout: float = 3.0) -> dict[str, Any]:
             "base_url": base_url,
             "endpoint": None,
             "source": None,
+            "auth_required": False,
             "token_present": "Authorization" in _lm_headers(),
             "model_count": 0,
             "loaded_count": 0,
@@ -146,6 +147,21 @@ def probe_lm_studio(*, timeout: float = 3.0) -> dict[str, Any]:
             payload = _read_json(endpoint, timeout=timeout)
         except urllib.error.HTTPError as exc:
             attempts.append({"url": endpoint, "error": f"HTTP {exc.code}"})
+            if exc.code == 401:
+                return {
+                    "connected": False,
+                    "base_url": base_url,
+                    "endpoint": endpoint,
+                    "source": source,
+                    "auth_required": True,
+                    "token_present": "Authorization" in _lm_headers(),
+                    "model_count": 0,
+                    "loaded_count": 0,
+                    "model_ids": [],
+                    "loaded_model_ids": [],
+                    "load_state_known": False,
+                    "attempts": attempts,
+                }
             continue
         except (urllib.error.URLError, OSError, TimeoutError, ValueError) as exc:
             attempts.append({"url": endpoint, "error": str(exc)})
@@ -160,6 +176,7 @@ def probe_lm_studio(*, timeout: float = 3.0) -> dict[str, Any]:
             "base_url": base_url,
             "endpoint": endpoint,
             "source": source,
+            "auth_required": False,
             "token_present": "Authorization" in _lm_headers(),
             "model_count": len(models),
             "loaded_count": len(loaded),
@@ -176,6 +193,9 @@ def probe_lm_studio(*, timeout: float = 3.0) -> dict[str, Any]:
         "base_url": base_url,
         "endpoint": None,
         "source": None,
+        "auth_required": any(
+            attempt.get("error") == "HTTP 401" for attempt in attempts
+        ),
         "token_present": "Authorization" in _lm_headers(),
         "model_count": 0,
         "loaded_count": 0,
@@ -197,8 +217,8 @@ def read_node0_dema_status(root: Path = DEFAULT_DEMA_ROOT) -> dict[str, Any]:
     findings = list(service_doctor.get("findings", []))
     if not lm_studio["connected"]:
         findings.append("LM Studio local API is not reachable")
-    if not lm_studio["token_present"]:
-        findings.append("LM Studio token is not configured")
+    if lm_studio.get("auth_required") and not lm_studio["token_present"]:
+        findings.append("LM Studio requires auth, but no API token is configured")
 
     return {
         "kind": "node0_dema_status",

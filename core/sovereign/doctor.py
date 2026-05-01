@@ -30,12 +30,15 @@ from typing import Any, Dict, List
 
 from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+LOCAL_ENV = REPO_ROOT / ".env"
+
 
 def _local_env_value(name: str) -> str | None:
     """Read selected repo-local .env keys without shell-sourcing .env."""
     if name in os.environ:
         return os.environ[name]
-    env_path = Path(".env")
+    env_path = LOCAL_ENV
     if not env_path.exists():
         return None
     try:
@@ -375,7 +378,13 @@ class BizraDoctor:
                     attempts.append({"url": url, "error": str(exc)})
                     continue
 
-                models = data.get("models", data.get("data", []))
+                if isinstance(data, dict):
+                    models = data.get("models", data.get("data", []))
+                elif isinstance(data, list):
+                    models = data
+                else:
+                    attempts.append({"url": url, "error": "Invalid JSON payload shape"})
+                    continue
                 if not isinstance(models, list):
                     models = []
                 loaded = [
@@ -466,7 +475,13 @@ class BizraDoctor:
             from scripts.dema.dema_service import DEFAULT_ROOT, cmd_doctor
 
             doctor = cmd_doctor(DEFAULT_ROOT)
-        except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
+        except (
+            ImportError,
+            OSError,
+            ValueError,
+            RuntimeError,
+            json.JSONDecodeError,
+        ) as exc:
             self.report.add(
                 CheckResult(
                     name="DEMA Service",
