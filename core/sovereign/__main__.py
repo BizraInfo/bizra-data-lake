@@ -793,6 +793,7 @@ Examples:
   python -m core.sovereign status                   # Check status
   python -m core.sovereign node0                    # Node0 command center
   python -m core.sovereign dema status              # Check DEMA status
+  python -m core.sovereign dema start --mode relief # Relief pre-start package
   python -m core.sovereign test                     # Run tests
   python -m core.sovereign bridge start              # Start desktop bridge (AHK)
   python -m core.sovereign bridge ping               # Ping running bridge
@@ -863,14 +864,12 @@ Examples:
         help="Optional action and flags, e.g. status --json",
     )
 
-    # DEMA command (read-only operator status)
+    # DEMA command (status + guarded Relief pre-start package)
     dema_parser = subparsers.add_parser("dema", help="DEMA operator commands")
-    dema_sub = dema_parser.add_subparsers(dest="dema_command", help="DEMA action")
-    dema_status = dema_sub.add_parser("status", help="Show read-only DEMA/Node0 status")
-    dema_status.add_argument("--json", action="store_true", help="JSON output")
-    dema_status.add_argument(
-        "--root",
-        help="Local DEMA state root (default: sovereign_state/dema)",
+    dema_parser.add_argument(
+        "dema_args",
+        nargs=argparse.REMAINDER,
+        help="DEMA action and flags, e.g. status --json or start --mode relief",
     )
 
     # Onboard command
@@ -1042,18 +1041,14 @@ Examples:
         result = Node0Command().execute(cmd_args)
         sys.exit(result.exit_code)
     elif args.command == "dema":
-        if args.dema_command == "status":
-            from core.cli.commands.dema import DemaCommand
+        from core.cli.commands.dema import DemaCommand
 
-            cmd_args = ["status"]
-            if args.json:
-                cmd_args.append("--json")
-            if args.root:
-                cmd_args.extend(["--root", args.root])
-            result = DemaCommand().execute(cmd_args)
-            sys.exit(result.exit_code)
-        dema_parser.print_help()
-        sys.exit(2)
+        cmd_args = list(getattr(args, "dema_args", []) or [])
+        if not cmd_args:
+            dema_parser.print_help()
+            sys.exit(2)
+        result = DemaCommand().execute(cmd_args)
+        sys.exit(result.exit_code)
     elif args.command == "onboard":
         run_onboard(args.name, args.node_dir, args.json)
     elif args.command == "dashboard":
