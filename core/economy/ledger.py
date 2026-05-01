@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -78,7 +78,7 @@ class Identity:
         if len(self.public_key) != 32:
             raise ValueError("Ed25519 public key must be 32 bytes")
         if self.public_key == b"\x00" * 32:
-            raise ValueError("placeholder public key is not a sovereign identity")
+            raise ValueError("Placeholder public key is not a sovereign identity")
 
 
 @dataclass(frozen=True)
@@ -105,7 +105,7 @@ class LedgerEntry:
         if len(self.signature) not in (0, 64):
             raise ValueError("signature must be empty or 64 bytes")
         if self.signature == b"\x00" * 64:
-            raise ValueError("placeholder signatures are forbidden")
+            raise ValueError("Placeholder signatures are forbidden")
         expected_status = "SIGNED" if self.signature else "LOCAL_UNSIGNED_DEV"
         if self.signature_status != expected_status:
             raise ValueError("signature_status does not match signature material")
@@ -196,6 +196,11 @@ class ZakatAssessment:
         if self.obligation_nc != expected:
             raise ValueError("zakat arithmetic error")
 
+    @property
+    def nisab(self) -> int:
+        """[ENFORCEMENT: WIRED] Backward-compatible nisab field alias."""
+        return self.nisab_nc
+
 
 @dataclass(frozen=True)
 class EconomicPolicyView:
@@ -243,7 +248,7 @@ class RibaDetector:
 class InMemoryIdentityRegistry:
     """[ENFORCEMENT: WIRED] Read-only in-memory identity registry for tests/tools."""
 
-    def __init__(self, identities: tuple[Identity, ...] | None = None) -> None:
+    def __init__(self, identities: Iterable[Identity] | None = None) -> None:
         self._store = MappingProxyType(
             {identity.node_id: identity for identity in (identities or ())}
         )
@@ -256,6 +261,9 @@ class InMemoryIdentityRegistry:
         """Return a public key by node UUID."""
         identity = self.get(node_id)
         return identity.public_key if identity is not None else None
+
+
+MockRegistry = InMemoryIdentityRegistry
 
 
 def gini(balances: Mapping[str, int]) -> float:
@@ -296,11 +304,13 @@ def simulate_gini(
         raise ValueError("amount must be > 0")
     if not ledger.has(source_id):
         raise ValueError(f"source not in ledger: {source_id}")
+    if not ledger.has(destination_id):
+        raise ValueError(f"destination not in ledger: {destination_id}")
     if ledger.balances[source_id] < amount:
         raise ValueError(f"insufficient funds: {source_id}")
     simulated = dict(ledger.balances)
     simulated[source_id] -= amount
-    simulated[destination_id] = simulated.get(destination_id, 0) + amount
+    simulated[destination_id] += amount
     return gini(simulated)
 
 
@@ -565,6 +575,7 @@ __all__ = [
     "InMemoryIdentityRegistry",
     "LedgerEntry",
     "LedgerState",
+    "MockRegistry",
     "RibaDetector",
     "RibaPattern",
     "TransactionType",
