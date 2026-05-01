@@ -428,7 +428,7 @@ class TestCommandModules:
     def test_dema_command_unknown_subcommand(self):
         from core.cli.commands.dema import DemaCommand
 
-        result = DemaCommand().execute(["start"])
+        result = DemaCommand().execute(["fly"])
         assert not result.success
         assert "Unknown dema command" in result.message
 
@@ -443,6 +443,106 @@ class TestCommandModules:
 
         assert not result.success
         assert "Failed to read DEMA status" in result.message
+
+    def test_dema_relief_prestart_requires_confirmation(
+        self, monkeypatch, tmp_path: Path, capsys
+    ):
+        from core.cli.commands.dema import DemaCommand
+
+        fake_report = self._fake_ready_node0_report(tmp_path / "dema")
+        monkeypatch.delenv("BIZRA_RECEIPT_PRIVATE_KEY_HEX", raising=False)
+        with (
+            patch(
+                "core.cli.commands.dema.read_node0_dema_status",
+                return_value=fake_report,
+            ),
+            patch("scripts.dema.dema_service.cmd_start_once") as start_once,
+        ):
+            result = DemaCommand().execute(
+                [
+                    "start",
+                    "--mode",
+                    "relief",
+                    "--json",
+                    "--root",
+                    str(tmp_path / "dema"),
+                ]
+            )
+
+        assert not result.success
+        assert result.exit_code == 2
+        assert result.data["kind"] == "dema_relief_prestart_package"
+        assert result.data["launch_executed"] is False
+        assert result.data["confirmation"]["required"] is True
+        assert result.data["confirmation"]["accepted"] is False
+        assert result.data["receipt_signing"]["status"] == "LOCAL_UNSIGNED_DEV"
+        start_once.assert_not_called()
+        captured = capsys.readouterr()
+        assert '"launch_executed": false' in captured.out
+
+    def test_dema_relief_prestart_confirmation_still_no_launch(self, tmp_path: Path):
+        from core.cli.commands.dema import CONFIRM_RELIEF_START, DemaCommand
+
+        fake_report = self._fake_ready_node0_report(tmp_path / "dema")
+        with (
+            patch(
+                "core.cli.commands.dema.read_node0_dema_status",
+                return_value=fake_report,
+            ),
+            patch("scripts.dema.dema_service.cmd_start_once") as start_once,
+        ):
+            result = DemaCommand().execute(
+                [
+                    "start",
+                    "--mode",
+                    "relief",
+                    "--root",
+                    str(tmp_path / "dema"),
+                    "--confirm",
+                    CONFIRM_RELIEF_START,
+                ]
+            )
+
+        assert not result.success
+        assert result.exit_code == 3
+        assert result.data["confirmation"]["accepted"] is True
+        assert result.data["launch_executed"] is False
+        assert "not executed" in result.message
+        start_once.assert_not_called()
+
+    def test_dema_relief_prestart_rejects_other_modes(self):
+        from core.cli.commands.dema import DemaCommand
+
+        result = DemaCommand().execute(["start", "--mode", "auto"])
+
+        assert not result.success
+        assert "Only 'bizra dema start --mode relief'" in result.message
+
+    def test_sovereign_dema_start_routes_to_prestart(self, monkeypatch):
+        from core.cli.registry import CommandResult
+        from core.sovereign import __main__ as sovereign_main
+
+        execute_args = []
+
+        class FakeDemaCommand:
+            def execute(self, args):
+                execute_args.extend(args)
+                return CommandResult.error("confirmation required", exit_code=2)
+
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["bizra", "dema", "start", "--mode", "relief", "--json"],
+        )
+        monkeypatch.setattr(
+            "core.cli.commands.dema.DemaCommand", lambda: FakeDemaCommand()
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            sovereign_main.main()
+
+        assert exc_info.value.code == 2
+        assert execute_args == ["start", "--mode", "relief", "--json"]
 
     def test_node0_command_center_default(self, capsys):
         from core.cli.commands.node0 import Node0Command
@@ -556,6 +656,39 @@ class TestCommandModules:
 
         assert exc_info.value.code == 1
         assert execute_args == ["start"]
+
+    def _fake_ready_node0_report(self, root: Path) -> dict:
+        return {
+            "kind": "node0_dema_status",
+            "schema_version": "0.1.0",
+            "ready": True,
+            "truth_label": "MEASURED",
+            "findings": [],
+            "root": str(root),
+            "dema_service": {
+                "status": "stopped",
+                "running": False,
+                "pid": None,
+                "lock_path": str(root / "runtime" / "dema_daemon.pid"),
+                "lock_held": False,
+                "profile_present": True,
+                "mission_truth_label": "MEASURED",
+                "last_tick": None,
+            },
+            "dema_doctor": {"healthy": True, "findings": []},
+            "dema_current_gap": {"actionable": True},
+            "lm_studio": {
+                "connected": True,
+                "auth_required": False,
+                "token_present": True,
+                "model_count": 4,
+                "loaded_count": 1,
+                "model_ids": ["qwen/qwen3.5-9b"],
+                "loaded_model_ids": ["qwen/qwen3.5-9b"],
+                "load_state_known": True,
+                "attempts": [],
+            },
+        }
 
     def test_dema_status_does_not_create_fresh_root(self, tmp_path: Path):
         from core.dema.node0_status import read_node0_dema_status

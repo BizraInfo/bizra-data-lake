@@ -52,6 +52,7 @@ are:
 | `python -m core.sovereign node0` | Read-only Node0 command center | Wired; renders readiness, DEMA, LM Studio, guardrails, and safe next commands without starting anything. |
 | `python -m core.sovereign node0 status --json` | Node0 command-center payload | Wired; emits the same measured status report as JSON. |
 | `python -m core.sovereign dema status --json` | Lower-level DEMA/Node0 status | Wired; read-only wrapper over existing DEMA helpers and LM Studio probe. |
+| `python -m core.sovereign dema start --mode relief --json` | Relief Mode pre-start package | Wired; preflight/confirmation/heartbeat/stop visibility only; does not launch. |
 | `scripts/node0_activate.py status` | Node0 backend/model/PAT status | Verified with LM Studio on `http://127.0.0.1:1234`. |
 | `scripts/dema/dema_service.py doctor` | DEMA local service health | Read-only; reports profile, lock, tick recency. |
 | `scripts/dema/dema_service.py status` | DEMA service status JSON | Read-only; exposes daemon state and last tick. |
@@ -79,7 +80,7 @@ Runtime observation on 2026-05-01 GST:
 | `bizra node0` | Open the Mumu-DEMA Node0 command center. Wired as read-only v0.1. |
 | `bizra doctor` | Run guarded preflight/status without starting daemons. |
 | `bizra dema status` | Show DEMA daemon, model, memory, readiness, and proof status. Wired as read-only v0.1. |
-| `bizra dema start --mode relief` | Start Mumu-DEMA only after preflight and explicit confirmation. |
+| `bizra dema start --mode relief` | Pre-start package wired; future daemon launch allowed only after preflight and explicit confirmation. |
 | `bizra dema stop` | Stop the daemon safely and show final receipt/lock state. |
 | `bizra memory` | Show bounded memory import/status, with private/local/shareable boundaries. |
 | `bizra proof` | Inspect receipts, proof surface, and readiness evidence. |
@@ -121,6 +122,13 @@ artifact says so.
 5. DEMA service doctor has no findings, or findings are shown before start.
 6. Operator confirmation is explicit.
 7. A receipt is written for the start action or single wake tick.
+
+The current v0.1 implementation is a **pre-start package only**. It runs the
+measured readiness checks, surfaces the confirmation phrase, shows receipt
+signing state (`LOCAL_UNSIGNED_DEV` when no signing key/key registry is
+configured), and publishes the heartbeat/stop/recovery plan. It does **not**
+start the daemon, even if the confirmation phrase is supplied. A future launch
+slice must re-run preflight immediately before honoring the confirmation.
 
 Current guarded equivalent:
 
@@ -192,8 +200,9 @@ preflight, receipt signing, and operator confirmation gates are complete.
 1. Add `bizra node0` as a TUI/terminal command-center wrapper.
 2. Add `bizra doctor` as a stable wrapper over existing preflight checks.
 3. Add `bizra dema status` over `scripts/dema/dema_service.py status`.
-4. Add `bizra dema start --mode relief` as an explicit, confirmed wrapper
-   over preflight plus the bounded DEMA start path.
+4. Add `bizra dema start --mode relief` as an explicit pre-start package
+   over preflight, confirmation wording, receipt warning, heartbeat plan, and
+   stop/recovery visibility.
 5. Add `bizra dema stop` only when there is an implemented loop supervisor to
    stop.
 
@@ -208,8 +217,11 @@ Truth status:
   without starting a daemon, dispatching missions, or ingesting memory.
 - `[ENFORCEMENT: WIRED]` `bizra dema status` is a non-starting status wrapper
   and must not create a fresh DEMA root during status reads.
-- `[OPTIMIZATION: PLANNED]` `bizra dema start` and `bizra dema stop` remain
-  future slices.
+- `[ENFORCEMENT: WIRED]` `bizra dema start --mode relief` emits a pre-start
+  package and refuses to launch in this slice, even when confirmation text is
+  supplied.
+- `[OPTIMIZATION: PLANNED]` the actual Relief Mode daemon launch and
+  `bizra dema stop` remain future slices.
 
 ---
 
@@ -220,8 +232,12 @@ Minimum contract tests for the wrapper slice:
 - `bizra doctor` exits non-zero when LM Studio is unreachable.
 - `bizra doctor` exits non-zero when DEMA profile is missing.
 - `bizra dema status` is read-only and does not write a tick.
-- `bizra dema start --mode relief` refuses to run when preflight fails.
-- `bizra dema start --mode relief` writes a local receipt when it succeeds.
+- `bizra dema start --mode relief` emits a pre-start package and refuses to
+  launch without explicit confirmation.
+- `bizra dema start --mode relief --confirm ...` still refuses to launch in
+  the v0.1 pre-start package; a future launch slice must re-run preflight.
+- A future successful Relief launch writes a local receipt or clearly surfaces
+  `LOCAL_UNSIGNED_DEV` if receipt signing is not configured.
 - `bizra node0` renders status without starting a daemon.
 - Existing commands continue to work.
 
