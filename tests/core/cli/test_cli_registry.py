@@ -535,6 +535,28 @@ class TestCommandModules:
         assert exc_info.value.code == 0
         assert execute_args == ["--json"]
 
+    def test_sovereign_node0_unknown_verb_reaches_command(self, monkeypatch):
+        from core.cli.registry import CommandResult
+        from core.sovereign import __main__ as sovereign_main
+
+        execute_args = []
+
+        class FakeNode0Command:
+            def execute(self, args):
+                execute_args.extend(args)
+                return CommandResult.error("Node0 v0.1 is read-only")
+
+        monkeypatch.setattr(sys, "argv", ["bizra", "node0", "start"])
+        monkeypatch.setattr(
+            "core.cli.commands.node0.Node0Command", lambda: FakeNode0Command()
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            sovereign_main.main()
+
+        assert exc_info.value.code == 1
+        assert execute_args == ["start"]
+
     def test_dema_status_does_not_create_fresh_root(self, tmp_path: Path):
         from core.dema.node0_status import read_node0_dema_status
 

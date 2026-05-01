@@ -857,17 +857,10 @@ Examples:
         "--root",
         help="Local DEMA state root (default: sovereign_state/dema)",
     )
-    node0_sub = node0_parser.add_subparsers(dest="node0_command", help="Node0 action")
-    node0_status = node0_sub.add_parser(
-        "status", help="Show read-only Node0 command-center status"
-    )
-    node0_status.add_argument(
-        "--json", action="store_true", dest="node0_status_json", help="JSON output"
-    )
-    node0_status.add_argument(
-        "--root",
-        dest="node0_status_root",
-        help="Local DEMA state root (default: sovereign_state/dema)",
+    node0_parser.add_argument(
+        "node0_args",
+        nargs=argparse.REMAINDER,
+        help="Optional action and flags, e.g. status --json",
     )
 
     # DEMA command (read-only operator status)
@@ -1040,12 +1033,10 @@ Examples:
     elif args.command == "node0":
         from core.cli.commands.node0 import Node0Command
 
-        cmd_args = []
-        if args.node0_command == "status":
-            cmd_args.append("status")
-        if getattr(args, "json", False) or getattr(args, "node0_status_json", False):
+        cmd_args = list(getattr(args, "node0_args", []) or [])
+        if getattr(args, "json", False) and "--json" not in cmd_args:
             cmd_args.append("--json")
-        root = getattr(args, "node0_status_root", None) or getattr(args, "root", None)
+        root = getattr(args, "root", None)
         if root:
             cmd_args.extend(["--root", root])
         result = Node0Command().execute(cmd_args)

@@ -1,10 +1,16 @@
-"""bizra node0 - read-only Node0 command center."""
+# [ENFORCEMENT: WIRED] Read-only Node0 command-center wrapper.
+"""Read-only Node0 command-center CLI surface.
+
+This module renders measured Node0/DEMA readiness from existing status probes.
+It does not start or stop daemons, dispatch missions, load models, or ingest
+memory.
+"""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List
+from typing import Any
 
 from core.dema.node0_status import DEFAULT_DEMA_ROOT, read_node0_dema_status
 
@@ -13,12 +19,31 @@ from ..shared import C, print_info, print_status, print_warn
 
 
 class Node0Command:
+    """Render the read-only Node0 command center.
+
+    The command defaults to status rendering and rejects unsupported verbs with
+    a read-only message instead of exposing mutating actions.
+    """
+
     name = "node0"
     aliases: tuple[str, ...] = ()
     description = "Open the read-only Node0 command center"
     category = "node0"
 
-    def execute(self, args: List[str]) -> CommandResult:
+    def execute(self, args: list[str]) -> CommandResult:
+        """Execute the read-only Node0 command.
+
+        Args:
+            args: Command arguments after `bizra node0`.
+
+        Returns:
+            CommandResult with the measured Node0/DEMA status payload on
+            success, or an error result for unsupported verbs/options.
+
+        Raises:
+            No exceptions are intentionally raised; local read failures are
+            converted into CommandResult errors.
+        """
         if args and args[0] in {"-h", "--help", "help"}:
             self._print_usage()
             return CommandResult.ok(data={"usage": "bizra node0 [status] [--json]"})
@@ -64,6 +89,14 @@ class Node0Command:
         return CommandResult.ok(data=report)
 
     def _print_usage(self) -> None:
+        """Print read-only Node0 usage.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         print(f"\n{C.BOLD}{C.WHITE}BIZRA Node0{C.RESET}")
         print(f"{C.GRAY}{'-' * 60}{C.RESET}")
         print("  bizra node0 [--json] [--root PATH]")
@@ -73,7 +106,15 @@ class Node0Command:
             "Read-only command center. No daemon, mission, or memory action runs."
         )
 
-    def _print_command_center(self, report: dict) -> None:
+    def _print_command_center(self, report: dict[str, Any]) -> None:
+        """Render the measured Node0/DEMA command-center screen.
+
+        Args:
+            report: Status payload returned by read_node0_dema_status().
+
+        Returns:
+            None.
+        """
         service = report["dema_service"]
         doctor = report["dema_doctor"]
         current_gap = report["dema_current_gap"]
