@@ -7,6 +7,7 @@ Commands register themselves with the central CommandRegistry.
 """
 
 from .doctor import DoctorCommand
+from .dema import DemaCommand
 from .identity import IdentityCommand
 from .launch import LaunchCommand
 from .lifecycle import ResetCommand, StartCommand, StopCommand
@@ -17,6 +18,7 @@ from .wallet import BriefingCommand, WalletCommand
 
 ALL_COMMANDS = [
     DoctorCommand,
+    DemaCommand,
     IdentityCommand,
     LaunchCommand,
     StartCommand,

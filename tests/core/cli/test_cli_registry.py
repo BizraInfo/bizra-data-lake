@@ -401,6 +401,46 @@ class TestCommandModules:
         captured = capsys.readouterr()
         assert "BIZRA Doctor" in captured.out
 
+    def test_dema_command_status_json(self, capsys):
+        from core.cli.commands.dema import DemaCommand
+
+        fake_report = {
+            "kind": "node0_dema_status",
+            "ready": True,
+            "findings": [],
+            "dema_service": {"status": "stopped"},
+            "lm_studio": {"connected": True},
+        }
+        with patch(
+            "core.cli.commands.dema.read_node0_dema_status",
+            return_value=fake_report,
+        ):
+            result = DemaCommand().execute(["status", "--json", "--root", "/tmp/dema"])
+
+        assert result.success
+        assert result.data == fake_report
+        captured = capsys.readouterr()
+        assert '"kind": "node0_dema_status"' in captured.out
+
+    def test_dema_command_unknown_subcommand(self):
+        from core.cli.commands.dema import DemaCommand
+
+        result = DemaCommand().execute(["start"])
+        assert not result.success
+        assert "Unknown dema command" in result.message
+
+    def test_dema_command_status_read_failure(self):
+        from core.cli.commands.dema import DemaCommand
+
+        with patch(
+            "core.cli.commands.dema.read_node0_dema_status",
+            side_effect=ValueError("bad local state"),
+        ):
+            result = DemaCommand().execute(["status"])
+
+        assert not result.success
+        assert "Failed to read DEMA status" in result.message
+
     def test_status_command_offline(self, capsys):
         from core.cli.commands.status import StatusCommand
 
