@@ -518,6 +518,41 @@ class TestCommandModules:
         assert not result.success
         assert "Only 'bizra dema start --mode relief'" in result.message
 
+    def test_dema_subcommand_help_exits_ok(self, capsys):
+        from core.cli.commands.dema import DemaCommand
+
+        status_result = DemaCommand().execute(["status", "--help"])
+        start_result = DemaCommand().execute(["start", "--help"])
+
+        assert status_result.success
+        assert start_result.success
+        captured = capsys.readouterr()
+        assert "bizra dema status" in captured.out
+        assert "bizra dema start --mode relief" in captured.out
+
+    def test_dema_receipt_registry_without_private_key_is_unsigned(
+        self, monkeypatch, tmp_path: Path
+    ):
+        from core.cli.commands.dema import DemaCommand
+
+        root = tmp_path / "sovereign_state" / "dema"
+        root.mkdir(parents=True)
+        (root.parent / "key_registry.json").write_text("{}", encoding="utf-8")
+        fake_report = self._fake_ready_node0_report(root)
+        monkeypatch.delenv("BIZRA_RECEIPT_PRIVATE_KEY_HEX", raising=False)
+
+        with patch(
+            "core.cli.commands.dema.read_node0_dema_status",
+            return_value=fake_report,
+        ):
+            result = DemaCommand().execute(
+                ["start", "--mode", "relief", "--json", "--root", str(root)]
+            )
+
+        assert result.data["receipt_signing"]["status"] == "LOCAL_UNSIGNED_DEV"
+        assert result.data["receipt_signing"]["key_registry_present"] is True
+        assert "private_key" in result.data["receipt_signing"]["warning"].lower()
+
     def test_sovereign_dema_start_routes_to_prestart(self, monkeypatch):
         from core.cli.registry import CommandResult
         from core.sovereign import __main__ as sovereign_main
@@ -543,6 +578,16 @@ class TestCommandModules:
 
         assert exc_info.value.code == 2
         assert execute_args == ["start", "--mode", "relief", "--json"]
+
+    def test_sovereign_dema_subcommand_help_routes_ok(self, monkeypatch):
+        from core.sovereign import __main__ as sovereign_main
+
+        monkeypatch.setattr(sys, "argv", ["bizra", "dema", "start", "--help"])
+
+        with pytest.raises(SystemExit) as exc_info:
+            sovereign_main.main()
+
+        assert exc_info.value.code == 0
 
     def test_node0_command_center_default(self, capsys):
         from core.cli.commands.node0 import Node0Command

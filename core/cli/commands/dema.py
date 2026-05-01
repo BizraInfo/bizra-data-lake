@@ -73,6 +73,10 @@ class DemaCommand:
 
     def _execute_status(self, args: list[str]) -> CommandResult:
         """Render or emit measured DEMA status without mutation."""
+        if args and args[0] in {"-h", "--help", "help"}:
+            self._print_usage()
+            return CommandResult.ok(data={"usage": "bizra dema status"})
+
         root = DEFAULT_DEMA_ROOT
         json_output = False
         i = 0
@@ -101,6 +105,12 @@ class DemaCommand:
 
     def _execute_start(self, args: list[str]) -> CommandResult:
         """Build the Relief Mode pre-start package without launching."""
+        if args and args[0] in {"-h", "--help", "help"}:
+            self._print_usage()
+            return CommandResult.ok(
+                data={"usage": "bizra dema start --mode relief [--confirm PHRASE]"}
+            )
+
         root = DEFAULT_DEMA_ROOT
         mode: str | None = None
         json_output = False
@@ -263,20 +273,24 @@ class DemaCommand:
         key_present = bool(os.environ.get("BIZRA_RECEIPT_PRIVATE_KEY_HEX", "").strip())
         key_registry = root.parent / "key_registry.json"
         registry_present = key_registry.exists()
-        if key_present or registry_present:
+        if key_present:
             return {
                 "status": "SIGNING_CONFIG_VISIBLE",
-                "private_key_env_present": key_present,
+                "private_key_env_present": True,
                 "key_registry_present": registry_present,
                 "warning": None,
             }
         return {
             "status": "LOCAL_UNSIGNED_DEV",
             "private_key_env_present": False,
-            "key_registry_present": False,
+            "key_registry_present": registry_present,
             "warning": (
                 "BIZRA_RECEIPT_PRIVATE_KEY_HEX/key registry not found; a future "
                 "Relief start must surface unsigned local-dev receipt status."
+                if not registry_present
+                else "key_registry.json is present, but BIZRA_RECEIPT_PRIVATE_KEY_HEX "
+                "is missing; Relief receipts remain LOCAL_UNSIGNED_DEV until signer "
+                "key material is configured."
             ),
         }
 
