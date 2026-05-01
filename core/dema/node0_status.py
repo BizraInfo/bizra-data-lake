@@ -10,7 +10,9 @@ from __future__ import annotations
 import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Any
 
@@ -54,6 +56,24 @@ def resolve_lm_studio_url() -> str:
         except ImportError:
             url = "http://127.0.0.1:1234"
     return url.rstrip("/").removesuffix("/v1")
+
+
+def _lm_url_trust_error(url: str) -> str | None:
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        return "LM Studio URL must use http or https"
+    hostname = parsed.hostname
+    if not hostname:
+        return "LM Studio URL is missing a host"
+    if hostname.lower() == "localhost":
+        return None
+    try:
+        host_ip = ip_address(hostname)
+    except ValueError:
+        return "LM Studio URL host must be localhost or a private IP address"
+    if host_ip.is_loopback or host_ip.is_private or host_ip.is_link_local:
+        return None
+    return "LM Studio URL host must be localhost or a private IP address"
 
 
 def _lm_headers() -> dict[str, str]:
@@ -101,6 +121,21 @@ def probe_lm_studio(*, timeout: float = 3.0) -> dict[str, Any]:
     """Probe LM Studio without loading models or changing server state."""
     base_url = resolve_lm_studio_url()
     attempts: list[dict[str, str]] = []
+    trust_error = _lm_url_trust_error(base_url)
+    if trust_error:
+        return {
+            "connected": False,
+            "base_url": base_url,
+            "endpoint": None,
+            "source": None,
+            "token_present": "Authorization" in _lm_headers(),
+            "model_count": 0,
+            "loaded_count": 0,
+            "model_ids": [],
+            "loaded_model_ids": [],
+            "load_state_known": False,
+            "attempts": [{"url": base_url, "error": trust_error}],
+        }
 
     for suffix, source in (
         ("/api/v1/models", "native"),

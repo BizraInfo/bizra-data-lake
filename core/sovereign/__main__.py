@@ -1015,7 +1015,7 @@ Examples:
     elif args.command == "test":
         run_tests()
     elif args.command == "doctor":
-        asyncio.run(run_doctor(args.verbose, args.json))
+        sys.exit(asyncio.run(run_doctor(args.verbose, args.json)))
     elif args.command == "dema":
         if args.dema_command == "status":
             from core.cli.commands.dema import DemaCommand

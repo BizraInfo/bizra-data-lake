@@ -179,7 +179,10 @@ This contract does not permit:
 
 ## §8 Thin Wrapper Plan
 
-The first implementation slice should be narrow:
+The first implementation slice is intentionally narrow and now includes the
+read-only `bizra dema status` wrapper. Remaining start/stop/TUI work stays
+planned until preflight, receipt signing, and operator confirmation gates are
+complete.
 
 1. Add `bizra node0` as a TUI/terminal command-center wrapper.
 2. Add `bizra doctor` as a stable wrapper over existing preflight checks.
@@ -191,6 +194,15 @@ The first implementation slice should be narrow:
 
 Do not move runtime ownership in this slice. Do not delete or rename current
 scripts. Do not change daemon behavior just to make the wrapper pretty.
+
+Truth status:
+
+- `[ENFORCEMENT: WIRED]` `bizra doctor` propagates non-zero exit codes for
+  activation blockers.
+- `[ENFORCEMENT: WIRED]` `bizra dema status` is a non-starting status wrapper
+  and must not create a fresh DEMA root during status reads.
+- `[OPTIMIZATION: PLANNED]` `bizra node0`, `bizra dema start`, and
+  `bizra dema stop` remain future slices.
 
 ---
 

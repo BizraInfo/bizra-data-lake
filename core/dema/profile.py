@@ -48,9 +48,10 @@ class DemaProfile:
 class ProfileStore:
     """Disk-backed persistence for DemaProfile."""
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, create: bool = True) -> None:
         self.root = Path(root)
-        self.root.mkdir(parents=True, exist_ok=True)
+        if create:
+            self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "profile.json"
 
     def load(self) -> DemaProfile | None:
@@ -63,6 +64,7 @@ class ProfileStore:
         return DemaProfile(**filtered)
 
     def save(self, profile: DemaProfile) -> Path:
+        self.root.mkdir(parents=True, exist_ok=True)
         profile.updated_at = _utc_now()
         self.path.write_text(
             json.dumps(profile.to_dict(), indent=2, sort_keys=True) + "\n",

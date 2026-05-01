@@ -41,14 +41,16 @@ class DailyLogEntry:
 
 
 class DailyLog:
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, create: bool = True) -> None:
         self.root = Path(root) / "logs"
-        self.root.mkdir(parents=True, exist_ok=True)
+        if create:
+            self.root.mkdir(parents=True, exist_ok=True)
 
     def _path_for(self, date: str | None = None) -> Path:
         return self.root / f"{date or _today_utc()}.jsonl"
 
     def append(self, entry: DailyLogEntry) -> Path:
+        self.root.mkdir(parents=True, exist_ok=True)
         path = self._path_for()
         with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry.to_dict(), sort_keys=True) + "\n")
@@ -70,5 +72,7 @@ class DailyLog:
         return out
 
     def iter_dates(self) -> Iterable[str]:
+        if not self.root.exists():
+            return
         for p in sorted(self.root.glob("*.jsonl")):
             yield p.stem

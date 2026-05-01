@@ -33,10 +33,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from core.dema import DailyLog, MissionStateMachine, ProfileStore  # noqa: E402
-
 # Reuse the daemon's lock + tick helpers without spawning a subprocess.
 import scripts.dema.dema_daemon as dema_daemon  # noqa: E402
+from core.dema import DailyLog, MissionStateMachine, ProfileStore  # noqa: E402
 
 DEFAULT_ROOT = REPO_ROOT / "sovereign_state" / "dema"
 
@@ -103,9 +102,9 @@ def daemon_runtime_status(root: Path) -> dict[str, Any]:
 def cmd_status(root: Path) -> dict[str, Any]:
     runtime_status = daemon_runtime_status(root)
 
-    profile = ProfileStore(root).load()
-    state = MissionStateMachine(root).get()
-    log = DailyLog(root)
+    profile = ProfileStore(root, create=False).load()
+    state = MissionStateMachine(root, create=False).get()
+    log = DailyLog(root, create=False)
     today = log.read_today()
     last_tick: dict[str, Any] | None = None
     for entry in reversed(today):

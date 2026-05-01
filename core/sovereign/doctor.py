@@ -20,9 +20,11 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from enum import Enum
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -56,6 +58,24 @@ def _resolve_lm_studio_url() -> str:
     if not url:
         url = f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}"
     return url.rstrip("/").removesuffix("/v1")
+
+
+def _lm_url_trust_error(url: str) -> str | None:
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        return "LM Studio URL must use http or https"
+    hostname = parsed.hostname
+    if not hostname:
+        return "LM Studio URL is missing a host"
+    if hostname.lower() == "localhost":
+        return None
+    try:
+        host_ip = ip_address(hostname)
+    except ValueError:
+        return "LM Studio URL host must be localhost or a private IP address"
+    if host_ip.is_loopback or host_ip.is_private or host_ip.is_link_local:
+        return None
+    return "LM Studio URL host must be localhost or a private IP address"
 
 
 class CheckStatus(str, Enum):
@@ -303,6 +323,17 @@ class BizraDoctor:
     async def check_lmstudio(self) -> None:
         """Check LM Studio availability (v1 API with auth)."""
         base_url = _resolve_lm_studio_url()
+        trust_error = _lm_url_trust_error(base_url)
+        if trust_error:
+            self.report.add(
+                CheckResult(
+                    name="LM Studio",
+                    status=CheckStatus.FAIL,
+                    message=trust_error,
+                    details={"base_url": base_url},
+                )
+            )
+            return
 
         api_key = (
             _local_env_value("LM_API_TOKEN")
@@ -332,7 +363,7 @@ class BizraDoctor:
                         self.report.add(
                             CheckResult(
                                 name="LM Studio",
-                                status=CheckStatus.WARN,
+                                status=CheckStatus.FAIL,
                                 message="Auth required — set LM_API_TOKEN env var",
                                 details={"url": url, "error": "401 Unauthorized"},
                             )
@@ -386,8 +417,8 @@ class BizraDoctor:
             self.report.add(
                 CheckResult(
                     name="LM Studio",
-                    status=CheckStatus.WARN,
-                    message="Not running (optional, use Ollama fallback)",
+                    status=CheckStatus.FAIL,
+                    message="Not running — required for Node0/DEMA activation",
                     details={"base_url": base_url, "attempts": attempts},
                 )
             )
@@ -396,7 +427,7 @@ class BizraDoctor:
                 self.report.add(
                     CheckResult(
                         name="LM Studio",
-                        status=CheckStatus.WARN,
+                        status=CheckStatus.FAIL,
                         message="Auth required — set LM_API_TOKEN env var",
                         details={"base_url": base_url, "error": "401 Unauthorized"},
                     )
@@ -405,7 +436,7 @@ class BizraDoctor:
                 self.report.add(
                     CheckResult(
                         name="LM Studio",
-                        status=CheckStatus.WARN,
+                        status=CheckStatus.FAIL,
                         message=f"HTTP {e.code} at {base_url}",
                         details={"base_url": base_url, "error": str(e)},
                     )
@@ -414,8 +445,8 @@ class BizraDoctor:
             self.report.add(
                 CheckResult(
                     name="LM Studio",
-                    status=CheckStatus.WARN,
-                    message="Not running (optional, use Ollama fallback)",
+                    status=CheckStatus.FAIL,
+                    message="Not running — required for Node0/DEMA activation",
                     details={"base_url": base_url, "error": str(e)},
                 )
             )
@@ -423,7 +454,7 @@ class BizraDoctor:
             self.report.add(
                 CheckResult(
                     name="LM Studio",
-                    status=CheckStatus.WARN,
+                    status=CheckStatus.FAIL,
                     message=f"Connection error: {e}",
                     details={"base_url": base_url, "error": str(e)},
                 )
@@ -439,14 +470,14 @@ class BizraDoctor:
             self.report.add(
                 CheckResult(
                     name="DEMA Service",
-                    status=CheckStatus.WARN,
+                    status=CheckStatus.FAIL,
                     message=f"Status unavailable: {exc}",
                     details={"error": str(exc)},
                 )
             )
             return
 
-        status = CheckStatus.OK if doctor.get("healthy") else CheckStatus.WARN
+        status = CheckStatus.OK if doctor.get("healthy") else CheckStatus.FAIL
         findings = doctor.get("findings", [])
         message = "Healthy" if doctor.get("healthy") else "; ".join(findings)
         self.report.add(
