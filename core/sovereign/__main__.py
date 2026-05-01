@@ -791,6 +791,7 @@ Examples:
   python -m core.sovereign serve --port 8080        # Start API server
   python -m core.sovereign gateway telegram          # Run Telegram gateway
   python -m core.sovereign status                   # Check status
+  python -m core.sovereign node0                    # Node0 command center
   python -m core.sovereign dema status              # Check DEMA status
   python -m core.sovereign test                     # Run tests
   python -m core.sovereign bridge start              # Start desktop bridge (AHK)
@@ -848,6 +849,26 @@ Examples:
         "-v", "--verbose", action="store_true", help="Verbose output"
     )
     doctor_parser.add_argument("--json", action="store_true", help="JSON output")
+
+    # Node0 command center (read-only v0.1)
+    node0_parser = subparsers.add_parser("node0", help="Node0 command center")
+    node0_parser.add_argument("--json", action="store_true", help="JSON output")
+    node0_parser.add_argument(
+        "--root",
+        help="Local DEMA state root (default: sovereign_state/dema)",
+    )
+    node0_sub = node0_parser.add_subparsers(dest="node0_command", help="Node0 action")
+    node0_status = node0_sub.add_parser(
+        "status", help="Show read-only Node0 command-center status"
+    )
+    node0_status.add_argument(
+        "--json", action="store_true", dest="node0_status_json", help="JSON output"
+    )
+    node0_status.add_argument(
+        "--root",
+        dest="node0_status_root",
+        help="Local DEMA state root (default: sovereign_state/dema)",
+    )
 
     # DEMA command (read-only operator status)
     dema_parser = subparsers.add_parser("dema", help="DEMA operator commands")
@@ -1016,6 +1037,19 @@ Examples:
         run_tests()
     elif args.command == "doctor":
         sys.exit(asyncio.run(run_doctor(args.verbose, args.json)))
+    elif args.command == "node0":
+        from core.cli.commands.node0 import Node0Command
+
+        cmd_args = []
+        if args.node0_command == "status":
+            cmd_args.append("status")
+        if getattr(args, "json", False) or getattr(args, "node0_status_json", False):
+            cmd_args.append("--json")
+        root = getattr(args, "node0_status_root", None) or getattr(args, "root", None)
+        if root:
+            cmd_args.extend(["--root", root])
+        result = Node0Command().execute(cmd_args)
+        sys.exit(result.exit_code)
     elif args.command == "dema":
         if args.dema_command == "status":
             from core.cli.commands.dema import DemaCommand

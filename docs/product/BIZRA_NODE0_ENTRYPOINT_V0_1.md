@@ -1,10 +1,11 @@
 # BIZRA Node0 Entry Point Contract v0.1
 
 **Date:** 2026-05-01 GST
-**Status:** DECIDED -> thin wrapper pending
+**Status:** DECIDED -> first read-only wrappers wired
 **Scope:** Operator entry model for Node0 / Mumu-DEMA.
 **Truth label:** MEASURED for current command inventory and local readiness
-checks; PLANNED for future `bizra node0` / `bizra dema` wrappers.
+checks; WIRED for read-only `bizra node0` and `bizra dema status`; PLANNED
+for future start/stop wrappers.
 
 ---
 
@@ -42,11 +43,15 @@ exist later, but they must not be the first operator experience.
 
 ## §2 Current Reality
 
-Today the repo does not yet expose a polished `bizra node0` command. The
-actual operational entry points are:
+Today the repo exposes the first read-only `bizra node0` command-center wrapper
+and the lower-level `bizra dema status` wrapper. The operational entry points
+are:
 
 | Current surface | Purpose | Notes |
 |---|---|---|
+| `python -m core.sovereign node0` | Read-only Node0 command center | Wired; renders readiness, DEMA, LM Studio, guardrails, and safe next commands without starting anything. |
+| `python -m core.sovereign node0 status --json` | Node0 command-center payload | Wired; emits the same measured status report as JSON. |
+| `python -m core.sovereign dema status --json` | Lower-level DEMA/Node0 status | Wired; read-only wrapper over existing DEMA helpers and LM Studio probe. |
 | `scripts/node0_activate.py status` | Node0 backend/model/PAT status | Verified with LM Studio on `http://127.0.0.1:1234`. |
 | `scripts/dema/dema_service.py doctor` | DEMA local service health | Read-only; reports profile, lock, tick recency. |
 | `scripts/dema/dema_service.py status` | DEMA service status JSON | Read-only; exposes daemon state and last tick. |
@@ -71,9 +76,9 @@ Runtime observation on 2026-05-01 GST:
 
 | Future command | Contract |
 |---|---|
-| `bizra node0` | Open the Mumu-DEMA Node0 TUI command center. |
+| `bizra node0` | Open the Mumu-DEMA Node0 command center. Wired as read-only v0.1. |
 | `bizra doctor` | Run guarded preflight/status without starting daemons. |
-| `bizra dema status` | Show DEMA daemon, model, memory, readiness, and proof status. |
+| `bizra dema status` | Show DEMA daemon, model, memory, readiness, and proof status. Wired as read-only v0.1. |
 | `bizra dema start --mode relief` | Start Mumu-DEMA only after preflight and explicit confirmation. |
 | `bizra dema stop` | Stop the daemon safely and show final receipt/lock state. |
 | `bizra memory` | Show bounded memory import/status, with private/local/shareable boundaries. |
@@ -180,9 +185,9 @@ This contract does not permit:
 ## §8 Thin Wrapper Plan
 
 The first implementation slice is intentionally narrow and now includes the
-read-only `bizra dema status` wrapper. Remaining start/stop/TUI work stays
-planned until preflight, receipt signing, and operator confirmation gates are
-complete.
+read-only `bizra node0` command-center wrapper plus the lower-level
+`bizra dema status` wrapper. Remaining start/stop work stays planned until
+preflight, receipt signing, and operator confirmation gates are complete.
 
 1. Add `bizra node0` as a TUI/terminal command-center wrapper.
 2. Add `bizra doctor` as a stable wrapper over existing preflight checks.
@@ -199,10 +204,12 @@ Truth status:
 
 - `[ENFORCEMENT: WIRED]` `bizra doctor` propagates non-zero exit codes for
   activation blockers.
+- `[ENFORCEMENT: WIRED]` `bizra node0` renders measured Node0/DEMA readiness
+  without starting a daemon, dispatching missions, or ingesting memory.
 - `[ENFORCEMENT: WIRED]` `bizra dema status` is a non-starting status wrapper
   and must not create a fresh DEMA root during status reads.
-- `[OPTIMIZATION: PLANNED]` `bizra node0`, `bizra dema start`, and
-  `bizra dema stop` remain future slices.
+- `[OPTIMIZATION: PLANNED]` `bizra dema start` and `bizra dema stop` remain
+  future slices.
 
 ---
 

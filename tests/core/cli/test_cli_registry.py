@@ -444,6 +444,97 @@ class TestCommandModules:
         assert not result.success
         assert "Failed to read DEMA status" in result.message
 
+    def test_node0_command_center_default(self, capsys):
+        from core.cli.commands.node0 import Node0Command
+
+        fake_report = {
+            "kind": "node0_dema_status",
+            "ready": True,
+            "truth_label": "MEASURED",
+            "findings": [],
+            "root": "/tmp/dema",
+            "dema_service": {
+                "status": "stopped",
+                "running": False,
+                "profile_present": True,
+            },
+            "dema_doctor": {"healthy": True},
+            "dema_current_gap": {"actionable": False},
+            "lm_studio": {
+                "connected": True,
+                "auth_required": False,
+                "token_present": False,
+                "model_count": 1,
+                "loaded_count": 1,
+                "loaded_model_ids": ["qwen/qwen3.5-9b"],
+                "load_state_known": True,
+            },
+        }
+
+        with patch(
+            "core.cli.commands.node0.read_node0_dema_status",
+            return_value=fake_report,
+        ):
+            result = Node0Command().execute([])
+
+        assert result.success
+        assert result.data == fake_report
+        captured = capsys.readouterr()
+        assert "BIZRA Node0 Command Center" in captured.out
+        assert (
+            "Daemon start/stop and mission dispatch require explicit confirmation"
+            in (captured.out)
+        )
+
+    def test_node0_command_status_json(self, capsys):
+        from core.cli.commands.node0 import Node0Command
+
+        fake_report = {
+            "kind": "node0_dema_status",
+            "ready": False,
+            "findings": ["LM Studio local API is not reachable"],
+        }
+        with patch(
+            "core.cli.commands.node0.read_node0_dema_status",
+            return_value=fake_report,
+        ):
+            result = Node0Command().execute(["status", "--json", "--root", "/tmp/dema"])
+
+        assert result.success
+        assert result.data == fake_report
+        captured = capsys.readouterr()
+        assert '"kind": "node0_dema_status"' in captured.out
+
+    def test_node0_command_rejects_mutating_subcommand(self):
+        from core.cli.commands.node0 import Node0Command
+
+        result = Node0Command().execute(["start"])
+
+        assert not result.success
+        assert "read-only" in result.message
+
+    def test_sovereign_node0_entrypoint_routes_to_command(self, monkeypatch):
+        from core.cli.registry import CommandResult
+        from core.sovereign import __main__ as sovereign_main
+
+        execute_args = []
+
+        class FakeNode0Command:
+            def execute(self, args):
+                execute_args.extend(args)
+                return CommandResult.ok(data={"kind": "node0_dema_status"})
+
+        monkeypatch.setattr(sys, "argv", ["bizra", "node0", "--json"])
+        monkeypatch.setattr(
+            "core.cli.commands.node0.Node0Command", lambda: FakeNode0Command()
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            sovereign_main.main()
+
+        assert exc_info.value.code == 0
+        assert execute_args == ["--json"]
+
     def test_dema_status_does_not_create_fresh_root(self, tmp_path: Path):
         from core.dema.node0_status import read_node0_dema_status
 
