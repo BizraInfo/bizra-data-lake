@@ -15,6 +15,8 @@ from types import MappingProxyType
 from typing import Any, Protocol
 from uuid import UUID
 
+from core.integration.constants import CONSTITUTIONAL_GINI_THRESHOLD
+
 SCHEMA_VERSION = "0.1.0"
 
 _CONTROL_EVIDENCE_KEYS = frozenset(
@@ -156,6 +158,13 @@ class RawParsedClaim:
     semantic_summary: str = ""
 
     def __post_init__(self) -> None:
+        if not isinstance(self.requested_scope, ResourceScope):
+            raise ValueError("requested_scope must be a ResourceScope")
+        invalid_steps = [
+            step for step in self.proposed_steps if not isinstance(step, StepDescriptor)
+        ]
+        if invalid_steps:
+            raise ValueError("proposed_steps must contain StepDescriptor values")
         object.__setattr__(self, "evidence", _freeze_mapping(self.evidence))
         object.__setattr__(self, "proposed_steps", tuple(self.proposed_steps))
 
@@ -205,7 +214,7 @@ class ConstitutionalPolicy:
     unresolved_verdict: GateVerdict = GateVerdict.ESCALATE
     zann_zero: bool = True
     riba_zero: bool = True
-    gini_threshold: float = 0.45
+    gini_threshold: float = CONSTITUTIONAL_GINI_THRESHOLD
 
     def __post_init__(self) -> None:
         if not self.version.strip():
@@ -275,7 +284,7 @@ def compute_evidence_weight(evidence: Mapping[str, object]) -> float:
     material_keys = [
         key
         for key, value in evidence.items()
-        if key not in _CONTROL_EVIDENCE_KEYS and value not in (None, "", [], (), {})
+        if key not in _CONTROL_EVIDENCE_KEYS and _is_material_evidence_value(value)
     ]
     if not material_keys:
         return 0.0
@@ -289,6 +298,18 @@ def _parse_intent(value: str) -> IntentType:
         return IntentType.UNRESOLVED
 
 
+def _is_material_evidence_value(value: object) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, Mapping):
+        return len(value) > 0
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return len(value) > 0
+    return True
+
+
 def validate_raw_claim(
     raw: RawParsedClaim,
     *,
@@ -300,6 +321,13 @@ def validate_raw_claim(
     """Validate untrusted parser output into a trusted Claim."""
     if not parser_id.strip():
         raise ValueError("parser_id must be injected by the system wrapper")
+    if not isinstance(raw.requested_scope, ResourceScope):
+        raise ValueError("requested_scope must be a ResourceScope")
+    invalid_steps = [
+        step for step in raw.proposed_steps if not isinstance(step, StepDescriptor)
+    ]
+    if invalid_steps:
+        raise ValueError("proposed_steps must contain StepDescriptor values")
     if not raw.requested_scope.contains_steps(raw.proposed_steps):
         raise ValueError("step_scope_exceeds_claim_scope")
     if parent is not None and not raw.requested_scope.is_subset_of(parent.scope):

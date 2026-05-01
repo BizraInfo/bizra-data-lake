@@ -20,6 +20,7 @@ from core.dema.semantic_transducer import (
     fate_gate,
     validate_raw_claim,
 )
+from core.integration.constants import CONSTITUTIONAL_GINI_THRESHOLD
 
 
 def _scope(*resources: ResourceType) -> ResourceScope:
@@ -70,6 +71,15 @@ def test_evidence_weight_ignores_model_supplied_score():
 
     assert claim.evidence_weight == pytest.approx(0.2)
     assert claim.evidence_weight != 0.99
+
+
+def test_empty_frozen_collections_do_not_inflate_evidence_weight():
+    raw = _raw(evidence={"empty_set": set(), "empty_frozenset": frozenset()})
+
+    claim = validate_raw_claim(raw, mission_id=uuid4(), parser_id="system.wrapper")
+
+    assert claim.evidence["empty_set"] == frozenset()
+    assert claim.evidence_weight == pytest.approx(0.0)
 
 
 def test_nested_claim_data_is_sealed_against_mutation():
@@ -127,7 +137,7 @@ def test_policy_exposes_future_constitutional_stubs():
 
     assert policy.zann_zero is True
     assert policy.riba_zero is True
-    assert policy.gini_threshold == pytest.approx(0.45)
+    assert policy.gini_threshold == pytest.approx(CONSTITUTIONAL_GINI_THRESHOLD)
 
 
 def test_gate_is_deterministic_for_same_claim_and_policy():
@@ -154,6 +164,18 @@ def test_scope_containment_rejects_out_of_scope_step():
     )
 
     with pytest.raises(ValueError, match="step_scope_exceeds_claim_scope"):
+        validate_raw_claim(raw, mission_id=uuid4(), parser_id="system.wrapper")
+
+
+def test_malformed_raw_scope_gets_controlled_validation_error():
+    raw = object.__new__(RawParsedClaim)
+    object.__setattr__(raw, "intent_type", IntentType.ORGANIZE_FILES.value)
+    object.__setattr__(raw, "evidence", {})
+    object.__setattr__(raw, "proposed_steps", (_step(),))
+    object.__setattr__(raw, "requested_scope", "filesystem.read")
+    object.__setattr__(raw, "semantic_summary", "")
+
+    with pytest.raises(ValueError, match="requested_scope must be a ResourceScope"):
         validate_raw_claim(raw, mission_id=uuid4(), parser_id="system.wrapper")
 
 
