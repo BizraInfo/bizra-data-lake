@@ -24,9 +24,9 @@ DEFAULT_ROOT = REPO_ROOT / "sovereign_state" / "dema"
 
 
 def status(root: Path) -> dict[str, object]:
-    profile = ProfileStore(root).load()
-    state = MissionStateMachine(root).get()
-    log_today = DailyLog(root).read_today()
+    profile = ProfileStore(root, create=False).load()
+    state = MissionStateMachine(root, create=False).get()
+    log_today = DailyLog(root, create=False).read_today()
 
     return {
         "schema_version": "0.1.0",

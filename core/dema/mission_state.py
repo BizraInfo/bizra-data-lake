@@ -44,9 +44,10 @@ class FourStateModel:
 
 
 class MissionStateMachine:
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, create: bool = True) -> None:
         self.root = Path(root)
-        self.root.mkdir(parents=True, exist_ok=True)
+        if create:
+            self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "mission_state.json"
 
     def get(self) -> FourStateModel:
@@ -86,6 +87,7 @@ class MissionStateMachine:
             ),
             timestamp=_utc_now(),
         )
+        self.root.mkdir(parents=True, exist_ok=True)
         self.path.write_text(
             json.dumps(updated.to_dict(), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",

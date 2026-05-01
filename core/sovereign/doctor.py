@@ -17,15 +17,68 @@ Standing on Giants: Shannon • Lamport • Vaswani • Anthropic
 
 import asyncio
 import json
+import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from enum import Enum
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Any, Dict, List
 
 from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+LOCAL_ENV = REPO_ROOT / ".env"
+
+
+def _local_env_value(name: str) -> str | None:
+    """Read selected repo-local .env keys without shell-sourcing .env."""
+    if name in os.environ:
+        return os.environ[name]
+    env_path = LOCAL_ENV
+    if not env_path.exists():
+        return None
+    try:
+        lines = env_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    prefix = f"{name}="
+    for line in lines:
+        if not line.startswith(prefix):
+            continue
+        value = line[len(prefix) :].strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        return value
+    return None
+
+
+def _resolve_lm_studio_url() -> str:
+    url = _local_env_value("LM_STUDIO_URL")
+    if not url:
+        url = f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}"
+    return url.rstrip("/").removesuffix("/v1")
+
+
+def _lm_url_trust_error(url: str) -> str | None:
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        return "LM Studio URL must use http or https"
+    hostname = parsed.hostname
+    if not hostname:
+        return "LM Studio URL is missing a host"
+    if hostname.lower() == "localhost":
+        return None
+    try:
+        host_ip = ip_address(hostname)
+    except ValueError:
+        return "LM Studio URL host must be localhost or a private IP address"
+    if host_ip.is_loopback or host_ip.is_private or host_ip.is_link_local:
+        return None
+    return "LM Studio URL host must be localhost or a private IP address"
 
 
 class CheckStatus(str, Enum):
@@ -98,6 +151,7 @@ class BizraDoctor:
         await self.check_lmstudio()
         await self.check_ollama()
         await self.check_llamacpp()
+        await self.check_dema_service()
 
         # System
         await self.check_gpu()
@@ -271,82 +325,184 @@ class BizraDoctor:
 
     async def check_lmstudio(self) -> None:
         """Check LM Studio availability (v1 API with auth)."""
-        import os
-
-        host = LMSTUDIO_HOST
-        port = LMSTUDIO_PORT
-        url = f"http://{host}:{port}/api/v1/models"
+        base_url = _resolve_lm_studio_url()
+        trust_error = _lm_url_trust_error(base_url)
+        if trust_error:
+            self.report.add(
+                CheckResult(
+                    name="LM Studio",
+                    status=CheckStatus.FAIL,
+                    message=trust_error,
+                    details={"base_url": base_url},
+                )
+            )
+            return
 
         api_key = (
-            os.getenv("LM_API_TOKEN")
-            or os.getenv("LMSTUDIO_API_KEY")
-            or os.getenv("LM_STUDIO_API_KEY")
+            _local_env_value("LM_API_TOKEN")
+            or _local_env_value("LMSTUDIO_API_KEY")
+            or _local_env_value("LM_STUDIO_API_KEY")
         )
 
+        attempts = []
         try:
             headers = {"Accept": "application/json"}
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
 
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(
-                req, timeout=3
-            ) as resp:  # nosec B310 — URL from trusted config (local LM Studio)
-                data = json.loads(resp.read().decode())
-                models = data.get("models", data.get("data", []))
-                loaded = [m for m in models if m.get("loaded_instances")]
-                model_ids = [m.get("key", m.get("id", "unknown")) for m in models[:5]]
+            for suffix, source in (
+                ("/api/v1/models", "native"),
+                ("/v1/models", "openai_compat"),
+            ):
+                url = f"{base_url}{suffix}"
+                try:
+                    req = urllib.request.Request(url, headers=headers)
+                    with urllib.request.urlopen(
+                        req, timeout=3
+                    ) as resp:  # nosec B310 — trusted local LM Studio config.
+                        data = json.loads(resp.read().decode())
+                except urllib.error.HTTPError as exc:
+                    if exc.code == 401:
+                        self.report.add(
+                            CheckResult(
+                                name="LM Studio",
+                                status=CheckStatus.FAIL,
+                                message="Auth required — set LM_API_TOKEN env var",
+                                details={"url": url, "error": "401 Unauthorized"},
+                            )
+                        )
+                        return
+                    attempts.append({"url": url, "error": f"HTTP {exc.code}"})
+                    continue
+                except urllib.error.URLError as exc:
+                    attempts.append({"url": url, "error": str(exc)})
+                    continue
+
+                if isinstance(data, dict):
+                    models = data.get("models", data.get("data", []))
+                elif isinstance(data, list):
+                    models = data
+                else:
+                    attempts.append({"url": url, "error": "Invalid JSON payload shape"})
+                    continue
+                if not isinstance(models, list):
+                    models = []
+                loaded = [
+                    m
+                    for m in models
+                    if isinstance(m, dict)
+                    and (
+                        m.get("loaded_instances")
+                        or m.get("loaded")
+                        or str(m.get("state", "")).lower() == "loaded"
+                    )
+                ]
+                model_ids = [
+                    m.get("key") or m.get("id") or "unknown"
+                    for m in models[:5]
+                    if isinstance(m, dict)
+                ]
 
                 self.report.add(
                     CheckResult(
                         name="LM Studio",
                         status=CheckStatus.OK,
-                        message=f"Connected at {host}:{port} ({len(models)} models, {len(loaded)} loaded)",
+                        message=(
+                            f"Connected at {base_url} "
+                            f"({len(models)} models, {len(loaded)} loaded)"
+                        ),
                         details={
                             "url": url,
+                            "source": source,
                             "models": model_ids,
                             "count": len(models),
                             "loaded": len(loaded),
+                            "token_present": bool(api_key),
                         },
                     )
                 )
+                return
+
+            self.report.add(
+                CheckResult(
+                    name="LM Studio",
+                    status=CheckStatus.FAIL,
+                    message="Not running — required for Node0/DEMA activation",
+                    details={"base_url": base_url, "attempts": attempts},
+                )
+            )
         except urllib.error.HTTPError as e:
             if e.code == 401:
                 self.report.add(
                     CheckResult(
                         name="LM Studio",
-                        status=CheckStatus.WARN,
-                        message=f"Auth required at {host}:{port} — set LM_API_TOKEN env var",
-                        details={"url": url, "error": "401 Unauthorized"},
+                        status=CheckStatus.FAIL,
+                        message="Auth required — set LM_API_TOKEN env var",
+                        details={"base_url": base_url, "error": "401 Unauthorized"},
                     )
                 )
             else:
                 self.report.add(
                     CheckResult(
                         name="LM Studio",
-                        status=CheckStatus.WARN,
-                        message=f"HTTP {e.code} at {host}:{port}",
-                        details={"url": url, "error": str(e)},
+                        status=CheckStatus.FAIL,
+                        message=f"HTTP {e.code} at {base_url}",
+                        details={"base_url": base_url, "error": str(e)},
                     )
                 )
         except urllib.error.URLError as e:
             self.report.add(
                 CheckResult(
                     name="LM Studio",
-                    status=CheckStatus.WARN,
-                    message="Not running (optional, use Ollama fallback)",
-                    details={"url": url, "error": str(e)},
+                    status=CheckStatus.FAIL,
+                    message="Not running — required for Node0/DEMA activation",
+                    details={"base_url": base_url, "error": str(e)},
                 )
             )
         except (OSError, ValueError) as e:  # SEC-003 — network boundary
             self.report.add(
                 CheckResult(
                     name="LM Studio",
-                    status=CheckStatus.WARN,
+                    status=CheckStatus.FAIL,
                     message=f"Connection error: {e}",
-                    details={"url": url, "error": str(e)},
+                    details={"base_url": base_url, "error": str(e)},
                 )
             )
+
+    async def check_dema_service(self) -> None:
+        """Check local DEMA service health without starting the daemon."""
+        try:
+            from scripts.dema.dema_service import DEFAULT_ROOT, cmd_doctor
+
+            doctor = cmd_doctor(DEFAULT_ROOT)
+        except (
+            ImportError,
+            OSError,
+            ValueError,
+            RuntimeError,
+            json.JSONDecodeError,
+        ) as exc:
+            self.report.add(
+                CheckResult(
+                    name="DEMA Service",
+                    status=CheckStatus.FAIL,
+                    message=f"Status unavailable: {exc}",
+                    details={"error": str(exc)},
+                )
+            )
+            return
+
+        status = CheckStatus.OK if doctor.get("healthy") else CheckStatus.FAIL
+        findings = doctor.get("findings", [])
+        message = "Healthy" if doctor.get("healthy") else "; ".join(findings)
+        self.report.add(
+            CheckResult(
+                name="DEMA Service",
+                status=status,
+                message=message or "Findings present",
+                details=doctor,
+            )
+        )
 
     async def check_ollama(self) -> None:
         """Check Ollama availability."""

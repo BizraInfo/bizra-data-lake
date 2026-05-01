@@ -6,6 +6,7 @@ Each command is a focused module satisfying the BaseCommand protocol.
 Commands register themselves with the central CommandRegistry.
 """
 
+from .dema import DemaCommand
 from .doctor import DoctorCommand
 from .identity import IdentityCommand
 from .launch import LaunchCommand
@@ -17,6 +18,7 @@ from .wallet import BriefingCommand, WalletCommand
 
 ALL_COMMANDS = [
     DoctorCommand,
+    DemaCommand,
     IdentityCommand,
     LaunchCommand,
     StartCommand,

@@ -8,7 +8,10 @@ Standing on Giants:
 
 from __future__ import annotations
 
+import sys
 import time
+import urllib.error
+from pathlib import Path
 from typing import Dict, List, Optional
 from unittest.mock import MagicMock, patch
 
@@ -400,6 +403,274 @@ class TestCommandModules:
         assert "issues" in result.data
         captured = capsys.readouterr()
         assert "BIZRA Doctor" in captured.out
+
+    def test_dema_command_status_json(self, capsys):
+        from core.cli.commands.dema import DemaCommand
+
+        fake_report = {
+            "kind": "node0_dema_status",
+            "ready": True,
+            "findings": [],
+            "dema_service": {"status": "stopped"},
+            "lm_studio": {"connected": True},
+        }
+        with patch(
+            "core.cli.commands.dema.read_node0_dema_status",
+            return_value=fake_report,
+        ):
+            result = DemaCommand().execute(["status", "--json", "--root", "/tmp/dema"])
+
+        assert result.success
+        assert result.data == fake_report
+        captured = capsys.readouterr()
+        assert '"kind": "node0_dema_status"' in captured.out
+
+    def test_dema_command_unknown_subcommand(self):
+        from core.cli.commands.dema import DemaCommand
+
+        result = DemaCommand().execute(["start"])
+        assert not result.success
+        assert "Unknown dema command" in result.message
+
+    def test_dema_command_status_read_failure(self):
+        from core.cli.commands.dema import DemaCommand
+
+        with patch(
+            "core.cli.commands.dema.read_node0_dema_status",
+            side_effect=ValueError("bad local state"),
+        ):
+            result = DemaCommand().execute(["status"])
+
+        assert not result.success
+        assert "Failed to read DEMA status" in result.message
+
+    def test_dema_status_does_not_create_fresh_root(self, tmp_path: Path):
+        from core.dema.node0_status import read_node0_dema_status
+
+        root = tmp_path / "fresh-dema-root"
+        assert not root.exists()
+        fake_lm = {
+            "connected": True,
+            "token_present": True,
+            "model_count": 1,
+            "loaded_count": 1,
+            "model_ids": ["qwen/qwen3.5-9b"],
+            "loaded_model_ids": ["qwen/qwen3.5-9b"],
+            "load_state_known": True,
+            "attempts": [],
+        }
+
+        with patch("core.dema.node0_status.probe_lm_studio", return_value=fake_lm):
+            report = read_node0_dema_status(root)
+
+        assert report["kind"] == "node0_dema_status"
+        assert not root.exists()
+
+    def test_lm_studio_probe_rejects_public_token_target(self, monkeypatch):
+        from core.dema.node0_status import probe_lm_studio
+
+        monkeypatch.setenv("LM_STUDIO_URL", "https://example.com")
+        monkeypatch.setenv("LM_API_TOKEN", "test-token")
+
+        report = probe_lm_studio()
+
+        assert report["connected"] is False
+        assert report["token_present"] is True
+        assert "private IP" in report["attempts"][0]["error"]
+
+    def test_dema_status_does_not_require_token_without_auth(self, tmp_path: Path):
+        from core.dema.node0_status import read_node0_dema_status
+
+        fake_lm = {
+            "connected": True,
+            "auth_required": False,
+            "token_present": False,
+            "model_count": 1,
+            "loaded_count": 1,
+            "model_ids": ["qwen/qwen3.5-9b"],
+            "loaded_model_ids": ["qwen/qwen3.5-9b"],
+            "load_state_known": True,
+            "attempts": [],
+        }
+        fake_service = {
+            "findings": [],
+            "healthy": True,
+        }
+
+        with (
+            patch("core.dema.node0_status.probe_lm_studio", return_value=fake_lm),
+            patch("core.dema.node0_status.dema_service.cmd_status", return_value={}),
+            patch(
+                "core.dema.node0_status.dema_service.cmd_doctor",
+                return_value=fake_service,
+            ),
+            patch("core.dema.node0_status.current_gap_status", return_value={}),
+        ):
+            report = read_node0_dema_status(tmp_path / "dema")
+
+        assert report["ready"] is True
+        assert "LM Studio token is not configured" not in report["findings"]
+
+    def test_lm_studio_probe_reports_auth_required_without_token(self, monkeypatch):
+        from core.dema import node0_status
+
+        monkeypatch.setenv("LM_STUDIO_URL", "http://127.0.0.1:1234")
+        monkeypatch.delenv("LM_API_TOKEN", raising=False)
+        monkeypatch.delenv("LMSTUDIO_API_KEY", raising=False)
+        monkeypatch.delenv("LM_STUDIO_API_KEY", raising=False)
+        monkeypatch.setattr(node0_status, "LOCAL_ENV", Path("/tmp/no-bizra-env"))
+        http_error = urllib.error.HTTPError(
+            "http://127.0.0.1:1234/api/v1/models",
+            401,
+            "Unauthorized",
+            hdrs=None,
+            fp=None,
+        )
+
+        with patch("urllib.request.urlopen", side_effect=http_error):
+            report = node0_status.probe_lm_studio()
+
+        assert report["connected"] is False
+        assert report["auth_required"] is True
+        assert report["token_present"] is False
+
+    def test_sovereign_doctor_entrypoint_propagates_exit_code(self, monkeypatch):
+        from core.sovereign import __main__ as sovereign_main
+
+        async def fake_run_doctor(
+            verbose: bool = False, json_output: bool = False
+        ) -> int:
+            assert verbose is False
+            assert json_output is True
+            return 7
+
+        monkeypatch.setattr(sovereign_main, "run_doctor", fake_run_doctor)
+        monkeypatch.setattr(sys, "argv", ["bizra", "doctor", "--json"])
+
+        with pytest.raises(SystemExit) as exc_info:
+            sovereign_main.main()
+
+        assert exc_info.value.code == 7
+
+    def test_sovereign_dema_without_subcommand_exits_nonzero(self, monkeypatch):
+        from core.sovereign import __main__ as sovereign_main
+
+        monkeypatch.setattr(sys, "argv", ["bizra", "dema"])
+
+        with pytest.raises(SystemExit) as exc_info:
+            sovereign_main.main()
+
+        assert exc_info.value.code == 2
+
+    async def test_sovereign_doctor_lmstudio_rejects_public_token_target(
+        self, monkeypatch
+    ):
+        from core.sovereign.doctor import BizraDoctor, CheckStatus
+
+        monkeypatch.setenv("LM_STUDIO_URL", "https://example.com")
+        monkeypatch.setenv("LM_API_TOKEN", "test-token")
+
+        doctor = BizraDoctor()
+        await doctor.check_lmstudio()
+
+        result = doctor.report.checks[-1]
+        assert result.status == CheckStatus.FAIL
+        assert "private IP" in result.message
+
+    def test_sovereign_doctor_reads_repo_env_outside_cwd(
+        self, monkeypatch, tmp_path: Path
+    ):
+        from core.sovereign import doctor as doctor_module
+
+        repo_env = tmp_path / "repo" / ".env"
+        repo_env.parent.mkdir()
+        repo_env.write_text("LM_STUDIO_URL=http://127.0.0.1:4321\n", encoding="utf-8")
+        monkeypatch.delenv("LM_STUDIO_URL", raising=False)
+        monkeypatch.setattr(doctor_module, "LOCAL_ENV", repo_env)
+        monkeypatch.chdir(tmp_path)
+
+        assert doctor_module._local_env_value("LM_STUDIO_URL") == (
+            "http://127.0.0.1:4321"
+        )
+
+    async def test_sovereign_doctor_lmstudio_accepts_list_payload(self, monkeypatch):
+        from core.sovereign.doctor import BizraDoctor, CheckStatus
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self) -> bytes:
+                return b'[{"id": "local-model", "loaded": true}]'
+
+        monkeypatch.setenv("LM_STUDIO_URL", "http://127.0.0.1:1234")
+        with patch("urllib.request.urlopen", return_value=FakeResponse()):
+            doctor = BizraDoctor()
+            await doctor.check_lmstudio()
+
+        result = doctor.report.checks[-1]
+        assert result.status == CheckStatus.OK
+        assert result.details["count"] == 1
+
+    async def test_sovereign_doctor_dema_unhealthy_is_failure(self):
+        from core.sovereign.doctor import BizraDoctor, CheckStatus
+
+        fake_doctor = {
+            "healthy": False,
+            "findings": ["no profile yet"],
+            "status": {},
+        }
+        with patch("scripts.dema.dema_service.cmd_doctor", return_value=fake_doctor):
+            doctor = BizraDoctor()
+            await doctor.check_dema_service()
+
+        result = doctor.report.checks[-1]
+        assert result.status == CheckStatus.FAIL
+        assert "no profile yet" in result.message
+
+    async def test_sovereign_doctor_dema_import_error_is_failure(self):
+        from core.sovereign.doctor import BizraDoctor, CheckStatus
+
+        with patch(
+            "builtins.__import__",
+            side_effect=ImportError("missing dema service"),
+        ):
+            doctor = BizraDoctor()
+            await doctor.check_dema_service()
+
+        result = doctor.report.checks[-1]
+        assert result.status == CheckStatus.FAIL
+        assert "missing dema service" in result.message
+
+    async def test_run_doctor_returns_nonzero_on_failure(self, capsys):
+        from core.sovereign.doctor import (
+            BizraDoctor,
+            CheckResult,
+            CheckStatus,
+            DoctorReport,
+            run_doctor,
+        )
+
+        report = DoctorReport()
+        report.add(
+            CheckResult(
+                name="LM Studio",
+                status=CheckStatus.FAIL,
+                message="not reachable",
+            )
+        )
+
+        async def fake_run_all_checks(self: BizraDoctor) -> DoctorReport:
+            return report
+
+        with patch.object(BizraDoctor, "run_all_checks", fake_run_all_checks):
+            exit_code = await run_doctor(json_output=True)
+
+        assert exit_code == 1
+        assert '"healthy": false' in capsys.readouterr().out
 
     def test_status_command_offline(self, capsys):
         from core.cli.commands.status import StatusCommand
