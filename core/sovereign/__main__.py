@@ -791,6 +791,7 @@ Examples:
   python -m core.sovereign serve --port 8080        # Start API server
   python -m core.sovereign gateway telegram          # Run Telegram gateway
   python -m core.sovereign status                   # Check status
+  python -m core.sovereign node0                    # Node0 command center
   python -m core.sovereign dema status              # Check DEMA status
   python -m core.sovereign test                     # Run tests
   python -m core.sovereign bridge start              # Start desktop bridge (AHK)
@@ -848,6 +849,19 @@ Examples:
         "-v", "--verbose", action="store_true", help="Verbose output"
     )
     doctor_parser.add_argument("--json", action="store_true", help="JSON output")
+
+    # Node0 command center (read-only v0.1)
+    node0_parser = subparsers.add_parser("node0", help="Node0 command center")
+    node0_parser.add_argument("--json", action="store_true", help="JSON output")
+    node0_parser.add_argument(
+        "--root",
+        help="Local DEMA state root (default: sovereign_state/dema)",
+    )
+    node0_parser.add_argument(
+        "node0_args",
+        nargs=argparse.REMAINDER,
+        help="Optional action and flags, e.g. status --json",
+    )
 
     # DEMA command (read-only operator status)
     dema_parser = subparsers.add_parser("dema", help="DEMA operator commands")
@@ -1016,6 +1030,17 @@ Examples:
         run_tests()
     elif args.command == "doctor":
         sys.exit(asyncio.run(run_doctor(args.verbose, args.json)))
+    elif args.command == "node0":
+        from core.cli.commands.node0 import Node0Command
+
+        cmd_args = list(getattr(args, "node0_args", []) or [])
+        if getattr(args, "json", False) and "--json" not in cmd_args:
+            cmd_args.append("--json")
+        root = getattr(args, "root", None)
+        if root:
+            cmd_args.extend(["--root", root])
+        result = Node0Command().execute(cmd_args)
+        sys.exit(result.exit_code)
     elif args.command == "dema":
         if args.dema_command == "status":
             from core.cli.commands.dema import DemaCommand

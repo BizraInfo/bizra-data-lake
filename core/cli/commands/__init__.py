@@ -12,6 +12,7 @@ from .identity import IdentityCommand
 from .launch import LaunchCommand
 from .lifecycle import ResetCommand, StartCommand, StopCommand
 from .mission import MissionCommand
+from .node0 import Node0Command
 from .status import StatusCommand
 from .version import VersionCommand
 from .wallet import BriefingCommand, WalletCommand
@@ -25,6 +26,7 @@ ALL_COMMANDS = [
     StopCommand,
     ResetCommand,
     MissionCommand,
+    Node0Command,
     StatusCommand,
     VersionCommand,
     WalletCommand,
