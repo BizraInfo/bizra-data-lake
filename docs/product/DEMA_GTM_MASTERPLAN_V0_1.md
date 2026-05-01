@@ -9,6 +9,11 @@ state to a private-pilot-ready GTM posture.
 real-token mint, public network exposure, autonomous social posting, or any
 canon mutation. Each phase ships with its own scoped PR and explicit rules.
 
+**Identity prerequisite:** `DEMA_IDENTITY_MODEL_V0_1.md` governs the split
+between DEMA Core, DEMA-0 / Mumu-DEMA, future DEMA-n instances, Node0-private
+memory, and URP-shareable knowledge. Memory Import (A6) must obey that model
+before any origin-memory ingestion or URP seed-pack work starts.
+
 ---
 
 ## §1 Dema Product Truth
@@ -200,6 +205,11 @@ Forbidden in any public surface (per brand canon §15):
 - [ ] Outputs under `.sovereign/dema/imports/<run_id>/` (gitignored)
 - [ ] No raw chat content in any committed artifact
 - [ ] Approval boundary before promotion to long-term memory
+- [ ] DEMA Identity Model v0.1 classification applied:
+      `MUMU_PRIVATE_MEMORY`, `BIZRA_CANON`, `URP_SHAREABLE_KNOWLEDGE`, or
+      `UNVERIFIED_OR_AMBIGUOUS`
+- [ ] Future-node bootstrap path cannot inherit Node0-private records by
+      default
 
 ### A7 — Desktop Actuator
 
