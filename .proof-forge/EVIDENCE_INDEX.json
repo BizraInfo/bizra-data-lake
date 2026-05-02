@@ -1,7 +1,10 @@
 {
-  "chain_length": 1,
+  "chain_length": 4,
   "created_at": "2026-04-17T07:44:32+00:00",
-  "latest_hash": "e0b3142742b07150085855e121853fb7bcf25d87d3ac510730c173866d3e6e95",
+  "genesis_timestamp": "2026-05-02T07:18:46+00:00",
+  "latest_hash": "5aa21b35f152f9a5180bc49bd11d06df754147b702d45111fd32889413a1d54c",
+  "latest_receipt": "2026-05-02_101333.json",
+  "project": "bizra-data-lake",
   "receipts": [
     {
       "artifact_count": 23,
@@ -13,8 +16,36 @@
       "generated_at": "2026-04-17T07:44:32+00:00",
       "previous_hash": "5f40748340c501cf7f3e0a269b4c5cd0f88b3ff88689eaf7474b45bc8e42d189",
       "receipt_hash": "e0b3142742b07150085855e121853fb7bcf25d87d3ac510730c173866d3e6e95"
+    },
+    {
+      "chain_hash": "528c2cfb61011e174a0f39c2a654b3bce98f080d436d2b0d9c5b81bdc0ba6854",
+      "confidence_label": "Attested",
+      "confidence_level": 2,
+      "description": "BIZRA ship verification and Proof Forge evidence for feat/economic-constitution-v1 after API, scan, memory, Node0 smoke, and ship-gate passes/blockers.",
+      "filename": "2026-05-02_071846.json",
+      "position": 2,
+      "timestamp": "2026-05-02T07:18:46+00:00"
+    },
+    {
+      "position": 3,
+      "filename": "2026-05-02_101127.json",
+      "timestamp": "2026-05-02T10:11:27.915830+00:00",
+      "chain_hash": "9757be9d4bbb1b4f79c5749708a7408211c7c6715188b0da15d4e2dfcabc0fcf",
+      "confidence_level": 4,
+      "confidence_label": "Strong",
+      "description": "Proof-of-Truth convergence: ADK evidence-preserving refusal and identity-bound Receipt v1 bridge locally validated; cryptographic lane LOCAL_VALIDATED / CI_PENDING."
+    },
+    {
+      "position": 4,
+      "filename": "2026-05-02_101333.json",
+      "timestamp": "2026-05-02T10:13:33.659532+00:00",
+      "chain_hash": "5aa21b35f152f9a5180bc49bd11d06df754147b702d45111fd32889413a1d54c",
+      "confidence_level": 4,
+      "confidence_label": "Strong",
+      "description": "Proof-of-Truth convergence: ADK evidence-preserving refusal and identity-bound Receipt v1 bridge locally validated; cryptographic lane LOCAL_VALIDATED / CI_PENDING."
     }
   ],
-  "updated_at": "2026-04-17T07:44:32+00:00",
+  "schema_version": "1.0.0",
+  "updated_at": "2026-05-02T10:13:33.659532+00:00",
   "version": "proof-forge-v1"
 }

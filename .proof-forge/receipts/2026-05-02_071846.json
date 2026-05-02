@@ -1,0 +1,832 @@
+{
+  "artifacts": {
+    "count": 85,
+    "details": [
+      {
+        "modified": "2026-05-01T18:18:04+00:00",
+        "path": ".github/copilot-instructions.md",
+        "sha256": "180d96f908a01705d5a05dc9d101404816a082dbf91999e4c846f21319b684e4",
+        "size_bytes": 7297,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-04-28T09:51:58+00:00",
+        "path": ".github/workflows/ci.yml",
+        "sha256": "d530e84b0824b8911bbb966a1c033d92f0c814a6c501675f6b0e304f0053d19e",
+        "size_bytes": 109536,
+        "type": "config"
+      },
+      {
+        "modified": "2026-04-28T09:51:58+00:00",
+        "path": ".github/workflows/quality-spine.yml",
+        "sha256": "a914255c386e3f60c37d39e7abd45e00567cb14449bc5f430c61d2fb40068773",
+        "size_bytes": 11863,
+        "type": "config"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": ".github/workflows/tests.yml",
+        "sha256": "d696400571de2988caba721212f94b7a6a982fe225a2da72b49f190d07170f47",
+        "size_bytes": 32526,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": ".gitignore",
+        "sha256": "a241b77cd8750ee2085b395cb1574cdf0bd7adcfbf74ad373c74605ecca73914",
+        "size_bytes": 10639,
+        "type": "data"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "bizra-omega/bizra-hooks/src/ihsan_gate.rs",
+        "sha256": "722f4a982d67bddb3827755a70499e660f4667f05faa46992f65a624fc7847ea",
+        "size_bytes": 22559,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/cli/commands/__init__.py",
+        "sha256": "95695d0593c7f89405dd0a90372dade0491013d07485d08df951ac6f764493a2",
+        "size_bytes": 864,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/cli/commands/dema.py",
+        "sha256": "5453d182a64c180252c799144eb574818a96e601fd8bb580661c7baaf5df3f50",
+        "size_bytes": 16103,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/cli/commands/node0.py",
+        "sha256": "7710cd07d0ff9a21c9dc1b4f1c597597bba408b7d2e526de9230b72c8c6938f2",
+        "size_bytes": 6556,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/dema/__init__.py",
+        "sha256": "20a002f46da07acd8d39bbb9bcee822d84bd6ef334ac9ee0a0d46643e56cfcbb",
+        "size_bytes": 2261,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/dema/csl/__init__.py",
+        "sha256": "7a168eddfbde001627d8043b16fc177ef515b7b94f34cce48b90a9f571120650",
+        "size_bytes": 1897,
+        "type": "code"
+      },
+      {
+        "modified": "2026-04-28T09:51:58+00:00",
+        "path": "core/dema/csl/labels.py",
+        "sha256": "2cb9d593a00d83bb1ebd31fbec90f8161281dbd2d24658e1d22d2365aa6f4130",
+        "size_bytes": 3127,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/dema/csl/schemas.py",
+        "sha256": "2d220e459eb41505e0c4fed51a918d09bf5a246a9e37ff4268a064cf9f673ef4",
+        "size_bytes": 2500,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/dema/daily_log.py",
+        "sha256": "aebbdc583b23ca32869998b1914a05172af6645aefcbc40e59c1d3c2e6afde77",
+        "size_bytes": 2369,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/dema/mission_state.py",
+        "sha256": "8d45487a801405be987963e04620518178128f38703e5ca4815459aead017857",
+        "size_bytes": 3168,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/dema/node0_status.py",
+        "sha256": "21263a9936c59b7550f3d63ba05d24de32f0e275a6b1be793048877f8b21403b",
+        "size_bytes": 8007,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/dema/profile.py",
+        "sha256": "0eee47037009eb81bf713a21298c1f8b98ca17648b41cb14f2d7864121e26e9b",
+        "size_bytes": 3366,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/dema/proof_convergence.py",
+        "sha256": "48904c126d6579117831c609c3c61ab080bb85a11dec0764543c9e037cf286ec",
+        "size_bytes": 8147,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/dema/proof_surface.py",
+        "sha256": "ca4c1fa544a2dc23928d004ca0feac3ff1b8a5b0fece719fc64e699d1189161a",
+        "size_bytes": 6278,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T17:50:27+00:00",
+        "path": "core/dema/semantic_transducer.py",
+        "sha256": "3c3877b1573adc1557174c8a50127b00cbdb48543e4e01cc2a32185c47cd723c",
+        "size_bytes": 13552,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T18:37:52+00:00",
+        "path": "core/economy/__init__.py",
+        "sha256": "4c581c6024a8e7cf2b40c6b88174907f37b60e69b8aed6348bbbbe6d370477a6",
+        "size_bytes": 1096,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T19:18:28+00:00",
+        "path": "core/economy/ledger.py",
+        "sha256": "c8b3132caac87d58be5a7e2587533ea17db525c50b692bb394ba25db98e3c3b1",
+        "size_bytes": 20412,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T18:24:46+00:00",
+        "path": "core/memory/adapters/evidence_chain.py",
+        "sha256": "9613f3320a66d4489ee67b2acd2f2b292d9c1b30b41c6a351c7f9b1f91450ae0",
+        "size_bytes": 13619,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T18:24:42+00:00",
+        "path": "core/memory/adapters/living_memory.py",
+        "sha256": "78c6791c5086110f7a362f841e0c409659cdee694751e9e0f0fc73e60283a05b",
+        "size_bytes": 13035,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T18:24:37+00:00",
+        "path": "core/memory/agent_db.py",
+        "sha256": "bc2dae2962ba41a0d354dca2271daae7bf4bc1d621ba31ef40f58d5ab1bac785",
+        "size_bytes": 23223,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-02T04:56:43+00:00",
+        "path": "core/pat/sovereign_scan.py",
+        "sha256": "aaca3adea806fc149287c9ec2554b6b018356b4f0512f5dd345a4bc2ea947994",
+        "size_bytes": 14794,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/sovereign/__main__.py",
+        "sha256": "025177653427eeafab692819a8940a2d235c3d6ba883e7813fe9904c60c73185",
+        "size_bytes": 49729,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-02T05:18:29+00:00",
+        "path": "core/sovereign/api.py",
+        "sha256": "56a2b0e95cc45fd8ec27a08da9b4c8eaef5a121dd099f69ec275a8c231d1bbb8",
+        "size_bytes": 314821,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/sovereign/api_exposure_policy.py",
+        "sha256": "93357a5efdd9cbdc1ac30bad5f22fdf29720cecd772c8ebd552065fe4beccc33",
+        "size_bytes": 10784,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-02T04:56:37+00:00",
+        "path": "core/sovereign/data_import.py",
+        "sha256": "63a498db45dfd91669df56c54415e619563f01d3ab212cf31b4a3b332ff36372",
+        "size_bytes": 36040,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "core/sovereign/doctor.py",
+        "sha256": "79f143f9ee2f1fe32dba846bd54b10ac96c4f44be999ed9cb3187b4220e2d04c",
+        "size_bytes": 27377,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T17:50:27+00:00",
+        "path": "docs/architecture/BIZRA_ECONOMIC_CONSTITUTION_V1_0.md",
+        "sha256": "aa5f1d605b7001de5084ecbddc5f8d5b6f5a5fdd4a006fe5bc26177724d661ed",
+        "size_bytes": 1823,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "docs/architecture/BIZRA_SEMANTIC_TRANSDUCER_CONTRACT_V0_1.md",
+        "sha256": "1675303c6b6dcfd151f47085f82c75c29032f1822380b3d8b7a3d72f94296b51",
+        "size_bytes": 5556,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "docs/knowledge/canonical_truth_pack.json",
+        "sha256": "e91ca8612fc1e84af7dce44d382e3b5e8eecc3538cc5ec63ed3f8ee4a344f686",
+        "size_bytes": 558,
+        "type": "config"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "docs/product/BIZRA_NODE0_CLI_TUI_SOURCE_AUDIT_V0_1.md",
+        "sha256": "c42b70fa10904b50c6df36274ea56983aebad613cc4229cfba739a61e07d7aa1",
+        "size_bytes": 3798,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "docs/product/BIZRA_NODE0_ENTRYPOINT_V0_1.md",
+        "sha256": "90d29af6407a8d9d08c73fc55d9eb5055ee8c38edeb95afb5a50666f5512d07c",
+        "size_bytes": 10713,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "docs/product/DEMA_AMBIENT_KERNEL_V0_1.md",
+        "sha256": "1dad0edc8507c8c5385717844d17bf787db0d9bbdc73c42ae08cfcce2a10010b",
+        "size_bytes": 6939,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "docs/product/DEMA_AMBIENT_SERVICE_V0_1.md",
+        "sha256": "68a96f319954adba5a8b20f13fe993f15e3a0a275fa0e3d424a26151e99d6585",
+        "size_bytes": 6814,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-04-28T09:51:58+00:00",
+        "path": "docs/product/DEMA_CANONICAL_SEMANTICS_LAYER_V0_1.md",
+        "sha256": "5236971c67ea3244a0e663f93d156ca5b09b5d4652f7df3e7fa45ed00ae43abc",
+        "size_bytes": 5079,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "docs/product/DEMA_GTM_MASTERPLAN_V0_1.md",
+        "sha256": "75425f6949e61bd3a6f648d55d5a8318afeb9005aff782e41b1c464de0ebfe58",
+        "size_bytes": 14644,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "docs/product/DEMA_IDENTITY_MODEL_V0_1.md",
+        "sha256": "2b7179e719e91b29fb7a080c0d88247a2cb1c483a718efd7a58819a8da0fa0a7",
+        "size_bytes": 7978,
+        "type": "doc"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/src/components/terminal/proof-surface-panel.tsx",
+        "sha256": "a8c1f1e68410de244ccce0fd0da62dba60bb0dafbe8106c235f0d576696cfbcd",
+        "size_bytes": 6286,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/src/components/terminal/terminal-manifest.ts",
+        "sha256": "c97ed5ecaf228a703f7d6969e484cc44bbe2bc581406daddfadcc1ece2f0707b",
+        "size_bytes": 7181,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/src/components/terminal/terminal-mission.tsx",
+        "sha256": "143dc3cce3052962c648b998936590f6b9d6afada74ffe2137e95c910e9673d9",
+        "size_bytes": 14990,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/src/components/terminal/terminal-node0.tsx",
+        "sha256": "d59ea4e3f6562020230b42a28ee0dbb951a2d3fd669d6494c7e5ed7cfaddef53",
+        "size_bytes": 20478,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/src/components/terminal/terminal-shell.tsx",
+        "sha256": "c176a6deb29752dcf0d55b73b17cb4ecdb2a66832363e23512464777c4fdeab5",
+        "size_bytes": 13986,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/src/hooks/use-node0-local-action-executor.ts",
+        "sha256": "67916878f9012a7efcce9de1e2984bdbf534ca26008dc7e86756539950f314ca",
+        "size_bytes": 3321,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/src/hooks/use-node0-voice-input.ts",
+        "sha256": "cd783818306991df3e125a2641058a4a7ed8f99096be589d9056de5fc37ca606",
+        "size_bytes": 4678,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/src/hooks/use-sovereign-api.ts",
+        "sha256": "d32519aa452ef3218a61dc98318e8ed408c564027c0ca8cee6a06ea7bebb1713",
+        "size_bytes": 49443,
+        "type": "code"
+      },
+      {
+        "modified": "2026-04-28T09:51:58+00:00",
+        "path": "frontend/src/lib/dema-csl.ts",
+        "sha256": "23801989fab59ea5059df134215a1aa65ba68e759dea53288314b58e28c0a7b1",
+        "size_bytes": 1320,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/src/lib/dema-proof-surface.ts",
+        "sha256": "0bd2c0b4a72089e36853401b0a3f05b9418e390d413e162ebe9f2c3f7aa55569",
+        "size_bytes": 2545,
+        "type": "code"
+      },
+      {
+        "modified": "2026-04-28T09:51:58+00:00",
+        "path": "frontend/src/tests/wallet-hardening.test.ts",
+        "sha256": "d451980b3508df658929851f2ae752f7e2802ffec2e1862d269a671d6d5dc853",
+        "size_bytes": 9763,
+        "type": "test"
+      },
+      {
+        "modified": "2026-04-28T09:51:58+00:00",
+        "path": "frontend/tests/dema-csl.test.ts",
+        "sha256": "9274548f7f9810f8dba524cd9e0d3a6ea5acf06d81d21e31c1bf42e82956b008",
+        "size_bytes": 2854,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/tests/node0-local-action-executor.test.ts",
+        "sha256": "a7daadd2bcbb8ea0af78307199388a569598e36a2c9fc13a0b87293dd799c12b",
+        "size_bytes": 5063,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/tests/proof-surface-panel.test.tsx",
+        "sha256": "30b887922373d3e29b6edf7436492e47748b25fe463a564572c5ef8820e6fece",
+        "size_bytes": 4121,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "frontend/tests/terminal-panels.test.tsx",
+        "sha256": "6a84670b2e02c5bf8d8e3bda5efbf700f10b455e88bfe5d2e7b25155cc243146",
+        "size_bytes": 18621,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "pyproject.toml",
+        "sha256": "1ada66befa05fa4389cf88635eae7c8114c092a9c1edfae231a56191decadb5d",
+        "size_bytes": 11210,
+        "type": "config"
+      },
+      {
+        "modified": "2026-04-28T09:51:58+00:00",
+        "path": "scripts/dema/dema_csl.py",
+        "sha256": "01cc1553feeacf77781c611eb1c8aa9f20f114f4210f7d376cdc057ae0cab68c",
+        "size_bytes": 3437,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "scripts/dema/dema_daemon.py",
+        "sha256": "61c56c55b38cb2ffb2dfe2c3babcf4c50205d3df81a6c6b9525d633ead5e3876",
+        "size_bytes": 10150,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "scripts/dema/dema_service.py",
+        "sha256": "ef677da920707b9a209950492b8b16331a6a7691841826d96b9e55d783024cf0",
+        "size_bytes": 8792,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "scripts/dema/dema_status.py",
+        "sha256": "11bd015967ffad74827324660b006d5468d1953430326c2c9872028f9c854229",
+        "size_bytes": 1821,
+        "type": "code"
+      },
+      {
+        "modified": "2026-04-28T09:51:58+00:00",
+        "path": "scripts/quality_spine.py",
+        "sha256": "17384e83a7e92f8fbc8deea995dc4150d794c8e0ebb19923b7df5da5cd6ffff6",
+        "size_bytes": 45504,
+        "type": "code"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/core/cli/test_cli_registry.py",
+        "sha256": "5b0ebf8bff70bb0b3f1120b2b8472a4e69d526996a964c366f84d92a34f6d7b3",
+        "size_bytes": 39351,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/core/dema/test_semantic_transducer.py",
+        "sha256": "f6cee20c1ec0792531146c0a530630d988f46d4bd8e6909407bdaec5f7899193",
+        "size_bytes": 7784,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T18:03:07+00:00",
+        "path": "tests/core/economy/__init__.py",
+        "sha256": "80c5427ad30771d7faf3247ca989db1b302e2ef837b5c3afca4a3de175f8eff4",
+        "size_bytes": 35,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T18:38:22+00:00",
+        "path": "tests/core/economy/test_economic_constitution.py",
+        "sha256": "9a625c48c059f24d6cbea5902dca413c90830c395c91cd42a7324c75f53092f5",
+        "size_bytes": 14926,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T18:25:42+00:00",
+        "path": "tests/core/memory/test_agent_db.py",
+        "sha256": "f1b2e8e820776dd86a59c1ebfefd18818bc1a0d651c5a34badf47dc6a36d33ea",
+        "size_bytes": 8934,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-02T04:57:14+00:00",
+        "path": "tests/core/pat/test_sovereign_scan.py",
+        "sha256": "816a0676424267e0fa39bb51d9f28fb0f1f2ba720ea5fadcce50aaf75984b851",
+        "size_bytes": 2936,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/core/pci/test_timing_safe.py",
+        "sha256": "84d7514ecb58223c7e0c56cbddfc733eb8e89417065c46857685c987948483e1",
+        "size_bytes": 15568,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/core/rdve/test_rdve_integration.py",
+        "sha256": "06e2b1d98ea03ec4940d4efa29559c96de3ead68d07ef9998bf04392e06ff2ef",
+        "size_bytes": 13045,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-02T05:18:47+00:00",
+        "path": "tests/core/sovereign/test_api_error_taxonomy.py",
+        "sha256": "f0fa9138337af1a065b368a2dbc78b9dff8639da52a1991821886c93869e4fea",
+        "size_bytes": 9288,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/core/sovereign/test_api_exposure_policy.py",
+        "sha256": "5265435ef4a12bb4e2992e3f0ef444711233cd7f2336f141e3a8da06d49897d3",
+        "size_bytes": 3764,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-02T05:14:43+00:00",
+        "path": "tests/core/sovereign/test_chain_proxy_trust_surface.py",
+        "sha256": "00616e4e550cc1b98b081bf40e44c6120ce1f6a259b440a24117f1ae389cda25",
+        "size_bytes": 13825,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-02T04:57:25+00:00",
+        "path": "tests/core/sovereign/test_data_importer.py",
+        "sha256": "3923eb572bce4b1b7b3dee7f18e7352d9ed9e4b1eae186ca63c6e5a1b50c80b1",
+        "size_bytes": 5631,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-02T05:13:13+00:00",
+        "path": "tests/core/sovereign/test_fate_bridge.py",
+        "sha256": "9eb36e43d5873ae4ab2dd42f80d64643d43e91e2851f563ce0178d9c02d14174",
+        "size_bytes": 2911,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-02T05:13:19+00:00",
+        "path": "tests/core/sovereign/test_keypair_security.py",
+        "sha256": "9ce77ab87d9087c965cda9ff141bf1865419c2fb4c94d3df0bc6fc72e2907a71",
+        "size_bytes": 5757,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/core/sovereign/test_memory_api.py",
+        "sha256": "0b66b8bf03de059512dcecd19f98dd9cce8b8ad124e40dec2aa4df65e683744f",
+        "size_bytes": 7716,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/core/sovereign/test_node0_action_api.py",
+        "sha256": "a708b88790f9dddf703e9ba8110185ab78b03825c79be1922d68f020d6ffa54b",
+        "size_bytes": 7194,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/core/sovereign/test_node0_readiness_api.py",
+        "sha256": "4f77833036fd4c8ebb84e73798b4a08c6945e5a99585dff0a7e00ef7fe1e84e7",
+        "size_bytes": 9004,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/integration/test_autonomous_pilot.py",
+        "sha256": "3ba5504c9c15ea1fcb4b55d7b8e57997a89ae42396ab417d650a9bde4199498a",
+        "size_bytes": 14582,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/scripts/test_dema_ambient_service.py",
+        "sha256": "82ac25c59ea9cbe0c43e7429e7dfafb90282521645e06b462ad167e8eb69995f",
+        "size_bytes": 10035,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/scripts/test_dema_csl.py",
+        "sha256": "fed69d23681c1636d907c99d5b4322e8e7a0f91d7903dd377c9a700f4cd4a362",
+        "size_bytes": 8728,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/scripts/test_dema_identity_model_doc.py",
+        "sha256": "56e3b9292c89d2c1f9022e032122348ed9094f1d8b0aaa834f9cd42969d2b8f6",
+        "size_bytes": 1604,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/scripts/test_dema_proof_convergence.py",
+        "sha256": "b1bac39bfbfd46e9034d09877df4a9bfbe66c4a7ffe4dd0e8c10fd254d5460d4",
+        "size_bytes": 4598,
+        "type": "test"
+      },
+      {
+        "modified": "2026-05-01T16:31:56+00:00",
+        "path": "tests/scripts/test_dema_proof_surface.py",
+        "sha256": "1c688eaaf77d3dd9f2fe17a0273429e746d281c2c9d3c45e6e4efb7a1fbb0250",
+        "size_bytes": 6355,
+        "type": "test"
+      }
+    ],
+    "summary": {
+      "code": 41,
+      "config": 4,
+      "data": 1,
+      "doc": 10,
+      "test": 29
+    }
+  },
+  "chain_position": 2,
+  "confidence": {
+    "criteria": "Workflow secret-pattern blocker resolved; release verification remains fail-closed due to incomplete full pytest and historical proof-chain verification incompatibility.",
+    "label": "Attested",
+    "level": 2
+  },
+  "description": "BIZRA ship verification and Proof Forge evidence for feat/economic-constitution-v1 after API, scan, memory, Node0 smoke, and ship-gate passes/blockers.",
+  "git": {
+    "base": "e0d1e65f37b7a6663292464d134fee0c07778b36",
+    "branch": "feat/economic-constitution-v1",
+    "commits": [
+      {
+        "date": "2026-04-29 18:17:03 +0400",
+        "hash": "64f4267d5d24cf94331684f9bc29b2f6065b3092",
+        "subject": "feat(dema): add Canonical Semantics Layer v0.1"
+      },
+      {
+        "date": "2026-04-29 20:43:08 +0400",
+        "hash": "51148ea1636c9e99ab292552041e866d17031bd1",
+        "subject": "feat(dema): add Proof Convergence Verifier v0.1"
+      },
+      {
+        "date": "2026-04-30 00:40:53 +0400",
+        "hash": "3157c6a6e1854cee069430a72d769aa9802ee6a9",
+        "subject": "feat(dema): add proof surface contract"
+      },
+      {
+        "date": "2026-04-30 02:34:09 +0400",
+        "hash": "9716a8b3327eebad14d106b9ce3d56aa497b61d3",
+        "subject": "feat(dema): add proof surface frontend panel"
+      },
+      {
+        "date": "2026-04-30 03:37:48 +0400",
+        "hash": "0826dc5ecfa8512d63ac800e58392d60db1c2dd2",
+        "subject": "feat(dema): add Node0 product shell v0.1"
+      },
+      {
+        "date": "2026-04-30 05:37:50 +0400",
+        "hash": "3228bb91baa3d0e7a768966f6e9fde25d94aaf0b",
+        "subject": "feat(node0): add boot readiness status"
+      },
+      {
+        "date": "2026-04-30 06:49:56 +0400",
+        "hash": "eeca2b4b202504841e305efeefa114be1a2beee6",
+        "subject": "feat(node0): add memory import v0.1"
+      },
+      {
+        "date": "2026-04-30 12:43:49 +0400",
+        "hash": "f4a1eb522e1e0adbb637ef5c8c1d3e7256478936",
+        "subject": "feat(node0): add voice input v0.1"
+      },
+      {
+        "date": "2026-04-30 18:39:30 +0400",
+        "hash": "dde4656273d633eee0ad8a8249a02300638519bd",
+        "subject": "feat(node0): add desktop/browser action v0.1"
+      },
+      {
+        "date": "2026-05-01 01:41:49 +0400",
+        "hash": "2f81ea72bc1d44a3da7a101f589aaf1382694762",
+        "subject": "feat(node0): add local action executor v0.1"
+      },
+      {
+        "date": "2026-05-01 03:44:50 +0400",
+        "hash": "a3e71f1ec1e0ae06d0a1ba3a93a50042cc07a07e",
+        "subject": "feat(node0): expose always-on daemon readiness"
+      },
+      {
+        "date": "2026-05-01 06:07:36 +0400",
+        "hash": "8e3c90a2ac68d71801f721aef26c7f2703cc439f",
+        "subject": "docs(dema): codify identity model v0.1"
+      },
+      {
+        "date": "2026-05-01 12:31:43 +0400",
+        "hash": "85442c5220ed49fecace807bcf059d4efe3f7ca9",
+        "subject": "feat(node0): add read-only dema cli status"
+      },
+      {
+        "date": "2026-05-01 13:27:01 +0400",
+        "hash": "8902d69c8ea5c7991ecafa75f48f0d842dd497af",
+        "subject": "feat(node0): add read-only command center"
+      },
+      {
+        "date": "2026-05-01 18:16:19 +0400",
+        "hash": "5963b1728f77c65f12b173acf286abcdf1501519",
+        "subject": "feat(dema): add relief mode pre-start package"
+      },
+      {
+        "date": "2026-05-01 18:29:28 +0400",
+        "hash": "a9c14307520bf55c02d94009f0e95c665567affe",
+        "subject": "fix(dema): harden relief prestart review gates"
+      },
+      {
+        "date": "2026-05-01 19:32:42 +0400",
+        "hash": "49c6ac880523705e7f96da473c4546c083f0b22c",
+        "subject": "Merge pull request #82 from BizraInfo/feat/dema-relief-prestart"
+      },
+      {
+        "date": "2026-05-01 20:31:20 +0400",
+        "hash": "1f18ed88929bde85d34b275cb62c75f118a7cc94",
+        "subject": "feat(dema): add semantic transducer contract"
+      },
+      {
+        "date": "2026-05-01 22:03:38 +0400",
+        "hash": "b97093b6ecd66551cd10e6b1a51c749fc97f541b",
+        "subject": "feat(economy): add economic constitution ledger"
+      },
+      {
+        "date": "2026-05-01 23:23:46 +0400",
+        "hash": "6083e629c4ec9239e76a59ccf0554f338cbfac85",
+        "subject": "feat(economy): harden economic constitution ledger"
+      },
+      {
+        "date": "2026-05-02 08:48:49 +0400",
+        "hash": "daa3e726cf00c41ae52b73dc74ac9d7d972a3718",
+        "subject": "fix(memory): harden AgentDB query controls"
+      },
+      {
+        "date": "2026-05-02 08:49:12 +0400",
+        "hash": "7f808eafce4f166049463240c153fe9ac39766b7",
+        "subject": "docs(tooling): update Copilot repository guidance"
+      },
+      {
+        "date": "2026-05-02 08:59:04 +0400",
+        "hash": "3cc12fe973187b5356b942ca3885a518e5907928",
+        "subject": "fix(scans): bound recursive discovery paths"
+      },
+      {
+        "date": "2026-05-02 09:21:20 +0400",
+        "hash": "b84b4c265c607c57052e63c76384880139b31b44",
+        "subject": "fix(api): harden sovereign exception boundaries"
+      }
+    ],
+    "head": "b84b4c265c607c57052e63c76384880139b31b44"
+  },
+  "hashes": {
+    "chain_hash": "528c2cfb61011e174a0f39c2a654b3bce98f080d436d2b0d9c5b81bdc0ba6854",
+    "evidence_hash": "327e6b20e6fe6fa623fd10c117df096bd2652a9c9f280785d621d9caf3bf6469",
+    "previous_hash": "e0b3142742b07150085855e121853fb7bcf25d87d3ac510730c173866d3e6e95"
+  },
+  "receipt_id": "receipt-2026-05-02_071846",
+  "schema_version": "1.0.0",
+  "timestamp": "2026-05-02T07:18:46+00:00",
+  "verification": {
+    "checks": [
+      {
+        "command": "just check",
+        "duration_ms": null,
+        "exit_code": 0,
+        "output_excerpt": "e onboarding 0ms\n\n \u276f tests/unit/wallet-hardening.test.ts 1/8\n\n Test Files 10 passed (11)\n      Tests 117 passed (124)\n   Start at 10:40:02\n   Duration 703ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > drops stale fetch results when a newer fetch has already landed 60ms\n\n \u276f tests/unit/wallet-hardening.test.ts 2/8\n\n Test Files 10 passed (11)\n      Tests 118 passed (124)\n   Start at 10:40:02\n   Duration 803ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > preserves live state when backend temporarily fails 54ms\n\n \u276f tests/unit/wallet-hardening.test.ts 2/8\n\n Test Files 10 passed (11)\n      Tests 118 passed (124)\n   Start at 10:40:02\n   Duration 903ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > prevents concurrent fetches from stacking 212ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > merges partial success without corrupting wallet 53ms\n\n \u276f tests/unit/wallet-hardening.test.ts 5/8\n\n Test Files 10 passed (11)\n      Tests 121 passed (124)\n   Start at 10:40:02\n   Duration 1.10s\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > handles all three endpoints failing gracefully 53ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Economic Integrity > zakat is always exactly 2.5% of gross 53ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Economic Integrity > supply cap utilization is bounded [0, 1+] 52ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Economic Integrity > offline factors derive from nodeState deterministically 53ms\n\n Test Files  11 passed (11)\n      Tests  124 passed (124)\n   Start at  10:40:02\n   Duration  1.24s (transform 559ms, setup 247ms, import 743ms, tests 762ms, environment 1.68s)\n\nJSON report written to /data/bizra/repos/award-winner-design/coverage/test-results.json\n  \u2713 all language test suites green\n  \u2713 polyglot gate PASS\n___BEGIN___COMMAND_DONE_MARKER___0\n(.venv) ",
+        "passed": true,
+        "summary": "PASS: polyglot just check completed successfully; warnings only in external award-winner-design lint output.",
+        "type": "static_analysis"
+      },
+      {
+        "command": "python .claude/skills/cross-lang-sync/audit_constants.py",
+        "duration_ms": null,
+        "exit_code": 0,
+        "output_excerpt": "IHSAN_THRESHOLD 0.95/0.95 ALIGNED; SNR_THRESHOLD 0.85/0.85 ALIGNED; ADL_GINI_THRESHOLD 0.35/0.35 ALIGNED; ADL_HARBERGER_TAX_RATE 0.05/0.05 ALIGNED.",
+        "passed": true,
+        "summary": "PASS: Cross-Language Sync Audit status ALIGNED for Tier 1 constitutional constants.",
+        "type": "static_analysis"
+      },
+      {
+        "command": "cargo check --workspace --manifest-path bizra-omega/Cargo.toml",
+        "duration_ms": null,
+        "exit_code": 0,
+        "output_excerpt": "Finished dev profile [optimized + debuginfo] target(s) in 0.24s",
+        "passed": true,
+        "summary": "PASS: Rust workspace cargo check finished successfully.",
+        "type": "build_check"
+      },
+      {
+        "command": "cargo test --workspace --manifest-path bizra-omega/Cargo.toml --no-run",
+        "duration_ms": null,
+        "exit_code": 0,
+        "output_excerpt": "Finished test profile [optimized + debuginfo]; workspace test executables produced.",
+        "passed": true,
+        "summary": "PASS: Rust workspace tests compiled successfully without running.",
+        "type": "build_check"
+      },
+      {
+        "command": ".venv/bin/python -m pytest -q --timeout=60",
+        "duration_ms": 2214000,
+        "exit_code": 124,
+        "output_excerpt": "pytest session header emitted; no collection/pass summary before operator stop. Process evidence: PID 1053730, Sl+, elapsed 36:54, CPU active, high thread count.",
+        "passed": false,
+        "summary": "INCONCLUSIVE/FAIL-CLOSED: stopped after approximately 36m54s with no progress beyond session header; release gate cannot be claimed green.",
+        "type": "test_suite"
+      },
+      {
+        "command": "PR delta security marker scan",
+        "duration_ms": null,
+        "exit_code": 0,
+        "output_excerpt": "changed_security_markers: <none>; .github/workflows/ci.yml parsed; git diff --check clean.",
+        "passed": true,
+        "summary": "PASS: PR-delta scan found no TODO(security), XXX, hardcoded secret-shaped HEX assignment, or quoted BIZRA_*_HEX literal markers after workflow cleanup.",
+        "type": "static_analysis"
+      },
+      {
+        "command": "python .proof-forge/scripts/forge_evidence.py --verify --project-dir .",
+        "duration_ms": null,
+        "exit_code": 1,
+        "output_excerpt": "Verifying chain in .proof-forge/receipts... BROKEN 2026-04-17_074432.json",
+        "passed": false,
+        "summary": "FAIL/LEGACY-INCOMPATIBLE: existing verifier reports BROKEN because mixed legacy receipt filenames/schemas are sorted lexically; old receipt linkage requires repair before claiming full historical chain integrity.",
+        "type": "schema_validation"
+      }
+    ],
+    "checks_failed": 2,
+    "checks_passed": 5,
+    "checks_run": 7,
+    "ecosystems": [
+      "python",
+      "rust",
+      "make",
+      "git",
+      "proof-forge"
+    ],
+    "manual_attestation": "DO-NOT-SHIP evidence receipt: workflow secret-pattern blocker resolved; release remains blocked by full pytest incompletion and legacy proof-chain verifier incompatibility.",
+    "overall_pass": false,
+    "timestamp": "2026-05-02T07:18:46+00:00",
+    "verification_id": "verify-20260502-071846"
+  }
+}
