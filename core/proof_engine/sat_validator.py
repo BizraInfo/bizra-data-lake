@@ -32,6 +32,7 @@ from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 SAT_MODEL = os.getenv("BIZRA_SAT_MODEL", "gemma4:26b-bizra-16k")
 OLLAMA_URL = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 EVIDENCE_MIN_COUNT = int(os.getenv("BIZRA_EVIDENCE_MIN_COUNT", "1"))
+DEFAULT_SAT_TIMEOUT_SECONDS = 20.0
 
 # Allowed verdicts — strict enum, no freeform
 VALID_VERDICTS = frozenset(
@@ -130,6 +131,19 @@ def _extract_json_from_llm_response(raw: str) -> dict:
         return {}
 
 
+def _positive_float_env(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a positive number of seconds") from exc
+    if value <= 0:
+        raise ValueError(f"{name} must be a positive number of seconds")
+    return value
+
+
 def _call_sat_model(pat_output: PatOutput) -> dict:
     """Call governance-lane model to evaluate PAT output."""
     user_prompt = (
@@ -158,7 +172,10 @@ def _call_sat_model(pat_output: PatOutput) -> dict:
         headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
+        timeout = _positive_float_env(
+            "BIZRA_SAT_TIMEOUT_SECONDS", DEFAULT_SAT_TIMEOUT_SECONDS
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read())
             msg = data.get("message", {})
             # gemma4 thinking model: check both content and thinking fields
