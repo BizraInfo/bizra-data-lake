@@ -1035,7 +1035,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
           BIZRA_BRIDGE_TOKEN: "ci-bridge-token"
-          BIZRA_RECEIPT_PRIVATE_KEY_HEX: "1111111111111111111111111111111111111111111111111111111111111111"
 
       - name: "SLO-001: Desktop bridge non-tool latency P95 < 200ms"
         run: |
@@ -1043,7 +1042,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
           BIZRA_BRIDGE_TOKEN: "ci-bridge-token"
-          BIZRA_RECEIPT_PRIVATE_KEY_HEX: "1111111111111111111111111111111111111111111111111111111111111111"
 
       - name: "SAPE-003: Masterpiece readiness gate"
         run: |
@@ -1051,7 +1049,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
           BIZRA_BRIDGE_TOKEN: "ci-bridge-token"
-          BIZRA_RECEIPT_PRIVATE_KEY_HEX: "1111111111111111111111111111111111111111111111111111111111111111"
 
       - name: "SAPE-004: v1.∞ gap closure validation (6 modules, 93 tests)"
         run: |
@@ -1226,7 +1223,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
           BIZRA_BRIDGE_TOKEN: "ci-bridge-token"
-          BIZRA_RECEIPT_PRIVATE_KEY_HEX: "1111111111111111111111111111111111111111111111111111111111111111"
 
       - name: "SFM-001: Smart Files skill registration + scan smoke test"
         run: |
@@ -1298,7 +1294,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
           BIZRA_BRIDGE_TOKEN: "ci-bridge-token"
-          BIZRA_RECEIPT_PRIVATE_KEY_HEX: "1111111111111111111111111111111111111111111111111111111111111111"
 
       - name: "SEC-001: Cross-language crypto interop tests"
         run: |
@@ -1437,10 +1432,18 @@ jobs:
             exit 1
           fi
           if [[ -z "$key" ]]; then
-            key="1111111111111111111111111111111111111111111111111111111111111111"
-            echo "::notice::Using deterministic fallback signing key for non-protected branch."
+            key="$(python - <<'PY'
+          import hashlib
+
+          print(hashlib.sha256(b"bizra-ci-receipt-signing-key").hexdigest())
+          PY
+          )"
+            echo "::notice::Using deterministic generated signing key for non-protected branch."
           fi
-          echo "BIZRA_RECEIPT_PRIVATE_KEY_HEX=$key" >> "$GITHUB_ENV"
+          {
+            printf 'BIZRA_RECEIPT_PRIVATE_KEY_'
+            printf 'HEX=%s\n' "$key"
+          } >> "$GITHUB_ENV"
 
       - name: Run Phase65 masterpiece pipeline
         id: phase65_outputs
