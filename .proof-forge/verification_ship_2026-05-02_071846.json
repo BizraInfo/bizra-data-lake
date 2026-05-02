@@ -1,0 +1,81 @@
+{
+  "checks": [
+    {
+      "command": "just check",
+      "duration_ms": null,
+      "exit_code": 0,
+      "output_excerpt": "e onboarding 0ms\n\n \u276f tests/unit/wallet-hardening.test.ts 1/8\n\n Test Files 10 passed (11)\n      Tests 117 passed (124)\n   Start at 10:40:02\n   Duration 703ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > drops stale fetch results when a newer fetch has already landed 60ms\n\n \u276f tests/unit/wallet-hardening.test.ts 2/8\n\n Test Files 10 passed (11)\n      Tests 118 passed (124)\n   Start at 10:40:02\n   Duration 803ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > preserves live state when backend temporarily fails 54ms\n\n \u276f tests/unit/wallet-hardening.test.ts 2/8\n\n Test Files 10 passed (11)\n      Tests 118 passed (124)\n   Start at 10:40:02\n   Duration 903ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > prevents concurrent fetches from stacking 212ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > merges partial success without corrupting wallet 53ms\n\n \u276f tests/unit/wallet-hardening.test.ts 5/8\n\n Test Files 10 passed (11)\n      Tests 121 passed (124)\n   Start at 10:40:02\n   Duration 1.10s\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Race Conditions > handles all three endpoints failing gracefully 53ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Economic Integrity > zakat is always exactly 2.5% of gross 53ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Economic Integrity > supply cap utilization is bounded [0, 1+] 52ms\n \u2713 tests/unit/wallet-hardening.test.ts > Wallet Hardening: Economic Integrity > offline factors derive from nodeState deterministically 53ms\n\n Test Files  11 passed (11)\n      Tests  124 passed (124)\n   Start at  10:40:02\n   Duration  1.24s (transform 559ms, setup 247ms, import 743ms, tests 762ms, environment 1.68s)\n\nJSON report written to /data/bizra/repos/award-winner-design/coverage/test-results.json\n  \u2713 all language test suites green\n  \u2713 polyglot gate PASS\n___BEGIN___COMMAND_DONE_MARKER___0\n(.venv) ",
+      "passed": true,
+      "summary": "PASS: polyglot just check completed successfully; warnings only in external award-winner-design lint output.",
+      "type": "static_analysis"
+    },
+    {
+      "command": "python .claude/skills/cross-lang-sync/audit_constants.py",
+      "duration_ms": null,
+      "exit_code": 0,
+      "output_excerpt": "IHSAN_THRESHOLD 0.95/0.95 ALIGNED; SNR_THRESHOLD 0.85/0.85 ALIGNED; ADL_GINI_THRESHOLD 0.35/0.35 ALIGNED; ADL_HARBERGER_TAX_RATE 0.05/0.05 ALIGNED.",
+      "passed": true,
+      "summary": "PASS: Cross-Language Sync Audit status ALIGNED for Tier 1 constitutional constants.",
+      "type": "static_analysis"
+    },
+    {
+      "command": "cargo check --workspace --manifest-path bizra-omega/Cargo.toml",
+      "duration_ms": null,
+      "exit_code": 0,
+      "output_excerpt": "Finished dev profile [optimized + debuginfo] target(s) in 0.24s",
+      "passed": true,
+      "summary": "PASS: Rust workspace cargo check finished successfully.",
+      "type": "build_check"
+    },
+    {
+      "command": "cargo test --workspace --manifest-path bizra-omega/Cargo.toml --no-run",
+      "duration_ms": null,
+      "exit_code": 0,
+      "output_excerpt": "Finished test profile [optimized + debuginfo]; workspace test executables produced.",
+      "passed": true,
+      "summary": "PASS: Rust workspace tests compiled successfully without running.",
+      "type": "build_check"
+    },
+    {
+      "command": ".venv/bin/python -m pytest -q --timeout=60",
+      "duration_ms": 2214000,
+      "exit_code": 124,
+      "output_excerpt": "pytest session header emitted; no collection/pass summary before operator stop. Process evidence: PID 1053730, Sl+, elapsed 36:54, CPU active, high thread count.",
+      "passed": false,
+      "summary": "INCONCLUSIVE/FAIL-CLOSED: stopped after approximately 36m54s with no progress beyond session header; release gate cannot be claimed green.",
+      "type": "test_suite"
+    },
+    {
+      "command": "PR delta security marker scan",
+      "duration_ms": null,
+      "exit_code": 0,
+      "output_excerpt": "changed_security_markers: <none>; .github/workflows/ci.yml parsed; git diff --check clean.",
+      "passed": true,
+      "summary": "PASS: PR-delta scan found no TODO(security), XXX, hardcoded secret-shaped HEX assignment, or quoted BIZRA_*_HEX literal markers after workflow cleanup.",
+      "type": "static_analysis"
+    },
+    {
+      "command": "python .proof-forge/scripts/forge_evidence.py --verify --project-dir .",
+      "duration_ms": null,
+      "exit_code": 1,
+      "output_excerpt": "Verifying chain in .proof-forge/receipts... BROKEN 2026-04-17_074432.json",
+      "passed": false,
+      "summary": "FAIL/LEGACY-INCOMPATIBLE: existing verifier reports BROKEN because mixed legacy receipt filenames/schemas are sorted lexically; old receipt linkage requires repair before claiming full historical chain integrity.",
+      "type": "schema_validation"
+    }
+  ],
+  "checks_failed": 2,
+  "checks_passed": 5,
+  "checks_run": 7,
+  "ecosystems": [
+    "python",
+    "rust",
+    "make",
+    "git",
+    "proof-forge"
+  ],
+  "manual_attestation": "DO-NOT-SHIP evidence receipt: workflow secret-pattern blocker resolved; release remains blocked by full pytest incompletion and legacy proof-chain verifier incompatibility.",
+  "overall_pass": false,
+  "timestamp": "2026-05-02T07:18:46+00:00",
+  "verification_id": "verify-20260502-071846"
+}
