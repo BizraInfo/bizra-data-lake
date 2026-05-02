@@ -2,7 +2,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from core.sovereign.data_import import DataImporter
+from core.sovereign.data_import import (
+    DataImporter,
+    ImportScanLimits,
+    ingest_chat_history,
+)
 
 
 class DummyMemory:
@@ -58,3 +62,119 @@ async def test_store_conversations_chunks_and_stats():
 
     for entry in memory.entries:
         assert entry["source"].startswith("test-src:")
+
+
+@pytest.mark.asyncio
+async def test_ingest_chat_history_respects_max_depth(tmp_path):
+    memory = DummyMemory()
+    deep_export = tmp_path / "nested" / "export"
+    deep_export.mkdir(parents=True)
+    (deep_export / "conversations.json").write_text("[]", encoding="utf-8")
+    (deep_export / "memories.json").write_text("[]", encoding="utf-8")
+
+    stats = await ingest_chat_history(
+        tmp_path,
+        memory,
+        scan_limits=ImportScanLimits(max_depth=0),
+    )
+
+    assert stats["sources"] == {}
+    assert stats["scan_audit"]["limit_hit"] is True
+    assert any(
+        skipped["reason"] == "max_depth" for skipped in stats["scan_audit"]["skipped"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_ingest_chat_history_respects_json_byte_budget(tmp_path):
+    memory = DummyMemory()
+    (tmp_path / "conversations.json").write_text(
+        '[{"title":"Large","mapping":{}}]',
+        encoding="utf-8",
+    )
+    (tmp_path / "memories.json").write_text("[]", encoding="utf-8")
+
+    stats = await ingest_chat_history(
+        tmp_path,
+        memory,
+        scan_limits=ImportScanLimits(max_total_json_bytes=8),
+    )
+
+    assert stats["sources"] == {}
+    assert stats["scan_audit"]["limit_hit"] is True
+    assert any(
+        skipped["reason"] == "max_total_json_bytes"
+        for skipped in stats["scan_audit"]["skipped"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_ingest_chat_history_counts_export_json_once(tmp_path):
+    memory = DummyMemory()
+    conversations = tmp_path / "conversations.json"
+    memories = tmp_path / "memories.json"
+    conversations.write_text("[]", encoding="utf-8")
+    memories.write_text("[]", encoding="utf-8")
+    exact_budget = conversations.stat().st_size + memories.stat().st_size
+
+    stats = await ingest_chat_history(
+        tmp_path,
+        memory,
+        scan_limits=ImportScanLimits(max_total_json_bytes=exact_budget),
+    )
+
+    assert stats["sources"] == {
+        "chatgpt/memories.json": 0,
+        "chatgpt/conversations.json": 0,
+    }
+    assert stats["scan_audit"]["total_json_bytes"] == exact_budget
+    assert stats["scan_audit"]["limit_hit"] is False
+
+
+@pytest.mark.asyncio
+async def test_ingest_chat_history_rejects_named_json_symlinks(tmp_path):
+    memory = DummyMemory()
+    import_root = tmp_path / "import"
+    import_root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "conversations.json").write_text("[]", encoding="utf-8")
+    (outside / "memories.json").write_text("[]", encoding="utf-8")
+    (import_root / "conversations.json").symlink_to(outside / "conversations.json")
+    (import_root / "memories.json").symlink_to(outside / "memories.json")
+
+    stats = await ingest_chat_history(import_root, memory)
+
+    assert stats["sources"] == {}
+    assert stats["scan_audit"]["limit_hit"] is True
+    assert any(
+        skipped["reason"] == "symlink_file"
+        for skipped in stats["scan_audit"]["skipped"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_ingest_chat_history_bounds_chatgpt_subdirectories(tmp_path):
+    memory = DummyMemory()
+    (tmp_path / "conversations.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "memories.json").write_text("[]", encoding="utf-8")
+    child = tmp_path / "child"
+    child.mkdir()
+    (child / "conversation.json").write_text(
+        '{"title":"Nested","mapping":{}}',
+        encoding="utf-8",
+    )
+
+    stats = await ingest_chat_history(
+        tmp_path,
+        memory,
+        scan_limits=ImportScanLimits(max_depth=0),
+    )
+
+    assert stats["sources"] == {
+        "chatgpt/memories.json": 0,
+        "chatgpt/conversations.json": 0,
+    }
+    assert any(
+        skipped["reason"] == "max_depth" for skipped in stats["scan_audit"]["skipped"]
+    )
