@@ -212,6 +212,7 @@ class Node0Heartbeat:
         signer_public_key_prefix: str = "",
         signer_public_key_hex: str = "",
         genesis_backed: bool = False,
+        enable_federation_ambassador: bool = True,
     ) -> None:
         self._data_dir = Path(data_dir)
         self._node_id = node_id or ""
@@ -220,6 +221,7 @@ class Node0Heartbeat:
         self._signer_public_key_prefix = signer_public_key_prefix
         self._signer_public_key_hex = str(signer_public_key_hex or "").lower()
         self._genesis_backed = genesis_backed
+        self._enable_federation_ambassador = enable_federation_ambassador
 
         # State
         self._booted = False
@@ -983,6 +985,10 @@ class Node0Heartbeat:
 
         Phase 48: Bridges the standalone Node0 into the P2P PBFT/SWIM network.
         """
+        if not self._enable_federation_ambassador:
+            logger.info("Federation Ambassador disabled for this Node0 instance")
+            return
+
         try:
             from core.federation.interaction_boundary import FederationAmbassador
 
@@ -1703,6 +1709,30 @@ class Node0Heartbeat:
                 logger.warning("Boundary error memory fallback failed: %s", exc)
 
         return True
+
+    async def shutdown(self) -> None:
+        """Release Node0-owned background resources."""
+        self.close()
+        pending = tuple(task for task in self._pending_event_tasks if not task.done())
+        for task in pending:
+            task.cancel()
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+        self._pending_event_tasks.clear()
+
+    def close(self) -> None:
+        """Synchronously stop resources safe to close without awaiting."""
+        if self._federation_ambassador is not None:
+            try:
+                self._federation_ambassador.stop()
+            except (RuntimeError, AttributeError, TypeError, OSError):
+                logger.warning("Federation Ambassador shutdown failed", exc_info=True)
+            finally:
+                self._federation_ambassador = None
+
+        for task in tuple(self._pending_event_tasks):
+            if not task.done():
+                task.cancel()
 
     # ═══════════════════════════════════════════════════════════════
     # INGEST — Feed missions into the heartbeat cycle

@@ -2372,6 +2372,24 @@ class SovereignRuntime:
     async def _init_omega_components(self) -> None:
         """Initialize Omega Point components (InferenceGateway, OmegaEngine)."""
         # InferenceGateway - Real LLM backends
+        if not self.config.enable_inference_gateway:
+            self._gateway = None
+            self.logger.info("○ InferenceGateway disabled by config")
+        else:
+            await self._init_inference_gateway()
+
+        # OmegaEngine - Constitutional enforcement
+        try:
+            from .omega_engine import OmegaEngine
+
+            self._omega = OmegaEngine()
+            self.logger.info("✓ OmegaEngine loaded (Constitutional Core)")
+        except ImportError as e:
+            self._omega = None
+            self.logger.warning(f"⚠ OmegaEngine unavailable: {e}")
+
+    async def _init_inference_gateway(self) -> None:
+        """Initialize real LLM backends for runtime inference."""
         try:
             from core.inference.gateway import (  # type: ignore[attr-defined]
                 CircuitBreakerConfig,
@@ -2399,16 +2417,6 @@ class SovereignRuntime:
         except ImportError as e:
             self._gateway = None
             self.logger.warning(f"⚠ InferenceGateway unavailable: {e}")
-
-        # OmegaEngine - Constitutional enforcement
-        try:
-            from .omega_engine import OmegaEngine
-
-            self._omega = OmegaEngine()
-            self.logger.info("✓ OmegaEngine loaded (Constitutional Core)")
-        except ImportError as e:
-            self._omega = None
-            self.logger.warning(f"⚠ OmegaEngine unavailable: {e}")
 
         # SovereignOrchestrator — task decomposition + agent routing
         try:
@@ -3322,6 +3330,15 @@ class SovereignRuntime:
                 await self._pek.stop()
             except (RuntimeError, ValueError, TypeError, AttributeError, OSError):
                 self.logger.debug("PEK stop failed during shutdown", exc_info=True)
+
+        if self._gateway and hasattr(self._gateway, "shutdown"):
+            try:
+                await self._gateway.shutdown()
+            except (RuntimeError, ValueError, TypeError, AttributeError, OSError):
+                self.logger.debug(
+                    "InferenceGateway shutdown failed during runtime shutdown",
+                    exc_info=True,
+                )
 
         # Save user context (conversation history + profile)
         if self._user_context:

@@ -289,6 +289,7 @@ class RuntimeConfig:
     enable_graph_reasoning: bool = True
     enable_snr_optimization: bool = True
     enable_guardian_validation: bool = True
+    enable_inference_gateway: bool = True
     enable_autonomous_loop: bool = False
     autonomous_enabled: bool = False  # Alias for enable_autonomous_loop
 

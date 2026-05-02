@@ -24,7 +24,6 @@ from pathlib import Path
 
 import pytest
 
-
 CI_PY312_RDVE_FULL_RUNTIME_QUARANTINE = pytest.mark.skipif(
     os.getenv("CI") == "true" and sys.version_info[:2] == (3, 12),
     reason=(
@@ -176,9 +175,11 @@ class TestRDVERuntimeWiring:
         from core.sovereign.runtime_core import SovereignRuntime
         from core.sovereign.runtime_types import RuntimeConfig
 
-        config = RuntimeConfig()
-        config.state_dir = tmp_path
-        config.autonomous_enabled = False
+        config = RuntimeConfig(
+            state_dir=tmp_path,
+            autonomous_enabled=False,
+            enable_inference_gateway=False,
+        )
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
@@ -195,9 +196,11 @@ class TestRDVERuntimeWiring:
         from core.sovereign.runtime_core import SovereignRuntime
         from core.sovereign.runtime_types import RuntimeConfig
 
-        config = RuntimeConfig()
-        config.state_dir = tmp_path
-        config.autonomous_enabled = False
+        config = RuntimeConfig(
+            state_dir=tmp_path,
+            autonomous_enabled=False,
+            enable_inference_gateway=False,
+        )
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
@@ -212,9 +215,11 @@ class TestRDVERuntimeWiring:
         from core.sovereign.runtime_core import SovereignRuntime
         from core.sovereign.runtime_types import RuntimeConfig
 
-        config = RuntimeConfig()
-        config.state_dir = tmp_path
-        config.autonomous_enabled = False
+        config = RuntimeConfig(
+            state_dir=tmp_path,
+            autonomous_enabled=False,
+            enable_inference_gateway=False,
+        )
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
@@ -227,9 +232,11 @@ class TestRDVERuntimeWiring:
         from core.sovereign.runtime_core import SovereignRuntime
         from core.sovereign.runtime_types import RuntimeConfig
 
-        config = RuntimeConfig()
-        config.state_dir = tmp_path
-        config.autonomous_enabled = False
+        config = RuntimeConfig(
+            state_dir=tmp_path,
+            autonomous_enabled=False,
+            enable_inference_gateway=False,
+        )
         runtime = SovereignRuntime(config)
         assert runtime._rdve_engine is None
 
@@ -255,9 +262,11 @@ class TestRDVEHealthVisibility:
         from core.sovereign.runtime_core import SovereignRuntime
         from core.sovereign.runtime_types import RuntimeConfig
 
-        config = RuntimeConfig()
-        config.state_dir = tmp_path
-        config.autonomous_enabled = False
+        config = RuntimeConfig(
+            state_dir=tmp_path,
+            autonomous_enabled=False,
+            enable_inference_gateway=False,
+        )
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
@@ -277,9 +286,11 @@ class TestRDVEHealthVisibility:
         from core.sovereign.runtime_core import SovereignRuntime
         from core.sovereign.runtime_types import RuntimeConfig
 
-        config = RuntimeConfig()
-        config.state_dir = tmp_path
-        config.autonomous_enabled = False
+        config = RuntimeConfig(
+            state_dir=tmp_path,
+            autonomous_enabled=False,
+            enable_inference_gateway=False,
+        )
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
@@ -296,9 +307,11 @@ class TestRDVEHealthVisibility:
         from core.sovereign.runtime_core import SovereignRuntime
         from core.sovereign.runtime_types import RuntimeConfig
 
-        config = RuntimeConfig()
-        config.state_dir = tmp_path
-        config.autonomous_enabled = False
+        config = RuntimeConfig(
+            state_dir=tmp_path,
+            autonomous_enabled=False,
+            enable_inference_gateway=False,
+        )
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:

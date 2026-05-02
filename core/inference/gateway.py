@@ -260,6 +260,33 @@ class InferenceGateway:
         print("[Gateway] No backend available (OFFLINE MODE)")
         return False
 
+    async def shutdown(self) -> None:
+        """Shutdown initialized backends and release pooled connections."""
+        seen: set[int] = set()
+        backends: list[InferenceBackendBase] = []
+        for backend in [
+            *self._backends.values(),
+            *self._fallback_backends,
+            self._active_backend,
+        ]:
+            if backend is None:
+                continue
+            backend_id = id(backend)
+            if backend_id in seen:
+                continue
+            seen.add(backend_id)
+            backends.append(backend)
+
+        for backend in backends:
+            shutdown = getattr(backend, "shutdown", None)
+            if callable(shutdown):
+                await shutdown()
+
+        self._backends.clear()
+        self._fallback_backends.clear()
+        self._active_backend = None
+        self.status = InferenceStatus.COLD
+
     def estimate_complexity(self, prompt: str) -> TaskComplexity:
         """
         Estimate task complexity for routing decisions.
@@ -627,12 +654,6 @@ class InferenceGateway:
             self._rate_limiter.reset(client_id)
             return True
         return False
-
-    async def shutdown(self) -> None:
-        """Shutdown gateway and all backends."""
-        for backend in self._backends.values():
-            if hasattr(backend, "shutdown"):
-                await backend.shutdown()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
