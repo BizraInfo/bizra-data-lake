@@ -495,9 +495,7 @@ def forge_receipt(
             "checks_passed": 0,
             "overall_pass": None,
         }
-        print(
-            "     No verification report provided — receipt will be attestation-only"
-        )
+        print("     No verification report provided — receipt will be attestation-only")
     else:
         cr = verification.get("checks_run", 0)
         cp = verification.get("checks_passed", 0)
@@ -570,6 +568,7 @@ def forge_receipt(
     index["chain_length"] = chain_position
     index["latest_hash"] = chain_hash
     index["latest_receipt"] = receipt_filename
+    index["updated_at"] = timestamp
     if chain_position == 1:
         index["genesis_timestamp"] = timestamp
     index["receipts"].append(
@@ -621,14 +620,44 @@ def verify_chain(project_dir: Path, allow_legacy_unsigned: bool = False) -> dict
     expected_previous = GENESIS_HASH
 
     for entry in index["receipts"]:
-        receipt_path = proof_dir / RECEIPTS_DIR / entry["filename"]
+        position = entry.get("position", entry.get("chain_position", "?"))
+        filename = entry.get("filename")
+        if not isinstance(filename, str) or not filename:
+            legacy_hash = entry.get("chain_hash") or entry.get("receipt_hash")
+            if (
+                allow_legacy_unsigned
+                and isinstance(legacy_hash, str)
+                and len(legacy_hash) == 64
+            ):
+                print(
+                    f"  ⚠️  #{position}: Legacy index-only receipt accepted by override"
+                )
+                results.append(
+                    {
+                        "position": position,
+                        "valid": True,
+                        "warning": "legacy_index_only",
+                    }
+                )
+                expected_previous = legacy_hash
+                continue
+
+            print(f"  ❌ #{position}: Index entry missing receipt filename")
+            results.append(
+                {
+                    "position": position,
+                    "valid": False,
+                    "error": "filename_missing",
+                }
+            )
+            continue
+
+        receipt_path = proof_dir / RECEIPTS_DIR / filename
 
         if not receipt_path.exists():
-            print(
-                f"  ❌ #{entry['position']}: Receipt file missing: {entry['filename']}"
-            )
+            print(f"  ❌ #{position}: Receipt file missing: {filename}")
             results.append(
-                {"position": entry["position"], "valid": False, "error": "file_missing"}
+                {"position": position, "valid": False, "error": "file_missing"}
             )
             continue
 
@@ -637,10 +666,10 @@ def verify_chain(project_dir: Path, allow_legacy_unsigned: bool = False) -> dict
 
         hashes = receipt.get("hashes", {})
         if not isinstance(hashes, dict):
-            print(f"  ❌ #{entry['position']}: Missing or invalid hashes block")
+            print(f"  ❌ #{position}: Missing or invalid hashes block")
             results.append(
                 {
-                    "position": entry["position"],
+                    "position": position,
                     "valid": False,
                     "error": "invalid_hashes_block",
                 }
@@ -692,11 +721,11 @@ def verify_chain(project_dir: Path, allow_legacy_unsigned: bool = False) -> dict
 
         if receipt_errors:
             print(
-                f"  ❌ #{entry['position']}: Verification failed ({', '.join(receipt_errors)})"
+                f"  ❌ #{position}: Verification failed ({', '.join(receipt_errors)})"
             )
             results.append(
                 {
-                    "position": entry["position"],
+                    "position": position,
                     "valid": False,
                     "error": "|".join(receipt_errors),
                 }
@@ -704,10 +733,8 @@ def verify_chain(project_dir: Path, allow_legacy_unsigned: bool = False) -> dict
         else:
             conf = receipt.get("confidence", {})
             label = conf.get("label", "?")
-            print(
-                f"  ✅ #{entry['position']}: Valid — {label} — {receipt['description'][:60]}"
-            )
-            results.append({"position": entry["position"], "valid": True})
+            print(f"  ✅ #{position}: Valid — {label} — {receipt['description'][:60]}")
+            results.append({"position": position, "valid": True})
 
         if isinstance(chain_hash, str):
             expected_previous = chain_hash
