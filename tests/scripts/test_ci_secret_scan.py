@@ -75,3 +75,45 @@ def test_scan_file_catches_bearer_token_pattern(tmp_path: Path) -> None:
     findings = scan_file(path, root=tmp_path)
 
     assert any("bearer token pattern" in item for item in findings)
+
+
+def test_scan_file_ignores_bizra_hex_env_name_references(tmp_path: Path) -> None:
+    path = tmp_path / "workflow.yml"
+    path.write_text(
+        "\n".join(
+            [
+                "env:",
+                "  BRANCH_SIGNER_KEY: ${{ secrets.BIZRA_RECEIPT_PRIVATE_KEY_HEX }}",
+                "run: echo BIZRA_RECEIPT_PRIVATE_KEY_HEX is required",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    findings = scan_file(path, root=tmp_path)
+
+    assert findings == []
+
+
+def test_scan_file_flags_bizra_private_hex_secret_literal(tmp_path: Path) -> None:
+    path = tmp_path / "workflow.yml"
+    path.write_text(
+        'BIZRA_RECEIPT_PRIVATE_KEY_HEX="' + "a" * 64 + '"',
+        encoding="utf-8",
+    )
+
+    findings = scan_file(path, root=tmp_path)
+
+    assert any("BIZRA hex secret literal" in item for item in findings)
+
+
+def test_scan_file_allows_bizra_public_hex_literal(tmp_path: Path) -> None:
+    path = tmp_path / "workflow.yml"
+    path.write_text(
+        'BIZRA_RECEIPT_PUBLIC_KEY_HEX="' + "b" * 64 + '"',
+        encoding="utf-8",
+    )
+
+    findings = scan_file(path, root=tmp_path)
+
+    assert findings == []

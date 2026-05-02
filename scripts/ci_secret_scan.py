@@ -49,6 +49,13 @@ ASSIGNMENT_RE = re.compile(r"""(?ix)
     ["']([^"'\n]{8,})["']
     """)
 
+BIZRA_HEX_ASSIGNMENT_RE = re.compile(r"""(?ix)
+    (?P<name>\bBIZRA_[A-Z0-9_]*_HEX\b)
+    [^:=\n]{0,32}
+    \s*[:=]\s*
+    ["']?(?P<value>[a-f0-9]{32,})["']?
+    """)
+
 HIGH_ENTROPY_RE = re.compile(r"""(?ix)
     (
         sk-(?=[a-z0-9:_-]{16,})(?=[a-z0-9:_-]*\d)[a-z0-9:_-]+|
@@ -157,6 +164,16 @@ def scan_file(path: Path, root: Path = ROOT) -> list[str]:
         entropy = HIGH_ENTROPY_RE.search(line)
         if entropy and not is_placeholder(entropy.group(1)):
             findings.append(f"{path.relative_to(root)}:{i}: high-entropy token pattern")
+            continue
+
+        bizra_hex = BIZRA_HEX_ASSIGNMENT_RE.search(line)
+        if bizra_hex:
+            name = bizra_hex.group("name")
+            value = bizra_hex.group("value")
+            if "PUBLIC" not in name and not is_placeholder(value):
+                findings.append(
+                    f"{path.relative_to(root)}:{i}: BIZRA hex secret literal"
+                )
 
     return findings
 
