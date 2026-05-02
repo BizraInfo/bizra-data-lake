@@ -41,7 +41,6 @@ from starlette.testclient import TestClient
 from core.sovereign.api import create_fastapi_app
 from core.sovereign.runtime_types import RuntimeMetrics
 
-
 # Canonical wire shape emitted by Rust cognition-gateway at GET /chain.
 # See bizra-omega/bizra-cognition-gateway/src/main.rs::ReceiptChainHeadDto.
 CANONICAL_CHAIN_HEAD = {
@@ -172,9 +171,7 @@ class TestChainProxyGatewayUnreachable:
 
     def test_503_on_connect_error(self, chain_client: TestClient) -> None:
         def _factory(**kwargs: Any) -> _FakeAsyncClient:
-            return _FakeAsyncClient(
-                exc=httpx.ConnectError("connection refused")
-            )
+            return _FakeAsyncClient(exc=httpx.ConnectError("connection refused"))
 
         with patch("httpx.AsyncClient", _factory):
             resp = chain_client.get("/v1/chain")
@@ -191,9 +188,7 @@ class TestChainProxyGatewayUnreachable:
 
     def test_503_on_timeout(self, chain_client: TestClient) -> None:
         def _factory(**kwargs: Any) -> _FakeAsyncClient:
-            return _FakeAsyncClient(
-                exc=httpx.ConnectTimeout("timed out")
-            )
+            return _FakeAsyncClient(exc=httpx.ConnectTimeout("timed out"))
 
         with patch("httpx.AsyncClient", _factory):
             resp = chain_client.get("/v1/chain")
@@ -216,9 +211,9 @@ class TestChainProxyGatewayNon200:
         with patch("httpx.AsyncClient", _factory):
             resp = chain_client.get("/v1/chain")
 
-        assert resp.status_code == 500, (
-            "Upstream 500 must surface as 500 — not masked as 200."
-        )
+        assert (
+            resp.status_code == 500
+        ), "Upstream 500 must surface as 500 — not masked as 200."
         body = resp.json()
         assert body["status"] == "gateway_non_200"
         assert body["upstream_status"] == 500
@@ -258,9 +253,9 @@ class TestChainProxyGatewayUrlOverride:
             chain_client.get("/v1/chain")
 
         assert captured_urls, "proxy did not attempt an upstream request"
-        assert captured_urls[0] == "http://override-gateway.test:1234/chain", (
-            f"Gateway URL override not respected. Attempted: {captured_urls[0]}"
-        )
+        assert (
+            captured_urls[0] == "http://override-gateway.test:1234/chain"
+        ), f"Gateway URL override not respected. Attempted: {captured_urls[0]}"
 
 
 class TestChainLatestProxy:
@@ -347,9 +342,7 @@ class TestChainLatestProxy:
         assert body["status"] == "gateway_unreachable"
         assert body["error"] == "ConnectError"
 
-    def test_latest_surfaces_non_200_from_chain(
-        self, chain_client: TestClient
-    ) -> None:
+    def test_latest_surfaces_non_200_from_chain(self, chain_client: TestClient) -> None:
         chain_response = MagicMock()
         chain_response.status_code = 502
         chain_response.text = "bad gateway"

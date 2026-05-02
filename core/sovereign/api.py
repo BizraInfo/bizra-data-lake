@@ -184,6 +184,69 @@ def _record_boundary_error_via_node0(
         logger.warning("Node0 boundary error ingest failed: %s", node_exc)
 
 
+def _new_correlation_id() -> str:
+    """Generate a stable request correlation identifier for boundary failures."""
+
+    return f"api-{uuid.uuid4().hex}"
+
+
+def _client_boundary_error_payload(
+    exc: BizraError,
+    *,
+    correlation_id: str,
+) -> dict[str, Any]:
+    """Return a sanitized boundary error payload for API clients.
+
+    Full traces stay in internal logs and Node0 boundary receipts; clients only
+    receive stable taxonomy, sanitized context, and a supportable correlation ID.
+    """
+
+    receipt = exc.to_receipt()
+    receipt.pop("trace", None)
+    if exc.original is not None:
+        receipt["message"] = "Internal server error"
+    receipt["correlation_id"] = correlation_id
+    receipt["retryable"] = receipt.get("severity") in {"DEGRADE", "RETRY"}
+    return receipt
+
+
+def _client_validation_error_payload(
+    message: str,
+    *,
+    correlation_id: str | None = None,
+) -> dict[str, Any]:
+    """Return a sanitized validation-boundary response."""
+
+    return {
+        "error_type": "ValidationBoundaryError",
+        "severity": "REJECT",
+        "boundary": "VALIDATION",
+        "message": message,
+        "correlation_id": correlation_id or _new_correlation_id(),
+        "retryable": False,
+    }
+
+
+def _validate_query_payload(data: dict[str, Any]) -> str | None:
+    """Validate raw query request schema before constructing QueryRequest."""
+
+    if "query" in data and not isinstance(data["query"], str):
+        return "query must be a string"
+    if "context" in data and not isinstance(data["context"], dict):
+        return "context must be an object"
+    if "options" in data and not isinstance(data["options"], dict):
+        return "options must be an object"
+    for field_name in ("require_reasoning", "require_validation", "stream"):
+        if field_name in data and not isinstance(data[field_name], bool):
+            return f"{field_name} must be a boolean"
+    for field_name in ("max_depth", "timeout_ms"):
+        if field_name in data:
+            value = data[field_name]
+            if isinstance(value, bool) or not isinstance(value, int):
+                return f"{field_name} must be an integer"
+    return None
+
+
 # =============================================================================
 # PYDANTIC MODELS (module-level for FastAPI schema generation)
 # =============================================================================
@@ -1041,29 +1104,52 @@ class SovereignAPIServer:
             data = json.loads(body.decode()) if body else {}
             if not isinstance(data, dict):
                 return self._json_response(
-                    {"error": "Request body must be a JSON object"}, 400
+                    _client_validation_error_payload(
+                        "Request body must be a JSON object"
+                    ),
+                    400,
+                )
+            schema_error = _validate_query_payload(data)
+            if schema_error is not None:
+                return self._json_response(
+                    _client_validation_error_payload(schema_error),
+                    400,
                 )
 
             request = QueryRequest.from_dict(data)
 
             # ── Input validation ───────────────────────────────────────────
             if not request.query:
-                return self._json_response({"error": "Query required"}, 400)
+                return self._json_response(
+                    _client_validation_error_payload("Query required"), 400
+                )
             if len(request.query) > MAX_QUERY_LENGTH:
                 return self._json_response(
-                    {"error": f"Query too long (max {MAX_QUERY_LENGTH} chars)"}, 400
+                    _client_validation_error_payload(
+                        f"Query too long (max {MAX_QUERY_LENGTH} chars)"
+                    ),
+                    400,
                 )
             if len(request.context) > MAX_CONTEXT_KEYS:
                 return self._json_response(
-                    {"error": f"Too many context keys (max {MAX_CONTEXT_KEYS})"}, 400
+                    _client_validation_error_payload(
+                        f"Too many context keys (max {MAX_CONTEXT_KEYS})"
+                    ),
+                    400,
                 )
             if not (1 <= request.max_depth <= MAX_DEPTH_LIMIT):
                 return self._json_response(
-                    {"error": f"max_depth must be 1-{MAX_DEPTH_LIMIT}"}, 400
+                    _client_validation_error_payload(
+                        f"max_depth must be 1-{MAX_DEPTH_LIMIT}"
+                    ),
+                    400,
                 )
             if not (1000 <= request.timeout_ms <= MAX_TIMEOUT_MS):
                 return self._json_response(
-                    {"error": f"timeout_ms must be 1000-{MAX_TIMEOUT_MS}"}, 400
+                    _client_validation_error_payload(
+                        f"timeout_ms must be 1000-{MAX_TIMEOUT_MS}"
+                    ),
+                    400,
                 )
 
             result = await self.runtime.query(
@@ -1092,21 +1178,31 @@ class SovereignAPIServer:
             return self._json_response(response.to_dict())
 
         except json.JSONDecodeError:
-            return self._json_response({"error": "Invalid JSON"}, 400)
+            return self._json_response(
+                _client_validation_error_payload("Invalid JSON"), 400
+            )
         except BizraError as exc:
+            correlation_id = _new_correlation_id()
             _log_bizra_error(exc)
             _record_boundary_error_via_node0(self.runtime, exc, route="/v1/query")
-            return self._json_response(exc.to_receipt(), http_status_for_error(exc))
+            return self._json_response(
+                _client_boundary_error_payload(exc, correlation_id=correlation_id),
+                http_status_for_error(exc),
+            )
         except Exception as exc:  # noqa: BLE001 — API boundary
+            correlation_id = _new_correlation_id()
             wrapped = _wrap_query_error(
                 exc,
                 route="/v1/query",
                 query_length=len(data.get("query", "")) if "data" in locals() else 0,
             )
-            logger.exception("Query error (legacy)")
+            logger.exception("Query error (legacy), correlation_id=%s", correlation_id)
             _record_boundary_error_via_node0(self.runtime, wrapped, route="/v1/query")
             return self._json_response(
-                wrapped.to_receipt(),
+                _client_boundary_error_payload(
+                    wrapped,
+                    correlation_id=correlation_id,
+                ),
                 http_status_for_error(wrapped),
             )
 
@@ -1453,6 +1549,7 @@ def create_fastapi_app(runtime: Any) -> Any:
     """
     try:
         from fastapi import Depends, FastAPI, Header, HTTPException, Request
+        from fastapi.exceptions import RequestValidationError
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse, PlainTextResponse
         from fastapi.staticfiles import StaticFiles
@@ -2589,6 +2686,26 @@ def create_fastapi_app(runtime: Any) -> Any:
         ],
     )
 
+    @app.exception_handler(RequestValidationError)
+    async def _request_validation_exception_handler(
+        request: Request,
+        exc: RequestValidationError,
+    ) -> JSONResponse:
+        correlation_id = _new_correlation_id()
+        logger.warning(
+            "Request validation failed, correlation_id=%s path=%s errors=%s",
+            correlation_id,
+            request.url.path,
+            exc.errors(),
+        )
+        return JSONResponse(
+            status_code=422,
+            content=_client_validation_error_payload(
+                "Request validation failed",
+                correlation_id=correlation_id,
+            ),
+        )
+
     # CORS — Phase 23: environment-aware origin restriction
     _cors_env = os.environ.get("BIZRA_CORS_ORIGINS", "")
     if _cors_env:
@@ -3312,26 +3429,37 @@ def create_fastapi_app(runtime: Any) -> Any:
         if auth_error is not None:
             return auth_error
         if not body.query:
-            return JSONResponse(status_code=400, content={"error": "Query required"})
+            return JSONResponse(
+                status_code=400,
+                content=_client_validation_error_payload("Query required"),
+            )
         if len(body.query) > MAX_QUERY_LENGTH:
             return JSONResponse(
                 status_code=400,
-                content={"error": f"Query too long (max {MAX_QUERY_LENGTH} chars)"},
+                content=_client_validation_error_payload(
+                    f"Query too long (max {MAX_QUERY_LENGTH} chars)"
+                ),
             )
         if len(body.context) > MAX_CONTEXT_KEYS:
             return JSONResponse(
                 status_code=400,
-                content={"error": f"Too many context keys (max {MAX_CONTEXT_KEYS})"},
+                content=_client_validation_error_payload(
+                    f"Too many context keys (max {MAX_CONTEXT_KEYS})"
+                ),
             )
         if not (1 <= body.max_depth <= MAX_DEPTH_LIMIT):
             return JSONResponse(
                 status_code=400,
-                content={"error": f"max_depth must be 1-{MAX_DEPTH_LIMIT}"},
+                content=_client_validation_error_payload(
+                    f"max_depth must be 1-{MAX_DEPTH_LIMIT}"
+                ),
             )
         if not (1000 <= body.timeout_ms <= MAX_TIMEOUT_MS):
             return JSONResponse(
                 status_code=400,
-                content={"error": f"timeout_ms must be 1000-{MAX_TIMEOUT_MS}"},
+                content=_client_validation_error_payload(
+                    f"timeout_ms must be 1000-{MAX_TIMEOUT_MS}"
+                ),
             )
         if user is not None and _user_store is not None:
             _user_store.increment_query_count(user_id)
@@ -3347,37 +3475,55 @@ def create_fastapi_app(runtime: Any) -> Any:
                 user_id=user_id,
             )
         except BizraError as exc:
+            correlation_id = _new_correlation_id()
             _log_bizra_error(exc)
             _record_boundary_error_via_node0(runtime, exc, route="/v1/query")
             return JSONResponse(
                 status_code=http_status_for_error(exc),
-                content=exc.to_receipt(),
+                content=_client_boundary_error_payload(
+                    exc,
+                    correlation_id=correlation_id,
+                ),
             )
         except (RuntimeError, TimeoutError, ValueError) as exc:
+            correlation_id = _new_correlation_id()
             wrapped = _wrap_query_error(
                 exc,
                 route="/v1/query",
                 query_length=len(body.query),
                 user_id=user_id,
             )
-            logger.warning("Query error (specific legacy): %s", exc)
+            logger.exception(
+                "Query error (specific legacy), correlation_id=%s: %s",
+                correlation_id,
+                exc,
+            )
             _record_boundary_error_via_node0(runtime, wrapped, route="/v1/query")
             return JSONResponse(
                 status_code=http_status_for_error(wrapped),
-                content=wrapped.to_receipt(),
+                content=_client_boundary_error_payload(
+                    wrapped,
+                    correlation_id=correlation_id,
+                ),
             )
         except Exception as exc:  # noqa: BLE001 — API boundary
+            correlation_id = _new_correlation_id()
             wrapped = _wrap_query_error(
                 exc,
                 route="/v1/query",
                 query_length=len(body.query),
                 user_id=user_id,
             )
-            logger.exception("Query execution failed")
+            logger.exception(
+                "Query execution failed, correlation_id=%s", correlation_id
+            )
             _record_boundary_error_via_node0(runtime, wrapped, route="/v1/query")
             return JSONResponse(
                 status_code=http_status_for_error(wrapped),
-                content=wrapped.to_receipt(),
+                content=_client_boundary_error_payload(
+                    wrapped,
+                    correlation_id=correlation_id,
+                ),
             )
 
         response: dict[str, Any] = {
