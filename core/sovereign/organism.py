@@ -287,7 +287,12 @@ class SovereignOrganism:
         # Step 5: Wire Node0Heartbeat — the ONE canonical ingest authority.
         # Passes the organism's NervousSystem-wired Helix3 so there is
         # exactly one Helix3 instance (no duplication).
-        org._boot_node0(persistence_dir, event_bus=event_bus, node_id=node_id)
+        org._boot_node0(
+            persistence_dir,
+            event_bus=event_bus,
+            node_id=node_id,
+            enable_federation_ambassador=start_heartbeat,
+        )
 
         # Step 6: Start heartbeat if requested
         if start_heartbeat:
@@ -472,6 +477,7 @@ class SovereignOrganism:
         *,
         event_bus: Optional[Any] = None,
         node_id: Optional[str] = None,
+        enable_federation_ambassador: bool = True,
     ) -> None:
         """Wire Node0Heartbeat with the organism's Helix3.
 
@@ -500,6 +506,7 @@ class SovereignOrganism:
                 signer_public_key_prefix=self._signer_public_key_prefix,
                 signer_public_key_hex=self._signer_public_key_hex,
                 genesis_backed=self._identity_mode == "genesis_ed25519",
+                enable_federation_ambassador=enable_federation_ambassador,
             )
             self._node0.boot()
 
@@ -1054,6 +1061,7 @@ class SovereignOrganism:
         """
         logger.info("Organism shutdown requested")
         self._shutdown_requested = True
+        was_heartbeat_active = self._heartbeat_active
 
         # Cancel heartbeat
         if self._heartbeat_task and not self._heartbeat_task.done():
@@ -1065,7 +1073,7 @@ class SovereignOrganism:
         self._heartbeat_active = False
 
         # Final tick (process any remaining receipts)
-        if self._helix3:
+        if self._helix3 and (was_heartbeat_active or self._mission_counter > 0):
             try:
                 await self.tick()
             except (RuntimeError, ValueError) as exc:
@@ -1075,6 +1083,14 @@ class SovereignOrganism:
             pending = tuple(self._pending_delivery_mirror_tasks)
             await asyncio.gather(*pending, return_exceptions=True)
             self._pending_delivery_mirror_tasks.clear()
+
+        if self._node0 is not None and hasattr(self._node0, "shutdown"):
+            try:
+                shutdown_result = self._node0.shutdown()
+                if hasattr(shutdown_result, "__await__"):
+                    await shutdown_result
+            except (RuntimeError, AttributeError, TypeError, OSError) as exc:
+                logger.warning("Node0 shutdown failed: %s", exc)
 
         logger.info(
             "Organism shut down: %d missions, %d ticks",
