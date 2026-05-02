@@ -21,7 +21,9 @@ def test_mission_defaults():
 
 
 def test_mission_custom_budget():
-    b = Budget(max_tokens=100, max_wall_seconds=10, max_tool_calls=2, max_evidence_fetches=3)
+    b = Budget(
+        max_tokens=100, max_wall_seconds=10, max_tool_calls=2, max_evidence_fetches=3
+    )
     m = Mission(question="test", budget=b)
     assert m.budget.max_tokens == 100
     assert m.budget.max_tool_calls == 2

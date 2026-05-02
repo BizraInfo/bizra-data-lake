@@ -60,7 +60,7 @@ async def execute_agent_lifecycle(agent: "Agent", mission: Mission) -> AgentResu
             return AgentResult(
                 success=False,
                 content="",
-                evidence_refs=[],
+                evidence_refs=output.evidence_refs,
                 ihsan_score=0.0,
                 verdict="REFUSED",
                 reason=output.reason,

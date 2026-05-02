@@ -7,13 +7,14 @@ from core.adk.agent import Agent, charter, AgentIdentity, _DraftOutput, _RefuseO
 from core.adk.mission import GovernanceClass, Mission
 from core.adk.tools import tool
 
-
 # ── Charter tests ──
+
 
 def test_charter_decorator_sets_hash():
     @charter("I am a test agent.")
     class TestAgent(Agent):
         name = "TestAgent"
+
         async def act(self, mission):
             return self.draft(content="hello", evidence=[])
 
@@ -26,6 +27,7 @@ def test_charter_strips_whitespace():
     @charter("  \n  I am trimmed.  \n  ")
     class TrimAgent(Agent):
         name = "TrimAgent"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
@@ -35,8 +37,10 @@ def test_charter_strips_whitespace():
 @pytest.mark.asyncio
 async def test_agent_without_charter_blocked_at_run():
     """An agent without @charter is blocked at run time (NIYYAH step)."""
+
     class NoCharterAgent(Agent):
         name = "NoCharter"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
@@ -49,11 +53,13 @@ async def test_agent_without_charter_blocked_at_run():
 
 # ── Identity tests ──
 
+
 def test_identity_fields():
     @charter("Test identity agent.")
     class IdAgent(Agent):
         name = "IdAgent"
         governance_class = "SAT"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
@@ -69,12 +75,14 @@ def test_charter_hash_is_deterministic():
     @charter("Deterministic charter text.")
     class A(Agent):
         name = "A"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
     @charter("Deterministic charter text.")
     class B(Agent):
         name = "B"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
@@ -85,12 +93,14 @@ def test_different_charters_different_hashes():
     @charter("Charter alpha.")
     class A(Agent):
         name = "A"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
     @charter("Charter beta.")
     class B(Agent):
         name = "B"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
@@ -99,10 +109,12 @@ def test_different_charters_different_hashes():
 
 # ── Draft / Refuse tests ──
 
+
 def test_draft_returns_draft_output():
     @charter("Drafter.")
     class D(Agent):
         name = "D"
+
         async def act(self, mission):
             return self.draft(content="answer", evidence=["ref:1"])
 
@@ -117,6 +129,7 @@ def test_refuse_returns_refuse_output():
     @charter("Refuser.")
     class R(Agent):
         name = "R"
+
         async def act(self, mission):
             return self.refuse(reason="not enough data")
 
@@ -130,6 +143,7 @@ def test_draft_handles_various_evidence_types():
     @charter("Evidence handler.")
     class E(Agent):
         name = "E"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
@@ -146,6 +160,7 @@ def test_draft_with_no_evidence():
     @charter("No evidence agent.")
     class N(Agent):
         name = "N"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
@@ -155,6 +170,7 @@ def test_draft_with_no_evidence():
 
 
 # ── Tool discovery tests ──
+
 
 def test_tool_discovery():
     @charter("Tool agent.")
