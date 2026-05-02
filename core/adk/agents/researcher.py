@@ -116,7 +116,13 @@ class ResearcherAgent(Agent):
 
         answer = _call_ollama(prompt, system, self.model)
         if answer.startswith("ERROR:"):
-            return self.refuse(reason=answer)
+            return self.refuse(
+                reason=(
+                    "Evidence-bound answer unavailable: local evidence was "
+                    "insufficient or the research backend failed."
+                ),
+                evidence=refs,
+            )
 
         return self.draft(content=answer, evidence=refs)
 

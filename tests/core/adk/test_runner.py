@@ -6,12 +6,11 @@ These tests run against the REAL proof_engine. No stubs.
 import pytest
 
 from core.adk.agent import Agent, charter
-from core.adk.mission import Budget, GovernanceClass, Mission
 from core.adk.testing import assert_blocked, assert_receipt_valid, make_test_mission
 from core.adk.tools import tool
 
-
 # ── Helper agents ──
+
 
 @charter("I always provide a verified answer with real evidence.")
 class GoodAgent(Agent):
@@ -72,12 +71,15 @@ class BudgetBurner(Agent):
 
 # ── NIYYAH tests (charter integrity) ──
 
+
 @pytest.mark.asyncio
 async def test_charterless_agent_blocked():
     """An agent with an empty charter should be blocked."""
+
     @charter("")
     class EmptyCharter(Agent):
         name = "EmptyCharter"
+
         async def act(self, mission):
             return self.draft(content="x", evidence=[])
 
@@ -94,15 +96,17 @@ async def test_charter_drift_detected():
     """Modifying charter text after construction should be caught."""
     agent = GoodAgent()
     # Tamper with charter
-    original_hash = agent._charter_hash
     agent.__class__._charter_text = "TAMPERED CHARTER"
     result = await agent.run(make_test_mission("test"))
     assert_blocked(result, "BLOCKED_BY_CHARTER")
     # Restore
-    agent.__class__._charter_text = "I always provide a verified answer with real evidence."
+    agent.__class__._charter_text = (
+        "I always provide a verified answer with real evidence."
+    )
 
 
 # ── BAYYINAH tests (evidence audit) ──
+
 
 @pytest.mark.asyncio
 async def test_fabricated_evidence_rejected():
@@ -113,6 +117,7 @@ async def test_fabricated_evidence_rejected():
 
 
 # ── HADD tests (budget) ──
+
 
 @pytest.mark.asyncio
 async def test_budget_exhaustion_blocks():
@@ -125,6 +130,7 @@ async def test_budget_exhaustion_blocks():
 
 # ── AMANAH tests (protocol compliance) ──
 
+
 @pytest.mark.asyncio
 async def test_protocol_violation_raises():
     """An agent returning bare values instead of draft/refuse should raise."""
@@ -134,6 +140,7 @@ async def test_protocol_violation_raises():
 
 
 # ── Refusal tests ──
+
 
 @pytest.mark.asyncio
 async def test_honest_refusal():
@@ -146,6 +153,7 @@ async def test_honest_refusal():
 
 
 # ── Full lifecycle (happy path) ──
+
 
 @pytest.mark.asyncio
 async def test_good_agent_full_lifecycle():
@@ -169,6 +177,7 @@ async def test_good_agent_full_lifecycle():
 
 
 # ── External unverified evidence ceiling ──
+
 
 @pytest.mark.asyncio
 async def test_external_unverified_caps_ihsan():

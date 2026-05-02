@@ -57,10 +57,11 @@ class _DraftOutput:
 class _RefuseOutput:
     """Intermediate: agent honestly refuses the mission."""
 
-    __slots__ = ("reason",)
+    __slots__ = ("evidence_refs", "reason")
 
-    def __init__(self, reason: str):
+    def __init__(self, reason: str, evidence_refs: list[str] | None = None):
         self.reason = reason
+        self.evidence_refs = evidence_refs or []
 
 
 def charter(text: str):
@@ -125,9 +126,11 @@ class Agent(ABC):
                     refs.append(str(e))
         return _DraftOutput(content=content, evidence_refs=refs)
 
-    def refuse(self, reason: str) -> _RefuseOutput:
+    def refuse(self, reason: str, evidence: list | None = None) -> _RefuseOutput:
         """Honestly refuse the mission with a reason."""
-        return _RefuseOutput(reason=reason)
+        return _RefuseOutput(
+            reason=reason, evidence_refs=self.draft("", evidence).evidence_refs
+        )
 
     @abstractmethod
     async def act(self, mission: Mission) -> _DraftOutput | _RefuseOutput:
