@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 import time
 
 import pytest
@@ -327,7 +328,7 @@ class TestCLISmoke:
         import subprocess
 
         result = subprocess.run(
-            ["python", "-m", "core.sovereign", "version"],
+            [sys.executable, "-m", "core.sovereign", "version"],
             capture_output=True,
             text=True,
             timeout=10,
