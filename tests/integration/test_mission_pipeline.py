@@ -15,8 +15,9 @@ from core.sovereign.mission import (
 
 
 @pytest.fixture
-async def pipeline(tmp_path):
+async def pipeline(tmp_path, monkeypatch):
     """Boot a complete mission pipeline with isolated storage."""
+    monkeypatch.setenv("BIZRA_BROWSER_MODE", "mock")
     orch = MissionOrchestrator(
         {
             "memory_path": str(tmp_path / "memory"),
