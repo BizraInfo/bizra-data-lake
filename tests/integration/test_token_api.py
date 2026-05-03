@@ -13,12 +13,20 @@ class TestTokenAPIRoutes:
     """Verify token endpoints return valid responses."""
 
     @pytest.fixture
-    def app(self):
+    def app(self, tmp_path, monkeypatch):
         """Create FastAPI app with token routes."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, RuntimeMode
+        from core.sovereign.runtime_types import RuntimeConfig
 
-        config = RuntimeConfig(mode=RuntimeMode.MINIMAL, autonomous_enabled=False)
+        monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "1")
+        monkeypatch.delenv("BIZRA_ENV", raising=False)
+        import core.auth.middleware as _auth_mod
+
+        monkeypatch.setattr(_auth_mod, "_ANON_AUTH_WARNED", False)
+
+        config = RuntimeConfig.minimal()
+        config.enable_inference_gateway = False
+        config.state_dir = tmp_path / "state"
         runtime = SovereignRuntime(config)
 
         try:
@@ -34,14 +42,6 @@ class TestTokenAPIRoutes:
         from unittest.mock import patch
 
         from core.token.ledger import TokenLedger as _RealLedger
-
-        # Enable anonymous auth for test environment (not production)
-        monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "1")
-        monkeypatch.delenv("BIZRA_ENV", raising=False)
-        # Reset the warned flag so the env change takes effect
-        import core.auth.middleware as _auth_mod
-
-        monkeypatch.setattr(_auth_mod, "_ANON_AUTH_WARNED", False)
 
         def _factory(*args, **kwargs):
             return _RealLedger(
