@@ -93,7 +93,8 @@ class TestMissionOrchestrator:
         }
 
     @pytest.fixture
-    def orchestrator(self, config):
+    def orchestrator(self, config, monkeypatch):
+        monkeypatch.setenv("BIZRA_BROWSER_MODE", "mock")
         return MissionOrchestrator(config)
 
     @pytest.fixture

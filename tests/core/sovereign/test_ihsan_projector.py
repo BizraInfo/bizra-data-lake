@@ -390,6 +390,21 @@ class TestIhsanProjector:
         # At least the aggregate should be in similar range
         assert abs(original.aggregate_score - recovered.aggregate_score) < 0.3
 
+    def test_inverse_projection_does_not_require_svd(
+        self, projector: IhsanProjector, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Inverse projection should avoid SVD-dependent pseudoinverse calls."""
+
+        def _forbidden_pinv(*args, **kwargs):
+            raise np.linalg.LinAlgError("SVD did not converge")
+
+        monkeypatch.setattr(np.linalg, "pinv", _forbidden_pinv)
+
+        ntu = projector.project(IhsanVector.neutral())
+        recovered = projector.inverse_project(ntu, prior=IhsanVector.neutral())
+
+        assert isinstance(recovered, IhsanVector)
+
 
 class TestCalibration:
     """Tests for projector calibration."""
