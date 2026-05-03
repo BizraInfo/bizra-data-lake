@@ -25,6 +25,7 @@ class HarnessRule:
     description: str
     file_globs: List[str]
     patterns: List[str]
+    exclude_patterns: List[str]
     recommendation: str
 
 
@@ -84,6 +85,9 @@ class HarnessProfile:
                         str(x) for x in (raw.get("file_globs", []) or ["*.py"])
                     ],
                     patterns=[str(x) for x in (raw.get("patterns", []) or [])],
+                    exclude_patterns=[
+                        str(x) for x in (raw.get("exclude_patterns", []) or [])
+                    ],
                     recommendation=str(raw.get("recommendation", "")),
                 )
             )
@@ -200,6 +204,7 @@ class SelfHarnessEngine:
 
     def _scan_rule(self, rule: HarnessRule) -> List[HarnessFinding]:
         regexes = [re.compile(pat) for pat in rule.patterns]
+        exclude_regexes = [re.compile(pat) for pat in rule.exclude_patterns]
         findings: List[HarnessFinding] = []
 
         for path in self._iter_candidate_files(rule.file_globs):
@@ -211,6 +216,8 @@ class SelfHarnessEngine:
             lines = text.splitlines()
             for idx, line in enumerate(lines, start=1):
                 if any(r.search(line) for r in regexes):
+                    if any(r.search(line) for r in exclude_regexes):
+                        continue
                     findings.append(
                         HarnessFinding(
                             rule_id=rule.id,
