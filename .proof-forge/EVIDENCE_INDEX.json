@@ -1,9 +1,9 @@
 {
-  "chain_length": 7,
+  "chain_length": 8,
   "created_at": "2026-04-17T07:44:32+00:00",
   "genesis_timestamp": "2026-05-02T07:18:46+00:00",
-  "latest_hash": "44699d9958e4f8a5781cb92b44541b5f9f0c17d163cccf445287a7293ed4e9fa",
-  "latest_receipt": "2026-05-04_143541.json",
+  "latest_hash": "58a96b8bd2180d2e156b718f8a11dfa9c86fa6a2f5e0682cdccce3c2d9434ebc",
+  "latest_receipt": "2026-05-04_144736.json",
   "project": "bizra-data-lake",
   "receipts": [
     {
@@ -70,9 +70,18 @@
       "confidence_level": 2,
       "confidence_label": "Attested",
       "description": "Origin Hash Seal: mark ARTIFACT-001 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 and ARTIFACT-002 \u0627\u0644\u0628\u0630\u0631\u0629 measured by local source-file SHA-256"
+    },
+    {
+      "position": 8,
+      "filename": "2026-05-04_144736.json",
+      "timestamp": "2026-05-04T14:47:36.353242+00:00",
+      "chain_hash": "58a96b8bd2180d2e156b718f8a11dfa9c86fa6a2f5e0682cdccce3c2d9434ebc",
+      "confidence_level": 2,
+      "confidence_label": "Attested",
+      "description": "Corrected Origin Hash Seal: bind ARTIFACT-001 and ARTIFACT-002 to original PDFs themassage.pdf and bizra.pdf"
     }
   ],
   "schema_version": "1.0.0",
-  "updated_at": "2026-05-04T14:35:41.182180+00:00",
+  "updated_at": "2026-05-04T14:47:36.353242+00:00",
   "version": "proof-forge-v1"
 }

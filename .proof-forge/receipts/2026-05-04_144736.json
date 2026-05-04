@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_id": "receipt-2026-05-04_144736",
+  "timestamp": "2026-05-04T14:47:36.353242+00:00",
+  "description": "Corrected Origin Hash Seal: bind ARTIFACT-001 and ARTIFACT-002 to original PDFs themassage.pdf and bizra.pdf",
+  "chain_position": 8,
+  "hashes": {
+    "evidence_hash": "127b072887368229f358739d21ffd599cccd5958be1dbfe7034d907448a5070d",
+    "previous_hash": "44699d9958e4f8a5781cb92b44541b5f9f0c17d163cccf445287a7293ed4e9fa",
+    "chain_hash": "58a96b8bd2180d2e156b718f8a11dfa9c86fa6a2f5e0682cdccce3c2d9434ebc"
+  },
+  "confidence": {
+    "level": 2,
+    "label": "Attested",
+    "criteria": "Partial verification"
+  },
+  "artifacts": {
+    "count": 1,
+    "summary": {
+      "doc": 1
+    },
+    "details": [
+      {
+        "path": "docs/provenance/BIZRA_GENESIS_PROVENANCE_LEDGER_V0_1.md",
+        "size_bytes": 8763,
+        "sha256": "2989cbde59861aa14788c3fb9257cd09ae1c68be6a8aaf0a52dde086f80b85b6",
+        "modified": "2026-05-04T14:46:50.538708+00:00",
+        "type": "doc"
+      }
+    ]
+  },
+  "verification": {
+    "verification_id": "verify-1777906056",
+    "timestamp": "2026-05-04T14:47:36.328204+00:00",
+    "ecosystems": [
+      "documentation",
+      "provenance"
+    ],
+    "checks": [
+      {
+        "type": "static_analysis",
+        "command": "printf '%s  %s\\n' 'e05b73b933df31964b96255dca673300b01caea3bce8bd283e7f6440a876d3ce' '/home/bizra-operating-system/Downloads/themassage.pdf' 'f95bc6f76acdc9339e005411a17810c50624784f18b55811d8339fcef6601538' '/home/bizra-operating-system/Downloads/bizra.pdf' | sha256sum -c -",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 2,
+        "summary": "/home/bizra-operating-system/Downloads/bizra.pdf: OK",
+        "output_excerpt": "/home/bizra-operating-system/Downloads/themassage.pdf: OK\n/home/bizra-operating-system/Downloads/bizra.pdf: OK\n"
+      },
+      {
+        "type": "static_analysis",
+        "command": "rg -n 'themassage.pdf|bizra.pdf|e05b73b933df31964b96255dca673300b01caea3bce8bd283e7f6440a876d3ce|f95bc6f76acdc9339e005411a17810c50624784f18b55811d8339fcef6601538|Correction note' docs/provenance/BIZRA_GENESIS_PROVENANCE_LEDGER_V0_1.md",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 5,
+        "summary": "83:`bizra.pdf`.",
+        "output_excerpt": "53:Source file:   themassage.pdf\n56:SHA-256:      e05b73b933df31964b96255dca673300b01caea3bce8bd283e7f6440a876d3ce\n57:Command:      sha256sum '/home/bizra-operating-system/Downloads/themassage.pdf'\n71:Source file:  bizra.pdf\n74:SHA-256:      f95bc6f76acdc9339e005411a17810c50624784f18b55811d8339fcef6601538\n75:Command:      sha256sum '/home/bizra-operating-system/Downloads/bizra.pdf'\n81:Correction note: this source binding supersedes earlier local candidate filenames\n82:and binds ARTIFACT-001/002 to the requested original files `themassage.pdf` and\n83:`bizra.pdf`.\n"
+      },
+      {
+        "type": "static_analysis",
+        "command": "bash -lc '! rg -n \"3c20ae560a796379d91686bed7f025017d086a8ac39d54222060fcd17dc05e01|ce68f404c8c791cef7c75defbe39ac431b2aa5725139f9f03190d82179a41591\" docs/provenance/BIZRA_GENESIS_PROVENANCE_LEDGER_V0_1.md'",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 7,
+        "summary": "no output",
+        "output_excerpt": ""
+      },
+      {
+        "type": "static_analysis",
+        "command": "git diff --check",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 4,
+        "summary": "no output",
+        "output_excerpt": ""
+      },
+      {
+        "type": "static_analysis",
+        "command": "python scripts/ci_secret_scan.py",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 1020,
+        "summary": "Secret scan passed (2082 files checked).",
+        "output_excerpt": "Secret scan passed (2082 files checked).\n"
+      }
+    ],
+    "checks_run": 5,
+    "checks_passed": 5,
+    "checks_failed": 0,
+    "overall_pass": true,
+    "manual_attestation": "Corrected Origin Hash Seal binds ARTIFACT-001/002 to requested original PDFs themassage.pdf and bizra.pdf; no runtime action executed."
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "value": "ee120d1960efe9acca4da5fd3799825dd50bffb2da107cdf6051c1cbdd2d19afdd98a9ada27f58f31de9ee169b3726f98b9c42e0b79bf4527dbd2af5460e210d",
+    "signer_pubkey": "425f5af61e4894e17a35da1c02213b3b27748aa34b31ec36321b7317d0c3eec8"
+  }
+}
