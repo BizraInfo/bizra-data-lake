@@ -211,6 +211,10 @@ One screen, seven panels:
 Not in v0.1: Node1/federation UI, token/PoI economy, URP network dashboard,
 public demo mode, external provider routing.
 
+The Node Status panel is specified by
+`docs/product/DEMA_NODE_CONSOLE_V0_1.md`. It reports dependency readiness while
+keeping runtime activation gated on explicit operator authorization.
+
 ## Article X — Amendment Law
 
 Changes require a clear amendment reason, a reviewed receipt, a previous-version

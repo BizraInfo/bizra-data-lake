@@ -29,6 +29,13 @@ from core.dema.proof_surface import (
     proof_surface_from_convergence,
 )
 from core.dema.receipts import DemaReceipt, ReceiptWriter
+from core.dema.node0_status import (
+    DemaNodeConsoleStatus,
+    NodeConsoleDependency,
+    NodeConsoleDependencyId,
+    NodeConsoleDependencyStatus,
+    build_node_console_status,
+)
 from core.dema.semantic_transducer import (
     Claim,
     ConstitutionalPolicy,
@@ -68,6 +75,11 @@ __all__ = [
     "DailyLog",
     "FourStateModel",
     "MissionStateMachine",
+    "NodeConsoleDependencyId",
+    "NodeConsoleDependencyStatus",
+    "NodeConsoleDependency",
+    "DemaNodeConsoleStatus",
+    "build_node_console_status",
     "ProofSignal",
     "ProofConvergenceResult",
     "ProofConvergenceVerifier",

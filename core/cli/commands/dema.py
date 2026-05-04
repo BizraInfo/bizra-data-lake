@@ -358,6 +358,7 @@ class DemaCommand:
         doctor = report["dema_doctor"]
         current_gap = report["dema_current_gap"]
         lm_studio = report["lm_studio"]
+        node_console = report.get("dema_node_console", {})
 
         print(f"\n{C.BOLD}{C.WHITE}BIZRA DEMA Status{C.RESET}")
         print(f"{C.GRAY}{'-' * 50}{C.RESET}\n")
@@ -402,6 +403,18 @@ class DemaCommand:
             print_info("Loaded model(s): " + ", ".join(lm_studio["loaded_model_ids"]))
         elif lm_studio["connected"] and not lm_studio["load_state_known"]:
             print_warn("LM Studio responded through /v1/models; load state is unknown")
+
+        if node_console:
+            print(f"\n{C.BOLD}Node Console Dependencies{C.RESET}")
+            print_status(
+                "Activation gate",
+                node_console["activation_gate"],
+                node_console["ready"],
+            )
+            for dependency in node_console["dependencies"]:
+                ok = dependency["status"] == "READY"
+                status = f"{dependency['status']} — {dependency['observed']}"
+                print_status(dependency["label"], status, ok)
 
         if report["findings"]:
             print(f"\n{C.GOLD}Findings:{C.RESET}")
