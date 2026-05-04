@@ -47,11 +47,14 @@ Singularity Pulse contract commit. It is not a release claim.
 Type:         ORIGIN_DOCUMENT
 Language:     Arabic
 Created:      Ramadan 2023
-Status:       REFERENCED
-Truth label:  DIRECTION → MEASURED after source file hash
+Status:       REFERENCED_WITH_LOCAL_SOURCE_HASH
+Truth label:  MEASURED by local source-file SHA-256
 Repo anchor:   00_CONSTITUTION/BIZRA_KERNEL_SPEC.md references "الرسالة (The Letter)"
-Hash:         PENDING
-Command:      sha256sum <located-origin-file-for-al-risala>
+Source file:   themassage.pdf
+Size:         186,502 bytes
+File type:    PDF document, version 1.7, 12 pages
+SHA-256:      e05b73b933df31964b96255dca673300b01caea3bce8bd283e7f6440a876d3ce
+Command:      sha256sum '/home/bizra-operating-system/Downloads/themassage.pdf'
 ```
 
 Meaning: moral operating principle before code, architecture, or product.
@@ -62,15 +65,22 @@ Meaning: moral operating principle before code, architecture, or product.
 Type:         ORIGIN_DOCUMENT
 Language:     Arabic
 Created:      Ramadan 2023
-Status:       REFERENCED
-Truth label:  DIRECTION → MEASURED after source file hash
+Status:       REFERENCED_WITH_LOCAL_SOURCE_HASH
+Truth label:  MEASURED by local source-file SHA-256
 Repo anchors: 00_CONSTITUTION/DECLARATION.md and BIZRA public surfaces reference البذرة
-Hash:         PENDING
-Command:      sha256sum <located-origin-file-for-al-bizra>
+Source file:  bizra.pdf
+Size:         691,327 bytes
+File type:    PDF document, version 1.7, 26 pages
+SHA-256:      f95bc6f76acdc9339e005411a17810c50624784f18b55811d8339fcef6601538
+Command:      sha256sum '/home/bizra-operating-system/Downloads/bizra.pdf'
 ```
 
 Meaning: name and covenant before product. BIZRA is the seed, not a later brand
 overlay.
+
+Correction note: this source binding supersedes earlier local candidate filenames
+and binds ARTIFACT-001/002 to the requested original files `themassage.pdf` and
+`bizra.pdf`.
 
 ### ARTIFACT-003 — BIZRA Third Fact Manifesto v0.1
 
@@ -216,9 +226,9 @@ Token / PoI claims.
 ## Provenance Chain
 
 ```text
-الرسالة                         ARTIFACT-001  DIRECTION → MEASURED on hash
+الرسالة                         ARTIFACT-001  MEASURED by local source hash
   ↓
-البذرة                          ARTIFACT-002  DIRECTION → MEASURED on hash
+البذرة                          ARTIFACT-002  MEASURED by local source hash
   ↓
 Third Fact Manifesto             ARTIFACT-003  DIRECTION → MEASURED on canonical hash
   ↓
