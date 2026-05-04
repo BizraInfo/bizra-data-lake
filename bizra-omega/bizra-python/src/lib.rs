@@ -493,6 +493,7 @@ impl PyInferenceGateway {
     ///     model: Model name (e.g. "llama3.2", "qwen2.5:7b")
     ///     tier: "edge", "local", or "pool"
     ///     base_url: Ollama URL (default: "http://localhost:11434")
+    #[pyo3(signature = (model, tier, base_url=None))]
     fn register_ollama(&self, model: &str, tier: &str, base_url: Option<&str>) -> PyResult<()> {
         let model_tier = parse_tier(tier)?;
         let config = bizra_inference::BackendConfig {
@@ -517,6 +518,7 @@ impl PyInferenceGateway {
     ///     tier: "edge", "local", or "pool"
     ///     host: LM Studio host (default: env LMSTUDIO_HOST or WSL gateway)
     ///     port: LM Studio port (default: env LMSTUDIO_PORT or 1234)
+    #[pyo3(signature = (tier, host=None, port=None))]
     fn register_lmstudio(&self, tier: &str, host: Option<&str>, port: Option<u16>) -> PyResult<()> {
         let model_tier = parse_tier(tier)?;
         let mut lms_config = bizra_inference::LMStudioConfig::default();

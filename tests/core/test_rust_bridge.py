@@ -42,7 +42,7 @@ class TestRustEventBridge:
     def test_wire_subscribers(self):
         bridge = RustEventBridge(production=False)
         count = bridge.wire()
-        assert count == 12
+        assert count == 13
         assert bridge.is_wired
 
     def test_emit_returns_delivery_count(self):

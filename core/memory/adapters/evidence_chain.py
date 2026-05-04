@@ -272,6 +272,9 @@ class EvidenceAwareMemory:
             source=source,
             top_k=top_k,
             min_score=min_score,
+            use_mmr=use_mmr,
+            mmr_lambda=mmr_lambda,
+            metadata_filters=metadata_filters,
         )
         duration_ms = (time.monotonic() - t0) * 1000
 

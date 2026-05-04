@@ -29,6 +29,13 @@ from core.dema.proof_surface import (
     proof_surface_from_convergence,
 )
 from core.dema.receipts import DemaReceipt, ReceiptWriter
+from core.dema.node0_status import (
+    DemaNodeConsoleStatus,
+    NodeConsoleDependency,
+    NodeConsoleDependencyId,
+    NodeConsoleDependencyStatus,
+    build_node_console_status,
+)
 from core.dema.semantic_transducer import (
     Claim,
     ConstitutionalPolicy,
@@ -47,6 +54,19 @@ from core.dema.semantic_transducer import (
     fate_gate,
     validate_raw_claim,
 )
+from core.dema.singularity_pulse import (
+    ActivationScope,
+    NativeFootprint,
+    PulseGate,
+    PulseGateId,
+    PulseGateStatus,
+    PulseVerdict,
+    SingularityPulseAssessment,
+    assess_singularity_pulse,
+    bounded_diagnostic_scope,
+    identity_bound_receipt_template,
+    native_footprint,
+)
 
 __all__ = [
     "DemaProfile",
@@ -55,6 +75,11 @@ __all__ = [
     "DailyLog",
     "FourStateModel",
     "MissionStateMachine",
+    "NodeConsoleDependencyId",
+    "NodeConsoleDependencyStatus",
+    "NodeConsoleDependency",
+    "DemaNodeConsoleStatus",
+    "build_node_console_status",
     "ProofSignal",
     "ProofConvergenceResult",
     "ProofConvergenceVerifier",
@@ -81,4 +106,15 @@ __all__ = [
     "fate_gate",
     "describe_receipt_process",
     "build_semantic_surface",
+    "ActivationScope",
+    "NativeFootprint",
+    "PulseGate",
+    "PulseGateId",
+    "PulseGateStatus",
+    "PulseVerdict",
+    "SingularityPulseAssessment",
+    "native_footprint",
+    "bounded_diagnostic_scope",
+    "identity_bound_receipt_template",
+    "assess_singularity_pulse",
 ]

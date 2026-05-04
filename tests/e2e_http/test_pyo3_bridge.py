@@ -16,10 +16,32 @@ Requires: maturin develop --release in bizra-omega/bizra-python/
 """
 
 import json
+import os
 
+import httpx
 import pytest
 
 pytestmark = pytest.mark.pyo3_bridge
+
+
+def _ollama_model_or_skip() -> str:
+    """Return an explicitly enabled Ollama model or skip environment-dependent e2e."""
+
+    model = os.getenv("BIZRA_OLLAMA_E2E_MODEL", "llama3.2")
+    if os.getenv("BIZRA_RUN_OLLAMA_E2E") != "1":
+        pytest.skip("Set BIZRA_RUN_OLLAMA_E2E=1 to run live Ollama inference tests")
+    try:
+        response = httpx.get("http://localhost:11434/api/tags", timeout=3.0)
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        pytest.skip(f"Ollama unavailable: {exc}")
+    models = {
+        item.get("name") or item.get("model")
+        for item in response.json().get("models", [])
+    }
+    if model not in models:
+        pytest.skip(f"Ollama model {model!r} not available")
+    return model
 
 
 class TestPyO3CoreTypes:
@@ -180,8 +202,9 @@ class TestPyO3InferenceGateway:
 
         This is the test that proves Gap #1 is closed.
         """
+        model = _ollama_model_or_skip()
         gw = bizra_module.InferenceGateway(pyo3_identity, pyo3_constitution)
-        gw.register_ollama("llama3.2", "local")
+        gw.register_ollama(model, "local")
 
         response = gw.infer(
             prompt="What is 2+2? Reply with just the number.",
@@ -192,7 +215,7 @@ class TestPyO3InferenceGateway:
 
         assert response.text is not None
         assert len(response.text) > 0
-        assert response.model == "llama3.2"
+        assert response.model == model
         assert response.tier == "Local"
         assert response.completion_tokens > 0
         assert response.duration_ms > 0
@@ -202,14 +225,16 @@ class TestPyO3InferenceGateway:
         self, bizra_module, pyo3_identity, pyo3_constitution
     ):
         """Test system prompt passthrough."""
+        model = _ollama_model_or_skip()
         gw = bizra_module.InferenceGateway(pyo3_identity, pyo3_constitution)
-        gw.register_ollama("llama3.2", "local")
+        gw.register_ollama(model, "local")
 
         response = gw.infer(
             prompt="What is the capital of France?",
             system="You are a geography expert. Answer in one word.",
             max_tokens=16,
             temperature=0.1,
+            tier="local",
         )
 
         assert response.text is not None
@@ -286,19 +311,21 @@ class TestFullPipelineIntegration:
         4. Create PCI envelope wrapping the response
         5. Validate envelope through gate chain
         """
+        model = _ollama_model_or_skip()
         # Step 1: Identity
         identity = bizra_module.NodeIdentity()
         constitution = bizra_module.Constitution()
 
         # Step 2: Gateway with backend
         gw = bizra_module.InferenceGateway(identity, constitution)
-        gw.register_ollama("llama3.2", "local")
+        gw.register_ollama(model, "local")
 
         # Step 3: Inference through Rust
         response = gw.infer(
             prompt="What is the meaning of sovereignty?",
             max_tokens=64,
             temperature=0.3,
+            tier="local",
         )
         assert len(response.text) > 0
 

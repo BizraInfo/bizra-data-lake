@@ -24,11 +24,12 @@ Standing on Giants: ADR-006 (Unified Memory Service) + ADR-009 (Hybrid Memory Ba
 
 from __future__ import annotations
 
+import json
 import logging
 from collections import OrderedDict
 from datetime import datetime, timezone
 from time import perf_counter
-from typing import List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 from core.proof_engine.canonical import hex_digest
 
@@ -44,16 +45,41 @@ logger = logging.getLogger(__name__)
 _DEFAULT_CACHE_SIZE = 256
 
 
+def _digest_json(value: Any) -> str:
+    """Return a compact digest for cache-key values that can be large."""
+    try:
+        payload = json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+    except TypeError:
+        payload = repr(value)
+    return hex_digest(payload.encode())
+
+
+def _embedding_cache_digest(embedding: Optional[Sequence[float]]) -> str:
+    """Digest query embeddings so vector-only searches do not collide in cache."""
+    if embedding is None:
+        return ""
+    return _digest_json([float(value) for value in embedding])
+
+
 def _cache_key(options: QueryOptions) -> str:
     """Deterministic cache key from query parameters."""
     parts = [
         options.query_text or "",
+        _embedding_cache_digest(options.query_embedding),
         str(options.top_k),
         str(options.min_score),
         ",".join(k.value for k in options.kinds) if options.kinds else "",
         ",".join(options.tags) if options.tags else "",
         options.source or "",
         str(options.include_archived),
+        str(options.use_mmr),
+        f"{options.mmr_lambda:.6f}",
+        _digest_json(options.metadata_filters) if options.metadata_filters else "",
     ]
     return "|".join(parts)
 
@@ -388,13 +414,21 @@ class AgentDB:
         source: Optional[str] = None,
         context_ids: Optional[List[str]] = None,
         include_archived: bool = False,
+        use_mmr: bool = False,
+        mmr_lambda: float = 0.5,
+        metadata_filters: Optional[Dict[str, Any]] = None,
     ) -> List[SearchResult]:
         """Search memory using hybrid scoring.
 
-        Provide query text, embedding, or both for best results.
+        Provide query text, embedding, or both for best results. Set
+        ``use_mmr=True`` to diversify vector-backed results with Maximal
+        Marginal Relevance; ``mmr_lambda`` balances relevance (1.0) against
+        diversity (0.0).
         """
         self._ensure_initialized()
         assert self._query_engine is not None
+        if not 0.0 <= mmr_lambda <= 1.0:
+            raise ValueError("mmr_lambda must be between 0.0 and 1.0")
 
         # Auto-embed query text if possible
         effective_embedding = query_embedding
@@ -418,6 +452,9 @@ class AgentDB:
             tags=tags,
             source=source,
             include_archived=include_archived,
+            use_mmr=use_mmr,
+            mmr_lambda=mmr_lambda,
+            metadata_filters=metadata_filters,
         )
 
         # LRU cache lookup (cache key = deterministic hash of query params)

@@ -24,6 +24,7 @@ from core.economy.ledger import (
     InMemoryIdentityRegistry,
     LedgerEntry,
     LedgerState,
+    MockRegistry,
     RibaDetector,
     RibaPattern,
     TransactionType,
@@ -233,11 +234,11 @@ class TestLedger:
         assert updated.total_issued_nc == 100
 
     def test_placeholder_identity_and_signature_are_rejected(self) -> None:
-        with pytest.raises(ValueError, match="placeholder public key"):
+        with pytest.raises(ValueError, match="Placeholder public key"):
             Identity(node_id=uuid4(), public_key=b"\x00" * 32)
 
         good = Identity(node_id=uuid4(), public_key=b"\x01" * 32)
-        with pytest.raises(ValueError, match="placeholder signatures"):
+        with pytest.raises(ValueError, match="Placeholder signatures"):
             LedgerEntry(
                 entry_id=uuid4(),
                 timestamp=datetime.now(timezone.utc),
@@ -275,12 +276,11 @@ class TestSimulateGini:
         with pytest.raises(ValueError, match="source not in ledger"):
             simulate_gini(state, "ghost", "amina", 10)
 
-    def test_new_destination_account_is_simulated(self, amina: Identity) -> None:
+    def test_unknown_destination_raises(self, amina: Identity) -> None:
         state = LedgerState.genesis({str(amina.node_id): 100})
 
-        post = simulate_gini(state, str(amina.node_id), str(uuid4()), 25)
-
-        assert post == pytest.approx(gini({"source": 75, "new": 25}))
+        with pytest.raises(ValueError, match="destination not in ledger"):
+            simulate_gini(state, str(amina.node_id), str(uuid4()), 25)
 
     def test_insufficient_source_funds_raise(
         self, amina: Identity, youssef: Identity
@@ -449,3 +449,11 @@ class TestBuildEntry:
 
         with pytest.raises(ValueError, match="amount_nc must be > 0"):
             build_entry(claim, registry)
+
+    def test_mock_registry_alias_matches_requested_contract(
+        self, amina: Identity, youssef: Identity
+    ) -> None:
+        registry = MockRegistry((amina, youssef))
+
+        assert registry.get(amina.node_id) == amina
+        assert registry.public_key(youssef.node_id) == youssef.public_key
