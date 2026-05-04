@@ -8,12 +8,15 @@ Standing on Giants: Observer Pattern + Async Python + Domain Events
 """
 
 import asyncio
+import importlib
 import logging
+import sys
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
+from pathlib import Path
 from typing import Any, Callable, Coroutine, Dict, Optional, Set
 
 logger = logging.getLogger(__name__)
@@ -197,11 +200,37 @@ def get_event_bus() -> EventBus:
 _RUST_BRIDGE_AVAILABLE = False
 _PyEventBridge = None
 
-try:
-    from bizra import PyEventBridge as _PyEventBridge  # type: ignore[import-untyped]
 
+def _is_scripts_dir(path_entry: str) -> bool:
+    try:
+        return Path(path_entry).name == "scripts"
+    except (OSError, RuntimeError, ValueError):
+        return False
+
+
+def _import_pyo3_event_bridge() -> Any:
+    """Import PyEventBridge without letting scripts/bizra.py shadow PyO3."""
+    original_path = list(sys.path)
+    shadowed_bizra = sys.modules.get("bizra")
+    shadowed_path = getattr(shadowed_bizra, "__file__", "") if shadowed_bizra else ""
+    removed_shadow = False
+    try:
+        sys.path = [entry for entry in sys.path if not _is_scripts_dir(entry)]
+        if shadowed_path and _is_scripts_dir(str(Path(shadowed_path).parent)):
+            sys.modules.pop("bizra", None)
+            removed_shadow = True
+        module = importlib.import_module("bizra")
+        return getattr(module, "PyEventBridge")
+    finally:
+        sys.path = original_path
+        if removed_shadow and shadowed_bizra is not None:
+            sys.modules["bizra"] = shadowed_bizra
+
+
+try:
+    _PyEventBridge = _import_pyo3_event_bridge()
     _RUST_BRIDGE_AVAILABLE = True
-except ImportError:
+except (ImportError, AttributeError):
     pass
 
 
