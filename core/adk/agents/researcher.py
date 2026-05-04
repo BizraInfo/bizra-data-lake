@@ -7,6 +7,7 @@ produces a receipted answer through the FATE gate.
 from __future__ import annotations
 
 import json
+import math
 import os
 import subprocess
 import urllib.error
@@ -21,6 +22,7 @@ from core.adk.tools import tool
 
 OLLAMA_URL = os.getenv("BIZRA_OLLAMA_URL", "http://127.0.0.1:11434")
 MODEL = os.getenv("BIZRA_PAT_MODEL", "gemma4:26b-bizra-16k")
+DEFAULT_PAT_TIMEOUT_SECONDS = 20.0
 
 
 @charter("""
@@ -147,9 +149,25 @@ def _call_ollama(prompt: str, system: str, model: str) -> str:
         headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        timeout = _positive_float_env(
+            "BIZRA_PAT_TIMEOUT_SECONDS", DEFAULT_PAT_TIMEOUT_SECONDS
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read())
             msg = data.get("message", {})
             return msg.get("content", "") or msg.get("thinking", "")
     except (urllib.error.URLError, TimeoutError) as e:
         return f"ERROR: Ollama unreachable — {e}"
+
+
+def _positive_float_env(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a positive number of seconds") from exc
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(f"{name} must be a positive number of seconds")
+    return value

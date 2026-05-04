@@ -57,15 +57,14 @@ def derive_key(master_secret: str, salt: bytes) -> bytes:
     if not CRYPTO_AVAILABLE:
         raise RuntimeError("cryptography package not installed")
 
-    raw_key = hashlib.pbkdf2_hmac(
+    key_material = hashlib.pbkdf2_hmac(
         "sha256",
         master_secret.encode("utf-8"),
         salt,
         ITERATIONS,
         dklen=32,
     )
-    key = base64.urlsafe_b64encode(raw_key)
-    return key
+    return base64.urlsafe_b64encode(key_material)
 
 
 def generate_salt() -> bytes:
