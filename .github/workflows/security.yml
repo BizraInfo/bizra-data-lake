@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7  # stable
 
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
@@ -119,10 +119,20 @@ jobs:
             exit 1
           fi
 
+  workflow-action-pinning:
+    name: Workflow Action Pinning
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Verify immutable action refs
+        run: python scripts/ci_workflow_action_pinning.py
+
   summary:
     name: Security Summary
     runs-on: ubuntu-24.04
-    needs: [rust-audit, python-security, secret-scan]
+    needs: [rust-audit, python-security, secret-scan, workflow-action-pinning]
     if: always()
     steps:
       - name: Generate summary
