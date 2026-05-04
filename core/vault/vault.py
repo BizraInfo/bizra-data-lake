@@ -12,6 +12,7 @@
 """
 
 import base64
+import hashlib
 import json
 import secrets
 from dataclasses import dataclass
@@ -21,8 +22,6 @@ from typing import Any, Dict, Optional, Union
 
 try:
     from cryptography.fernet import Fernet, InvalidToken
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
     CRYPTO_AVAILABLE = True
 except ImportError:
@@ -58,13 +57,14 @@ def derive_key(master_secret: str, salt: bytes) -> bytes:
     if not CRYPTO_AVAILABLE:
         raise RuntimeError("cryptography package not installed")
 
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=ITERATIONS,
+    raw_key = hashlib.pbkdf2_hmac(
+        "sha256",
+        master_secret.encode("utf-8"),
+        salt,
+        ITERATIONS,
+        dklen=32,
     )
-    key = base64.urlsafe_b64encode(kdf.derive(master_secret.encode()))
+    key = base64.urlsafe_b64encode(raw_key)
     return key
 
 
