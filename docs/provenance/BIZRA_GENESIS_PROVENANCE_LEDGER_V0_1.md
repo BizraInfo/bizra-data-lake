@@ -50,11 +50,11 @@ Created:      Ramadan 2023
 Status:       REFERENCED_WITH_LOCAL_SOURCE_HASH
 Truth label:  MEASURED by local source-file SHA-256
 Repo anchor:   00_CONSTITUTION/BIZRA_KERNEL_SPEC.md references "الرسالة (The Letter)"
-Source file:   The-Silent-Collapse-BIZRA-Risalah-4.docx
-Size:         20,881 bytes
-File type:    Microsoft Word 2007+
-SHA-256:      3c20ae560a796379d91686bed7f025017d086a8ac39d54222060fcd17dc05e01
-Command:      sha256sum '/home/bizra-operating-system/Downloads/The-Silent-Collapse-BIZRA-Risalah-4.docx'
+Source file:   themassage.pdf
+Size:         186,502 bytes
+File type:    PDF document, version 1.7, 12 pages
+SHA-256:      e05b73b933df31964b96255dca673300b01caea3bce8bd283e7f6440a876d3ce
+Command:      sha256sum '/home/bizra-operating-system/Downloads/themassage.pdf'
 ```
 
 Meaning: moral operating principle before code, architecture, or product.
@@ -68,15 +68,19 @@ Created:      Ramadan 2023
 Status:       REFERENCED_WITH_LOCAL_SOURCE_HASH
 Truth label:  MEASURED by local source-file SHA-256
 Repo anchors: 00_CONSTITUTION/DECLARATION.md and BIZRA public surfaces reference البذرة
-Source file:  BIZRA_ Seeding a New Reality.pdf
-Size:         60,765 bytes
-File type:    PDF document, version 1.4, 14 pages
-SHA-256:      ce68f404c8c791cef7c75defbe39ac431b2aa5725139f9f03190d82179a41591
-Command:      sha256sum '/home/bizra-operating-system/Downloads/Telegram Desktop/BIZRA_ Seeding a New Reality.pdf'
+Source file:  bizra.pdf
+Size:         691,327 bytes
+File type:    PDF document, version 1.7, 26 pages
+SHA-256:      f95bc6f76acdc9339e005411a17810c50624784f18b55811d8339fcef6601538
+Command:      sha256sum '/home/bizra-operating-system/Downloads/bizra.pdf'
 ```
 
 Meaning: name and covenant before product. BIZRA is the seed, not a later brand
 overlay.
+
+Correction note: this source binding supersedes earlier local candidate filenames
+and binds ARTIFACT-001/002 to the requested original files `themassage.pdf` and
+`bizra.pdf`.
 
 ### ARTIFACT-003 — BIZRA Third Fact Manifesto v0.1
 
