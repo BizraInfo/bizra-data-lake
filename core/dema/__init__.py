@@ -47,6 +47,19 @@ from core.dema.semantic_transducer import (
     fate_gate,
     validate_raw_claim,
 )
+from core.dema.singularity_pulse import (
+    ActivationScope,
+    NativeFootprint,
+    PulseGate,
+    PulseGateId,
+    PulseGateStatus,
+    PulseVerdict,
+    SingularityPulseAssessment,
+    assess_singularity_pulse,
+    bounded_diagnostic_scope,
+    identity_bound_receipt_template,
+    native_footprint,
+)
 
 __all__ = [
     "DemaProfile",
@@ -81,4 +94,15 @@ __all__ = [
     "fate_gate",
     "describe_receipt_process",
     "build_semantic_surface",
+    "ActivationScope",
+    "NativeFootprint",
+    "PulseGate",
+    "PulseGateId",
+    "PulseGateStatus",
+    "PulseVerdict",
+    "SingularityPulseAssessment",
+    "native_footprint",
+    "bounded_diagnostic_scope",
+    "identity_bound_receipt_template",
+    "assess_singularity_pulse",
 ]
