@@ -9,7 +9,9 @@ from core.dema.node0_status import (
     NODE_CONSOLE_FORBIDDEN_ACTIONS,
     NodeConsoleDependencyId,
     NodeConsoleDependencyStatus,
+    _lm_url_trust_error,
     build_node_console_status,
+    probe_lm_studio,
     read_node0_dema_status,
 )
 
@@ -130,3 +132,26 @@ def test_read_node0_dema_status_embeds_node_console_without_creating_root(
     assert report["dema_node_console"]["forbidden_actions"] == (
         NODE_CONSOLE_FORBIDDEN_ACTIONS
     )
+
+
+def test_lm_studio_url_boundary_blocks_link_local_metadata(monkeypatch):
+    monkeypatch.setenv("LM_STUDIO_URL", "http://169.254.169.254")
+    monkeypatch.setattr(
+        "core.dema.node0_status.LOCAL_ENV",
+        Path("/tmp/no-bizra-env"),
+    )
+
+    report = probe_lm_studio()
+
+    assert report["connected"] is False
+    assert "link-local metadata" in report["attempts"][0]["error"]
+
+
+def test_lm_studio_url_boundary_allows_only_local_private_hosts():
+    assert _lm_url_trust_error("http://localhost:1234") is None
+    assert _lm_url_trust_error("http://127.0.0.1:1234") is None
+    assert _lm_url_trust_error("http://192.168.1.10:1234") is None
+    assert _lm_url_trust_error("http://10.0.0.5:1234") is None
+
+    assert "private IP" in str(_lm_url_trust_error("https://example.com"))
+    assert "link-local metadata" in str(_lm_url_trust_error("http://[fe80::1]:1234"))

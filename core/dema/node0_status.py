@@ -187,7 +187,9 @@ def _lm_url_trust_error(url: str) -> str | None:
         host_ip = ip_address(hostname)
     except ValueError:
         return "LM Studio URL host must be localhost or a private IP address"
-    if host_ip.is_loopback or host_ip.is_private or host_ip.is_link_local:
+    if host_ip.is_link_local:
+        return "LM Studio URL host must not be a link-local metadata address"
+    if host_ip.is_loopback or host_ip.is_private:
         return None
     return "LM Studio URL host must be localhost or a private IP address"
 
