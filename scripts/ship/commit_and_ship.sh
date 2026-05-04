@@ -12,21 +12,29 @@ cd "$REPO_ROOT"
 
 COMMIT=false
 RUN_FULL_PYTEST=false
+RUN_SHARDED_PYTEST=false
 FULL_PYTEST_LOG="${FULL_PYTEST_LOG:-/tmp/bizra-full-pytest.log}"
+SHARDED_PYTEST_LOG="${SHARDED_PYTEST_LOG:-/tmp/bizra-sharded-pytest.log}"
+PYTEST_SHARD_TIMEOUT_SECONDS="${PYTEST_SHARD_TIMEOUT_SECONDS:-900}"
 BASE_BRANCH="${BIZRA_PR_BASE_BRANCH:-feat/economic-constitution-v1}"
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/ship/commit_and_ship.sh [--commit] [--full-pytest]
+Usage: scripts/ship/commit_and_ship.sh [--commit] [--full-pytest|--sharded-pytest]
 
 Options:
   --commit        Commit Lane A and/or Lane B if their files are dirty.
   --full-pytest   Run full pytest fail-closed with tee + pipefail.
+  --sharded-pytest
+                  Run the full test tree as deterministic top-level shards.
   -h, --help      Show this help.
 
 Environment:
   BIZRA_PR_BASE_BRANCH  Branch that PRs should target. Current branch must differ.
   FULL_PYTEST_LOG       Log path for --full-pytest (default: /tmp/bizra-full-pytest.log).
+  SHARDED_PYTEST_LOG    Log path for --sharded-pytest (default: /tmp/bizra-sharded-pytest.log).
+  PYTEST_SHARD_TIMEOUT_SECONDS
+                        Outer timeout per pytest shard (default: 900).
 
 Safety:
   - No git push.
@@ -42,6 +50,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --full-pytest)
       RUN_FULL_PYTEST=true
+      ;;
+    --sharded-pytest)
+      RUN_SHARDED_PYTEST=true
       ;;
     -h|--help)
       usage
@@ -116,6 +127,50 @@ run_full_pytest() {
   python -m pytest -q --timeout=60 2>&1 | tee "$FULL_PYTEST_LOG"
 }
 
+run_sharded_pytest() {
+  printf '\n== Sharded pytest (fail-closed) ==\n'
+  rm -f "$SHARDED_PYTEST_LOG"
+  local shards=(
+    tests/core
+    tests/integration
+    tests/property_based
+    tests/e2e_http
+    tests/formal
+    tests/mvda
+    tests/constitutional
+    tests/conformance
+    tests/e2e
+    tests/pilot
+    tests/scripts
+    tests/tools
+    tests/ui_ux_apex
+  )
+  local fail=0
+  for shard in "${shards[@]}"; do
+    [[ -d "$shard" ]] || continue
+    printf '\n== %s ==\n' "$shard" | tee -a "$SHARDED_PYTEST_LOG"
+    set +e
+    timeout "$PYTEST_SHARD_TIMEOUT_SECONDS" \
+      python -m pytest "$shard" -q --timeout=60 2>&1 \
+      | tee -a "$SHARDED_PYTEST_LOG"
+    local status=${PIPESTATUS[0]}
+    set -e
+    if [[ "$status" -eq 5 ]]; then
+      printf 'SKIP_EMPTY %s\n' "$shard" | tee -a "$SHARDED_PYTEST_LOG"
+    elif [[ "$status" -eq 124 ]]; then
+      printf 'TIMEOUT %s after %ss\n' \
+        "$shard" "$PYTEST_SHARD_TIMEOUT_SECONDS" | tee -a "$SHARDED_PYTEST_LOG"
+      fail=$((fail + 1))
+    elif [[ "$status" -ne 0 ]]; then
+      fail=$((fail + 1))
+    fi
+  done
+  if [[ "$fail" -ne 0 ]]; then
+    printf 'DO-NOT-SHIP: %d pytest shard(s) failed.\n' "$fail" >&2
+    exit 1
+  fi
+}
+
 commit_lane_a() {
   if ! has_changes "${LANE_A_FILES[@]}"; then
     printf 'Lane A: no dirty provenance/proof files.\n'
@@ -156,8 +211,10 @@ run_ship_gates() {
   git diff --check
   if "$RUN_FULL_PYTEST"; then
     run_full_pytest
+  elif "$RUN_SHARDED_PYTEST"; then
+    run_sharded_pytest
   else
-    printf 'Full pytest: NOT RUN. Use --full-pytest before claiming full-suite green.\n'
+    printf 'Full pytest: NOT RUN. Use --full-pytest or --sharded-pytest before claiming full-suite green.\n'
   fi
 }
 
