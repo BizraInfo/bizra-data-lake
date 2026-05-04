@@ -47,11 +47,14 @@ Singularity Pulse contract commit. It is not a release claim.
 Type:         ORIGIN_DOCUMENT
 Language:     Arabic
 Created:      Ramadan 2023
-Status:       REFERENCED
-Truth label:  DIRECTION → MEASURED after source file hash
+Status:       REFERENCED_WITH_LOCAL_SOURCE_HASH
+Truth label:  MEASURED by local source-file SHA-256
 Repo anchor:   00_CONSTITUTION/BIZRA_KERNEL_SPEC.md references "الرسالة (The Letter)"
-Hash:         PENDING
-Command:      sha256sum <located-origin-file-for-al-risala>
+Source file:   The-Silent-Collapse-BIZRA-Risalah-4.docx
+Size:         20,881 bytes
+File type:    Microsoft Word 2007+
+SHA-256:      3c20ae560a796379d91686bed7f025017d086a8ac39d54222060fcd17dc05e01
+Command:      sha256sum '/home/bizra-operating-system/Downloads/The-Silent-Collapse-BIZRA-Risalah-4.docx'
 ```
 
 Meaning: moral operating principle before code, architecture, or product.
@@ -62,11 +65,14 @@ Meaning: moral operating principle before code, architecture, or product.
 Type:         ORIGIN_DOCUMENT
 Language:     Arabic
 Created:      Ramadan 2023
-Status:       REFERENCED
-Truth label:  DIRECTION → MEASURED after source file hash
+Status:       REFERENCED_WITH_LOCAL_SOURCE_HASH
+Truth label:  MEASURED by local source-file SHA-256
 Repo anchors: 00_CONSTITUTION/DECLARATION.md and BIZRA public surfaces reference البذرة
-Hash:         PENDING
-Command:      sha256sum <located-origin-file-for-al-bizra>
+Source file:  BIZRA_ Seeding a New Reality.pdf
+Size:         60,765 bytes
+File type:    PDF document, version 1.4, 14 pages
+SHA-256:      ce68f404c8c791cef7c75defbe39ac431b2aa5725139f9f03190d82179a41591
+Command:      sha256sum '/home/bizra-operating-system/Downloads/Telegram Desktop/BIZRA_ Seeding a New Reality.pdf'
 ```
 
 Meaning: name and covenant before product. BIZRA is the seed, not a later brand
@@ -216,9 +222,9 @@ Token / PoI claims.
 ## Provenance Chain
 
 ```text
-الرسالة                         ARTIFACT-001  DIRECTION → MEASURED on hash
+الرسالة                         ARTIFACT-001  MEASURED by local source hash
   ↓
-البذرة                          ARTIFACT-002  DIRECTION → MEASURED on hash
+البذرة                          ARTIFACT-002  MEASURED by local source hash
   ↓
 Third Fact Manifesto             ARTIFACT-003  DIRECTION → MEASURED on canonical hash
   ↓
