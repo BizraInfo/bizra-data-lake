@@ -1,9 +1,9 @@
 {
-  "chain_length": 4,
+  "chain_length": 5,
   "created_at": "2026-04-17T07:44:32+00:00",
   "genesis_timestamp": "2026-05-02T07:18:46+00:00",
-  "latest_hash": "5aa21b35f152f9a5180bc49bd11d06df754147b702d45111fd32889413a1d54c",
-  "latest_receipt": "2026-05-02_101333.json",
+  "latest_hash": "fb8923efa0665c923f30f86f10657dbb6b084643f8e65d4b9f7ed1cab96b0b9b",
+  "latest_receipt": "2026-05-04_032654.json",
   "project": "bizra-data-lake",
   "receipts": [
     {
@@ -43,9 +43,18 @@
       "confidence_level": 4,
       "confidence_label": "Strong",
       "description": "Proof-of-Truth convergence: ADK evidence-preserving refusal and identity-bound Receipt v1 bridge locally validated; cryptographic lane LOCAL_VALIDATED / CI_PENDING."
+    },
+    {
+      "position": 5,
+      "filename": "2026-05-04_032654.json",
+      "timestamp": "2026-05-04T03:26:54.869450+00:00",
+      "chain_hash": "fb8923efa0665c923f30f86f10657dbb6b084643f8e65d4b9f7ed1cab96b0b9b",
+      "confidence_level": 2,
+      "confidence_label": "Attested",
+      "description": "Add BIZRA Genesis Provenance Ledger v0.1 and Dema product/monetization law docs"
     }
   ],
   "schema_version": "1.0.0",
-  "updated_at": "2026-05-02T10:13:33.659532+00:00",
+  "updated_at": "2026-05-04T03:26:54.869450+00:00",
   "version": "proof-forge-v1"
 }

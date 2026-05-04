@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_id": "receipt-2026-05-04_032654",
+  "timestamp": "2026-05-04T03:26:54.869450+00:00",
+  "description": "Add BIZRA Genesis Provenance Ledger v0.1 and Dema product/monetization law docs",
+  "chain_position": 5,
+  "hashes": {
+    "evidence_hash": "510c0380d16329de015e047d4b07a1ae84b360aa40dd80d97e71d6b89e0f62c7",
+    "previous_hash": "5aa21b35f152f9a5180bc49bd11d06df754147b702d45111fd32889413a1d54c",
+    "chain_hash": "fb8923efa0665c923f30f86f10657dbb6b084643f8e65d4b9f7ed1cab96b0b9b"
+  },
+  "confidence": {
+    "level": 2,
+    "label": "Attested",
+    "criteria": "Partial verification"
+  },
+  "artifacts": {
+    "count": 3,
+    "summary": {
+      "doc": 3
+    },
+    "details": [
+      {
+        "path": "docs/provenance/BIZRA_GENESIS_PROVENANCE_LEDGER_V0_1.md",
+        "size_bytes": 8211,
+        "sha256": "23fe02307a9564194029743dbd50ab11a229de13a3d65e1a5c162cfc46365596",
+        "modified": "2026-05-04T03:26:09.745387+00:00",
+        "type": "doc"
+      },
+      {
+        "path": "docs/product/DEMA_PRODUCT_CONSTITUTION_V0_1.md",
+        "size_bytes": 6612,
+        "sha256": "1b98107db59c9110df32b77c6af205a68dbceae196a692ebc0b1b2a9906ec4a6",
+        "modified": "2026-05-04T03:26:09.743387+00:00",
+        "type": "doc"
+      },
+      {
+        "path": "docs/skills/DEMA_SAFE_MONETIZATION_SKILL_V0_1.md",
+        "size_bytes": 5014,
+        "sha256": "df6795096643832b009d7056eb4c145876bf0f83ae2ad28b0cd88d31da395568",
+        "modified": "2026-05-04T03:26:09.745387+00:00",
+        "type": "doc"
+      }
+    ]
+  },
+  "verification": {
+    "schema_version": "proof-forge.verification.v1",
+    "description": "Genesis Provenance Ledger v0.1 plus Dema Product Constitution and Safe Monetization Skill imported as proof-safe docs.",
+    "checks_run": 4,
+    "checks_passed": 4,
+    "checks": [
+      {
+        "name": "source_hashes_recorded",
+        "type": "hash",
+        "passed": true,
+        "duration_seconds": 0.0,
+        "output": "Recorded SHA-256 for all three source files from Downloads."
+      },
+      {
+        "name": "repo_artifact_hashes_computed",
+        "type": "hash",
+        "passed": true,
+        "duration_seconds": 0.0,
+        "output": "Computed SHA-256 for repo ledger, constitution, and monetization docs."
+      },
+      {
+        "name": "runtime_scope_preserved",
+        "type": "policy",
+        "passed": true,
+        "duration_seconds": 0.0,
+        "output": "No daemon, mission, Node1, public demo, external routing, or economic/token claim was run."
+      },
+      {
+        "name": "truth_labels_present",
+        "type": "schema",
+        "passed": true,
+        "duration_seconds": 0.0,
+        "output": "Ledger labels MEASURED vs DIRECTION and keeps first runtime receipt pending."
+      }
+    ],
+    "summary": "Doc-only provenance milestone verified by artifact hashes and policy review."
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "value": "0bcc96a05ca4cb154b435de06378e002326abf583fef12601c8bd324943f2a1256bfb7737eb8d9335c0a29aee709a191d8f8a0533e966d1dc94fb488a8ab3004",
+    "signer_pubkey": "57d2b55f562db7eb1b1f13b94de8ce91d9130190403fe11c2b2577f47b32b353"
+  }
+}
