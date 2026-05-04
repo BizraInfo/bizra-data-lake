@@ -45,6 +45,31 @@ from .local_first import (
     LocalFirstDetector,
     get_local_first_backend,
 )
+from .model_broker import (
+    InferenceMessage as ModelBrokerInferenceMessage,
+)
+from .model_broker import (
+    InferenceRequest as ModelBrokerInferenceRequest,
+)
+from .model_broker import (
+    InferenceResult as ModelBrokerInferenceResult,
+)
+from .model_broker import (
+    InferenceRequestSpec as ModelBrokerRequestSpec,
+)
+from .model_broker import (
+    ModelBroker,
+    ModelCapabilityCard,
+    ModelProviderError,
+    ModelRouteError,
+    OllamaProviderAdapter,
+    OpenAICompatibleProviderAdapter,
+    StaticProviderAdapter,
+    create_default_model_broker,
+)
+from .model_broker import (
+    RoutingDecision as ModelBrokerRoutingDecision,
+)
 from .multimodal import (
     ModelCapability,
 )
@@ -361,6 +386,20 @@ __all__ = [
     "LocalBackend",
     "BackendStatus",
     "get_local_first_backend",
+    # Model Broker (provider-agnostic Node0 routing foundation)
+    "ModelBroker",
+    "ModelBrokerInferenceMessage",
+    "ModelBrokerInferenceRequest",
+    "ModelBrokerInferenceResult",
+    "ModelBrokerRequestSpec",
+    "ModelBrokerRoutingDecision",
+    "ModelCapabilityCard",
+    "ModelProviderError",
+    "ModelRouteError",
+    "OllamaProviderAdapter",
+    "OpenAICompatibleProviderAdapter",
+    "StaticProviderAdapter",
+    "create_default_model_broker",
     # Multi-Modal Router
     "MultiModalRouter",
     "MultiModalConfig",
