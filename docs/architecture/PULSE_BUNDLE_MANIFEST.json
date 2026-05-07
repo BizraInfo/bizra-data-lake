@@ -1,0 +1,27 @@
+{
+  "manifest_id": "bizra.pulse-bundle.v1",
+  "issued": "2026-05-07T19:31:32.053349Z",
+  "node": "NODE0",
+  "signer_target": "ed25519:Mumo:NODE0",
+  "anchor_parent": "bizra.priority-anchor.v1",
+  "files": [
+    {
+      "path": "MATERIALIZATION_PULSE.md",
+      "blake3": "86fbbb509780c7f2772083533f812625745b087ed64fb02a42d31d95b642d560",
+      "bytes": 18272,
+      "lines": 281
+    },
+    {
+      "path": "PULSE_N1_TRACE.md",
+      "blake3": "fb34dafa477350f73df499f58ff0d9f6dcef0db593318a0dd6f9e9555e7b3026",
+      "bytes": 29828,
+      "lines": 525
+    }
+  ],
+  "seal_status": "CANDIDATE_CANONICAL",
+  "binds_when": [
+    "Mumo signs both files with NODE0 ed25519 key",
+    "scripts/priority-anchor.mjs extended to include both blake3 hashes",
+    "git tag cut binding canonical paths to commit SHA"
+  ]
+}
