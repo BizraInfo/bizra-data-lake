@@ -21,7 +21,18 @@
   "seal_status": "CANDIDATE_CANONICAL",
   "binds_when": [
     "Mumo signs both files with NODE0 ed25519 key",
-    "scripts/priority-anchor.mjs extended to include both blake3 hashes",
-    "git tag cut binding canonical paths to commit SHA"
+    "Merge commit on main binds canonical paths to repo history (completed at 8dd26d57 on 2026-05-07T22:59:08Z)",
+    "Git tag bizra/pulse-bundle/v1 cut from merge commit (immutable version reference)"
+  ],
+  "deltas_from_v1_seal": [
+    {
+      "date": "2026-05-08",
+      "commit": "to-be-recorded-on-merge",
+      "summary": "Manifest provenance honesty patch — removed unbacked anchor-script reference",
+      "rationale": "The original v1 manifest's binds_when clause referenced 'scripts/priority-anchor.mjs --add' as an anchoring mechanism. That script lives only in the BizraInfo/Dema repo (where it binds three founding PDFs into a Bitcoin-anchored Merkle root); it does NOT exist in bizra-data-lake. Per Dema's proof-of-priority/PIN.md, the v1 algorithm pins filename + size + sha256 — adding leaves invalidates v1 and requires v2. Cross-repo extension was never available as tooling. Caught at gate 2 execution boundary.",
+      "mechanism_change": "binds_when item 2 replaced: unbacked anchor-script reference → mechanically-true 'merge commit binds canonical paths to repo history' (the merge SHA is the actual cryptographic binding via git's content-addressing). binds_when item 3 made specific: 'git tag bizra/pulse-bundle/v1 cut from merge commit'.",
+      "what_did_not_change": "The two .md content files (MATERIALIZATION_PULSE.md, PULSE_N1_TRACE.md) remain byte-canonical with their original BLAKE3 hashes; the architectural content of v1 is preserved. This patch only updates manifest provenance documentation to match disk-side tooling reality.",
+      "future_work": "A bizra-data-lake-side anchor mechanism (analogous to Dema's priority-anchor.mjs but operating on this repo's canonical artifacts) is queued as separate cycle work, not part of v1's seal lineage."
+    }
   ]
 }
