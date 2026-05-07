@@ -6,13 +6,13 @@
   "anchor_parent": "bizra.priority-anchor.v1",
   "files": [
     {
-      "path": "MATERIALIZATION_PULSE.md",
+      "path": "docs/architecture/MATERIALIZATION_PULSE.md",
       "blake3": "86fbbb509780c7f2772083533f812625745b087ed64fb02a42d31d95b642d560",
       "bytes": 18272,
       "lines": 281
     },
     {
-      "path": "PULSE_N1_TRACE.md",
+      "path": "docs/emulation/PULSE_N1_TRACE.md",
       "blake3": "fb34dafa477350f73df499f58ff0d9f6dcef0db593318a0dd6f9e9555e7b3026",
       "bytes": 29828,
       "lines": 525

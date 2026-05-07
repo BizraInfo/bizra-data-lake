@@ -59,46 +59,7 @@ Machine-readable manifest with both file hashes, ready to feed into `scripts/pri
 
 ## Seal Procedure
 
-This bundle binds when Mumo executes the following sealing ceremony:
-
-```bash
-# 1. Move bundle to canonical paths under bizra-data-lake
-cd /data/bizra/repos/bizra-data-lake
-mkdir -p docs/architecture docs/emulation
-cp MATERIALIZATION_PULSE.md docs/architecture/
-cp PULSE_N1_TRACE.md         docs/emulation/
-
-# 2. Verify hashes match the manifest
-b3sum docs/architecture/MATERIALIZATION_PULSE.md
-# expected: 86fbbb509780c7f2...b642d560
-b3sum docs/emulation/PULSE_N1_TRACE.md
-# expected: fb34dafa477350f7...5e7b3026
-
-# 3. Extend the priority anchor manifest with both hashes
-node scripts/priority-anchor.mjs --add docs/architecture/MATERIALIZATION_PULSE.md
-node scripts/priority-anchor.mjs --add docs/emulation/PULSE_N1_TRACE.md
-
-# 4. Sign with NODE0 Ed25519 key (per CANON-005 ownership law)
-# (mechanism per existing canon ceremony scripts)
-
-# 5. Commit and tag
-git add docs/architecture/MATERIALIZATION_PULSE.md \
-        docs/emulation/PULSE_N1_TRACE.md
-git commit -m "seal: pulse bundle v1 (CANDIDATE_CANONICAL)
-
-  - architectural spec for the Materialization Pulse
-  - canonical N=1 emulation trace
-  - both bound under priority-anchor.v1
-
-  blake3:
-    MATERIALIZATION_PULSE.md  86fbbb50...
-    PULSE_N1_TRACE.md         fb34dafa...
-"
-git tag bizra/pulse-bundle/v1
-git push origin main --tags
-```
-
-Post-seal status: **CANONICAL**.
+The seal procedure was executed by Claude Code agent against this canonical path on 2026-05-08; see git log on this directory for the actual sequence (PR #96).
 
 ---
 
