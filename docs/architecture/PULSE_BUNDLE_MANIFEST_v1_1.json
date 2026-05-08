@@ -1,0 +1,35 @@
+{
+  "manifest_id": "bizra.pulse-bundle.v1.1",
+  "issued": "2026-05-08T07:29:02Z",
+  "node": "NODE0",
+  "signer_target": "ed25519:Mumo:NODE0",
+  "predecessor": {
+    "manifest_id": "bizra.pulse-bundle.v1",
+    "tag": "bizra/pulse-bundle/v1",
+    "tag_commit": "8093fb25"
+  },
+  "files": [
+    {
+      "path": "docs/architecture/MATERIALIZATION_PULSE.md",
+      "blake3": "92a2c9320fb433d4657ba3489d4822f03a4281da6a03c91cdfe3d486c5c36985",
+      "bytes": 18452,
+      "lines": 280,
+      "line_count_method": "wc -l"
+    },
+    {
+      "path": "docs/emulation/PULSE_N1_TRACE.md",
+      "blake3": "fb34dafa477350f73df499f58ff0d9f6dcef0db593318a0dd6f9e9555e7b3026",
+      "bytes": 29828,
+      "lines": 524,
+      "line_count_method": "wc -l"
+    }
+  ],
+  "seal_status": "CANDIDATE_CANONICAL",
+  "binds_when": [
+    "Content binding: PR #99 merge commit 21a36169 sealed the v1.1-corrected MATERIALIZATION_PULSE.md to bizra-data-lake main on 2026-05-08T07:04:33Z. PULSE_N1_TRACE.md is byte-identical to v1 (BLAKE3 confirms).",
+    "Manifest binding: this PR (#100) introduces docs/architecture/PULSE_BUNDLE_MANIFEST_v1_1.json. The manifest's canonical commit is whatever PR #100 squash-merges to.",
+    "Tag binding [PLANNED — Phase D, separate typed L5 GO per A4.5 anti-pattern #2]: bizra/pulse-bundle/v1.1 will be cut from PR #100's post-merge commit. Tag SHA filled at Phase D act.",
+    "Signing binding [PLANNED — Phase 86a Ed25519 receipt-signing infrastructure (B2 sprint per bizra-omega/docs/specs/phase_86a_ed25519_receipt_signing.md); not yet shipped]: Mumo signs both files with NODE0 Ed25519 key."
+  ],
+  "history_note": "v1.1 reconciles a single source-bound correction in MATERIALIZATION_PULSE.md per البذرة page 19 (founder's-oath framing of 50% community pool, vs the v1 protocol-rule wording at lines 140 + 157). PULSE_N1_TRACE.md is byte-identical to v1. Pulse Bundle v1 (bizra/pulse-bundle/v1 -> 8093fb25) remains frozen by design - v1.1 is a successor manifest, not a rewrite. Hashes computed locally with b3sum 1.2.0 against origin/main HEAD (commit 21a36169). Per-file line_count_method documents the measurement convention transparently; v1 manifest's reported counts (281/525) differ by 1 from this draft's (280/524) under wc -l, awk NR, and grep -c '' (all three agree); BLAKE3 is the canonical binding regardless. Convergence patch on this PR addresses CodeRabbit Major + Codex P1 (provenance anchors corrected; tag now bound to PR #100's future merge commit, not the pre-manifest #99 merge), Copilot (predecessor field renamed merge_commit -> tag_commit to avoid semantic conflict with v1's own recorded path-binding merge 8dd26d57), and Copilot (per-file line_count_method made explicit)."
+}
