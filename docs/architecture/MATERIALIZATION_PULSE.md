@@ -137,7 +137,7 @@ niyyah → branched plan → constitutional gate → embodied execution
 
 ### Step 7 — Settlement
 **Input**: Sealed Pulse-Receipt.
-**Process**: A2A propagation to SAT-5 domain. SAT independently re-verifies: proof chain validity, Ihsān floor, ZANN_ZERO, RIBA_ZERO, Gini (when N>1). On valid: SEED minted = Ihsān-weighted; 50% routes to community pool per البذرة; Isnad extended with attribution table for every shoulder used; pattern filed as myelination candidate.
+**Process**: A2A propagation to SAT-5 domain. SAT independently re-verifies: proof chain validity, Ihsān floor, ZANN_ZERO, RIBA_ZERO, Gini (when N>1). On valid: SEED minted = Ihsān-weighted; 50% of project-earned SEED yield routes to community pool per البذرة (users keep 100% of earned SEED); Isnad extended with attribution table for every shoulder used; pattern filed as myelination candidate.
 **Output**: `SETTLED` receipt + SEED mint event + Isnad extension + (conditional) myelination candidacy.
 **Layer**: 5
 **Acceptance**: Settlement must be independent — SAT cannot accept a Pulse on PAT's word alone. SAT's verification logic runs without access to PAT's internal memory.
