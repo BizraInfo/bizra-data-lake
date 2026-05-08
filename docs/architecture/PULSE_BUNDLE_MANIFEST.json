@@ -3,7 +3,7 @@
   "issued": "2026-05-07T19:31:32.053349Z",
   "node": "NODE0",
   "signer_target": "ed25519:Mumo:NODE0",
-  "anchor_parent": "bizra.priority-anchor.v1",
+  "conceptual_lineage": "bizra.priority-anchor.v1 (founding-document anchor in BizraInfo/Dema; conceptual lineage only — not a cross-repo mechanical binding at v1 seal time)",
   "files": [
     {
       "path": "docs/architecture/MATERIALIZATION_PULSE.md",
@@ -20,8 +20,9 @@
   ],
   "seal_status": "CANDIDATE_CANONICAL",
   "binds_when": [
-    "Mumo signs both files with NODE0 ed25519 key",
-    "scripts/priority-anchor.mjs extended to include both blake3 hashes",
-    "git tag cut binding canonical paths to commit SHA"
-  ]
+    "[PLANNED — Phase 86a Ed25519 receipt-signing infrastructure (B2 sprint per bizra-omega/docs/specs/phase_86a_ed25519_receipt_signing.md); not yet shipped for canonical document bundles at v1 seal time]: Mumo signs both files with NODE0 Ed25519 key",
+    "Merge commit 8dd26d57 (PR #96 / Gate 1 of the bundle seal cycle) binds canonical paths to bizra-data-lake main; completed 2026-05-07T22:59:08Z",
+    "Git tag bizra/pulse-bundle/v1 cut from merge commit (immutable version reference)"
+  ],
+  "history_note": "v1 manifest converged for honesty pre-tag in chore/pulse-bundle-v1-manifest-honesty branch (replaced cloud-author drafting's unbacked references — priority-anchor.mjs --add was Dema-side SHA-256 tooling over founding-document leaves; cross-extending Dema's SHA-256 anchor with this bundle's BLAKE3 hashes was never a typed mechanism). The architectural .md content remained byte-canonical with original BLAKE3 hashes throughout. See git log on this file for the patch trail."
 }
