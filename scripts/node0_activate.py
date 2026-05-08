@@ -890,12 +890,27 @@ class Node0ProactiveKernel:
         "qwen/qwen3-vl-4b": "llama3.1:8b",
         "deephat-v1-7b": "mistral:latest",
         "text-embedding-nomic-embed-text-v1.5": "nomic-embed-text:latest",
-        # Previously missing — caused 4/7 PAT agent roles to silently fall back to llama3.1:8b
+        # Three reasoning routes below previously mapped to "deepseek-r1:14b" —
+        # a model not installed on every Ollama instance. PR #104 swapped those
+        # values to "gemma4:26b-bizra-16k" (BIZRA-tuned, locally available).
+        # See _BIZRA_THINKING_MODELS below for the explicit thinking-budget
+        # classification that gives the BIZRA-tuned model the long timeout
+        # and token budget a reasoning model needs.
         "qwen/qwen3-4b-thinking-2507": "gemma4:26b-bizra-16k",  # reasoner + thinker roles
         "liquid/lfm2.5-1.2b": "phi3:mini",  # general role
         "chuanli11_-_llama-3.2-3b-instruct-uncensored": "mistral:latest",  # creative role
         "mistralai/ministral-3-14b-reasoning": "gemma4:26b-bizra-16k",  # escalation chain
     }
+
+    # Models that should get the "thinking" runtime budget (longer timeout +
+    # higher max_tokens) but don't match the substring heuristic
+    # ("r1" / "thinking" / "reasoning") because their names embed
+    # BIZRA-tuning vocabulary instead. Capability classification is
+    # explicit, not inferred from vendor name substrings.
+    # Add new BIZRA-tuned reasoning models here.
+    _BIZRA_THINKING_MODELS = frozenset({
+        "gemma4:26b-bizra-16k",
+    })
 
     def __init__(self, config: Dict[str, Any] = None):
         # Load proactive_config.yaml as base, merge explicit overrides
@@ -1536,11 +1551,20 @@ class Node0ProactiveKernel:
                     else 0.6
                 )
 
-                # Thinking models (DeepSeek-R1, Qwen3-thinking) need longer
-                # timeouts — they reason for 10-30s before producing content.
-                # With 128GB RAM + RTX 4090, models can offload to CPU; allow
-                # generous timeout for cold starts and reasoning chains.
-                is_thinking = any(t in model for t in ("r1", "thinking", "reasoning"))
+                # Thinking models (DeepSeek-R1, Qwen3-thinking, BIZRA-tuned
+                # reasoning models) need longer timeouts — they reason for
+                # 10-30s before producing content. With 128GB RAM + RTX 4090,
+                # models can offload to CPU; allow generous timeout for cold
+                # starts and reasoning chains.
+                #
+                # Capability classification is explicit (via _BIZRA_THINKING_MODELS)
+                # rather than only substring-inferred from vendor names —
+                # BIZRA-tuned models like gemma4:26b-bizra-16k don't embed
+                # "r1"/"thinking"/"reasoning" but ARE thinking models.
+                is_thinking = (
+                    any(t in model for t in ("r1", "thinking", "reasoning"))
+                    or model in self._BIZRA_THINKING_MODELS
+                )
                 req_timeout = 300.0 if is_thinking else 60.0
                 req_max_tokens = 800 if is_thinking else 500
                 if strategy is not None:
