@@ -154,7 +154,7 @@ These are inherited from `CANON-001` through `CANON-009` and bind every Pulse:
 - **Gini ≤ 0.35** — no Pulse may extend network inequality past this floor
 - **Ihsān ≥ 0.95** — quality floor; below this, Pulses ACCEPT-AT-FLOOR-MINUS-1 only with myelination required before promotion
 - **Daughter Test** — every user-facing surface must pass: *"Would أبوك وأمك understand this in 5 seconds?"*
-- **50% community pool** — half of all SEED yield routes to the pool per البذرة (protocol rule, not personal oath)
+- **50% community pool** — half of project-earned SEED yield routes to the pool per the founder's إيمان commitment in البذرة (founder's oath on project profits, not a protocol deduction on users; users keep 100% of earned SEED)
 - **Liveness law** — a node must be alive alone; URP is the optional commons that amplifies, never the dependency that enables
 - **Authority hierarchy** — Quran → Hadith → البذرة → الرسالة → Spine → Root Invariants → specs → code
 
