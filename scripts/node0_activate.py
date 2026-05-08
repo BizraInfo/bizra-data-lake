@@ -883,7 +883,7 @@ class Node0ProactiveKernel:
 
     # Mapping from LM Studio model names → Ollama equivalents
     _OLLAMA_MODEL_MAP = {
-        "deepseek/deepseek-r1-0528-qwen3-8b": "deepseek-r1:14b",
+        "deepseek/deepseek-r1-0528-qwen3-8b": "gemma4:26b-bizra-16k",
         "agentflow-planner-7b-i1": "llama3.1:8b",
         "qwen2.5-0.5b-instruct": "phi3:mini",
         "qwen/qwen3-vl-8b": "llama3.1:8b",
@@ -891,10 +891,10 @@ class Node0ProactiveKernel:
         "deephat-v1-7b": "mistral:latest",
         "text-embedding-nomic-embed-text-v1.5": "nomic-embed-text:latest",
         # Previously missing — caused 4/7 PAT agent roles to silently fall back to llama3.1:8b
-        "qwen/qwen3-4b-thinking-2507": "deepseek-r1:14b",  # reasoner + thinker roles
+        "qwen/qwen3-4b-thinking-2507": "gemma4:26b-bizra-16k",  # reasoner + thinker roles
         "liquid/lfm2.5-1.2b": "phi3:mini",  # general role
         "chuanli11_-_llama-3.2-3b-instruct-uncensored": "mistral:latest",  # creative role
-        "mistralai/ministral-3-14b-reasoning": "deepseek-r1:14b",  # escalation chain
+        "mistralai/ministral-3-14b-reasoning": "gemma4:26b-bizra-16k",  # escalation chain
     }
 
     def __init__(self, config: Dict[str, Any] = None):
