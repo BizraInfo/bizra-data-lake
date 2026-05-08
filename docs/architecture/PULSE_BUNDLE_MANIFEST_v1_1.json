@@ -1,0 +1,32 @@
+{
+  "manifest_id": "bizra.pulse-bundle.v1.1",
+  "issued": "2026-05-08T07:04:33Z",
+  "node": "NODE0",
+  "signer_target": "ed25519:Mumo:NODE0",
+  "predecessor": {
+    "manifest_id": "bizra.pulse-bundle.v1",
+    "tag": "bizra/pulse-bundle/v1",
+    "merge_commit": "8093fb25"
+  },
+  "files": [
+    {
+      "path": "docs/architecture/MATERIALIZATION_PULSE.md",
+      "blake3": "92a2c9320fb433d4657ba3489d4822f03a4281da6a03c91cdfe3d486c5c36985",
+      "bytes": 18452,
+      "lines": 280
+    },
+    {
+      "path": "docs/emulation/PULSE_N1_TRACE.md",
+      "blake3": "fb34dafa477350f73df499f58ff0d9f6dcef0db593318a0dd6f9e9555e7b3026",
+      "bytes": 29828,
+      "lines": 524
+    }
+  ],
+  "seal_status": "CANDIDATE_CANONICAL",
+  "binds_when": [
+    "[PLANNED — Phase 86a Ed25519 receipt-signing infrastructure (B2 sprint per bizra-omega/docs/specs/phase_86a_ed25519_receipt_signing.md); not yet shipped at v1.1 manifest draft time]: Mumo signs both files with NODE0 Ed25519 key",
+    "Merge commit 21a36169 (PR #99 / Gate 6.1 — source-bound 50% community pool correction per البذرة page 19) binds the v1.1-corrected MATERIALIZATION_PULSE.md content to bizra-data-lake main; completed 2026-05-08T07:04:33Z",
+    "Git tag bizra/pulse-bundle/v1.1 cut from merge commit 21a36169 (immutable v1.1 version reference)"
+  ],
+  "history_note": "v1.1 reconciles a single source-bound correction in MATERIALIZATION_PULSE.md per البذرة page 19 (founder's-oath framing of 50% community pool, vs the v1 protocol-rule wording at lines 140 + 157). PULSE_N1_TRACE.md is byte-identical to v1 (BLAKE3 confirms). Pulse Bundle v1 (bizra/pulse-bundle/v1 -> 8093fb25, merge commit 8093fb25) remains frozen by design - v1.1 is a successor manifest, not a rewrite. Hashes computed locally with b3sum 1.2.0 against origin/main HEAD (commit 21a36169) on 2026-05-08; line counts use GNU `wc -l` convention (counts newlines), which differs by 1 from v1's reported PULSE_N1_TRACE line count (525) for the same byte-identical hash - line-count is metadata, BLAKE3 is the binding."
+}
