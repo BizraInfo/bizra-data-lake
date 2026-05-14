@@ -12,9 +12,20 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 import time
 
 import pytest
+
+
+def _minimal_runtime_config():
+    """Create a lightweight runtime config for smoke tests."""
+    from core.sovereign.runtime_types import RuntimeConfig
+
+    config = RuntimeConfig.minimal()
+    config.enable_inference_gateway = False
+    return config
+
 
 # ---------------------------------------------------------------------------
 # Pillar 1: Runtime boots and reports healthy status
@@ -29,12 +40,8 @@ class TestRuntimeBoot:
     async def test_runtime_creates_and_initializes(self):
         """Runtime boots with default config."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, RuntimeMode
 
-        config = RuntimeConfig(
-            mode=RuntimeMode.MINIMAL,
-            autonomous_enabled=False,
-        )
+        config = _minimal_runtime_config()
         runtime = SovereignRuntime(config)
         await runtime.initialize()
 
@@ -47,9 +54,8 @@ class TestRuntimeBoot:
     async def test_status_returns_valid_structure(self):
         """Status dict has identity, health, state keys."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, RuntimeMode
 
-        config = RuntimeConfig(mode=RuntimeMode.MINIMAL, autonomous_enabled=False)
+        config = _minimal_runtime_config()
         async with SovereignRuntime.create(config) as runtime:
             status = runtime.status()
 
@@ -68,9 +74,8 @@ class TestRuntimeBoot:
     async def test_runtime_context_manager_cleans_up(self):
         """Context manager properly shuts down runtime."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, RuntimeMode
 
-        config = RuntimeConfig(mode=RuntimeMode.MINIMAL, autonomous_enabled=False)
+        config = _minimal_runtime_config()
         async with SovereignRuntime.create(config) as runtime:
             assert runtime._initialized is True
             node_id = runtime.config.node_id
@@ -327,7 +332,7 @@ class TestCLISmoke:
         import subprocess
 
         result = subprocess.run(
-            ["python", "-m", "core.sovereign", "version"],
+            [sys.executable, "-m", "core.sovereign", "version"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -349,9 +354,8 @@ class TestFullStackSmoke:
     async def test_full_stack_boot_and_status(self):
         """Full boot → status → metrics → shutdown cycle."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, RuntimeMode
 
-        config = RuntimeConfig(mode=RuntimeMode.MINIMAL, autonomous_enabled=False)
+        config = _minimal_runtime_config()
 
         async with SovereignRuntime.create(config) as runtime:
             # Get status
@@ -368,10 +372,9 @@ class TestFullStackSmoke:
     async def test_pilot_health_summary(self, tmp_path):
         """Produce a JSON health summary suitable for monitoring."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, RuntimeMode
         from core.token.ledger import TokenLedger
 
-        config = RuntimeConfig(mode=RuntimeMode.MINIMAL, autonomous_enabled=False)
+        config = _minimal_runtime_config()
 
         async with SovereignRuntime.create(config) as runtime:
             status = runtime.status()

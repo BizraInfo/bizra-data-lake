@@ -1,0 +1,206 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_id": "receipt-2026-05-02_101333",
+  "timestamp": "2026-05-02T10:13:33.659532+00:00",
+  "description": "Proof-of-Truth convergence: ADK evidence-preserving refusal and identity-bound Receipt v1 bridge locally validated; cryptographic lane LOCAL_VALIDATED / CI_PENDING.",
+  "chain_position": 4,
+  "hashes": {
+    "evidence_hash": "b6213578ef34754e7a57be66024147ecf5086741aaa159a23c77904268a2d24c",
+    "previous_hash": "9757be9d4bbb1b4f79c5749708a7408211c7c6715188b0da15d4e2dfcabc0fcf",
+    "chain_hash": "5aa21b35f152f9a5180bc49bd11d06df754147b702d45111fd32889413a1d54c"
+  },
+  "confidence": {
+    "level": 4,
+    "label": "Strong",
+    "criteria": "Tests + 1 additional check(s)"
+  },
+  "artifacts": {
+    "count": 14,
+    "summary": {
+      "code": 8,
+      "test": 6
+    },
+    "details": [
+      {
+        "path": "core/adk/agent.py",
+        "size_bytes": 4447,
+        "sha256": "c8d9dd828d9e756cd2678ec60c58899556b8d20f418439fc663f1411b595ef8f",
+        "modified": "2026-05-02T09:49:52.081763+00:00",
+        "type": "code"
+      },
+      {
+        "path": "core/adk/agents/researcher.py",
+        "size_bytes": 5416,
+        "sha256": "d73d9238ed78512d31a108c3add134fca7b9c1890db8c400c9a59e757330e9eb",
+        "modified": "2026-05-02T10:07:30.150191+00:00",
+        "type": "code"
+      },
+      {
+        "path": "core/adk/runner.py",
+        "size_bytes": 9088,
+        "sha256": "e284ec092e148c9d297645d17d81f217b392767ad3adf6f2eb2e8cc9444dcee9",
+        "modified": "2026-05-02T07:36:57.489052+00:00",
+        "type": "code"
+      },
+      {
+        "path": "tests/core/adk/test_agent.py",
+        "size_bytes": 4984,
+        "sha256": "076ef28cd1fcbad17e3a1e58b5b516dddbcffd78bc13c4953500600847a963e7",
+        "modified": "2026-05-02T10:05:58.582016+00:00",
+        "type": "test"
+      },
+      {
+        "path": "tests/core/adk/test_mission.py",
+        "size_bytes": 2201,
+        "sha256": "02bbdbd45975a9bb128328978e8773cbdfe017ff8b4579372da2fee6f8dc6d2c",
+        "modified": "2026-05-02T10:05:58.564101+00:00",
+        "type": "test"
+      },
+      {
+        "path": "tests/core/adk/test_phase_c_agents.py",
+        "size_bytes": 5062,
+        "sha256": "0c600ee0e256cfeeb2969676fb7584ed28c9ad284b193b08f074e46dcfe29a31",
+        "modified": "2026-05-02T10:05:58.569581+00:00",
+        "type": "test"
+      },
+      {
+        "path": "tests/core/adk/test_researcher.py",
+        "size_bytes": 4713,
+        "sha256": "b2bf947bce27036fa614822f404b4a5852182fbbc4d9af230f24636c2f8a314c",
+        "modified": "2026-04-27T12:36:59.512209+00:00",
+        "type": "test"
+      },
+      {
+        "path": "tests/core/adk/test_runner.py",
+        "size_bytes": 5839,
+        "sha256": "e27810043d18f1bfab6b15c02c86b523f79861741a110cc64d19058b1de25a23",
+        "modified": "2026-05-02T10:05:58.574636+00:00",
+        "type": "test"
+      },
+      {
+        "path": "core/mission_kernel/__init__.py",
+        "size_bytes": 577,
+        "sha256": "cff2f0eafc1e36d393cde0d93044827d6a2772ded57826a4b4036ac6f466b231",
+        "modified": "2026-05-02T10:04:22.139772+00:00",
+        "type": "code"
+      },
+      {
+        "path": "core/mission_kernel/bridge.py",
+        "size_bytes": 5949,
+        "sha256": "b46168c0086341062532262270f286558db4bf29558923fed81852e0f6639dd3",
+        "modified": "2026-05-02T10:04:22.140772+00:00",
+        "type": "code"
+      },
+      {
+        "path": "tests/core/mission_kernel/__init__.py",
+        "size_bytes": 28,
+        "sha256": "5ed8a382040920d1baf95be8e0fb3f9e53a7fb1831bae736795bfc6bfdbaedb1",
+        "modified": "2026-05-02T10:04:22.140772+00:00",
+        "type": "code"
+      },
+      {
+        "path": "tests/core/mission_kernel/test_bridge.py",
+        "size_bytes": 5754,
+        "sha256": "766342e9630c18f1a8ad45aa68e5a971cab860900697149ec59d8bfdfd7c260b",
+        "modified": "2026-05-02T10:04:22.141772+00:00",
+        "type": "test"
+      },
+      {
+        "path": "core/proof_engine/receipt.py",
+        "size_bytes": 12960,
+        "sha256": "ffd1638a32bb011fd77d12fe5a9b9fa8d621e8b79cd05af7749ec69af8160c9d",
+        "modified": "2026-04-18T18:42:31.868881+00:00",
+        "type": "code"
+      },
+      {
+        "path": "core/pci/crypto.py",
+        "size_bytes": 16384,
+        "sha256": "785239f00f220e1ada36ba5f6c83a6546454c4e2d3b46389215d44d92147ae0e",
+        "modified": "2026-04-12T12:56:46.935241+00:00",
+        "type": "code"
+      }
+    ]
+  },
+  "verification": {
+    "verification_id": "verify-2026-05-02_101022",
+    "timestamp": "2026-05-02T10:11:17.761934+00:00",
+    "ecosystems": [
+      "python"
+    ],
+    "checks": [
+      {
+        "type": "test_suite",
+        "command": "pytest tests/core/adk/test_researcher.py -q",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 4566,
+        "summary": "========================= 9 passed, 1 warning in 4.36s =========================",
+        "output_excerpt": "============================= test session starts ==============================\nplatform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0\nrootdir: /data/bizra/repos/bizra-data-lake\nconfigfile: pyproject.toml\nplugins: timeout-2.4.0, cov-7.1.0, hypothesis-6.151.12, anyio-4.13.0, xdist-3.8.0, asyncio-1.3.0\ntimeout: 60.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 9 items\n\ntests/core/adk/test_researcher.py .........                              [100%]\n\n=============================== warnings summary ===============================\n.venv/lib/python3.12/site-packages/_hypothesis_pytestplugin.py:481\n  /data/bizra/repos/bizra-data-lake/.venv/lib/python3.12/site-packages/_hypothesis_pytestplugin.py:481: UserWarning: Skipping collection of '.hypothesis' directory - this usually means you've explicitly set the `norecursedirs` pytest config option, replacing rather than extending the default ignores.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n========================= 9 passed, 1 warning in 4.36s ========================="
+      },
+      {
+        "type": "test_suite",
+        "command": "pytest tests/core/adk -q",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 49863,
+        "summary": "======================== 51 passed, 1 warning in 49.60s ========================",
+        "output_excerpt": "============================= test session starts ==============================\nplatform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0\nrootdir: /data/bizra/repos/bizra-data-lake\nconfigfile: pyproject.toml\nplugins: timeout-2.4.0, cov-7.1.0, hypothesis-6.151.12, anyio-4.13.0, xdist-3.8.0, asyncio-1.3.0\ntimeout: 60.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 51 items\n\ntests/core/adk/test_agent.py ...........                                 [ 21%]\ntests/core/adk/test_mission.py .........                                 [ 39%]\ntests/core/adk/test_phase_c_agents.py ..............                     [ 66%]\ntests/core/adk/test_researcher.py .........                              [ 84%]\ntests/core/adk/test_runner.py ........                                   [100%]\n\n=============================== warnings summary ===============================\n.venv/lib/python3.12/site-packages/_hypothesis_pytestplugin.py:481\n  /data/bizra/repos/bizra-data-lake/.venv/lib/python3.12/site-packages/_hypothesis_pytestplugin.py:481: UserWarning: Skipping collection of '.hypothesis' directory - this usually means you've explicitly set the `norecursedirs` pytest config option, replacing rather than extending the default ignores.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 51 passed, 1 warning in 49.60s ========================"
+      },
+      {
+        "type": "test_suite",
+        "command": "pytest tests/core/mission_kernel -q",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 364,
+        "summary": "======================== 11 passed, 1 warning in 0.18s =========================",
+        "output_excerpt": "============================= test session starts ==============================\nplatform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0\nrootdir: /data/bizra/repos/bizra-data-lake\nconfigfile: pyproject.toml\nplugins: timeout-2.4.0, cov-7.1.0, hypothesis-6.151.12, anyio-4.13.0, xdist-3.8.0, asyncio-1.3.0\ntimeout: 60.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 11 items\n\ntests/core/mission_kernel/test_bridge.py ...........                     [100%]\n\n=============================== warnings summary ===============================\n.venv/lib/python3.12/site-packages/_hypothesis_pytestplugin.py:481\n  /data/bizra/repos/bizra-data-lake/.venv/lib/python3.12/site-packages/_hypothesis_pytestplugin.py:481: UserWarning: Skipping collection of '.hypothesis' directory - this usually means you've explicitly set the `norecursedirs` pytest config option, replacing rather than extending the default ignores.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 11 passed, 1 warning in 0.18s ========================="
+      },
+      {
+        "type": "test_suite",
+        "command": "pytest tests/core/proof_engine/test_receipt.py tests/core/mission_kernel -q",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 499,
+        "summary": "======================== 48 passed, 1 warning in 0.29s =========================",
+        "output_excerpt": "============================= test session starts ==============================\nplatform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0\nrootdir: /data/bizra/repos/bizra-data-lake\nconfigfile: pyproject.toml\nplugins: timeout-2.4.0, cov-7.1.0, hypothesis-6.151.12, anyio-4.13.0, xdist-3.8.0, asyncio-1.3.0\ntimeout: 60.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 48 items\n\ntests/core/proof_engine/test_receipt.py ................................ [ 66%]\n.....                                                                    [ 77%]\ntests/core/mission_kernel/test_bridge.py ...........                     [100%]\n\n=============================== warnings summary ===============================\n.venv/lib/python3.12/site-packages/_hypothesis_pytestplugin.py:481\n  /data/bizra/repos/bizra-data-lake/.venv/lib/python3.12/site-packages/_hypothesis_pytestplugin.py:481: UserWarning: Skipping collection of '.hypothesis' directory - this usually means you've explicitly set the `norecursedirs` pytest config option, replacing rather than extending the default ignores.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 48 passed, 1 warning in 0.29s ========================="
+      },
+      {
+        "type": "static_analysis",
+        "command": "ruff check core/adk tests/core/adk core/mission_kernel tests/core/mission_kernel",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 13,
+        "summary": "All checks passed!",
+        "output_excerpt": "All checks passed!"
+      },
+      {
+        "type": "static_analysis",
+        "command": "black --check core/adk tests/core/adk core/mission_kernel tests/core/mission_kernel",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 99,
+        "summary": "24 files would be left unchanged.",
+        "output_excerpt": "All done! \u2728 \ud83c\udf70 \u2728\n24 files would be left unchanged."
+      },
+      {
+        "type": "static_analysis",
+        "command": "git diff --check",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 12,
+        "summary": "passed",
+        "output_excerpt": ""
+      }
+    ],
+    "checks_run": 7,
+    "checks_passed": 7,
+    "checks_failed": 0,
+    "overall_pass": true,
+    "manual_attestation": null
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "value": "6274b371b511aadc21e000106307416112245f76ba856eaefc72105d3335c4537e682f5369dfcadf309ff90ee8e832629a9c07f72a821f9e80e31b9eebc8d308",
+    "signer_pubkey": "a86bbf01425150ff8baaccb43128be9bbae7470dbeebd5b03f426f80afb9cb97"
+  }
+}

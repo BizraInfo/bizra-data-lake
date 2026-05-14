@@ -129,6 +129,14 @@ class Node0Command:
         print_status("Truth label", report.get("truth_label", "MEASURED"), True)
         print_status("Mode", "Mumu-DEMA local relief", True)
 
+        node_console = report.get("dema_node_console", {})
+        if node_console:
+            print_status(
+                "Node Console",
+                node_console["activation_gate"],
+                node_console["ready"],
+            )
+
         print(f"\n{C.BOLD}Runtime{C.RESET}")
         print_status("DEMA daemon", service["status"], service["running"])
         print_status(
@@ -164,6 +172,13 @@ class Node0Command:
             print_info("Loaded model(s): " + ", ".join(lm_studio["loaded_model_ids"]))
         elif lm_studio["connected"] and not lm_studio["load_state_known"]:
             print_warn("LM Studio responded through /v1/models; load state is unknown")
+
+        if node_console:
+            print(f"\n{C.BOLD}Node Console Dependencies{C.RESET}")
+            for dependency in node_console["dependencies"]:
+                ok = dependency["status"] == "READY"
+                status = f"{dependency['status']} — {dependency['observed']}"
+                print_status(dependency["label"], status, ok)
 
         print(f"\n{C.BOLD}Guardrails{C.RESET}")
         print_info("This command is read-only.")

@@ -1,14 +1,8 @@
 """Tests for FATE Bridge — SovereignRuntime integration adapter."""
 
-import pytest
-from unittest.mock import patch, MagicMock
-import json
+from unittest.mock import patch
 
-from core.sovereign.fate_bridge import (
-    FateBridgeInput,
-    FateBridgeResult,
-    run_fate_bridge,
-)
+from core.sovereign.fate_bridge import run_fate_bridge
 
 
 class TestFateBridgeSkip:

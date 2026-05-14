@@ -66,6 +66,7 @@ class TestRuntimeImpactRecording:
         config = RuntimeConfig(
             autonomous_enabled=False,
             state_dir=tmp_path,
+            enable_inference_gateway=False,
         )
 
         async with SovereignRuntime.create(config) as runtime:
@@ -81,6 +82,7 @@ class TestRuntimeImpactRecording:
         config = RuntimeConfig(
             autonomous_enabled=False,
             state_dir=tmp_path,
+            enable_inference_gateway=False,
         )
 
         async with SovereignRuntime.create(config) as runtime:
@@ -113,6 +115,7 @@ class TestRuntimeImpactRecording:
         config = RuntimeConfig(
             autonomous_enabled=False,
             state_dir=tmp_path,
+            enable_inference_gateway=False,
         )
 
         async with SovereignRuntime.create(config) as runtime:
@@ -147,6 +150,7 @@ class TestStatusSovereigntyInfo:
         config = RuntimeConfig(
             autonomous_enabled=False,
             state_dir=tmp_path,
+            enable_inference_gateway=False,
         )
 
         async with SovereignRuntime.create(config) as runtime:
@@ -166,6 +170,7 @@ class TestStatusSovereigntyInfo:
         config = RuntimeConfig(
             autonomous_enabled=False,
             state_dir=tmp_path,
+            enable_inference_gateway=False,
         )
 
         async with SovereignRuntime.create(config) as runtime:
@@ -191,6 +196,7 @@ class TestMemoryCoordinatorIntegration:
             autonomous_enabled=False,
             state_dir=tmp_path,
             enable_persistence=False,  # Don't start background loop
+            enable_inference_gateway=False,
         )
 
         async with SovereignRuntime.create(config) as runtime:
@@ -217,6 +223,7 @@ class TestImpactPersistence:
         config = RuntimeConfig(
             autonomous_enabled=False,
             state_dir=tmp_path,
+            enable_inference_gateway=False,
         )
 
         # First runtime session — record some impact
@@ -257,6 +264,7 @@ class TestBloomCalculation:
         config = RuntimeConfig(
             autonomous_enabled=False,
             state_dir=tmp_path,
+            enable_inference_gateway=False,
         )
 
         async with SovereignRuntime.create(config) as runtime:

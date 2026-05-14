@@ -228,7 +228,7 @@ class HNSWIndex:
         """Create or re-create the index in memory."""
         if self._config.auto_tune:
             self._auto_tune_params()
-        hnswlib = _load_hnswlib()
+        hnswlib = None if self._config.quantize else _load_hnswlib()
         self._use_hnswlib = hnswlib is not None
         if hnswlib is not None:
             idx = hnswlib.Index(space=self._config.space, dim=self._config.dimensions)
@@ -498,7 +498,8 @@ class HNSWIndex:
 
     def load(self, path: Path) -> bool:
         """Load index from disk. Returns True if loaded successfully."""
-        hnswlib = _load_hnswlib()
+        npz_path = path.with_suffix(".npz")
+        hnswlib = None if npz_path.exists() else _load_hnswlib()
         self._use_hnswlib = hnswlib is not None
         if hnswlib is not None:
             import json
@@ -533,7 +534,6 @@ class HNSWIndex:
                 logger.error(f"Failed to load HNSW index: {e}")
                 return False
         else:
-            npz_path = path.with_suffix(".npz")
             if not npz_path.exists():
                 return False
             try:

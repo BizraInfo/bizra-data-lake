@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_id": "receipt-2026-05-04_143541",
+  "timestamp": "2026-05-04T14:35:41.182180+00:00",
+  "description": "Origin Hash Seal: mark ARTIFACT-001 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 and ARTIFACT-002 \u0627\u0644\u0628\u0630\u0631\u0629 measured by local source-file SHA-256",
+  "chain_position": 7,
+  "hashes": {
+    "evidence_hash": "0d44c45f2c6789454ca031479b5d615cbe327d92a45ba8c15e9e60015669af65",
+    "previous_hash": "6477bbfcd5cef95b94b253f3b36d8f2699cf7779886180664d10c28e1b7678a5",
+    "chain_hash": "44699d9958e4f8a5781cb92b44541b5f9f0c17d163cccf445287a7293ed4e9fa"
+  },
+  "confidence": {
+    "level": 2,
+    "label": "Attested",
+    "criteria": "Partial verification"
+  },
+  "artifacts": {
+    "count": 1,
+    "summary": {
+      "doc": 1
+    },
+    "details": [
+      {
+        "path": "docs/provenance/BIZRA_GENESIS_PROVENANCE_LEDGER_V0_1.md",
+        "size_bytes": 8685,
+        "sha256": "c52a572e2e2037b0cb2eba0363aab22ad1c1713c2cecbb4c6a879a8a19c7d040",
+        "modified": "2026-05-04T14:34:23.989889+00:00",
+        "type": "doc"
+      }
+    ]
+  },
+  "verification": {
+    "verification_id": "verify-1777905323",
+    "timestamp": "2026-05-04T14:35:23.377128+00:00",
+    "ecosystems": [
+      "documentation",
+      "provenance"
+    ],
+    "checks": [
+      {
+        "type": "static_analysis",
+        "command": "printf '%s  %s\\n' '3c20ae560a796379d91686bed7f025017d086a8ac39d54222060fcd17dc05e01' '/home/bizra-operating-system/Downloads/The-Silent-Collapse-BIZRA-Risalah-4.docx' 'ce68f404c8c791cef7c75defbe39ac431b2aa5725139f9f03190d82179a41591' '/home/bizra-operating-system/Downloads/Telegram Desktop/BIZRA_ Seeding a New Reality.pdf' | sha256sum -c -",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 5,
+        "summary": "/home/bizra-operating-system/Downloads/Telegram Desktop/BIZRA_ Seeding a New Reality.pdf: OK",
+        "output_excerpt": "/home/bizra-operating-system/Downloads/The-Silent-Collapse-BIZRA-Risalah-4.docx: OK\n/home/bizra-operating-system/Downloads/Telegram Desktop/BIZRA_ Seeding a New Reality.pdf: OK\n"
+      },
+      {
+        "type": "static_analysis",
+        "command": "rg -n 'REFERENCED_WITH_LOCAL_SOURCE_HASH|MEASURED by local source-file SHA-256|3c20ae560a796379d91686bed7f025017d086a8ac39d54222060fcd17dc05e01|ce68f404c8c791cef7c75defbe39ac431b2aa5725139f9f03190d82179a41591' docs/provenance/BIZRA_GENESIS_PROVENANCE_LEDGER_V0_1.md",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 2,
+        "summary": "74:SHA-256:      ce68f404c8c791cef7c75defbe39ac431b2aa5725139f9f03190d82179a41591",
+        "output_excerpt": "50:Status:       REFERENCED_WITH_LOCAL_SOURCE_HASH\n51:Truth label:  MEASURED by local source-file SHA-256\n56:SHA-256:      3c20ae560a796379d91686bed7f025017d086a8ac39d54222060fcd17dc05e01\n68:Status:       REFERENCED_WITH_LOCAL_SOURCE_HASH\n69:Truth label:  MEASURED by local source-file SHA-256\n74:SHA-256:      ce68f404c8c791cef7c75defbe39ac431b2aa5725139f9f03190d82179a41591\n"
+      },
+      {
+        "type": "static_analysis",
+        "command": "git diff --check",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 5,
+        "summary": "no output",
+        "output_excerpt": ""
+      },
+      {
+        "type": "static_analysis",
+        "command": "python scripts/ci_secret_scan.py",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 1032,
+        "summary": "Secret scan passed (2081 files checked).",
+        "output_excerpt": "Secret scan passed (2081 files checked).\n"
+      }
+    ],
+    "checks_run": 4,
+    "checks_passed": 4,
+    "checks_failed": 0,
+    "overall_pass": true,
+    "manual_attestation": "Local source-file hash seal for ARTIFACT-001/002; no runtime action executed."
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "value": "cc8a157ac14657f3b25b54523f3c9c399414509206037c48efb9be4f9dcb43a0abaf973f376da9c4eae37f352e45ccb54144b02a0301e926c4e847425e0af00f",
+    "signer_pubkey": "3fd17a3aee5c7a87850eab9a477902afa823e6d225d6c47e40a7eb293e930395"
+  }
+}

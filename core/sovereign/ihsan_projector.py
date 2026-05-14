@@ -465,15 +465,30 @@ class IhsanProjector:
         # Subtract bias
         target = target - self._b
 
-        # Minimum-norm solution using pseudoinverse
-        W_pinv = np.linalg.pinv(self._W)
-        delta = W_pinv @ target
+        # Minimum-norm right inverse for the 3x8 projection. This avoids SVD
+        # because full-suite test pressure can make tiny SVD calls flaky on
+        # oversubscribed BLAS backends.
+        W_right_inverse = self._stable_right_inverse()
+        delta = W_right_inverse @ target
 
         # Regularize toward prior
         ihsan_arr = prior.as_array + 0.5 * delta
         ihsan_arr = np.clip(ihsan_arr, 0.0, 1.0)
 
         return IhsanVector.from_array(ihsan_arr)
+
+    def _stable_right_inverse(self) -> np.ndarray:
+        """Return a ridge-regularized right inverse of the 3x8 weight matrix."""
+        if not np.all(np.isfinite(self._W)):
+            raise ValueError("Weight matrix contains non-finite values")
+
+        ridge = 1e-8
+        gram = self._W @ self._W.T
+        regularized = gram + ridge * np.eye(gram.shape[0], dtype=self._W.dtype)
+        return self._W.T @ np.linalg.solve(
+            regularized,
+            np.eye(regularized.shape[0], dtype=self._W.dtype),
+        )
 
     def get_jacobian(self) -> np.ndarray:
         """

@@ -47,6 +47,7 @@ class IntentType(str, Enum):
     SUMMARIZE_DOCUMENT = "intent.summarize_document"
     REPORT_STATUS = "intent.report_status"
     RELIEF_START_PRECHECK = "intent.relief_start_precheck"
+    ECONOMIC_TRANSFER = "intent.economic_transfer"
     UNRESOLVED = "intent.unresolved"
 
 

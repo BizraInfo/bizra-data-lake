@@ -112,6 +112,74 @@ class TestAgentDBSearch:
         assert len(results) >= 1
         assert "fallback" in results[0].record.content.lower()
 
+    def test_search_cache_key_separates_query_embeddings(self, db):
+        db.store(
+            "alpha vector memory", embedding=[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        )
+        db.store(
+            "beta vector memory", embedding=[0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        )
+
+        first = db.search(
+            query_embedding=[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            top_k=1,
+            min_score=0.0,
+        )
+        second = db.search(
+            query_embedding=[0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            top_k=1,
+            min_score=0.0,
+        )
+
+        assert first[0].record.content == "alpha vector memory"
+        assert second[0].record.content == "beta vector memory"
+
+    def test_search_exposes_mmr_diversification(self, db):
+        query_embedding = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        db.store("similar memory one", embedding=query_embedding)
+        db.store(
+            "similar memory two", embedding=[0.99, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        )
+        db.store("diverse memory", embedding=[0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+        standard = db.search(
+            query_embedding=query_embedding,
+            top_k=3,
+            min_score=0.0,
+        )
+        diversified = db.search(
+            query_embedding=query_embedding,
+            top_k=3,
+            min_score=0.0,
+            use_mmr=True,
+            mmr_lambda=0.2,
+        )
+
+        standard_contents = [result.record.content for result in standard]
+        diversified_contents = [result.record.content for result in diversified]
+
+        assert standard_contents[:2] == ["similar memory one", "similar memory two"]
+        assert diversified_contents[0] == "similar memory one"
+        assert "diverse memory" in diversified_contents[:2]
+
+    def test_search_validates_mmr_lambda(self, db):
+        with pytest.raises(ValueError, match="mmr_lambda"):
+            db.search("anything", use_mmr=True, mmr_lambda=1.5)
+
+    def test_search_applies_metadata_filters(self, db):
+        db.store("research paper alpha", metadata={"category": "ml"})
+        db.store("research paper beta", metadata={"category": "cv"})
+
+        results = db.search(
+            "research paper",
+            top_k=5,
+            min_score=0.0,
+            metadata_filters={"category": "ml"},
+        )
+
+        assert len(results) == 1
+        assert results[0].record.metadata["category"] == "ml"
+
 
 class TestAgentDBRetrieve:
     def test_retrieve_by_id(self, db):

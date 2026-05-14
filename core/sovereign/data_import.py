@@ -27,10 +27,138 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger("sovereign.data_import")
+
+
+@dataclass(frozen=True)
+class ImportScanLimits:
+    """Fail-closed bounds for recursive chat export discovery."""
+
+    max_depth: int = 8
+    max_directories: int = 5000
+    max_json_files: int = 10000
+    max_total_json_bytes: int = 512 * 1024 * 1024
+    timeout_seconds: float = 30.0
+    follow_symlinks: bool = False
+
+
+@dataclass
+class ImportScanAudit:
+    """Structured scan accounting returned with ingestion stats."""
+
+    directories_checked: int = 0
+    json_files_checked: int = 0
+    total_json_bytes: int = 0
+    skipped: list[dict[str, str]] = field(default_factory=list)
+
+    def skip(self, path: Path, reason: str) -> None:
+        self.skipped.append({"path": str(path), "reason": reason})
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "directories_checked": self.directories_checked,
+            "json_files_checked": self.json_files_checked,
+            "total_json_bytes": self.total_json_bytes,
+            "skipped": list(self.skipped),
+            "limit_hit": bool(self.skipped),
+        }
+
+
+def _deadline_expired(started_at: float, timeout_seconds: float) -> bool:
+    return (time.monotonic() - started_at) > timeout_seconds
+
+
+def _record_json_budget(
+    file_path: Path,
+    limits: ImportScanLimits,
+    audit: ImportScanAudit,
+    seen_json_files: set[str],
+) -> bool:
+    """Account for a JSON file before import so large exports cannot run away."""
+    key = str(file_path)
+    if key in seen_json_files:
+        return True
+    if file_path.is_symlink() and not limits.follow_symlinks:
+        audit.skip(file_path, "symlink_file")
+        return False
+    if audit.json_files_checked >= limits.max_json_files:
+        audit.skip(file_path, "max_json_files")
+        return False
+    try:
+        size = file_path.stat().st_size
+    except OSError as exc:
+        audit.skip(file_path, f"stat_error:{type(exc).__name__}")
+        return False
+    if audit.total_json_bytes + size > limits.max_total_json_bytes:
+        audit.skip(file_path, "max_total_json_bytes")
+        return False
+    seen_json_files.add(key)
+    audit.json_files_checked += 1
+    audit.total_json_bytes += size
+    return True
+
+
+def _export_files_within_budget(
+    directory: Path,
+    names: tuple[str, ...],
+    limits: ImportScanLimits,
+    audit: ImportScanAudit,
+    seen_json_files: set[str],
+) -> bool:
+    return all(
+        _record_json_budget(directory / name, limits, audit, seen_json_files)
+        for name in names
+    )
+
+
+def _iter_bounded_import_dirs(
+    import_dir: Path,
+    limits: ImportScanLimits,
+    audit: ImportScanAudit,
+) -> list[Path]:
+    """Return candidate import directories using explicit recursive scan bounds."""
+    started_at = time.monotonic()
+    dirs_to_check: list[Path] = []
+    stack: list[tuple[Path, int]] = [(import_dir, 0)]
+
+    while stack:
+        item, depth = stack.pop()
+        if _deadline_expired(started_at, limits.timeout_seconds):
+            audit.skip(item, "timeout")
+            break
+        if depth > limits.max_depth:
+            audit.skip(item, "max_depth")
+            continue
+        if item.is_symlink() and not limits.follow_symlinks:
+            audit.skip(item, "symlink_directory")
+            continue
+        if audit.directories_checked >= limits.max_directories:
+            audit.skip(item, "max_directories")
+            break
+
+        audit.directories_checked += 1
+        dirs_to_check.append(item)
+        try:
+            children = sorted(item.iterdir(), key=lambda child: child.name)
+        except OSError as exc:
+            audit.skip(item, f"read_error:{type(exc).__name__}")
+            continue
+        for child in reversed(children):
+            try:
+                is_dir = child.is_dir()
+            except OSError as exc:
+                audit.skip(child, f"stat_error:{type(exc).__name__}")
+                continue
+            if is_dir:
+                stack.append((child, depth + 1))
+
+    return dirs_to_check
+
 
 # =============================================================================
 # CONVERSATION PARSERS
@@ -237,9 +365,25 @@ def chunk_conversation(
 class DataImporter:
     """Import external data into Living Memory."""
 
-    def __init__(self, living_memory: Any, user_context: Any) -> None:
+    def __init__(
+        self,
+        living_memory: Any,
+        user_context: Any,
+        scan_limits: ImportScanLimits | None = None,
+        scan_audit: ImportScanAudit | None = None,
+        seen_json_files: set[str] | None = None,
+        scan_root: Path | None = None,
+    ) -> None:
         self._memory = living_memory
         self._user_context = user_context
+        self._scan_limits = (
+            scan_limits if scan_limits is not None else ImportScanLimits()
+        )
+        self._scan_audit = scan_audit if scan_audit is not None else ImportScanAudit()
+        self._seen_json_files = (
+            seen_json_files if seen_json_files is not None else set()
+        )
+        self._scan_root = scan_root
         self._stats = {
             "conversations": 0,
             "messages": 0,
@@ -251,6 +395,59 @@ class DataImporter:
 
     def get_stats(self) -> dict[str, int]:
         return dict(self._stats)
+
+    def _json_within_budget(self, file_path: Path) -> bool:
+        return _record_json_budget(
+            file_path,
+            self._scan_limits,
+            self._scan_audit,
+            self._seen_json_files,
+        )
+
+    def _bounded_json_files(self, directory: Path) -> list[Path]:
+        json_files = []
+        for json_file in directory.glob("*.json"):
+            if json_file.is_symlink() and not self._scan_limits.follow_symlinks:
+                self._scan_audit.skip(json_file, "symlink_file")
+                continue
+            if self._json_within_budget(json_file):
+                json_files.append(json_file)
+        return json_files
+
+    def _directory_depth(self, directory: Path) -> int:
+        if self._scan_root is None:
+            return 0
+        try:
+            return len(directory.relative_to(self._scan_root).parts)
+        except ValueError:
+            return 0
+
+    def _bounded_child_dirs(self, directory: Path) -> list[Path]:
+        children = []
+        try:
+            candidates = sorted(directory.iterdir(), key=lambda child: child.name)
+        except OSError as exc:
+            self._scan_audit.skip(directory, f"read_error:{type(exc).__name__}")
+            return children
+        for child in candidates:
+            try:
+                is_dir = child.is_dir()
+            except OSError as exc:
+                self._scan_audit.skip(child, f"stat_error:{type(exc).__name__}")
+                continue
+            if not is_dir:
+                continue
+            if child.is_symlink() and not self._scan_limits.follow_symlinks:
+                self._scan_audit.skip(child, "symlink_directory")
+                continue
+            depth = self._directory_depth(child)
+            if self._scan_root is None:
+                depth = 1
+            if depth > self._scan_limits.max_depth:
+                self._scan_audit.skip(child, "max_depth")
+                continue
+            children.append(child)
+        return children
 
     async def import_chatgpt_export(self, export_dir: Path) -> dict[str, int]:
         """
@@ -265,35 +462,34 @@ class DataImporter:
 
         # 1. Import memories.json (highest value — AI's memory of the user)
         memories_file = export_dir / "memories.json"
-        if memories_file.exists():
+        if memories_file.exists() and self._json_within_budget(memories_file):
             count = await self._import_chatgpt_memories(memories_file)
             results["memories.json"] = count
 
         # 2. Import conversations.json (bulk export)
         convos_file = export_dir / "conversations.json"
-        if convos_file.exists():
+        if convos_file.exists() and self._json_within_budget(convos_file):
             count = await self._import_conversations_file(convos_file)
             results["conversations.json"] = count
 
         # 3. Import individual conversation JSONs from subdirectories
-        for subdir in export_dir.iterdir():
-            if subdir.is_dir():
-                json_files = list(subdir.glob("*.json"))
-                if json_files:
-                    sub_total = 0
-                    for jf in json_files:
-                        try:
-                            count = await self._import_single_conversation(jf)
-                            sub_total += count
-                        except (
-                            asyncio.CancelledError,
-                            RuntimeError,
-                            OSError,
-                        ) as e:  # SEC-003 — async boundary
-                            logger.warning(f"Skipping {jf.name}: {e}")
-                            self._stats["errors"] += 1
-                    if sub_total:
-                        results[subdir.name] = sub_total
+        for subdir in self._bounded_child_dirs(export_dir):
+            json_files = self._bounded_json_files(subdir)
+            if json_files:
+                sub_total = 0
+                for jf in json_files:
+                    try:
+                        count = await self._import_single_conversation(jf)
+                        sub_total += count
+                    except (
+                        asyncio.CancelledError,
+                        RuntimeError,
+                        OSError,
+                    ) as e:  # SEC-003 — async boundary
+                        logger.warning(f"Skipping {jf.name}: {e}")
+                        self._stats["errors"] += 1
+                if sub_total:
+                    results[subdir.name] = sub_total
 
         return results
 
@@ -311,19 +507,19 @@ class DataImporter:
 
         # 1. Import memories.json (Claude's accumulated memory)
         memories_file = export_dir / "memories.json"
-        if memories_file.exists():
+        if memories_file.exists() and self._json_within_budget(memories_file):
             count = await self._import_claude_memories(memories_file)
             results["memories.json"] = count
 
         # 2. Import projects.json (project definitions as semantic memory)
         projects_file = export_dir / "projects.json"
-        if projects_file.exists():
+        if projects_file.exists() and self._json_within_budget(projects_file):
             count = await self._import_claude_projects(projects_file)
             results["projects.json"] = count
 
         # 3. Import conversations.json (the main data)
         convos_file = export_dir / "conversations.json"
-        if convos_file.exists():
+        if convos_file.exists() and self._json_within_budget(convos_file):
             count = await self._import_claude_conversations(convos_file)
             results["conversations.json"] = count
 
@@ -407,7 +603,7 @@ class DataImporter:
         results = {}
 
         convos_file = export_dir / "conversations.json"
-        if convos_file.exists():
+        if convos_file.exists() and self._json_within_budget(convos_file):
             count = await self._import_conversations_file(convos_file)
             results["conversations.json"] = count
 
@@ -616,6 +812,7 @@ async def ingest_chat_history(
     import_dir: Path,
     living_memory: Any,
     user_context: Any = None,
+    scan_limits: ImportScanLimits | None = None,
 ) -> dict[str, Any]:
     """
     Batch ingest all chat history from an extracted export directory.
@@ -626,22 +823,42 @@ async def ingest_chat_history(
         import_dir: Directory containing extracted chat export
         living_memory: LivingMemoryCore instance
         user_context: Optional UserContextManager for profile enrichment
+        scan_limits: Optional recursive scan bounds for export discovery
 
     Returns:
         dict with ingestion statistics
     """
-    importer = DataImporter(living_memory, user_context)
+    limits = scan_limits or ImportScanLimits()
+    scan_audit = ImportScanAudit()
+    seen_json_files: set[str] = set()
+    importer = DataImporter(
+        living_memory,
+        user_context,
+        scan_limits=limits,
+        scan_audit=scan_audit,
+        seen_json_files=seen_json_files,
+        scan_root=import_dir,
+    )
     all_results: dict[str, int] = {}
 
-    # Walk the directory tree looking for data sources
-    # Check the root directory itself + all subdirectories
-    dirs_to_check = [import_dir]
-    dirs_to_check.extend(d for d in import_dir.rglob("*") if d.is_dir())
+    # Walk the directory tree looking for data sources under explicit bounds.
+    dirs_to_check = _iter_bounded_import_dirs(import_dir, limits, scan_audit)
 
     for item in dirs_to_check:
+        if item.is_symlink() and not limits.follow_symlinks:
+            scan_audit.skip(item, "symlink_directory")
+            continue
 
         # Claude.ai export (has conversations.json + users.json)
         if (item / "conversations.json").exists() and (item / "users.json").exists():
+            if not _export_files_within_budget(
+                item,
+                ("conversations.json", "users.json"),
+                limits,
+                scan_audit,
+                seen_json_files,
+            ):
+                continue
             logger.info(f"Found Claude.ai export: {item.name}")
             results = await importer.import_claude_export(item)
             all_results.update({f"claude/{k}": v for k, v in results.items()})
@@ -649,6 +866,14 @@ async def ingest_chat_history(
 
         # ChatGPT bulk export (has conversations.json + memories.json, no users.json)
         if (item / "conversations.json").exists() and (item / "memories.json").exists():
+            if not _export_files_within_budget(
+                item,
+                ("conversations.json", "memories.json"),
+                limits,
+                scan_audit,
+                seen_json_files,
+            ):
+                continue
             logger.info(f"Found ChatGPT export: {item.name}")
             results = await importer.import_chatgpt_export(item)
             all_results.update({f"chatgpt/{k}": v for k, v in results.items()})
@@ -656,13 +881,21 @@ async def ingest_chat_history(
 
         # DeepSeek export (has conversations.json + user.json — singular)
         if (item / "conversations.json").exists() and (item / "user.json").exists():
+            if not _export_files_within_budget(
+                item,
+                ("conversations.json", "user.json"),
+                limits,
+                scan_audit,
+                seen_json_files,
+            ):
+                continue
             logger.info(f"Found DeepSeek export: {item.name}")
             results = await importer.import_deepseek_export(item)
             all_results.update({f"deepseek/{k}": v for k, v in results.items()})
             continue
 
         # Directory of individual conversation JSONs
-        json_files = list(item.glob("*.json"))
+        json_files = importer._bounded_json_files(item)
         if len(json_files) > 5:
             logger.info(
                 f"Found conversation directory: {item.name} ({len(json_files)} files)"
@@ -681,6 +914,7 @@ async def ingest_chat_history(
 
     stats = importer.get_stats()
     stats["sources"] = all_results  # type: ignore[assignment]
+    stats["scan_audit"] = scan_audit.as_dict()  # type: ignore[assignment]
     return stats
 
 

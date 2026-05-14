@@ -12,6 +12,7 @@ import json
 import os
 import time
 from collections import defaultdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -67,6 +68,51 @@ SKIP_EXTENSIONS = {
     ".idx",
     ".pack",
 }
+
+
+@dataclass(frozen=True)
+class ScanLimits:
+    """Explicit bounds for sovereign discovery scans."""
+
+    max_depth: int = 12
+    max_files: int = 250_000
+    max_total_bytes: int = 200 * 1024 * 1024 * 1024
+    timeout_seconds: float = 120.0
+    follow_symlinks: bool = False
+
+
+@dataclass
+class ScanAudit:
+    """Structured accounting for skipped files/directories."""
+
+    directories_checked: int = 0
+    files_checked: int = 0
+    total_bytes: int = 0
+    skipped: list[dict[str, str]] = field(default_factory=list)
+
+    def skip(self, path: Path, reason: str) -> None:
+        self.skipped.append({"path": str(path), "reason": reason})
+
+    def as_dict(self) -> dict:
+        return {
+            "directories_checked": self.directories_checked,
+            "files_checked": self.files_checked,
+            "total_bytes": self.total_bytes,
+            "skipped": list(self.skipped),
+            "limit_hit": bool(self.skipped),
+        }
+
+
+def _depth_from_root(root: Path, current: Path) -> int:
+    try:
+        return len(current.relative_to(root).parts)
+    except ValueError:
+        return 0
+
+
+def _deadline_expired(started_at: float, timeout_seconds: float) -> bool:
+    return (time.perf_counter() - started_at) > timeout_seconds
+
 
 # File classification by extension
 CLASSIFY = {
@@ -162,23 +208,70 @@ def fingerprint(path: Path, quick: bool = True) -> str:
         return "error"
 
 
-def scan_directory(root: Path) -> list[dict]:
+def scan_directory(
+    root: Path,
+    limits: ScanLimits | None = None,
+    audit: ScanAudit | None = None,
+    started_at: float | None = None,
+) -> list[dict]:
     """Walk a directory tree and catalog every file."""
+    limits = limits or ScanLimits()
+    audit = audit or ScanAudit()
+    started_at = started_at if started_at is not None else time.perf_counter()
     results = []
     if not root.exists():
         print(f"  [SKIP] {root} — not found")
+        audit.skip(root, "missing_root")
         return results
-    for dirpath, dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(
+        root, followlinks=limits.follow_symlinks
+    ):
+        if _deadline_expired(started_at, limits.timeout_seconds):
+            audit.skip(Path(dirpath), "timeout")
+            dirnames[:] = []
+            break
+
         # Prune skipped directories
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         dp = Path(dirpath)
+        audit.directories_checked += 1
+
+        depth = _depth_from_root(root, dp)
+        if depth >= limits.max_depth:
+            for dirname in dirnames:
+                audit.skip(dp / dirname, "max_depth")
+            dirnames[:] = []
+
+        if not limits.follow_symlinks:
+            kept_dirnames = []
+            for dirname in dirnames:
+                candidate = dp / dirname
+                if candidate.is_symlink():
+                    audit.skip(candidate, "symlink_directory")
+                else:
+                    kept_dirnames.append(dirname)
+            dirnames[:] = kept_dirnames
+
         for fname in filenames:
             fp = dp / fname
+            if audit.files_checked >= limits.max_files:
+                audit.skip(fp, "max_files")
+                dirnames[:] = []
+                break
+            if fp.is_symlink() and not limits.follow_symlinks:
+                audit.skip(fp, "symlink_file")
+                continue
             ext = fp.suffix.lower()
             if ext in SKIP_EXTENSIONS:
                 continue
             try:
                 stat = fp.stat()
+                if audit.total_bytes + stat.st_size > limits.max_total_bytes:
+                    audit.skip(fp, "max_total_bytes")
+                    dirnames[:] = []
+                    break
+                audit.files_checked += 1
+                audit.total_bytes += stat.st_size
                 results.append(
                     {
                         "path": str(fp),
@@ -193,13 +286,19 @@ def scan_directory(root: Path) -> list[dict]:
                         "hash": "",  # Filled in dedup pass
                     }
                 )
-            except (PermissionError, OSError):
+            except (PermissionError, OSError) as exc:
+                audit.skip(fp, f"stat_error:{type(exc).__name__}")
                 continue
     return results
 
 
-def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
+def run_discovery_scan(
+    output_dir: Path = Path("04_GOLD"),
+    limits: ScanLimits | None = None,
+) -> dict:
     """Run full discovery scan across all BIZRA locations."""
+    limits = limits or ScanLimits()
+    audit = ScanAudit()
     print("=" * 60)
     print("  PAT SOVEREIGN DISCOVERY SCAN")
     print("  Read-only. No files moved or modified.")
@@ -209,11 +308,23 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
     all_files = []
     t0 = time.perf_counter()
 
+    scan_started_at = time.perf_counter()
     for root in SCAN_ROOTS:
+        if _deadline_expired(scan_started_at, limits.timeout_seconds):
+            audit.skip(root, "timeout")
+            break
         print(f"  Scanning: {root}")
-        found = scan_directory(root)
+        found = scan_directory(
+            root,
+            limits=limits,
+            audit=audit,
+            started_at=scan_started_at,
+        )
         print(f"    → {len(found):,} files found")
         all_files.extend(found)
+        if audit.files_checked >= limits.max_files:
+            audit.skip(root, "max_files")
+            break
 
     scan_time = time.perf_counter() - t0
     print(f"\n  Total files discovered: {len(all_files):,} in {scan_time:.1f}s")
@@ -311,6 +422,8 @@ def run_discovery_scan(output_dir: Path = Path("04_GOLD")) -> dict:
             ],
         },
         "scan_duration_s": round(time.perf_counter() - t0, 1),
+        "scan_limits": asdict(limits),
+        "scan_audit": audit.as_dict(),
     }
 
     with open(manifest_path, "w") as fp:

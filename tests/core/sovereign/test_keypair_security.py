@@ -10,6 +10,7 @@ Verifies:
 """
 
 import hashlib
+import importlib.util
 import json
 import os
 import stat
@@ -19,12 +20,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # Skip all tests if cryptography is not available
-try:
-    from cryptography.fernet import Fernet
-
-    HAS_CRYPTO = True
-except ImportError:
-    HAS_CRYPTO = False
+HAS_CRYPTO = importlib.util.find_spec("cryptography.fernet") is not None
 
 pytestmark = pytest.mark.skipif(
     not HAS_CRYPTO, reason="cryptography package not installed"

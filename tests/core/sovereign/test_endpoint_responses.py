@@ -100,6 +100,7 @@ def _mock_runtime(state_dir: Path) -> MagicMock:
 def app(tmp_path: Path, monkeypatch):
     # Enable anonymous auth for functional testing
     monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "1")
+    monkeypatch.setenv("BIZRA_BROWSER_MODE", "mock")
     from core.sovereign.api import create_fastapi_app
 
     return create_fastapi_app(_mock_runtime(tmp_path))

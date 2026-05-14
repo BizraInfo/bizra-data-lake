@@ -287,6 +287,8 @@ class LivingMemoryBridge:
             top_k=top_k,
             min_score=min_score,
             kinds=kinds,
+            use_mmr=use_mmr,
+            mmr_lambda=mmr_lambda,
         )
         return [r.record for r in results]
 
