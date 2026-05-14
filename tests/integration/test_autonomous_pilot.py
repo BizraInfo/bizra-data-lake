@@ -325,9 +325,10 @@ class TestCLISmoke:
     def test_version_command(self):
         """Version string is returned."""
         import subprocess
+        import sys
 
         result = subprocess.run(
-            ["python", "-m", "core.sovereign", "version"],
+            [sys.executable, "-m", "core.sovereign", "version"],
             capture_output=True,
             text=True,
             timeout=10,
