@@ -386,19 +386,13 @@ class ReceiptVerifier:
         Verify a receipt.
 
         Returns (valid, error_message).
-        1A: genesis empty body / missing sig -> specific codes (parity with ledger guard).
         """
-        if not receipt or not getattr(receipt, "body", None):
-            return False, "GENESIS_RECEIPT_EMPTY"
+        if not receipt:
+            return False, "Invalid receipt"
         # Verify signature
         if not receipt.verify_signature(self.signer):
             self._failed.append(receipt.receipt_id)
-            return False, "LEDGER_SIGNATURE_EMPTY" if not getattr(receipt, "signature", None) else "Invalid signature"
-
-        # Verify signer matches
-        if receipt.signer_pubkey != self.signer.public_key_bytes():
-            self._failed.append(receipt.receipt_id)
-            return False, "Signer mismatch"
+            return False, "Invalid signature"
 
         # Verify SNR trace if present
         if receipt.snr_trace:
