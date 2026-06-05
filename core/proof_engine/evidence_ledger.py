@@ -135,6 +135,38 @@ def _compute_entry_hash_legacy_sha256(
     return digest
 
 
+_CHAIN_REQUIRED_RECEIPT_FIELDS = (
+    "receipt_id",
+    "timestamp",
+    "node_id",
+    "policy_version",
+    "status",
+    "snr",
+    "ihsan",
+    "decision",
+    "seal",
+)
+
+
+def _validate_chain_receipt_shape(receipt: Any) -> List[str]:
+    """Validate replay-critical receipt shape without rejecting legacy test IDs.
+    1A: empty genesis body -> GENESIS_RECEIPT_EMPTY ; empty sig -> LEDGER_SIGNATURE_EMPTY .
+    """
+    if not isinstance(receipt, dict) or not receipt:
+        return ["GENESIS_RECEIPT_EMPTY", "receipt must be a non-empty object"]
+
+    missing = [field for field in _CHAIN_REQUIRED_RECEIPT_FIELDS if field not in receipt]
+    if missing:
+        return [f"missing required field(s): {', '.join(missing)}"]
+
+    # 1A: explicit empty signature in the receipt payload (defense for #107)
+    sig = receipt.get("signature")
+    if sig is not None and (not str(sig).strip() or (isinstance(sig, dict) and not str(sig.get("value", "")).strip())):
+        return ["LEDGER_SIGNATURE_EMPTY"]
+
+    return []
+
+
 class EvidenceLedger:
     """
     Append-only, hash-chained evidence ledger.
@@ -358,6 +390,12 @@ class EvidenceLedger:
                     continue
 
                 expected_seq += 1
+
+                receipt_errors = _validate_chain_receipt_shape(entry.receipt)
+                if receipt_errors:
+                    errors.append(
+                        f"Line {line_num}: receipt schema invalid: {receipt_errors}"
+                    )
 
                 # Check sequence monotonicity
                 if entry.sequence != expected_seq:
@@ -584,6 +622,7 @@ def _attach_optional_signature(
                 "Unsigned critical receipt forbidden in Node0 mode: "
                 "BIZRA_RECEIPT_PRIVATE_KEY_HEX is required"
             )
+        receipt["signature_status"] = "UNSIGNED_FALLBACK"
         # CRITICAL-6 FIX: Warn instead of silently producing unsigned receipts.
         # Constitutional requirement: "Every operation produces a signed receipt."
         import warnings
@@ -631,6 +670,7 @@ def _attach_optional_signature(
         "value": signature_hex,
         "public_key": derived_public_key_hex,
     }
+    receipt["signature_status"] = "ED25519_SIGNED"
 
 
 # =============================================================================
@@ -719,10 +759,55 @@ class VerifierResponse:
         )
 
 
+def validate_proof_spine_guard(proof_event: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    DATA-LAKE-PROOF-SPINE-GUARD-1A
+    Fail-closed validator for the 4 Proof-of-Truth rails on a proof/pulse event.
+    Implements the minimal solvable special case from directive.
+
+    Empty genesis body, empty sig, bad pulse states (QUARANTINED/REJECTED/REVIEW),
+    missing fresh Ed25519 -> specific reason codes; no advance/settle.
+    Signed refusal receipt is valid proof (refusal_receipt_allowed) but non-settling.
+
+    This is the substrate parity for Dema canonical-receipt/ledger 1A guards.
+    """
+    reasons: List[str] = []
+    genesis = proof_event.get("genesis_receipt", {}) or {}
+    if not isinstance(genesis, dict) or len(genesis) == 0:
+        reasons.append("GENESIS_RECEIPT_EMPTY")
+
+    sig = str(proof_event.get("signature", "") or "").strip()
+    if not sig:
+        reasons.append("LEDGER_SIGNATURE_EMPTY")
+
+    decision = str(proof_event.get("decision", "")).upper()
+    if decision in ("QUARANTINED", "REJECTED", "REVIEW"):
+        reasons.append("PULSE_QUARANTINED_NO_SETTLEMENT")
+
+    fresh = proof_event.get("fresh_state_ed25519")
+    if fresh is None or (isinstance(fresh, str) and not fresh.strip()):
+        reasons.append("FRESH_STATE_RECEIPT_UNSIGNED")
+
+    allowed_advance = len(reasons) == 0
+    allowed_settle = allowed_advance and decision == "APPROVED"
+
+    # Note: even on refusal, a properly signed receipt can be a valid proof event (conscience)
+    # but must never mint/settle.
+    refusal_receipt_allowed = True  # signed refusal counts as proof success (non-settling)
+
+    return {
+        "allowed_to_advance": allowed_advance,
+        "allowed_to_settle": allowed_settle,
+        "refusal_receipt_allowed": refusal_receipt_allowed,
+        "reason_codes": reasons,
+    }
+
+
 __all__ = [
     "EvidenceLedger",
     "LedgerEntry",
     "VerifierResponse",
     "emit_receipt",
     "GENESIS_HASH",
+    "validate_proof_spine_guard",
 ]

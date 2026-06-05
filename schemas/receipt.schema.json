@@ -139,7 +139,7 @@
     },
     "reason_codes": {
       "type": "array",
-      "description": "Machine-readable rejection/quarantine reasons. Must be non-empty when decision != APPROVED.",
+      "description": "Machine-readable rejection/quarantine reasons. Must be non-empty when decision != APPROVED. 1A codes: GENESIS_RECEIPT_EMPTY, LEDGER_SIGNATURE_EMPTY, PULSE_QUARANTINED_NO_SETTLEMENT, FRESH_STATE_RECEIPT_UNSIGNED (refusal receipt valid proof but non-settling).",
       "items": { "type": "string" }
     },
     "gate_passed": {
@@ -173,6 +173,11 @@
         "value": { "type": "string", "pattern": "^[a-f0-9]{128}$" },
         "public_key": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }
+    },
+    "signature_status": {
+      "type": "string",
+      "enum": ["ED25519_SIGNED", "UNSIGNED_FALLBACK", "UNSIGNED_DEV_ONLY"],
+      "description": "Explicit signing state; unsigned fallback is allowed only as an honest fresh-state marker. 1A: missing fresh Ed25519 -> FRESH_STATE_RECEIPT_UNSIGNED or UNSIGNED_FALLBACK/DEV_ONLY (fail-closed default)."
     }
   },
   "if": {

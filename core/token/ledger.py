@@ -29,7 +29,7 @@ import sqlite3
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from core.integration.constants import (
     ADL_GINI_MIN_ACCOUNTS,
@@ -259,7 +259,11 @@ class TokenLedger:
     # TRANSACTION RECORDING
     # =========================================================================
 
-    def record_transaction(self, tx: TransactionEntry) -> TokenReceipt:
+    def record_transaction(
+        self,
+        tx: TransactionEntry,
+        finalizer: Optional[Callable[[TransactionEntry], None]] = None,
+    ) -> TokenReceipt:
         """
         Record a transaction in the ledger.
 
@@ -273,9 +277,13 @@ class TokenLedger:
         Thread-safe via lock.
         """
         with self._lock:
-            return self._record_locked(tx)
+            return self._record_locked(tx, finalizer=finalizer)
 
-    def _record_locked(self, tx: TransactionEntry) -> TokenReceipt:
+    def _record_locked(
+        self,
+        tx: TransactionEntry,
+        finalizer: Optional[Callable[[TransactionEntry], None]] = None,
+    ) -> TokenReceipt:
         """Record transaction while holding the lock."""
         # Assign sequence and chain link
         self._sequence += 1
@@ -290,6 +298,14 @@ class TokenLedger:
         if error:
             self._sequence -= 1  # Rollback sequence
             return TokenReceipt(success=False, error=error)
+
+        if finalizer is not None:
+            try:
+                finalizer(tx)
+            except Exception as e:  # noqa: BLE001 — boundary boundary
+                self._sequence -= 1
+                logger.error("Failed to finalize transaction %s: %s", tx.tx_id, e)
+                return TokenReceipt(success=False, error=str(e))
 
         # Apply to SQLite
         try:
@@ -325,6 +341,10 @@ class TokenLedger:
 
     def _validate_transaction(self, tx: TransactionEntry) -> Optional[str]:
         """Validate a transaction before recording."""
+        # 1A: refuse settlement/replay on bad pulse states (defense in token ledger)
+        memo_u = str(getattr(tx, "memo", "") or "").upper()
+        if any(bad in memo_u for bad in ("QUARANTINED", "REJECTED", "REVIEW")) or getattr(tx, "decision", "").upper() in ("QUARANTINED", "REJECTED", "REVIEW"):
+            return "PULSE_QUARANTINED_NO_SETTLEMENT"
         if tx.amount <= 0:
             return f"Amount must be positive, got {tx.amount}"
 

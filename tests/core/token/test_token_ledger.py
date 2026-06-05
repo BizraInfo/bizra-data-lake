@@ -788,6 +788,21 @@ class TestTokenMinter:
         # The important thing is that the function runs without error.
         assert isinstance(is_valid, bool)
 
+    def test_minter_persists_non_empty_signature_in_log(self, tmp_path: Path) -> None:
+        """The immutable JSONL entry must not record an empty signed claim."""
+        minter = make_minter(tmp_path)
+        receipt = minter.mint_seed("node-1", 100.0)
+        assert receipt.success is True
+
+        lines = (tmp_path / "test_token_ledger.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        persisted = json.loads(lines[0])
+
+        assert len(persisted["tx_hash"]) == 64
+        assert len(persisted["signature"]) == 128
+        assert len(persisted["signer_pubkey"]) == 64
+
     def test_minter_transfer_insufficient(self, tmp_path: Path) -> None:
         """Transfer fails when source lacks funds."""
         minter = make_minter(tmp_path)
@@ -1296,3 +1311,25 @@ class TestHarbergerTax:
         history = ledger.get_transaction_history(account_id="__UBC_POOL__")
         assert len(history) >= 1
         assert "epoch-42" in history[0].memo
+
+
+def test_blocks_quarantined_replay_settlement(tmp_path: Path) -> None:
+    """#102 Economic rail (DATA-LAKE-PROOF-SPINE-GUARD-1A): QUARANTINED/REJECTED/REVIEW pulse must block replay settlement / mint paths (non-settling refusal)."""
+    from core.proof_engine.evidence_ledger import validate_proof_spine_guard
+    bad_quar = {
+        "genesis_receipt": {"receipt_id": "g1"},
+        "signature": "sig",
+        "decision": "QUARANTINED",
+        "fresh_state_ed25519": "a" * 64,
+    }
+    res = validate_proof_spine_guard(bad_quar)
+    assert res["allowed_to_advance"] is False
+    assert res["allowed_to_settle"] is False
+    assert "PULSE_QUARANTINED_NO_SETTLEMENT" in res["reason_codes"]
+    assert res["refusal_receipt_allowed"] is True
+
+    # Also REJECTED and REVIEW produce the settlement block
+    for d in ["REJECTED", "REVIEW"]:
+        r = validate_proof_spine_guard({**bad_quar, "decision": d})
+        assert r["allowed_to_settle"] is False
+        assert "PULSE_QUARANTINED_NO_SETTLEMENT" in r["reason_codes"]

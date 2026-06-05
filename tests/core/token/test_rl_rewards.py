@@ -77,6 +77,28 @@ def test_compute_agent_reward_mints_seed(tmp_path: Path) -> None:
     assert receipt.tx_entry.to_account == "researcher"
 
 
+def test_compute_agent_reward_refuses_quarantined_mission(tmp_path: Path) -> None:
+    minter = _new_minter(tmp_path, "quarantined")
+    receipt = compute_agent_reward(
+        agent_id="researcher",
+        mission_result={
+            "decision": "QUARANTINED",
+            "snr": 0.99,
+            "ihsan": 0.99,
+            "tokens_used": 100,
+            "quality": 0.99,
+            "user_feedback": 1.0,
+        },
+        minter=minter,
+        emission_gate=None,
+        epoch_id="epoch-quarantine",
+    )
+
+    assert receipt.success is False
+    assert receipt.error == "PULSE_QUARANTINED_NO_SETTLEMENT"
+    assert minter.ledger.sequence == 0
+
+
 def test_compute_agent_reward_emission_gate_throttles(tmp_path: Path) -> None:
     gate = LogisticEmissionGate(e_max=1000.0, g_target=0.35, steepness=20.0)
 
@@ -135,3 +157,36 @@ def test_enforce_agent_gini_reports_compliance_for_equal_distribution(
 
     report = enforce_agent_gini(minter, ["a", "b", "c"], threshold=0.35)
     assert report["compliant"] is True
+
+
+def test_blocks_quarantined_reward_mint(tmp_path: Path) -> None:
+    """#102 Economic rail (DATA-LAKE-PROOF-SPINE-GUARD-1A): QUARANTINED/REJECTED/REVIEW must not mint reward/settle."""
+    minter = _new_minter(tmp_path, "quarantined-1a")
+    receipt = compute_agent_reward(
+        agent_id="researcher",
+        mission_result={
+            "decision": "QUARANTINED",
+            "snr": 0.99,
+            "ihsan": 0.99,
+            "tokens_used": 100,
+            "quality": 0.99,
+            "user_feedback": 1.0,
+        },
+        minter=minter,
+        emission_gate=None,
+        epoch_id="epoch-1a-quarantine",
+    )
+    assert receipt.success is False
+    assert receipt.error == "PULSE_QUARANTINED_NO_SETTLEMENT"
+    # also test REVIEW and REJECTED via direct (guard extended in patch)
+    from core.token.rl_rewards import compute_agent_reward as car
+    for bad_dec in ["REJECTED", "REVIEW"]:
+        r = car(
+            "a",
+            {"decision": bad_dec, "snr": 0.8, "ihsan": 0.8, "tokens_used": 10, "quality": 0.8},
+            minter,
+            None,
+            "e",
+        )
+        assert r.success is False
+        assert r.error == "PULSE_QUARANTINED_NO_SETTLEMENT"

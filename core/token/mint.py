@@ -119,6 +119,13 @@ class TokenMinter:
         """Access the underlying ledger."""
         return self._ledger
 
+    # 1A (DATA-LAKE-PROOF-SPINE-GUARD-1A): smallest defense for economic rail
+    def _refuse_on_bad_pulse(self, decision: str | None) -> Optional["TokenReceipt"]:
+        d = str(decision or "").upper()
+        if d in ("QUARANTINED", "REJECTED", "REVIEW"):
+            return TokenReceipt(success=False, error="PULSE_QUARANTINED_NO_SETTLEMENT")
+        return None
+
     # =========================================================================
     # CORE MINTING
     # =========================================================================
@@ -148,6 +155,10 @@ class TokenMinter:
         Returns:
             TokenReceipt with transaction details
         """
+        # 1A: refuse mint on bad pulse states (parity; primary enforcement in rl + proof guard)
+        bad = self._refuse_on_bad_pulse(locals().get("decision") or memo)
+        if bad:
+            return bad
         # Check yearly supply cap
         year = datetime.now(timezone.utc).year
         already_minted = self._ledger.get_yearly_minted(TokenType.SEED, year)
@@ -215,6 +226,10 @@ class TokenMinter:
             staking_epoch: Staking period reference
             memo: Human-readable memo
         """
+        # 1A guard (smallest)
+        bad = self._refuse_on_bad_pulse(memo)
+        if bad:
+            return bad
         tx = self._build_transaction(
             op=TokenOp.MINT,
             token_type=TokenType.BLOOM,
@@ -239,6 +254,10 @@ class TokenMinter:
 
         IMPT is the soulbound reputation score that compounds reward multipliers.
         """
+        # 1A guard (smallest)
+        bad = self._refuse_on_bad_pulse(memo)
+        if bad:
+            return bad
         tx = self._build_transaction(
             op=TokenOp.MINT,
             token_type=TokenType.IMPT,
@@ -535,11 +554,11 @@ class TokenMinter:
 
         Fix: sign AFTER ledger finalizes sequence + prev_hash + tx_hash.
         """
-        receipt = self._ledger.record_transaction(tx)
-        if receipt.success and self._private_key:
-            # NOW tx.tx_hash is final (includes sequence + prev_hash)
-            tx.signature = sign_message(tx.tx_hash, self._private_key)
-        return receipt
+        def sign_finalized(final_tx: TransactionEntry) -> None:
+            if self._private_key:
+                final_tx.signature = sign_message(final_tx.tx_hash, self._private_key)
+
+        return self._ledger.record_transaction(tx, finalizer=sign_finalized)
 
     def verify_transaction(self, tx: TransactionEntry) -> bool:
         """Verify a transaction's signature."""

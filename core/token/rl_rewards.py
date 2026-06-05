@@ -97,6 +97,15 @@ def compute_agent_reward(
     if minter is None:
         return TokenReceipt(success=False, error="minter_unavailable")
 
+    decision = str(mission_result.get("decision", "")).upper()
+    status = str(mission_result.get("status", "")).lower()
+    if decision in ("QUARANTINED", "REJECTED", "REVIEW") or status == "quarantined":
+        # 1A: explicit non-settling code for all bad pulse states
+        return TokenReceipt(
+            success=False,
+            error="PULSE_QUARANTINED_NO_SETTLEMENT",
+        )
+
     reward_score = composite_reward(mission_result)
     requested_seed = float(mission_result.get("seed_base", 100.0)) * reward_score
     gated_seed = requested_seed

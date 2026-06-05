@@ -170,6 +170,13 @@ class TestChainIntegrity:
         is_valid, errors = ledger.verify_chain()
         assert is_valid is True
 
+    def test_genesis_entry_with_empty_receipt_fails_verification(self, ledger):
+        """Hash-valid genesis entries must still carry a schema-valid receipt."""
+        ledger.append({})
+        is_valid, errors = ledger.verify_chain()
+        assert is_valid is False
+        assert any("receipt schema invalid" in e for e in errors)
+
     def test_verify_chain_accepts_legacy_sha256_entries(self, ledger_path):
         """Historical SHA-256 entries verify after BLAKE3 migration."""
         receipt1 = _minimal_receipt("legacy-r1")
@@ -385,6 +392,23 @@ class TestReceiptEmission:
         assert entry.receipt["decision"] == "APPROVED"
         assert entry.receipt["snr"]["score"] == 0.95
         assert entry.receipt["ihsan"]["score"] == 0.97
+
+    def test_emit_without_signer_marks_unsigned_fallback(self, ledger, monkeypatch):
+        """Fresh-state receipts without Ed25519 keys must not masquerade as signed."""
+        monkeypatch.delenv("BIZRA_RECEIPT_PUBLIC_KEY_HEX", raising=False)
+        monkeypatch.delenv("BIZRA_RECEIPT_PRIVATE_KEY_HEX", raising=False)
+
+        entry = emit_receipt(
+            ledger,
+            receipt_id="abc123def456abcb",
+            node_id="node-genesis-01",
+            snr_score=0.95,
+            ihsan_score=0.97,
+            seal_digest="a" * 64,
+        )
+
+        assert "signature" not in entry.receipt
+        assert entry.receipt["signature_status"] == "UNSIGNED_FALLBACK"
 
     def test_emit_rejected_receipt(self, ledger):
         """emit_receipt with rejection includes reason codes."""
@@ -760,3 +784,74 @@ class TestCrashRecovery:
         # Chain should be valid
         ok, errors = ledger2.verify_chain()
         assert ok, errors
+
+
+# =============================================================================
+# DATA-LAKE-PROOF-SPINE-GUARD-1A (focused tests added FIRST, must fail initially)
+# Covers the 4 Proof-of-Truth rails + refusal-as-valid-non-settling.
+# Minimal special case from directive:
+#   bad = {"genesis_receipt": {}, "signature": "", "decision": "QUARANTINED", "fresh_state_ed25519": null}
+#   => allowed_*=false, refusal_receipt_allowed=true, 4 reason_codes.
+# =============================================================================
+
+
+class TestProofSpineGuard1A:
+    """1A: substrate parity guards for Dema-face measured behavior."""
+
+    def test_blocks_empty_genesis_receipt(self):
+        """#101 Formal: empty genesis receipt/body must fail root validation with exact code."""
+        from core.proof_engine.evidence_ledger import validate_proof_spine_guard
+        event = {
+            "genesis_receipt": {},
+            "signature": "deadbeef" * 8,
+            "decision": "APPROVED",
+            "fresh_state_ed25519": "a" * 64,
+        }
+        res = validate_proof_spine_guard(event)
+        assert res["allowed_to_advance"] is False
+        assert res["allowed_to_settle"] is False
+        assert "GENESIS_RECEIPT_EMPTY" in res["reason_codes"]
+        assert res["refusal_receipt_allowed"] is True
+
+    def test_blocks_empty_ledger_signature(self):
+        """#107 Cryptographic: empty/missing ledger signature must fail validation with exact code."""
+        from core.proof_engine.evidence_ledger import validate_proof_spine_guard
+        event = {
+            "genesis_receipt": {"receipt_id": "g1"},
+            "signature": "",
+            "decision": "APPROVED",
+            "fresh_state_ed25519": "a" * 64,
+        }
+        res = validate_proof_spine_guard(event)
+        assert "LEDGER_SIGNATURE_EMPTY" in res["reason_codes"]
+        assert res["allowed_to_advance"] is False
+
+    def test_missing_ed25519_fresh_state_is_unsigned_fallback_or_fail_closed(self):
+        """#103 Cryptographic: missing Ed25519 on fresh-state receipt -> UNSIGNED_FALLBACK or FRESH_STATE... code (fail-closed or explicit dev marker)."""
+        from core.proof_engine.evidence_ledger import validate_proof_spine_guard
+        event = {
+            "genesis_receipt": {"receipt_id": "g1"},
+            "signature": "sig",
+            "decision": "APPROVED",
+            "fresh_state_ed25519": None,
+        }
+        res = validate_proof_spine_guard(event)
+        assert (
+            "FRESH_STATE_RECEIPT_UNSIGNED" in res["reason_codes"]
+            or res.get("signature_status") in ("UNSIGNED_FALLBACK", "UNSIGNED_DEV_ONLY")
+        )
+
+    def test_refusal_receipt_is_valid_but_non_settling(self):
+        """Gem: signed refusal (QUARANTINED) is valid proof event but must not allow advance/settle."""
+        from core.proof_engine.evidence_ledger import validate_proof_spine_guard
+        event = {
+            "genesis_receipt": {"receipt_id": "g1"},
+            "signature": "ed25519sigvaluehere" + "0" * 32,
+            "decision": "QUARANTINED",
+            "fresh_state_ed25519": "a" * 64,
+            "reason_codes": ["ETHICAL_BOUNDARY"],
+        }
+        res = validate_proof_spine_guard(event)
+        assert res["refusal_receipt_allowed"] is True
+        assert res["allowed_to_settle"] is False
+        assert "PULSE_QUARANTINED_NO_SETTLEMENT" in res["reason_codes"]
