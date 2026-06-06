@@ -174,7 +174,8 @@ export function useMission(userName: string) {
         add(pa, pt, 'pro');
       }, 3500);
     },
-    [add, running],
+    // nodeState.rac read inside functional updater — intentionally omitted from deps
+    [add, running], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return { msgs, running, nodeState, exec, add, inputRef };

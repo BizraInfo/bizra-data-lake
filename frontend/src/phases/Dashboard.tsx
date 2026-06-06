@@ -58,7 +58,8 @@ export default function Dashboard({ userName, config }: DashboardProps) {
       } else if (evt.type === 'receipt_minted') {
         w.refresh();
       }
-    }, [add, w.refresh]),
+    // w is a stable ref — intentionally omitted to avoid stale closure on event handler
+    }, [add, w.refresh]), // eslint-disable-line react-hooks/exhaustive-deps
   });
 
   // Proactive morning brief

@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import {
   useMemoryStats,
   useTerminalBriefing,
-  useSeedEpisodes,
   useSeedPotential,
 } from "@/hooks/use-sovereign-api";
 
@@ -115,8 +113,8 @@ function calculateStreak(missions: MissionSummary[]): number {
 // ─── Sub-Components ─────────────────────────────────────────────
 
 function BriefingCard() {
-  const { data: briefing } = useTerminalBriefing();
-  const { data: potential } = useSeedPotential();
+  const { data: _briefing } = useTerminalBriefing();
+  const { data: _potential } = useSeedPotential();
   const streak = calculateStreak(DEMO_MISSIONS);
   const qualityTrend = DEMO_MISSIONS.slice(0, 5)
     .reduce((sum, m) => sum + m.ihsan_score, 0) / 5;
