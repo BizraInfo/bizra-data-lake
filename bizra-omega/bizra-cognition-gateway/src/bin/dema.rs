@@ -22,6 +22,7 @@
 #![allow(dead_code)]
 
 use anyhow::{anyhow, Context, Result};
+use bizra_cognition::canonical_hasher::blake3_domain;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::process::ExitCode;
@@ -400,19 +401,57 @@ struct OrganizeOk {
 #[derive(Serialize)]
 struct SubmitRequest<'a> {
     intent: &'a str,
+    #[serde(rename = "operatorSessionId")]
+    operator_session_id: String,
     #[serde(rename = "currentState")]
     current_state: StateSnapshot<'a>,
     #[serde(rename = "idealState")]
     ideal_state: StateSnapshot<'a>,
+    #[serde(rename = "evidenceHash")]
+    evidence_hash: String,
     #[serde(rename = "qualityScore")]
     quality_score: f64,
-    originator: &'a str,
+    #[serde(rename = "derivesFromCanonical")]
+    derives_from_canonical: bool,
+    #[serde(rename = "faceOnly")]
+    face_only: bool,
 }
 
 #[derive(Serialize)]
 struct StateSnapshot<'a> {
+    hash: String,
     summary: &'a str,
     metric: f64,
+}
+
+fn hex32(bytes: [u8; 32]) -> String {
+    hex::encode(bytes)
+}
+
+/// Build a gateway-canonical `POST /mission` body for bounded local CLI submits.
+fn build_mission_request(intent: &str, quality: f64) -> SubmitRequest<'_> {
+    let intent_bytes = intent.as_bytes();
+    SubmitRequest {
+        intent,
+        operator_session_id: hex32(blake3_domain(
+            "bizra-dema-cli-operator-session-v1",
+            intent_bytes,
+        )),
+        current_state: StateSnapshot {
+            hash: hex32(blake3_domain("bizra-mission-state-pre-v1", intent_bytes)),
+            summary: "Principal state pre-mission",
+            metric: 0.0,
+        },
+        ideal_state: StateSnapshot {
+            hash: hex32(blake3_domain("bizra-mission-state-ideal-v1", intent_bytes)),
+            summary: "Mission canonical, receipted",
+            metric: 1.0,
+        },
+        evidence_hash: hex32(blake3_domain("bizra-mission-evidence-v1", intent_bytes)),
+        quality_score: quality,
+        derives_from_canonical: true,
+        face_only: false,
+    }
 }
 
 fn gateway_url() -> String {
@@ -593,19 +632,7 @@ fn cmd_receipt(hash: &str, json: bool) -> Result<()> {
 
 fn cmd_submit(intent: &str, quality: f64, json: bool) -> Result<bool> {
     let url = format!("{}/mission", gateway_url());
-    let req = SubmitRequest {
-        intent,
-        current_state: StateSnapshot {
-            summary: "Principal state pre-mission",
-            metric: 0.0,
-        },
-        ideal_state: StateSnapshot {
-            summary: "Mission canonical, receipted",
-            metric: 1.0,
-        },
-        quality_score: quality,
-        originator: "Operator",
-    };
+    let req = build_mission_request(intent, quality);
     let resp = client()?
         .post(&url)
         .json(&req)
@@ -1105,5 +1132,64 @@ fn main() -> ExitCode {
             eprintln!("dema: {}", e);
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mission_request_includes_gateway_canonical_fields() {
+        let req = build_mission_request("activate my dual agentic system", 0.98);
+        let body = serde_json::to_value(&req).expect("serialize mission request");
+
+        assert_eq!(body["intent"], "activate my dual agentic system");
+        assert_eq!(body["qualityScore"], 0.98);
+        assert_eq!(body["derivesFromCanonical"], true);
+        assert_eq!(body["faceOnly"], false);
+        assert!(body.get("originator").is_none());
+
+        for field in [
+            "operatorSessionId",
+            "evidenceHash",
+            "currentState",
+            "idealState",
+        ] {
+            assert!(body.get(field).is_some(), "missing field {field}");
+        }
+
+        for hash_field in ["operatorSessionId", "evidenceHash"] {
+            let value = body[hash_field].as_str().expect("hash field must be string");
+            assert_eq!(value.len(), 64, "{hash_field} must be 64-char hex");
+            assert!(value.chars().all(|ch| ch.is_ascii_hexdigit()));
+        }
+
+        for state_field in ["currentState", "idealState"] {
+            let hash = body[state_field]["hash"]
+                .as_str()
+                .expect("state hash must be string");
+            assert_eq!(hash.len(), 64, "{state_field}.hash must be 64-char hex");
+            assert!(hash.chars().all(|ch| ch.is_ascii_hexdigit()));
+            assert!(body[state_field]["summary"].is_string());
+            assert!(body[state_field]["metric"].is_number());
+        }
+    }
+
+    #[test]
+    fn mission_request_is_deterministic_for_same_intent() {
+        let a = serde_json::to_value(build_mission_request("bounded cli proof", 0.98)).unwrap();
+        let b = serde_json::to_value(build_mission_request("bounded cli proof", 0.98)).unwrap();
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn mission_request_changes_when_intent_changes() {
+        let a =
+            serde_json::to_value(build_mission_request("intent alpha", 0.98)).unwrap();
+        let b =
+            serde_json::to_value(build_mission_request("intent beta", 0.98)).unwrap();
+        assert_ne!(a["operatorSessionId"], b["operatorSessionId"]);
+        assert_ne!(a["evidenceHash"], b["evidenceHash"]);
     }
 }
