@@ -184,7 +184,7 @@ CognitionRuntime (bizra-cognition)
 - CLI adapter: `dema` binary in same crate
 - Constitutional freeze layer: `admissibility_freeze_v1.rs`, `receipt_freeze_v1.rs`, `mission_freeze_v1.rs`, `manifest_artifact.rs`
 
-**Persistence note:** current default is `InMemoryPayloadStore` — the chain is ephemeral across gateway process restarts. `sled-store` feature flag exists in `bizra-cognition/Cargo.toml` but is not yet wired at gateway boot. Cycle-6 Arc 3 closes this. Do not assume chain survives restart in this version.
+**Persistence note:** default gateway boot uses `InMemoryPayloadStore` — the chain is ephemeral across restarts unless `BIZRA_RECEIPT_STORE_PATH` is set. When set, the gateway bootstraps sled payloads under `<root>/payloads/` and authoritative chain metadata at `<root>/chain_snapshot.json`. `BIZRA_DEMA_CACHE_ROOT` remains a derived cache only and does not rehydrate `GET /chain`.
 
 ---
 
@@ -193,6 +193,7 @@ CognitionRuntime (bizra-cognition)
 | Variable | Default | Purpose |
 |---|---|---|
 | `BIZRA_COGNITION_PORT` | `7421` | Gateway bind port |
+| `BIZRA_RECEIPT_STORE_PATH` | (unset) | Authoritative receipt chain store root (sled payloads + `chain_snapshot.json`) |
 | `BIZRA_COGNITION_GATEWAY_URL` | `http://127.0.0.1:7421` | CLI target (for remote gateway scenarios) |
 | `RUST_LOG` | (unset; defaults to `info`) | Tracing verbosity |
 

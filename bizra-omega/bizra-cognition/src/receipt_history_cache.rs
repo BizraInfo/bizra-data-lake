@@ -168,10 +168,22 @@ impl ReceiptHistoryCache {
     /// same filesystem ensures a partial write cannot leave the file
     /// observable in a half-state.
     pub fn write(&self, snapshot: &ReceiptHistorySnapshot) -> Result<(), ReceiptHistoryCacheError> {
-        fs::create_dir_all(&self.cache_dir).map_err(|e| ReceiptHistoryCacheError::DirCreate {
-            path: self.cache_dir.clone(),
-            msg: e.to_string(),
-        })?;
+        Self::write_snapshot_file(&self.history_path(), snapshot, CACHE_SCHEMA_VERSION)
+    }
+
+    /// Write a snapshot to an arbitrary path with an explicit schema marker.
+    /// Used by the authoritative receipt chain store (Cycle-6 Arc 3).
+    pub fn write_snapshot_file(
+        path: &Path,
+        snapshot: &ReceiptHistorySnapshot,
+        schema_version: &str,
+    ) -> Result<(), ReceiptHistoryCacheError> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| ReceiptHistoryCacheError::DirCreate {
+                path: parent.to_path_buf(),
+                msg: e.to_string(),
+            })?;
+        }
 
         let mut records_json = Vec::with_capacity(snapshot.records.len());
         for r in &snapshot.records {
@@ -183,7 +195,7 @@ impl ReceiptHistoryCache {
         }
 
         let payload = json!({
-            "schema_version": CACHE_SCHEMA_VERSION,
+            "schema_version": schema_version,
             "head": hex_encode(&snapshot.head),
             "last_timestamp_ns": snapshot.last_timestamp_ns,
             "records": records_json,
@@ -191,12 +203,15 @@ impl ReceiptHistoryCache {
         let bytes = serde_json::to_vec_pretty(&payload)
             .map_err(|e| ReceiptHistoryCacheError::Serialize(e.to_string()))?;
 
-        let final_path = self.history_path();
-        let tmp_path = self.cache_dir.join(format!(
-            "{}.tmp.{}",
-            RECEIPT_HISTORY_FILENAME,
-            std::process::id()
-        ));
+        let parent = path
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("."));
+        let file_name = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("snapshot.json");
+        let tmp_path = parent.join(format!("{}.tmp.{}", file_name, std::process::id()));
 
         {
             let mut f =
@@ -216,9 +231,9 @@ impl ReceiptHistoryCache {
                 })?;
         }
 
-        fs::rename(&tmp_path, &final_path).map_err(|e| ReceiptHistoryCacheError::Rename {
+        fs::rename(&tmp_path, path).map_err(|e| ReceiptHistoryCacheError::Rename {
             from: tmp_path,
-            to: final_path,
+            to: path.to_path_buf(),
             msg: e.to_string(),
         })?;
 
@@ -229,76 +244,86 @@ impl ReceiptHistoryCache {
     /// `Ok(None)` when the cache file is absent. Fails closed on any
     /// schema, malformed-content, unknown-kind, or hex-decode error.
     pub fn read(&self) -> Result<Option<ReceiptHistorySnapshot>, ReceiptHistoryCacheError> {
-        let path = self.history_path();
+        Self::read_snapshot_file(&self.history_path(), CACHE_SCHEMA_VERSION)
+    }
+
+    /// Read a snapshot from an arbitrary path with an explicit schema marker.
+    pub fn read_snapshot_file(
+        path: &Path,
+        expected_schema: &str,
+    ) -> Result<Option<ReceiptHistorySnapshot>, ReceiptHistoryCacheError> {
         if !path.exists() {
             return Ok(None);
         }
-        let bytes = fs::read(&path).map_err(|e| ReceiptHistoryCacheError::ReadFailed {
-            path: path.clone(),
+        let bytes = fs::read(path).map_err(|e| ReceiptHistoryCacheError::ReadFailed {
+            path: path.to_path_buf(),
             msg: e.to_string(),
         })?;
         let v: Value =
             serde_json::from_slice(&bytes).map_err(|e| ReceiptHistoryCacheError::ParseFailed {
-                path: path.clone(),
+                path: path.to_path_buf(),
                 msg: e.to_string(),
             })?;
         let obj = v.as_object().ok_or(ReceiptHistoryCacheError::Malformed {
-            path: path.clone(),
+            path: path.to_path_buf(),
             reason: "root is not an object",
         })?;
         let schema = obj.get("schema_version").and_then(|x| x.as_str()).ok_or(
             ReceiptHistoryCacheError::Malformed {
-                path: path.clone(),
+                path: path.to_path_buf(),
                 reason: "missing schema_version",
             },
         )?;
-        if schema != CACHE_SCHEMA_VERSION {
+        if schema != expected_schema {
             return Err(ReceiptHistoryCacheError::SchemaMismatch {
-                path,
+                path: path.to_path_buf(),
                 got: schema.into(),
-                want: CACHE_SCHEMA_VERSION.into(),
+                want: expected_schema.into(),
             });
         }
 
-        let head = field_hex(obj, &path, "head")?;
+        let head = field_hex(obj, path, "head")?;
         let last_timestamp_ns = match obj.get("last_timestamp_ns") {
             None => None,
             Some(Value::Null) => None,
             Some(x) => Some(x.as_u64().ok_or(ReceiptHistoryCacheError::Malformed {
-                path: path.clone(),
+                path: path.to_path_buf(),
                 reason: "last_timestamp_ns not u64",
             })?),
         };
 
         let records_raw = obj.get("records").and_then(|x| x.as_array()).ok_or(
             ReceiptHistoryCacheError::Malformed {
-                path: path.clone(),
+                path: path.to_path_buf(),
                 reason: "missing records array",
             },
         )?;
         let mut records = Vec::with_capacity(records_raw.len());
         for r in records_raw {
             let robj = r.as_object().ok_or(ReceiptHistoryCacheError::Malformed {
-                path: path.clone(),
+                path: path.to_path_buf(),
                 reason: "record is not an object",
             })?;
             let kind_byte = robj.get("kind").and_then(|x| x.as_u64()).ok_or(
                 ReceiptHistoryCacheError::Malformed {
-                    path: path.clone(),
+                    path: path.to_path_buf(),
                     reason: "record.kind missing or not u8",
                 },
             )?;
             if kind_byte > 0xFF {
-                return Err(ReceiptHistoryCacheError::UnknownKind { path, byte: 0xFF });
+                return Err(ReceiptHistoryCacheError::UnknownKind {
+                    path: path.to_path_buf(),
+                    byte: 0xFF,
+                });
             }
             let kind = ReceiptKind::from_byte(kind_byte as u8).ok_or(
                 ReceiptHistoryCacheError::UnknownKind {
-                    path: path.clone(),
+                    path: path.to_path_buf(),
                     byte: kind_byte as u8,
                 },
             )?;
-            let hash = field_hex(robj, &path, "hash")?;
-            let prev = field_hex(robj, &path, "prev")?;
+            let hash = field_hex(robj, path, "hash")?;
+            let prev = field_hex(robj, path, "prev")?;
             records.push(Receipt { kind, hash, prev });
         }
 
