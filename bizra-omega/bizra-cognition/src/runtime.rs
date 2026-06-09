@@ -44,6 +44,7 @@ use crate::principal_activation::{
     PrincipalActivationEnvelope, PrincipalActivationReceipt, PrincipalProfile,
 };
 use crate::principal_cache::{PrincipalCacheError, PrincipalProfileCache};
+use crate::receipt_chain_store::{ReceiptChainStore, ReceiptChainStoreError};
 use crate::receipt_freeze_v1::{ReceiptArtifact, ReceiptChainExt};
 use crate::receipt_history_cache::{
     ReceiptHistoryCache, ReceiptHistoryCacheError, ReceiptHistorySnapshot,
@@ -528,6 +529,10 @@ pub struct CognitionRuntime {
     // never outranks chain.
     poi_entries: Vec<PoiEntry>,
     poi_ledger_cache: Option<PoiLedgerCache>,
+    // Cycle-6 Arc 3 — authoritative receipt chain persistence when
+    // BIZRA_RECEIPT_STORE_PATH is set at gateway bootstrap. Payloads
+    // live in sled; chain metadata in chain_snapshot.json.
+    receipt_chain_store: Option<ReceiptChainStore>,
 }
 
 /// Errors produced by CognitionRuntime bootstrap constructors.
@@ -570,6 +575,7 @@ impl CognitionRuntime {
             resource_registry_cache: None,
             poi_entries: Vec::new(),
             poi_ledger_cache: None,
+            receipt_chain_store: None,
         }
     }
 
@@ -611,6 +617,7 @@ impl CognitionRuntime {
             resource_registry_cache: None,
             poi_entries: Vec::new(),
             poi_ledger_cache: None,
+            receipt_chain_store: None,
         })
     }
 
@@ -665,6 +672,7 @@ impl CognitionRuntime {
             resource_registry_cache: None,
             poi_entries: Vec::new(),
             poi_ledger_cache: None,
+            receipt_chain_store: None,
         };
 
         // Collect replay actions in order. We iterate records oldest-to-newest.
@@ -1296,9 +1304,61 @@ impl CognitionRuntime {
     /// Best-effort by design: callers propagate the inner Result as a
     /// warning string without aborting the already-sealed chain.
     pub fn write_receipt_history_cache(&self) -> Option<Result<(), ReceiptHistoryCacheError>> {
-        self.receipt_history_cache
+        let derived = self
+            .receipt_history_cache
             .as_ref()
-            .map(|c| c.write(&self.receipt_history_snapshot()))
+            .map(|c| c.write(&self.receipt_history_snapshot()));
+        let _ = self.write_receipt_chain_store();
+        derived
+    }
+
+    /// Cycle-6 Arc 3 — persist authoritative chain metadata + sled payloads
+    /// already written during append. Best-effort; chain remains truth in RAM.
+    pub fn write_receipt_chain_store(&self) -> Option<Result<(), ReceiptChainStoreError>> {
+        self.receipt_chain_store.as_ref().map(|store| {
+            store
+                .write_snapshot(&self.receipt_history_snapshot())
+                .map_err(ReceiptChainStoreError::from)
+        })
+    }
+
+    pub fn attach_receipt_chain_store(&mut self, store: ReceiptChainStore) -> &mut Self {
+        self.receipt_chain_store = Some(store);
+        self
+    }
+
+    /// Cycle-6 Arc 3 — replace in-memory chain with sled-backed authoritative
+    /// store at `root`. Restores chain metadata + payloads from disk when present.
+    pub fn bootstrap_authoritative_receipt_store_at(
+        &mut self,
+        root: &std::path::Path,
+        genesis: Blake3Hash,
+    ) -> Result<(), ReceiptChainStoreError> {
+        let store = ReceiptChainStore::new(root.to_path_buf());
+        let chain = store.bootstrap_chain(genesis)?;
+        let head = chain.head();
+        self.chain = chain;
+        self.ctx.receipt_chain = head;
+        self.graph.set_chain_head(head);
+        self.receipt_chain_store = Some(store);
+        Ok(())
+    }
+
+    /// Like [`Self::bootstrap_authoritative_receipt_store_at`] when
+    /// `BIZRA_RECEIPT_STORE_PATH` is set; no-op when unset.
+    pub fn bootstrap_authoritative_receipt_store_from_env(
+        &mut self,
+        genesis: Blake3Hash,
+    ) -> Result<bool, ReceiptChainStoreError> {
+        let Some(root) = ReceiptChainStore::root_from_env() else {
+            return Ok(false);
+        };
+        self.bootstrap_authoritative_receipt_store_at(&root, genesis)?;
+        Ok(true)
+    }
+
+    pub fn receipt_chain_store(&self) -> Option<&ReceiptChainStore> {
+        self.receipt_chain_store.as_ref()
     }
 
     /// Cycle-7 G3 Commit-1 — load the receipt-history snapshot from the
