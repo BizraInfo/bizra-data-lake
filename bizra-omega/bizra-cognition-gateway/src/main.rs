@@ -2962,10 +2962,7 @@ mod tests {
         drop(state1);
 
         assert!(
-            td_store
-                .path()
-                .join("chain_snapshot.json")
-                .exists(),
+            td_store.path().join("chain_snapshot.json").exists(),
             "authoritative chain snapshot must be written after mission"
         );
 
@@ -2974,12 +2971,11 @@ mod tests {
             .expect("second bootstrap");
         assert_eq!(rt2.chain.len(), len_after as usize);
         assert_eq!(hex32(&rt2.chain.head()), head_hex);
-        assert!(
-            rt2.chain
-                .fetch_payload_bytes(&rt2.chain.head())
-                .expect("fetch head payload")
-                .is_some()
-        );
+        assert!(rt2
+            .chain
+            .fetch_payload_bytes(&rt2.chain.head())
+            .expect("fetch head payload")
+            .is_some());
 
         let state2 = AppState {
             runtime: Arc::new(RwLock::new(rt2)),

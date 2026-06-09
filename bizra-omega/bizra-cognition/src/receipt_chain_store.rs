@@ -42,7 +42,10 @@ impl std::fmt::Display for ReceiptChainStoreError {
             Self::Bootstrap(e) => write!(f, "receipt chain bootstrap: {:?}", e),
             Self::Snapshot(e) => write!(f, "receipt chain snapshot: {}", e),
             Self::FeatureDisabled => {
-                write!(f, "sled-store feature not enabled for authoritative persistence")
+                write!(
+                    f,
+                    "sled-store feature not enabled for authoritative persistence"
+                )
             }
         }
     }
@@ -109,13 +112,13 @@ impl ReceiptChainStore {
         #[cfg(not(feature = "sled-store"))]
         {
             let _ = self;
-            Err(StoreError::IoError(
-                "sled-store feature not enabled".into(),
-            ))
+            Err(StoreError::IoError("sled-store feature not enabled".into()))
         }
     }
 
-    pub fn read_snapshot(&self) -> Result<Option<ReceiptHistorySnapshot>, ReceiptHistoryCacheError> {
+    pub fn read_snapshot(
+        &self,
+    ) -> Result<Option<ReceiptHistorySnapshot>, ReceiptHistoryCacheError> {
         ReceiptHistoryCache::read_snapshot_file(
             &self.chain_snapshot_path(),
             CHAIN_STORE_SCHEMA_VERSION,
@@ -137,10 +140,15 @@ impl ReceiptChainStore {
         )
     }
 
-    pub fn bootstrap_chain(&self, genesis: Blake3Hash) -> Result<ReceiptChain, ReceiptChainStoreError> {
+    pub fn bootstrap_chain(
+        &self,
+        genesis: Blake3Hash,
+    ) -> Result<ReceiptChain, ReceiptChainStoreError> {
         let store = self.open_payload_store().map_err(ChainError::from)?;
         if let Some(snapshot) = self.read_snapshot()? {
-            Ok(ReceiptChain::restore_from_snapshot(genesis, snapshot, store)?)
+            Ok(ReceiptChain::restore_from_snapshot(
+                genesis, snapshot, store,
+            )?)
         } else {
             Ok(ReceiptChain::new(genesis, store))
         }
