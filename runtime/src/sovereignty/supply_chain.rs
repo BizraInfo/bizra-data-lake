@@ -274,23 +274,10 @@ impl SupplyChainVerifier {
 
     /// Verify an artifact
     pub fn verify(&self, name: &str, content: &[u8]) -> VerificationStatus {
-        // Check if pinned
         let Some(pinned) = self.pinned.get(name) else {
             return VerificationStatus::Unverified;
         };
-
-        // Verify hash
-        if !pinned.verify_hash(content) {
-            return VerificationStatus::Failed;
-        }
-
-        // Check for signature
-        if pinned.signature.is_some() && pinned.signer.is_some() {
-            // TODO: Verify Ed25519 signature
-            return VerificationStatus::SignatureVerified;
-        }
-
-        VerificationStatus::HashVerified
+        self.verify_artifact_signature(pinned, content)
     }
 
     /// Verify update manifest
@@ -1086,6 +1073,33 @@ mod tests {
         // Wrong content should fail
         let wrong_status = verifier.verify_artifact_signature(&artifact, b"wrong content");
         assert_eq!(wrong_status, VerificationStatus::Failed);
+    }
+
+    #[test]
+    fn test_verify_rejects_forged_signature() {
+        let signer = ReleaseSigner::generate();
+        let content = b"binary content here";
+
+        let mut artifact = PinnedArtifact::new("my-binary", ArtifactType::Binary, "1.0.0", "");
+        signer.sign_artifact(&mut artifact, content);
+
+        let mut verifier = SupplyChainVerifier::new();
+        verifier.trust_signer(signer.public_key());
+        verifier.pin(artifact.clone());
+
+        assert_eq!(
+            verifier.verify("my-binary", content),
+            VerificationStatus::SignatureVerified
+        );
+
+        let mut forged = artifact;
+        forged.signature = Some("00".repeat(64));
+        verifier.pin(forged);
+
+        assert_eq!(
+            verifier.verify("my-binary", content),
+            VerificationStatus::Failed
+        );
     }
 
     #[test]

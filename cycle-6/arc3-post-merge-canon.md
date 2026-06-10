@@ -33,6 +33,10 @@
 
 ## Operator golden path
 
+**CI (G4 test 9):** `scripts/operator-smoke-arc3.sh` with `BIZRA_RECEIPT_STORE_PATH=default` and isolated `BIZRA_DATA_LAKE_ROOT` — invoked from `scripts/e2e-polyglot/test.sh` on every push.
+
+**Local (authoritative store):**
+
 ```bash
 cd bizra-omega && cargo build --release -p bizra-cognition-gateway
 
@@ -44,6 +48,12 @@ export BIZRA_DATA_LAKE_ROOT=/data/bizra   # optional anchor
 dema mission submit --intent "operator smoke" ...
 dema chain
 # restart gateway; dema chain must show same head
+```
+
+**Local (isolated, no shared store):**
+
+```bash
+BIZRA_OPERATOR_SMOKE_ISOLATED=1 bash scripts/operator-smoke-arc3.sh
 ```
 
 Local deep witness (optional): `/data/bizra/logs/node0-persist-witness-final-20260610-v3/run_witness.py`

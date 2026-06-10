@@ -16,6 +16,9 @@
 # Test 8 (Cycle-6 Arc 3): when BIZRA_RECEIPT_STORE_PATH is set, the chain
 # rehydrates from sled + chain_snapshot.json across gateway restart.
 #
+# Test 9 (Arc 3.1+): scripts/operator-smoke-arc3.sh with
+# BIZRA_RECEIPT_STORE_PATH=default resolves under DATA_LAKE_ROOT (isolated in CI).
+#
 # G3 precedent (cycle-6/g3-authority-adr.md) declares external
 # award-winner-design as operator-facing authority. This test is
 # intentionally gateway-direct so it runs in CI without depending on
@@ -280,6 +283,21 @@ if start_gateway "${PORT}" "${PERSIST_LOG}" "${PERSIST_STORE_DIR}"; then
     fi
 else
     fail "test 8: persist gateway failed first boot"
+fi
+
+# ─── Test 9: operator default token (Arc 3.1+) ───────────────────────
+info "test 9: operator smoke — BIZRA_RECEIPT_STORE_PATH=default (isolated)"
+stop_gateway
+OPERATOR_SMOKE_LOG="/tmp/e2e-operator-smoke-arc3.log"
+if BIZRA_OPERATOR_SMOKE_ISOLATED=1 \
+    BIZRA_OPERATOR_SMOKE_SKIP_BUILD=1 \
+    BIZRA_OPERATOR_SMOKE_PORT=7432 \
+    BIZRA_OPERATOR_SMOKE_LOG="${OPERATOR_SMOKE_LOG}" \
+    bash "${REPO_ROOT}/scripts/operator-smoke-arc3.sh" > "${OPERATOR_SMOKE_LOG}" 2>&1; then
+    pass "test 9: operator default-store smoke (see ${OPERATOR_SMOKE_LOG})"
+else
+    fail "test 9: operator-smoke-arc3.sh failed (see ${OPERATOR_SMOKE_LOG})"
+    tail -20 "${OPERATOR_SMOKE_LOG}" 2>/dev/null | sed 's/^/  | /' || true
 fi
 
 # ─── Summary ──────────────────────────────────────────────────────────
