@@ -1,9 +1,9 @@
 {
   "schema": "bizra.cycle6.arc3.remote_witness.v1",
   "label": "CYCLE6_ARC3_PERSISTENCE_REMOTE_WITNESSED",
-  "witnessed_at_utc": "2026-06-10T03:16:03Z",
+  "witnessed_at_utc": "2026-06-10T06:30:08Z",
   "branch": "fix/pulse-v1.1-line-157-pool-framing",
-  "commit": "77491432607ec0867d949d4157288158f5e38adc",
+  "commit": "cfe6518af8511a911bdeaa9279fa3562f84c1ee9",
   "feature": "BIZRA_RECEIPT_STORE_PATH authoritative receipt chain persistence + operator default store path (Cycle-6 Arc 3)",
   "lineage": [
     {
@@ -17,18 +17,22 @@
     {
       "commit": "77491432607ec0867d949d4157288158f5e38adc",
       "summary": "Operator default path token (BIZRA_RECEIPT_STORE_PATH=default)"
+    },
+    {
+      "commit": "cfe6518af8511a911bdeaa9279fa3562f84c1ee9",
+      "summary": "Serialize env_resolution_tests under mutex (parallel CI flake fix)"
     }
   ],
   "ci": {
     "main": {
-      "run_id": 27250693391,
+      "run_id": 27252935353,
       "conclusion": "success",
-      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27250693391"
+      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27252935353"
     },
     "canonical_validation_gate": {
-      "run_id": 27250694266,
+      "run_id": 27252936154,
       "conclusion": "success",
-      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27250694266"
+      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27252936154"
     }
   },
   "local_witness": {
@@ -46,5 +50,5 @@
       }
     }
   },
-  "notes": "Remote CI green at 77491432. Unset BIZRA_RECEIPT_STORE_PATH = in-memory chain; explicit path or default token = file-backed ReceiptChainStore. Prior witness at b4880962 superseded by this artifact."
+  "notes": "Remote CI green at cfe6518a. Unset BIZRA_RECEIPT_STORE_PATH = in-memory chain; explicit path or default token = file-backed ReceiptChainStore. Prior witness at 77491432 superseded by this artifact."
 }
