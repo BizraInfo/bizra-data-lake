@@ -1160,7 +1160,9 @@ mod tests {
         }
 
         for hash_field in ["operatorSessionId", "evidenceHash"] {
-            let value = body[hash_field].as_str().expect("hash field must be string");
+            let value = body[hash_field]
+                .as_str()
+                .expect("hash field must be string");
             assert_eq!(value.len(), 64, "{hash_field} must be 64-char hex");
             assert!(value.chars().all(|ch| ch.is_ascii_hexdigit()));
         }
@@ -1185,10 +1187,8 @@ mod tests {
 
     #[test]
     fn mission_request_changes_when_intent_changes() {
-        let a =
-            serde_json::to_value(build_mission_request("intent alpha", 0.98)).unwrap();
-        let b =
-            serde_json::to_value(build_mission_request("intent beta", 0.98)).unwrap();
+        let a = serde_json::to_value(build_mission_request("intent alpha", 0.98)).unwrap();
+        let b = serde_json::to_value(build_mission_request("intent beta", 0.98)).unwrap();
         assert_ne!(a["operatorSessionId"], b["operatorSessionId"]);
         assert_ne!(a["evidenceHash"], b["evidenceHash"]);
     }
