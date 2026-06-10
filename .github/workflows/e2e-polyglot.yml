@@ -5,7 +5,8 @@ name: E2E Polyglot (Cycle-6 G4)
 # real regression.
 #
 # Exercises: bash harness → Rust gateway HTTP → 5-gate admissibility →
-# receipt chain → HTTP read-back. Gateway-direct by design; external
+# receipt chain → HTTP read-back; test 8 proves Arc 3 restart persistence
+# when BIZRA_RECEIPT_STORE_PATH is set. Gateway-direct by design; external
 # Next.js proxy is a DR-drill concern, not per-push CI.
 
 on:
