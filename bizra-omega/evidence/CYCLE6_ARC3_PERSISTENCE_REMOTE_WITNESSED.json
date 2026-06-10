@@ -1,25 +1,50 @@
 {
   "schema": "bizra.cycle6.arc3.remote_witness.v1",
   "label": "CYCLE6_ARC3_PERSISTENCE_REMOTE_WITNESSED",
-  "witnessed_at_utc": "2026-06-10T00:00:00Z",
+  "witnessed_at_utc": "2026-06-10T03:16:03Z",
   "branch": "fix/pulse-v1.1-line-157-pool-framing",
-  "commit": "b4880962b205adf97dbca3c6d97dc04ed0c35b0f",
-  "feature": "BIZRA_RECEIPT_STORE_PATH authoritative receipt chain persistence (Cycle-6 Arc 3)",
+  "commit": "77491432607ec0867d949d4157288158f5e38adc",
+  "feature": "BIZRA_RECEIPT_STORE_PATH authoritative receipt chain persistence + operator default store path (Cycle-6 Arc 3)",
+  "lineage": [
+    {
+      "commit": "d2a368d878d24a44df6a40b6e17de76c75efcfca",
+      "summary": "Base sled persist wiring when BIZRA_RECEIPT_STORE_PATH is set"
+    },
+    {
+      "commit": "b4880962b205adf97dbca3c6d97dc04ed0c35b0f",
+      "summary": "CI gate unblock; prior remote witness anchor"
+    },
+    {
+      "commit": "77491432607ec0867d949d4157288158f5e38adc",
+      "summary": "Operator default path token (BIZRA_RECEIPT_STORE_PATH=default)"
+    }
+  ],
   "ci": {
     "main": {
-      "run_id": 27247583854,
+      "run_id": 27250693391,
       "conclusion": "success",
-      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27247583854"
+      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27250693391"
     },
     "canonical_validation_gate": {
-      "run_id": 27247584725,
+      "run_id": 27250694266,
       "conclusion": "success",
-      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27247584725"
+      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27250694266"
     }
   },
   "local_witness": {
     "label": "NODE0_MISSION_REPLAY_PERSIST_WITNESS_COMPLETE",
-    "harness": "/data/bizra/logs/node0-persist-witness-final-20260610-v3/run_witness.py"
+    "harness": "/data/bizra/logs/node0-persist-witness-final-20260610-v3/run_witness.py",
+    "scenarios": {
+      "default_in_memory": {
+        "persist_survives_restart": false
+      },
+      "receipt_store_path": {
+        "persist_survives_restart": true
+      },
+      "receipt_store_default_token": {
+        "persist_survives_restart": true
+      }
+    }
   },
-  "notes": "Arc3 persistence shipped at d2a368d8; CI gates green at b4880962. Default operator path wiring is a follow-on commit on the same branch."
+  "notes": "Remote CI green at 77491432. Unset BIZRA_RECEIPT_STORE_PATH = in-memory chain; explicit path or default token = file-backed ReceiptChainStore. Prior witness at b4880962 superseded by this artifact."
 }
