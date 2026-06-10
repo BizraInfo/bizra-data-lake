@@ -239,9 +239,17 @@ fn dirs_home_via_env() -> Option<PathBuf> {
 #[cfg(test)]
 mod env_resolution_tests {
     use super::*;
+    use std::sync::{Mutex, MutexGuard};
+
+    /// Process-global env is shared across parallel tests; serialize mutations.
+    fn env_test_lock() -> MutexGuard<'static, ()> {
+        static LOCK: Mutex<()> = Mutex::new(());
+        LOCK.lock().unwrap_or_else(|e| e.into_inner())
+    }
 
     #[test]
     fn resolve_root_from_env_honors_explicit_path() {
+        let _guard = env_test_lock();
         let td = tempfile::TempDir::new().unwrap();
         let explicit = td.path().join("custom_store");
         std::env::set_var(ENV_RECEIPT_STORE_PATH, explicit.to_string_lossy().as_ref());
@@ -253,6 +261,7 @@ mod env_resolution_tests {
 
     #[test]
     fn resolve_root_from_env_default_token_uses_data_lake_root() {
+        let _guard = env_test_lock();
         let td = tempfile::TempDir::new().unwrap();
         std::env::remove_var(ENV_SOVEREIGN_STATE_PATH);
         std::env::remove_var(ENV_DEMA_HOME);
@@ -272,6 +281,7 @@ mod env_resolution_tests {
 
     #[test]
     fn resolve_root_from_env_unset_is_none() {
+        let _guard = env_test_lock();
         std::env::remove_var(ENV_RECEIPT_STORE_PATH);
         assert!(ReceiptChainStore::resolve_root_from_env().is_none());
     }
