@@ -1,9 +1,9 @@
 {
   "schema": "bizra.cycle6.arc3.remote_witness.v1",
   "label": "CYCLE6_ARC3_PERSISTENCE_REMOTE_WITNESSED",
-  "witnessed_at_utc": "2026-06-10T07:05:01Z",
+  "witnessed_at_utc": "2026-06-10T08:13:10Z",
   "branch": "main",
-  "commit": "37b8d114b84a09924b51fbd7142c259571b1abe9",
+  "commit": "ac4bde19194a00894c13ad31509f457bac0bf379",
   "merge": {
     "pr": 108,
     "merge_commit": "37b8d114b84a09924b51fbd7142c259571b1abe9",
@@ -12,10 +12,21 @@
   "feature": "BIZRA_RECEIPT_STORE_PATH authoritative receipt chain persistence + operator default store path (Cycle-6 Arc 3)",
   "arc3_1": {
     "summary": "G4 test 8 — CI proves restart persistence; delivery spine index; post-merge canon",
+    "merge": {
+      "pr": 109,
+      "feature_commit": "4aba4236c4e4c84bcd7aa5e4a82437163d532d44",
+      "merge_commit": "ac4bde19194a00894c13ad31509f457bac0bf379",
+      "merged_at_utc": "2026-06-10T07:52:05Z"
+    },
     "g4_test_8_local": {
       "passed_at_utc": "2026-06-10T07:05:01Z",
       "port": 7439,
       "assertions": 9
+    },
+    "g4_test_8_remote": {
+      "pr_run_id": 27259812173,
+      "main_merge_run_id": 27261616832,
+      "conclusion": "success"
     }
   },
   "lineage": [
@@ -38,6 +49,14 @@
     {
       "commit": "37b8d114b84a09924b51fbd7142c259571b1abe9",
       "summary": "PR #108 merged to main — Arc 3 persistence shipped"
+    },
+    {
+      "commit": "4aba4236c4e4c84bcd7aa5e4a82437163d532d44",
+      "summary": "Arc 3.1 feature commit — G4 test 8 + delivery spine + post-merge canon"
+    },
+    {
+      "commit": "ac4bde19194a00894c13ad31509f457bac0bf379",
+      "summary": "PR #109 merged to main — Arc 3.1 shipped"
     }
   ],
   "ci": {
@@ -56,6 +75,44 @@
       "run_id": 27258832318,
       "conclusion": "success",
       "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27258832318"
+    },
+    "arc3_1_pr": {
+      "g4": {
+        "run_id": 27259812173,
+        "workflow": "E2E Polyglot (Cycle-6 G4)",
+        "conclusion": "success",
+        "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27259812173"
+      },
+      "canonical_validation_gate": {
+        "run_id": 27259812165,
+        "conclusion": "success",
+        "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27259812165"
+      },
+      "ci": {
+        "run_id": 27259812161,
+        "workflow": "CI",
+        "conclusion": "success",
+        "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27259812161"
+      }
+    },
+    "arc3_1_main_merge": {
+      "g4": {
+        "run_id": 27261616832,
+        "workflow": "E2E Polyglot (Cycle-6 G4)",
+        "conclusion": "success",
+        "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27261616832"
+      },
+      "canonical_validation_gate": {
+        "run_id": 27261616804,
+        "conclusion": "success",
+        "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27261616804"
+      },
+      "ci": {
+        "run_id": 27261616836,
+        "workflow": "CI",
+        "conclusion": "success",
+        "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27261616836"
+      }
     }
   },
   "local_witness": {
@@ -73,5 +130,5 @@
       }
     }
   },
-  "notes": "Arc 3 merged at 37b8d114. Arc 3.1 adds G4 test 8 (restart persistence in CI). Unset BIZRA_RECEIPT_STORE_PATH = in-memory; explicit path or default token = file-backed ReceiptChainStore. Prior witness at cfe6518a superseded."
+  "notes": "Arc 3 merged at 37b8d114; Arc 3.1 merged at ac4bde19. G4 test 8 proves restart persistence in CI (PR + main). Unset BIZRA_RECEIPT_STORE_PATH = in-memory; explicit path or default token = file-backed ReceiptChainStore. Final witness bump supersedes pre-merge artifact at 37b8d114."
 }
