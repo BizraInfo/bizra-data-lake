@@ -379,6 +379,30 @@ impl ReceiptChain {
         }
         Ok(())
     }
+
+    /// Cycle-6 Arc 3 — rebuild an in-memory chain from an authoritative
+    /// on-disk snapshot plus an already-open payload store. Verifies
+    /// continuity against `genesis` and that every record hash has a
+    /// persisted payload before returning.
+    pub fn restore_from_snapshot(
+        genesis: Blake3Hash,
+        snapshot: crate::receipt_history_cache::ReceiptHistorySnapshot,
+        store: Box<dyn PayloadStore>,
+    ) -> Result<Self, ChainError> {
+        let chain = Self {
+            records: snapshot.records,
+            head: snapshot.head,
+            store,
+            last_timestamp_ns: snapshot.last_timestamp_ns,
+        };
+        chain.verify_continuity(genesis)?;
+        for record in &chain.records {
+            if !chain.store.contains(&record.hash)? {
+                return Err(ChainError::PayloadMissing(record.hash));
+            }
+        }
+        Ok(chain)
+    }
 }
 
 // ============================================================================

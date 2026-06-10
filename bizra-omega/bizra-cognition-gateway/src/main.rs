@@ -881,6 +881,49 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
             );
         }
     }
+
+    // Cycle-6 Arc 3 — authoritative receipt chain persistence. When
+    // BIZRA_RECEIPT_STORE_PATH is set (explicit path or operator token
+    // `default`), replace the in-memory payload store with sled +
+    // chain_snapshot.json. Fail-closed on corrupt store load.
+    // Distinct from BIZRA_DEMA_CACHE_ROOT (derived cache only).
+    match rt.bootstrap_authoritative_receipt_store_from_env(genesis) {
+        Ok(Some(mode)) => {
+            if let Some(store) = rt.receipt_chain_store() {
+                let path_mode = match mode {
+                    bizra_cognition::receipt_chain_store::ReceiptStorePathMode::Explicit => {
+                        "explicit"
+                    }
+                    bizra_cognition::receipt_chain_store::ReceiptStorePathMode::OperatorDefault => {
+                        "operator-default"
+                    }
+                };
+                tracing::info!(
+                    target: DOMAIN,
+                    root = %store.root().display(),
+                    path_mode,
+                    chain_len = rt.chain.len(),
+                    head = %hex32(&rt.chain.head()),
+                    "authoritative receipt store bootstrapped (Cycle-6 Arc 3 persistence enabled)"
+                );
+            }
+        }
+        Ok(None) => {
+            tracing::debug!(
+                target: DOMAIN,
+                "BIZRA_RECEIPT_STORE_PATH unset — in-memory receipt chain (ephemeral across restarts)"
+            );
+        }
+        Err(e) => {
+            tracing::error!(
+                target: DOMAIN,
+                error = %e,
+                "BIZRA_RECEIPT_STORE_PATH bootstrap FAILED — aborting startup (fail-closed)"
+            );
+            std::process::exit(1);
+        }
+    }
+
     rt
 }
 
@@ -2875,5 +2918,95 @@ mod tests {
             .collect();
         assert!(names.contains(&"PrincipalActivation"));
         assert!(names.contains(&"MissionExecuted"));
+    }
+
+    #[tokio::test]
+    async fn authoritative_receipt_store_survives_gateway_rebootstrap() {
+        let td_store = tempfile::TempDir::new().unwrap();
+        let td_anchor = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(td_anchor.path());
+        let genesis = [0u8; 32];
+
+        let mut rt1 = fresh_in_memory_runtime(genesis);
+        rt1.bootstrap_authoritative_receipt_store_at(td_store.path(), genesis)
+            .expect("first bootstrap");
+        let state1 = AppState {
+            runtime: Arc::new(RwLock::new(rt1)),
+        };
+
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
+        let activate = router(state1.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(activate.status(), StatusCode::OK);
+
+        let chain_res = router(state1.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let chain_body = to_bytes(chain_res.into_body(), 1024).await.unwrap();
+        let chain_after: serde_json::Value = serde_json::from_slice(&chain_body).unwrap();
+        let len_after = chain_after["length"].as_u64().unwrap();
+        let head_hex = chain_after["head"].as_str().unwrap().to_string();
+        assert_eq!(len_after, 9);
+
+        let receipt_res = router(state1.clone())
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/chain/{head_hex}"))
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(receipt_res.status(), StatusCode::OK);
+
+        drop(state1);
+
+        assert!(
+            td_store.path().join("chain_snapshot.json").exists(),
+            "authoritative chain snapshot must be written after mission"
+        );
+
+        let mut rt2 = fresh_in_memory_runtime(genesis);
+        rt2.bootstrap_authoritative_receipt_store_at(td_store.path(), genesis)
+            .expect("second bootstrap");
+        assert_eq!(rt2.chain.len(), len_after as usize);
+        assert_eq!(hex32(&rt2.chain.head()), head_hex);
+        assert!(rt2
+            .chain
+            .fetch_payload_bytes(&rt2.chain.head())
+            .expect("fetch head payload")
+            .is_some());
+
+        let state2 = AppState {
+            runtime: Arc::new(RwLock::new(rt2)),
+        };
+        let chain_restart = router(state2)
+            .oneshot(
+                Request::builder()
+                    .uri("/chain")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let restart_body = to_bytes(chain_restart.into_body(), 1024).await.unwrap();
+        let chain_restart: serde_json::Value = serde_json::from_slice(&restart_body).unwrap();
+        assert_eq!(chain_restart["length"], len_after);
+        assert_eq!(chain_restart["head"].as_str().unwrap(), head_hex);
     }
 }

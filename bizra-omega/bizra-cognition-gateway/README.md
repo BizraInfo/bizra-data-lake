@@ -184,7 +184,28 @@ CognitionRuntime (bizra-cognition)
 - CLI adapter: `dema` binary in same crate
 - Constitutional freeze layer: `admissibility_freeze_v1.rs`, `receipt_freeze_v1.rs`, `mission_freeze_v1.rs`, `manifest_artifact.rs`
 
-**Persistence note:** current default is `InMemoryPayloadStore` — the chain is ephemeral across gateway process restarts. `sled-store` feature flag exists in `bizra-cognition/Cargo.toml` but is not yet wired at gateway boot. Cycle-6 Arc 3 closes this. Do not assume chain survives restart in this version.
+**Persistence note:** default gateway boot uses `InMemoryPayloadStore` — the chain is ephemeral across restarts unless `BIZRA_RECEIPT_STORE_PATH` is set. When set to an explicit path, the gateway bootstraps sled payloads under `<root>/payloads/` and authoritative chain metadata at `<root>/chain_snapshot.json`. When set to `default`, the path expands to the operator canonical store (see below) while still requiring an explicit env var — persistence is never enabled implicitly. `BIZRA_DEMA_CACHE_ROOT` remains a derived cache only and does not rehydrate `GET /chain`.
+
+**Operator launch (opt-in persistence):**
+
+```bash
+# Explicit store root
+export BIZRA_RECEIPT_STORE_PATH=/path/to/receipt_store
+./target/release/bizra-cognition-gateway
+
+# Operator default path (requires env var; resolves under sovereign_state / data lake / DEMA_HOME)
+export BIZRA_RECEIPT_STORE_PATH=default
+export BIZRA_DATA_LAKE_ROOT=/data/bizra   # optional anchor for default resolution
+./target/release/bizra-cognition-gateway
+```
+
+Default path resolution order when `BIZRA_RECEIPT_STORE_PATH=default`:
+
+1. `$BIZRA_SOVEREIGN_STATE_PATH/authoritative_receipt_store`
+2. `$BIZRA_DATA_LAKE_ROOT/sovereign_state/authoritative_receipt_store`
+3. `$DEMA_HOME/authoritative_receipt_store`
+4. `$HOME/.dema/authoritative_receipt_store`
+5. `./sovereign_state/authoritative_receipt_store`
 
 ---
 
@@ -193,6 +214,10 @@ CognitionRuntime (bizra-cognition)
 | Variable | Default | Purpose |
 |---|---|---|
 | `BIZRA_COGNITION_PORT` | `7421` | Gateway bind port |
+| `BIZRA_RECEIPT_STORE_PATH` | (unset) | Authoritative receipt chain store root (sled payloads + `chain_snapshot.json`). Set to `default` for operator canonical path; unset keeps in-memory chain. |
+| `BIZRA_DATA_LAKE_ROOT` | (unset) | Data lake root; used when resolving `BIZRA_RECEIPT_STORE_PATH=default` |
+| `BIZRA_SOVEREIGN_STATE_PATH` | (unset) | Sovereign state root; preferred anchor when resolving `BIZRA_RECEIPT_STORE_PATH=default` |
+| `DEMA_HOME` | (unset) | Operator home; used when resolving `BIZRA_RECEIPT_STORE_PATH=default` |
 | `BIZRA_COGNITION_GATEWAY_URL` | `http://127.0.0.1:7421` | CLI target (for remote gateway scenarios) |
 | `RUST_LOG` | (unset; defaults to `info`) | Tracing verbosity |
 
