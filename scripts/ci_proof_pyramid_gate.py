@@ -23,10 +23,8 @@ Exit codes:
     1  One or more gates failed
     2  Argument error
 
-Constitutional thresholds (from bizra-core, single source of truth):
-    IHSAN_THRESHOLD  = 0.95
-    SNR_THRESHOLD    = 0.85
-    ADL_GINI_MAX     = 0.35
+Constitutional thresholds come from ``core.integration.constants``, the
+Python authoritative source aligned with Rust ``bizra-core``.
 """
 
 from __future__ import annotations
@@ -39,14 +37,21 @@ import pathlib
 import sys
 from typing import Any
 
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from core.integration.constants import (
+    ADL_GINI_THRESHOLD as ADL_GINI_MAX,
+    IHSAN_THRESHOLD,
+    MAX_HARM_SCORE,
+    MIN_CONFIDENCE,
+    SNR_THRESHOLD,
+)
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Constants — mirrors bizra-core/src/lib.rs (single source of truth)
+# Constants — imported from the Python/Rust-aligned authoritative source.
 # ─────────────────────────────────────────────────────────────────────────────
-IHSAN_THRESHOLD: float = 0.95
-SNR_THRESHOLD: float = 0.85
-ADL_GINI_MAX: float = 0.35
-MAX_HARM_SCORE: float = 0.30
-MIN_CONFIDENCE: float = 0.80
 
 # Gate registry: gate_id → human name
 GATE_REGISTRY: dict[str, str] = {
