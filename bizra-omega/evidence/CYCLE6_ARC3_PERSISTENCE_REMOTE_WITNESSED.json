@@ -1,10 +1,23 @@
 {
   "schema": "bizra.cycle6.arc3.remote_witness.v1",
   "label": "CYCLE6_ARC3_PERSISTENCE_REMOTE_WITNESSED",
-  "witnessed_at_utc": "2026-06-10T06:30:08Z",
-  "branch": "fix/pulse-v1.1-line-157-pool-framing",
-  "commit": "cfe6518af8511a911bdeaa9279fa3562f84c1ee9",
+  "witnessed_at_utc": "2026-06-10T07:05:01Z",
+  "branch": "main",
+  "commit": "37b8d114b84a09924b51fbd7142c259571b1abe9",
+  "merge": {
+    "pr": 108,
+    "merge_commit": "37b8d114b84a09924b51fbd7142c259571b1abe9",
+    "merged_at_utc": "2026-06-10T06:54:05Z"
+  },
   "feature": "BIZRA_RECEIPT_STORE_PATH authoritative receipt chain persistence + operator default store path (Cycle-6 Arc 3)",
+  "arc3_1": {
+    "summary": "G4 test 8 — CI proves restart persistence; delivery spine index; post-merge canon",
+    "g4_test_8_local": {
+      "passed_at_utc": "2026-06-10T07:05:01Z",
+      "port": 7439,
+      "assertions": 9
+    }
+  },
   "lineage": [
     {
       "commit": "d2a368d878d24a44df6a40b6e17de76c75efcfca",
@@ -21,18 +34,28 @@
     {
       "commit": "cfe6518af8511a911bdeaa9279fa3562f84c1ee9",
       "summary": "Serialize env_resolution_tests under mutex (parallel CI flake fix)"
+    },
+    {
+      "commit": "37b8d114b84a09924b51fbd7142c259571b1abe9",
+      "summary": "PR #108 merged to main — Arc 3 persistence shipped"
     }
   ],
   "ci": {
-    "main": {
-      "run_id": 27252935353,
+    "main_merge": {
+      "run_id": 27258832260,
+      "workflow": "E2E Polyglot (Cycle-6 G4)",
       "conclusion": "success",
-      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27252935353"
+      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27258832260"
     },
     "canonical_validation_gate": {
-      "run_id": 27252936154,
+      "run_id": 27258832273,
       "conclusion": "success",
-      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27252936154"
+      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27258832273"
+    },
+    "wire_completeness_audit": {
+      "run_id": 27258832318,
+      "conclusion": "success",
+      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27258832318"
     }
   },
   "local_witness": {
@@ -50,5 +73,5 @@
       }
     }
   },
-  "notes": "Remote CI green at cfe6518a. Unset BIZRA_RECEIPT_STORE_PATH = in-memory chain; explicit path or default token = file-backed ReceiptChainStore. Prior witness at 77491432 superseded by this artifact."
+  "notes": "Arc 3 merged at 37b8d114. Arc 3.1 adds G4 test 8 (restart persistence in CI). Unset BIZRA_RECEIPT_STORE_PATH = in-memory; explicit path or default token = file-backed ReceiptChainStore. Prior witness at cfe6518a superseded."
 }

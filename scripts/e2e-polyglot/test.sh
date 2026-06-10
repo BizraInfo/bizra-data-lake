@@ -11,7 +11,10 @@
 #
 # This test exercises the polyglot vertical:
 #   Bash harness → HTTP (Rust gateway v0.2) → admissibility chain →
-#   receipt artifact → in-memory ReceiptChain → HTTP read-back.
+#   receipt artifact → ReceiptChain → HTTP read-back.
+#
+# Test 8 (Cycle-6 Arc 3): when BIZRA_RECEIPT_STORE_PATH is set, the chain
+# rehydrates from sled + chain_snapshot.json across gateway restart.
 #
 # G3 precedent (cycle-6/g3-authority-adr.md) declares external
 # award-winner-design as operator-facing authority. This test is
@@ -41,11 +44,49 @@ LOG="/tmp/e2e-polyglot-gateway.log"
 RED='\033[0;31m'; GREEN='\033[0;32m'; GOLD='\033[0;33m'; RESET='\033[0m'
 
 PASS=0; FAIL=0; GATEWAY_PID=""
+PERSIST_STORE_DIR=""
 
-cleanup() {
+stop_gateway() {
     if [ -n "${GATEWAY_PID}" ] && kill -0 "${GATEWAY_PID}" 2>/dev/null; then
         kill "${GATEWAY_PID}" 2>/dev/null || true
         wait "${GATEWAY_PID}" 2>/dev/null || true
+    fi
+    GATEWAY_PID=""
+}
+
+wait_gateway_health() {
+    local base="$1"
+    local log="$2"
+    for _ in $(seq 1 40); do
+        sleep 0.25
+        if curl -sf "${base}/health" > /dev/null 2>&1; then
+            return 0
+        fi
+    done
+    echo "--- gateway log (${log}) ---"
+    tail -40 "${log}" 2>/dev/null || true
+    return 1
+}
+
+start_gateway() {
+    local port="$1"
+    local log="$2"
+    local store_path="${3:-}"
+    stop_gateway
+    if [ -n "${store_path}" ]; then
+        BIZRA_COGNITION_PORT="${port}" BIZRA_RECEIPT_STORE_PATH="${store_path}" \
+            "${GATEWAY_BIN}" > "${log}" 2>&1 &
+    else
+        BIZRA_COGNITION_PORT="${port}" "${GATEWAY_BIN}" > "${log}" 2>&1 &
+    fi
+    GATEWAY_PID=$!
+    wait_gateway_health "http://127.0.0.1:${port}" "${log}"
+}
+
+cleanup() {
+    stop_gateway
+    if [ -n "${PERSIST_STORE_DIR}" ] && [ -d "${PERSIST_STORE_DIR}" ]; then
+        rm -rf "${PERSIST_STORE_DIR}"
     fi
 }
 trap cleanup EXIT
@@ -84,25 +125,10 @@ if [ ! -x "${GATEWAY_BIN}" ]; then
     exit 2
 fi
 
-# ─── Start gateway ────────────────────────────────────────────────────
+# ─── Start gateway (in-memory; tests 1–7) ───────────────────────────────
 info "starting gateway on ${BASE} (log: ${LOG})"
-BIZRA_COGNITION_PORT="${PORT}" "${GATEWAY_BIN}" > "${LOG}" 2>&1 &
-GATEWAY_PID=$!
-
-# Wait for boot — up to 10 seconds
-BOOT_OK=0
-for _ in $(seq 1 40); do
-    sleep 0.25
-    if curl -sf "${BASE}/health" > /dev/null 2>&1; then
-        BOOT_OK=1
-        break
-    fi
-done
-
-if [ "${BOOT_OK}" -ne 1 ]; then
+if ! start_gateway "${PORT}" "${LOG}"; then
     echo "FATAL: gateway did not respond to /health within 10s"
-    echo "--- gateway log ---"
-    cat "${LOG}" || true
     exit 2
 fi
 
@@ -196,6 +222,64 @@ if [ "${UNK}" = "404" ]; then
     pass "test 7: unknown hash /chain/{fff...} returns HTTP 404"
 else
     fail "test 7: expected HTTP 404 on unknown hash, got ${UNK}"
+fi
+
+# ─── Test 8: authoritative store survives restart (Cycle-6 Arc 3) ───
+info "test 8: restart persistence via BIZRA_RECEIPT_STORE_PATH"
+PERSIST_STORE_DIR="$(mktemp -d /tmp/bizra-e2e-receipt-store.XXXXXX)"
+PERSIST_LOG="/tmp/e2e-polyglot-persist.log"
+
+PERSIST_MISSION_REQ=$(cat <<'EOF'
+{
+  "intent": "G4 Arc3 persist — receipt chain must survive gateway restart",
+  "operatorSessionId": "5555555555555555555555555555555555555555555555555555555555555555",
+  "currentState": {
+    "hash": "6666666666666666666666666666666666666666666666666666666666666666",
+    "summary": "Ephemeral boot",
+    "metric": 0.0
+  },
+  "idealState": {
+    "hash": "7777777777777777777777777777777777777777777777777777777777777777",
+    "summary": "Durable chain sealed",
+    "metric": 1.0
+  },
+  "evidenceHash": "8888888888888888888888888888888888888888888888888888888888888888",
+  "qualityScore": 0.98,
+  "derivesFromCanonical": true,
+  "faceOnly": false
+}
+EOF
+)
+
+if start_gateway "${PORT}" "${PERSIST_LOG}" "${PERSIST_STORE_DIR}"; then
+    PERSIST_RES=$(curl -sf -X POST -H "Content-Type: application/json" \
+        -d "${PERSIST_MISSION_REQ}" "${BASE}/mission" 2>/dev/null || echo "")
+    PERSIST_RECEIPT_ID=$(echo "${PERSIST_RES}" | JSON '.receiptId' 2>/dev/null || echo "")
+    PERSIST_LEN=$(curl -sf "${BASE}/chain" | JSON '.length')
+
+    stop_gateway
+
+    if [ -n "${PERSIST_RECEIPT_ID}" ] && [ "${PERSIST_LEN}" != "0" ]; then
+        if start_gateway "${PORT}" "${PERSIST_LOG}" "${PERSIST_STORE_DIR}"; then
+            LEN_AFTER_RESTART=$(curl -sf "${BASE}/chain" | JSON '.length')
+            if [ "${LEN_AFTER_RESTART}" != "0" ]; then
+                RECEIPT_AFTER_RESTART=$(curl -sf "${BASE}/chain/${PERSIST_RECEIPT_ID}" 2>/dev/null || echo "")
+                if echo "${RECEIPT_AFTER_RESTART}" | grep -q '"id"'; then
+                    pass "test 8: receipt chain rehydrates after restart (store=${PERSIST_STORE_DIR})"
+                else
+                    fail "test 8: receipt lookup failed after restart"
+                fi
+            else
+                fail "test 8: chain length=0 after restart (expected persisted chain)"
+            fi
+        else
+            fail "test 8: gateway failed to boot for restart rehydration"
+        fi
+    else
+        fail "test 8: failed to seal receipt before restart (receiptId='${PERSIST_RECEIPT_ID}', length=${PERSIST_LEN})"
+    fi
+else
+    fail "test 8: persist gateway failed first boot"
 fi
 
 # ─── Summary ──────────────────────────────────────────────────────────
