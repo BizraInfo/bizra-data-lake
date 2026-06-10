@@ -1,0 +1,25 @@
+{
+  "schema": "bizra.cycle6.arc3.remote_witness.v1",
+  "label": "CYCLE6_ARC3_PERSISTENCE_REMOTE_WITNESSED",
+  "witnessed_at_utc": "2026-06-10T00:00:00Z",
+  "branch": "fix/pulse-v1.1-line-157-pool-framing",
+  "commit": "b4880962b205adf97dbca3c6d97dc04ed0c35b0f",
+  "feature": "BIZRA_RECEIPT_STORE_PATH authoritative receipt chain persistence (Cycle-6 Arc 3)",
+  "ci": {
+    "main": {
+      "run_id": 27247583854,
+      "conclusion": "success",
+      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27247583854"
+    },
+    "canonical_validation_gate": {
+      "run_id": 27247584725,
+      "conclusion": "success",
+      "url": "https://github.com/BizraInfo/bizra-data-lake/actions/runs/27247584725"
+    }
+  },
+  "local_witness": {
+    "label": "NODE0_MISSION_REPLAY_PERSIST_WITNESS_COMPLETE",
+    "harness": "/data/bizra/logs/node0-persist-witness-final-20260610-v3/run_witness.py"
+  },
+  "notes": "Arc3 persistence shipped at d2a368d8; CI gates green at b4880962. Default operator path wiring is a follow-on commit on the same branch."
+}

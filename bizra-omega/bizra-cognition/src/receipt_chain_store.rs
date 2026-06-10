@@ -1,8 +1,13 @@
 //! BIZRA Receipt Chain Store — Cycle-6 Arc 3 authoritative persistence
 //!
-//! When `BIZRA_RECEIPT_STORE_PATH` is set, the gateway bootstraps with:
+//! When `BIZRA_RECEIPT_STORE_PATH` is set (explicit path or the operator token
+//! `default`), the gateway bootstraps with:
 //!   - sled-backed payload storage under `<root>/payloads/`
 //!   - an authoritative chain snapshot at `<root>/chain_snapshot.json`
+//!
+//! When unset, the gateway keeps the in-memory payload store (ephemeral).
+//! Persistence is opt-in: the env var must be present; `default` expands to a
+//! canonical operator path without enabling persistence implicitly.
 //!
 //! This is distinct from `BIZRA_DEMA_CACHE_ROOT` / `receipt_history.json`,
 //! which remains derived and does not rehydrate `ReceiptChain` on boot.
@@ -19,6 +24,26 @@ use crate::receipt_freeze_v1::SledPayloadStore;
 
 /// Environment variable selecting the authoritative receipt store root.
 pub const ENV_RECEIPT_STORE_PATH: &str = "BIZRA_RECEIPT_STORE_PATH";
+pub const ENV_SOVEREIGN_STATE_PATH: &str = "BIZRA_SOVEREIGN_STATE_PATH";
+pub const ENV_DATA_LAKE_ROOT: &str = "BIZRA_DATA_LAKE_ROOT";
+pub const ENV_DEMA_HOME: &str = "DEMA_HOME";
+/// Explicit opt-in token: `BIZRA_RECEIPT_STORE_PATH=default`.
+pub const OPERATOR_DEFAULT_STORE_TOKEN: &str = "default";
+pub const OPERATOR_STORE_DIRNAME: &str = "authoritative_receipt_store";
+pub const SOVEREIGN_STATE_DIRNAME: &str = "sovereign_state";
+
+/// How [`ReceiptChainStore::resolve_root_from_env`] resolved the store root.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReceiptStorePathMode {
+    Explicit,
+    OperatorDefault,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedReceiptStorePath {
+    pub root: PathBuf,
+    pub mode: ReceiptStorePathMode,
+}
 
 /// Authoritative chain metadata filename under the store root.
 pub const CHAIN_SNAPSHOT_FILENAME: &str = "chain_snapshot.json";
@@ -88,12 +113,61 @@ impl ReceiptChainStore {
         self.root.join(CHAIN_SNAPSHOT_FILENAME)
     }
 
+    /// Canonical operator store path when persistence is explicitly enabled with
+    /// `BIZRA_RECEIPT_STORE_PATH=default`. Resolution order:
+    /// 1. `$BIZRA_SOVEREIGN_STATE_PATH/authoritative_receipt_store`
+    /// 2. `$BIZRA_DATA_LAKE_ROOT/sovereign_state/authoritative_receipt_store`
+    /// 3. `$DEMA_HOME/authoritative_receipt_store`
+    /// 4. `$HOME/.dema/authoritative_receipt_store`
+    /// 5. `./sovereign_state/authoritative_receipt_store` (process cwd)
+    pub fn default_operator_store_path() -> PathBuf {
+        if let Ok(sovereign) = std::env::var(ENV_SOVEREIGN_STATE_PATH) {
+            let trimmed = sovereign.trim();
+            if !trimmed.is_empty() {
+                return PathBuf::from(trimmed).join(OPERATOR_STORE_DIRNAME);
+            }
+        }
+        if let Ok(root) = std::env::var(ENV_DATA_LAKE_ROOT) {
+            let trimmed = root.trim();
+            if !trimmed.is_empty() {
+                return PathBuf::from(trimmed)
+                    .join(SOVEREIGN_STATE_DIRNAME)
+                    .join(OPERATOR_STORE_DIRNAME);
+            }
+        }
+        if let Ok(home) = std::env::var(ENV_DEMA_HOME) {
+            let trimmed = home.trim();
+            if !trimmed.is_empty() {
+                return PathBuf::from(trimmed).join(OPERATOR_STORE_DIRNAME);
+            }
+        }
+        if let Some(home) = dirs_home_via_env() {
+            return home.join(".dema").join(OPERATOR_STORE_DIRNAME);
+        }
+        PathBuf::from(SOVEREIGN_STATE_DIRNAME).join(OPERATOR_STORE_DIRNAME)
+    }
+
+    pub fn resolve_root_from_env() -> Option<ResolvedReceiptStorePath> {
+        let raw = std::env::var(ENV_RECEIPT_STORE_PATH).ok()?;
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+        if trimmed.eq_ignore_ascii_case(OPERATOR_DEFAULT_STORE_TOKEN) {
+            Some(ResolvedReceiptStorePath {
+                root: Self::default_operator_store_path(),
+                mode: ReceiptStorePathMode::OperatorDefault,
+            })
+        } else {
+            Some(ResolvedReceiptStorePath {
+                root: PathBuf::from(trimmed),
+                mode: ReceiptStorePathMode::Explicit,
+            })
+        }
+    }
+
     pub fn root_from_env() -> Option<PathBuf> {
-        std::env::var(ENV_RECEIPT_STORE_PATH)
-            .ok()
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .map(PathBuf::from)
+        Self::resolve_root_from_env().map(|resolved| resolved.root)
     }
 
     pub fn open_payload_store(&self) -> Result<Box<dyn PayloadStore>, StoreError> {
@@ -152,6 +226,54 @@ impl ReceiptChainStore {
         } else {
             Ok(ReceiptChain::new(genesis, store))
         }
+    }
+}
+
+fn dirs_home_via_env() -> Option<PathBuf> {
+    std::env::var("HOME")
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .map(PathBuf::from)
+}
+
+#[cfg(test)]
+mod env_resolution_tests {
+    use super::*;
+
+    #[test]
+    fn resolve_root_from_env_honors_explicit_path() {
+        let td = tempfile::TempDir::new().unwrap();
+        let explicit = td.path().join("custom_store");
+        std::env::set_var(ENV_RECEIPT_STORE_PATH, explicit.to_string_lossy().as_ref());
+        let resolved = ReceiptChainStore::resolve_root_from_env().unwrap();
+        assert_eq!(resolved.mode, ReceiptStorePathMode::Explicit);
+        assert_eq!(resolved.root, explicit);
+        std::env::remove_var(ENV_RECEIPT_STORE_PATH);
+    }
+
+    #[test]
+    fn resolve_root_from_env_default_token_uses_data_lake_root() {
+        let td = tempfile::TempDir::new().unwrap();
+        std::env::remove_var(ENV_SOVEREIGN_STATE_PATH);
+        std::env::remove_var(ENV_DEMA_HOME);
+        std::env::set_var(ENV_DATA_LAKE_ROOT, td.path().to_string_lossy().as_ref());
+        std::env::set_var(ENV_RECEIPT_STORE_PATH, OPERATOR_DEFAULT_STORE_TOKEN);
+        let resolved = ReceiptChainStore::resolve_root_from_env().unwrap();
+        assert_eq!(resolved.mode, ReceiptStorePathMode::OperatorDefault);
+        assert_eq!(
+            resolved.root,
+            td.path()
+                .join(SOVEREIGN_STATE_DIRNAME)
+                .join(OPERATOR_STORE_DIRNAME)
+        );
+        std::env::remove_var(ENV_RECEIPT_STORE_PATH);
+        std::env::remove_var(ENV_DATA_LAKE_ROOT);
+    }
+
+    #[test]
+    fn resolve_root_from_env_unset_is_none() {
+        std::env::remove_var(ENV_RECEIPT_STORE_PATH);
+        assert!(ReceiptChainStore::resolve_root_from_env().is_none());
     }
 }
 

@@ -1345,16 +1345,18 @@ impl CognitionRuntime {
     }
 
     /// Like [`Self::bootstrap_authoritative_receipt_store_at`] when
-    /// `BIZRA_RECEIPT_STORE_PATH` is set; no-op when unset.
+    /// `BIZRA_RECEIPT_STORE_PATH` is set (explicit path or `default` token);
+    /// no-op when unset.
     pub fn bootstrap_authoritative_receipt_store_from_env(
         &mut self,
         genesis: Blake3Hash,
-    ) -> Result<bool, ReceiptChainStoreError> {
-        let Some(root) = ReceiptChainStore::root_from_env() else {
-            return Ok(false);
+    ) -> Result<Option<crate::receipt_chain_store::ReceiptStorePathMode>, ReceiptChainStoreError>
+    {
+        let Some(resolved) = ReceiptChainStore::resolve_root_from_env() else {
+            return Ok(None);
         };
-        self.bootstrap_authoritative_receipt_store_at(&root, genesis)?;
-        Ok(true)
+        self.bootstrap_authoritative_receipt_store_at(&resolved.root, genesis)?;
+        Ok(Some(resolved.mode))
     }
 
     pub fn receipt_chain_store(&self) -> Option<&ReceiptChainStore> {

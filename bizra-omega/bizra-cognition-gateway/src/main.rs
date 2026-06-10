@@ -883,22 +883,37 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
     }
 
     // Cycle-6 Arc 3 — authoritative receipt chain persistence. When
-    // BIZRA_RECEIPT_STORE_PATH is set, replace the in-memory payload store
-    // with sled + chain_snapshot.json. Fail-closed on corrupt store load.
+    // BIZRA_RECEIPT_STORE_PATH is set (explicit path or operator token
+    // `default`), replace the in-memory payload store with sled +
+    // chain_snapshot.json. Fail-closed on corrupt store load.
     // Distinct from BIZRA_DEMA_CACHE_ROOT (derived cache only).
     match rt.bootstrap_authoritative_receipt_store_from_env(genesis) {
-        Ok(true) => {
+        Ok(Some(mode)) => {
             if let Some(store) = rt.receipt_chain_store() {
+                let path_mode = match mode {
+                    bizra_cognition::receipt_chain_store::ReceiptStorePathMode::Explicit => {
+                        "explicit"
+                    }
+                    bizra_cognition::receipt_chain_store::ReceiptStorePathMode::OperatorDefault => {
+                        "operator-default"
+                    }
+                };
                 tracing::info!(
                     target: DOMAIN,
                     root = %store.root().display(),
+                    path_mode,
                     chain_len = rt.chain.len(),
                     head = %hex32(&rt.chain.head()),
-                    "authoritative receipt store bootstrapped (Cycle-6 Arc 3)"
+                    "authoritative receipt store bootstrapped (Cycle-6 Arc 3 persistence enabled)"
                 );
             }
         }
-        Ok(false) => {}
+        Ok(None) => {
+            tracing::debug!(
+                target: DOMAIN,
+                "BIZRA_RECEIPT_STORE_PATH unset — in-memory receipt chain (ephemeral across restarts)"
+            );
+        }
         Err(e) => {
             tracing::error!(
                 target: DOMAIN,
