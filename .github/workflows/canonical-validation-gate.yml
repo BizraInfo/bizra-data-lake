@@ -50,6 +50,9 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
+      - name: Canon Seal Gate
+        run: python3 tools/canon/canon_seal.py verify
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -258,7 +261,7 @@ jobs:
 
       - name: "Gate 7: Upload claim-drift artifacts"
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: claim-drift-${{ github.run_id }}
           path: artifacts/claim-drift/
@@ -289,7 +292,7 @@ jobs:
 
       - name: "Gate 8: Upload truth-pack artifacts"
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: canonical-truth-pack-${{ github.run_id }}
           path: artifacts/canonical-truth-pack/

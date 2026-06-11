@@ -1,0 +1,11 @@
+{
+  "files": {
+    "TOPOLOGY_CANON.md": {
+      "bytes": 5060,
+      "sha256": "8e4ce5e8c622e017fd8fa27f631239ee0c439b9a03e313aa724e1466c1e37d4e"
+    }
+  },
+  "rule": "Canonical files listed here must match these hashes byte-for-byte. Legitimate updates re-run `canon_seal.py seal` in the SAME commit as the edit. verify failing means unsealed canon drift: investigate before anything else.",
+  "schema": "bizra.canon_seal.v0.1",
+  "sealed_at_utc": "2026-06-11T03:04:44Z"
+}
