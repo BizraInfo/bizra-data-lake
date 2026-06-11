@@ -105,6 +105,9 @@ VERIFY_RC=$?
 HASHER="sha256sum"
 if command -v b3sum >/dev/null 2>&1; then HASHER="b3sum"; fi
 ATT_HASH="$($HASHER "$WITNESS_JSON" | awk '{print $1}')"
+# Always emit a stdlib-verifiable sha256 binding alongside the (possibly b3sum)
+# witness_hash, so any registry can verify the binding without BLAKE3 (W-R seal).
+WITNESS_SHA256="$(sha256sum "$WITNESS_JSON" | awk '{print $1}')"
 
 cat > "${OUTDIR}/ATTESTATION.json" <<EOF
 {
@@ -115,6 +118,7 @@ cat > "${OUTDIR}/ATTESTATION.json" <<EOF
   "witness_json": "$(basename "$WITNESS_JSON")",
   "witness_hash": "${ATT_HASH}",
   "hash_algo": "${HASHER}",
+  "witness_sha256": "${WITNESS_SHA256}",
   "result": "WITNESSED",
   "environment": {
     "rustc": "${RUST_VER}",
