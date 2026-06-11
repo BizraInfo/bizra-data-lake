@@ -1,5 +1,5 @@
 {
-  "chain_length": 1,
+  "chain_length": 2,
   "created_at": "2026-04-17T07:44:32+00:00",
   "latest_hash": "e0b3142742b07150085855e121853fb7bcf25d87d3ac510730c173866d3e6e95",
   "receipts": [
@@ -8,13 +8,27 @@
       "chain_position": 11,
       "confidence_label": "Solid",
       "confidence_level": 3,
-      "description": "Cycle-5 Principal Activation \u2014 14 commits: runtime, gateway, CLI, doctrine",
+      "description": "Cycle-5 Principal Activation — 14 commits: runtime, gateway, CLI, doctrine",
       "evidence_hash": "ea15823193a2974948fc03b9a1385ff7f74799b44fd9dff2ffe4de3438b9e891",
       "generated_at": "2026-04-17T07:44:32+00:00",
       "previous_hash": "5f40748340c501cf7f3e0a269b4c5cd0f88b3ff88689eaf7474b45bc8e42d189",
       "receipt_hash": "e0b3142742b07150085855e121853fb7bcf25d87d3ac510730c173866d3e6e95"
+    },
+    {
+      "id": "2026-06-10_061250",
+      "timestamp_utc": "2026-06-10T06:12:50.578545+00:00",
+      "description": "Cycle-6 Arc 3: BIZRA_RECEIPT_STORE_PATH persistence + operator default store path (head cfe6518a, PR #108)",
+      "commit": "cfe6518",
+      "evidence_hash": "db242c4937dd8a482f744a1d61ebc45235683ddbfab7794268e04b0e14e26e15",
+      "previous_hash": "ea15823193a2974948fc03b9a1385ff7f74799b44fd9dff2ffe4de3438b9e891",
+      "confidence": "Ironclad",
+      "all_passed": true,
+      "path": "receipts/2026-06-10_061250.json",
+      "anchor_type": "cycle6_arc3_persistence"
     }
   ],
   "updated_at": "2026-04-17T07:44:32+00:00",
-  "version": "proof-forge-v1"
+  "version": "proof-forge-v1",
+  "genesis_receipt": "2026-06-10_061250",
+  "latest_receipt": "2026-06-10_061250"
 }
