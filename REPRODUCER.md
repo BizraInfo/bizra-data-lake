@@ -33,16 +33,16 @@ You are asked to run one script and report what actually happened —
 ## 3. Run
 
 ```bash
-export BIZRA_WITNESS_COMMIT=PUBLISHED_SHA_HERE   # from the table below
-curl -fsSLO https://raw.githubusercontent.com/BizraInfo/bizra-data-lake/PUBLISHED_SHA_HERE/tools/witness/reproduce.sh
+export BIZRA_WITNESS_COMMIT=66b7bf8eb8d38059bbc536c94d37309c252de5ce   # from the table below
+curl -fsSLO https://raw.githubusercontent.com/BizraInfo/bizra-data-lake/66b7bf8eb8d38059bbc536c94d37309c252de5ce/tools/witness/reproduce.sh
 chmod +x reproduce.sh && ./reproduce.sh
 ```
 
-| Field                 | Value                                                 |
-| --------------------- | ----------------------------------------------------- |
-| Witness target commit | `PUBLISHED_SHA_HERE` — maintainer fills after Gate W0 |
-| Expected label        | `NODE0_MISSION_REPLAY_PERSIST_WITNESS_COMPLETE`       |
-| Expected field        | `persist_survives_restart: true`                      |
+| Field                 | Value                                                                       |
+| --------------------- | --------------------------------------------------------------------------- |
+| Witness target commit | `66b7bf8eb8d38059bbc536c94d37309c252de5ce` — maintainer fills after Gate W0 |
+| Expected label        | `NODE0_MISSION_REPLAY_PERSIST_WITNESS_COMPLETE`                             |
+| Expected field        | `persist_survives_restart: true`                                            |
 
 The script is fail-closed: it refuses floating HEADs, dirty trees, and
 unverifiable witness output. Everything it writes stays under
@@ -82,5 +82,5 @@ _Maintainer checklist (Gate W0 — must be green before publishing this file):_
 - [ ] `run_witness.py` vendored into `tools/witness/`, path-parameterized, no absolute `/data/bizra/...` paths
 - [ ] Witness JSON embeds the built commit SHA
 - [ ] `reproduce.sh` tested end-to-end on a clean machine by the maintainer
-- [ ] `PUBLISHED_SHA_HERE` filled in §3 with a CI-green commit
+- [ ] `66b7bf8eb8d38059bbc536c94d37309c252de5ce` filled in §3 with a CI-green commit
 - [ ] Default-branch security advisories: 0 critical (✅ already true as of 11 Jun)
