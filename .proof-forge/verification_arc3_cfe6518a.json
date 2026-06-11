@@ -1,0 +1,118 @@
+{
+  "schema": "bizra.proof-forge.verification_report.v0.1",
+  "timestamp_utc": "2026-06-10T06:12:40.185457+00:00",
+  "description": "Cycle-6 Arc 3: BIZRA_RECEIPT_STORE_PATH persistence + operator default store path (head cfe6518a, PR #108)",
+  "project_dir": ".",
+  "artifacts": [
+    {
+      "path": "bizra-cognition/src/receipt_chain_store.rs",
+      "type": "code",
+      "size_bytes": 12426,
+      "mtime_utc": "2026-06-10T04:19:42.074895+00:00",
+      "sha256": "033d8cf704f5c979ed472935b9223f23b6bb2ebd20bfdfa9870763ce220a7fac"
+    },
+    {
+      "path": "bizra-cognition/src/runtime.rs",
+      "type": "code",
+      "size_bytes": 186227,
+      "mtime_utc": "2026-06-10T02:47:05.610465+00:00",
+      "sha256": "4b7a3909ea9db9b3190c176c9ec63291d9adf01beedb6ad7bf8522a70efeda49"
+    },
+    {
+      "path": "bizra-cognition-gateway/src/main.rs",
+      "type": "code",
+      "size_bytes": 112845,
+      "mtime_utc": "2026-06-10T02:47:09.896501+00:00",
+      "sha256": "6caa69e3a9c5c892c4b71417428c54e40fd10ef404600763c39b70f59339de42"
+    },
+    {
+      "path": "bizra-cognition-gateway/README.md",
+      "type": "doc",
+      "size_bytes": 9541,
+      "mtime_utc": "2026-06-10T02:47:14.602541+00:00",
+      "sha256": "b4054fb01f0a087b68bfa9fe5f7a8024dd4335556fe58086fbd655fa6d1036a9"
+    },
+    {
+      "path": "evidence/CYCLE6_ARC3_PERSISTENCE_REMOTE_WITNESSED.json",
+      "type": "data",
+      "size_bytes": 1885,
+      "mtime_utc": "2026-06-10T04:02:58.703308+00:00",
+      "sha256": "a37fcad84a83c4f773511948f301a5ca98b189053c4bd9463379e5ce6e405ee1"
+    }
+  ],
+  "commands": [
+    {
+      "command": "cargo fmt -- --check",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--",
+        "--check"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "duration_seconds": 0.586,
+      "stdout": "",
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "command": "cargo clippy -p bizra-cognition -p bizra-cognition-gateway --features sled-store -- -D warnings",
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "bizra-cognition",
+        "-p",
+        "bizra-cognition-gateway",
+        "--features",
+        "sled-store",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "duration_seconds": 0.195,
+      "stdout": "",
+      "stderr": "    Finished `dev` profile [optimized + debuginfo] target(s) in 0.12s\n",
+      "passed": true
+    },
+    {
+      "command": "cargo test -p bizra-cognition receipt_chain_store --features sled-store",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "bizra-cognition",
+        "receipt_chain_store",
+        "--features",
+        "sled-store"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "duration_seconds": 0.167,
+      "stdout": "\nrunning 5 tests\ntest receipt_chain_store::tests::in_memory_store_does_not_use_authoritative_path ... ok\ntest receipt_chain_store::env_resolution_tests::resolve_root_from_env_default_token_uses_data_lake_root ... ok\ntest receipt_chain_store::env_resolution_tests::resolve_root_from_env_unset_is_none ... ok\ntest receipt_chain_store::env_resolution_tests::resolve_root_from_env_honors_explicit_path ... ok\ntest receipt_chain_store::tests::authoritative_store_survives_reload ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 308 filtered out; finished in 0.01s\n\n",
+      "stderr": "    Finished `test` profile [optimized + debuginfo] target(s) in 0.11s\n     Running unittests src/lib.rs (target/debug/deps/bizra_cognition-c0141c1070d6c286)\n",
+      "passed": true
+    },
+    {
+      "command": "cargo test -p bizra-cognition-gateway authoritative_receipt_store",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "bizra-cognition-gateway",
+        "authoritative_receipt_store"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "duration_seconds": 0.154,
+      "stdout": "\nrunning 1 test\ntest tests::authoritative_receipt_store_survives_gateway_rebootstrap ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 64 filtered out; finished in 0.02s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s\n\n",
+      "stderr": "    Finished `test` profile [optimized + debuginfo] target(s) in 0.09s\n     Running unittests src/main.rs (target/debug/deps/bizra_cognition_gateway-8d1eae249655fa92)\n     Running unittests src/bin/dema.rs (target/debug/deps/dema-92e89d092dbce830)\n",
+      "passed": true
+    }
+  ],
+  "verification_type": "automated",
+  "all_passed": true
+}
