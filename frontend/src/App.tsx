@@ -9,6 +9,7 @@ const Genesis = lazy(() => import('./phases/Genesis'));
 const TeachSteps = lazy(() => import('./phases/TeachSteps'));
 const Assembly = lazy(() => import('./phases/Assembly'));
 const TerminalShell = lazy(() => import('./components/terminal/terminal-shell'));
+const ThirdFactPage = lazy(() => import('./pages/ThirdFactPage'));
 
 function LoadingFallback() {
   return (
@@ -23,6 +24,8 @@ function LoadingFallback() {
 
 export function App() {
   const [session, setSession] = useState<AppSessionState>(() => loadAppSession());
+  const normalizedPath = window.location.pathname.replace(/\/$/, '') || '/';
+  const isThirdFactRoute = normalizedPath === '/third-fact';
 
   usePerformance(import.meta.env.PROD);
 
@@ -69,26 +72,32 @@ export function App() {
       <div className="geo-bg" />
       <div className="grain" />
       <Suspense fallback={<LoadingFallback />}>
-        {session.phase === 'trust' && <TrustSite onEnter={handleEnter} />}
-        {session.phase === 'splash' && <Splash onStart={() => setSession(prev => ({ ...prev, phase: 'genesis' }))} />}
-        {session.phase === 'genesis' && (
-          <Genesis
-            initialName={session.pendingIdentityName}
-            onNameChange={handleIdentityDraftChange}
-            onDone={handleGenesisDone}
-          />
+        {isThirdFactRoute ? (
+          <ThirdFactPage />
+        ) : (
+          <>
+            {session.phase === 'trust' && <TrustSite onEnter={handleEnter} />}
+            {session.phase === 'splash' && <Splash onStart={() => setSession(prev => ({ ...prev, phase: 'genesis' }))} />}
+            {session.phase === 'genesis' && (
+              <Genesis
+                initialName={session.pendingIdentityName}
+                onNameChange={handleIdentityDraftChange}
+                onDone={handleGenesisDone}
+              />
+            )}
+            {session.phase === 'teach' && (
+              <TeachSteps
+                initialDraft={session.teachDraft}
+                onDraftChange={handleTeachDraftChange}
+                onDone={handleTeachDone}
+              />
+            )}
+            {session.phase === 'assembly' && (
+              <Assembly userName={session.userName} config={session.config} onDone={handleAssemblyDone} />
+            )}
+            {session.phase === 'dashboard' && <TerminalShell />}
+          </>
         )}
-        {session.phase === 'teach' && (
-          <TeachSteps
-            initialDraft={session.teachDraft}
-            onDraftChange={handleTeachDraftChange}
-            onDone={handleTeachDone}
-          />
-        )}
-        {session.phase === 'assembly' && (
-          <Assembly userName={session.userName} config={session.config} onDone={handleAssemblyDone} />
-        )}
-        {session.phase === 'dashboard' && <TerminalShell />}
       </Suspense>
     </div>
   );
