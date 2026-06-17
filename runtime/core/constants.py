@@ -8,8 +8,27 @@ Standing on Giants: Shannon • Lamport • Vaswani • Anthropic
 La hawla wa la quwwata illa billah.
 """
 
+import importlib.util
 from enum import Enum
+from pathlib import Path
 from typing import Final
+
+
+def _load_repo_integration_constants():
+    constants_path = (
+        Path(__file__).resolve().parents[2] / "core" / "integration" / "constants.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "_bizra_repo_integration_constants", constants_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load canonical constants from {constants_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_CANONICAL = _load_repo_integration_constants()
 
 # =============================================================================
 # IHSĀN (إحسان) CONSTITUTIONAL THRESHOLDS
@@ -18,7 +37,7 @@ from typing import Final
 # These values are LOCKED and require constitutional amendment to change.
 
 # Production Ihsān threshold - balanced for practical flexibility
-IHSAN_THRESHOLD: Final[float] = 0.95
+IHSAN_THRESHOLD: Final[float] = _CANONICAL.IHSAN_THRESHOLD
 
 # Environment-specific thresholds
 IHSAN_THRESHOLD_PRODUCTION: Final[float] = 0.95

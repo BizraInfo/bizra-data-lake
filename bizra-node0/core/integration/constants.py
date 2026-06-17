@@ -38,6 +38,7 @@ Cross-repo alignment:
 Standing on Giants: Shannon • Lamport • Vaswani • Anthropic • Al-Ghazali
 """
 
+import importlib.util
 import os
 from pathlib import Path
 from typing import Dict, Final
@@ -101,26 +102,43 @@ def _env_int(name: str, default: int) -> int:
     return value if value > 0 else default
 
 
+def _load_repo_integration_constants():
+    constants_path = (
+        Path(__file__).resolve().parents[3] / "core" / "integration" / "constants.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "_bizra_repo_integration_constants", constants_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load canonical constants from {constants_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_CANONICAL = _load_repo_integration_constants()
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # IHSĀN (إحسان) CONSTITUTIONAL THRESHOLDS
 # ═══════════════════════════════════════════════════════════════════════════════
 # These values are LOCKED and require constitutional amendment to change.
 
 # Production Ihsān threshold - balanced for practical flexibility
-UNIFIED_IHSAN_THRESHOLD: Final[float] = 0.95
-IHSAN_THRESHOLD: Final[float] = 0.95  # Alias for backward compatibility
+UNIFIED_IHSAN_THRESHOLD: Final[float] = _CANONICAL.UNIFIED_IHSAN_THRESHOLD
+IHSAN_THRESHOLD: Final[float] = _CANONICAL.IHSAN_THRESHOLD
 
 # Strict threshold for consensus-critical operations
-STRICT_IHSAN_THRESHOLD: Final[float] = 0.99
+STRICT_IHSAN_THRESHOLD: Final[float] = _CANONICAL.STRICT_IHSAN_THRESHOLD
 
 # Runtime threshold - Z3-proven agents only (Four Pillars Pillar 1)
-RUNTIME_IHSAN_THRESHOLD: Final[float] = 1.0
+RUNTIME_IHSAN_THRESHOLD: Final[float] = _CANONICAL.RUNTIME_IHSAN_THRESHOLD
 
 # Environment-specific thresholds (aligned with Dual Agentic System)
-IHSAN_THRESHOLD_PRODUCTION: Final[float] = 0.95
-IHSAN_THRESHOLD_STAGING: Final[float] = 0.95
-IHSAN_THRESHOLD_CI: Final[float] = 0.90
-IHSAN_THRESHOLD_DEV: Final[float] = 0.80
+IHSAN_THRESHOLD_PRODUCTION: Final[float] = _CANONICAL.IHSAN_THRESHOLD_PRODUCTION
+IHSAN_THRESHOLD_STAGING: Final[float] = _CANONICAL.IHSAN_THRESHOLD_STAGING
+IHSAN_THRESHOLD_CI: Final[float] = _CANONICAL.IHSAN_THRESHOLD_CI
+IHSAN_THRESHOLD_DEV: Final[float] = _CANONICAL.IHSAN_THRESHOLD_DEV
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # IHSĀN DIMENSION WEIGHTS — Legacy Operational (v2.x)
@@ -195,16 +213,16 @@ IHSAN_CONFORMANCE_JOIN: Final[float] = 0.95  # Network join conformance
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Base/Minimum SNR threshold - also Museum floor (Pillar 2)
-UNIFIED_SNR_THRESHOLD: Final[float] = 0.85
-SNR_THRESHOLD: Final[float] = 0.85  # Alias for backward compatibility
-MUSEUM_SNR_FLOOR: Final[float] = 0.85
+UNIFIED_SNR_THRESHOLD: Final[float] = _CANONICAL.UNIFIED_SNR_THRESHOLD
+SNR_THRESHOLD: Final[float] = _CANONICAL.SNR_THRESHOLD
+MUSEUM_SNR_FLOOR: Final[float] = _CANONICAL.MUSEUM_SNR_FLOOR
 
 # Tier-specific SNR thresholds (aligned with Dual Agentic System)
-SNR_THRESHOLD_T0_ELITE: Final[float] = 0.98
-SNR_THRESHOLD_T1_HIGH: Final[float] = 0.95
-SNR_THRESHOLD_T2_STANDARD: Final[float] = 0.90
-SNR_THRESHOLD_T3_ACCEPTABLE: Final[float] = 0.85
-SNR_THRESHOLD_T4_MINIMUM: Final[float] = 0.80
+SNR_THRESHOLD_T0_ELITE: Final[float] = _CANONICAL.SNR_THRESHOLD_T0_ELITE
+SNR_THRESHOLD_T1_HIGH: Final[float] = _CANONICAL.SNR_THRESHOLD_T1_HIGH
+SNR_THRESHOLD_T2_STANDARD: Final[float] = _CANONICAL.SNR_THRESHOLD_T2_STANDARD
+SNR_THRESHOLD_T3_ACCEPTABLE: Final[float] = _CANONICAL.SNR_THRESHOLD_T3_ACCEPTABLE
+SNR_THRESHOLD_T4_MINIMUM: Final[float] = _CANONICAL.SNR_THRESHOLD_T4_MINIMUM
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FOUR PILLARS ARCHITECTURE THRESHOLDS
@@ -226,10 +244,14 @@ GENESIS_CUTOFF_HOURS: Final[int] = 72
 # CONFIDENCE THRESHOLDS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CONFIDENCE_HIGH: Final[float] = 0.95
-CONFIDENCE_MEDIUM: Final[float] = 0.85
-CONFIDENCE_LOW: Final[float] = 0.70
-CONFIDENCE_MINIMUM: Final[float] = 0.50
+CONFIDENCE_HIGH: Final[float] = _CANONICAL.CONFIDENCE_HIGH
+CONFIDENCE_MEDIUM: Final[float] = _CANONICAL.CONFIDENCE_MEDIUM
+CONFIDENCE_LOW: Final[float] = _CANONICAL.CONFIDENCE_LOW
+CONFIDENCE_MINIMUM: Final[float] = _CANONICAL.CONFIDENCE_MINIMUM
+
+# Minimum acceptable confidence and harm ceiling are canonical Tier-1 gates.
+MIN_CONFIDENCE: Final[float] = _CANONICAL.MIN_CONFIDENCE
+MAX_HARM_SCORE: Final[float] = _CANONICAL.MAX_HARM_SCORE
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ADL (JUSTICE) INVARIANT THRESHOLDS
@@ -240,17 +262,17 @@ CONFIDENCE_MINIMUM: Final[float] = 0.50
 # Maximum Gini coefficient - HARD GATE, not warning
 # 0.35 represents moderate inequality — aligned with Rust bizra-resourcepool
 # Transactions that would push Gini above this are REJECTED
-ADL_GINI_THRESHOLD: Final[float] = 0.35
+ADL_GINI_THRESHOLD: Final[float] = _CANONICAL.ADL_GINI_THRESHOLD
 
 # Harberger tax rate (annual, applied continuously)
 # Flows to Universal Basic Compute (UBC) pool
 # Aligned with Rust bizra-resourcepool HARBERGER_TAX_RATE = 0.05
 # Constitutional: 5% annual — discourages idle hoarding, not punitive
-ADL_HARBERGER_TAX_RATE: Final[float] = 0.05
+ADL_HARBERGER_TAX_RATE: Final[float] = _CANONICAL.ADL_HARBERGER_TAX_RATE
 
 # Emergency Gini threshold — system-wide freeze if exceeded
 # Aligned with Rust bizra-core/omega.rs ADL_GINI_EMERGENCY = 0.60
-ADL_GINI_EMERGENCY: Final[float] = 0.60
+ADL_GINI_EMERGENCY: Final[float] = _CANONICAL.ADL_GINI_EMERGENCY
 
 # Minimum holding to be considered a participant
 # Prevents dust attacks and ensures meaningful participation
