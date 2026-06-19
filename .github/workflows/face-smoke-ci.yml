@@ -1,0 +1,182 @@
+name: FATE Gate — Face Smoke Verifier
+
+on:
+  pull_request:
+    paths:
+      - 'dema-console/**'
+      - '.github/workflows/face-smoke-ci.yml'
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same PR to save compute (Efficiency Dimension)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-verification:
+    name: Cryptographic Smoke Pass
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write # Required to post the receipt to the PR
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ Setup Node.js & pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install pnpm
+        run: npm install -g pnpm
+
+      - name: 📦 Install Dependencies
+        working-directory: dema-console
+        # pnpm-lock.yaml is gitignored (bun.lock is authoritative per PR #35);
+        # a fresh resolution per run is acceptable for a smoke-verifier gate.
+        run: pnpm install
+
+      - name: 🎭 Install Playwright Browsers
+        working-directory: dema-console
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: 🚀 Boot Sovereign Face (Background)
+        working-directory: dema-console
+        run: |
+          # Use port 4242 to avoid conflicts
+          npx next dev -p 4242 > /tmp/next-dev-smoke.log 2>&1 &
+          echo $! > /tmp/next-dev-smoke.pid
+
+          # Wait for server readiness
+          echo "Waiting for DEMA Face to mount on :4242..."
+          timeout 30 bash -c 'until curl -s http://localhost:4242 > /dev/null; do sleep 1; done'
+          echo "DEMA Face Mounted."
+
+      - name: 🔥 Warm Target Routes (Trigger Compilation)
+        working-directory: dema-console
+        run: |
+          set -euo pipefail
+          for route in / /manifesto /brand; do
+            echo -n "Warming $route... "
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:4242$route" --max-time 90)
+            echo "HTTP $code"
+            if [ "$code" != "200" ]; then
+              echo "Failed to warm route: $route"
+              exit 1
+            fi
+          done
+
+      - name: 🔐 Execute Cryptographic Smoke Verifier
+        working-directory: dema-console
+        run: |
+          set -euo pipefail
+          BIZRA_SMOKE_URL="http://localhost:4242" npx tsx scripts/smoke-verifier.ts | tee /tmp/smoke-verifier.log
+
+      - name: 📜 Extract Receipt & Post Truth to PR
+        uses: actions/github-script@v7
+        if: always() # Run even if verification fails to report the exact failure
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Locate the latest generated receipt
+            const receiptsDir = 'dema-console/.bizra/receipts/smoke';
+            if (!fs.existsSync(receiptsDir)) {
+              console.log('No receipts found. Verifier likely failed to boot.');
+              return;
+            }
+
+            const files = fs.readdirSync(receiptsDir).filter(f => f.endsWith('.json'));
+            if (files.length === 0) return;
+
+            // Sort by creation time descending
+            files.sort((a, b) => {
+              return fs.statSync(path.join(receiptsDir, b)).mtime.getTime() -
+                     fs.statSync(path.join(receiptsDir, a)).mtime.getTime();
+            });
+
+            const latestReceiptPath = path.join(receiptsDir, files[0]);
+            const receipt = JSON.parse(fs.readFileSync(latestReceiptPath, 'utf8'));
+
+            // Calculate Global Verdict
+            const allPassed = receipt.verdicts.every(v => v.status === 'PASS');
+            const headerColor = allPassed ? '🟢' : '🔴';
+            const statusText = allPassed ? 'SATISFIABLE (CLEAN)' : 'VIOLATION DETECTED';
+
+            // Build the Markdown Table
+            let table = `| Route | Verdict | DOM Hash (SHA-256) | PNG Hash (SHA-256) | Load (ms) | Errs |\n`;
+            table += `|---|---|---|---|---|---|\n`;
+
+            receipt.verdicts.forEach(v => {
+              const statusIcon = v.status === 'PASS' ? '✅' : '❌';
+              table += `| \`${v.route}\` | ${statusIcon} ${v.status} | \`${v.dom_hash.substring(0, 12)}...\` | \`${v.screenshot_hash.substring(0, 12)}...\` | ${v.load_time_ms} | ${v.console_errors} |\n`;
+            });
+
+            // Construct the PR Comment Body
+            const commentBody = `
+            ### ${headerColor} BIZRA FATE Gate: Face Smoke Verifier
+
+            **System Status:** \`${statusText}\`
+            **Timestamp:** \`${receipt.timestamp_iso}\`
+            **Canonical Merkle Root:** \`\`\`text
+            ${receipt.merkle_root}
+            \`\`\`
+
+            #### Verification Matrix
+            ${table}
+
+            > **CLAIM_MUST_BIND**: Full cryptographic receipts and visual snapshots are preserved in the workflow artifacts for this run.
+            `;
+
+            // Find existing comment to update, or create a new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c => c.user.type === 'Bot' && c.body.includes('BIZRA FATE Gate: Face Smoke Verifier'));
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody
+              });
+            }
+
+            // Fail the workflow if the receipt shows failures
+            if (!allPassed) {
+              core.setFailed('SHADOW_STATE detected: One or more routes failed cryptographic smoke verification.');
+            }
+
+      - name: 💾 Upload Cryptographic Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fate-gate-receipts-${{ github.sha }}
+          path: dema-console/.bizra/receipts/smoke/**
+          retention-days: 14
+
+      - name: 🧹 Teardown Environment
+        if: always()
+        run: |
+          set +e
+          if [ -f /tmp/next-dev-smoke.pid ]; then
+            kill "$(cat /tmp/next-dev-smoke.pid)" 2>/dev/null || true
+          fi
+          pkill -f "next dev -p 4242" 2>/dev/null || true
