@@ -6,6 +6,11 @@ description = "BIZRA Inference — LLM Gateway with tiered backends"
 
 [dependencies]
 bizra-core = { path = "../bizra-core" }
+# HAL (src/hal.rs) imports ProvenanceDescriptor + ProviderIdentity from
+# bizra-cognition as the single source of truth for the schema; the
+# types are re-exported from this crate for convenience.
+bizra-cognition = { path = "../bizra-cognition" }
+blake3 = "1"
 tokio.workspace = true
 tokio-stream.workspace = true
 serde.workspace = true
