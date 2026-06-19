@@ -14,7 +14,7 @@ crate-type = ["rlib", "staticlib"]
 bizra-hooks    = { path = "../bizra-hooks"    }
 bizra-memory   = { path = "../bizra-memory"   }
 bizra-telescript = { path = "../bizra-telescript" }
-bizra-action   = { path = "../bizra-action"   }
+bizra-action   = { path = "../bizra-action",   features = ["production", "signing"] }
 bizra-ttrl     = { path = "../bizra-ttrl"     }
 bizra-autopoiesis = { path = "../bizra-autopoiesis" }
 bizra-core     = { path = "../bizra-core"     }
