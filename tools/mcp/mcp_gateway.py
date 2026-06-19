@@ -1,11 +1,21 @@
 """
 BIZRA-DATA-LAKE Unified MCP Gateway
-Version: 1.0.0 | Phase 11 - Public Launch
+Version: 1.1.0 | Sprint A.3 fail-loud (2026-04-21)
 
 Unified MCP endpoint for the BIZRA federated ecosystem.
 Exposes Data Lake capabilities via Model Context Protocol.
 
 Ihsan >= 0.95 | SNR >= 0.99 | Fail-Closed Enforcement
+
+STATUS — query/ingest handlers are SCAFFOLDING (not wired to the real data
+lake). They return HTTP 501 Not Implemented so external callers never
+receive a fabricated success envelope. For real knowledge queries, route
+to `tools.mcp.sovereign_mcp_server` (FAISS + HMM-backed, stdio MCP).
+The health endpoint honestly reports `data_lake: not_wired` and degrades
+status accordingly.
+
+This is a ZANN_ZERO / CLAIM_MUST_BIND compliance fix: do not return
+success shapes without backing evidence.
 """
 
 import hashlib
@@ -319,55 +329,57 @@ async def mcp_handler(request: MCPRequest):
 
 
 async def handle_query(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle query method."""
-    query = params.get("query", "")
-    mode = params.get("mode", "standard")
+    """Handle query method.
 
-    # TODO: Integrate with actual Data Lake query engine
-    # For now, return a placeholder response
-
-    ihsan_score = calculate_ihsan_score()
-
-    if ihsan_score < IHSAN_THRESHOLD:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Ihsan score {ihsan_score} below threshold {IHSAN_THRESHOLD}",
-        )
-
-    return {
-        "response": f"Query processed: {query[:100]}...",
-        "sources": [],
-        "ihsan_score": ihsan_score,
-        "snr_score": SNR_THRESHOLD,
-        "mode": mode,
-    }
+    FAIL-LOUD: the gateway's query handler is scaffolding and is NOT wired
+    to the data lake query engine. Returns HTTP 501 Not Implemented rather
+    than fabricating a success envelope. Route real knowledge queries to
+    `tools.mcp.sovereign_mcp_server` (FAISS + HMM-backed).
+    """
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "mcp_gateway.query is scaffolding and not wired to the data lake. "
+            "Use tools.mcp.sovereign_mcp_server for real knowledge queries "
+            "(MCP_SERVER=sovereign) or wire this handler in a follow-up PR."
+        ),
+    )
 
 
 async def handle_ingest(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle ingest method."""
-    content = params.get("content", "")
-    doc_type = params.get("doc_type", "text")
+    """Handle ingest method.
 
-    # Generate document ID
-    doc_id = hashlib.blake2b(content.encode(), digest_size=16).hexdigest()
-
-    # TODO: Integrate with actual Data Lake ingestion pipeline
-
-    return {
-        "doc_id": doc_id,
-        "status": "ingested",
-        "embedding_count": 1,
-        "doc_type": doc_type,
-    }
+    FAIL-LOUD: the gateway's ingest handler is scaffolding and is NOT wired
+    to the data lake ingestion pipeline. Returns HTTP 501 Not Implemented
+    rather than fabricating an `{"status": "ingested"}` envelope.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "mcp_gateway.ingest is scaffolding and not wired to the data lake. "
+            "Use tools.mcp.mcp_lake_bridge for pipeline ingestion "
+            "(MCP_SERVER=lake) or wire this handler in a follow-up PR."
+        ),
+    )
 
 
 async def handle_health() -> Dict[str, Any]:
-    """Handle health method."""
+    """Handle health method.
+
+    Reports honest component status. `mcp_gateway` is operational (the
+    FastAPI process is serving). `data_lake` is `not_wired` because
+    handle_query/handle_ingest are scaffolding — top-level status is
+    `degraded` to reflect that real data-lake operations will fail.
+    """
     return {
-        "status": "healthy",
-        "version": "1.0.0",
-        "components": {"mcp_gateway": "operational", "data_lake": "operational"},
+        "status": "degraded",
+        "version": "1.1.0",
+        "components": {"mcp_gateway": "operational", "data_lake": "not_wired"},
         "thresholds": {"snr": SNR_THRESHOLD, "ihsan": IHSAN_THRESHOLD},
+        "note": (
+            "query/ingest handlers return HTTP 501. Use "
+            "tools.mcp.sovereign_mcp_server for real knowledge queries."
+        ),
     }
 
 
