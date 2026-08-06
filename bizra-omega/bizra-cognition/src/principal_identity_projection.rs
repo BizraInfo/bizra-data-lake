@@ -99,10 +99,11 @@ pub fn project_principal_activation_identity(
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::sync::Mutex;
+    use std::sync::{Arc, Mutex};
 
     use super::*;
     use crate::canonical_hasher::blake3_domain;
+    use crate::receipt_history_cache::ReceiptHistorySnapshot;
     use crate::receipts::{
         DecodeError, InMemoryPayloadStore, PayloadStore, ReceiptPayload, StoreError,
     };
@@ -134,6 +135,65 @@ mod tests {
         assert_eq!(projected.principal_id, receipt.principal_id);
         assert_eq!(projected.timestamp_ns, receipt.timestamp_ns);
         assert_eq!(projected.prev_chain, receipt.prev_chain);
+    }
+
+    #[derive(Clone, Default)]
+    struct SharedStore {
+        inner: Arc<Mutex<HashMap<Blake3Hash, Vec<u8>>>>,
+    }
+
+    impl PayloadStore for SharedStore {
+        fn put(&self, hash: Blake3Hash, bytes: Vec<u8>) -> Result<(), StoreError> {
+            self.inner
+                .lock()
+                .map_err(|err| StoreError::IoError(err.to_string()))?
+                .insert(hash, bytes);
+            Ok(())
+        }
+
+        fn get(&self, hash: &Blake3Hash) -> Result<Option<Vec<u8>>, StoreError> {
+            Ok(self
+                .inner
+                .lock()
+                .map_err(|err| StoreError::IoError(err.to_string()))?
+                .get(hash)
+                .cloned())
+        }
+
+        fn contains(&self, hash: &Blake3Hash) -> Result<bool, StoreError> {
+            Ok(self
+                .inner
+                .lock()
+                .map_err(|err| StoreError::IoError(err.to_string()))?
+                .contains_key(hash))
+        }
+    }
+
+    #[test]
+    fn principal_activation_projection_survives_chain_reconstruction() {
+        let genesis = [0u8; 32];
+        let store = SharedStore::default();
+        let mut chain = ReceiptChain::new(genesis, Box::new(store.clone()));
+        let receipt = activation_receipt();
+        let receipt_hash = chain.append_with_payload(receipt.clone()).unwrap();
+        let snapshot = ReceiptHistorySnapshot {
+            head: chain.head(),
+            last_timestamp_ns: chain.latest_timestamp(),
+            records: chain.records().copied().collect(),
+        };
+
+        drop(chain);
+
+        let restored =
+            ReceiptChain::restore_from_snapshot(genesis, snapshot, Box::new(store)).unwrap();
+        let projected =
+            project_principal_activation_identity(&restored, receipt_hash).unwrap();
+
+        assert_eq!(restored.head(), receipt_hash);
+        assert_eq!(projected.receipt_id, receipt_hash);
+        assert_eq!(projected.node_pubkey, receipt.node_pubkey);
+        assert_eq!(projected.principal_id, receipt.principal_id);
+        assert_eq!(projected.principal_profile_hash, receipt.principal_profile_hash);
     }
 
     struct OtherReceipt {
