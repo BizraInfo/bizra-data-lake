@@ -403,6 +403,170 @@ pub struct ErrorResponseContract {
 }
 
 // ════════════════════════════════════════════════════════════════════
+// Principal identity status group (NODE0-PRINCIPAL-STATUS-1B)
+// ════════════════════════════════════════════════════════════════════
+//
+// Read-only projection of chain-sealed principal identity. The verdict
+// derives ONLY from an authoritative receipt: never from the profile
+// cache alone, the hostname, the port, the environment, caller input,
+// or a hardcoded node label.
+//
+// The load-bearing distinction is not memory versus disk. It is
+// "canonical payload available and verified" versus "receipt metadata
+// merely known to exist" — which is what lets a legitimately restarted
+// node avoid both a false GREEN and a permanent false refusal.
+
+/// Fail-closed verdict ladder. First match wins; every non-`Verified`
+/// value leaves `verified_identity` null.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PrincipalIdentityStatusVerdict {
+    /// No profile and no principal-activation record.
+    Absent,
+    /// Profile cache present; no authoritative record binds to it.
+    ProfilePresentUnverified,
+    /// Durable receipt metadata exists, but the canonical payload was not
+    /// available through the active verified chain. Never verified,
+    /// never bridge-eligible, never CLEAN-eligible.
+    ChainDurableOnly,
+    /// A relevant record exists but its payload is missing or its store
+    /// is unavailable. Missing is not malformed.
+    ChainPayloadUnavailable,
+    /// Present-but-contradictory evidence: wrong receipt kind, undecodable
+    /// payload, hash mismatch, field mismatch, broken continuity, or more
+    /// than one candidate activation record.
+    ChainBindingMismatch,
+    /// Exactly one authoritative record binds to the current profile and
+    /// every equality holds.
+    Verified,
+}
+
+/// Sealed identity fields, populated **only** for `Verified`. Cache data
+/// never occupies these fields.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+pub struct VerifiedPrincipalIdentityContract {
+    #[serde(rename = "principalId")]
+    #[ts(rename = "principalId")]
+    pub principal_id: String,
+    #[serde(rename = "principalProfileHash")]
+    #[ts(rename = "principalProfileHash")]
+    pub principal_profile_hash: String,
+    #[serde(rename = "nodePubkey")]
+    #[ts(rename = "nodePubkey")]
+    pub node_pubkey: String,
+    #[serde(rename = "activationReceiptRef")]
+    #[ts(rename = "activationReceiptRef")]
+    pub activation_receipt_ref: String,
+    #[serde(rename = "receiptId")]
+    #[ts(rename = "receiptId")]
+    pub receipt_id: String,
+    #[serde(rename = "timestampNs")]
+    #[ts(rename = "timestampNs")]
+    pub timestamp_ns: u64,
+    #[serde(rename = "prevChain")]
+    #[ts(rename = "prevChain")]
+    pub prev_chain: String,
+}
+
+/// What was actually observed, independent of the verdict. A reader can
+/// reconstruct why a verdict was reached without trusting the verdict.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+pub struct PrincipalEvidenceStateContract {
+    #[serde(rename = "profilePresent")]
+    #[ts(rename = "profilePresent")]
+    pub profile_present: bool,
+    #[serde(rename = "activeChainRecordFound")]
+    #[ts(rename = "activeChainRecordFound")]
+    pub active_chain_record_found: bool,
+    #[serde(rename = "durableReceiptMetadataFound")]
+    #[ts(rename = "durableReceiptMetadataFound")]
+    pub durable_receipt_metadata_found: bool,
+    #[serde(rename = "canonicalPayloadAvailable")]
+    #[ts(rename = "canonicalPayloadAvailable")]
+    pub canonical_payload_available: bool,
+    #[serde(rename = "chainContinuityVerified")]
+    #[ts(rename = "chainContinuityVerified")]
+    pub chain_continuity_verified: bool,
+}
+
+/// Constitutional policy, NOT observed runtime state. Deliberately not
+/// named `activation_gate`: that name is reserved until the endpoint
+/// actually reads a runtime-owned gate. Shipping a compile-time constant
+/// under an observation-shaped name is the defect this avoids.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+pub struct PrincipalAuthorityPolicyContract {
+    #[serde(rename = "activationRequires")]
+    #[ts(rename = "activationRequires")]
+    pub activation_requires: String,
+    /// Always zero for this read-only surface. `i32` deliberately, not `i64`:
+    /// ts-rs maps 64-bit ints to `bigint`, which would force every TypeScript
+    /// consumer into BigInt handling for a value that is constant zero.
+    #[serde(rename = "authorityDelta")]
+    #[ts(rename = "authorityDelta")]
+    pub authority_delta: i32,
+}
+
+/// Effects this request performed. All false by construction for a GET.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+pub struct PrincipalOperationEffectsContract {
+    #[serde(rename = "mutationPerformed")]
+    #[ts(rename = "mutationPerformed")]
+    pub mutation_performed: bool,
+    #[serde(rename = "activationPerformed")]
+    #[ts(rename = "activationPerformed")]
+    pub activation_performed: bool,
+    #[serde(rename = "witnessIssued")]
+    #[ts(rename = "witnessIssued")]
+    pub witness_issued: bool,
+    #[serde(rename = "poiMinted")]
+    #[ts(rename = "poiMinted")]
+    pub poi_minted: bool,
+    #[serde(rename = "soakStarted")]
+    #[ts(rename = "soakStarted")]
+    pub soak_started: bool,
+}
+
+/// `GET /principal/status` wire contract.
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+pub struct PrincipalIdentityStatusContract {
+    pub schema: String,
+    pub verdict: PrincipalIdentityStatusVerdict,
+    #[serde(rename = "identityVerified")]
+    #[ts(rename = "identityVerified")]
+    pub identity_verified: bool,
+    #[serde(rename = "bridgeEligible")]
+    #[ts(rename = "bridgeEligible")]
+    pub bridge_eligible: bool,
+    #[serde(rename = "verifiedIdentity")]
+    #[ts(rename = "verifiedIdentity")]
+    pub verified_identity: Option<VerifiedPrincipalIdentityContract>,
+    #[serde(rename = "evidenceState")]
+    #[ts(rename = "evidenceState")]
+    pub evidence_state: PrincipalEvidenceStateContract,
+    #[serde(rename = "chainHead")]
+    #[ts(rename = "chainHead")]
+    pub chain_head: String,
+    #[serde(rename = "chainLength")]
+    #[ts(rename = "chainLength")]
+    pub chain_length: usize,
+    #[serde(rename = "authorityPolicy")]
+    #[ts(rename = "authorityPolicy")]
+    pub authority_policy: PrincipalAuthorityPolicyContract,
+    #[serde(rename = "operationEffects")]
+    #[ts(rename = "operationEffects")]
+    pub operation_effects: PrincipalOperationEffectsContract,
+    #[serde(rename = "reasonCodes")]
+    #[ts(rename = "reasonCodes")]
+    pub reason_codes: Vec<String>,
+}
+
+// ════════════════════════════════════════════════════════════════════
 // Tests — sanity checks + ts-rs emission triggers
 // ════════════════════════════════════════════════════════════════════
 
@@ -692,6 +856,145 @@ mod tests {
                 bad_key,
                 binding_src
             );
+        }
+    }
+
+    // ── NODE0-PRINCIPAL-STATUS-1B — contract + binding verification ──────
+
+    fn principal_binding(name: &str) -> String {
+        let f = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("bindings")
+            .join(format!("{name}.ts"));
+        std::fs::read_to_string(&f)
+            .unwrap_or_else(|e| panic!("could not read generated binding {}: {e}", f.display()))
+    }
+
+    #[test]
+    fn principal_status_contracts_instantiate_and_emit_bindings() {
+        // Instantiating triggers the ts-rs export side effect synchronously,
+        // so this test does not depend on sibling test ordering.
+        let verified = VerifiedPrincipalIdentityContract {
+            principal_id: "a".repeat(64),
+            principal_profile_hash: "b".repeat(64),
+            node_pubkey: "c".repeat(64),
+            activation_receipt_ref: "d".repeat(64),
+            receipt_id: "e".repeat(64),
+            timestamp_ns: 1,
+            prev_chain: "f".repeat(64),
+        };
+        let _ = PrincipalIdentityStatusContract {
+            schema: "bizra.node0.principal_identity_status.v0.1".into(),
+            verdict: PrincipalIdentityStatusVerdict::Verified,
+            identity_verified: true,
+            bridge_eligible: true,
+            verified_identity: Some(verified),
+            evidence_state: PrincipalEvidenceStateContract {
+                profile_present: true,
+                active_chain_record_found: true,
+                durable_receipt_metadata_found: false,
+                canonical_payload_available: true,
+                chain_continuity_verified: true,
+            },
+            chain_head: "0".repeat(64),
+            chain_length: 1,
+            authority_policy: PrincipalAuthorityPolicyContract {
+                activation_requires: "EXPLICIT_GO".into(),
+                authority_delta: 0,
+            },
+            operation_effects: PrincipalOperationEffectsContract {
+                mutation_performed: false,
+                activation_performed: false,
+                witness_issued: false,
+                poi_minted: false,
+                soak_started: false,
+            },
+            reason_codes: vec![],
+        };
+
+        for name in [
+            "PrincipalIdentityStatusContract",
+            "PrincipalIdentityStatusVerdict",
+            "VerifiedPrincipalIdentityContract",
+            "PrincipalEvidenceStateContract",
+            "PrincipalAuthorityPolicyContract",
+            "PrincipalOperationEffectsContract",
+        ] {
+            assert!(!principal_binding(name).is_empty(), "{name} binding empty");
+        }
+    }
+
+    #[test]
+    fn principal_status_binding_exposes_all_six_verdicts() {
+        let src = principal_binding("PrincipalIdentityStatusVerdict");
+        for literal in [
+            "ABSENT",
+            "PROFILE_PRESENT_UNVERIFIED",
+            "CHAIN_DURABLE_ONLY",
+            "CHAIN_PAYLOAD_UNAVAILABLE",
+            "CHAIN_BINDING_MISMATCH",
+            "VERIFIED",
+        ] {
+            assert!(
+                src.contains(literal),
+                "verdict {literal} missing from {src}"
+            );
+        }
+    }
+
+    #[test]
+    fn principal_status_binding_uses_camel_case_and_optional_identity() {
+        let top = principal_binding("PrincipalIdentityStatusContract");
+        for key in [
+            "identityVerified",
+            "bridgeEligible",
+            "verifiedIdentity",
+            "evidenceState",
+            "chainHead",
+            "chainLength",
+            "authorityPolicy",
+            "operationEffects",
+            "reasonCodes",
+        ] {
+            assert!(top.contains(key), "camelCase key {key} missing from {top}");
+        }
+        assert!(
+            top.contains("verifiedIdentity: VerifiedPrincipalIdentityContract | null"),
+            "verifiedIdentity must be nullable so non-VERIFIED cannot carry identity: {top}"
+        );
+        let policy = principal_binding("PrincipalAuthorityPolicyContract");
+        assert!(policy.contains("authorityDelta: number"), "{policy}");
+        assert!(
+            !top.contains("activationGate"),
+            "a compile-time policy must not ship under an observation-shaped name"
+        );
+    }
+
+    #[test]
+    fn principal_status_bindings_disclose_no_secret_or_unsealed_label() {
+        for name in [
+            "PrincipalIdentityStatusContract",
+            "VerifiedPrincipalIdentityContract",
+            "PrincipalEvidenceStateContract",
+            "PrincipalAuthorityPolicyContract",
+            "PrincipalOperationEffectsContract",
+        ] {
+            let src = principal_binding(name);
+            for forbidden in [
+                "principalName",
+                "declaredRole",
+                "identityAnchorPath",
+                "consentPhrase",
+                "privateKey",
+                "credential",
+                "nodeId",
+                "/tmp",
+                "/home",
+            ] {
+                assert!(
+                    !src.contains(forbidden),
+                    "{name} binding must not expose `{forbidden}`: {src}"
+                );
+            }
         }
     }
 }
