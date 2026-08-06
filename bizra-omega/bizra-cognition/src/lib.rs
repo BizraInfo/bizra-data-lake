@@ -56,6 +56,7 @@ pub mod organize_mission;
 pub mod poi_ledger;
 pub mod principal_activation;
 pub mod principal_cache;
+pub mod principal_identity_projection;
 pub mod receipt_chain_store;
 pub mod receipt_freeze_v1;
 pub mod receipt_history_cache;
