@@ -19,6 +19,16 @@
 
 mod contracts;
 
+// NODE0-PRINCIPAL-STATUS-1B serves the contract types directly rather than
+// mirroring them with a twin DTO. Every other endpoint keeps a main.rs DTO
+// and a contracts.rs twin; that duplication is precisely what can drift, and
+// the drift gate only watches `bindings/`, not the two Rust shapes.
+use crate::contracts::{
+    PrincipalAuthorityPolicyContract, PrincipalEvidenceStateContract,
+    PrincipalIdentityStatusContract, PrincipalIdentityStatusVerdict,
+    PrincipalOperationEffectsContract, VerifiedPrincipalIdentityContract,
+};
+
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -53,6 +63,14 @@ const DOMAIN: &str = "bizra-cognition-gateway-v1";
 #[derive(Clone)]
 struct AppState {
     runtime: Arc<RwLock<CognitionRuntime>>,
+    /// The genesis this runtime's chain was constructed or restored against.
+    ///
+    /// `ReceiptChain` does not retain its genesis — `head` is seeded from it
+    /// and moves on first append — so continuity cannot be checked from the
+    /// chain alone. Deriving the expected value from the chain's own first
+    /// record would let the chain supply the value used to validate its own
+    /// root. This is carried independently from the construction site instead.
+    chain_genesis: Blake3Hash,
 }
 
 // ─── DTOs ──────────────────────────────────────────────────────────────────
@@ -1713,9 +1731,216 @@ async fn replay_mission(
     }
 }
 
+// ─── NODE0-PRINCIPAL-STATUS-1B — GET /principal/status ─────────────────────
+//
+// Read-only projection of chain-sealed principal identity. Fail-closed at
+// every step. Identity is NEVER inferred from hostname, port, environment,
+// caller input, a hardcoded node label, or the profile cache alone.
+//
+// Continuity note: `verify_continuity` requires a genesis the caller supplies,
+// and `ReceiptChain` does not retain one — `head` is seeded from genesis and
+// moves on first append. We anchor on the first record's `prev`, which
+// verifies every inter-record link (the real tamper surface: altering any
+// middle record breaks it) but does NOT independently attest the anchor
+// itself. That gap is the estate's existing out-of-band-anchor gap, surfaced
+// here as a reason code rather than hidden.
+const PRINCIPAL_STATUS_SCHEMA_ID: &str = "bizra.node0.principal_identity_status.v0.1";
+
+async fn get_principal_status(
+    State(state): State<AppState>,
+) -> Json<PrincipalIdentityStatusContract> {
+    use bizra_cognition::principal_identity_projection::{
+        project_principal_activation_identity, PrincipalIdentityProjectionError,
+    };
+    use bizra_cognition::receipts::ChainError;
+
+    let rt = state.runtime.read().await;
+
+    let head_before = rt.chain.head();
+    let len_before = rt.chain.len();
+
+    // Continuity is checked against the genesis carried independently from the
+    // construction site — never one derived from the chain's own first record,
+    // which would let the chain supply the value that validates its own root.
+    let continuity_verified = rt.chain.verify_continuity(state.chain_genesis).is_ok();
+
+    let profile = rt.principal_profile();
+    let profile_present = profile.is_some();
+
+    // Every PrincipalActivation record in the ACTIVE verified chain.
+    let candidates: Vec<Blake3Hash> = rt
+        .chain
+        .records()
+        .filter(|r| r.kind == ReceiptKind::PrincipalActivation)
+        .map(|r| r.hash)
+        .collect();
+
+    let mut reason_codes: Vec<String> = Vec::new();
+
+    let mut active_chain_record_found = false;
+    let mut canonical_payload_available = false;
+    let mut durable_receipt_metadata_found = false;
+    let mut verified_identity = None;
+
+    let verdict = if let Some(profile) = profile {
+        let expected_profile_hash = profile.profile_hash();
+        let mut matches = Vec::new();
+        let mut payload_unavailable = false;
+        let mut binding_mismatch = false;
+
+        for hash in &candidates {
+            match project_principal_activation_identity(&rt.chain, *hash) {
+                Ok(p) => {
+                    // Current-relevance gate. A record is evidence ABOUT the
+                    // current identity only when it claims that identity's
+                    // activation. Anything else is history: it is not
+                    // corruption, and it must not set the evidence booleans —
+                    // otherwise an unverified runtime would still report that
+                    // the current identity's record and payload were found.
+                    if p.activation_receipt_ref != profile.activation_receipt_id {
+                        continue;
+                    }
+                    active_chain_record_found = true;
+                    canonical_payload_available = true;
+
+                    let binds = p.principal_id == profile.principal_id
+                        && p.principal_profile_hash == expected_profile_hash
+                        && p.node_pubkey != [0u8; 32];
+                    if binds {
+                        matches.push(p);
+                    } else {
+                        // Current-relevant but contradictory: it claims this
+                        // activation while sealing different identity fields.
+                        binding_mismatch = true;
+                        reason_codes.push("CURRENT_RELEVANT_RECORD_FIELD_MISMATCH".to_string());
+                    }
+                }
+                Err(PrincipalIdentityProjectionError::WrongReceiptKind { .. }) => {
+                    active_chain_record_found = true;
+                    binding_mismatch = true;
+                    reason_codes.push("WRONG_RECEIPT_KIND".to_string());
+                }
+                // missing ≠ malformed. Absent payload is unavailable; a payload
+                // that is present but undecodable is contradictory evidence.
+                Err(PrincipalIdentityProjectionError::Chain(ChainError::PayloadMissing(_)))
+                | Err(PrincipalIdentityProjectionError::Chain(ChainError::PayloadPersistence(_))) =>
+                {
+                    active_chain_record_found = true;
+                    payload_unavailable = true;
+                    reason_codes.push("CANONICAL_PAYLOAD_UNAVAILABLE".to_string());
+                }
+                Err(PrincipalIdentityProjectionError::Chain(ChainError::PayloadDecode(_)))
+                | Err(PrincipalIdentityProjectionError::Chain(ChainError::Discontinuity {
+                    ..
+                })) => {
+                    active_chain_record_found = true;
+                    binding_mismatch = true;
+                    reason_codes.push("PAYLOAD_MALFORMED_OR_DISCONTINUOUS".to_string());
+                }
+                Err(PrincipalIdentityProjectionError::ReceiptNotFound(_)) => {}
+            }
+        }
+
+        // Durable metadata: receipt known to exist, canonical payload absent
+        // from the active verified chain.
+        // Durable lookup must use the SAME hash namespace as the receipt chain.
+        // The sovereign_state chain is Python-authored and hashes entries as
+        // blake3_chain(prev_hex_ascii ++ python_json_bytes); a Rust receipt id is
+        // blake3_domain over canonical bytes. Querying one with the other could
+        // only ever match by collision. ReceiptHistoryCache stores `Receipt`
+        // records in the chain's own namespace and is wired by the same
+        // attach_dema_cache call, so it is the correct durable surface.
+        if matches.is_empty() && !payload_unavailable {
+            durable_receipt_metadata_found = rt
+                .receipt_history_cache()
+                .and_then(|cache| cache.read().ok().flatten())
+                .map(|snap| {
+                    snap.records
+                        .iter()
+                        .any(|r| r.hash == profile.activation_receipt_id)
+                })
+                .unwrap_or(false);
+        }
+
+        if !continuity_verified {
+            reason_codes.push("CHAIN_CONTINUITY_FAILED".to_string());
+            PrincipalIdentityStatusVerdict::ChainBindingMismatch
+        } else if matches.len() > 1 {
+            reason_codes.push("AMBIGUOUS_ACTIVATION_RECORDS".to_string());
+            PrincipalIdentityStatusVerdict::ChainBindingMismatch
+        } else if binding_mismatch {
+            PrincipalIdentityStatusVerdict::ChainBindingMismatch
+        } else if let Some(p) = matches.pop() {
+            verified_identity = Some(VerifiedPrincipalIdentityContract {
+                principal_id: hex32(&p.principal_id),
+                principal_profile_hash: hex32(&p.principal_profile_hash),
+                node_pubkey: hex32(&p.node_pubkey),
+                activation_receipt_ref: hex32(&p.activation_receipt_ref),
+                receipt_id: hex32(&p.receipt_id),
+                timestamp_ns: p.timestamp_ns,
+                prev_chain: hex32(&p.prev_chain),
+            });
+            PrincipalIdentityStatusVerdict::Verified
+        } else if payload_unavailable {
+            PrincipalIdentityStatusVerdict::ChainPayloadUnavailable
+        } else if durable_receipt_metadata_found {
+            reason_codes.push("DURABLE_METADATA_WITHOUT_CANONICAL_PAYLOAD".to_string());
+            PrincipalIdentityStatusVerdict::ChainDurableOnly
+        } else {
+            PrincipalIdentityStatusVerdict::ProfilePresentUnverified
+        }
+    } else if !candidates.is_empty() {
+        // Activation evidence with no profile to bind it to.
+        active_chain_record_found = true;
+        reason_codes.push("ACTIVATION_RECORD_WITHOUT_PROFILE".to_string());
+        PrincipalIdentityStatusVerdict::ChainBindingMismatch
+    } else {
+        // No profile and no active PrincipalActivation record. Unrelated
+        // durable entries are NOT principal evidence — counting them would let
+        // any receipt in the snapshot manufacture a durable-identity claim.
+        PrincipalIdentityStatusVerdict::Absent
+    };
+
+    let verified = verdict == PrincipalIdentityStatusVerdict::Verified;
+
+    // A GET that moved the chain is not read-only; refuse rather than report.
+    debug_assert_eq!(head_before, rt.chain.head());
+    debug_assert_eq!(len_before, rt.chain.len());
+
+    Json(PrincipalIdentityStatusContract {
+        schema: PRINCIPAL_STATUS_SCHEMA_ID.to_string(),
+        verdict,
+        identity_verified: verified,
+        bridge_eligible: verified,
+        verified_identity,
+        evidence_state: PrincipalEvidenceStateContract {
+            profile_present,
+            active_chain_record_found,
+            durable_receipt_metadata_found,
+            canonical_payload_available,
+            chain_continuity_verified: continuity_verified,
+        },
+        chain_head: hex32(&rt.chain.head()),
+        chain_length: rt.chain.len(),
+        authority_policy: PrincipalAuthorityPolicyContract {
+            activation_requires: "EXPLICIT_GO".to_string(),
+            authority_delta: 0,
+        },
+        operation_effects: PrincipalOperationEffectsContract {
+            mutation_performed: false,
+            activation_performed: false,
+            witness_issued: false,
+            poi_minted: false,
+            soak_started: false,
+        },
+        reason_codes,
+    })
+}
+
 fn router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
+        .route("/principal/status", get(get_principal_status))
         .route("/chain", get(get_chain))
         .route("/chain/:hash", get(get_chain_receipt))
         .route("/mission", post(post_mission))
@@ -1745,6 +1970,7 @@ async fn main() {
     let runtime = bootstrap_runtime(genesis);
     let state = AppState {
         runtime: Arc::new(RwLock::new(runtime)),
+        chain_genesis: genesis,
     };
 
     let port: u16 = std::env::var("BIZRA_COGNITION_PORT")
@@ -1774,6 +2000,7 @@ mod tests {
     fn new_state() -> AppState {
         AppState {
             runtime: Arc::new(RwLock::new(bootstrap_runtime([0u8; 32]))),
+            chain_genesis: [0u8; 32],
         }
     }
 
@@ -1785,6 +2012,7 @@ mod tests {
     fn new_state_env_free() -> AppState {
         AppState {
             runtime: Arc::new(RwLock::new(fresh_in_memory_runtime([0u8; 32]))),
+            chain_genesis: [0u8; 32],
         }
     }
 
@@ -1796,6 +2024,7 @@ mod tests {
             .expect("valid sovereign_state fixture should bootstrap");
         AppState {
             runtime: Arc::new(RwLock::new(rt)),
+            chain_genesis: [0u8; 32],
         }
     }
 
@@ -2340,6 +2569,7 @@ mod tests {
             rt.attach_dema_cache(td_cache.path());
             AppState {
                 runtime: Arc::new(RwLock::new(rt)),
+                chain_genesis: [0u8; 32],
             }
         };
         let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
@@ -2504,6 +2734,7 @@ mod tests {
         rt.attach_dema_cache(root);
         AppState {
             runtime: Arc::new(RwLock::new(rt)),
+            chain_genesis: [0u8; 32],
         }
     }
 
@@ -2932,6 +3163,7 @@ mod tests {
             .expect("first bootstrap");
         let state1 = AppState {
             runtime: Arc::new(RwLock::new(rt1)),
+            chain_genesis: [0u8; 32],
         };
 
         let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
@@ -2994,6 +3226,7 @@ mod tests {
 
         let state2 = AppState {
             runtime: Arc::new(RwLock::new(rt2)),
+            chain_genesis: [0u8; 32],
         };
         let chain_restart = router(state2)
             .oneshot(
@@ -3008,5 +3241,717 @@ mod tests {
         let chain_restart: serde_json::Value = serde_json::from_slice(&restart_body).unwrap();
         assert_eq!(chain_restart["length"], len_after);
         assert_eq!(chain_restart["head"].as_str().unwrap(), head_hex);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // NODE0-PRINCIPAL-STATUS-READ-PROJECTION-1B — GET /principal/status
+    //
+    // Reachability is not identity. A cache is not identity truth. The
+    // verdict derives only from an authoritative chain-sealed receipt.
+    // ════════════════════════════════════════════════════════════════════
+
+    const PRINCIPAL_STATUS_SCHEMA: &str = "bizra.node0.principal_identity_status.v0.1";
+
+    async fn principal_status(state: AppState) -> (StatusCode, serde_json::Value) {
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/principal/status")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = res.status();
+        let body = to_bytes(res.into_body(), 8192).await.unwrap();
+        let v = serde_json::from_slice(&body).unwrap_or(serde_json::Value::Null);
+        (status, v)
+    }
+
+    async fn activate_on(state: AppState, dir: &std::path::Path) -> serde_json::Value {
+        let anchor = write_test_identity_anchor(dir);
+        let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            res.status(),
+            StatusCode::OK,
+            "fixture activation must PERMIT"
+        );
+        let body = to_bytes(res.into_body(), 4096).await.unwrap();
+        serde_json::from_slice(&body).unwrap()
+    }
+
+    fn state_with(
+        store_root: Option<&std::path::Path>,
+        cache_root: Option<&std::path::Path>,
+    ) -> AppState {
+        let mut rt = fresh_in_memory_runtime([0u8; 32]);
+        if let Some(root) = store_root {
+            rt.bootstrap_authoritative_receipt_store_at(root, [0u8; 32])
+                .expect("authoritative receipt store must bootstrap");
+        }
+        if let Some(root) = cache_root {
+            rt.attach_dema_cache(root);
+            // `attach_dema_cache` only wires the paths; the profile is not in
+            // memory until explicitly rehydrated. The gateway's own bootstrap
+            // does this (main.rs `rehydrate_principal_from_cache`), so a
+            // fixture that skips it is testing a state production never has.
+            let _ = rt.rehydrate_principal_from_cache();
+        }
+        AppState {
+            runtime: Arc::new(RwLock::new(rt)),
+            chain_genesis: [0u8; 32],
+        }
+    }
+
+    // ─── controlled-chain fixture ────────────────────────────────────────
+    //
+    // Both production constructors are fail-closed: `restore_from_snapshot`
+    // verifies continuity AND that every record has a persisted payload, and
+    // `bootstrap_authoritative_receipt_store_at` refuses on PayloadMissing.
+    // So the unavailable/corrupt states are unreachable by construction — they
+    // arise only from a RUNTIME store failure after a valid boot. That makes
+    // fault injection the only honest fixture, and the production constructors
+    // stay untouched: `contains()` still succeeds, only `get()` misbehaves.
+
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum FaultMode {
+        Unavailable,
+        Corrupt,
+    }
+
+    struct FaultyPayloadStore {
+        inner: InMemoryPayloadStore,
+        mode: FaultMode,
+        target: Blake3Hash,
+    }
+
+    impl bizra_cognition::receipts::PayloadStore for FaultyPayloadStore {
+        fn put(
+            &self,
+            hash: Blake3Hash,
+            bytes: Vec<u8>,
+        ) -> Result<(), bizra_cognition::receipts::StoreError> {
+            self.inner.put(hash, bytes)
+        }
+        fn contains(
+            &self,
+            hash: &Blake3Hash,
+        ) -> Result<bool, bizra_cognition::receipts::StoreError> {
+            // Deliberately honest: restore_from_snapshot must still pass, so
+            // the fault surfaces at read time exactly as a real disk fault would.
+            self.inner.contains(hash)
+        }
+        fn get(
+            &self,
+            hash: &Blake3Hash,
+        ) -> Result<Option<Vec<u8>>, bizra_cognition::receipts::StoreError> {
+            if *hash == self.target {
+                match self.mode {
+                    FaultMode::Unavailable => {
+                        return Err(bizra_cognition::receipts::StoreError::IoError(
+                            "injected read failure".to_string(),
+                        ))
+                    }
+                    // Present but malformed. fetch_and_decode hash-verifies, so
+                    // this fails as PayloadDecode — malformed, never missing.
+                    FaultMode::Corrupt => return Ok(Some(vec![0xABu8; 64])),
+                }
+            }
+            self.inner.get(hash)
+        }
+    }
+
+    /// Honest activation, then the exact same records restored behind a store
+    /// that faults on the PrincipalActivation payload.
+    async fn faulted_state(mode: FaultMode) -> AppState {
+        let genesis = [0u8; 32];
+        let td = tempfile::TempDir::new().unwrap();
+        let cache_root = td.path().join("sovereign_state");
+        std::fs::create_dir_all(&cache_root).unwrap();
+
+        let honest = {
+            let mut rt = fresh_in_memory_runtime(genesis);
+            rt.attach_dema_cache(&cache_root);
+            AppState {
+                runtime: Arc::new(RwLock::new(rt)),
+                chain_genesis: genesis,
+            }
+        };
+        activate_on(honest.clone(), td.path()).await;
+
+        let (snapshot, payloads, target) = {
+            let rt = honest.runtime.read().await;
+            let snap = rt.receipt_history_snapshot();
+            let mut payloads: Vec<(Blake3Hash, Vec<u8>)> = Vec::new();
+            for r in rt.chain.records() {
+                let bytes = rt
+                    .chain
+                    .fetch_payload_bytes(&r.hash)
+                    .expect("payload fetch")
+                    .expect("payload present in honest chain");
+                payloads.push((r.hash, bytes));
+            }
+            let target = rt
+                .chain
+                .records()
+                .find(|r| r.kind == ReceiptKind::PrincipalActivation)
+                .expect("an activation record must exist")
+                .hash;
+            (snap, payloads, target)
+        };
+
+        let inner = InMemoryPayloadStore::new();
+        for (h, b) in payloads {
+            bizra_cognition::receipts::PayloadStore::put(&inner, h, b).expect("seed store");
+        }
+        let faulty = FaultyPayloadStore {
+            inner,
+            mode,
+            target,
+        };
+        let chain = ReceiptChain::restore_from_snapshot(genesis, snapshot, Box::new(faulty))
+            .expect("restore must succeed: contains() is honest");
+
+        let mut rt2 = fresh_in_memory_runtime(genesis);
+        rt2.chain = chain;
+        rt2.attach_dema_cache(&cache_root);
+        let _ = rt2.rehydrate_principal_from_cache();
+
+        AppState {
+            runtime: Arc::new(RwLock::new(rt2)),
+            chain_genesis: genesis,
+        }
+    }
+
+    // ─── load-bearing three: these decide lifetime operation ─────────────
+
+    #[tokio::test]
+    async fn principal_status_verified_after_chain_bound_activation() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state();
+        let act = activate_on(state.clone(), td.path()).await;
+
+        let (code, v) = principal_status(state).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(v["schema"], PRINCIPAL_STATUS_SCHEMA);
+        assert_eq!(v["verdict"], "VERIFIED");
+        assert_eq!(v["identityVerified"], true);
+        assert_eq!(
+            v["verifiedIdentity"]["principalId"], act["principalId"],
+            "projected principal id must equal the sealed activation receipt"
+        );
+        assert_eq!(
+            v["verifiedIdentity"]["principalProfileHash"], act["profileHash"],
+            "profile hash must be recomputed and match the sealed receipt"
+        );
+        assert_eq!(v["evidenceState"]["activeChainRecordFound"], true);
+        assert_eq!(v["evidenceState"]["canonicalPayloadAvailable"], true);
+        assert_eq!(v["evidenceState"]["chainContinuityVerified"], true);
+    }
+
+    #[tokio::test]
+    async fn principal_status_survives_authoritative_store_reconstruction() {
+        let td = tempfile::TempDir::new().unwrap();
+        let store_root = td.path().join("receipt_store");
+        let cache_root = td.path().join("sovereign_state");
+        std::fs::create_dir_all(&cache_root).unwrap();
+
+        let live = state_with(Some(&store_root), Some(&cache_root));
+        let act = activate_on(live.clone(), td.path()).await;
+        let _ = live.runtime.write().await.write_receipt_chain_store();
+
+        let (_, before) = principal_status(live).await;
+        assert_eq!(before["verdict"], "VERIFIED", "live node must verify first");
+
+        // Restart: a fresh runtime restores chain metadata AND sled payloads.
+        let restored = state_with(Some(&store_root), Some(&cache_root));
+        let (code, v) = principal_status(restored).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(
+            v["verdict"], "VERIFIED",
+            "a properly restored authoritative node must not degrade"
+        );
+        assert_eq!(
+            v["verifiedIdentity"]["principalId"], act["principalId"],
+            "restored identity must be byte-identical, not merely present"
+        );
+    }
+
+    #[tokio::test]
+    async fn principal_status_durable_metadata_only_is_never_bridge_eligible() {
+        // CHAIN_DURABLE_ONLY is valid ONLY when a profile exists AND that
+        // profile's exact activation_receipt_id appears in durable metadata
+        // AND no canonical payload resolves through the active chain.
+        // Unrelated durable entries must never reach this verdict.
+        let genesis = [0u8; 32];
+        let td = tempfile::TempDir::new().unwrap();
+        let root = td.path();
+
+        // Honest activation persists the profile to root/dema_cache.
+        let live = {
+            let mut rt = fresh_in_memory_runtime(genesis);
+            rt.attach_dema_cache(root);
+            AppState {
+                runtime: Arc::new(RwLock::new(rt)),
+                chain_genesis: genesis,
+            }
+        };
+        activate_on(live.clone(), root).await;
+
+        // Persist the durable receipt history in the chain's own hash namespace.
+        {
+            let rt = live.runtime.read().await;
+            rt.receipt_history_cache()
+                .expect("cache attached")
+                .write(&rt.receipt_history_snapshot())
+                .expect("durable history write");
+        }
+
+        // Restart with an EMPTY active chain: the profile rehydrates and the
+        // durable history still names its activation, but no canonical payload
+        // resolves through the active chain.
+        let state = {
+            let mut rt = fresh_in_memory_runtime(genesis);
+            rt.attach_dema_cache(root);
+            let _ = rt.rehydrate_principal_from_cache();
+            AppState {
+                runtime: Arc::new(RwLock::new(rt)),
+                chain_genesis: genesis,
+            }
+        };
+
+        let (code, v) = principal_status(state).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(
+            v["evidenceState"]["profilePresent"], true,
+            "durable-only requires a profile; without one the verdict is ABSENT"
+        );
+        assert_eq!(v["evidenceState"]["durableReceiptMetadataFound"], true);
+        assert_eq!(v["evidenceState"]["activeChainRecordFound"], false);
+        assert_eq!(v["verdict"], "CHAIN_DURABLE_ONLY");
+        assert_eq!(v["identityVerified"], false);
+        assert_eq!(v["bridgeEligible"], false);
+        assert!(
+            v["verifiedIdentity"].is_null(),
+            "durable metadata must never populate verified identity"
+        );
+        assert_eq!(v["evidenceState"]["canonicalPayloadAvailable"], false);
+    }
+
+    #[tokio::test]
+    async fn principal_status_unrelated_durable_metadata_without_profile_is_absent() {
+        // Sovereign snapshot holds unrelated receipts. With no profile and no
+        // active PrincipalActivation record, the only honest answer is ABSENT.
+        // Counting total durable entries would let any unrelated receipt
+        // manufacture a claim of durable principal evidence.
+        let td = tempfile::TempDir::new().unwrap();
+        write_two_entry_fixture(td.path());
+        let state = new_state_with_sovereign(td.path());
+
+        let (code, v) = principal_status(state).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(v["evidenceState"]["profilePresent"], false);
+        assert_eq!(
+            v["verdict"], "ABSENT",
+            "unrelated durable entries must not imply principal evidence"
+        );
+        assert!(v["verifiedIdentity"].is_null());
+    }
+
+    #[tokio::test]
+    async fn principal_status_chain_continuity_failure_never_verifies() {
+        // The chain is built against [0u8;32]; the trusted anchor says
+        // otherwise. A self-derived anchor (first record's own `prev`) would
+        // accept this — the chain supplying the value that validates its own
+        // root. Continuity must be checked against the independently carried
+        // genesis, so this is a binding mismatch, never VERIFIED.
+        let td = tempfile::TempDir::new().unwrap();
+        let honest = new_state();
+        activate_on(honest.clone(), td.path()).await;
+
+        let tampered = AppState {
+            runtime: honest.runtime.clone(),
+            chain_genesis: [7u8; 32],
+        };
+
+        let (code, v) = principal_status(tampered).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_ne!(
+            v["verdict"], "VERIFIED",
+            "a chain must never validate its own root"
+        );
+        assert_eq!(v["verdict"], "CHAIN_BINDING_MISMATCH");
+        assert_eq!(v["evidenceState"]["chainContinuityVerified"], false);
+        assert!(
+            v["reasonCodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|c| c == "CHAIN_CONTINUITY_FAILED"),
+            "continuity failure must be named"
+        );
+        assert!(v["verifiedIdentity"].is_null());
+    }
+
+    #[tokio::test]
+    async fn principal_status_historical_activation_does_not_block_current_identity() {
+        // Two legitimate activations. The cached profile reflects the latest.
+        // An earlier valid record is history, not corruption — it must not
+        // prevent the current unique match from verifying.
+        let td1 = tempfile::TempDir::new().unwrap();
+        let td2 = tempfile::TempDir::new().unwrap();
+        let state = new_state();
+        activate_on(state.clone(), td1.path()).await;
+        let latest = activate_on(state.clone(), td2.path()).await;
+
+        let (code, v) = principal_status(state).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(
+            v["verdict"], "VERIFIED",
+            "a superseded activation must not block the current profile"
+        );
+        assert_eq!(
+            v["verifiedIdentity"]["principalId"], latest["principalId"],
+            "verified identity must be the current profile's, not the historical one"
+        );
+    }
+
+    // ─── remaining ladder ────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn principal_status_absent_without_profile_or_activation_receipt() {
+        let (code, v) = principal_status(new_state_env_free()).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(v["schema"], PRINCIPAL_STATUS_SCHEMA);
+        assert_eq!(v["verdict"], "ABSENT");
+        assert_eq!(v["identityVerified"], false);
+        assert!(v["verifiedIdentity"].is_null());
+        assert_eq!(v["evidenceState"]["profilePresent"], false);
+    }
+
+    #[tokio::test]
+    async fn principal_status_profile_without_matching_activation_receipt_is_unverified() {
+        let td = tempfile::TempDir::new().unwrap();
+        let cache_root = td.path().join("sovereign_state");
+        std::fs::create_dir_all(&cache_root).unwrap();
+
+        let seeded = state_with(None, Some(&cache_root));
+        activate_on(seeded.clone(), td.path()).await;
+
+        // Activation auto-persists the receipt history. Remove it so this
+        // fixture is genuinely "profile cache ONLY" — otherwise the durable
+        // history names the activation and CHAIN_DURABLE_ONLY is the correct
+        // answer, which is a different state than the one under test.
+        {
+            let rt = seeded.runtime.read().await;
+            let path = rt
+                .receipt_history_cache()
+                .expect("cache attached")
+                .history_path();
+            let _ = std::fs::remove_file(path);
+        }
+
+        // Fresh runtime: cache restores the profile, the chain is empty, and no
+        // durable receipt metadata remains.
+        let cache_only = state_with(None, Some(&cache_root));
+        let (_, v) = principal_status(cache_only).await;
+
+        assert_eq!(v["verdict"], "PROFILE_PRESENT_UNVERIFIED");
+        assert_eq!(v["identityVerified"], false);
+        assert!(v["verifiedIdentity"].is_null());
+    }
+
+    #[tokio::test]
+    async fn principal_status_get_preserves_chain_head_and_length() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state();
+        activate_on(state.clone(), td.path()).await;
+
+        let (head_before, len_before) = {
+            let rt = state.runtime.read().await;
+            (hex32(&rt.chain.head()), rt.chain.len())
+        };
+        let (code, v) = principal_status(state.clone()).await;
+        let (head_after, len_after) = {
+            let rt = state.runtime.read().await;
+            (hex32(&rt.chain.head()), rt.chain.len())
+        };
+
+        // Precondition: the route must actually have answered. Without this a
+        // 404 satisfies the immutability assertions vacuously — an absent
+        // endpoint trivially mutates nothing.
+        assert_eq!(code, StatusCode::OK, "route must exist to prove read-only");
+        assert_eq!(v["schema"], PRINCIPAL_STATUS_SCHEMA);
+        assert_eq!(head_before, head_after, "GET must not move the chain head");
+        assert_eq!(len_before, len_after, "GET must not append to the chain");
+    }
+
+    #[tokio::test]
+    async fn principal_status_missing_payload_is_unavailable() {
+        // Runtime store failure on a valid boot: the record exists, the payload
+        // cannot be read. Unavailable is not malformed.
+        let (code, v) = principal_status(faulted_state(FaultMode::Unavailable).await).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(v["verdict"], "CHAIN_PAYLOAD_UNAVAILABLE");
+        assert_eq!(v["evidenceState"]["canonicalPayloadAvailable"], false);
+        assert!(v["verifiedIdentity"].is_null());
+    }
+
+    #[tokio::test]
+    async fn principal_status_corrupt_payload_fails_closed_as_binding_mismatch() {
+        // Present but malformed. fetch_and_decode hash-verifies, so tampered
+        // bytes surface as PayloadDecode — contradictory evidence, never merely
+        // "unavailable". missing ≠ malformed.
+        let (code, v) = principal_status(faulted_state(FaultMode::Corrupt).await).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(v["verdict"], "CHAIN_BINDING_MISMATCH");
+        assert_ne!(
+            v["verdict"], "CHAIN_PAYLOAD_UNAVAILABLE",
+            "a corrupt payload is present, not missing"
+        );
+        assert!(v["verifiedIdentity"].is_null());
+        assert_eq!(v["operationEffects"]["mutationPerformed"], false);
+    }
+
+    #[tokio::test]
+    async fn principal_status_profile_receipt_binding_mismatch_fails_closed() {
+        // Genuine semantic contradiction, NOT legitimate history: a hash-valid
+        // activation record that claims THIS profile's activation while sealing
+        // a different principal_id. Two normal activations would only test
+        // history, which is not corruption.
+        let genesis = [0u8; 32];
+        let td = tempfile::TempDir::new().unwrap();
+        let cache_root = td.path().join("sovereign_state");
+        std::fs::create_dir_all(&cache_root).unwrap();
+
+        let state = {
+            let mut rt = fresh_in_memory_runtime(genesis);
+            rt.attach_dema_cache(&cache_root);
+            AppState {
+                runtime: Arc::new(RwLock::new(rt)),
+                chain_genesis: genesis,
+            }
+        };
+        activate_on(state.clone(), td.path()).await;
+
+        {
+            let mut rt = state.runtime.write().await;
+            let profile = rt
+                .principal_profile()
+                .expect("activation must leave a profile")
+                .clone();
+            let prev = rt.chain.head();
+            // Same activation_receipt_ref (so it IS current-relevant), but a
+            // different sealed principal_id. Self-hash stays valid.
+            let contradictory =
+                bizra_cognition::principal_activation::PrincipalActivationReceipt::new(
+                    profile.activation_receipt_id,
+                    profile.profile_hash(),
+                    [9u8; 32],
+                    [0xEEu8; 32],
+                    profile.activation_ns + 1,
+                    prev,
+                );
+            rt.chain
+                .append_with_payload(contradictory)
+                .expect("append contradictory record");
+        }
+
+        let (code, v) = principal_status(state).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(v["verdict"], "CHAIN_BINDING_MISMATCH");
+        assert_eq!(v["evidenceState"]["activeChainRecordFound"], true);
+        assert_eq!(v["evidenceState"]["canonicalPayloadAvailable"], true);
+        assert!(v["verifiedIdentity"].is_null());
+        assert!(
+            v["reasonCodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|c| c == "CURRENT_RELEVANT_RECORD_FIELD_MISMATCH"),
+            "the binding contradiction must be named"
+        );
+        assert_eq!(v["operationEffects"]["mutationPerformed"], false);
+    }
+
+    #[tokio::test]
+    async fn principal_status_historical_only_does_not_claim_current_binding() {
+        // Current profile exists; the active chain holds only a legitimate
+        // OLDER activation. Nothing binds profile.activation_receipt_id, so the
+        // endpoint must not claim the current identity's record or payload were
+        // found — and must not call that history corruption either.
+        let genesis = [0u8; 32];
+        let td1 = tempfile::TempDir::new().unwrap();
+        let td2 = tempfile::TempDir::new().unwrap();
+        let cache_root = td1.path().join("sovereign_state");
+        std::fs::create_dir_all(&cache_root).unwrap();
+
+        let live = {
+            let mut rt = fresh_in_memory_runtime(genesis);
+            rt.attach_dema_cache(&cache_root);
+            AppState {
+                runtime: Arc::new(RwLock::new(rt)),
+                chain_genesis: genesis,
+            }
+        };
+        activate_on(live.clone(), td1.path()).await;
+        let first_len = live.runtime.read().await.chain.len();
+        activate_on(live.clone(), td2.path()).await;
+
+        // Truncate to the prefix that predates the current profile's activation.
+        // A prefix of a continuous chain is still continuous from genesis.
+        let truncated = {
+            let rt = live.runtime.read().await;
+            let full = rt.receipt_history_snapshot();
+            let records: Vec<_> = full.records.iter().take(first_len).copied().collect();
+            let head = records.last().expect("non-empty prefix").hash;
+            let inner = InMemoryPayloadStore::new();
+            for r in &records {
+                let bytes = rt
+                    .chain
+                    .fetch_payload_bytes(&r.hash)
+                    .expect("fetch")
+                    .expect("present");
+                bizra_cognition::receipts::PayloadStore::put(&inner, r.hash, bytes).expect("seed");
+            }
+            let snap = bizra_cognition::receipt_history_cache::ReceiptHistorySnapshot {
+                head,
+                last_timestamp_ns: full.last_timestamp_ns,
+                records,
+            };
+            ReceiptChain::restore_from_snapshot(genesis, snap, Box::new(inner))
+                .expect("prefix restores")
+        };
+
+        let historical = {
+            let mut rt = fresh_in_memory_runtime(genesis);
+            rt.chain = truncated;
+            rt.attach_dema_cache(&cache_root);
+            let _ = rt.rehydrate_principal_from_cache();
+            AppState {
+                runtime: Arc::new(RwLock::new(rt)),
+                chain_genesis: genesis,
+            }
+        };
+
+        let (code, v) = principal_status(historical).await;
+
+        assert_eq!(code, StatusCode::OK);
+        assert_eq!(v["evidenceState"]["profilePresent"], true);
+        assert_ne!(v["verdict"], "VERIFIED");
+        assert_eq!(
+            v["evidenceState"]["activeChainRecordFound"], false,
+            "a historical record is not the current identity's record"
+        );
+        assert_eq!(
+            v["evidenceState"]["canonicalPayloadAvailable"], false,
+            "a historical payload is not the current identity's payload"
+        );
+        assert!(v["verifiedIdentity"].is_null());
+        assert_ne!(
+            v["verdict"], "CHAIN_BINDING_MISMATCH",
+            "legitimate history must not be labelled corruption"
+        );
+    }
+
+    #[tokio::test]
+    async fn principal_status_environment_cannot_manufacture_identity() {
+        let (_, baseline) = principal_status(new_state_env_free()).await;
+        assert_eq!(baseline["verdict"], "ABSENT");
+
+        std::env::set_var("BIZRA_NODE_ID", "NODE0");
+        std::env::set_var("DEMA_GATEWAY_URL", "http://127.0.0.1:7421");
+        std::env::set_var("BIZRA_PRINCIPAL_NAME", "attacker");
+        let (_, hostile) = principal_status(new_state_env_free()).await;
+        std::env::remove_var("BIZRA_NODE_ID");
+        std::env::remove_var("DEMA_GATEWAY_URL");
+        std::env::remove_var("BIZRA_PRINCIPAL_NAME");
+
+        assert_eq!(
+            hostile["verdict"], "ABSENT",
+            "environment must never manufacture identity"
+        );
+        assert!(hostile["verifiedIdentity"].is_null());
+    }
+
+    #[tokio::test]
+    async fn principal_status_exposes_no_unsealed_name_or_node_label() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state();
+        activate_on(state.clone(), td.path()).await;
+
+        let (code, v) = principal_status(state).await;
+        let wire = serde_json::to_string(&v).unwrap();
+
+        // Precondition: a 404 discloses nothing, so the non-disclosure
+        // assertions below would pass vacuously against an absent route.
+        assert_eq!(
+            code,
+            StatusCode::OK,
+            "route must exist to prove minimisation"
+        );
+        assert_eq!(
+            v["verdict"], "VERIFIED",
+            "disclosure risk is highest when verified"
+        );
+
+        for forbidden in [
+            "identityAnchorPath",
+            "declaredRole",
+            "principalName",
+            "consentPhrase",
+            "privateKey",
+        ] {
+            assert!(
+                !wire.contains(forbidden),
+                "response must not disclose `{forbidden}`"
+            );
+        }
+        assert!(
+            v["verifiedIdentity"].get("name").is_none(),
+            "a human name is never a sealed identity field"
+        );
+    }
+
+    #[tokio::test]
+    async fn principal_status_has_zero_authority_and_no_activation_witness_poi_or_soak_effect() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state();
+        activate_on(state.clone(), td.path()).await;
+
+        let (_, v) = principal_status(state).await;
+
+        assert_eq!(v["authorityPolicy"]["activationRequires"], "EXPLICIT_GO");
+        assert_eq!(v["authorityPolicy"]["authorityDelta"], 0);
+        assert_eq!(v["operationEffects"]["mutationPerformed"], false);
+        assert_eq!(v["operationEffects"]["activationPerformed"], false);
+        assert_eq!(v["operationEffects"]["witnessIssued"], false);
+        assert_eq!(v["operationEffects"]["poiMinted"], false);
+        assert_eq!(v["operationEffects"]["soakStarted"], false);
+        assert!(
+            v.get("activationGate").is_none(),
+            "a compile-time policy must not ship as observed runtime state"
+        );
     }
 }
