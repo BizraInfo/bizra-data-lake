@@ -129,8 +129,14 @@ mod tests {
 
         assert_eq!(projected.receipt_id, receipt_hash);
         assert_eq!(projected.receipt_id, receipt.receipt_id);
-        assert_eq!(projected.activation_receipt_ref, receipt.activation_receipt_ref);
-        assert_eq!(projected.principal_profile_hash, receipt.principal_profile_hash);
+        assert_eq!(
+            projected.activation_receipt_ref,
+            receipt.activation_receipt_ref
+        );
+        assert_eq!(
+            projected.principal_profile_hash,
+            receipt.principal_profile_hash
+        );
         assert_eq!(projected.node_pubkey, receipt.node_pubkey);
         assert_eq!(projected.principal_id, receipt.principal_id);
         assert_eq!(projected.timestamp_ns, receipt.timestamp_ns);
@@ -186,14 +192,16 @@ mod tests {
 
         let restored =
             ReceiptChain::restore_from_snapshot(genesis, snapshot, Box::new(store)).unwrap();
-        let projected =
-            project_principal_activation_identity(&restored, receipt_hash).unwrap();
+        let projected = project_principal_activation_identity(&restored, receipt_hash).unwrap();
 
         assert_eq!(restored.head(), receipt_hash);
         assert_eq!(projected.receipt_id, receipt_hash);
         assert_eq!(projected.node_pubkey, receipt.node_pubkey);
         assert_eq!(projected.principal_id, receipt.principal_id);
-        assert_eq!(projected.principal_profile_hash, receipt.principal_profile_hash);
+        assert_eq!(
+            projected.principal_profile_hash,
+            receipt.principal_profile_hash
+        );
     }
 
     struct OtherReceipt {
