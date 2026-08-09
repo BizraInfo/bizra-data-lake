@@ -274,6 +274,23 @@ struct ActivationConsent {
     /// never existing on this host. So the gateway holds no signing capability at
     /// all; it verifies against a registered PUBLIC key and can never mint the
     /// evidence that authorises it.
+    /// One-shot identity. MEASURED DEFECT this closes: a single legitimately
+    /// signed consent activated THREE times — chain 0 -> 9 -> 18 -> 27, three
+    /// distinct receipts. Correct origin without one-shot semantics is a bearer
+    /// token: one human approval, replayable forever.
+    #[serde(rename = "nonce")]
+    nonce: String,
+    /// Unix seconds. Freshness must live INSIDE the signed body — an expiry the
+    /// caller could edit is not an expiry.
+    #[serde(rename = "expiresAt")]
+    expires_at: i64,
+    /// Ed25519 signature (hex) over
+    ///   intentHash \n declaredRole \n nonce \n expiresAt
+    /// produced by a key THIS HOST DOES NOT HOLD.
+    ///
+    /// Every field above is covered, so none of them can be altered in transit.
+    /// The gateway has no private-key loader anywhere: a gateway that could sign
+    /// consent could authorise itself.
     #[serde(rename = "signature")]
     signature: String,
 }
@@ -1542,7 +1559,10 @@ async fn post_principal_activate(
             }),
         )
     })?;
-    let signed_bytes = format!("{}\n{}", consent.intent_hash, consent.declared_role);
+    let signed_bytes = format!(
+        "{}\n{}\n{}\n{}",
+        consent.intent_hash, consent.declared_role, consent.nonce, consent.expires_at
+    );
     let sig_bytes = hex::decode(consent.signature.trim()).map_err(|_| {
         (
             StatusCode::FORBIDDEN,
@@ -1579,6 +1599,73 @@ async fn post_principal_activate(
                 error: ErrorBody {
                     code: "ACTIVATION_CONSENT_ORIGIN_UNVERIFIED",
                     message: "consent signature does not verify against the registered key".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
+
+    // FRESHNESS. Checked only after the signature verifies: an unverified body's
+    // fields are attacker-controlled and must not be trusted even to reject on.
+    let now_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    if consent.expires_at <= now_secs {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_EXPIRED",
+                    message: "consent has expired".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
+
+    // ONE-SHOT. The nonce is burned by CREATING a file exclusively: the path
+    // EXISTING is the fact, so two concurrent requests cannot both win. Same
+    // shape as Dema's claimConsentNonce, which is already qualified — mirrored,
+    // not reinvented.
+    //
+    // Burned BEFORE the irreversible submit (write-ahead). A crash after the burn
+    // costs one consent; a burn after the effect would allow a double activation
+    // on a crash, which is the failure that actually matters.
+    let spent_dir = std::path::PathBuf::from(
+        std::env::var("BIZRA_RECEIPT_STORE_PATH").unwrap_or_else(|_| ".".to_string()),
+    )
+    .join("spent-consent-nonces");
+    if let Err(e) = std::fs::create_dir_all(&spent_dir) {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_NONCE_STORE_UNAVAILABLE",
+                    message: format!("cannot open spent-nonce store: {}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
+    // hex of the nonce bytes: deterministic and path-safe, so a nonce containing
+    // "/" or ".." cannot escape the store directory.
+    let nonce_file = spent_dir.join(hex::encode(consent.nonce.as_bytes()));
+    if std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&nonce_file)
+        .is_err()
+    {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_NONCE_ALREADY_SPENT",
+                    message: "this consent has already been used".into(),
                     domain: DOMAIN,
                     admissibility: None,
                 },
