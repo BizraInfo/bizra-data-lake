@@ -1662,10 +1662,37 @@ async fn post_principal_activate(
     // Burned BEFORE the irreversible submit (write-ahead). A crash after the burn
     // costs one consent; a burn after the effect would allow a double activation
     // on a crash, which is the failure that actually matters.
-    let spent_dir = std::path::PathBuf::from(
-        std::env::var("BIZRA_RECEIPT_STORE_PATH").unwrap_or_else(|_| ".".to_string()),
-    )
-    .join("spent-consent-nonces");
+    // MEASURED DEFECT this replaces: defaulting to "." created
+    // ./spent-consent-nonces inside the CRATE SOURCE DIRECTORY and let burned
+    // nonces survive across processes — the gateway's own test suite passed on a
+    // clean tree and failed on the second run with 17 spurious 403s.
+    //
+    // A one-shot guarantee is only as good as the store that records it. If the
+    // store location is unconfigured, the guarantee cannot be made, so the
+    // activation must refuse rather than invent a location. Absence is refusal
+    // here exactly as it is for consent itself.
+    // DEDICATED VARIABLE, not BIZRA_RECEIPT_STORE_PATH. Overloading that one
+    // coupled two independent subsystems: it is the AUTHORITATIVE CHAIN store,
+    // so setting it to give the nonces a home silently switched on persistent
+    // shared chain state and the gateway's own test measured chain growth of 87
+    // where it expects 9. A config variable with two meanings is a defect.
+    let spent_dir = match std::env::var("BIZRA_CONSENT_NONCE_STORE_PATH") {
+        Ok(p) if !p.trim().is_empty() => std::path::PathBuf::from(p).join("spent-consent-nonces"),
+        _ => {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    error: ErrorBody {
+                        code: "ACTIVATION_CONSENT_NONCE_STORE_UNCONFIGURED",
+                        message: "BIZRA_CONSENT_NONCE_STORE_PATH unset: cannot guarantee one-shot consent"
+                            .into(),
+                        domain: DOMAIN,
+                        admissibility: None,
+                    },
+                }),
+            ));
+        }
+    };
     if let Err(e) = std::fs::create_dir_all(&spent_dir) {
         return Err((
             StatusCode::FORBIDDEN,
@@ -2866,13 +2893,106 @@ mod tests {
         path
     }
 
+    // ── TEST CONSENT SIGNER ──────────────────────────────────────────────
+    //
+    // Activation now requires consent signed by a key the gateway does not
+    // hold. In these tests the signer stands in for the human — which is
+    // legitimate ONLY because production takes the key from outside the host
+    // and the gateway still has no private-key loader anywhere.
+    //
+    // INTENT PRESERVED: for every test below, activation is SETUP, not the
+    // property under test. Supplying valid consent restores the precondition
+    // those tests always assumed; it does not weaken what they assert.
+    //
+    // The key is process-static and its public half is written once to a temp
+    // file that BIZRA_CONSENT_PUBKEY_PATH points at, because the env var is
+    // process-global and tests run in parallel.
+    fn test_consent_signer() -> &'static ed25519_dalek::SigningKey {
+        use std::sync::OnceLock;
+        static SIGNER: OnceLock<ed25519_dalek::SigningKey> = OnceLock::new();
+        SIGNER.get_or_init(|| {
+            // Deterministic: a fixed seed keeps failures reproducible.
+            let sk = ed25519_dalek::SigningKey::from_bytes(&[7u8; 32]);
+            let dir = std::env::temp_dir().join("bizra-test-consent-key");
+            std::fs::create_dir_all(&dir).unwrap();
+            let pub_path = dir.join("pub.hex");
+            std::fs::write(&pub_path, hex::encode(sk.verifying_key().to_bytes())).unwrap();
+            std::env::set_var("BIZRA_CONSENT_PUBKEY_PATH", &pub_path);
+            // Per-RUN nonce store. Without this the suite is not idempotent:
+            // burned nonces from a previous `cargo test` refuse every activation
+            // on the next one.
+            let store = std::env::temp_dir().join(format!(
+                "bizra-test-nonce-store-{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+            std::fs::create_dir_all(&store).unwrap();
+            std::env::set_var("BIZRA_CONSENT_NONCE_STORE_PATH", &store);
+            sk
+        })
+    }
+
     fn principal_request(anchor_path: &std::path::Path, quality: f64) -> serde_json::Value {
+        principal_request_with_role(anchor_path, quality, "node0_principal")
+    }
+
+    fn principal_request_with_role(
+        anchor_path: &std::path::Path,
+        quality: f64,
+        role: &str,
+    ) -> serde_json::Value {
+        use ed25519_dalek::Signer;
+        let sk = test_consent_signer();
+        // Rebuild the envelope exactly as the handler will, so the consent binds
+        // the real digest rather than a value the test invented.
+        let anchor = NodeIdentityAnchor::load(anchor_path).unwrap();
+        let envelope = PrincipalActivationEnvelope::from_anchor(
+            "Mumo".to_string(),
+            role.to_string(),
+            &anchor,
+            0,
+        )
+        .unwrap();
+        let intent_hash = hex32(&envelope.intent_hash);
+        let node_pubkey = hex32(&envelope.node_pubkey);
+        let nonce = format!("test-{}", uuid_like(anchor_path, role, quality));
+        let expires_at = 4_102_444_800i64; // 2100-01-01, far future, fixed
+        let signed = format!(
+            "{}\n{}\n{}\n{}\n{}",
+            intent_hash, role, node_pubkey, nonce, expires_at
+        );
+        let sig = sk.sign(signed.as_bytes());
         serde_json::json!({
             "principalName": "Mumo",
-            "declaredRole": "node0_principal",
+            "declaredRole": role,
             "qualityScore": quality,
             "identityAnchorPath": anchor_path.to_str().unwrap(),
+            "consent": {
+                "intentHash": intent_hash,
+                "declaredRole": role,
+                "nodePubkey": node_pubkey,
+                "nonce": nonce,
+                "expiresAt": expires_at,
+                "signature": hex::encode(sig.to_bytes()),
+            }
         })
+    }
+
+    // Nonces are one-shot, so every test needs a distinct one. Derived from the
+    // call's own inputs plus a counter: deterministic per test, unique across
+    // the suite.
+    fn uuid_like(p: &std::path::Path, role: &str, quality: f64) -> String {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static N: AtomicU64 = AtomicU64::new(0);
+        format!(
+            "{}-{}-{}-{}",
+            N.fetch_add(1, Ordering::SeqCst),
+            p.to_string_lossy().len(),
+            role.len(),
+            (quality * 1000.0) as i64
+        )
     }
 
     #[tokio::test]
@@ -3502,13 +3622,12 @@ mod tests {
 
         // 1) activate
         let anchor_path = td.path().join("identity/credentials.json");
-        let activate_body = serde_json::json!({
-            "principalName": "Mumo",
-            "declaredRole": "node0_principal",
-            "qualityScore": 0.98,
-            "identityAnchorPath": anchor_path.to_string_lossy(),
-        })
-        .to_string();
+        // Built through the shared helper so the activation carries genuine
+        // signed consent. Previously this test hand-rolled the body; once
+        // consent became mandatory the activation silently refused and the
+        // PoI split showed 1 bucket instead of 2 — the assertion failed for the
+        // right reason, in the wrong place.
+        let activate_body = principal_request(&anchor_path, 0.98).to_string();
         let _ = router(state.clone())
             .oneshot(
                 Request::builder()
