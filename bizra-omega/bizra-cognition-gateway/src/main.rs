@@ -274,6 +274,15 @@ struct ActivationConsent {
     /// never existing on this host. So the gateway holds no signing capability at
     /// all; it verifies against a registered PUBLIC key and can never mint the
     /// evidence that authorises it.
+    /// The node public key this consent authorises, hex.
+    ///
+    /// MEASURED DEFECT this closes: `intent_hash` covers node_id — a STRING —
+    /// and not the key. Two anchors both claiming node_id "NODE0" with different
+    /// public keys produced the IDENTICAL digest, so consent signed against the
+    /// real anchor activated a substituted one (chain 0 -> 9, VERIFIED, bound to
+    /// the attacker's key). A name is not an identity; the key is.
+    #[serde(rename = "nodePubkey")]
+    node_pubkey: String,
     /// One-shot identity. MEASURED DEFECT this closes: a single legitimately
     /// signed consent activated THREE times — chain 0 -> 9 -> 18 -> 27, three
     /// distinct receipts. Correct origin without one-shot semantics is a bearer
@@ -285,7 +294,7 @@ struct ActivationConsent {
     #[serde(rename = "expiresAt")]
     expires_at: i64,
     /// Ed25519 signature (hex) over
-    ///   intentHash \n declaredRole \n nonce \n expiresAt
+    ///   intentHash \n declaredRole \n nodePubkey \n nonce \n expiresAt
     /// produced by a key THIS HOST DOES NOT HOLD.
     ///
     /// Every field above is covered, so none of them can be altered in transit.
@@ -1511,6 +1520,21 @@ async fn post_principal_activate(
             }),
         )
     })?;
+    // AUTHORITY ROOT. The key, not the name. Checked alongside the role because
+    // both are things intent_hash does not cover.
+    if consent.node_pubkey != hex32(&envelope.node_pubkey) {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_NODE_KEY_MISMATCH",
+                    message: "consent authorises a different node key".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
     if consent.declared_role != req.declared_role {
         return Err((
             StatusCode::FORBIDDEN,
@@ -1560,8 +1584,12 @@ async fn post_principal_activate(
         )
     })?;
     let signed_bytes = format!(
-        "{}\n{}\n{}\n{}",
-        consent.intent_hash, consent.declared_role, consent.nonce, consent.expires_at
+        "{}\n{}\n{}\n{}\n{}",
+        consent.intent_hash,
+        consent.declared_role,
+        consent.node_pubkey,
+        consent.nonce,
+        consent.expires_at
     );
     let sig_bytes = hex::decode(consent.signature.trim()).map_err(|_| {
         (
