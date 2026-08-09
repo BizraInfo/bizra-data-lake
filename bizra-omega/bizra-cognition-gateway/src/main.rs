@@ -34,6 +34,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use ed25519_dalek::{Signature, VerifyingKey, Verifier};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -258,6 +259,45 @@ struct ActivationConsent {
     /// by changing the canonical envelope digest, which is already qualified.
     #[serde(rename = "declaredRole")]
     declared_role: String,
+    /// Ed25519 signature (hex) over `intentHash || "\n" || declaredRole`,
+    /// produced by a key THIS HOST DOES NOT HOLD.
+    ///
+    /// MEASURED REASON THIS FIELD EXISTS: with only intentHash + declaredRole,
+    /// one actor could GET the public preflight, copy both values, fabricate the
+    /// consent object and activate — producing a VERIFIED principal with no human
+    /// anywhere. Content validity is not origin.
+    ///
+    /// Protecting a local key cannot fix that: the signing key sat at
+    /// $DEMA_HOME/keys/.../private.pem mode 600, and the autonomous actor runs as
+    /// its owner. Measured: the actor read it AND called signPayload() directly.
+    /// Custody is not achieved by guarding a local key — only by the private half
+    /// never existing on this host. So the gateway holds no signing capability at
+    /// all; it verifies against a registered PUBLIC key and can never mint the
+    /// evidence that authorises it.
+    #[serde(rename = "signature")]
+    signature: String,
+}
+
+/// Load the registered consent verification key: 32 raw Ed25519 public-key
+/// bytes, hex-encoded, from BIZRA_CONSENT_PUBKEY_PATH.
+///
+/// PUBLIC HALF ONLY. There is deliberately no corresponding private-key loader
+/// anywhere in this binary: a gateway that could sign consent would be able to
+/// authorise itself, which is the entire defect this closes. Absence of the
+/// registered key is refusal — a node that does not know whose approval to
+/// expect has not been given anyone's approval.
+fn load_consent_verifying_key() -> Result<VerifyingKey, String> {
+    let path = std::env::var("BIZRA_CONSENT_PUBKEY_PATH")
+        .map_err(|_| "BIZRA_CONSENT_PUBKEY_PATH unset: no registered consent key".to_string())?;
+    let raw = std::fs::read_to_string(&path)
+        .map_err(|e| format!("cannot read consent public key at {}: {}", path, e))?;
+    let bytes = hex::decode(raw.trim())
+        .map_err(|e| format!("consent public key is not hex: {}", e))?;
+    let arr: [u8; 32] = bytes
+        .as_slice()
+        .try_into()
+        .map_err(|_| format!("consent public key must be 32 bytes, got {}", bytes.len()))?;
+    VerifyingKey::from_bytes(&arr).map_err(|e| format!("invalid ed25519 public key: {}", e))
 }
 
 /// Read-only activation preflight: what the human is being asked to consent to.
@@ -1478,6 +1518,67 @@ async fn post_principal_activate(
                 error: ErrorBody {
                     code: "ACTIVATION_CONSENT_INTENT_MISMATCH",
                     message: "consent does not bind this activation envelope".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
+
+    // ORIGIN. Everything above proves the consent object is internally
+    // consistent with the request. None of it proves a human produced it.
+    // The signature must come from a key registered out of band whose private
+    // half this host cannot reach.
+    let vk = load_consent_verifying_key().map_err(|e| {
+        (
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_NO_REGISTERED_KEY",
+                    message: format!("no registered consent verification key: {}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    let signed_bytes = format!("{}\n{}", consent.intent_hash, consent.declared_role);
+    let sig_bytes = hex::decode(consent.signature.trim()).map_err(|_| {
+        (
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_SIGNATURE_MALFORMED",
+                    message: "consent signature is not hex".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    let sig_arr: [u8; 64] = sig_bytes.as_slice().try_into().map_err(|_| {
+        (
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_SIGNATURE_MALFORMED",
+                    message: "consent signature must be 64 bytes".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    if vk
+        .verify(signed_bytes.as_bytes(), &Signature::from_bytes(&sig_arr))
+        .is_err()
+    {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_ORIGIN_UNVERIFIED",
+                    message: "consent signature does not verify against the registered key".into(),
                     domain: DOMAIN,
                     admissibility: None,
                 },

@@ -5,6 +5,7 @@ edition = "2021"
 description = "HTTP projection of bizra-cognition runtime state + dema CLI client"
 
 [dependencies]
+ed25519-dalek = "2.1"
 bizra-cognition = { path = "../bizra-cognition", features = ["sled-store"] }
 tokio = { workspace = true }
 serde = { workspace = true }
