@@ -35,7 +35,7 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
@@ -250,6 +250,55 @@ struct ActivatePrincipalRequest {
 struct ActivationConsent {
     #[serde(rename = "intentHash")]
     intent_hash: String,
+    /// MEASURED GAP THIS CLOSES: `intent_hash` is computed over
+    /// CANONICAL_ACTIVATION_INTENT || principal_name || node_id — it does NOT
+    /// cover declared_role (principal_activation.rs:240-246). Binding only the
+    /// hash would let consent obtained for `node0_principal` authorise any other
+    /// role on the same node. The role is therefore bound explicitly rather than
+    /// by changing the canonical envelope digest, which is already qualified.
+    #[serde(rename = "declaredRole")]
+    declared_role: String,
+}
+
+/// Read-only activation preflight: what the human is being asked to consent to.
+///
+/// WHY THIS EXISTS. The consent gate binds `intentHash` and deliberately does not
+/// echo it on mismatch, so without this endpoint the digest is unobtainable and
+/// the gate is a wall rather than a gate — nobody can produce a commitment to a
+/// value they cannot see. This is also the exact text a sovereign consent card
+/// must quote.
+///
+/// PURE. Loads the anchor, builds the envelope in memory, returns its digest.
+/// No chain write, no receipt, no profile, no activation. authority_delta = 0.
+#[derive(Deserialize)]
+struct ActivationPreflightQuery {
+    #[serde(rename = "principalName")]
+    principal_name: String,
+    #[serde(rename = "declaredRole", default = "default_declared_role")]
+    declared_role: String,
+    #[serde(rename = "identityAnchorPath", default = "default_identity_anchor_path")]
+    identity_anchor_path: String,
+}
+
+#[derive(Serialize)]
+struct ActivationPreflightResponse {
+    schema: &'static str,
+    #[serde(rename = "intentHash")]
+    intent_hash: String,
+    #[serde(rename = "principalName")]
+    principal_name: String,
+    #[serde(rename = "declaredRole")]
+    declared_role: String,
+    #[serde(rename = "nodeId")]
+    node_id: String,
+    #[serde(rename = "nodePubkey")]
+    node_pubkey: String,
+    #[serde(rename = "authorityDelta")]
+    authority_delta: u8,
+    #[serde(rename = "activationPerformed")]
+    activation_performed: bool,
+    #[serde(rename = "mutationPerformed")]
+    mutation_performed: bool,
 }
 
 fn default_declared_role() -> String {
@@ -1266,6 +1315,59 @@ async fn post_mission(
 // append. On reject returns HTTP 422 with structured remediation text
 // per niyyah Frozen Law #5 (fail-closed honestly).
 
+async fn get_activation_preflight(
+    Query(q): Query<ActivationPreflightQuery>,
+) -> Result<Json<ActivationPreflightResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let anchor_path = std::path::PathBuf::from(&q.identity_anchor_path);
+    let anchor = NodeIdentityAnchor::load(&anchor_path).map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "IDENTITY_ANCHOR_LOAD",
+                    message: format!("failed to load node identity anchor: {}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    // ts is irrelevant to intent_hash (verified: the digest covers
+    // CANONICAL_ACTIVATION_INTENT || principal_name || node_id only), so a fixed
+    // 0 keeps this endpoint deterministic and the digest identical to the one
+    // /principal/activate will compute.
+    let envelope = PrincipalActivationEnvelope::from_anchor(
+        q.principal_name.clone(),
+        q.declared_role.clone(),
+        &anchor,
+        0,
+    )
+    .map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ENVELOPE_BUILD_FAILED",
+                    message: format!("failed to build activation envelope: {}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    Ok(Json(ActivationPreflightResponse {
+        schema: "bizra.node0.principal_activation_preflight.v0.1",
+        intent_hash: hex32(&envelope.intent_hash),
+        principal_name: envelope.principal_name.clone(),
+        declared_role: envelope.declared_role.clone(),
+        node_id: envelope.node_id.clone(),
+        node_pubkey: hex32(&envelope.node_pubkey),
+        authority_delta: 0,
+        activation_performed: false,
+        mutation_performed: false,
+    }))
+}
+
 async fn post_principal_activate(
     State(state): State<AppState>,
     Json(req): Json<ActivatePrincipalRequest>,
@@ -1352,6 +1454,19 @@ async fn post_principal_activate(
             }),
         )
     })?;
+    if consent.declared_role != req.declared_role {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_ROLE_MISMATCH",
+                    message: "consent was given for a different declared role".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
     if consent.intent_hash != expected_intent {
         // The commitment names a different activation than the one requested.
         // The expected digest is deliberately NOT echoed back: handing an
@@ -2019,6 +2134,7 @@ fn router(state: AppState) -> Router {
         .route("/missions/:hash", get(get_mission))
         .route("/missions/:hash/replay", post(replay_mission))
         .route("/principal/activate", post(post_principal_activate))
+        .route("/principal/activation-preflight", get(get_activation_preflight))
         .route("/resources/register", post(post_resource_register))
         .route("/resources/list", get(get_resources_list))
         .route("/resources/urp", get(get_resources_urp))
