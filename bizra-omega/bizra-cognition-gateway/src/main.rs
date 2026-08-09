@@ -225,6 +225,31 @@ struct ActivatePrincipalRequest {
         default = "default_identity_anchor_path"
     )]
     identity_anchor_path: String,
+    /// Independently supplied sovereign consent for THIS activation.
+    ///
+    /// Deliberately has NO serde default: an omitted field must deserialize to
+    /// None so absence is representable, and therefore refusable. A field with a
+    /// default cannot be absent, and a boundary that cannot observe absence
+    /// cannot refuse it.
+    #[serde(rename = "consent")]
+    consent: Option<ActivationConsent>,
+}
+
+/// The human's commitment to one exact activation.
+///
+/// This gateway does NOT model, judge or mint consent. The authority
+/// constitution lives in Dema (evaluateContextBoundConsent, claimConsentNonce,
+/// BLOCKED_CONSENT_UNBOUND); a second, semantically different consent concept in
+/// Rust would fork that constitution. This struct only CARRIES the commitment so
+/// the gateway can verify the binding.
+///
+/// `intentHash` binds it to the exact PrincipalActivationEnvelope — principal
+/// name, declared role, node id, node pubkey — so consent for one activation
+/// cannot authorise a different one.
+#[derive(Deserialize)]
+struct ActivationConsent {
+    #[serde(rename = "intentHash")]
+    intent_hash: String,
 }
 
 fn default_declared_role() -> String {
@@ -1298,6 +1323,52 @@ async fn post_principal_activate(
             }),
         )
     })?;
+
+    // ── ACTOR_NEVER_MANUFACTURES_HUMAN_CONSENT ──────────────────────────────
+    //
+    // MEASURED DEFECT this closes: a POST carrying no consent of any kind
+    // returned HTTP 200, sealed a real PrincipalActivationReceipt and advanced
+    // the authoritative chain 0 -> 9. Every admissibility gate said Permit,
+    // including IHSAN_FLOOR "0.9800 >= 0.9500" — where 0.98 came from the
+    // request body. The caller supplied the number that judged the caller.
+    //
+    // Those gates score the QUALITY of a claim. They were never authority, and
+    // no accumulation of them becomes authority. Absence of consent is refusal,
+    // exactly as it already is at Dema's effect boundary.
+    //
+    // Placed AFTER the envelope is built (construction is pure) and BEFORE
+    // submit_principal_activation, which is the irreversible step.
+    let expected_intent = hex32(&envelope.intent_hash);
+    let consent = req.consent.as_ref().ok_or_else(|| {
+        (
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_ABSENT",
+                    message: "principal activation requires independently supplied sovereign consent; none was presented".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )
+    })?;
+    if consent.intent_hash != expected_intent {
+        // The commitment names a different activation than the one requested.
+        // The expected digest is deliberately NOT echoed back: handing an
+        // unauthorised caller the value it failed to supply would turn this
+        // refusal into an oracle.
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "ACTIVATION_CONSENT_INTENT_MISMATCH",
+                    message: "consent does not bind this activation envelope".into(),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        ));
+    }
 
     let mut rt = state.runtime.write().await;
     let record = rt
