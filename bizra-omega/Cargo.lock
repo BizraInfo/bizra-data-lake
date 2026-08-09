@@ -485,6 +485,7 @@ dependencies = [
  "axum",
  "bizra-cognition",
  "clap",
+ "ed25519-dalek",
  "hex",
  "reqwest",
  "serde",
