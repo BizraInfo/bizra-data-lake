@@ -3,10 +3,12 @@ Tests for SpearpointOrchestrator explicit handlers and heartbeat wiring.
 """
 
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
 from core.autopoiesis.hypothesis_generator import SystemObservation
+from core.spearpoint.auto_evaluator import Verdict
 from core.spearpoint.config import MissionType, SpearpointConfig
 from core.spearpoint.orchestrator import SpearpointOrchestrator
 
@@ -44,6 +46,29 @@ class TestExplicitHandlers:
         assert result.mission_id == "reproduce_handler_test"
         assert result.mission_type == MissionType.REPRODUCE
         assert len(result.evaluation_results) == 1
+
+    def test_reproduce_inconclusive_is_not_success(
+        self, tmp_config: SpearpointConfig
+    ):
+        """INCONCLUSIVE evidence must never become mission-level GREEN."""
+        evaluator = Mock()
+        evaluation = Mock()
+        evaluation.verdict = Verdict.INCONCLUSIVE
+        evaluation.to_dict.return_value = {"verdict": Verdict.INCONCLUSIVE.value}
+        evaluator.evaluate.return_value = evaluation
+
+        orchestrator = SpearpointOrchestrator(
+            config=tmp_config,
+            evaluator=evaluator,
+            researcher=Mock(),
+        )
+        result = orchestrator.reproduce(
+            claim="A claim with insufficient independent evidence",
+            mission_id="inconclusive_no_false_green",
+        )
+
+        assert result.success is False
+        assert result.evaluation_results == [{"verdict": "INCONCLUSIVE"}]
 
     def test_improve_handler(self, orchestrator: SpearpointOrchestrator):
         """improve() routes to researcher path and returns research results."""
