@@ -20,7 +20,7 @@ from typing import Any, Optional, Union
 
 from core.autopoiesis.hypothesis_generator import SystemObservation
 
-from .auto_evaluator import AutoEvaluator
+from .auto_evaluator import AutoEvaluator, Verdict
 from .auto_researcher import AutoResearcher
 from .config import MissionType, SpearpointConfig
 from .recursive_loop import LoopMetrics, RecursiveLoop
@@ -195,10 +195,12 @@ class SpearpointOrchestrator:
             metrics=metrics,
         )
 
+        # No-false-GREEN invariant: only independently supported evidence may
+        # mark a REPRODUCE mission successful. INCONCLUSIVE is diagnostics-only.
         mission_result = MissionResult(
             mission_id=mission.mission_id,
             mission_type=mission.mission_type,
-            success=result.verdict.value != "REJECTED",
+            success=result.verdict == Verdict.SUPPORTED,
             evaluation_results=[result.to_dict()],
             elapsed_ms=(time.perf_counter() - start) * 1000,
         )
