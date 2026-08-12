@@ -38,6 +38,20 @@ export {
   getCardFingerprint,
 } from './capability-card';
 
+// Mission Contract - deterministic pre-execution consent/authority gate
+export {
+  MISSION_CONTRACT_SCHEMA,
+  MissionBoundary,
+  MissionContract,
+  MissionContractValidation,
+  sha256Hex,
+  hashConsentPhrase,
+  getMissionContractCanonicalBytes,
+  computeMissionContractHash,
+  createMissionContract,
+  validateMissionContract,
+} from './mission-contract';
+
 // Model Registry
 export {
   ModelRegistry,
