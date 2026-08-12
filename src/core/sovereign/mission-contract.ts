@@ -36,7 +36,11 @@ export interface MissionContractValidation {
 
 function canonicalize(value: unknown): string {
   if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
+    const encoded = JSON.stringify(value);
+    if (encoded === undefined) {
+      throw new Error('Mission contract contains a non-canonical value');
+    }
+    return encoded;
   }
 
   if (Array.isArray(value)) {
@@ -59,7 +63,10 @@ export function hashConsentPhrase(consentPhrase: string): string {
 export function getMissionContractCanonicalBytes(
   contract: Omit<MissionContract, 'contentHash'> | MissionContract
 ): Buffer {
-  const { contentHash: _ignored, ...body } = contract as MissionContract;
+  const body: Record<string, unknown> = {
+    ...(contract as unknown as Record<string, unknown>),
+  };
+  delete body.contentHash;
   return Buffer.from(canonicalize(body), 'utf8');
 }
 
@@ -121,7 +128,18 @@ export function validateMissionContract(
     };
   }
 
-  const expectedHash = computeMissionContractHash(contract);
+  let expectedHash: string;
+  try {
+    expectedHash = computeMissionContractHash(contract);
+  } catch (error) {
+    return {
+      passed: false,
+      gateName: 'MISSION_CONTRACT',
+      score: 0,
+      reason: `Mission contract canonicalization failed: ${String(error)}`,
+    };
+  }
+
   if (contract.contentHash !== expectedHash) {
     return {
       passed: false,
