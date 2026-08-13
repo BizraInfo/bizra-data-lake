@@ -6,6 +6,7 @@ import math
 from datetime import datetime, timezone
 from typing import Any
 
+from core.integration.constants import IHSAN_THRESHOLD
 from core.sovereign.adl_kernel import ADL_GINI_THRESHOLD, calculate_gini_detailed
 from core.token.types import TokenReceipt, TokenType
 
@@ -93,9 +94,15 @@ def compute_agent_reward(
     emission_gate: Any,
     epoch_id: str,
 ) -> TokenReceipt:
-    """Mint SEED for an agent based on mission reward and emission gating."""
+    """Mint SEED only when the mission clears the constitutional Ihsan floor."""
     if minter is None:
         return TokenReceipt(success=False, error="minter_unavailable")
+
+    ihsan = _clamp01(
+        mission_result.get("ihsan", mission_result.get("ihsan_score", 0.0))
+    )
+    if ihsan < IHSAN_THRESHOLD:
+        return TokenReceipt(success=False, error="ihsan_below_minting_floor")
 
     reward_score = composite_reward(mission_result)
     requested_seed = float(mission_result.get("seed_base", 100.0)) * reward_score
