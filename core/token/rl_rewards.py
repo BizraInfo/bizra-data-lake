@@ -6,6 +6,7 @@ import math
 from datetime import datetime, timezone
 from typing import Any
 
+from core.integration.constants import IHSAN_THRESHOLD, SNR_THRESHOLD
 from core.sovereign.adl_kernel import ADL_GINI_THRESHOLD, calculate_gini_detailed
 from core.token.types import TokenReceipt, TokenType
 
@@ -17,6 +18,21 @@ _FEEDBACK_WEIGHT = 0.20
 
 def _clamp01(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
+
+
+def _verified_impact_eligible(metrics: dict[str, Any]) -> bool:
+    """Return True only when canonical quality gates permit impact settlement.
+
+    Missing, malformed, or below-threshold evidence fails closed.  The thresholds
+    are imported from the integration constants single source of truth so token
+    economics cannot silently drift from the constitutional quality gates.
+    """
+    try:
+        snr = float(metrics.get("snr", metrics.get("snr_score", 0.0)))
+        ihsan = float(metrics.get("ihsan", metrics.get("ihsan_score", 0.0)))
+    except (TypeError, ValueError):
+        return False
+    return snr >= SNR_THRESHOLD and ihsan >= IHSAN_THRESHOLD
 
 
 def token_efficiency_reward(tokens_used: int, quality: float) -> float:
@@ -37,16 +53,23 @@ def composite_reward(
     mission_result: dict[str, Any] | None = None,
     **legacy_kwargs: Any,
 ) -> float:
-    """Compute bounded composite reward from mission metrics.
+    """Compute bounded composite reward from verified mission metrics.
 
-    Formula:
+    Formula after quality admission:
         0.30*SNR + 0.25*Ihsan + 0.15*Efficiency + 0.20*UserFeedback - penalties
+
+    Economic settlement fails closed to ``0.0`` unless both canonical SNR and
+    Ihsan floors are met.  This prevents efficiency or feedback from creating a
+    positive reward for a rejected/quarantined mission.
 
     The function keeps backward compatibility with prior call sites that passed
     keyword metrics directly.
     """
     metrics = dict(mission_result or {})
     metrics.update(legacy_kwargs)
+
+    if not _verified_impact_eligible(metrics):
+        return 0.0
 
     snr = _clamp01(metrics.get("snr", metrics.get("snr_score", 0.0)))
     ihsan = _clamp01(metrics.get("ihsan", metrics.get("ihsan_score", 0.0)))
@@ -93,9 +116,11 @@ def compute_agent_reward(
     emission_gate: Any,
     epoch_id: str,
 ) -> TokenReceipt:
-    """Mint SEED for an agent based on mission reward and emission gating."""
+    """Mint SEED only for canonically verified mission impact."""
     if minter is None:
         return TokenReceipt(success=False, error="minter_unavailable")
+    if not _verified_impact_eligible(mission_result):
+        return TokenReceipt(success=False, error="unverified_impact")
 
     reward_score = composite_reward(mission_result)
     requested_seed = float(mission_result.get("seed_base", 100.0)) * reward_score
@@ -136,11 +161,14 @@ def update_agent_reputation(
     reward_score: float,
     minter: Any,
 ) -> TokenReceipt:
-    """Mint IMPT with diminishing returns (`sqrt(reward)` scaling)."""
+    """Mint IMPT with diminishing returns only for positive verified reward."""
     if minter is None:
         return TokenReceipt(success=False, error="minter_unavailable")
 
     bounded = _clamp01(reward_score)
+    if bounded <= 0.0:
+        return TokenReceipt(success=False, error="unverified_impact")
+
     amount = math.sqrt(bounded) * 10.0
     epoch_id = datetime.now(timezone.utc).strftime("epoch-%Y%m%d")
 

@@ -37,18 +37,32 @@ def test_composite_reward_bounded() -> None:
 
 def test_composite_reward_penalty_reduces_score() -> None:
     base = composite_reward(
-        {"snr": 0.9, "ihsan": 0.9, "efficiency": 0.8, "user_feedback": 0.8}
+        {"snr": 0.95, "ihsan": 0.95, "efficiency": 0.8, "user_feedback": 0.8}
     )
     penalized = composite_reward(
         {
-            "snr": 0.9,
-            "ihsan": 0.9,
+            "snr": 0.95,
+            "ihsan": 0.95,
             "efficiency": 0.8,
             "user_feedback": 0.8,
             "penalties": 0.3,
         }
     )
     assert penalized < base
+
+
+def test_composite_reward_rejects_low_ihsan() -> None:
+    score = composite_reward(
+        {"snr": 0.95, "ihsan": 0.94, "efficiency": 1.0, "user_feedback": 1.0}
+    )
+    assert score == 0.0
+
+
+def test_composite_reward_quarantines_low_snr() -> None:
+    score = composite_reward(
+        {"snr": 0.84, "ihsan": 1.0, "efficiency": 1.0, "user_feedback": 1.0}
+    )
+    assert score == 0.0
 
 
 def test_token_efficiency_reward_scales() -> None:
@@ -75,6 +89,25 @@ def test_compute_agent_reward_mints_seed(tmp_path: Path) -> None:
     assert receipt.success is True
     assert receipt.tx_entry is not None
     assert receipt.tx_entry.to_account == "researcher"
+
+
+def test_compute_agent_reward_blocks_unverified_impact(tmp_path: Path) -> None:
+    minter = _new_minter(tmp_path, "unverified-seed")
+    receipt = compute_agent_reward(
+        agent_id="researcher",
+        mission_result={
+            "snr": 0.0,
+            "ihsan": 0.0,
+            "efficiency": 1.0,
+            "user_feedback": 1.0,
+        },
+        minter=minter,
+        emission_gate=None,
+        epoch_id="epoch-rejected",
+    )
+    assert receipt.success is False
+    assert receipt.error == "unverified_impact"
+    assert receipt.tx_entry is None
 
 
 def test_compute_agent_reward_emission_gate_throttles(tmp_path: Path) -> None:
@@ -112,6 +145,14 @@ def test_update_agent_reputation_mints_impt(tmp_path: Path) -> None:
     assert receipt.success is True
     assert receipt.tx_entry is not None
     assert receipt.tx_entry.to_account == "creator"
+
+
+def test_update_agent_reputation_blocks_zero_reward(tmp_path: Path) -> None:
+    minter = _new_minter(tmp_path, "unverified-impt")
+    receipt = update_agent_reputation("creator", 0.0, minter)
+    assert receipt.success is False
+    assert receipt.error == "unverified_impact"
+    assert receipt.tx_entry is None
 
 
 def test_enforce_agent_gini_reports_noncompliance(tmp_path: Path) -> None:
