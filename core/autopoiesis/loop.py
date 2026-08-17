@@ -399,7 +399,8 @@ class AutopoieticLoop:
 
         candidates: List[IntegrationCandidate] = []
 
-        # Find candidates meeting integration threshold
+        # Find candidates meeting integration threshold. Fitness and Ihsan establish
+        # eligibility for review; they never manufacture authority to promote.
         for genome in evolution_result.final_population:
             if genome.fitness >= self.config.integration_threshold:
                 # Calculate novelty from emergence data
@@ -416,18 +417,19 @@ class AutopoieticLoop:
                         else 0.95
                     ),
                     recommendation=(
-                        "Integrate"
+                        "Eligible for integration review"
                         if genome.is_ihsan_compliant()
                         else "Review required"
                     ),
-                    approved=genome.is_ihsan_compliant(),
+                    approved=False,
                 )
                 candidates.append(candidate)
 
-        # Apply integration callback
+        # Integration is an authority transition. Only an explicit, exact positive
+        # decision from the injected authority callback can promote a candidate.
         for candidate in candidates:
             if self.on_integration:
-                candidate.approved = self.on_integration(candidate)
+                candidate.approved = self.on_integration(candidate) is True
 
             if candidate.approved:
                 self._production_agents[candidate.genome.id] = candidate.genome
