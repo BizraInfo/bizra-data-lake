@@ -148,11 +148,17 @@ class AutopoieticLoop:
         self,
         config: Optional[AutopoiesisConfig] = None,
         on_emergence: Optional[Callable[[EmergenceReport], None]] = None,
-        on_integration: Optional[Callable[[IntegrationCandidate], bool]] = None,
+        on_integration: Optional[Callable[[IntegrationCandidate], Any]] = None,
+        authorize_integration: Optional[Callable[[IntegrationCandidate], bool]] = None,
     ):
         self.config = config or AutopoiesisConfig()
         self.on_emergence = on_emergence
+        # Historical compatibility hook: observation / learning intake only.
+        # Its return value is intentionally non-authoritative.
         self.on_integration = on_integration
+        # Production promotion is a separate authority surface and fails closed
+        # when no authority provider is configured.
+        self.authorize_integration = authorize_integration
 
         # Components
         self.evolution_engine = EvolutionEngine(
@@ -399,7 +405,8 @@ class AutopoieticLoop:
 
         candidates: List[IntegrationCandidate] = []
 
-        # Find candidates meeting integration threshold
+        # Find candidates meeting integration threshold. Fitness and Ihsan establish
+        # eligibility for review; they never manufacture authority to promote.
         for genome in evolution_result.final_population:
             if genome.fitness >= self.config.integration_threshold:
                 # Calculate novelty from emergence data
@@ -416,18 +423,23 @@ class AutopoieticLoop:
                         else 0.95
                     ),
                     recommendation=(
-                        "Integrate"
+                        "Eligible for integration review"
                         if genome.is_ihsan_compliant()
                         else "Review required"
                     ),
-                    approved=genome.is_ihsan_compliant(),
+                    approved=False,
                 )
                 candidates.append(candidate)
 
-        # Apply integration callback
+        # Learning/notification and production authority are intentionally separate.
+        # An observer may ingest a candidate, but its return value never authorizes
+        # a production state transition.
         for candidate in candidates:
             if self.on_integration:
-                candidate.approved = self.on_integration(candidate)
+                self.on_integration(candidate)
+
+            if self.authorize_integration:
+                candidate.approved = self.authorize_integration(candidate) is True
 
             if candidate.approved:
                 self._production_agents[candidate.genome.id] = candidate.genome
