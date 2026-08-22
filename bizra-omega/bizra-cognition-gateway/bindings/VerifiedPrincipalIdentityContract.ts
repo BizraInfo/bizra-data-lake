@@ -4,4 +4,4 @@
  * Sealed identity fields, populated **only** for `Verified`. Cache data
  * never occupies these fields.
  */
-export type VerifiedPrincipalIdentityContract = { principalId: string, principalProfileHash: string, nodePubkey: string, activationReceiptRef: string, receiptId: string, timestampNs: bigint, prevChain: string, };
+export type VerifiedPrincipalIdentityContract = { principalId: string, principalProfileHash: string, nodePubkey: string, activationReceiptRef: string, receiptId: string, timestampNs: string, prevChain: string, };

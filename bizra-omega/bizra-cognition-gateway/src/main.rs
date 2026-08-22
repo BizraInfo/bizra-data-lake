@@ -34,7 +34,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use ed25519_dalek::{Signature, VerifyingKey, Verifier};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -56,6 +55,7 @@ use bizra_cognition::runtime::{
     CognitionRuntime, MissionReplayResult, MissionRuntimeError, MissionRuntimeRecord,
 };
 use bizra_cognition::thought_graph::{AgentCtx, ThoughtGraph};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
@@ -317,8 +317,8 @@ fn load_consent_verifying_key() -> Result<VerifyingKey, String> {
         .map_err(|_| "BIZRA_CONSENT_PUBKEY_PATH unset: no registered consent key".to_string())?;
     let raw = std::fs::read_to_string(&path)
         .map_err(|e| format!("cannot read consent public key at {}: {}", path, e))?;
-    let bytes = hex::decode(raw.trim())
-        .map_err(|e| format!("consent public key is not hex: {}", e))?;
+    let bytes =
+        hex::decode(raw.trim()).map_err(|e| format!("consent public key is not hex: {}", e))?;
     let arr: [u8; 32] = bytes
         .as_slice()
         .try_into()
@@ -342,7 +342,10 @@ struct ActivationPreflightQuery {
     principal_name: String,
     #[serde(rename = "declaredRole", default = "default_declared_role")]
     declared_role: String,
-    #[serde(rename = "identityAnchorPath", default = "default_identity_anchor_path")]
+    #[serde(
+        rename = "identityAnchorPath",
+        default = "default_identity_anchor_path"
+    )]
     identity_anchor_path: String,
 }
 
@@ -2173,7 +2176,7 @@ async fn replay_mission(
 // middle record breaks it) but does NOT independently attest the anchor
 // itself. That gap is the estate's existing out-of-band-anchor gap, surfaced
 // here as a reason code rather than hidden.
-const PRINCIPAL_STATUS_SCHEMA_ID: &str = "bizra.node0.principal_identity_status.v0.1";
+const PRINCIPAL_STATUS_SCHEMA_ID: &str = "bizra.node0.principal_identity_status.v0.2";
 
 async fn get_principal_status(
     State(state): State<AppState>,
@@ -2306,7 +2309,7 @@ async fn get_principal_status(
                 node_pubkey: hex32(&p.node_pubkey),
                 activation_receipt_ref: hex32(&p.activation_receipt_ref),
                 receipt_id: hex32(&p.receipt_id),
-                timestamp_ns: p.timestamp_ns,
+                timestamp_ns: p.timestamp_ns.to_string(),
                 prev_chain: hex32(&p.prev_chain),
             });
             PrincipalIdentityStatusVerdict::Verified
@@ -2338,6 +2341,7 @@ async fn get_principal_status(
 
     Json(PrincipalIdentityStatusContract {
         schema: PRINCIPAL_STATUS_SCHEMA_ID.to_string(),
+        runtime_domain: DOMAIN.to_string(),
         verdict,
         identity_verified: verified,
         bridge_eligible: verified,
@@ -2377,7 +2381,10 @@ fn router(state: AppState) -> Router {
         .route("/missions/:hash", get(get_mission))
         .route("/missions/:hash/replay", post(replay_mission))
         .route("/principal/activate", post(post_principal_activate))
-        .route("/principal/activation-preflight", get(get_activation_preflight))
+        .route(
+            "/principal/activation-preflight",
+            get(get_activation_preflight),
+        )
         .route("/resources/register", post(post_resource_register))
         .route("/resources/list", get(get_resources_list))
         .route("/resources/urp", get(get_resources_urp))
@@ -3772,7 +3779,7 @@ mod tests {
     // verdict derives only from an authoritative chain-sealed receipt.
     // ════════════════════════════════════════════════════════════════════
 
-    const PRINCIPAL_STATUS_SCHEMA: &str = "bizra.node0.principal_identity_status.v0.1";
+    const PRINCIPAL_STATUS_SCHEMA: &str = "bizra.node0.principal_identity_status.v0.2";
 
     async fn principal_status(state: AppState) -> (StatusCode, serde_json::Value) {
         let res = router(state)
@@ -3968,6 +3975,7 @@ mod tests {
 
         assert_eq!(code, StatusCode::OK);
         assert_eq!(v["schema"], PRINCIPAL_STATUS_SCHEMA);
+        assert_eq!(v["runtimeDomain"], DOMAIN);
         assert_eq!(v["verdict"], "VERIFIED");
         assert_eq!(v["identityVerified"], true);
         assert_eq!(
@@ -3977,6 +3985,10 @@ mod tests {
         assert_eq!(
             v["verifiedIdentity"]["principalProfileHash"], act["profileHash"],
             "profile hash must be recomputed and match the sealed receipt"
+        );
+        assert!(
+            v["verifiedIdentity"]["timestampNs"].is_string(),
+            "nanosecond timestamps must not be rounded by JSON/JavaScript"
         );
         assert_eq!(v["evidenceState"]["activeChainRecordFound"], true);
         assert_eq!(v["evidenceState"]["canonicalPayloadAvailable"], true);
@@ -4405,14 +4417,20 @@ mod tests {
         std::env::set_var("BIZRA_NODE_ID", "NODE0");
         std::env::set_var("DEMA_GATEWAY_URL", "http://127.0.0.1:7421");
         std::env::set_var("BIZRA_PRINCIPAL_NAME", "attacker");
+        std::env::set_var("BIZRA_RUNTIME_DOMAIN", "attacker.example");
         let (_, hostile) = principal_status(new_state_env_free()).await;
         std::env::remove_var("BIZRA_NODE_ID");
         std::env::remove_var("DEMA_GATEWAY_URL");
         std::env::remove_var("BIZRA_PRINCIPAL_NAME");
+        std::env::remove_var("BIZRA_RUNTIME_DOMAIN");
 
         assert_eq!(
             hostile["verdict"], "ABSENT",
             "environment must never manufacture identity"
+        );
+        assert_eq!(
+            hostile["runtimeDomain"], DOMAIN,
+            "runtime domain must be producer-owned, never environment-supplied"
         );
         assert!(hostile["verifiedIdentity"].is_null());
     }

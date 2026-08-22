@@ -8,4 +8,4 @@ import type { VerifiedPrincipalIdentityContract } from "./VerifiedPrincipalIdent
 /**
  * `GET /principal/status` wire contract.
  */
-export type PrincipalIdentityStatusContract = { schema: string, verdict: PrincipalIdentityStatusVerdict, identityVerified: boolean, bridgeEligible: boolean, verifiedIdentity: VerifiedPrincipalIdentityContract | null, evidenceState: PrincipalEvidenceStateContract, chainHead: string, chainLength: number, authorityPolicy: PrincipalAuthorityPolicyContract, operationEffects: PrincipalOperationEffectsContract, reasonCodes: Array<string>, };
+export type PrincipalIdentityStatusContract = { schema: string, runtimeDomain: string, verdict: PrincipalIdentityStatusVerdict, identityVerified: boolean, bridgeEligible: boolean, verifiedIdentity: VerifiedPrincipalIdentityContract | null, evidenceState: PrincipalEvidenceStateContract, chainHead: string, chainLength: number, authorityPolicy: PrincipalAuthorityPolicyContract, operationEffects: PrincipalOperationEffectsContract, reasonCodes: Array<string>, };
