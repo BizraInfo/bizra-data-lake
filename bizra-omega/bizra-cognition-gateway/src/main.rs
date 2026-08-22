@@ -2169,13 +2169,10 @@ async fn replay_mission(
 // every step. Identity is NEVER inferred from hostname, port, environment,
 // caller input, a hardcoded node label, or the profile cache alone.
 //
-// Continuity note: `verify_continuity` requires a genesis the caller supplies,
-// and `ReceiptChain` does not retain one — `head` is seeded from genesis and
-// moves on first append. We anchor on the first record's `prev`, which
-// verifies every inter-record link (the real tamper surface: altering any
-// middle record breaks it) but does NOT independently attest the anchor
-// itself. That gap is the estate's existing out-of-band-anchor gap, surfaced
-// here as a reason code rather than hidden.
+// Continuity note: the runtime construction site supplies `state.chain_genesis`
+// independently of the chain records. `verify_continuity` checks every link
+// against that value, but the endpoint does not independently attest the
+// out-of-band provenance of the supplied genesis.
 const PRINCIPAL_STATUS_SCHEMA_ID: &str = "bizra.node0.principal_identity_status.v0.2";
 
 async fn get_principal_status(
