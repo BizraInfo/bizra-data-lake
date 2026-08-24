@@ -40,6 +40,7 @@ pub enum ReceiptKindName {
     NodeLifecycle,
     Manifest,
     PrincipalActivation,
+    MissionCheckpoint,
     MissionExecuted,
     DegradedPath,
 }
@@ -57,6 +58,7 @@ impl ReceiptKindName {
             Self::NodeLifecycle => 0x50,
             Self::Manifest => 0x60,
             Self::PrincipalActivation => 0x61,
+            Self::MissionCheckpoint => 0x62,
             Self::MissionExecuted => 0x70,
             Self::DegradedPath => 0xF0,
         }
@@ -76,6 +78,7 @@ impl From<bizra_cognition::receipts::ReceiptKind> for ReceiptKindName {
             ReceiptKind::NodeLifecycle => Self::NodeLifecycle,
             ReceiptKind::Manifest => Self::Manifest,
             ReceiptKind::PrincipalActivation => Self::PrincipalActivation,
+            ReceiptKind::MissionCheckpoint => Self::MissionCheckpoint,
             ReceiptKind::MissionExecuted => Self::MissionExecuted,
             ReceiptKind::DegradedPath => Self::DegradedPath,
         }
@@ -593,6 +596,7 @@ mod tests {
             (ReceiptKind::NodeLifecycle, 0x50),
             (ReceiptKind::Manifest, 0x60),
             (ReceiptKind::PrincipalActivation, 0x61),
+            (ReceiptKind::MissionCheckpoint, 0x62),
             (ReceiptKind::MissionExecuted, 0x70),
             (ReceiptKind::DegradedPath, 0xF0),
         ];

@@ -4,4 +4,4 @@
  * Canonical string name for a `ReceiptKind` at the HTTP boundary.
  * Matches the Rust enum 1:1 by naming convention.
  */
-export type ReceiptKindName = "Genesis" | "CognitionBoot" | "Myelination" | "Demyelination" | "ReasoningSession" | "GovernanceDecision" | "NodeLifecycle" | "Manifest" | "PrincipalActivation" | "MissionExecuted" | "DegradedPath";
+export type ReceiptKindName = "Genesis" | "CognitionBoot" | "Myelination" | "Demyelination" | "ReasoningSession" | "GovernanceDecision" | "NodeLifecycle" | "Manifest" | "PrincipalActivation" | "MissionCheckpoint" | "MissionExecuted" | "DegradedPath";

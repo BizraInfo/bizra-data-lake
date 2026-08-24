@@ -45,6 +45,10 @@ pub enum ReceiptKind {
     // Binds a NodeLifecycle mission receipt to a principal profile hash,
     // non-transferable and proof-bearing per niyyah §6 (local-only PoI).
     PrincipalActivation = 0x61,
+    // Runtime-owned checkpoint for a permitted mission. This is emitted only
+    // when an authoritative receipt store is configured, so restart recovery
+    // reads a chain-bound record rather than a derived cache.
+    MissionCheckpoint = 0x62,
     // Cycle-7 G5 — dedicated kind for the first real operator mission
     // (`dema organize <allowlisted>`). Binds a permitted NodeLifecycle
     // mission receipt to an operator-visible state transition summary
@@ -66,6 +70,7 @@ impl ReceiptKind {
             0x50 => Some(Self::NodeLifecycle),
             0x60 => Some(Self::Manifest),
             0x61 => Some(Self::PrincipalActivation),
+            0x62 => Some(Self::MissionCheckpoint),
             0x70 => Some(Self::MissionExecuted),
             0xF0 => Some(Self::DegradedPath),
             _ => None,
@@ -364,6 +369,16 @@ impl ReceiptChain {
 
     pub fn records(&self) -> impl Iterator<Item = &Receipt> {
         self.records.iter()
+    }
+
+    /// Discard an uncommitted tail after its authoritative snapshot failed.
+    /// Payload blobs may remain in the backing store, but no restored chain can
+    /// reference them because the durable snapshot is written only after this
+    /// chain is complete.
+    pub fn rollback_to(&mut self, len: usize, head: Blake3Hash, last_timestamp_ns: Option<u64>) {
+        self.records.truncate(len);
+        self.head = head;
+        self.last_timestamp_ns = last_timestamp_ns;
     }
 
     pub fn verify_continuity(&self, genesis: Blake3Hash) -> Result<(), ChainError> {

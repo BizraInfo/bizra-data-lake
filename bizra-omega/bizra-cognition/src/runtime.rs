@@ -25,14 +25,17 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::admissibility_freeze_v1::{
     AdmissibilityChain, AdmissibilityClaim, AdmissibilityResult, EconomicPattern, GateVerdict,
-    RejectedClaim, StateMutation, Verdict,
+    Invariant, RejectedClaim, StateMutation, Verdict,
 };
 use crate::canonical_hasher::blake3_domain;
 use crate::manifest_artifact::ManifestArtifact;
 use crate::manifest_history_cache::{
     ManifestHistoryCache, ManifestHistoryCacheError, ManifestHistorySnapshot, ManifestSummary,
 };
-use crate::mission_freeze_v1::{MissionEnvelope, MissionStage, Originator, StateSnapshot};
+use crate::mission_freeze_v1::{
+    FourStateModel, MissionBounds, MissionEnvelope, MissionPriority, MissionStage, Originator,
+    Plane, StateSnapshot,
+};
 use crate::mission_log_cache::{
     MissionLogCache, MissionLogCacheError, MissionLogEntry, MissionLogSnapshot,
 };
@@ -50,7 +53,8 @@ use crate::receipt_history_cache::{
     ReceiptHistoryCache, ReceiptHistoryCacheError, ReceiptHistorySnapshot,
 };
 use crate::receipts::{
-    Blake3Hash, ChainError, InMemoryPayloadStore, ReceiptChain, ReceiptKind, ReceiptPayload,
+    Blake3Hash, ByteReader, ChainError, DecodeError, InMemoryPayloadStore, ReceiptChain,
+    ReceiptKind, ReceiptPayload, ReceiptPayloadDecode,
 };
 use crate::resource_registry::{
     RegisterOutcome, ResourceKind, ResourceRegistryError, TypedResource, UrpView,
@@ -126,6 +130,7 @@ pub enum MissionRuntimeError {
         expected: Blake3Hash,
         got: Blake3Hash,
     },
+    Checkpoint(String),
 }
 
 impl From<ChainError> for MissionRuntimeError {
@@ -469,6 +474,596 @@ impl ReceiptPayload for ReasoningSessionReceipt {
 }
 
 // ============================================================================
+// Authoritative mission checkpoint — restart recovery for permitted missions
+// ============================================================================
+
+/// Full runtime input needed to reconstruct one permitted mission after a
+/// process restart. It is sealed as a receipt only when an authoritative
+/// receipt store is present; a derived cache is never sufficient to restore
+/// executable mission state.
+#[derive(Debug, Clone)]
+struct MissionCheckpoint {
+    mission_id: Blake3Hash,
+    record_timestamp_ns: u64,
+    receipt_id: Blake3Hash,
+    chain_head_before_checkpoint: Blake3Hash,
+    envelope: MissionEnvelope,
+    claim: AdmissibilityClaim,
+}
+
+impl MissionCheckpoint {
+    const DOMAIN: &'static str = "bizra-mission-checkpoint-v1";
+    const MAGIC: &'static [u8] = b"bizra-mission-checkpoint-v1\x00";
+
+    fn from_record(record: &MissionRuntimeRecord) -> Result<Self, MissionRuntimeError> {
+        let receipt_id = record.receipt_id.ok_or_else(|| {
+            MissionRuntimeError::Checkpoint(
+                "permitted mission missing final receipt before checkpoint".into(),
+            )
+        })?;
+        Ok(Self {
+            mission_id: record.envelope.mission_id,
+            record_timestamp_ns: record.timestamp_ns,
+            receipt_id,
+            chain_head_before_checkpoint: record.chain_head,
+            envelope: record.envelope.clone(),
+            claim: record.claim.clone(),
+        })
+    }
+
+    fn rebuild(
+        self,
+        chain: &ReceiptChain,
+        checkpoint_id: Blake3Hash,
+        checkpoint_prev: Blake3Hash,
+    ) -> Result<MissionRuntimeRecord, MissionRuntimeError> {
+        if self.mission_id != self.envelope.mission_id {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint mission id does not match its envelope".into(),
+            ));
+        }
+        if checkpoint_prev != self.chain_head_before_checkpoint {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint predecessor does not match sealed mission conclusion".into(),
+            ));
+        }
+        if self.claim.claim_id != self.envelope.extract_claim_id() {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint claim id does not bind its mission envelope".into(),
+            ));
+        }
+
+        let mut sealed_envelope = self.envelope.clone();
+        sealed_envelope.stage = MissionStage::Admissibility;
+        let envelope_recorded = chain
+            .records()
+            .any(|r| r.hash == self.mission_id && r.kind == ReceiptKind::GovernanceDecision);
+        if !envelope_recorded {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint mission envelope is absent from the receipt chain".into(),
+            ));
+        }
+        let envelope_bytes = chain
+            .fetch_payload_bytes(&self.mission_id)?
+            .ok_or_else(|| {
+                MissionRuntimeError::Checkpoint(
+                    "checkpoint mission envelope payload is missing".into(),
+                )
+            })?;
+        if envelope_bytes != sealed_envelope.canonical_bytes() {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint mission envelope disagrees with the sealed payload".into(),
+            ));
+        }
+
+        let admissibility = AdmissibilityChain::canonical().evaluate(&self.claim);
+        if admissibility.verdict != Verdict::Permit {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint claim no longer evaluates to PERMIT".into(),
+            ));
+        }
+
+        let final_receipt = chain.fetch_and_decode::<ReceiptArtifact>(&self.receipt_id)?;
+        let receipt_recorded = chain
+            .records()
+            .any(|r| r.hash == self.receipt_id && r.kind == ReceiptKind::NodeLifecycle);
+        if !receipt_recorded || final_receipt.kind != ReceiptKind::NodeLifecycle {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint final receipt is not a sealed NodeLifecycle record".into(),
+            ));
+        }
+        if final_receipt.claim_ref != self.mission_id
+            || final_receipt.evidence_hash
+                != self
+                    .claim
+                    .evidence_hash
+                    .unwrap_or(self.envelope.intent_hash)
+        {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint final receipt does not bind the original mission claim".into(),
+            ));
+        }
+        if final_receipt.lineage.first() != Some(&self.mission_id) {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint final receipt lacks the mission envelope lineage".into(),
+            ));
+        }
+
+        let gate_receipt_hashes: Vec<Blake3Hash> =
+            final_receipt.lineage.iter().skip(1).copied().collect();
+        if gate_receipt_hashes.len() != admissibility.gate_verdicts.len() {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint gate lineage length disagrees with admissibility".into(),
+            ));
+        }
+        for (hash, expected) in gate_receipt_hashes.iter().zip(&admissibility.gate_verdicts) {
+            let gate_recorded = chain
+                .records()
+                .any(|r| r.hash == *hash && r.kind == ReceiptKind::GovernanceDecision);
+            let actual = chain.fetch_and_decode::<GateVerdict>(hash)?;
+            if !gate_recorded || actual.canonical_bytes() != expected.canonical_bytes() {
+                return Err(MissionRuntimeError::Checkpoint(
+                    "checkpoint gate verdict disagrees with sealed admissibility evidence".into(),
+                ));
+            }
+        }
+        if final_receipt.prev
+            != *gate_receipt_hashes.last().ok_or_else(|| {
+                MissionRuntimeError::Checkpoint(
+                    "checkpoint final receipt has no final gate predecessor".into(),
+                )
+            })?
+        {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint final receipt predecessor is not the final gate verdict".into(),
+            ));
+        }
+
+        let (manifest, stage) = match chain
+            .records()
+            .find(|r| r.hash == self.chain_head_before_checkpoint)
+        {
+            Some(record) if record.kind == ReceiptKind::Manifest => {
+                let manifest = chain.fetch_and_decode::<ManifestArtifact>(&record.hash)?;
+                let mut expected_refs = Vec::with_capacity(2 + gate_receipt_hashes.len());
+                expected_refs.push(self.mission_id);
+                expected_refs.extend(gate_receipt_hashes.iter().copied());
+                expected_refs.push(self.receipt_id);
+                expected_refs.sort();
+                expected_refs.dedup();
+                if !manifest.verify_integrity()
+                    || manifest.chain_head_at_generation != self.receipt_id
+                    || manifest.receipt_refs != expected_refs
+                {
+                    return Err(MissionRuntimeError::Checkpoint(
+                        "checkpoint manifest does not corroborate the mission receipt lineage"
+                            .into(),
+                    ));
+                }
+                (Some(manifest), MissionStage::Replayability)
+            }
+            Some(record)
+                if record.kind == ReceiptKind::NodeLifecycle && record.hash == self.receipt_id =>
+            {
+                (None, self.envelope.stage)
+            }
+            Some(record) if record.kind == ReceiptKind::PrincipalActivation => {
+                let terminal = chain.fetch_and_decode::<PrincipalActivationReceipt>(&record.hash)?;
+                if terminal.activation_receipt_ref != self.receipt_id
+                    || terminal.prev_chain != record.prev
+                {
+                    return Err(MissionRuntimeError::Checkpoint(
+                        "checkpoint activation receipt does not bind its sealed predecessor".into(),
+                    ));
+                }
+                let manifest = chain.fetch_and_decode::<ManifestArtifact>(&record.prev)?;
+                if !chain.records().any(|r| r.hash == record.prev && r.kind == ReceiptKind::Manifest)
+                    || !manifest.verify_integrity()
+                    || manifest.chain_head_at_generation != self.receipt_id
+                    || !manifest.receipt_refs.contains(&self.mission_id)
+                    || !manifest.receipt_refs.contains(&self.receipt_id)
+                {
+                    return Err(MissionRuntimeError::Checkpoint(
+                        "checkpoint activation predecessor is not this mission's verified manifest".into(),
+                    ));
+                }
+                (Some(manifest), MissionStage::Replayability)
+            }
+            Some(record) if record.kind == ReceiptKind::MissionExecuted => {
+                let terminal = chain.fetch_and_decode::<OrganizeMissionReceipt>(&record.hash)?;
+                if terminal.mission_receipt_ref != self.receipt_id || terminal.prev_chain != record.prev {
+                    return Err(MissionRuntimeError::Checkpoint(
+                        "checkpoint organize receipt does not bind its sealed predecessor".into(),
+                    ));
+                }
+                let manifest = chain.fetch_and_decode::<ManifestArtifact>(&record.prev)?;
+                if !chain.records().any(|r| r.hash == record.prev && r.kind == ReceiptKind::Manifest)
+                    || !manifest.verify_integrity()
+                    || manifest.chain_head_at_generation != self.receipt_id
+                    || !manifest.receipt_refs.contains(&self.mission_id)
+                    || !manifest.receipt_refs.contains(&self.receipt_id)
+                {
+                    return Err(MissionRuntimeError::Checkpoint(
+                        "checkpoint organize predecessor is not this mission's verified manifest".into(),
+                    ));
+                }
+                (Some(manifest), MissionStage::Replayability)
+            }
+            _ => {
+                return Err(MissionRuntimeError::Checkpoint(
+                    "checkpoint predecessor is neither this manifest nor final receipt".into(),
+                ))
+            }
+        };
+        if self.envelope.stage != stage {
+            return Err(MissionRuntimeError::Checkpoint(
+                "checkpoint mission stage disagrees with its sealed lineage".into(),
+            ));
+        }
+
+        Ok(MissionRuntimeRecord {
+            envelope: self.envelope,
+            claim: self.claim,
+            admissibility,
+            mission_payload_hash: Some(self.mission_id),
+            gate_receipt_hashes,
+            final_receipt: Some(final_receipt),
+            receipt_id: Some(self.receipt_id),
+            chain_head: checkpoint_id,
+            rejected: false,
+            stage,
+            timestamp_ns: self.record_timestamp_ns,
+            manifest,
+        })
+    }
+}
+
+impl ReceiptPayload for MissionCheckpoint {
+    fn kind(&self) -> ReceiptKind {
+        ReceiptKind::MissionCheckpoint
+    }
+
+    fn timestamp_ns(&self) -> u64 {
+        self.record_timestamp_ns
+    }
+
+    fn canonical_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(768);
+        buf.extend_from_slice(Self::MAGIC);
+        buf.extend_from_slice(&self.mission_id);
+        buf.extend_from_slice(&self.record_timestamp_ns.to_le_bytes());
+        buf.extend_from_slice(&self.receipt_id);
+        buf.extend_from_slice(&self.chain_head_before_checkpoint);
+        write_checkpoint_envelope(&mut buf, &self.envelope);
+        write_checkpoint_claim(&mut buf, &self.claim);
+        buf
+    }
+
+    fn hash(&self) -> Blake3Hash {
+        blake3_domain(Self::DOMAIN, &self.canonical_bytes())
+    }
+}
+
+impl ReceiptPayloadDecode for MissionCheckpoint {
+    fn from_canonical_bytes(bytes: &[u8]) -> Result<Self, DecodeError> {
+        let mut reader = ByteReader::new(bytes);
+        if reader.read_bytes(Self::MAGIC.len())? != Self::MAGIC {
+            return Err(DecodeError::Utf8(
+                "mission checkpoint schema marker mismatch".into(),
+            ));
+        }
+        let mission_id = reader.read_hash()?;
+        let record_timestamp_ns = reader.read_u64()?;
+        let receipt_id = reader.read_hash()?;
+        let chain_head_before_checkpoint = reader.read_hash()?;
+        let envelope = read_checkpoint_envelope(&mut reader)?;
+        let claim = read_checkpoint_claim(&mut reader)?;
+        if reader.remaining() != 0 {
+            return Err(DecodeError::Utf8(
+                "mission checkpoint has trailing bytes".into(),
+            ));
+        }
+        Ok(Self {
+            mission_id,
+            record_timestamp_ns,
+            receipt_id,
+            chain_head_before_checkpoint,
+            envelope,
+            claim,
+        })
+    }
+}
+
+fn write_checkpoint_string(buf: &mut Vec<u8>, value: &str) {
+    buf.extend_from_slice(&(value.len() as u32).to_le_bytes());
+    buf.extend_from_slice(value.as_bytes());
+}
+
+fn read_checkpoint_string(reader: &mut ByteReader<'_>) -> Result<String, DecodeError> {
+    let bytes = reader.read_length_prefixed()?;
+    std::str::from_utf8(bytes)
+        .map(|s| s.to_owned())
+        .map_err(|e| DecodeError::Utf8(e.to_string()))
+}
+
+fn write_checkpoint_state_snapshot(buf: &mut Vec<u8>, snapshot: &StateSnapshot) {
+    buf.extend_from_slice(&snapshot.hash);
+    write_checkpoint_string(buf, &snapshot.summary);
+    buf.extend_from_slice(&snapshot.metric.to_le_bytes());
+}
+
+fn read_checkpoint_state_snapshot(
+    reader: &mut ByteReader<'_>,
+) -> Result<StateSnapshot, DecodeError> {
+    Ok(StateSnapshot {
+        hash: reader.read_hash()?,
+        summary: read_checkpoint_string(reader)?,
+        metric: reader.read_f64()?,
+    })
+}
+
+fn write_checkpoint_originator(buf: &mut Vec<u8>, originator: &Originator) {
+    match originator {
+        Originator::Operator { session_id } => {
+            buf.push(0x01);
+            buf.extend_from_slice(session_id);
+        }
+        Originator::PatAgent { agent_id } => {
+            buf.push(0x02);
+            buf.push(*agent_id);
+        }
+        Originator::SatAgent { agent_id } => {
+            buf.push(0x03);
+            buf.push(*agent_id);
+        }
+        Originator::System => buf.push(0x04),
+    }
+}
+
+fn read_checkpoint_originator(reader: &mut ByteReader<'_>) -> Result<Originator, DecodeError> {
+    match reader.read_u8()? {
+        0x01 => Ok(Originator::Operator {
+            session_id: reader.read_hash()?,
+        }),
+        0x02 => Ok(Originator::PatAgent {
+            agent_id: reader.read_u8()?,
+        }),
+        0x03 => Ok(Originator::SatAgent {
+            agent_id: reader.read_u8()?,
+        }),
+        0x04 => Ok(Originator::System),
+        byte => Err(DecodeError::UnknownDiscriminant {
+            field: "MissionCheckpoint.originator",
+            byte,
+        }),
+    }
+}
+
+fn write_checkpoint_envelope(buf: &mut Vec<u8>, envelope: &MissionEnvelope) {
+    buf.extend_from_slice(&envelope.mission_id);
+    buf.extend_from_slice(&envelope.intent_hash);
+    write_checkpoint_string(buf, &envelope.intent_text);
+    buf.extend_from_slice(&envelope.bounds.max_cost.to_le_bytes());
+    buf.extend_from_slice(&envelope.bounds.max_duration_ns.to_le_bytes());
+    buf.extend_from_slice(&(envelope.bounds.allowed_planes.len() as u32).to_le_bytes());
+    for plane in &envelope.bounds.allowed_planes {
+        buf.push(*plane as u8);
+    }
+    buf.extend_from_slice(&(envelope.bounds.required_invariants.len() as u32).to_le_bytes());
+    for invariant in &envelope.bounds.required_invariants {
+        buf.push(*invariant as u8);
+    }
+    buf.push(envelope.priority as u8);
+    buf.extend_from_slice(&envelope.timestamp_ns.to_le_bytes());
+    buf.push(envelope.stage as u8);
+    write_checkpoint_state_snapshot(buf, &envelope.state.current_state);
+    write_checkpoint_state_snapshot(buf, &envelope.state.ideal_state);
+    buf.extend_from_slice(&envelope.state.gap.to_le_bytes());
+    match &envelope.state.next_admissible {
+        Some(next) => {
+            buf.push(0x01);
+            write_checkpoint_string(buf, next);
+        }
+        None => buf.push(0x00),
+    }
+    write_checkpoint_originator(buf, &envelope.originator);
+}
+
+fn read_checkpoint_envelope(reader: &mut ByteReader<'_>) -> Result<MissionEnvelope, DecodeError> {
+    let mission_id = reader.read_hash()?;
+    let intent_hash = reader.read_hash()?;
+    let intent_text = read_checkpoint_string(reader)?;
+    let max_cost = reader.read_u64()?;
+    let max_duration_ns = reader.read_u64()?;
+    let planes_len = reader.read_u32()? as usize;
+    if planes_len > reader.remaining() {
+        return Err(DecodeError::ShortInput {
+            need: planes_len,
+            got: reader.remaining(),
+        });
+    }
+    let mut allowed_planes = Vec::with_capacity(planes_len);
+    for _ in 0..planes_len {
+        let byte = reader.read_u8()?;
+        allowed_planes.push(
+            Plane::from_byte(byte).ok_or(DecodeError::UnknownDiscriminant {
+                field: "MissionCheckpoint.allowed_plane",
+                byte,
+            })?,
+        );
+    }
+    let invariants_len = reader.read_u32()? as usize;
+    if invariants_len > reader.remaining() {
+        return Err(DecodeError::ShortInput {
+            need: invariants_len,
+            got: reader.remaining(),
+        });
+    }
+    let mut required_invariants = Vec::with_capacity(invariants_len);
+    for _ in 0..invariants_len {
+        let byte = reader.read_u8()?;
+        required_invariants.push(Invariant::from_byte(byte).ok_or(
+            DecodeError::UnknownDiscriminant {
+                field: "MissionCheckpoint.required_invariant",
+                byte,
+            },
+        )?);
+    }
+    let priority_byte = reader.read_u8()?;
+    let priority =
+        MissionPriority::from_byte(priority_byte).ok_or(DecodeError::UnknownDiscriminant {
+            field: "MissionCheckpoint.priority",
+            byte: priority_byte,
+        })?;
+    let timestamp_ns = reader.read_u64()?;
+    let stage_byte = reader.read_u8()?;
+    let stage = MissionStage::from_byte(stage_byte).ok_or(DecodeError::UnknownDiscriminant {
+        field: "MissionCheckpoint.stage",
+        byte: stage_byte,
+    })?;
+    let current_state = read_checkpoint_state_snapshot(reader)?;
+    let ideal_state = read_checkpoint_state_snapshot(reader)?;
+    let gap = reader.read_f64()?;
+    let next_admissible = match reader.read_u8()? {
+        0x00 => None,
+        0x01 => Some(read_checkpoint_string(reader)?),
+        byte => {
+            return Err(DecodeError::UnknownDiscriminant {
+                field: "MissionCheckpoint.next_admissible",
+                byte,
+            })
+        }
+    };
+    let originator = read_checkpoint_originator(reader)?;
+    Ok(MissionEnvelope {
+        mission_id,
+        intent_hash,
+        intent_text,
+        bounds: MissionBounds {
+            max_cost,
+            max_duration_ns,
+            allowed_planes,
+            required_invariants,
+        },
+        priority,
+        timestamp_ns,
+        state: FourStateModel {
+            current_state,
+            ideal_state,
+            gap,
+            next_admissible,
+        },
+        stage,
+        originator,
+    })
+}
+
+fn write_checkpoint_claim(buf: &mut Vec<u8>, claim: &AdmissibilityClaim) {
+    buf.extend_from_slice(&claim.claim_id);
+    buf.push(u8::from(claim.has_evidence));
+    match claim.evidence_hash {
+        Some(hash) => {
+            buf.push(0x01);
+            buf.extend_from_slice(&hash);
+        }
+        None => buf.push(0x00),
+    }
+    match claim.economic_pattern {
+        None => buf.push(0x00),
+        Some(EconomicPattern::None) => buf.extend_from_slice(&[0x01, 0x01]),
+        Some(EconomicPattern::PeerExchange) => buf.extend_from_slice(&[0x01, 0x02]),
+        Some(EconomicPattern::ProfitSharing) => buf.extend_from_slice(&[0x01, 0x03]),
+        Some(EconomicPattern::FixedReturnLending) => buf.extend_from_slice(&[0x01, 0x04]),
+        Some(EconomicPattern::HiddenFeeExtraction) => buf.extend_from_slice(&[0x01, 0x05]),
+        Some(EconomicPattern::AsymmetricExploitation) => buf.extend_from_slice(&[0x01, 0x06]),
+    }
+    match &claim.state_mutation {
+        None => buf.push(0x00),
+        Some(mutation) => {
+            buf.push(0x01);
+            buf.push(u8::from(mutation.derives_from_canonical));
+            buf.push(u8::from(mutation.face_only));
+        }
+    }
+    buf.extend_from_slice(&claim.quality_score.to_le_bytes());
+    buf.extend_from_slice(&claim.timestamp_ns.to_le_bytes());
+}
+
+fn read_checkpoint_claim(reader: &mut ByteReader<'_>) -> Result<AdmissibilityClaim, DecodeError> {
+    let claim_id = reader.read_hash()?;
+    let has_evidence = read_checkpoint_bool(reader, "MissionCheckpoint.has_evidence")?;
+    let evidence_hash = match reader.read_u8()? {
+        0x00 => None,
+        0x01 => Some(reader.read_hash()?),
+        byte => {
+            return Err(DecodeError::UnknownDiscriminant {
+                field: "MissionCheckpoint.evidence_hash",
+                byte,
+            })
+        }
+    };
+    let economic_pattern = match reader.read_u8()? {
+        0x00 => None,
+        0x01 => Some(match reader.read_u8()? {
+            0x01 => EconomicPattern::None,
+            0x02 => EconomicPattern::PeerExchange,
+            0x03 => EconomicPattern::ProfitSharing,
+            0x04 => EconomicPattern::FixedReturnLending,
+            0x05 => EconomicPattern::HiddenFeeExtraction,
+            0x06 => EconomicPattern::AsymmetricExploitation,
+            byte => {
+                return Err(DecodeError::UnknownDiscriminant {
+                    field: "MissionCheckpoint.economic_pattern",
+                    byte,
+                })
+            }
+        }),
+        byte => {
+            return Err(DecodeError::UnknownDiscriminant {
+                field: "MissionCheckpoint.economic_pattern_option",
+                byte,
+            })
+        }
+    };
+    let state_mutation = match reader.read_u8()? {
+        0x00 => None,
+        0x01 => Some(StateMutation {
+            derives_from_canonical: read_checkpoint_bool(
+                reader,
+                "MissionCheckpoint.derives_from_canonical",
+            )?,
+            face_only: read_checkpoint_bool(reader, "MissionCheckpoint.face_only")?,
+        }),
+        byte => {
+            return Err(DecodeError::UnknownDiscriminant {
+                field: "MissionCheckpoint.state_mutation",
+                byte,
+            })
+        }
+    };
+    Ok(AdmissibilityClaim {
+        claim_id,
+        has_evidence,
+        evidence_hash,
+        economic_pattern,
+        state_mutation,
+        quality_score: reader.read_f64()?,
+        timestamp_ns: reader.read_u64()?,
+    })
+}
+
+fn read_checkpoint_bool(
+    reader: &mut ByteReader<'_>,
+    field: &'static str,
+) -> Result<bool, DecodeError> {
+    match reader.read_u8()? {
+        0x00 => Ok(false),
+        0x01 => Ok(true),
+        byte => Err(DecodeError::UnknownDiscriminant { field, byte }),
+    }
+}
+
+// ============================================================================
 // Runtime
 // ============================================================================
 
@@ -718,6 +1313,7 @@ impl CognitionRuntime {
                 | ReceiptKind::NodeLifecycle
                 | ReceiptKind::Manifest
                 | ReceiptKind::PrincipalActivation
+                | ReceiptKind::MissionCheckpoint
                 | ReceiptKind::MissionExecuted
                 | ReceiptKind::DegradedPath => {}
             }
@@ -752,6 +1348,24 @@ impl CognitionRuntime {
     /// - B: S8 Replayability only confirmed via decode round-trip
     /// - C: (applied separately in manifest_artifact.rs)
     pub fn submit_mission(
+        &mut self,
+        envelope: MissionEnvelope,
+        claim: AdmissibilityClaim,
+    ) -> Result<MissionRuntimeRecord, MissionRuntimeError> {
+        let start_len = self.chain.len();
+        let start_head = self.chain.head();
+        let start_timestamp = self.chain.latest_timestamp();
+        let mut record = self.submit_mission_internal(envelope, claim)?;
+        if !record.rejected {
+            self.commit_permitted_mission(&mut record, start_len, start_head, start_timestamp)?;
+        }
+        Ok(record)
+    }
+
+    /// Produce the lawful mission receipts without publishing durable mission
+    /// state. Action-specific callers append their terminal receipt first,
+    /// then call `commit_permitted_mission` once the whole effect is bound.
+    fn submit_mission_internal(
         &mut self,
         mut envelope: MissionEnvelope,
         claim: AdmissibilityClaim,
@@ -899,6 +1513,35 @@ impl CognitionRuntime {
             timestamp_ns,
             manifest,
         };
+        let _ = mission_id;
+        Ok(record)
+    }
+
+    fn commit_permitted_mission(
+        &mut self,
+        record: &mut MissionRuntimeRecord,
+        start_len: usize,
+        start_head: Blake3Hash,
+        start_timestamp: Option<u64>,
+    ) -> Result<(), MissionRuntimeError> {
+        // A persistent receipt chain alone proves that *something* happened,
+        // but cannot rebuild the full bounded mission input. Seal that input
+        // only after an action-specific terminal receipt, when present, has
+        // been appended. A failed snapshot rolls back the in-memory tail so a
+        // retry cannot publish duplicate checkpoints later.
+        if self.receipt_chain_store.is_some() {
+            let checkpoint = MissionCheckpoint::from_record(record)?;
+            let checkpoint_id = self.chain.append_with_payload(checkpoint)?;
+            record.chain_head = checkpoint_id;
+            if let Some(Err(error)) = self.write_receipt_chain_store() {
+                self.chain.rollback_to(start_len, start_head, start_timestamp);
+                return Err(MissionRuntimeError::Checkpoint(format!(
+                    "persist authoritative checkpoint chain snapshot: {}",
+                    error
+                )));
+            }
+        }
+        let mission_id = record.envelope.mission_id;
         self.missions.insert(mission_id, record.clone());
         // Best-effort receipt-history cache write (Cycle-7 G3 Commit-1).
         // Failure is silent here — the sealed chain remains truth; a
@@ -909,7 +1552,7 @@ impl CognitionRuntime {
         let _ = self.write_manifest_history_cache();
         let _ = self.write_mission_log_cache();
         let _ = self.write_state_snapshots_cache();
-        Ok(record)
+        Ok(())
     }
 
     /// Cycle-7 G1 — accessor for the mission's bound `ManifestArtifact`.
@@ -986,7 +1629,10 @@ impl CognitionRuntime {
             timestamp_ns: activation_envelope.created_ns,
         };
 
-        let mission_record = self.submit_mission(mission_env, claim)?;
+        let start_len = self.chain.len();
+        let start_head = self.chain.head();
+        let start_timestamp = self.chain.latest_timestamp();
+        let mut mission_record = self.submit_mission_internal(mission_env, claim)?;
 
         if mission_record.rejected {
             let remediation = reject_remediation_text(&mission_record);
@@ -1022,6 +1668,13 @@ impl CognitionRuntime {
             prev_chain,
         );
         self.chain.append_with_payload(pa_receipt.clone())?;
+        mission_record.chain_head = self.chain.head();
+        self.commit_permitted_mission(
+            &mut mission_record,
+            start_len,
+            start_head,
+            start_timestamp,
+        )?;
         self.principal_profile = Some(profile.clone());
 
         // Cycle-7 G6 — record PoI entry for this activation BEFORE
@@ -1181,7 +1834,10 @@ impl CognitionRuntime {
             timestamp_ns: now_ns,
         };
 
-        let mission_record = self.submit_mission(mission_env, claim)?;
+        let start_len = self.chain.len();
+        let start_head = self.chain.head();
+        let start_timestamp = self.chain.latest_timestamp();
+        let mut mission_record = self.submit_mission_internal(mission_env, claim)?;
 
         if mission_record.rejected {
             let remediation = reject_remediation_text(&mission_record);
@@ -1200,6 +1856,13 @@ impl CognitionRuntime {
         let organize_receipt =
             OrganizeMissionReceipt::new(mission_receipt_id, &listing, now_ns_seal, prev_chain);
         self.chain.append_with_payload(organize_receipt.clone())?;
+        mission_record.chain_head = self.chain.head();
+        self.commit_permitted_mission(
+            &mut mission_record,
+            start_len,
+            start_head,
+            start_timestamp,
+        )?;
 
         // Cycle-7 G6 — record PoI entry for this organize execution.
         // Entry count = number of top-level listing entries (work volume).
@@ -1361,6 +2024,48 @@ impl CognitionRuntime {
 
     pub fn receipt_chain_store(&self) -> Option<&ReceiptChainStore> {
         self.receipt_chain_store.as_ref()
+    }
+
+    /// Rebuild permitted mission records from chain-sealed checkpoints after
+    /// authoritative-store bootstrap. The checkpoint is only accepted when
+    /// its envelope, gate evidence, final receipt, and manifest all agree.
+    /// Old chains without this receipt kind remain readable but do not gain a
+    /// fabricated in-memory mission record.
+    pub fn rehydrate_missions_from_authoritative_checkpoints(
+        &mut self,
+    ) -> Result<usize, MissionRuntimeError> {
+        if self.receipt_chain_store.is_none() {
+            return Ok(0);
+        }
+        let checkpoints: Vec<(Blake3Hash, Blake3Hash)> = self
+            .chain
+            .records()
+            .filter(|record| record.kind == ReceiptKind::MissionCheckpoint)
+            .map(|record| (record.hash, record.prev))
+            .collect();
+
+        let mut recovered = Vec::with_capacity(checkpoints.len());
+        for (checkpoint_id, checkpoint_prev) in checkpoints {
+            let checkpoint = self
+                .chain
+                .fetch_and_decode::<MissionCheckpoint>(&checkpoint_id)?;
+            let record = checkpoint.rebuild(&self.chain, checkpoint_id, checkpoint_prev)?;
+            if self.missions.contains_key(&record.envelope.mission_id)
+                || recovered.iter().any(|existing: &MissionRuntimeRecord| {
+                    existing.envelope.mission_id == record.envelope.mission_id
+                })
+            {
+                return Err(MissionRuntimeError::Checkpoint(
+                    "multiple authoritative checkpoints bind the same mission".into(),
+                ));
+            }
+            recovered.push(record);
+        }
+        let count = recovered.len();
+        for record in recovered {
+            self.missions.insert(record.envelope.mission_id, record);
+        }
+        Ok(count)
     }
 
     /// Cycle-7 G3 Commit-1 — load the receipt-history snapshot from the
@@ -2675,6 +3380,66 @@ mod tests {
         assert_eq!(rt.chain.len(), pre_len, "rehydrate must not mutate length");
         // Manifest is still accessible after rehydrate.
         assert!(rt.manifest_for_mission(&mission_id).is_some());
+    }
+
+    #[test]
+    fn checkpoint_refuses_a_sealed_claim_that_no_longer_permits() {
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(55_000);
+        let claim = permit_claim(&envelope, 55_050);
+        let record = rt.submit_mission(envelope, claim).unwrap();
+
+        let mut checkpoint = MissionCheckpoint::from_record(&record).unwrap();
+        checkpoint.claim.quality_score = 0.0;
+        let checkpoint_id = rt.chain.append_with_payload(checkpoint).unwrap();
+        let checkpoint_prev = rt.chain.records().last().unwrap().prev;
+        let checkpoint = rt
+            .chain
+            .fetch_and_decode::<MissionCheckpoint>(&checkpoint_id)
+            .unwrap();
+
+        let error = checkpoint
+            .rebuild(&rt.chain, checkpoint_id, checkpoint_prev)
+            .unwrap_err();
+        assert!(matches!(
+            error,
+            MissionRuntimeError::Checkpoint(message)
+                if message == "checkpoint claim no longer evaluates to PERMIT"
+        ));
+    }
+
+    #[test]
+    fn checkpoint_refuses_terminal_receipt_with_mismatched_predecessor() {
+        let mut rt = minimal_runtime();
+        let envelope = test_mission(56_000);
+        let claim = permit_claim(&envelope, 56_050);
+        let mut record = rt.submit_mission_internal(envelope, claim).unwrap();
+        let listing = OrganizeListing {
+            path: "/fixture".into(),
+            entries: Vec::new(),
+        };
+        let terminal = OrganizeMissionReceipt::new(
+            record.receipt_id.unwrap(),
+            &listing,
+            56_100,
+            [0xA5; 32], // deliberately disagrees with the sealed record predecessor
+        );
+        let terminal_id = rt.chain.append_with_payload(terminal).unwrap();
+        record.chain_head = terminal_id;
+        let checkpoint_id = rt
+            .chain
+            .append_with_payload(MissionCheckpoint::from_record(&record).unwrap())
+            .unwrap();
+        let checkpoint_prev = rt.chain.records().last().unwrap().prev;
+        let checkpoint = rt
+            .chain
+            .fetch_and_decode::<MissionCheckpoint>(&checkpoint_id)
+            .unwrap();
+        assert!(matches!(
+            checkpoint.rebuild(&rt.chain, checkpoint_id, checkpoint_prev),
+            Err(MissionRuntimeError::Checkpoint(message))
+                if message == "checkpoint organize receipt does not bind its sealed predecessor"
+        ));
     }
 
     // ========================================================================

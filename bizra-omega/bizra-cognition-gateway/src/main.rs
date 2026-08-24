@@ -661,6 +661,7 @@ fn kind_name(k: ReceiptKind) -> &'static str {
         ReceiptKind::NodeLifecycle => "NodeLifecycle",
         ReceiptKind::Manifest => "Manifest",
         ReceiptKind::PrincipalActivation => "PrincipalActivation",
+        ReceiptKind::MissionCheckpoint => "MissionCheckpoint",
         ReceiptKind::MissionExecuted => "MissionExecuted",
         ReceiptKind::DegradedPath => "DegradedPath",
     }
@@ -1050,6 +1051,21 @@ fn bootstrap_runtime(genesis: Blake3Hash) -> CognitionRuntime {
     // Distinct from BIZRA_DEMA_CACHE_ROOT (derived cache only).
     match rt.bootstrap_authoritative_receipt_store_from_env(genesis) {
         Ok(Some(mode)) => {
+            match rt.rehydrate_missions_from_authoritative_checkpoints() {
+                Ok(recovered) => tracing::info!(
+                    target: DOMAIN,
+                    recovered,
+                    "authoritative mission checkpoints rehydrated"
+                ),
+                Err(error) => {
+                    tracing::error!(
+                        target: DOMAIN,
+                        ?error,
+                        "authoritative mission checkpoint rehydrate FAILED — aborting startup"
+                    );
+                    std::process::exit(1);
+                }
+            }
             if let Some(store) = rt.receipt_chain_store() {
                 let path_mode = match mode {
                     bizra_cognition::receipt_chain_store::ReceiptStorePathMode::Explicit => {
@@ -1346,6 +1362,17 @@ async fn post_mission(
                 error: ErrorBody {
                     code: "CHAIN_ERROR",
                     message: format!("{:?}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        Err(MissionRuntimeError::Checkpoint(msg)) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "AUTHORITATIVE_CHECKPOINT_FAILED",
+                    message: msg,
                     domain: DOMAIN,
                     admissibility: None,
                 },
@@ -2129,6 +2156,17 @@ async fn replay_mission(
                 error: ErrorBody {
                     code: "CHAIN_ERROR",
                     message: format!("{:?}", e),
+                    domain: DOMAIN,
+                    admissibility: None,
+                },
+            }),
+        )),
+        Err(MissionRuntimeError::Checkpoint(msg)) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: ErrorBody {
+                    code: "AUTHORITATIVE_CHECKPOINT_FAILED",
+                    message: msg,
                     domain: DOMAIN,
                     admissibility: None,
                 },
@@ -3436,6 +3474,72 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn organize_mission_rehydrates_after_terminal_receipt_checkpoint() {
+        let td = tempfile::TempDir::new().unwrap();
+        let target = td.path().join("target");
+        write_g5_fixture(&target);
+        let state1 = state_with(Some(td.path()), Some(td.path()));
+        let _ = register_resource(
+            router(state1.clone()),
+            "filesystem",
+            &target.to_string_lossy(),
+            true,
+        )
+        .await;
+
+        let response = post_organize(router(state1.clone()), &target.to_string_lossy(), 0.98).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), 16384).await.unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let mission_id = body["missionId"].as_str().unwrap().to_owned();
+        {
+            let runtime = state1.runtime.read().await;
+            let checkpoint = runtime
+                .chain
+                .records()
+                .find(|record| record.kind == bizra_cognition::receipts::ReceiptKind::MissionCheckpoint)
+                .unwrap();
+            assert_eq!(
+                runtime
+                    .chain
+                    .records()
+                    .find(|record| record.hash == checkpoint.prev)
+                    .unwrap()
+                    .kind,
+                bizra_cognition::receipts::ReceiptKind::MissionExecuted,
+                "organize checkpoint must follow its terminal receipt"
+            );
+        }
+
+        drop(state1);
+        let state2 = state_with(Some(td.path()), None);
+        let mut recovered_id = [0u8; 32];
+        for (index, byte) in recovered_id.iter_mut().enumerate() {
+            *byte = u8::from_str_radix(&mission_id[index * 2..index * 2 + 2], 16).unwrap();
+        }
+        assert!(
+            state2
+                .runtime
+                .read()
+                .await
+                .mission_by_id(&recovered_id)
+                .and_then(|record| record.manifest.as_ref())
+                .is_some(),
+            "recovered organize mission must retain its verified manifest"
+        );
+        let recovered = router(state2)
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/missions/{mission_id}"))
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(recovered.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
     async fn post_organize_non_allowlisted_returns_403() {
         let td = tempfile::TempDir::new().unwrap();
         let target = td.path().join("target");
@@ -3687,6 +3791,11 @@ mod tests {
         let mut rt1 = fresh_in_memory_runtime(genesis);
         rt1.bootstrap_authoritative_receipt_store_at(td_store.path(), genesis)
             .expect("first bootstrap");
+        assert_eq!(
+            rt1.rehydrate_missions_from_authoritative_checkpoints()
+                .expect("empty authoritative store has no checkpoints"),
+            0
+        );
         let state1 = AppState {
             runtime: Arc::new(RwLock::new(rt1)),
             chain_genesis: [0u8; 32],
@@ -3719,7 +3828,7 @@ mod tests {
         let chain_after: serde_json::Value = serde_json::from_slice(&chain_body).unwrap();
         let len_after = chain_after["length"].as_u64().unwrap();
         let head_hex = chain_after["head"].as_str().unwrap().to_string();
-        assert_eq!(len_after, 9);
+        assert_eq!(len_after, 10);
 
         let receipt_res = router(state1.clone())
             .oneshot(
@@ -3742,6 +3851,11 @@ mod tests {
         let mut rt2 = fresh_in_memory_runtime(genesis);
         rt2.bootstrap_authoritative_receipt_store_at(td_store.path(), genesis)
             .expect("second bootstrap");
+        assert_eq!(
+            rt2.rehydrate_missions_from_authoritative_checkpoints()
+                .expect("sealed activation mission checkpoint must rehydrate"),
+            1
+        );
         assert_eq!(rt2.chain.len(), len_after as usize);
         assert_eq!(hex32(&rt2.chain.head()), head_hex);
         assert!(rt2
@@ -3767,6 +3881,127 @@ mod tests {
         let chain_restart: serde_json::Value = serde_json::from_slice(&restart_body).unwrap();
         assert_eq!(chain_restart["length"], len_after);
         assert_eq!(chain_restart["head"].as_str().unwrap(), head_hex);
+    }
+
+    #[tokio::test]
+    async fn permitted_mission_is_recoverable_after_authoritative_restart() {
+        let td_store = tempfile::TempDir::new().unwrap();
+
+        let state1 = state_with(Some(td_store.path()), None);
+        let submit = router(state1.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/missions")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(
+                        serde_json::to_vec(&activation_request()).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(submit.status(), StatusCode::OK);
+        let submit_body = to_bytes(submit.into_body(), 4096).await.unwrap();
+        let submitted: serde_json::Value = serde_json::from_slice(&submit_body).unwrap();
+        let mission_id = submitted["missionId"].as_str().unwrap().to_owned();
+        let receipt_id = submitted["receiptId"].as_str().unwrap().to_owned();
+        let chain_head = submitted["chainHead"].as_str().unwrap().to_owned();
+        {
+            let runtime = state1.runtime.read().await;
+            assert_eq!(
+                runtime.chain.records().last().map(|record| record.kind),
+                Some(bizra_cognition::receipts::ReceiptKind::MissionCheckpoint),
+                "the reported mission head must be the sealed durable checkpoint"
+            );
+        }
+
+        drop(state1);
+        assert!(
+            td_store.path().join("chain_snapshot.json").exists(),
+            "permitted mission must have an authoritative chain checkpoint before restart"
+        );
+
+        let state2 = state_with(Some(td_store.path()), None);
+
+        let recovered = router(state2)
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/missions/{mission_id}"))
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            recovered.status(),
+            StatusCode::OK,
+            "a permitted mission must reconstruct from the bound persistent state, not a fresh HashMap"
+        );
+        let recovered_body = to_bytes(recovered.into_body(), 4096).await.unwrap();
+        let recovered: serde_json::Value = serde_json::from_slice(&recovered_body).unwrap();
+        assert_eq!(recovered["missionId"], mission_id);
+        assert_eq!(recovered["receiptId"], receipt_id);
+        assert_eq!(recovered["chainHead"], chain_head);
+    }
+
+    #[tokio::test]
+    async fn permitted_mission_is_not_reported_durable_when_checkpoint_snapshot_fails() {
+        let td_store = tempfile::TempDir::new().unwrap();
+        let state = state_with(Some(td_store.path()), None);
+
+        // A directory at the snapshot target makes the atomic rename fail after
+        // the checkpoint payload has been staged. The handler must surface that
+        // failure instead of returning a durable mission response.
+        std::fs::create_dir(td_store.path().join("chain_snapshot.json")).unwrap();
+
+        let response = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/missions")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(
+                        serde_json::to_vec(&activation_request()).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        let body = to_bytes(response.into_body(), 4096).await.unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(body["error"]["code"], "AUTHORITATIVE_CHECKPOINT_FAILED");
+
+        // The failed attempt is rolled back in memory. Once the transient
+        // snapshot obstacle clears, one retry must publish one checkpoint.
+        std::fs::remove_dir(td_store.path().join("chain_snapshot.json")).unwrap();
+        let retry = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/missions")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(
+                        serde_json::to_vec(&activation_request()).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(retry.status(), StatusCode::OK);
+
+        let runtime = state.runtime.read().await;
+        assert_eq!(
+            runtime
+                .chain
+                .records()
+                .filter(|record| record.kind == bizra_cognition::receipts::ReceiptKind::MissionCheckpoint)
+                .count(),
+            1,
+            "a failed snapshot retry must not leave an ambiguous prior checkpoint"
+        );
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -3825,6 +4060,8 @@ mod tests {
         if let Some(root) = store_root {
             rt.bootstrap_authoritative_receipt_store_at(root, [0u8; 32])
                 .expect("authoritative receipt store must bootstrap");
+            rt.rehydrate_missions_from_authoritative_checkpoints()
+                .expect("authoritative mission checkpoints must rehydrate");
         }
         if let Some(root) = cache_root {
             rt.attach_dema_cache(root);
