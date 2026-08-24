@@ -648,7 +648,8 @@ impl MissionCheckpoint {
                 (None, self.envelope.stage)
             }
             Some(record) if record.kind == ReceiptKind::PrincipalActivation => {
-                let terminal = chain.fetch_and_decode::<PrincipalActivationReceipt>(&record.hash)?;
+                let terminal =
+                    chain.fetch_and_decode::<PrincipalActivationReceipt>(&record.hash)?;
                 if terminal.activation_receipt_ref != self.receipt_id
                     || terminal.prev_chain != record.prev
                 {
@@ -657,34 +658,42 @@ impl MissionCheckpoint {
                     ));
                 }
                 let manifest = chain.fetch_and_decode::<ManifestArtifact>(&record.prev)?;
-                if !chain.records().any(|r| r.hash == record.prev && r.kind == ReceiptKind::Manifest)
+                if !chain
+                    .records()
+                    .any(|r| r.hash == record.prev && r.kind == ReceiptKind::Manifest)
                     || !manifest.verify_integrity()
                     || manifest.chain_head_at_generation != self.receipt_id
                     || !manifest.receipt_refs.contains(&self.mission_id)
                     || !manifest.receipt_refs.contains(&self.receipt_id)
                 {
                     return Err(MissionRuntimeError::Checkpoint(
-                        "checkpoint activation predecessor is not this mission's verified manifest".into(),
+                        "checkpoint activation predecessor is not this mission's verified manifest"
+                            .into(),
                     ));
                 }
                 (Some(manifest), MissionStage::Replayability)
             }
             Some(record) if record.kind == ReceiptKind::MissionExecuted => {
                 let terminal = chain.fetch_and_decode::<OrganizeMissionReceipt>(&record.hash)?;
-                if terminal.mission_receipt_ref != self.receipt_id || terminal.prev_chain != record.prev {
+                if terminal.mission_receipt_ref != self.receipt_id
+                    || terminal.prev_chain != record.prev
+                {
                     return Err(MissionRuntimeError::Checkpoint(
                         "checkpoint organize receipt does not bind its sealed predecessor".into(),
                     ));
                 }
                 let manifest = chain.fetch_and_decode::<ManifestArtifact>(&record.prev)?;
-                if !chain.records().any(|r| r.hash == record.prev && r.kind == ReceiptKind::Manifest)
+                if !chain
+                    .records()
+                    .any(|r| r.hash == record.prev && r.kind == ReceiptKind::Manifest)
                     || !manifest.verify_integrity()
                     || manifest.chain_head_at_generation != self.receipt_id
                     || !manifest.receipt_refs.contains(&self.mission_id)
                     || !manifest.receipt_refs.contains(&self.receipt_id)
                 {
                     return Err(MissionRuntimeError::Checkpoint(
-                        "checkpoint organize predecessor is not this mission's verified manifest".into(),
+                        "checkpoint organize predecessor is not this mission's verified manifest"
+                            .into(),
                     ));
                 }
                 (Some(manifest), MissionStage::Replayability)
@@ -1534,7 +1543,8 @@ impl CognitionRuntime {
             let checkpoint_id = self.chain.append_with_payload(checkpoint)?;
             record.chain_head = checkpoint_id;
             if let Some(Err(error)) = self.write_receipt_chain_store() {
-                self.chain.rollback_to(start_len, start_head, start_timestamp);
+                self.chain
+                    .rollback_to(start_len, start_head, start_timestamp);
                 return Err(MissionRuntimeError::Checkpoint(format!(
                     "persist authoritative checkpoint chain snapshot: {}",
                     error
@@ -1669,12 +1679,7 @@ impl CognitionRuntime {
         );
         self.chain.append_with_payload(pa_receipt.clone())?;
         mission_record.chain_head = self.chain.head();
-        self.commit_permitted_mission(
-            &mut mission_record,
-            start_len,
-            start_head,
-            start_timestamp,
-        )?;
+        self.commit_permitted_mission(&mut mission_record, start_len, start_head, start_timestamp)?;
         self.principal_profile = Some(profile.clone());
 
         // Cycle-7 G6 — record PoI entry for this activation BEFORE
@@ -1857,12 +1862,7 @@ impl CognitionRuntime {
             OrganizeMissionReceipt::new(mission_receipt_id, &listing, now_ns_seal, prev_chain);
         self.chain.append_with_payload(organize_receipt.clone())?;
         mission_record.chain_head = self.chain.head();
-        self.commit_permitted_mission(
-            &mut mission_record,
-            start_len,
-            start_head,
-            start_timestamp,
-        )?;
+        self.commit_permitted_mission(&mut mission_record, start_len, start_head, start_timestamp)?;
 
         // Cycle-7 G6 — record PoI entry for this organize execution.
         // Entry count = number of top-level listing entries (work volume).

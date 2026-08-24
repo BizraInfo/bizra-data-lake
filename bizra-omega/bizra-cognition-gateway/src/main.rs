@@ -3497,7 +3497,9 @@ mod tests {
             let checkpoint = runtime
                 .chain
                 .records()
-                .find(|record| record.kind == bizra_cognition::receipts::ReceiptKind::MissionCheckpoint)
+                .find(|record| {
+                    record.kind == bizra_cognition::receipts::ReceiptKind::MissionCheckpoint
+                })
                 .unwrap();
             assert_eq!(
                 runtime
@@ -3997,7 +3999,8 @@ mod tests {
             runtime
                 .chain
                 .records()
-                .filter(|record| record.kind == bizra_cognition::receipts::ReceiptKind::MissionCheckpoint)
+                .filter(|record| record.kind
+                    == bizra_cognition::receipts::ReceiptKind::MissionCheckpoint)
                 .count(),
             1,
             "a failed snapshot retry must not leave an ambiguous prior checkpoint"
