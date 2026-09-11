@@ -1,0 +1,56 @@
+{
+  "schema": "bizra.node0.gateway_principal_projection_contract_manifest.v1",
+  "campaignId": "GATEWAY-PRINCIPAL-PROJECTION-CONTRACT-RECONCILIATION-1A",
+  "sourceOnly": true,
+  "authorityDelta": 0,
+  "rustBaseline": {
+    "commit": "1e8ed1f2190eaf7ff321ce08429780452842d859",
+    "tree": "7f98f7319e2577e6acfb58944f871abcd5d4348a"
+  },
+  "demaConsumer": {
+    "head": "5c46280eb16ca4466b6b469365857819d3352cb6",
+    "tree": "bcb8896877b4b49d2c814b8ae468046720bc71a9",
+    "adapter": "packages/node-adapter/src/gateway-http-adapter.js",
+    "blob": "825c163439345956ca2ad7a619a43babf5388dfb",
+    "sha256": "dccff9298743fdec74ab23096576a1e769ce6c2d3bff92f949255fbae4433d2b"
+  },
+  "wireContract": {
+    "schema": "bizra.node0.principal_identity_status.v0.3",
+    "runtimeDomain": "bizra-cognition-gateway-v1",
+    "verdicts": [
+      "ABSENT",
+      "PROFILE_PRESENT_UNVERIFIED",
+      "CHAIN_DURABLE_ONLY",
+      "CHAIN_PAYLOAD_UNAVAILABLE",
+      "CHAIN_BINDING_MISMATCH",
+      "VERIFIED"
+    ],
+    "verifiedIdentityFields": [
+      "principalId",
+      "principalProfileHash",
+      "subjectKind",
+      "subjectId",
+      "nodePubkey",
+      "activationReceiptRef",
+      "receiptId",
+      "timestampNs",
+      "prevChain"
+    ],
+    "subjectMapping": {
+      "subjectKind": "CognitionRuntime.principal_profile.declared_role",
+      "subjectId": "CognitionRuntime.principal_profile.node_id"
+    },
+    "readOnlyPolicy": {
+      "activationRequires": "EXPLICIT_GO",
+      "authorityDelta": 0,
+      "operationEffects": [
+        "mutationPerformed=false",
+        "activationPerformed=false",
+        "witnessIssued=false",
+        "poiMinted=false",
+        "soakStarted=false"
+      ]
+    }
+  },
+  "historicalClosureLabels": "HISTORICAL_CHECKPOINT_NOT_CURRENT_CLOSURE_PROOF"
+}

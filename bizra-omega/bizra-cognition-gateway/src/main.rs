@@ -19,6 +19,12 @@
 
 mod contracts;
 
+use crate::contracts::{
+    PrincipalAuthorityPolicyContract, PrincipalEvidenceStateContract,
+    PrincipalIdentityStatusContract, PrincipalIdentityStatusVerdict,
+    PrincipalOperationEffectsContract, VerifiedPrincipalIdentityContract,
+};
+
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -53,6 +59,7 @@ const DOMAIN: &str = "bizra-cognition-gateway-v1";
 #[derive(Clone)]
 struct AppState {
     runtime: Arc<RwLock<CognitionRuntime>>,
+    chain_genesis: Blake3Hash,
 }
 
 // ─── DTOs ──────────────────────────────────────────────────────────────────
@@ -1298,6 +1305,178 @@ async fn post_principal_activate(
     }))
 }
 
+// ─── NODE0-PRINCIPAL-STATUS-1A — GET /principal/status ────────────────────
+
+const PRINCIPAL_STATUS_SCHEMA_ID: &str = "bizra.node0.principal_identity_status.v0.3";
+
+/// Read-only projection of chain-sealed principal identity. The endpoint
+/// never infers identity from process metadata or a cache alone, and every
+/// response explicitly records the zero-effect authority boundary.
+async fn get_principal_status(
+    State(state): State<AppState>,
+) -> Json<PrincipalIdentityStatusContract> {
+    use bizra_cognition::principal_identity_projection::{
+        project_principal_activation_identity, PrincipalIdentityProjectionError,
+    };
+    use bizra_cognition::receipts::ChainError;
+
+    let rt = state.runtime.read().await;
+    let head_before = rt.chain.head();
+    let len_before = rt.chain.len();
+    let chain_continuity_verified = rt.chain.verify_continuity(state.chain_genesis).is_ok();
+    let profile = rt.principal_profile();
+    let profile_present = profile.is_some();
+    let candidates: Vec<Blake3Hash> = rt
+        .chain
+        .records()
+        .filter(|record| record.kind == ReceiptKind::PrincipalActivation)
+        .map(|record| record.hash)
+        .collect();
+
+    let mut reason_codes = Vec::new();
+    let mut active_chain_record_found = false;
+    let mut canonical_payload_available = false;
+    let mut durable_receipt_metadata_found = false;
+    let mut verified_identity = None;
+
+    let verdict = if let Some(profile) = profile {
+        let expected_profile_hash = profile.profile_hash();
+        let mut matches = Vec::new();
+        let mut payload_unavailable = false;
+        let mut binding_mismatch = false;
+
+        durable_receipt_metadata_found = rt
+            .receipt_history_cache()
+            .and_then(|cache| cache.read().ok().flatten())
+            .map(|snapshot| {
+                snapshot
+                    .records
+                    .iter()
+                    .any(|record| record.hash == profile.activation_receipt_id)
+            })
+            .unwrap_or(false);
+
+        for hash in &candidates {
+            match project_principal_activation_identity(&rt.chain, *hash) {
+                Ok(projected) => {
+                    if projected.activation_receipt_ref != profile.activation_receipt_id {
+                        continue;
+                    }
+                    active_chain_record_found = true;
+                    canonical_payload_available = true;
+                    let binds = projected.principal_id == profile.principal_id
+                        && projected.principal_profile_hash == expected_profile_hash
+                        && projected.node_pubkey != [0u8; 32]
+                        && !profile.declared_role.is_empty()
+                        && !profile.node_id.is_empty();
+                    if binds {
+                        matches.push(projected);
+                    } else {
+                        binding_mismatch = true;
+                        reason_codes.push("CURRENT_RELEVANT_RECORD_FIELD_MISMATCH".to_string());
+                    }
+                }
+                Err(PrincipalIdentityProjectionError::WrongReceiptKind { .. }) => {
+                    active_chain_record_found = true;
+                    binding_mismatch = true;
+                    reason_codes.push("WRONG_RECEIPT_KIND".to_string());
+                }
+                Err(PrincipalIdentityProjectionError::Chain(ChainError::PayloadMissing(_)))
+                | Err(PrincipalIdentityProjectionError::Chain(ChainError::PayloadPersistence(_))) =>
+                {
+                    active_chain_record_found = true;
+                    payload_unavailable = true;
+                    reason_codes.push("CANONICAL_PAYLOAD_UNAVAILABLE".to_string());
+                }
+                Err(PrincipalIdentityProjectionError::Chain(ChainError::PayloadDecode(_)))
+                | Err(PrincipalIdentityProjectionError::Chain(ChainError::Discontinuity {
+                    ..
+                })) => {
+                    active_chain_record_found = true;
+                    binding_mismatch = true;
+                    reason_codes.push("PAYLOAD_MALFORMED_OR_DISCONTINUOUS".to_string());
+                }
+                Err(PrincipalIdentityProjectionError::ReceiptNotFound(_)) => {}
+            }
+        }
+
+        if !chain_continuity_verified {
+            reason_codes.push("CHAIN_CONTINUITY_FAILED".to_string());
+            PrincipalIdentityStatusVerdict::ChainBindingMismatch
+        } else if matches.len() > 1 {
+            reason_codes.push("AMBIGUOUS_ACTIVATION_RECORDS".to_string());
+            PrincipalIdentityStatusVerdict::ChainBindingMismatch
+        } else if binding_mismatch {
+            PrincipalIdentityStatusVerdict::ChainBindingMismatch
+        } else if let Some(projected) = matches.pop() {
+            if !durable_receipt_metadata_found {
+                reason_codes.push("DURABLE_RECEIPT_METADATA_UNAVAILABLE".to_string());
+                PrincipalIdentityStatusVerdict::ProfilePresentUnverified
+            } else {
+                verified_identity = Some(VerifiedPrincipalIdentityContract {
+                    principal_id: hex32(&projected.principal_id),
+                    principal_profile_hash: hex32(&projected.principal_profile_hash),
+                    subject_kind: profile.declared_role.clone(),
+                    subject_id: profile.node_id.clone(),
+                    node_pubkey: hex32(&projected.node_pubkey),
+                    activation_receipt_ref: hex32(&projected.activation_receipt_ref),
+                    receipt_id: hex32(&projected.receipt_id),
+                    timestamp_ns: projected.timestamp_ns.to_string(),
+                    prev_chain: hex32(&projected.prev_chain),
+                });
+                PrincipalIdentityStatusVerdict::Verified
+            }
+        } else if payload_unavailable {
+            PrincipalIdentityStatusVerdict::ChainPayloadUnavailable
+        } else if durable_receipt_metadata_found {
+            reason_codes.push("DURABLE_METADATA_WITHOUT_CANONICAL_PAYLOAD".to_string());
+            PrincipalIdentityStatusVerdict::ChainDurableOnly
+        } else {
+            PrincipalIdentityStatusVerdict::ProfilePresentUnverified
+        }
+    } else if !candidates.is_empty() {
+        active_chain_record_found = true;
+        reason_codes.push("ACTIVATION_RECORD_WITHOUT_PROFILE".to_string());
+        PrincipalIdentityStatusVerdict::ChainBindingMismatch
+    } else {
+        PrincipalIdentityStatusVerdict::Absent
+    };
+
+    let verified = verdict == PrincipalIdentityStatusVerdict::Verified;
+    debug_assert_eq!(head_before, rt.chain.head());
+    debug_assert_eq!(len_before, rt.chain.len());
+
+    Json(PrincipalIdentityStatusContract {
+        schema: PRINCIPAL_STATUS_SCHEMA_ID.to_string(),
+        runtime_domain: DOMAIN.to_string(),
+        verdict,
+        identity_verified: verified,
+        bridge_eligible: verified,
+        verified_identity,
+        evidence_state: PrincipalEvidenceStateContract {
+            profile_present,
+            active_chain_record_found,
+            durable_receipt_metadata_found,
+            canonical_payload_available,
+            chain_continuity_verified,
+        },
+        chain_head: hex32(&rt.chain.head()),
+        chain_length: rt.chain.len(),
+        authority_policy: PrincipalAuthorityPolicyContract {
+            activation_requires: "EXPLICIT_GO".to_string(),
+            authority_delta: 0,
+        },
+        operation_effects: PrincipalOperationEffectsContract {
+            mutation_performed: false,
+            activation_performed: false,
+            witness_issued: false,
+            poi_minted: false,
+            soak_started: false,
+        },
+        reason_codes,
+    })
+}
+
 // ─── Cycle-7 G4 — /resources handlers ──────────────────────────────────────
 
 async fn post_resource_register(
@@ -1673,6 +1852,7 @@ async fn replay_mission(
 fn router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
+        .route("/principal/status", get(get_principal_status))
         .route("/chain", get(get_chain))
         .route("/chain/:hash", get(get_chain_receipt))
         .route("/mission", post(post_mission))
@@ -1702,6 +1882,7 @@ async fn main() {
     let runtime = bootstrap_runtime(genesis);
     let state = AppState {
         runtime: Arc::new(RwLock::new(runtime)),
+        chain_genesis: genesis,
     };
 
     let port: u16 = std::env::var("BIZRA_COGNITION_PORT")
@@ -1731,6 +1912,7 @@ mod tests {
     fn new_state() -> AppState {
         AppState {
             runtime: Arc::new(RwLock::new(bootstrap_runtime([0u8; 32]))),
+            chain_genesis: [0u8; 32],
         }
     }
 
@@ -1742,6 +1924,7 @@ mod tests {
     fn new_state_env_free() -> AppState {
         AppState {
             runtime: Arc::new(RwLock::new(fresh_in_memory_runtime([0u8; 32]))),
+            chain_genesis: [0u8; 32],
         }
     }
 
@@ -1753,6 +1936,7 @@ mod tests {
             .expect("valid sovereign_state fixture should bootstrap");
         AppState {
             runtime: Arc::new(RwLock::new(rt)),
+            chain_genesis: [0u8; 32],
         }
     }
 
@@ -1813,6 +1997,32 @@ mod tests {
             "derivesFromCanonical": true,
             "faceOnly": false
         })
+    }
+
+    #[tokio::test]
+    async fn principal_status_route_red_first_contract_probe() {
+        let response = router(new_state_env_free())
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/principal/status")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "MISSING_OR_INCOMPATIBLE_PRINCIPAL_STATUS_ROUTE"
+        );
+        let body = to_bytes(response.into_body(), 16 * 1024).await.unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            payload["schema"], "bizra.node0.principal_identity_status.v0.3",
+            "MISSING_OR_INCOMPATIBLE_PRINCIPAL_STATUS_ROUTE"
+        );
     }
 
     #[tokio::test]
@@ -2200,6 +2410,164 @@ mod tests {
         })
     }
 
+    async fn get_principal_status_json(state: AppState) -> (StatusCode, serde_json::Value) {
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/principal/status")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status();
+        let body = to_bytes(response.into_body(), 16 * 1024).await.unwrap();
+        (status, serde_json::from_slice(&body).unwrap())
+    }
+
+    #[tokio::test]
+    async fn principal_status_absent_is_exact_v03_read_only_contract() {
+        let (status, payload) = get_principal_status_json(new_state_env_free()).await;
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(
+            payload["schema"],
+            "bizra.node0.principal_identity_status.v0.3"
+        );
+        assert_eq!(payload["runtimeDomain"], DOMAIN);
+        assert_eq!(payload["verdict"], "ABSENT");
+        assert_eq!(payload["identityVerified"], false);
+        assert_eq!(payload["bridgeEligible"], false);
+        assert!(payload["verifiedIdentity"].is_null());
+        assert_eq!(payload["chainLength"], 0);
+        assert_eq!(
+            payload["authorityPolicy"]["activationRequires"],
+            "EXPLICIT_GO"
+        );
+        assert_eq!(payload["authorityPolicy"]["authorityDelta"], 0);
+        for field in [
+            "mutationPerformed",
+            "activationPerformed",
+            "witnessIssued",
+            "poiMinted",
+            "soakStarted",
+        ] {
+            assert_eq!(
+                payload["operationEffects"][field], false,
+                "effect drift: {field}"
+            );
+        }
+        assert!(!payload["schema"]
+            .as_str()
+            .unwrap()
+            .contains("gateway_projection"));
+    }
+
+    #[tokio::test]
+    async fn principal_status_verified_fixture_emits_consumer_complete_identity() {
+        let anchor_dir = tempfile::TempDir::new().unwrap();
+        let cache_dir = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(anchor_dir.path());
+        let state = {
+            let mut runtime = fresh_in_memory_runtime([0u8; 32]);
+            runtime.attach_dema_cache(cache_dir.path());
+            AppState {
+                runtime: Arc::new(RwLock::new(runtime)),
+                chain_genesis: [0u8; 32],
+            }
+        };
+
+        let activation = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(
+                        serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(activation.status(), StatusCode::OK);
+
+        let (status, payload) = get_principal_status_json(state).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(payload["verdict"], "VERIFIED");
+        assert_eq!(payload["identityVerified"], true);
+        assert_eq!(payload["bridgeEligible"], true);
+        for field in [
+            "profilePresent",
+            "activeChainRecordFound",
+            "durableReceiptMetadataFound",
+            "canonicalPayloadAvailable",
+            "chainContinuityVerified",
+        ] {
+            assert_eq!(
+                payload["evidenceState"][field], true,
+                "evidence drift: {field}"
+            );
+        }
+        for field in [
+            "principalId",
+            "principalProfileHash",
+            "subjectKind",
+            "subjectId",
+            "nodePubkey",
+            "activationReceiptRef",
+            "receiptId",
+            "timestampNs",
+            "prevChain",
+        ] {
+            assert!(
+                payload["verifiedIdentity"][field]
+                    .as_str()
+                    .is_some_and(|value| !value.is_empty()),
+                "verified identity field missing: {field}"
+            );
+        }
+        assert_eq!(payload["operationEffects"]["mutationPerformed"], false);
+        assert_eq!(payload["authorityPolicy"]["authorityDelta"], 0);
+    }
+
+    #[tokio::test]
+    async fn principal_status_without_durable_metadata_stays_unverified() {
+        let anchor_dir = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(anchor_dir.path());
+        let state = new_state_env_free();
+        let activation = router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/principal/activate")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(
+                        serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(activation.status(), StatusCode::OK);
+
+        let (_, payload) = get_principal_status_json(state).await;
+        assert_eq!(payload["verdict"], "PROFILE_PRESENT_UNVERIFIED");
+        assert_eq!(payload["identityVerified"], false);
+        assert!(payload["verifiedIdentity"].is_null());
+        assert_eq!(payload["evidenceState"]["canonicalPayloadAvailable"], true);
+        assert_eq!(
+            payload["evidenceState"]["durableReceiptMetadataFound"],
+            false
+        );
+        assert!(payload["reasonCodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|code| code == "DURABLE_RECEIPT_METADATA_UNAVAILABLE"));
+    }
+
     #[tokio::test]
     async fn post_principal_activate_permits_and_seals_receipt_and_profile() {
         let td = tempfile::TempDir::new().unwrap();
@@ -2297,6 +2665,7 @@ mod tests {
             rt.attach_dema_cache(td_cache.path());
             AppState {
                 runtime: Arc::new(RwLock::new(rt)),
+                chain_genesis: [0u8; 32],
             }
         };
         let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
@@ -2461,6 +2830,7 @@ mod tests {
         rt.attach_dema_cache(root);
         AppState {
             runtime: Arc::new(RwLock::new(rt)),
+            chain_genesis: [0u8; 32],
         }
     }
 

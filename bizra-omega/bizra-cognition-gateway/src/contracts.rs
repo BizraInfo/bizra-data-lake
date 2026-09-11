@@ -403,6 +403,87 @@ pub struct ErrorResponseContract {
 }
 
 // ════════════════════════════════════════════════════════════════════
+// Principal identity status v0.3 — read-only Rust gateway projection
+// ════════════════════════════════════════════════════════════════════
+
+/// Fail-closed principal-status verdicts consumed by Dema's gateway adapter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PrincipalIdentityStatusVerdict {
+    Absent,
+    ProfilePresentUnverified,
+    ChainDurableOnly,
+    ChainPayloadUnavailable,
+    ChainBindingMismatch,
+    Verified,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
+pub struct VerifiedPrincipalIdentityContract {
+    pub principal_id: String,
+    pub principal_profile_hash: String,
+    pub subject_kind: String,
+    pub subject_id: String,
+    pub node_pubkey: String,
+    pub activation_receipt_ref: String,
+    pub receipt_id: String,
+    /// String on the wire so JavaScript consumers cannot lose precision.
+    pub timestamp_ns: String,
+    pub prev_chain: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
+pub struct PrincipalEvidenceStateContract {
+    pub profile_present: bool,
+    pub active_chain_record_found: bool,
+    pub durable_receipt_metadata_found: bool,
+    pub canonical_payload_available: bool,
+    pub chain_continuity_verified: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
+pub struct PrincipalAuthorityPolicyContract {
+    pub activation_requires: String,
+    pub authority_delta: i32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
+pub struct PrincipalOperationEffectsContract {
+    pub mutation_performed: bool,
+    pub activation_performed: bool,
+    pub witness_issued: bool,
+    pub poi_minted: bool,
+    pub soak_started: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
+pub struct PrincipalIdentityStatusContract {
+    pub schema: String,
+    pub runtime_domain: String,
+    pub verdict: PrincipalIdentityStatusVerdict,
+    pub identity_verified: bool,
+    pub bridge_eligible: bool,
+    pub verified_identity: Option<VerifiedPrincipalIdentityContract>,
+    pub evidence_state: PrincipalEvidenceStateContract,
+    pub chain_head: String,
+    pub chain_length: usize,
+    pub authority_policy: PrincipalAuthorityPolicyContract,
+    pub operation_effects: PrincipalOperationEffectsContract,
+    pub reason_codes: Vec<String>,
+}
+
+// ════════════════════════════════════════════════════════════════════
 // Tests — sanity checks + ts-rs emission triggers
 // ════════════════════════════════════════════════════════════════════
 
@@ -693,5 +774,52 @@ mod tests {
                 binding_src
             );
         }
+    }
+
+    #[test]
+    fn principal_status_contract_is_v03_and_read_only() {
+        let value = serde_json::to_value(PrincipalIdentityStatusContract {
+            schema: "bizra.node0.principal_identity_status.v0.3".into(),
+            runtime_domain: "bizra-cognition-gateway-v1".into(),
+            verdict: PrincipalIdentityStatusVerdict::Absent,
+            identity_verified: false,
+            bridge_eligible: false,
+            verified_identity: None,
+            evidence_state: PrincipalEvidenceStateContract {
+                profile_present: false,
+                active_chain_record_found: false,
+                durable_receipt_metadata_found: false,
+                canonical_payload_available: false,
+                chain_continuity_verified: true,
+            },
+            chain_head: "0".repeat(64),
+            chain_length: 0,
+            authority_policy: PrincipalAuthorityPolicyContract {
+                activation_requires: "EXPLICIT_GO".into(),
+                authority_delta: 0,
+            },
+            operation_effects: PrincipalOperationEffectsContract {
+                mutation_performed: false,
+                activation_performed: false,
+                witness_issued: false,
+                poi_minted: false,
+                soak_started: false,
+            },
+            reason_codes: vec![],
+        })
+        .unwrap();
+
+        assert_eq!(
+            value["schema"],
+            "bizra.node0.principal_identity_status.v0.3"
+        );
+        assert_eq!(value["runtimeDomain"], "bizra-cognition-gateway-v1");
+        assert_eq!(
+            value["authorityPolicy"]["activationRequires"],
+            "EXPLICIT_GO"
+        );
+        assert_eq!(value["authorityPolicy"]["authorityDelta"], 0);
+        assert!(value["verifiedIdentity"].is_null());
+        assert!(!value.to_string().contains("gateway_projection.v1"));
     }
 }
