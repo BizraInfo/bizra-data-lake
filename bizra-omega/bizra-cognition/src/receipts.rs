@@ -396,6 +396,20 @@ impl ReceiptChain {
             last_timestamp_ns: snapshot.last_timestamp_ns,
         };
         chain.verify_continuity(genesis)?;
+        // The snapshot head is part of the authoritative chain state, not
+        // merely a cached hint.  A continuity-valid record list with a stale
+        // or forged head must fail closed before the runtime can project it.
+        let expected_head = chain
+            .records
+            .last()
+            .map(|record| record.hash)
+            .unwrap_or(genesis);
+        if chain.head != expected_head {
+            return Err(ChainError::Discontinuity {
+                expected_prev: expected_head,
+                got: chain.head,
+            });
+        }
         for record in &chain.records {
             if !chain.store.contains(&record.hash)? {
                 return Err(ChainError::PayloadMissing(record.hash));

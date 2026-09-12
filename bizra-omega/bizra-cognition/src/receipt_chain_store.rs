@@ -67,7 +67,10 @@ impl std::fmt::Display for ReceiptChainStoreError {
             Self::Bootstrap(e) => write!(f, "receipt chain bootstrap: {:?}", e),
             Self::Snapshot(e) => write!(f, "receipt chain snapshot: {}", e),
             Self::FeatureDisabled => {
-                write!(f, "sled-store feature not enabled for authoritative persistence")
+                write!(
+                    f,
+                    "sled-store feature not enabled for authoritative persistence"
+                )
             }
         }
     }
@@ -183,13 +186,13 @@ impl ReceiptChainStore {
         #[cfg(not(feature = "sled-store"))]
         {
             let _ = self;
-            Err(StoreError::IoError(
-                "sled-store feature not enabled".into(),
-            ))
+            Err(StoreError::IoError("sled-store feature not enabled".into()))
         }
     }
 
-    pub fn read_snapshot(&self) -> Result<Option<ReceiptHistorySnapshot>, ReceiptHistoryCacheError> {
+    pub fn read_snapshot(
+        &self,
+    ) -> Result<Option<ReceiptHistorySnapshot>, ReceiptHistoryCacheError> {
         ReceiptHistoryCache::read_snapshot_file(
             &self.chain_snapshot_path(),
             CHAIN_STORE_SCHEMA_VERSION,
@@ -211,10 +214,15 @@ impl ReceiptChainStore {
         )
     }
 
-    pub fn bootstrap_chain(&self, genesis: Blake3Hash) -> Result<ReceiptChain, ReceiptChainStoreError> {
+    pub fn bootstrap_chain(
+        &self,
+        genesis: Blake3Hash,
+    ) -> Result<ReceiptChain, ReceiptChainStoreError> {
         let store = self.open_payload_store().map_err(ChainError::from)?;
         if let Some(snapshot) = self.read_snapshot()? {
-            Ok(ReceiptChain::restore_from_snapshot(genesis, snapshot, store)?)
+            Ok(ReceiptChain::restore_from_snapshot(
+                genesis, snapshot, store,
+            )?)
         } else {
             Ok(ReceiptChain::new(genesis, store))
         }
@@ -350,5 +358,35 @@ mod tests {
             })
             .unwrap();
         assert_eq!(chain.len(), 1);
+    }
+
+    #[test]
+    fn rejects_snapshot_head_that_does_not_match_last_record() {
+        let td = tempfile::TempDir::new().unwrap();
+        let store = ReceiptChainStore::new(td.path().to_path_buf());
+        let genesis = [0u8; 32];
+        let mut chain = store.bootstrap_chain(genesis).unwrap();
+        chain
+            .append_with_payload(DummyPayload {
+                kind: ReceiptKind::CognitionBoot,
+                data: vec![4, 5, 6],
+            })
+            .unwrap();
+        store
+            .write_snapshot(&ReceiptHistorySnapshot {
+                head: [0xFF; 32],
+                last_timestamp_ns: chain.latest_timestamp(),
+                records: chain.records().copied().collect(),
+            })
+            .unwrap();
+        drop(chain);
+
+        let result = store.bootstrap_chain(genesis);
+        assert!(matches!(
+            result,
+            Err(ReceiptChainStoreError::Bootstrap(
+                ChainError::Discontinuity { .. }
+            ))
+        ));
     }
 }

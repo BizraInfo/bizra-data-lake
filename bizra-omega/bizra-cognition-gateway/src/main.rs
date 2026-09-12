@@ -3302,6 +3302,7 @@ mod tests {
             .expect("first bootstrap");
         let state1 = AppState {
             runtime: Arc::new(RwLock::new(rt1)),
+            chain_genesis: genesis,
         };
 
         let body = serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap();
@@ -3347,10 +3348,7 @@ mod tests {
         drop(state1);
 
         assert!(
-            td_store
-                .path()
-                .join("chain_snapshot.json")
-                .exists(),
+            td_store.path().join("chain_snapshot.json").exists(),
             "authoritative chain snapshot must be written after mission"
         );
 
@@ -3359,15 +3357,15 @@ mod tests {
             .expect("second bootstrap");
         assert_eq!(rt2.chain.len(), len_after as usize);
         assert_eq!(hex32(&rt2.chain.head()), head_hex);
-        assert!(
-            rt2.chain
-                .fetch_payload_bytes(&rt2.chain.head())
-                .expect("fetch head payload")
-                .is_some()
-        );
+        assert!(rt2
+            .chain
+            .fetch_payload_bytes(&rt2.chain.head())
+            .expect("fetch head payload")
+            .is_some());
 
         let state2 = AppState {
             runtime: Arc::new(RwLock::new(rt2)),
+            chain_genesis: genesis,
         };
         let chain_restart = router(state2)
             .oneshot(
@@ -3382,5 +3380,98 @@ mod tests {
         let chain_restart: serde_json::Value = serde_json::from_slice(&restart_body).unwrap();
         assert_eq!(chain_restart["length"], len_after);
         assert_eq!(chain_restart["head"].as_str().unwrap(), head_hex);
+    }
+
+    /// Environment-bound red/green control for the real principal projection:
+    /// the derived profile cache must never substitute for the authoritative
+    /// receipt chain after a fresh gateway process.
+    #[tokio::test]
+    #[ignore = "run explicitly as the durable principal red/green probe"]
+    async fn principal_activation_survives_gateway_rebootstrap_with_authoritative_store() {
+        let store_dir = tempfile::TempDir::new().unwrap();
+        let cache_dir = tempfile::TempDir::new().unwrap();
+        let anchor_dir = tempfile::TempDir::new().unwrap();
+        let anchor = write_test_identity_anchor(anchor_dir.path());
+        let genesis = [0u8; 32];
+        let env_names = [
+            "BIZRA_SOVEREIGN_STATE_PATH",
+            "BIZRA_RECEIPT_STORE_PATH",
+            "BIZRA_DEMA_CACHE_ROOT",
+        ];
+        let saved: Vec<(&str, Option<std::ffi::OsString>)> = env_names
+            .iter()
+            .map(|name| (*name, std::env::var_os(name)))
+            .collect();
+        for name in env_names {
+            std::env::remove_var(name);
+        }
+        std::env::set_var("BIZRA_RECEIPT_STORE_PATH", store_dir.path());
+        std::env::set_var("BIZRA_DEMA_CACHE_ROOT", cache_dir.path());
+
+        let result = async {
+            let state1 = AppState {
+                runtime: Arc::new(RwLock::new(bootstrap_runtime(genesis))),
+                chain_genesis: genesis,
+            };
+            let (_, absent) = get_principal_status_json(state1.clone()).await;
+            assert_eq!(absent["verdict"], "ABSENT");
+
+            let activation = router(state1.clone())
+                .oneshot(
+                    Request::builder()
+                        .method("POST")
+                        .uri("/principal/activate")
+                        .header("content-type", "application/json")
+                        .body(axum::body::Body::from(
+                            serde_json::to_vec(&principal_request(&anchor, 0.98)).unwrap(),
+                        ))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(activation.status(), StatusCode::OK);
+            let (_, before_restart) = get_principal_status_json(state1).await;
+            assert_eq!(before_restart["verdict"], "VERIFIED");
+            assert_eq!(before_restart["chainLength"], 9);
+
+            let state2 = AppState {
+                runtime: Arc::new(RwLock::new(bootstrap_runtime(genesis))),
+                chain_genesis: genesis,
+            };
+            let activation_count = state2
+                .runtime
+                .read()
+                .await
+                .chain
+                .records()
+                .filter(|record| record.kind == ReceiptKind::PrincipalActivation)
+                .count();
+            assert_eq!(
+                activation_count, 1,
+                "activation must materialize exactly once"
+            );
+            let (_, after_restart) = get_principal_status_json(state2).await;
+            assert_eq!(after_restart["verdict"], "VERIFIED");
+            assert_eq!(after_restart["identityVerified"], true);
+            assert_eq!(after_restart["bridgeEligible"], true);
+            assert_eq!(after_restart["chainLength"], 9);
+            assert_eq!(
+                after_restart["verifiedIdentity"]["principalId"],
+                before_restart["verifiedIdentity"]["principalId"]
+            );
+            assert_eq!(
+                after_restart["verifiedIdentity"]["activationReceiptRef"],
+                before_restart["verifiedIdentity"]["activationReceiptRef"]
+            );
+        }
+        .await;
+
+        for (name, value) in saved {
+            match value {
+                Some(value) => std::env::set_var(name, value),
+                None => std::env::remove_var(name),
+            }
+        }
+        result
     }
 }
