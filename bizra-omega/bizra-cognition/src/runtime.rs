@@ -618,6 +618,7 @@ impl CognitionRuntime {
                 | ReceiptKind::Manifest
                 | ReceiptKind::PrincipalActivation
                 | ReceiptKind::MissionExecuted
+                | ReceiptKind::BoundedDiagnostic
                 | ReceiptKind::DegradedPath => {}
             }
         }

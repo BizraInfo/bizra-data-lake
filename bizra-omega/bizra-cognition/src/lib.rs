@@ -43,6 +43,7 @@
 )]
 
 pub mod admissibility_freeze_v1;
+pub mod bounded_diagnostic;
 pub mod canonical_hasher;
 pub mod cognition_round;
 pub mod configure_cognition;

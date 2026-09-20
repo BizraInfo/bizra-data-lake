@@ -20,7 +20,8 @@
 mod contracts;
 
 use crate::contracts::{
-    PrincipalAuthorityPolicyContract, PrincipalEvidenceStateContract,
+    ArtifactObservationContract, ArtifactObservationFreshness, ArtifactObservationState,
+    ArtifactObservationStrength, PrincipalAuthorityPolicyContract, PrincipalEvidenceStateContract,
     PrincipalIdentityStatusContract, PrincipalIdentityStatusVerdict,
     PrincipalOperationEffectsContract, VerifiedPrincipalIdentityContract,
 };
@@ -39,11 +40,14 @@ use axum::{
 use bizra_cognition::admissibility_freeze_v1::{
     AdmissibilityClaim, AdmissibilityResult, EconomicPattern, StateMutation, Verdict,
 };
+use bizra_cognition::bounded_diagnostic::{BoundedDiagnosticReceipt, ARTIFACT_011_ID};
+use bizra_cognition::manifest_artifact::ManifestArtifact;
 use bizra_cognition::mission_freeze_v1::{
     MissionEnvelope, MissionStage, Originator, StateSnapshot,
 };
 use bizra_cognition::poi_ledger::PoiEntry;
 use bizra_cognition::principal_activation::{NodeIdentityAnchor, PrincipalActivationEnvelope};
+use bizra_cognition::receipt_freeze_v1::ReceiptArtifact;
 use bizra_cognition::receipts::{Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind};
 use bizra_cognition::resource_registry::{RegisterOutcome, ResourceKind, TypedResource, UrpView};
 use bizra_cognition::runtime::OrganizeOutcome;
@@ -508,6 +512,7 @@ fn kind_name(k: ReceiptKind) -> &'static str {
         ReceiptKind::Manifest => "Manifest",
         ReceiptKind::PrincipalActivation => "PrincipalActivation",
         ReceiptKind::MissionExecuted => "MissionExecuted",
+        ReceiptKind::BoundedDiagnostic => "BoundedDiagnostic",
         ReceiptKind::DegradedPath => "DegradedPath",
     }
 }
@@ -547,6 +552,216 @@ fn parse_hex32(s: &str) -> Option<[u8; 32]> {
     let mut out = [0u8; 32];
     out.copy_from_slice(&bytes);
     Some(out)
+}
+
+fn unknown_artifact011_observation(
+    reason_codes: Vec<&'static str>,
+    evidence_refs: Vec<String>,
+) -> ArtifactObservationContract {
+    ArtifactObservationContract {
+        schema: "bizra.node0.artifact_observation.v0.1".into(),
+        artifact_id: ARTIFACT_011_ID.into(),
+        domain_state: ArtifactObservationState::Unknown,
+        epistemic_strength: ArtifactObservationStrength::Unknown,
+        freshness: ArtifactObservationFreshness::Unknown,
+        mission_id: None,
+        mission_receipt_id: None,
+        artifact_receipt_id: None,
+        manifest_ref: None,
+        action: None,
+        evidence_refs,
+        reason_codes: reason_codes.into_iter().map(str::to_string).collect(),
+        proof_ceiling: vec!["ARTIFACT011_NOT_VERIFIED".into()],
+        not_established: vec![
+            "artifact011_issued".into(),
+            "bounded_diagnostic_effect".into(),
+            "node0_closure".into(),
+        ],
+    }
+}
+
+/// Read-only observer for the typed ARTIFACT-011 witness.
+///
+/// Generic chain length, health, principal status, free-text intent, and
+/// historical mirrors never enter this decision. The only green path is one
+/// current BoundedDiagnostic payload whose references and hashes correspond
+/// through the authoritative chain.
+fn observe_artifact011(
+    rt: &CognitionRuntime,
+    chain_genesis: Blake3Hash,
+) -> ArtifactObservationContract {
+    let evidence_refs = vec!["/chain".to_string()];
+    if rt.chain.verify_continuity(chain_genesis).is_err() {
+        return unknown_artifact011_observation(
+            vec!["CURRENT_CHAIN_CONTINUITY_INVALID"],
+            evidence_refs,
+        );
+    }
+
+    let candidates: Vec<_> = rt
+        .chain
+        .records()
+        .filter(|record| record.kind == ReceiptKind::BoundedDiagnostic)
+        .collect();
+
+    if candidates.is_empty() {
+        return unknown_artifact011_observation(
+            vec![
+                "TYPED_ARTIFACT_RECEIPT_NOT_FOUND",
+                "ARTIFACT011_DISCRIMINATOR_NOT_OBSERVED",
+            ],
+            evidence_refs,
+        );
+    }
+    if candidates.len() != 1 {
+        return unknown_artifact011_observation(
+            vec!["MULTIPLE_ARTIFACT011_WITNESSES"],
+            evidence_refs,
+        );
+    }
+
+    let artifact_record = candidates[0];
+    let artifact_hex = hex32(&artifact_record.hash);
+    let mut evidence_refs = evidence_refs;
+    evidence_refs.push(format!("/chain/{}", artifact_hex));
+    let artifact = match rt
+        .chain
+        .fetch_and_decode::<BoundedDiagnosticReceipt>(&artifact_record.hash)
+    {
+        Ok(payload) => payload,
+        Err(_) => {
+            return unknown_artifact011_observation(
+                vec!["ARTIFACT_PAYLOAD_HASH_OR_SCHEMA_INVALID"],
+                evidence_refs,
+            )
+        }
+    };
+
+    if !artifact.has_exact_identity() {
+        return unknown_artifact011_observation(
+            vec!["ARTIFACT_ID_OR_ACTION_NOT_EXACT"],
+            evidence_refs,
+        );
+    }
+    if artifact.prev_chain != artifact_record.prev {
+        return unknown_artifact011_observation(
+            vec!["ARTIFACT_PREV_CHAIN_MISMATCH"],
+            evidence_refs,
+        );
+    }
+
+    let mission_record = match rt
+        .chain
+        .records()
+        .find(|record| record.hash == artifact.mission_receipt_ref)
+    {
+        Some(record) => record,
+        None => {
+            return unknown_artifact011_observation(
+                vec!["MISSION_RECEIPT_NOT_FOUND"],
+                evidence_refs,
+            )
+        }
+    };
+    evidence_refs.push(format!("/chain/{}", hex32(&mission_record.hash)));
+    if mission_record.kind != ReceiptKind::NodeLifecycle {
+        return unknown_artifact011_observation(
+            vec!["MISSION_RECEIPT_KIND_NOT_NODE_LIFECYCLE"],
+            evidence_refs,
+        );
+    }
+    let mission = match rt
+        .chain
+        .fetch_and_decode::<ReceiptArtifact>(&mission_record.hash)
+    {
+        Ok(payload) if payload.kind == ReceiptKind::NodeLifecycle => payload,
+        _ => {
+            return unknown_artifact011_observation(
+                vec!["MISSION_RECEIPT_HASH_OR_SCHEMA_INVALID"],
+                evidence_refs,
+            )
+        }
+    };
+
+    let manifest_record = match rt
+        .chain
+        .records()
+        .find(|record| record.hash == artifact.manifest_ref)
+    {
+        Some(record) => record,
+        None => {
+            return unknown_artifact011_observation(
+                vec!["MANIFEST_RECEIPT_NOT_FOUND"],
+                evidence_refs,
+            )
+        }
+    };
+    evidence_refs.push(format!("/chain/{}", hex32(&manifest_record.hash)));
+    if manifest_record.kind != ReceiptKind::Manifest {
+        return unknown_artifact011_observation(vec!["MANIFEST_KIND_NOT_EXACT"], evidence_refs);
+    }
+    let manifest = match rt
+        .chain
+        .fetch_and_decode::<ManifestArtifact>(&manifest_record.hash)
+    {
+        Ok(payload) => payload,
+        Err(_) => {
+            return unknown_artifact011_observation(
+                vec!["MANIFEST_HASH_OR_SCHEMA_INVALID"],
+                evidence_refs,
+            )
+        }
+    };
+    if !manifest.verify_integrity() {
+        return unknown_artifact011_observation(vec!["MANIFEST_INTEGRITY_INVALID"], evidence_refs);
+    }
+    if !manifest
+        .receipt_refs
+        .contains(&artifact.mission_receipt_ref)
+    {
+        return unknown_artifact011_observation(
+            vec!["MANIFEST_MISSION_CORRESPONDENCE_MISSING"],
+            evidence_refs,
+        );
+    }
+    if manifest.chain_head_at_generation != mission_record.hash {
+        return unknown_artifact011_observation(
+            vec!["MANIFEST_CHAIN_HEAD_MISMATCH"],
+            evidence_refs,
+        );
+    }
+    if manifest_record.prev != mission_record.hash || artifact.prev_chain != manifest_record.hash {
+        return unknown_artifact011_observation(
+            vec!["ARTIFACT_CHAIN_ADJACENCY_INVALID"],
+            evidence_refs,
+        );
+    }
+
+    ArtifactObservationContract {
+        schema: "bizra.node0.artifact_observation.v0.1".into(),
+        artifact_id: artifact.artifact_id,
+        domain_state: ArtifactObservationState::VerifiedIssued,
+        epistemic_strength: ArtifactObservationStrength::Verified,
+        freshness: ArtifactObservationFreshness::Current,
+        mission_id: Some(hex32(&mission.claim_ref)),
+        mission_receipt_id: Some(hex32(&mission_record.hash)),
+        artifact_receipt_id: Some(artifact_hex),
+        manifest_ref: Some(hex32(&manifest_record.hash)),
+        action: Some(artifact.action),
+        evidence_refs,
+        reason_codes: Vec::new(),
+        proof_ceiling: vec![
+            "TYPED_ARTIFACT_PAYLOAD_HASH_VERIFIED".into(),
+            "MISSION_RECEIPT_CORRESPONDENCE_VERIFIED".into(),
+            "MANIFEST_INTEGRITY_VERIFIED".into(),
+            "CURRENT_CHAIN_REOBSERVATION".into(),
+        ],
+        not_established: vec![
+            "human_consent".into(),
+            "fate_admission".into(),
+            "node0_closure".into(),
+        ],
+    }
 }
 
 fn state_snapshot_from_dto(
@@ -960,6 +1175,11 @@ async fn get_chain(State(state): State<AppState>) -> Json<ReceiptChainHeadDto> {
         sovereign_envelopes,
         sovereign_entries,
     })
+}
+
+async fn get_artifact011(State(state): State<AppState>) -> Json<ArtifactObservationContract> {
+    let rt = state.runtime.read().await;
+    Json(observe_artifact011(&rt, state.chain_genesis))
 }
 
 async fn get_chain_receipt(
@@ -1898,6 +2118,7 @@ fn router(state: AppState) -> Router {
         .route("/principal/status", get(get_principal_status))
         .route("/chain", get(get_chain))
         .route("/chain/:hash", get(get_chain_receipt))
+        .route("/artifacts/ARTIFACT-011", get(get_artifact011))
         .route("/mission", post(post_mission))
         .route("/missions", post(post_mission))
         .route("/missions/:hash", get(get_mission))
@@ -2101,6 +2322,104 @@ mod tests {
         assert!(v["latestTimestamp"].is_null());
         // Phase 2: no snapshot attached → sovereignEntries omitted via skip_serializing_if
         assert!(v.get("sovereignEntries").is_none());
+    }
+
+    #[tokio::test]
+    async fn artifact011_observer_does_not_infer_from_generic_chain_activity() {
+        let state = new_state_env_free();
+        {
+            let mut rt = state.runtime.write().await;
+            let generic = ReceiptArtifact::new(
+                ReceiptKind::MissionExecuted,
+                [1; 32],
+                [2; 32],
+                Vec::new(),
+                rt.chain.head(),
+                1,
+            );
+            rt.chain.append_with_payload(generic).unwrap();
+        }
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/artifacts/ARTIFACT-011")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), 16 * 1024).await.unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(payload["domainState"], "UNKNOWN");
+        assert_eq!(payload["epistemicStrength"], "UNKNOWN");
+        assert_eq!(payload["freshness"], "UNKNOWN");
+        assert!(payload["reasonCodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|code| code == "TYPED_ARTIFACT_RECEIPT_NOT_FOUND"));
+    }
+
+    #[tokio::test]
+    async fn artifact011_observer_verifies_typed_witness_and_correspondence() {
+        let state = new_state_env_free();
+        let mission_id;
+        let manifest_id;
+        {
+            let mut rt = state.runtime.write().await;
+            let mission = ReceiptArtifact::new(
+                ReceiptKind::NodeLifecycle,
+                [1; 32],
+                [2; 32],
+                Vec::new(),
+                rt.chain.head(),
+                1,
+            );
+            mission_id = rt.chain.append_with_payload(mission).unwrap();
+
+            let manifest = ManifestArtifact::from_window(1, 2, vec![mission_id], rt.chain.head());
+            manifest_id = rt.chain.append_with_payload(manifest).unwrap();
+
+            let artifact = BoundedDiagnosticReceipt::new(
+                mission_id,
+                manifest_id,
+                [3; 32],
+                [4; 32],
+                [5; 32],
+                [6; 32],
+                3,
+                rt.chain.head(),
+            );
+            rt.chain.append_with_payload(artifact).unwrap();
+        }
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/artifacts/ARTIFACT-011")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), 16 * 1024).await.unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(payload["domainState"], "VERIFIED_ISSUED");
+        assert_eq!(payload["epistemicStrength"], "VERIFIED");
+        assert_eq!(payload["freshness"], "CURRENT");
+        assert_eq!(payload["artifactId"], "ARTIFACT-011");
+        assert_eq!(payload["action"], "bounded_diagnostic_activation");
+        assert_eq!(payload["missionReceiptId"], hex32(&mission_id));
+        assert_eq!(payload["manifestRef"], hex32(&manifest_id));
+        assert!(payload["reasonCodes"].as_array().unwrap().is_empty());
+        assert!(payload["notEstablished"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item == "node0_closure"));
     }
 
     // ========================================================================

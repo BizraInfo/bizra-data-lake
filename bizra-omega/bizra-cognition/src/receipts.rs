@@ -51,6 +51,10 @@ pub enum ReceiptKind {
     // (path + deterministic listing digest + file_count). Read-only
     // semantics; does not mutate the filesystem.
     MissionExecuted = 0x70,
+    // Node0 bounded-diagnostic companion receipt.  The producer path remains
+    // separately gated; this discriminant lets read-side observers distinguish
+    // the typed witness from generic chain activity.
+    BoundedDiagnostic = 0x71,
     DegradedPath = 0xF0,
 }
 
@@ -67,6 +71,7 @@ impl ReceiptKind {
             0x60 => Some(Self::Manifest),
             0x61 => Some(Self::PrincipalActivation),
             0x70 => Some(Self::MissionExecuted),
+            0x71 => Some(Self::BoundedDiagnostic),
             0xF0 => Some(Self::DegradedPath),
             _ => None,
         }
@@ -110,6 +115,9 @@ pub enum DecodeError {
     HashMismatch {
         expected: Blake3Hash,
         computed: Blake3Hash,
+    },
+    TrailingBytes {
+        count: usize,
     },
 }
 

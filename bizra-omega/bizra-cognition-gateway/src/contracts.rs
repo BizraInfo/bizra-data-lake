@@ -41,6 +41,7 @@ pub enum ReceiptKindName {
     Manifest,
     PrincipalActivation,
     MissionExecuted,
+    BoundedDiagnostic,
     DegradedPath,
 }
 
@@ -58,6 +59,7 @@ impl ReceiptKindName {
             Self::Manifest => 0x60,
             Self::PrincipalActivation => 0x61,
             Self::MissionExecuted => 0x70,
+            Self::BoundedDiagnostic => 0x71,
             Self::DegradedPath => 0xF0,
         }
     }
@@ -77,9 +79,71 @@ impl From<bizra_cognition::receipts::ReceiptKind> for ReceiptKindName {
             ReceiptKind::Manifest => Self::Manifest,
             ReceiptKind::PrincipalActivation => Self::PrincipalActivation,
             ReceiptKind::MissionExecuted => Self::MissionExecuted,
+            ReceiptKind::BoundedDiagnostic => Self::BoundedDiagnostic,
             ReceiptKind::DegradedPath => Self::DegradedPath,
         }
     }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// ARTIFACT-011 observation group
+// ════════════════════════════════════════════════════════════════════
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub enum ArtifactObservationState {
+    #[serde(rename = "VERIFIED_ISSUED")]
+    VerifiedIssued,
+    #[serde(rename = "UNKNOWN")]
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub enum ArtifactObservationStrength {
+    #[serde(rename = "VERIFIED")]
+    Verified,
+    #[serde(rename = "UNKNOWN")]
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/")]
+pub enum ArtifactObservationFreshness {
+    #[serde(rename = "CURRENT")]
+    Current,
+    #[serde(rename = "UNKNOWN")]
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../bindings/", rename_all = "camelCase")]
+pub struct ArtifactObservationContract {
+    pub schema: String,
+    #[serde(rename = "artifactId")]
+    pub artifact_id: String,
+    #[serde(rename = "domainState")]
+    pub domain_state: ArtifactObservationState,
+    #[serde(rename = "epistemicStrength")]
+    pub epistemic_strength: ArtifactObservationStrength,
+    pub freshness: ArtifactObservationFreshness,
+    #[serde(rename = "missionId")]
+    pub mission_id: Option<String>,
+    #[serde(rename = "missionReceiptId")]
+    pub mission_receipt_id: Option<String>,
+    #[serde(rename = "artifactReceiptId")]
+    pub artifact_receipt_id: Option<String>,
+    #[serde(rename = "manifestRef")]
+    pub manifest_ref: Option<String>,
+    pub action: Option<String>,
+    #[serde(rename = "evidenceRefs")]
+    pub evidence_refs: Vec<String>,
+    #[serde(rename = "reasonCodes")]
+    pub reason_codes: Vec<String>,
+    #[serde(rename = "proofCeiling")]
+    pub proof_ceiling: Vec<String>,
+    #[serde(rename = "notEstablished")]
+    pub not_established: Vec<String>,
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -508,6 +572,7 @@ mod tests {
             (ReceiptKind::Manifest, 0x60),
             (ReceiptKind::PrincipalActivation, 0x61),
             (ReceiptKind::MissionExecuted, 0x70),
+            (ReceiptKind::BoundedDiagnostic, 0x71),
             (ReceiptKind::DegradedPath, 0xF0),
         ];
         for (rk, byte) in pairs {
