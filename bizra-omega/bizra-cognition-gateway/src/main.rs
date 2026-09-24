@@ -48,7 +48,9 @@ use bizra_cognition::mission_freeze_v1::{
 use bizra_cognition::poi_ledger::PoiEntry;
 use bizra_cognition::principal_activation::{NodeIdentityAnchor, PrincipalActivationEnvelope};
 use bizra_cognition::receipt_freeze_v1::ReceiptArtifact;
-use bizra_cognition::receipts::{Blake3Hash, InMemoryPayloadStore, ReceiptChain, ReceiptKind};
+use bizra_cognition::receipts::{
+    Blake3Hash, InMemoryPayloadStore, Receipt, ReceiptChain, ReceiptKind,
+};
 use bizra_cognition::resource_registry::{RegisterOutcome, ResourceKind, TypedResource, UrpView};
 use bizra_cognition::runtime::OrganizeOutcome;
 use bizra_cognition::runtime::{
@@ -588,21 +590,25 @@ fn unknown_artifact011_observation(
 /// authority, idempotency, runtime/build, or independent-postcondition binding.
 /// A valid legacy payload therefore remains UNKNOWN until those bindings are
 /// supplied by the governed effect owner.
-fn observe_artifact011(
+fn observe_artifact011_from_records(
     rt: &CognitionRuntime,
+    records: &[Receipt],
     chain_genesis: Blake3Hash,
 ) -> ArtifactObservationContract {
     let evidence_refs = vec!["/chain".to_string()];
-    if rt.chain.verify_continuity(chain_genesis).is_err() {
-        return unknown_artifact011_observation(
-            vec!["CURRENT_CHAIN_CONTINUITY_INVALID"],
-            evidence_refs,
-        );
+    let mut expected_prev = chain_genesis;
+    for record in records {
+        if record.prev != expected_prev {
+            return unknown_artifact011_observation(
+                vec!["CURRENT_CHAIN_CONTINUITY_INVALID"],
+                evidence_refs,
+            );
+        }
+        expected_prev = record.hash;
     }
 
-    let candidates: Vec<_> = rt
-        .chain
-        .records()
+    let candidates: Vec<_> = records
+        .iter()
         .filter(|record| record.kind == ReceiptKind::BoundedDiagnostic)
         .collect();
 
@@ -652,9 +658,8 @@ fn observe_artifact011(
         );
     }
 
-    let mission_record = match rt
-        .chain
-        .records()
+    let mission_record = match records
+        .iter()
         .find(|record| record.hash == artifact.mission_receipt_ref)
     {
         Some(record) => record,
@@ -685,9 +690,8 @@ fn observe_artifact011(
         }
     };
 
-    let manifest_record = match rt
-        .chain
-        .records()
+    let manifest_record = match records
+        .iter()
         .find(|record| record.hash == artifact.manifest_ref)
     {
         Some(record) => record,
@@ -745,6 +749,41 @@ fn observe_artifact011(
         vec!["MISSION_BOUND_GOVERNED_BINDINGS_UNAVAILABLE"],
         evidence_refs,
     )
+}
+
+/// Read the snapshot anew for every request, then fetch any referenced payload
+/// from the attached durable store. Sled's exclusive writer lock rules out a
+/// second database open in the serving process; the observer therefore uses
+/// the runtime's existing store handle but never its in-memory record list.
+fn observe_artifact011_durable(
+    rt: &CognitionRuntime,
+    chain_genesis: Blake3Hash,
+) -> ArtifactObservationContract {
+    let unknown = |reason| unknown_artifact011_observation(vec![reason], vec!["/chain".into()]);
+    let Some(store) = rt.receipt_chain_store() else {
+        return unknown("AUTHORITATIVE_RECEIPT_STORE_NOT_CONFIGURED");
+    };
+    let snapshot = match store.read_snapshot() {
+        Ok(Some(snapshot)) => snapshot,
+        Ok(None) => return unknown("DURABLE_CHAIN_SNAPSHOT_NOT_FOUND"),
+        Err(_) => return unknown("DURABLE_CHAIN_SNAPSHOT_UNREADABLE"),
+    };
+
+    let mut expected_prev = chain_genesis;
+    for record in &snapshot.records {
+        if record.prev != expected_prev {
+            return unknown("DURABLE_CHAIN_SNAPSHOT_MISMATCH");
+        }
+        expected_prev = record.hash;
+    }
+    if snapshot.head != expected_prev
+        || snapshot.head != rt.chain.head()
+        || snapshot.records.len() != rt.chain.len()
+    {
+        return unknown("DURABLE_CHAIN_SNAPSHOT_MISMATCH");
+    }
+
+    observe_artifact011_from_records(rt, &snapshot.records, chain_genesis)
 }
 
 fn state_snapshot_from_dto(
@@ -1162,7 +1201,7 @@ async fn get_chain(State(state): State<AppState>) -> Json<ReceiptChainHeadDto> {
 
 async fn get_artifact011(State(state): State<AppState>) -> Json<ArtifactObservationContract> {
     let rt = state.runtime.read().await;
-    Json(observe_artifact011(&rt, state.chain_genesis))
+    Json(observe_artifact011_durable(&rt, state.chain_genesis))
 }
 
 async fn get_chain_receipt(
@@ -2175,6 +2214,17 @@ mod tests {
         }
     }
 
+    fn new_state_with_authoritative_receipt_store(root: &std::path::Path) -> AppState {
+        let mut runtime = fresh_in_memory_runtime([0u8; 32]);
+        runtime
+            .bootstrap_authoritative_receipt_store_at(root, [0u8; 32])
+            .expect("temporary authoritative receipt store should bootstrap");
+        AppState {
+            runtime: Arc::new(RwLock::new(runtime)),
+            chain_genesis: [0u8; 32],
+        }
+    }
+
     /// Build an AppState whose CognitionRuntime was bootstrapped from a
     /// live sovereign_state/ tempdir. Used to exercise Phase 2 durable-read
     /// fall-through without touching process env vars.
@@ -2309,7 +2359,8 @@ mod tests {
 
     #[tokio::test]
     async fn artifact011_observer_does_not_infer_from_generic_chain_activity() {
-        let state = new_state_env_free();
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_authoritative_receipt_store(td.path());
         {
             let mut rt = state.runtime.write().await;
             let generic = ReceiptArtifact::new(
@@ -2321,7 +2372,12 @@ mod tests {
                 1,
             );
             rt.chain.append_with_payload(generic).unwrap();
+            rt.write_receipt_chain_store()
+                .expect("authoritative store attached")
+                .unwrap();
         }
+        let snapshot_path = td.path().join("chain_snapshot.json");
+        let snapshot_before = std::fs::read(&snapshot_path).unwrap();
 
         let response = router(state)
             .oneshot(
@@ -2343,11 +2399,61 @@ mod tests {
             .unwrap()
             .iter()
             .any(|code| code == "TYPED_ARTIFACT_RECEIPT_NOT_FOUND"));
+        assert_eq!(std::fs::read(snapshot_path).unwrap(), snapshot_before);
+    }
+
+    #[tokio::test]
+    async fn artifact011_without_authoritative_store_remains_unknown() {
+        let response = router(new_state_env_free())
+            .oneshot(
+                Request::builder()
+                    .uri("/artifacts/ARTIFACT-011")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = to_bytes(response.into_body(), 16 * 1024).await.unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(payload["domainState"], "UNKNOWN");
+        assert!(payload["reasonCodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|code| code == "AUTHORITATIVE_RECEIPT_STORE_NOT_CONFIGURED"));
+    }
+
+    #[tokio::test]
+    async fn artifact011_observer_leaves_a_partial_snapshot_untouched_and_unknown() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_authoritative_receipt_store(td.path());
+        let snapshot_path = td.path().join("chain_snapshot.json");
+        std::fs::write(&snapshot_path, b"{").unwrap();
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/artifacts/ARTIFACT-011")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = to_bytes(response.into_body(), 16 * 1024).await.unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(payload["domainState"], "UNKNOWN");
+        assert!(payload["reasonCodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|code| code == "DURABLE_CHAIN_SNAPSHOT_UNREADABLE"));
+        assert_eq!(std::fs::read(snapshot_path).unwrap(), b"{");
     }
 
     #[tokio::test]
     async fn artifact011_observer_rejects_legacy_typed_receipt_without_governed_bindings() {
-        let state = new_state_env_free();
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_authoritative_receipt_store(td.path());
         let mission_id;
         let manifest_id;
         {
@@ -2376,6 +2482,9 @@ mod tests {
                 rt.chain.head(),
             );
             rt.chain.append_with_payload(artifact).unwrap();
+            rt.write_receipt_chain_store()
+                .expect("authoritative store attached")
+                .unwrap();
         }
 
         let response = router(state)
@@ -2398,6 +2507,69 @@ mod tests {
             .unwrap()
             .iter()
             .any(|code| code == "MISSION_BOUND_GOVERNED_BINDINGS_UNAVAILABLE"));
+    }
+
+    #[tokio::test]
+    async fn artifact011_observer_refuses_a_durable_snapshot_that_disagrees_with_runtime_head() {
+        let td = tempfile::TempDir::new().unwrap();
+        let state = new_state_with_authoritative_receipt_store(td.path());
+        {
+            let mut rt = state.runtime.write().await;
+            let mission = ReceiptArtifact::new(
+                ReceiptKind::NodeLifecycle,
+                [1; 32],
+                [2; 32],
+                Vec::new(),
+                rt.chain.head(),
+                1,
+            );
+            let mission_id = rt.chain.append_with_payload(mission).unwrap();
+            let manifest = ManifestArtifact::from_window(1, 2, vec![mission_id], rt.chain.head());
+            let manifest_id = rt.chain.append_with_payload(manifest).unwrap();
+            let artifact = BoundedDiagnosticReceipt::new(
+                mission_id,
+                manifest_id,
+                [3; 32],
+                [4; 32],
+                [5; 32],
+                [6; 32],
+                3,
+                rt.chain.head(),
+            );
+            rt.chain.append_with_payload(artifact).unwrap();
+            rt.write_receipt_chain_store()
+                .expect("authoritative store attached")
+                .unwrap();
+            rt.receipt_chain_store()
+                .expect("authoritative store attached")
+                .write_snapshot(
+                    &bizra_cognition::receipt_history_cache::ReceiptHistorySnapshot {
+                        head: [0u8; 32],
+                        last_timestamp_ns: None,
+                        records: Vec::new(),
+                    },
+                )
+                .unwrap();
+        }
+
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/artifacts/ARTIFACT-011")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), 16 * 1024).await.unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(payload["domainState"], "UNKNOWN");
+        assert!(payload["reasonCodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|code| code == "DURABLE_CHAIN_SNAPSHOT_MISMATCH"));
     }
 
     // ========================================================================
