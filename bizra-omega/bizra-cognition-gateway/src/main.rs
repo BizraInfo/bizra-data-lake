@@ -580,12 +580,14 @@ fn unknown_artifact011_observation(
     }
 }
 
-/// Read-only observer for the typed ARTIFACT-011 witness.
+/// Read-only observer for the legacy chain-linked diagnostic receipt.
 ///
 /// Generic chain length, health, principal status, free-text intent, and
-/// historical mirrors never enter this decision. The only green path is one
-/// current BoundedDiagnostic payload whose references and hashes correspond
-/// through the authoritative chain.
+/// historical mirrors never enter this decision. Chain correspondence alone
+/// is insufficient for a mission-bound witness: this payload has no canonical
+/// authority, idempotency, runtime/build, or independent-postcondition binding.
+/// A valid legacy payload therefore remains UNKNOWN until those bindings are
+/// supplied by the governed effect owner.
 fn observe_artifact011(
     rt: &CognitionRuntime,
     chain_genesis: Blake3Hash,
@@ -670,7 +672,7 @@ fn observe_artifact011(
             evidence_refs,
         );
     }
-    let mission = match rt
+    let _mission = match rt
         .chain
         .fetch_and_decode::<ReceiptArtifact>(&mission_record.hash)
     {
@@ -737,31 +739,12 @@ fn observe_artifact011(
         );
     }
 
-    ArtifactObservationContract {
-        schema: "bizra.node0.artifact_observation.v0.1".into(),
-        artifact_id: artifact.artifact_id,
-        domain_state: ArtifactObservationState::VerifiedIssued,
-        epistemic_strength: ArtifactObservationStrength::Verified,
-        freshness: ArtifactObservationFreshness::Current,
-        mission_id: Some(hex32(&mission.claim_ref)),
-        mission_receipt_id: Some(hex32(&mission_record.hash)),
-        artifact_receipt_id: Some(artifact_hex),
-        manifest_ref: Some(hex32(&manifest_record.hash)),
-        action: Some(artifact.action),
+    // ponytail: legacy receipt proves chain correspondence only; keep UNKNOWN
+    // until canonical authority, effect, postcondition, and source bindings exist.
+    unknown_artifact011_observation(
+        vec!["MISSION_BOUND_GOVERNED_BINDINGS_UNAVAILABLE"],
         evidence_refs,
-        reason_codes: Vec::new(),
-        proof_ceiling: vec![
-            "TYPED_ARTIFACT_PAYLOAD_HASH_VERIFIED".into(),
-            "MISSION_RECEIPT_CORRESPONDENCE_VERIFIED".into(),
-            "MANIFEST_INTEGRITY_VERIFIED".into(),
-            "CURRENT_CHAIN_REOBSERVATION".into(),
-        ],
-        not_established: vec![
-            "human_consent".into(),
-            "fate_admission".into(),
-            "node0_closure".into(),
-        ],
-    }
+    )
 }
 
 fn state_snapshot_from_dto(
@@ -2363,7 +2346,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn artifact011_observer_verifies_typed_witness_and_correspondence() {
+    async fn artifact011_observer_rejects_legacy_typed_receipt_without_governed_bindings() {
         let state = new_state_env_free();
         let mission_id;
         let manifest_id;
@@ -2407,19 +2390,14 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
         let body = to_bytes(response.into_body(), 16 * 1024).await.unwrap();
         let payload: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(payload["domainState"], "VERIFIED_ISSUED");
-        assert_eq!(payload["epistemicStrength"], "VERIFIED");
-        assert_eq!(payload["freshness"], "CURRENT");
-        assert_eq!(payload["artifactId"], "ARTIFACT-011");
-        assert_eq!(payload["action"], "bounded_diagnostic_activation");
-        assert_eq!(payload["missionReceiptId"], hex32(&mission_id));
-        assert_eq!(payload["manifestRef"], hex32(&manifest_id));
-        assert!(payload["reasonCodes"].as_array().unwrap().is_empty());
-        assert!(payload["notEstablished"]
+        assert_eq!(payload["domainState"], "UNKNOWN");
+        assert_eq!(payload["epistemicStrength"], "UNKNOWN");
+        assert_eq!(payload["freshness"], "UNKNOWN");
+        assert!(payload["reasonCodes"]
             .as_array()
             .unwrap()
             .iter()
-            .any(|item| item == "node0_closure"));
+            .any(|code| code == "MISSION_BOUND_GOVERNED_BINDINGS_UNAVAILABLE"));
     }
 
     // ========================================================================
