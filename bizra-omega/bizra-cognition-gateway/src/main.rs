@@ -18,6 +18,7 @@
 #![allow(dead_code, clippy::result_large_err)]
 
 mod contracts;
+mod d18_diagnostic_write;
 
 use crate::contracts::{
     ArtifactObservationContract, ArtifactObservationFreshness, ArtifactObservationState,
@@ -2152,6 +2153,11 @@ fn router(state: AppState) -> Router {
         .route("/missions/organize", post(post_organize))
         .route("/poi/ledger", get(get_poi_ledger))
         .route("/poi/summary", get(get_poi_summary))
+        .route(
+            "/diagnostic/write-correlation",
+            get(d18_diagnostic_write::diagnostic_write_status)
+                .post(d18_diagnostic_write::diagnostic_write_post),
+        )
         .with_state(state)
 }
 
@@ -2180,9 +2186,13 @@ async fn main() {
     tracing::info!(%addr, domain = DOMAIN, "bizra-cognition-gateway v0.2 listening");
 
     let listener = tokio::net::TcpListener::bind(addr).await.expect("bind");
-    axum::serve(listener, router(state).into_make_service())
-        .await
-        .expect("serve");
+    // ConnectInfo required for loopback-only enforcement on D18 diagnostic write.
+    axum::serve(
+        listener,
+        router(state).into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .expect("serve");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2334,6 +2344,50 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn d18_diagnostic_write_disabled_by_default_get_and_post() {
+        std::env::remove_var("BIZRA_D18_DIAGNOSTIC_WRITE_ARMED");
+        std::env::remove_var("BIZRA_D18_DIAGNOSTIC_LEASE_PATH");
+
+        let get_res = router(new_state_env_free())
+            .oneshot(
+                Request::builder()
+                    .uri("/diagnostic/write-correlation")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(get_res.status(), StatusCode::FORBIDDEN);
+        let get_body = to_bytes(get_res.into_body(), 16 * 1024).await.unwrap();
+        let get_json: serde_json::Value = serde_json::from_slice(&get_body).unwrap();
+        assert_eq!(get_json["status"], "DISABLED");
+        assert_eq!(get_json["transport_class"], "loopback_TCP");
+        assert_eq!(get_json["target_class"], "A_QUARANTINE_UNDER_EXISTING_RW");
+        assert_eq!(get_json["armed"], false);
+
+        use axum::extract::connect_info::MockConnectInfo;
+        let post_res = router(new_state_env_free())
+            .layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 54321))))
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/diagnostic/write-correlation")
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(
+                        r#"{"experiment_id":"x","nonce_sha256":"aa","target_abspath":"/tmp/x"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(post_res.status(), StatusCode::FORBIDDEN);
+        let post_body = to_bytes(post_res.into_body(), 16 * 1024).await.unwrap();
+        let post_json: serde_json::Value = serde_json::from_slice(&post_body).unwrap();
+        assert_eq!(post_json["ok"], false);
+        assert_eq!(post_json["code"], "DISABLED");
     }
 
     #[tokio::test]
